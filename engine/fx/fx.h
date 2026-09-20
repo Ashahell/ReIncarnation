@@ -18,6 +18,7 @@
 #ifndef RI_FX_H
 #define RI_FX_H
 #include <stdint.h>
+#include "engine/fx/pcf.h"
 
 /* Generic wrapper types (Appendix D fx_type domain). */
 #define RI_FX_DELAY 0u
@@ -66,7 +67,12 @@ struct RiFXComp {
     uint8_t thresh; /* 0..127 knob echo */
 };
 
-/* Generic handle (Appendix D RIFX sketch, executor-defined shape). */
+/* Generic handle (Appendix D RIFX sketch, executor-defined shape).
+ * Fix round 1: the handle OWNS a persistent struct PCF (streaming-safe:
+ * SVF state + beat_pos survive across RiFXRender block calls; the render
+ * path never re-inits it). Wrapper delays come from a 2-slot static pool:
+ * RiFXCreate fails closed (NULL) when the pool is exhausted, and a DELAY
+ * handle without a line buffer renders silence (RiFXValid reports 2). */
 struct RIFX {
     uint32_t type;
     uint8_t busy;
@@ -74,6 +80,7 @@ struct RIFX {
     struct RiFXDelay delay;
     struct RiFXDist dist;
     struct RiFXComp comp;
+    struct PCF pcf; /* owned voice: init at create, reused per render */
     uint8_t pcf_pattern;
     uint8_t pcf_mode;
     uint8_t pcf_base; /* knob echoes for the wrapped PCF */
@@ -104,8 +111,12 @@ void ri_fxcomp_reset(struct RiFXComp *c);
 void ri_fxcomp_render(struct RiFXComp *c, const float *in, float *out,
     uint32_t n);
 
-/* Generic wrapper (Appendix D names, executor-defined shape). */
+/* Generic wrapper (Appendix D names, executor-defined shape).
+ * RiFXCreate returns 0 on bad type, full pool, or exhausted delay pool.
+ * RiFXValid returns 0 when render-ready, 2 when a DELAY handle has no
+ * line buffer (only reachable by construction, never by Create). */
 struct RIFX *RiFXCreate(uint32_t fx_type);
+int RiFXValid(const struct RIFX *x);
 void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value);
 void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
     float sr, float bpm);

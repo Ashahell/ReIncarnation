@@ -190,10 +190,31 @@ static uint32_t RI_FX_USED = 0;
 static float RI_FX_DBUF[2][48001];
 static uint32_t RI_FX_DBUF_USED = 0;
 
+/* Map wrapper PCF knob echoes onto the owned voice fields. Touches
+ * parameters only — SVF state (low/band) and beat_pos are never reset
+ * here, so block streaming stays continuous. */
+static void ri_fx_pcf_apply(struct RIFX *x) {
+    x->pcf.base_fc =
+        100.0f * ri_pow2(((float)x->pcf_base / 127.0f) * 6.321928f);
+    x->pcf.q = RI_PCF_Q_MIN +
+        ((float)x->pcf_q / 127.0f) * (RI_PCF_Q_MAX - RI_PCF_Q_MIN);
+    x->pcf.amt_oct = ((float)x->pcf_amt / 127.0f) * 8.0f - 4.0f;
+    x->pcf.mode = x->pcf_mode;
+    x->pcf.pattern = x->pcf_pattern;
+}
+
 struct RIFX *RiFXCreate(uint32_t fx_type) {
     struct RIFX *x;
+    float *db = 0;
     if (fx_type > RI_FX_PCF || RI_FX_USED >= RI_FX_POOL)
         return 0;
+    if (fx_type == RI_FX_DELAY) {
+        /* Delay pool exhausted: fail closed (no handle), never hand out
+         * a bufferless delay that a later render could misroute. */
+        if (RI_FX_DBUF_USED >= 2u)
+            return 0;
+        db = RI_FX_DBUF[RI_FX_DBUF_USED++];
+    }
     x = &RI_FX_INST[RI_FX_USED++];
     x->type = fx_type;
     x->busy = 1;
@@ -210,8 +231,8 @@ struct RIFX *RiFXCreate(uint32_t fx_type) {
     x->pad2[0] = 0;
     x->pad2[1] = 0;
     x->pad2[2] = 0;
-    if (fx_type == RI_FX_DELAY && RI_FX_DBUF_USED < 2u) {
-        ri_fxdelay_init(&x->delay, RI_FX_DBUF[RI_FX_DBUF_USED++], 48001u);
+    if (db) {
+        ri_fxdelay_init(&x->delay, db, 48001u);
         ri_fxdelay_sync(&x->delay, 140.0f, 0.75f, 48000.0f);
     } else {
         x->delay.buf = 0;
@@ -221,7 +242,22 @@ struct RIFX *RiFXCreate(uint32_t fx_type) {
         x->delay.fb = 0.0f;
         x->delay.mix = 0.0f;
     }
+    /* Owned PCF voice: init once here, reused across renders (never
+     * re-inited on the render path — block clicks otherwise). */
+    pcf_init(&x->pcf);
+    ri_fx_pcf_apply(x);
+    pcf_set_tempo(&x->pcf, 140.0f);
     return x;
+}
+
+/* Render-ready check: 0 ok, 2 = DELAY handle without a line buffer
+ * (unreachable via Create, which fails closed; defensive only). */
+int RiFXValid(const struct RIFX *x) {
+    if (!x)
+        return 2;
+    if (x->type == RI_FX_DELAY && !x->delay.buf)
+        return 2;
+    return 0;
 }
 
 void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value) {
@@ -277,17 +313,23 @@ void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value) {
 
 void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
     float sr, float bpm) {
-    struct PCF p;
-    float base, q, amt;
+    uint32_t i;
     if (!x || !in || !out)
         return;
     if (!(sr > 0.0f))
         sr = 48000.0f;
-    if (x->type == RI_FX_DELAY && x->delay.buf) {
+    if (x->type == RI_FX_DELAY) {
+        if (!x->delay.buf) {
+            /* Fail-closed: bufferless delay renders silence, never a
+             * different effect (Create fails closed, so this is
+             * defensive; see RiFXValid). */
+            for (i = 0; i < frames; i++)
+                out[i] = 0.0f;
+            return;
+        }
         if (bpm >= 30.0f && bpm <= 300.0f) {
             /* Re-resolve the musical delay against the live tempo. */
-            float beats = 0.75f;
-            ri_fxdelay_sync(&x->delay, bpm, beats, sr);
+            ri_fxdelay_sync(&x->delay, bpm, 0.75f, sr);
         }
         ri_fxdelay_render(&x->delay, in, out, frames);
         return;
@@ -300,19 +342,15 @@ void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
         ri_fxcomp_render(&x->comp, in, out, frames);
         return;
     }
-    /* PCF via the wrapper knobs (base 100..8000 exp, Q 0.7..8, amt ±4). */
-    pcf_init(&p);
-    base = 100.0f * ri_pow2(((float)x->pcf_base / 127.0f) * 6.321928f);
-    q = RI_PCF_Q_MIN +
-        ((float)x->pcf_q / 127.0f) * (RI_PCF_Q_MAX - RI_PCF_Q_MIN);
-    amt = ((float)x->pcf_amt / 127.0f) * 8.0f - 4.0f;
-    p.base_fc = base;
-    p.q = q;
-    p.amt_oct = amt;
-    p.mode = x->pcf_mode;
-    p.pattern = x->pcf_pattern;
-    pcf_set_tempo(&p, bpm >= 30.0f && bpm <= 300.0f ? bpm : 140.0f);
-    pcf_render(&p, in, out, frames, sr);
+    if (x->type != RI_FX_PCF) {
+        for (i = 0; i < frames; i++)
+            out[i] = 0.0f;
+        return;
+    }
+    /* PCF via the OWNED voice: parameters re-applied, state preserved. */
+    ri_fx_pcf_apply(x);
+    pcf_set_tempo(&x->pcf, bpm >= 30.0f && bpm <= 300.0f ? bpm : 140.0f);
+    pcf_render(&x->pcf, in, out, frames, sr);
 }
 
 void RiFXReset(struct RIFX *x) {
@@ -322,4 +360,8 @@ void RiFXReset(struct RIFX *x) {
         ri_fxdelay_reset(&x->delay);
     if (x->type == RI_FX_COMP)
         ri_fxcomp_reset(&x->comp);
+    if (x->type == RI_FX_PCF) {
+        pcf_init(&x->pcf);
+        ri_fx_pcf_apply(x);
+    }
 }

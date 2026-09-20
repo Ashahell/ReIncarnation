@@ -160,6 +160,8 @@ int main(void) {
         ratio_db = (float)fabs(20.0 * log10((double)r1 / (double)r0));
         RI_ASSERT(ratio_db <= 0.2f, "drive0 unity %.4g dB", (double)ratio_db);
         printf("dist drive0 unity: %.4g dB\n", (double)ratio_db);
+        /* 16x16 grid (fix round 1: 0..120 step 8 per axis — 127 is
+         * clamp-covered, not gridded): engaged cells finite + bounded. */
         for (dv = 0; dv <= 127u; dv += 8u) {
             for (sv = 0; sv <= 127u; sv += 8u) {
                 float mx = 0.0f;
@@ -310,6 +312,28 @@ int main(void) {
         RI_ASSERT(rms(OA, 4096u) > 0.01f, "wrap pcf silent");
         RiFXReset(dl);
         RiFXReset(cp);
+        /* wrapper PCF streams block-boundary-clean (fix round 1): one
+         * 4096 call vs two 2048 halves on the same handle, bit-identical.
+         * The old per-call re-init failed this (fresh SVF + beat_pos in
+         * the second half). */
+        RiFXReset(pf);
+        RiFXRender(pf, IN, OA, 4096u, SR, 140.0f);
+        RiFXReset(pf);
+        RiFXRender(pf, IN, OB, 2048u, SR, 140.0f);
+        RiFXRender(pf, IN + 2048u, OB + 2048u, 2048u, SR, 140.0f);
+        for (i = 0; i < 4096u; i++)
+            RI_ASSERT(OA[i] == OB[i], "wrap pcf split at %u", i);
+        /* delay pool fails closed (fix round 1): 2nd line ok, 3rd NULL */
+        RI_ASSERT(RiFXValid(dl) == 0, "dl not valid");
+        RI_ASSERT(RiFXValid(pf) == 0, "pf not valid");
+        RI_ASSERT(RiFXValid(0) == 2, "null valid");
+        {
+            struct RIFX *d2 = RiFXCreate(RI_FX_DELAY);
+            RI_ASSERT(d2 != 0, "2nd delay refused");
+            RI_ASSERT(RiFXValid(d2) == 0, "d2 not valid");
+            RI_ASSERT(RiFXCreate(RI_FX_DELAY) == 0,
+                "delay pool not fail-closed");
+        }
     }
 
     /* --- 8. validator mutants (wrong magic, truncated) --- */

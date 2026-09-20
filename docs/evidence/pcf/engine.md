@@ -83,7 +83,7 @@ Until a row locks, `pcf_pattern_step` returns the neutral 64 for every
   impulse echo lands exactly on `delay_smp` (`t1_fx` §3).
 - Distortion (asymmetric tanh, drive + shape): drive 0 + shape 0 is an
   exact bypass, so unity holds by construction (measured 0 dB vs ±0.2 dB);
-  engaged path normalized so full-scale DC maps to 1.0; 17×17 grid fuzz
+  engaged path normalized so full-scale DC maps to 1.0; 16×16 grid fuzz
   finite and bounded (`t1_fx` §4).
 - Compressor (4:1, auto make-up): attack 10 ms / release 100 ms peak
   follower, threshold −40..0 dB, make-up premultiplied at set time
