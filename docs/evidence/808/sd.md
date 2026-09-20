@@ -7,6 +7,7 @@
 |-----------|-------|----------|
 | Partials | 185 + 330 Hz (`RI_808_SD_F1/F2`) | P-08 nominal |
 | Revision tolerance | 173.3/336.0 pair ALSO passes | Spec §10 (E3): both revisions accepted |
+| Revision tolerance | 249.6/499.0 pair ALSO passes | Spec §10 (E3): both revisions accepted |
 | Tone BP | HP 1.4 kHz + LP 2.3 kHz cascade on noise | P-08 tone 1.4↔2.3 kHz |
 | Snappy decay | noise env exp(−t/90 ms) | E0 (Snappy knob deferred) |
 | τ_amp (tone) | 0.25 s default / 0.5 s max | E0 |

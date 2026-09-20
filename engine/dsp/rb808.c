@@ -157,7 +157,6 @@ void rb808_init_set(struct RB808Set *s) {
         s->v[i].rng = 0u;
         s->v[i].st_hp = 0.0f;
         s->v[i].st_lp = 0.0f;
-        s->v[i].st_lp2 = 0.0f;
         s->v[i].tail = 1.0f;
     }
 }
@@ -180,7 +179,6 @@ void rb808_trigger(struct RB808Set *s, uint32_t voice, uint32_t accent, float tu
     v->rng = 0x12345678u + (uint32_t)voice * 0x9e3779b9u; /* fixed seed: D1 */
     v->st_hp = 0.0f;
     v->st_lp = 0.0f;
-    v->st_lp2 = 0.0f;
     s->triggered |= (uint16_t)(1u << voice);
 }
 

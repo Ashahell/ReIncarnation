@@ -109,6 +109,8 @@ done
 (cd "$ROOT" && sha256sum -c tests/golden/808/bd.wav.sha256 tests/golden/808/sd.wav.sha256 tests/golden/808/lt.wav.sha256 tests/golden/808/mt.wav.sha256 tests/golden/808/ht.wav.sha256 tests/golden/808/lc.wav.sha256 tests/golden/808/mc.wav.sha256 tests/golden/808/hc.wav.sha256 tests/golden/808/rs.wav.sha256 tests/golden/808/cl.wav.sha256 tests/golden/808/cp.wav.sha256 tests/golden/808/ch.wav.sha256 tests/golden/808/oh.wav.sha256 tests/golden/808/cy.wav.sha256 tests/golden/808/cb.wav.sha256 tests/golden/808/storm.wav.sha256) || { echo "FAIL: 808 golden sha256 mismatch"; exit 1; }
 T8=/tmp/ri/run/audit8
 mkdir -p "$T8"
-"$OUT/render" --808 storm --out "$T8/storm.wav" >/dev/null || exit 1
-cmp -s "$SG8/storm.wav" "$T8/storm.wav" || { echo "FAIL: storm re-render differs (not deterministic)"; exit 1; }
+for v in bd sd lt mt ht lc mc hc rs cl cp ch oh cy cb storm; do
+  "$OUT/render" --808 "$v" --out "$T8/$v.wav" >/dev/null || exit 1
+  cmp -s "$SG8/$v.wav" "$T8/$v.wav" || { echo "FAIL: 808/$v re-render differs (not deterministic)"; exit 1; }
+done
 echo "AUDIT 0/0 PASS"

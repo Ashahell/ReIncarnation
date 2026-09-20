@@ -109,10 +109,10 @@ int main(void) {
         for (i = 0; i < 6; i++) {
             double fc = 400.0 * (double)RI_808_METAL_RATIO[i];
             double m0 = goertzel(buf, n, fc);
-            double mlo = goertzel(buf, n, fc * 0.99);
-            double mhi = goertzel(buf, n, fc * 1.01);
+            double mlo = goertzel(buf, n, fc * 0.995);
+            double mhi = goertzel(buf, n, fc * 1.005);
             RI_ASSERT(m0 > mlo && m0 > mhi,
-                "ch ratio %u (%.3f Hz): peak %.6g not above -1%% %.6g / +1%% %.6g",
+                "ch ratio %u (%.3f Hz): peak %.6g not above -0.5%% %.6g / +0.5%% %.6g",
                 i, fc, m0, mlo, mhi);
         }
     }

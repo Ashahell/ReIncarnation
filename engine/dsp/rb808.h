@@ -89,7 +89,6 @@ struct RB808Voice {
     uint32_t rng; /* deterministic LFSR (fixed seed at trigger: D1) */
     float st_hp; /* one-pole states for the voice filter chain */
     float st_lp;
-    float st_lp2;
     float tail; /* clap tail level (separate ~100 ms param, P-11) */
 };
 
