@@ -201,4 +201,36 @@ done
 echo "-- FX render-diff (chain differs from dry: path live, not a rename) --"
 "$OUT/render" --fx dry --out "$T10/dry.wav" >/dev/null || exit 1
 if "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$SG/sched-check.events" --wav-a "$T10/dry.wav" --wav-b "$T10/fx-chain.wav" | grep -q "COMPARE: IDENTICAL"; then echo "FAIL: fx chain renders identical to dry (FX dead)"; exit 1; fi
+echo "== Phase 11: mixer + RIDevice registry (Task 11, gate G11) =="
+T11=/tmp/ri/run/audit11
+mkdir -p "$T11"
+bash "$ROOT/scripts/ri_build_host.sh" test t1_mixer >/dev/null || { echo "FAIL: t1_mixer"; exit 1; }
+test -f "$ROOT/docs/evidence/sequencer/fader-law.md" || { echo "FAIL: missing fader-law ledger"; exit 1; }
+grep -q "P-17" "$ROOT/docs/evidence/sequencer/fader-law.md" || { echo "FAIL: ledger lacks P-17"; exit 1; }
+grep -q "(v/127)" "$ROOT/docs/evidence/sequencer/fader-law.md" || { echo "FAIL: ledger lacks fader law"; exit 1; }
+grep -q "P-16" "$ROOT/docs/evidence/sequencer/fader-law.md" || { echo "FAIL: ledger lacks P-16"; exit 1; }
+grep -q "E0 fader law" "$ROOT/engine/dsp/params.c" || { echo "FAIL: params.c header lacks E0 fader record"; exit 1; }
+test -f "$ROOT/docs/evidence/mixer/red-t1_mixer.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
+grep -q "FAIL" "$ROOT/docs/evidence/mixer/red-t1_mixer.txt" || { echo "FAIL: RED evidence has no FAIL lines"; exit 1; }
+test -f "$ROOT/docs/evidence/mixer/engine.md" || { echo "FAIL: missing mixer engine ledger"; exit 1; }
+echo "-- mixer goldens re-verified --"
+SG11="$ROOT/tests/golden/mixer"
+for v in mix-four mix-solo; do
+  test -f "$SG11/$v.wav" || { echo "FAIL: missing golden mixer/$v.wav"; exit 1; }
+  test -f "$SG11/$v.wav.sha256" || { echo "FAIL: missing sidecar mixer/$v.wav.sha256"; exit 1; }
+done
+(cd "$ROOT" && sha256sum -c tests/golden/mixer/mix-four.wav.sha256 tests/golden/mixer/mix-solo.wav.sha256) || { echo "FAIL: mixer golden sha256 mismatch"; exit 1; }
+"$OUT/render" --mix four --out "$T11/mix-four.wav" >/dev/null || exit 1
+"$OUT/render" --mix solo --out "$T11/mix-solo.wav" >/dev/null || exit 1
+cmp -s "$SG11/mix-four.wav" "$T11/mix-four.wav" || { echo "FAIL: mixer/mix-four re-render differs (not deterministic)"; exit 1; }
+cmp -s "$SG11/mix-solo.wav" "$T11/mix-solo.wav" || { echo "FAIL: mixer/mix-solo re-render differs (not deterministic)"; exit 1; }
+echo "-- audibility floor (silent goldens never pin: peak>=1000, rms>=100) --"
+for v in mix-four mix-solo; do
+  od -An -t d2 -v -j44 "$T11/$v.wav" | awk 'BEGIN { m=0; s=0; n=0 }
+    { for (i=1;i<=NF;i++) { a=$i; if (a<0) a=-a; if (a>m) m=a; s+=$i*$i; n++ } }
+    END { r=sqrt(s/n); printf "mixer/%s peak=%d rms=%.0f\n", VN, m, r;
+      if (m<1000 || r<100) exit 1 }' VN="$v" || { echo "FAIL: mixer/$v silent (audibility floor)"; exit 1; }
+done
+echo "-- mixer render-diff (solo differs from four: solo path live, not a rename) --"
+if "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$SG/sched-check.events" --wav-a "$T11/mix-four.wav" --wav-b "$T11/mix-solo.wav" | grep -q "COMPARE: IDENTICAL"; then echo "FAIL: mixer solo renders identical to four (solo dead)"; exit 1; fi
 echo "AUDIT 0/0 PASS"

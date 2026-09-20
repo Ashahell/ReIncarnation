@@ -1,0 +1,12 @@
+FAIL scripts/../tests/unit/t1_mixer.c:81: v=16 got=-17.99 dB want=-35.99 (err 17.99)
+anchor v=16: gain=0.125984 (-17.99 dB, want -35.99)
+FAIL scripts/../tests/unit/t1_mixer.c:81: v=32 got=-11.97 dB want=-23.95 (err 11.97)
+FAIL scripts/../tests/unit/t1_mixer.c:81: v=48 got=-8.451 dB want=-16.9 (err 8.451)
+FAIL scripts/../tests/unit/t1_mixer.c:81: v=64 got=-5.952 dB want=-11.9 (err 5.952)
+FAIL scripts/../tests/unit/t1_mixer.c:81: v=80 got=-4.014 dB want=-8.029 (err 4.014)
+FAIL scripts/../tests/unit/t1_mixer.c:81: v=96 got=-2.431 dB want=-4.861 (err 2.431)
+FAIL scripts/../tests/unit/t1_mixer.c:81: v=112 got=-1.092 dB want=-2.183 (err 1.092)
+anchor v=127: gain=1 (0 dB, want 0)
+mute transient worst step: 0.015625
+meter: 1 s decay to 0.0999454 (rate 20 dB/s)
+FAIL 7

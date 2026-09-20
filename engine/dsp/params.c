@@ -5,6 +5,15 @@
  * control (accent, volume) uses 2-anchor tables for the same reason.
  * Accent placeholder (spec §2.3 item 5) lives here: single gain multiplier
  * applied by the voice, one place, ledger row in filter-candidate.md D7.
+ *
+ * E0 fader law (Task 11, gate G11; P-17, TC-2.6.1): mixer bus faders,
+ * master, and sends share gain = (v/127)^2, implemented as ri_fader_gain
+ * in engine/mixer/mixer.c — an exact closed form, NOT a table here:
+ * linear interpolation between square-law anchors would sit up to ~6 dB
+ * off the square between anchors (v=8: half the v=16 gain vs the true
+ * (8/127)^2), so a 9-anchor table cannot honor its own formula. Voice
+ * VOLUME above stays a linear trim; the mixer owns loudness. Ledger:
+ * docs/evidence/sequencer/fader-law.md.
  */
 #include "engine/dsp/rb303.h"
 

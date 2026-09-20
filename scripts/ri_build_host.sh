@@ -12,6 +12,7 @@ MOD_dsp303="engine/dsp/rb303.c engine/dsp/params.c"
 MOD_dsp808="engine/dsp/rb808.c"
 MOD_dsp909="engine/dsp/rb909.c project/rbnm.c"
 MOD_fx="engine/fx/fx.c"
+MOD_mixer="engine/mixer/mixer.c engine/framework/ridevice.c"
 MOD_audio="audio_io/audio.c audio_io/backend_null.c"
 # Later tasks APPEND paths to MOD_dsp808, MOD_fx, ... and add matching case lines.
 compile_list() { for f in $1; do test -f "$ROOT/$f" || { echo "MISSING $f"; exit 1; }; gcc $CFLAGS -c "$ROOT/$f" -o "$OUT/$(basename $f .c).o"; done; }
@@ -30,9 +31,9 @@ build_pcf() {
     echo "pcf: SKIP (table unverified)";
   fi }
 case "${1:-all}" in
-  kernels|clock|sched|dsp303|dsp808|dsp909|fx|audio) compile_list "$(eval echo \$MOD_$1)" ;;
+  kernels|clock|sched|dsp303|dsp808|dsp909|fx|mixer|audio) compile_list "$(eval echo \$MOD_$1)" ;;
   pcf) build_pcf strict ;;
-  all) for t in kernels clock sched dsp303 dsp808 dsp909 fx audio; do "$0" $t; done; build_pcf skip ;;
+  all) for t in kernels clock sched dsp303 dsp808 dsp909 fx mixer audio; do "$0" $t; done; build_pcf skip ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
     gcc $CFLAGS -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o -lm 2>/dev/null || \
     gcc $CFLAGS -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o -lm

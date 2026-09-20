@@ -34,6 +34,7 @@
 #include "engine/dsp/kernels.h"
 #include "engine/fx/pcf.h"
 #include "engine/fx/fx.h"
+#include "engine/mixer/mixer.h"
 #include "project/rbnm.h"
 
 #define RI_SR 48000u
@@ -884,10 +885,59 @@ static int render_fx(const char *name, const char *out_path) {
     return write_wav(out_path, pcm, total);
 }
 
+/* --mix stimuli (Task 11, gate G11): 4 sine buses through the real
+ * RiMixer into the mono master. "four": faders 127/96/64/112 with bus1
+ * muted; "solo": same inputs and faders, solo bus2 only. 2 s, 64-frame
+ * blocks at 48 kHz, static buffers, deterministic (D1). */
+static int render_mix(const char *name, const char *out_path) {
+    static float bus[4][96000];
+    static float tmp[96000], snd[96000];
+    static int16_t pcm[96000];
+    struct RiMixer m;
+    uint32_t total = 96000u, pos = 0, j, b;
+    static const float F[4] = { 110.0f, 138.59f, 164.81f, 220.0f };
+    static const uint8_t FD[4] = { 127u, 96u, 64u, 112u };
+    int solo;
+    if (strcmp(name, "four") == 0)
+        solo = 0;
+    else if (strcmp(name, "solo") == 0)
+        solo = 1;
+    else {
+        printf("render: --mix wants four|solo\n");
+        return 2;
+    }
+    for (b = 0; b < 4u; b++) {
+        for (j = 0; j < total; j++)
+            bus[b][j] = 0.35f * ri_sin(red_phase(F[b] * (float)j / 48000.0f));
+    }
+    ri_mix_init(&m, (float)RI_SR);
+    for (b = 0; b < 4u; b++)
+        ri_mix_set_fader(&m, b, FD[b]);
+    if (solo)
+        ri_mix_set_solo(&m, 2, 1);
+    else
+        ri_mix_set_mute(&m, 1, 1);
+    while (pos < total) {
+        uint32_t cc = total - pos;
+        const float *blk[4];
+        if (cc > RI_BLOCK)
+            cc = RI_BLOCK;
+        for (b = 0; b < 4u; b++)
+            blk[b] = bus[b] + pos;
+        ri_mix_render(&m, blk, tmp + pos, snd + pos, cc);
+        pos += cc;
+    }
+    for (j = 0; j < total; j++)
+        pcm[j] = f32_to_s16(tmp[j]);
+    printf("render: mix %s, %u samples -> %s (meter %.4f)\n", name, total,
+        out_path, (double)ri_meter_peak(&m.meter));
+    return write_wav(out_path, pcm, total);
+}
+
 int main(int argc, char **argv) {
     const char *song = NULL, *out = NULL, *ev = NULL, *math = NULL, *v808 = NULL;
     const char *v909 = NULL, *v909pack = NULL, *pack = NULL, *vpcf = NULL;
-    const char *vfx = NULL;
+    const char *vfx = NULL, *vmix = NULL;
     int i;
     if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("usage: render --song FILE --out FILE [--dump-events FILE]\n");
@@ -897,6 +947,7 @@ int main(int argc, char **argv) {
         printf("       render --909pack VOICE --out FILE [--pack FILE]\n");
         printf("       render --pcf sweep --out FILE\n");
         printf("       render --fx dry|delay|chain --out FILE\n");
+        printf("       render --mix four|solo --out FILE\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
         printf("NOTE: this golden proves determinism + skeleton, NOT parity.\n");
         return 0;
@@ -920,6 +971,8 @@ int main(int argc, char **argv) {
             vpcf = argv[++i];
         else if (strcmp(argv[i], "--fx") == 0 && i + 1 < argc)
             vfx = argv[++i];
+        else if (strcmp(argv[i], "--mix") == 0 && i + 1 < argc)
+            vmix = argv[++i];
         else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
             pack = argv[++i];
         else {
@@ -936,8 +989,8 @@ int main(int argc, char **argv) {
             printf("render: --math takes no --song/--dump-events\n");
             return 2;
         }
-        if (v808 || vpcf || vfx) {
-            printf("render: --math takes no --808/--pcf/--fx\n");
+        if (v808 || vpcf || vfx || vmix) {
+            printf("render: --math takes no --808/--pcf/--fx/--mix\n");
             return 2;
         }
         if (strcmp(math, "dc") == 0)
@@ -952,15 +1005,15 @@ int main(int argc, char **argv) {
             printf("render: --808 takes no --song/--dump-events/--math/--pcf/--fx\n");
             return 2;
         }
-        if (vpcf || vfx || v909 || v909pack) {
-            printf("render: --808 takes no --pcf/--fx/--909\n");
+        if (vpcf || vfx || v909 || v909pack || vmix) {
+            printf("render: --808 takes no --pcf/--fx/--909/--mix\n");
             return 2;
         }
         return render_808(v808, out);
     }
     if (vpcf || vfx) {
-        if (song || ev || math || v808 || v909 || v909pack) {
-            printf("render: --pcf/--fx take no --song/--dump-events/--math/--808/--909\n");
+        if (song || ev || math || v808 || v909 || v909pack || vmix) {
+            printf("render: --pcf/--fx take no --song/--dump-events/--math/--808/--909/--mix\n");
             return 2;
         }
         if (vpcf && vfx) {
@@ -972,8 +1025,8 @@ int main(int argc, char **argv) {
         return render_fx(vfx, out);
     }
     if (v909 || v909pack) {
-        if (song || ev || math || v808 || vpcf || vfx) {
-            printf("render: --909 takes no --song/--dump-events/--math/--808/--pcf/--fx\n");
+        if (song || ev || math || v808 || vpcf || vfx || vmix) {
+            printf("render: --909 takes no --song/--dump-events/--math/--808/--pcf/--fx/--mix\n");
             return 2;
         }
         if (v909 && v909pack) {
@@ -983,6 +1036,13 @@ int main(int argc, char **argv) {
         if (v909pack)
             return render_909pack(v909pack, out, pack);
         return render_909(v909, out);
+    }
+    if (vmix) {
+        if (song || ev || math || v808 || v909 || v909pack || vpcf || vfx) {
+            printf("render: --mix takes no --song/--dump-events/--math/--808/--909/--pcf/--fx\n");
+            return 2;
+        }
+        return render_mix(vmix, out);
     }
     if (!song) {
         printf("render: --song required\n");
