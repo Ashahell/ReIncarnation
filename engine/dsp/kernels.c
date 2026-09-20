@@ -5,7 +5,7 @@
  * 1500x over the 1e-6 test bound; cubic Hermite on the same table still
  * gives 2.6e-6. tanh is therefore evaluated via the double-precision
  * internal ri_exp (error ~1 ulp). Likewise the brief's order-4 exp Horner
- * (remainder ~4.3e-6) and order-5 sin Taylor on [-pi,pi] (remainder ~0.6)
+ * (remainder ~4.2e-05) and order-5 sin Taylor on [-pi,pi] (remainder ~0.6)
  * cannot meet their bounds; both use higher-order double-precision
  * polynomials with exact power-of-two scaling. No libm calls anywhere.
  */
