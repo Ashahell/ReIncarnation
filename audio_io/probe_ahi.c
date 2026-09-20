@@ -9,8 +9,9 @@
  * Method (spec §4.2, OPEN-09; prior-art register entries 17-18):
  *   Phase P1 — negotiate the low-level path: AHI_BestAudioID() for 48 kHz
  *     stereo HiFi, then AHI_AllocAudioA() with a PlayerFunc hook. Reads the
- *     ACTUAL mode back from the public struct AHIAudioCtrl fields
- *     (ahiac_MixFreq/ahiac_Channels), never assuming the request was met.
+ *     ACTUAL mode back via AHI_GetAudioAttrsA(AHI_INVALID_ID, actl, ...)
+ *     (the public struct AHIAudioCtrl is opaque — only ahiac_UserData is
+ *     public), never assuming the request was met.
  *   Phase P2 — buffer ladder on the low-level path: AHIA_PlayerFreq =
  *     48000/size Hz (Fixed 16.16) for sizes 4096..64 frames via
  *     AHI_ControlAudio(). The AHI developer doc suggests keeping
