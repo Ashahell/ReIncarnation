@@ -1,5 +1,8 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-20] plan | Implementation Plan v2 (review #2 applied)
+Rewrote plan to 14 tasks with numbered gates G0–G14: target-driven build + AROS skeleton + lab rules; bounded table kernels with 10k-determinism T2; multi-segment clock with locked rounding + int128/portable runs; ledger-first first light (math + event goldens, compare tool, minimal walker); split W1 (spike G5, backend G6); measured scheduler; hardened Tasks 8–13 (exact headers, concrete assertions, ledger rows, audit phases); plan-level DoD. Verification: 14 task headers, 15 gate lines, placeholder scan CLEAN (meta mention only). Also resolves the currency-review drift flags (OPEN-09/P-21, f32/f64, §0.1 traceability now in-plan).
+
 ## [2026-09-20] ingest | Currency review: plan + index vs spec v5
 - Disposition: Update (index); No material (plan file itself, prior-art, decisions — already recorded).
 - Fixed stale index: "v4 current" header → v5; OPEN table 8 rows → 9; ledger P-01–P-20 → P-01–P-21.
