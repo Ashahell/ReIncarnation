@@ -47,4 +47,33 @@ grep -q '#error "probe_ahi.c is AROS-only' "$ROOT/audio_io/probe_ahi.c" || { ech
 if grep -rn "probe_ahi" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: probe leaks into host build"; exit 1; fi
 bash "$ROOT/scripts/ri_build_aros.sh" >/dev/null || { echo "FAIL: AROS build (stub+probe)"; exit 1; }
 test -f /tmp/ri/aros/probe_ahi || { echo "FAIL: probe_ahi artifact missing"; exit 1; }
+echo "== Phase 6: W1 one-renderer proof (Task 6, gate G6) =="
+test -f "$ROOT/audio_io/audio.h" || { echo "FAIL: missing audio_io/audio.h"; exit 1; }
+test -f "$ROOT/audio_io/audio.c" || { echo "FAIL: missing audio_io/audio.c"; exit 1; }
+test -f "$ROOT/audio_io/backend_null.c" || { echo "FAIL: missing audio_io/backend_null.c"; exit 1; }
+for decl in "AuCreateObject(struct Library \*AudioBase, struct TagItem \*tags)" \
+  "AuAddSource(struct AudioObject \*ao, struct TagItem \*tags)" \
+  "AuAddBus(struct AudioObject \*ao, const char \*name, struct TagItem \*tags)" \
+  "AuConnect(struct AudioObject \*ao, uint32_t src, uint32_t bus)" \
+  "AuStart(struct AudioObject \*ao)" \
+  "AuStop(struct AudioObject \*ao)" \
+  "AuQueryAttr(struct AudioObject \*ao, uint32_t attr)" \
+  "AuRenderToFile(struct AudioObject \*ao, const char \*path, uint32_t ms)"; do
+  grep -q "$decl" "$ROOT/audio_io/audio.h" || { echo "FAIL: audio.h lacks: $decl"; exit 1; }
+done
+grep -q '#define RI_DEVICE_FRAMES 256u' "$ROOT/audio_io/audio.h" || { echo "FAIL: device-frames default not 256"; exit 1; }
+grep -q 'audio: AHI unavailable - null backend active (offline render only)' "$ROOT/audio_io/audio.h" || { echo "FAIL: fallback string drifted"; exit 1; }
+if grep -rn "malloc\|calloc\|realloc\|Forbid\|Disable(" "$ROOT/audio_io/audio.c" "$ROOT/audio_io/backend_null.c" 2>/dev/null; then echo "FAIL: banned construct in W1 backend"; exit 1; fi
+bash "$ROOT/scripts/ri_build_host.sh" test t6_w1backend >/dev/null || { echo "FAIL: t6_w1backend"; exit 1; }
+gcc $CFLAGS -o "$OUT/compare" "$ROOT/tools/compare.c" || { echo "FAIL: compare build"; exit 1; }
+T6=/tmp/ri/run/t6
+"$OUT/compare" --events-a "$T6/file.events" --events-b "$T6/live.events" --wav-a "$T6/file.wav" --wav-b "$T6/live.wav" | grep -q "COMPARE: IDENTICAL" || { echo "FAIL: file-vs-live differ (not one renderer)"; exit 1; }
+echo "-- AROS compile of backend TUs (compile-only, no link) --"
+if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
+. ../Vulkan4Aros/scripts/aros_build_env.sh
+export PATH="$AROS_TOOLCHAIN:$PATH"
+SDK="$AROS_SDK_INCLUDE"
+CFLAGS_AU="-std=c99 -O2 -Wall -Wextra -Werror -mcmodel=large -mno-red-zone -ffixed-r12 -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
+x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/audio.c" -o "$OUT/audio_aros.o" || { echo "FAIL: audio.c AROS compile"; exit 1; }
+x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/backend_null.c" -o "$OUT/backend_null_aros.o" || { echo "FAIL: backend_null.c AROS compile"; exit 1; }
 echo "AUDIT 0/0 PASS"
