@@ -3,7 +3,7 @@
 set -e
 ROOT="$(dirname "$0")/.."
 OUT=/tmp/ri/build
-CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -I$ROOT"
+CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT"
 mkdir -p "$OUT"
 MOD_kernels="engine/dsp/kernels.c"
 MOD_clock="engine/seq/clock.c"
