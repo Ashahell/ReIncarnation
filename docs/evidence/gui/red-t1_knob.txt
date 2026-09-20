@@ -1,0 +1,2 @@
+FAIL scripts/../tests/unit/t1_knob.c:26: knob half 95.250000
+FAIL 1

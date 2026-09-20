@@ -233,4 +233,36 @@ for v in mix-four mix-solo; do
 done
 echo "-- mixer render-diff (solo differs from four: solo path live, not a rename) --"
 if "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$SG/sched-check.events" --wav-a "$T11/mix-four.wav" --wav-b "$T11/mix-solo.wav" | grep -q "COMPARE: IDENTICAL"; then echo "FAIL: mixer solo renders identical to four (solo dead)"; exit 1; fi
+echo "== Phase 12: GUI logic + MCC shells + panels (Task 12, gate G12) =="
+bash "$ROOT/scripts/ri_build_host.sh" test t1_knob >/dev/null || { echo "FAIL: t1_knob"; exit 1; }
+test -f "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: missing gui acceptance"; exit 1; }
+grep -q -- "- \[ \]" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance has no checkable boxes"; exit 1; }
+grep -q "P-18" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks P-18"; exit 1; }
+grep -q "TC-2.9" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks TC-2.9"; exit 1; }
+grep -q "TC-2.10\|TC-2.11" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks TC-2.10/2.11"; exit 1; }
+grep -q "ReBirth-101" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks tutorial workflow"; exit 1; }
+grep -q "Tester:" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks sign-off lines"; exit 1; }
+test -f "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
+grep -q "FAIL" "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: RED evidence has no FAIL lines"; exit 1; }
+echo "-- AROS-only shells guarded + out of host build --"
+for f in gui/widgets/rknb.mcc.c gui/widgets/rfdr.mcc.c gui/widgets/rstp.mcc.c gui/widgets/rlvl.mcc.c app/main.c; do
+  test -f "$ROOT/$f" || { echo "FAIL: missing $f"; exit 1; }
+  grep -q "#ifndef __AROS__" "$ROOT/$f" || { echo "FAIL: $f lacks __AROS__ guard"; exit 1; }
+  grep -q '#error ".*AROS-only' "$ROOT/$f" || { echo "FAIL: $f lacks AROS-only #error"; exit 1; }
+done
+if grep -rn "widgets\|app/main" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS shells leak into host build"; exit 1; fi
+grep -q "Numeric → Knob" "$ROOT/gui/widgets/rknb.mcc.c" || { echo "FAIL: rknb lacks reuse note"; exit 1; }
+echo "-- AROS compile of GUI TUs (compile-only, no link) --"
+if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
+. ../Vulkan4Aros/scripts/aros_build_env.sh
+export PATH="$AROS_TOOLCHAIN:$PATH"
+SDK="$AROS_SDK_INCLUDE"
+CFLAGS_GUI="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
+mkdir -p "$OUT/aros"
+x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/knob_logic.c" -o "$OUT/aros/knob_logic_aros.o" || { echo "FAIL: knob_logic.c AROS compile"; exit 1; }
+x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/panels.c" -o "$OUT/aros/panels_aros.o" || { echo "FAIL: panels.c AROS compile"; exit 1; }
+for w in rknb rfdr rstp rlvl; do
+  x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/widgets/$w.mcc.c" -o "$OUT/aros/$w.o" || { echo "FAIL: $w.mcc.c AROS compile"; exit 1; }
+done
+x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/main.c" -o "$OUT/aros/app_main_aros.o" || { echo "FAIL: app/main.c AROS compile"; exit 1; }
 echo "AUDIT 0/0 PASS"
