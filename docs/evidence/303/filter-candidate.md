@@ -24,7 +24,7 @@ stepped), stability clamp `fc < fs/6`.
 
 | # | Decision | Value | Locked by |
 |---|----------|-------|-----------|
-| D1 | `g` form under 2x oversampling | `g = tan(π·fc/(2·fs))`, tan via `ri_sin` quotient `ri_sin(x)/ri_sin(x+π/2)` (no libm `tan` in engine/; audit 0b) | M2.2 TC-2.2.1 |
+| D1 | `g` form under 2x oversampling | Appendix B literal: `g = tan(π·fc/fs)` at the BASE rate, applied per substep (tan via `ri_sin` quotient — no libm `tan` in engine/; audit 0b). CORRECTION 2026-09-20: first reading used the oversampled rate in `g` and measured −0.57 dB at f/fc=1/8 (probe `/tmp/ri/run/task-4`, not committed); base-rate form measures −0.08 dB. Base-rate also keeps `g ≤ tan(π/6)` under the `fc < fs/6` clamp, which is evidently the clamp's design point. | M2.2 TC-2.2.1 |
 | D2 | Oversample method | linear-interp input between prev/current sample, two ladder substeps per output sample, emit second substep | M2.2 TC-2.2.1 |
 | D3 | Feedback-loop HPF on `k·s2` tap | one-pole HP, 150 Hz (spec §9 E2 default) — IN SCOPE | M2.2 TC-2.2.1 |
 | D4 | Post-chain | one-pole HP 44.486 Hz + one-pole HP 24.167 Hz — IN SCOPE | M2.2 TC-2.2.1 |

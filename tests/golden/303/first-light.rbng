@@ -1,0 +1,21 @@
+# first-light.rbng — Task-4 song SCAFFOLD (NOT RBNG; real codec is Task 13).
+# Format: tempo=N (30..300), then one line per 16th step:
+#   step note=M [slide=0/1] [accent=0/1]  |  step rest=1 [slide=0/1]
+# tools/render --song parses exactly this until the RBNG codec lands.
+tempo=140
+step note=45
+step note=45 slide=1
+step note=48 accent=1
+step note=45
+step note=52 slide=1
+step note=50
+step rest=1
+step note=48
+step note=45 slide=1 accent=1
+step note=43
+step rest=1 slide=1
+step note=45
+step note=47
+step note=48 slide=1
+step note=50 accent=1
+step rest=1
