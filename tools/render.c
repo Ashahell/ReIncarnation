@@ -30,7 +30,9 @@
 #include "engine/seq/sched.h"
 #include "engine/dsp/rb303.h"
 #include "engine/dsp/rb808.h"
+#include "engine/dsp/rb909.h"
 #include "engine/dsp/kernels.h"
+#include "project/rbnm.h"
 
 #define RI_SR 48000u
 #define RI_BLOCK 64u
@@ -528,13 +530,239 @@ static int render_808(const char *name, const char *out_path) {
     return write_wav(out_path, pcm, total);
 }
 
+/* --909 stimulus (Task 9, gate G9): one voice (accent 0, tune 64) from
+ * the DEFAULT built-in layers (synthesized below with ri_sin — a
+ * different recipe from the clean pack, so the S909 render-diff is
+ * real), or from the clean pack RBNM (--909pack). 64-frame blocks at
+ * 48 kHz. Deterministic (D1): baked data, fixed playheads. */
+static float voice_secs909(const char *name) {
+    if (strcmp(name, "cr") == 0 || strcmp(name, "rd") == 0)
+        return 2.5f;
+    if (strcmp(name, "oh") == 0)
+        return 2.0f;
+    if (strcmp(name, "bd") == 0)
+        return 1.5f;
+    if (strcmp(name, "sd") == 0)
+        return 1.0f;
+    if (strcmp(name, "ch") == 0)
+        return 0.5f;
+    return -1.0f;
+}
+
+static uint32_t voice_idx909(const char *name) {
+    if (strcmp(name, "bd") == 0)
+        return RB909_BD;
+    if (strcmp(name, "sd") == 0)
+        return RB909_SD;
+    if (strcmp(name, "ch") == 0)
+        return RB909_CH;
+    if (strcmp(name, "oh") == 0)
+        return RB909_OH;
+    if (strcmp(name, "cr") == 0)
+        return RB909_CR;
+    if (strcmp(name, "rd") == 0)
+        return RB909_RD;
+    return RI_909_NVOICES;
+}
+
+/* Default-layer recipe (tool-side stand-in, NOT the pack): detuned sine
+ * pairs per voice, start-at-zero, peak ~0.7. */
+static void bake_default909(uint32_t v, float *a, float *b, uint32_t n) {
+    uint32_t i;
+    float f0 = 55.0f, f1 = 350.0f, tau = 0.4f, nz = 0.0f;
+    if (v == RB909_BD) {
+        f0 = 55.0f;
+        f1 = 0.0f;
+        tau = 0.40f;
+    } else if (v == RB909_SD) {
+        f0 = 200.0f;
+        f1 = 350.0f;
+        tau = 0.20f;
+        nz = 0.15f;
+    } else if (v == RB909_CH) {
+        f0 = 420.0f;
+        f1 = 840.0f;
+        tau = 0.035f;
+    } else if (v == RB909_OH) {
+        f0 = 420.0f;
+        f1 = 840.0f;
+        tau = 0.60f;
+    } else if (v == RB909_CR) {
+        f0 = 320.0f;
+        f1 = 640.0f;
+        tau = 1.20f;
+    } else {
+        f0 = 560.0f;
+        f1 = 820.0f;
+        tau = 1.50f;
+    }
+    for (i = 0; i < n; i++) {
+        float t = (float)i / 48000.0f;
+        float e;
+        float ph = 6.2831853f * t;
+        /* exp via the kernel (tool links it; keeps host determinism) */
+        e = ri_exp(-t / tau);
+        a[i] = (0.55f * ri_sin(f0 * ph) + 0.25f * (f1 > 0.0f ? ri_sin(f1 * ph) : 0.0f)) * e;
+        b[i] = (0.55f * ri_sin(f0 * 1.12f * ph) +
+            0.25f * (f1 > 0.0f ? ri_sin(f1 * 1.12f * ph) : 0.0f)) * e;
+        if (nz > 0.0f) {
+            /* deterministic hash noise (no RNG state in tools either) */
+            uint32_t h = i * 1664525u + 1013904223u;
+            float w = (float)(h >> 8) * (1.0f / 8388608.0f) - 1.0f;
+            h = (uint32_t)((float)i * 0.5f) * 1664525u + 1013904223u;
+            a[i] += nz * w * e;
+            b[i] += nz * ((float)(h >> 8) * (1.0f / 8388608.0f) - 1.0f) * e;
+        }
+    }
+    /* peak-guard to ~0.7 (deterministic scan, no libm) */
+    {
+        float pk = 0.000001f;
+        for (i = 0; i < n; i++) {
+            float x = a[i] < 0.0f ? -a[i] : a[i];
+            float y = b[i] < 0.0f ? -b[i] : b[i];
+            if (x > pk)
+                pk = x;
+            if (y > pk)
+                pk = y;
+        }
+        for (i = 0; i < n; i++) {
+            a[i] *= 0.7f / pk;
+            b[i] *= 0.7f / pk;
+        }
+    }
+}
+
+static int render_909_common(struct RB909Set *s, uint32_t v, float secs,
+    const char *out_path, const char *tag) {
+    static int16_t pcm[120000];
+    static float fbuf[RI_BLOCK];
+    uint32_t total = (uint32_t)(secs * (float)RI_SR);
+    uint32_t pos = 0, j;
+    if (total > 120000u || total == 0u) {
+        printf("render: --909 fixture too long\n");
+        return 2;
+    }
+    rb909_trigger(s, v, 0, 64, 0);
+    while (pos < total) {
+        uint32_t cc = total - pos;
+        if (cc > RI_BLOCK)
+            cc = RI_BLOCK;
+        rb909_render_mix(s, fbuf, cc, (float)RI_SR);
+        for (j = 0; j < cc; j++)
+            pcm[pos + j] = f32_to_s16(fbuf[j]);
+        pos += cc;
+    }
+    printf("render: 909 %s, %u samples -> %s\n", tag, total, out_path);
+    return write_wav(out_path, pcm, total);
+}
+
+static int render_909(const char *name, const char *out_path) {
+    struct RB909Set s;
+    static float la[120000], lb[120000];
+    static struct RISampleLayer lay[2];
+    uint32_t v = voice_idx909(name);
+    float secs;
+    if (v >= RI_909_NVOICES) {
+        printf("render: --909 wants bd|sd|ch|oh|cr|rd\n");
+        return 2;
+    }
+    secs = voice_secs909(name);
+    bake_default909(v, la, lb, (uint32_t)(secs * (float)RI_SR));
+    lay[0].data = la;
+    lay[0].frames = (uint32_t)(secs * (float)RI_SR);
+    lay[0].rate = RI_SR;
+    lay[0].lo = 0;
+    lay[0].hi = 63;
+    lay[0].accent_layer = 1;
+    lay[1].data = lb;
+    lay[1].frames = lay[0].frames;
+    lay[1].rate = RI_SR;
+    lay[1].lo = 64;
+    lay[1].hi = 127;
+    lay[1].accent_layer = 1;
+    rb909_init_set(&s);
+    if (rb909_set_layers(&s, v, lay, 2) != 0) {
+        printf("render: default layer install failed\n");
+        return 2;
+    }
+    return render_909_common(&s, v, secs, out_path, name);
+}
+
+static int render_909pack(const char *name, const char *out_path,
+    const char *pack_opt) {
+    struct RB909Set s;
+    static float pa[88200], pb[88200], pc[88200];
+    static struct RISampleLayer lay[3];
+    static struct RBNMLayerInfo info[16];
+    static char err[192];
+    const char *pack = pack_opt ? pack_opt : "reference/packs/classic-01/pack.rbnm";
+    uint32_t v = voice_idx909(name);
+    float secs;
+    int32_t nl, k;
+    uint32_t nl_v = 0;
+    float *bufs[3] = { pa, pb, pc };
+    uint32_t rate0 = 0;
+    if (v >= RI_909_NVOICES) {
+        printf("render: --909pack wants bd|sd|ch|oh|cr|rd\n");
+        return 2;
+    }
+    secs = voice_secs909(name);
+    nl = rbnm_pack_layers(pack, info, 16, err, sizeof err);
+    if (nl < 0) {
+        printf("render: pack inventory failed: %s\n", err);
+        return 2;
+    }
+    for (k = 0; k < nl && nl_v < 3u; k++) {
+        int32_t got;
+        uint32_t rate = 0;
+        if (info[k].voice != v)
+            continue;
+        if (info[k].frames > 88200u) {
+            printf("render: pack layer too long\n");
+            return 2;
+        }
+        got = rbnm_load_smpl(pack, info[k].id, bufs[nl_v], 88200u, &rate,
+            err, sizeof err);
+        if (got < 0) {
+            printf("render: pack load failed: %s\n", err);
+            return 2;
+        }
+        lay[nl_v].data = bufs[nl_v];
+        lay[nl_v].frames = (uint32_t)got;
+        lay[nl_v].rate = rate;
+        lay[nl_v].lo = info[k].lo;
+        lay[nl_v].hi = info[k].hi;
+        lay[nl_v].accent_layer = 1;
+        if (nl_v == 0u)
+            rate0 = rate;
+        else if (rate != rate0) {
+            printf("render: pack rate mismatch\n");
+            return 2;
+        }
+        nl_v++;
+    }
+    if (nl_v == 0u) {
+        printf("render: no pack layers for %s\n", name);
+        return 2;
+    }
+    rb909_init_set(&s);
+    if (rb909_set_layers(&s, v, lay, nl_v) != 0) {
+        printf("render: pack layer install failed\n");
+        return 2;
+    }
+    return render_909_common(&s, v, secs, out_path, name);
+}
+
 int main(int argc, char **argv) {
     const char *song = NULL, *out = NULL, *ev = NULL, *math = NULL, *v808 = NULL;
+    const char *v909 = NULL, *v909pack = NULL, *pack = NULL;
     int i;
     if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("usage: render --song FILE --out FILE [--dump-events FILE]\n");
         printf("       render --math dc|sine --out FILE\n");
         printf("       render --808 VOICE|storm --out FILE\n");
+        printf("       render --909 VOICE --out FILE\n");
+        printf("       render --909pack VOICE --out FILE [--pack FILE]\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
         printf("NOTE: this golden proves determinism + skeleton, NOT parity.\n");
         return 0;
@@ -550,6 +778,12 @@ int main(int argc, char **argv) {
             math = argv[++i];
         else if (strcmp(argv[i], "--808") == 0 && i + 1 < argc)
             v808 = argv[++i];
+        else if (strcmp(argv[i], "--909") == 0 && i + 1 < argc)
+            v909 = argv[++i];
+        else if (strcmp(argv[i], "--909pack") == 0 && i + 1 < argc)
+            v909pack = argv[++i];
+        else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
+            pack = argv[++i];
         else {
             printf("render: bad arg %s (see --help)\n", argv[i]);
             return 2;
@@ -581,6 +815,19 @@ int main(int argc, char **argv) {
             return 2;
         }
         return render_808(v808, out);
+    }
+    if (v909 || v909pack) {
+        if (song || ev || math || v808) {
+            printf("render: --909 takes no --song/--dump-events/--math/--808\n");
+            return 2;
+        }
+        if (v909 && v909pack) {
+            printf("render: --909 and --909pack are exclusive\n");
+            return 2;
+        }
+        if (v909pack)
+            return render_909pack(v909pack, out, pack);
+        return render_909(v909, out);
     }
     if (!song) {
         printf("render: --song required\n");

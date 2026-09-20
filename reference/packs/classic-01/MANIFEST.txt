@@ -1,0 +1,14 @@
+BD-LOW src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=BD-LOW;fmt=44100/16;norm=-3dBFS;loop=none;map=bd:0-42
+BD-MID src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=BD-MID;fmt=44100/16;norm=-3dBFS;loop=none;map=bd:43-84
+BD-HI src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=BD-HI;fmt=44100/16;norm=-3dBFS;loop=none;map=bd:85-127
+SD-LO src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=SD-LO;fmt=44100/16;norm=-3dBFS;loop=none;map=sd:0-42
+SD-MID src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=SD-MID;fmt=44100/16;norm=-3dBFS;loop=none;map=sd:43-84
+SD-HI src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=SD-HI;fmt=44100/16;norm=-3dBFS;loop=none;map=sd:85-127
+CH-A src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=CH-A;fmt=44100/16;norm=-3dBFS;loop=none;map=ch:0-63
+CH-B src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=CH-B;fmt=44100/16;norm=-3dBFS;loop=none;map=ch:64-127
+OH-A src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=OH-A;fmt=44100/16;norm=-3dBFS;loop=none;map=oh:0-63
+OH-B src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=OH-B;fmt=44100/16;norm=-3dBFS;loop=none;map=oh:64-127
+CR-A src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=CR-A;fmt=44100/16;norm=-3dBFS;loop=none;map=cr:0-63
+CR-B src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=CR-B;fmt=44100/16;norm=-3dBFS;loop=none;map=cr:64-127
+RD-A src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=RD-A;fmt=44100/16;norm=-3dBFS;loop=none;map=rd:0-63
+RD-B src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=RD-B;fmt=44100/16;norm=-3dBFS;loop=none;map=rd:64-127

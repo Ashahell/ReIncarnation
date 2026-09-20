@@ -1,0 +1,6 @@
+layer: SD-HI (voice sd, tune 85-127)
+source: synthesized from scratch (this script)
+recipe: partials 205.2+367.2Hz(tau 0.15s) + HP1200 noise bed(tau 90ms, mix 0.5); noise faded in 64sp
+rate/depth: 44100/24 master, peak -3dBFS, no dither
+seed: LCG 0x9091+1 (sd)
+license: CC0, holder ReIncarnation project

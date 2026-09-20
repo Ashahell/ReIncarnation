@@ -1,0 +1,6 @@
+layer: BD-MID (voice bd, tune 43-84)
+source: synthesized from scratch (this script)
+recipe: sine 60Hz tau 0.40s + 2.5kHz click blip(tau 4ms, mix 0.35); d[0]=0 by sine phase 0
+rate/depth: 44100/24 master, peak -3dBFS, no dither
+seed: LCG 0x9091+0 (bd)
+license: CC0, holder ReIncarnation project

@@ -113,4 +113,43 @@ for v in bd sd lt mt ht lc mc hc rs cl cp ch oh cy cb storm; do
   "$OUT/render" --808 "$v" --out "$T8/$v.wav" >/dev/null || exit 1
   cmp -s "$SG8/$v.wav" "$T8/$v.wav" || { echo "FAIL: 808/$v re-render differs (not deterministic)"; exit 1; }
 done
+echo "== Phase 9: 909 sampler + clean pack + provenance gate (Task 9, gate G9) =="
+bash "$ROOT/scripts/ri_build_host.sh" test t1_909 >/dev/null || { echo "FAIL: t1_909"; exit 1; }
+for v in bd sd ch oh cr rd; do
+  test -f "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: missing ledger 909/$v.md"; exit 1; }
+  grep -q "Provenance manifest" "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: ledger $v lacks manifest"; exit 1; }
+  grep -q "CC0/RI" "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: ledger $v lacks license row"; exit 1; }
+done
+grep -q "P-13" "$ROOT/docs/evidence/909/bd.md" || { echo "FAIL: P-13 unrecorded"; exit 1; }
+grep -q "NO-OP" "$ROOT/docs/evidence/909/cr.md" || { echo "FAIL: crash quirk unrecorded"; exit 1; }
+grep -q "steal" "$ROOT/docs/evidence/909/ch.md" || { echo "FAIL: hat steal unrecorded"; exit 1; }
+gcc $CFLAGS -o "$OUT/inspect" "$ROOT/tools/inspect.c" "$OUT"/rbnm.o || { echo "FAIL: inspect build"; exit 1; }
+PK="$ROOT/reference/packs/classic-01"
+test -f "$PK/pack.rbnm" || { echo "FAIL: missing clean pack"; exit 1; }
+test -f "$PK/MANIFEST.txt" || { echo "FAIL: missing pack manifest"; exit 1; }
+"$OUT/inspect" --rbnm "$PK/pack.rbnm" | grep -q "RBNM OK" || { echo "FAIL: pack.rbnm rejected"; exit 1; }
+"$OUT/inspect" --manifest "$PK/MANIFEST.txt" | grep -q "MANIFEST OK" || { echo "FAIL: MANIFEST rejected"; exit 1; }
+echo "-- manifest-gap negative gates (audit fails on any gap) --"
+T9=/tmp/ri/run/audit9
+mkdir -p "$T9"
+head -1 "$PK/MANIFEST.txt" | sed 's/;map=[^;]*//' > "$T9/gap.manf"
+tail -n +2 "$PK/MANIFEST.txt" >> "$T9/gap.manf"
+if "$OUT/inspect" --manifest "$T9/gap.manf" >/dev/null 2>&1; then echo "FAIL: gap manifest accepted"; exit 1; fi
+head -c 120 "$PK/pack.rbnm" > "$T9/trunc.rbnm"
+if "$OUT/inspect" --rbnm "$T9/trunc.rbnm" >/dev/null 2>&1; then echo "FAIL: truncated pack accepted"; exit 1; fi
+echo "-- 909 goldens re-verified --"
+SG9="$ROOT/tests/golden/909"
+for v in bd sd ch oh cr rd; do
+  test -f "$SG9/$v.wav" || { echo "FAIL: missing golden 909/$v.wav"; exit 1; }
+  test -f "$SG9/$v.wav.sha256" || { echo "FAIL: missing sidecar 909/$v.wav.sha256"; exit 1; }
+done
+(cd "$ROOT" && sha256sum -c tests/golden/909/bd.wav.sha256 tests/golden/909/sd.wav.sha256 tests/golden/909/ch.wav.sha256 tests/golden/909/oh.wav.sha256 tests/golden/909/cr.wav.sha256 tests/golden/909/rd.wav.sha256) || { echo "FAIL: 909 golden sha256 mismatch"; exit 1; }
+for v in bd sd ch oh cr rd; do
+  "$OUT/render" --909 "$v" --out "$T9/$v.wav" >/dev/null || exit 1
+  cmp -s "$SG9/$v.wav" "$T9/$v.wav" || { echo "FAIL: 909/$v re-render differs (not deterministic)"; exit 1; }
+done
+echo "-- S909 render-diff (pack differs from default) --"
+"$OUT/render" --909 bd --out "$T9/dflt.wav" >/dev/null || exit 1
+"$OUT/render" --909pack bd --out "$T9/pack.wav" >/dev/null || exit 1
+if "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$SG/sched-check.events" --wav-a "$T9/dflt.wav" --wav-b "$T9/pack.wav" | grep -q "COMPARE: IDENTICAL"; then echo "FAIL: pack renders identical to default (S909 dead)"; exit 1; fi
 echo "AUDIT 0/0 PASS"

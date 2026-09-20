@@ -1,0 +1,6 @@
+layer: RD-B (voice rd, tune 64-127)
+source: synthesized from scratch (this script)
+recipe: 540+800Hz squares(x1.12) HP 5kHz tau 1.5s; fade-in 64sp
+rate/depth: 44100/24 master, peak -3dBFS, no dither
+seed: LCG 0x9091+5 (rd)
+license: CC0, holder ReIncarnation project
