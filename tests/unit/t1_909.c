@@ -56,8 +56,8 @@ static void render_voice(struct RB909Set *s, uint32_t v, uint32_t n, float *out)
 }
 
 static const struct RISampleLayer PAIR2[2] = {
-    { L0, SRU, SRU, 0, 63, 1, { 0, 0 } },
-    { L1, SRU, SRU, 64, 127, 1, { 0, 0 } }
+    { L0, SRU, SRU, 0, 63, { 0, 0 } },
+    { L1, SRU, SRU, 64, 127, { 0, 0 } }
 };
 
 int main(void) {
@@ -74,6 +74,9 @@ int main(void) {
     RI_ASSERT(rb909_decay_scale(RB909_CR, 0) > rb909_decay_scale(RB909_CR, 64) &&
         rb909_decay_scale(RB909_CR, 64) > rb909_decay_scale(RB909_CR, 127),
         "cr decay not shortening with tune");
+    RI_ASSERT(rb909_decay_scale(RB909_RD, 0) > rb909_decay_scale(RB909_RD, 64) &&
+        rb909_decay_scale(RB909_RD, 64) > rb909_decay_scale(RB909_RD, 127),
+        "rd decay not shortening with tune");
     RI_ASSERT(rb909_decay_scale(RB909_BD, 127) == 1.0f, "bd decay scaled");
     RI_ASSERT(rb909_layer_weight(64, 0, 63) >= 0.0f &&
         rb909_layer_weight(64, 0, 63) <= 1.0f, "weight range");
@@ -137,12 +140,26 @@ int main(void) {
             }
             RI_ASSERT(md == 0.0f, "cr accent not no-op (maxdiff %.6g)", (double)md);
         }
+        /* ride quirk, direct (fix round 1: no CH/CR proxy for RD) */
+        rb909_trigger(&s, RB909_RD, 0, 64, 0);
+        render_voice(&s, RB909_RD, 14400, OUTA);
+        rb909_trigger(&s, RB909_RD, 1, 64, 0);
+        render_voice(&s, RB909_RD, 14400, OUTB);
+        {
+            float md = 0.0f;
+            for (i = 0; i < 14400; i++) {
+                float d = (float)fabs((double)OUTA[i] - (double)OUTB[i]);
+                if (d > md)
+                    md = d;
+            }
+            RI_ASSERT(md == 0.0f, "rd accent not no-op (maxdiff %.6g)", (double)md);
+        }
     }
 
     /* --- 3. flam +35 ms +/-5 ms x0.75 (P-05) on decaying fixture --- */
     {
         static const struct RISampleLayer ONE = {
-            LD2, SRU, SRU, 0, 127, 1, { 0, 0 }
+            LD2, SRU, SRU, 0, 127, { 0, 0 }
         };
         int onset2 = -1;
         float p1 = 0.0f, p2 = 0.0f;
@@ -193,7 +210,7 @@ int main(void) {
     /* --- 4. monophonic retrigger cuts previous (post-cut bit-exact) --- */
     {
         static const struct RISampleLayer DL[1] = {
-            { LD, SRU, SRU, 0, 127, 1, { 0, 0 } }
+            { LD, SRU, SRU, 0, 127, { 0, 0 } }
         };
         float md = 0.0f;
         rb909_init_set(&s);
@@ -215,7 +232,7 @@ int main(void) {
     /* --- 5. idle-only swap: BUSY while active, click-free when idle --- */
     {
         static const struct RISampleLayer DL[1] = {
-            { LD, SRU, SRU, 0, 127, 1, { 0, 0 } }
+            { LD, SRU, SRU, 0, 127, { 0, 0 } }
         };
         rb909_init_set(&s);
         RI_ASSERT(rb909_set_layers(&s, RB909_BD, DL, 1) == 0, "swap layers");
@@ -255,10 +272,10 @@ int main(void) {
     {
         static float PK[SRU];
         static const struct RISampleLayer DEF[1] = {
-            { L0, SRU, SRU, 0, 127, 1, { 0, 0 } }
+            { L0, SRU, SRU, 0, 127, { 0, 0 } }
         };
         static const struct RISampleLayer PCK[1] = {
-            { PK, SRU, SRU, 0, 127, 1, { 0, 0 } }
+            { PK, SRU, SRU, 0, 127, { 0, 0 } }
         };
         uint32_t ndiff = 0;
         for (i = 0; i < SRU; i++) {

@@ -148,6 +148,13 @@ for v in bd sd ch oh cr rd; do
   "$OUT/render" --909 "$v" --out "$T9/$v.wav" >/dev/null || exit 1
   cmp -s "$SG9/$v.wav" "$T9/$v.wav" || { echo "FAIL: 909/$v re-render differs (not deterministic)"; exit 1; }
 done
+echo "-- audibility floor (silent goldens never pin: peak>=1000, rms>=100) --"
+for v in bd sd ch oh cr rd; do
+  od -An -t d2 -v -j44 "$T9/$v.wav" | awk 'BEGIN { m=0; s=0; n=0 }
+    { for (i=1;i<=NF;i++) { a=$i; if (a<0) a=-a; if (a>m) m=a; s+=$i*$i; n++ } }
+    END { r=sqrt(s/n); printf "909/%s peak=%d rms=%.0f\n", VN, m, r;
+      if (m<1000 || r<100) exit 1 }' VN="$v" || { echo "FAIL: 909/$v silent (audibility floor)"; exit 1; }
+done
 echo "-- S909 render-diff (pack differs from default) --"
 "$OUT/render" --909 bd --out "$T9/dflt.wav" >/dev/null || exit 1
 "$OUT/render" --909pack bd --out "$T9/pack.wav" >/dev/null || exit 1

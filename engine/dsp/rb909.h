@@ -56,15 +56,15 @@
 
 /* One baked layer. data is a non-owning pointer to frames mono f32
  * samples at rate Hz; the voice never writes through it. lo..hi is the
- * tune span (0..127) the layer covers; accent_layer marks layers the
- * acc1 gain applies to (all pack layers carry 1 except CR/RD layers). */
+ * tune span (0..127) the layer covers. (Fix round 1: the accent_layer
+ * flag was written-never-read — accent applies per voice, not per
+ * layer — so it is dropped, not wired.) */
 struct RISampleLayer {
     const float *data;
     uint32_t frames;
     uint32_t rate;
     uint8_t lo;
     uint8_t hi;
-    uint8_t accent_layer;
     uint8_t pad[2];
 };
 

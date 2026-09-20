@@ -566,7 +566,15 @@ static uint32_t voice_idx909(const char *name) {
 }
 
 /* Default-layer recipe (tool-side stand-in, NOT the pack): detuned sine
- * pairs per voice, start-at-zero, peak ~0.7. */
+ * pairs per voice, start-at-zero, peak ~0.7.
+ * Phase discipline: ri_sin clamps cycles to ±64, so recipe args are
+ * phase-reduced to [0,1) cycles before the call (t >= 0, truncation ==
+ * floor). Unreduced args froze CR/OH/RD to digital silence. */
+static float red_phase(float cycles) {
+    float q = (float)(int)cycles;
+    return (cycles - q) * 6.2831853f;
+}
+
 static void bake_default909(uint32_t v, float *a, float *b, uint32_t n) {
     uint32_t i;
     float f0 = 55.0f, f1 = 350.0f, tau = 0.4f, nz = 0.0f;
@@ -599,12 +607,12 @@ static void bake_default909(uint32_t v, float *a, float *b, uint32_t n) {
     for (i = 0; i < n; i++) {
         float t = (float)i / 48000.0f;
         float e;
-        float ph = 6.2831853f * t;
         /* exp via the kernel (tool links it; keeps host determinism) */
         e = ri_exp(-t / tau);
-        a[i] = (0.55f * ri_sin(f0 * ph) + 0.25f * (f1 > 0.0f ? ri_sin(f1 * ph) : 0.0f)) * e;
-        b[i] = (0.55f * ri_sin(f0 * 1.12f * ph) +
-            0.25f * (f1 > 0.0f ? ri_sin(f1 * 1.12f * ph) : 0.0f)) * e;
+        a[i] = (0.55f * ri_sin(red_phase(f0 * t)) +
+            0.25f * (f1 > 0.0f ? ri_sin(red_phase(f1 * t)) : 0.0f)) * e;
+        b[i] = (0.55f * ri_sin(red_phase(f0 * 1.12f * t)) +
+            0.25f * (f1 > 0.0f ? ri_sin(red_phase(f1 * 1.12f * t)) : 0.0f)) * e;
         if (nz > 0.0f) {
             /* deterministic hash noise (no RNG state in tools either) */
             uint32_t h = i * 1664525u + 1013904223u;
@@ -673,13 +681,11 @@ static int render_909(const char *name, const char *out_path) {
     lay[0].rate = RI_SR;
     lay[0].lo = 0;
     lay[0].hi = 63;
-    lay[0].accent_layer = 1;
     lay[1].data = lb;
     lay[1].frames = lay[0].frames;
     lay[1].rate = RI_SR;
     lay[1].lo = 64;
     lay[1].hi = 127;
-    lay[1].accent_layer = 1;
     rb909_init_set(&s);
     if (rb909_set_layers(&s, v, lay, 2) != 0) {
         printf("render: default layer install failed\n");
@@ -732,7 +738,6 @@ static int render_909pack(const char *name, const char *out_path,
         lay[nl_v].rate = rate;
         lay[nl_v].lo = info[k].lo;
         lay[nl_v].hi = info[k].hi;
-        lay[nl_v].accent_layer = 1;
         if (nl_v == 0u)
             rate0 = rate;
         else if (rate != rate0) {

@@ -250,7 +250,6 @@ static int parse_image(const unsigned char *img, uint32_t n,
     uint32_t off = 0, total;
     int saw_s909 = 0;
     static unsigned char manf[65536];
-    uint32_t manf_n = 0;
     int saw_manf = 0;
     *nrows = 0;
     if (n < 12u || memcmp(img, "FORM", 4) != 0) {
@@ -365,10 +364,9 @@ static int parse_image(const unsigned char *img, uint32_t n,
             }
             memcpy(manf, img + doff, size);
             manf[size] = '\0';
-            manf_n = size;
         } else if (memcmp(cid, "SMPL", 4) == 0) {
             const unsigned char *q = img + doff;
-            uint32_t left = size, idlen, frames, k;
+            uint32_t left = size, idlen, frames;
             char id[RBNM_MAX_ID + 1u];
             int ri;
             if (left < 1u + 4u) {
@@ -411,9 +409,6 @@ static int parse_image(const unsigned char *img, uint32_t n,
             }
             rows[ri].has_smpl = 1;
             rows[ri].smpl_frames = frames;
-            for (k = 0; k < frames * 2u; k += 2u) {
-                (void)q[k]; /* touch discipline: bytes are validated by count */
-            }
         } else if (memcmp(cid, "CPRG", 4) == 0 || memcmp(cid, "PAD ", 4) == 0 ||
             (cid[0] >= 'A' && cid[0] <= 'Z')) {
             /* Unknown optional chunk: length-delimited skip (spec §13).
@@ -441,10 +436,8 @@ static int parse_image(const unsigned char *img, uint32_t n,
     {
         char line[1024], id[RBNM_MAX_ID + 1u];
         const char *p = (const char *)manf;
-        const char *end = (const char *)manf + manf_n;
         uint32_t lineno = 0;
         uint32_t k;
-        (void)end;
         while (*p) {
             uint32_t m = 0;
             int rc;
@@ -576,11 +569,6 @@ int rbnm_write_pack(const char *path, const struct RBNMWriteLayer *L,
     {
         uint32_t total = 4u; /* 'RBNM' */
         uint32_t k2;
-        for (k2 = 0; k2 < n; k2++) {
-            uint32_t idlen = (uint32_t)strlen(L[k2].id);
-            uint32_t dlen = 1u + idlen + 4u + L[k2].frames * 2u;
-            (void)dlen;
-        }
         total += 8u + s909len + (s909len & 1u);
         total += 8u + mlen + (mlen & 1u);
         for (k2 = 0; k2 < n; k2++) {
@@ -670,7 +658,7 @@ int32_t rbnm_pack_layers(const char *path, struct RBNMLayerInfo *out,
 int32_t rbnm_load_smpl(const char *path, const char *id, float *dst,
     uint32_t cap, uint32_t *rate_out, char *err, uint32_t errcap) {
     static struct LayerRow rows[RBNM_MAX_LAYERS];
-    uint32_t n = read_file(path, err, errcap), nrows = 0, off, total;
+    uint32_t n = read_file(path, err, errcap), nrows = 0, off;
     int ri;
     uint32_t k;
     if (n == 0u)
@@ -691,8 +679,6 @@ int32_t rbnm_load_smpl(const char *path, const char *id, float *dst,
         return -1;
     }
     /* Re-walk to the SMPL payload (offsets already proven in range). */
-    total = rd32be(RI_IMG + 4);
-    (void)total;
     off = 12;
     while (off < n) {
         uint32_t size = rd32be(RI_IMG + off + 4);
