@@ -94,4 +94,21 @@ T7=/tmp/ri/run/audit7
 mkdir -p "$T7"
 "$OUT/render" --song "$SG/sched-check.rbng" --out "$T7/sched-check.wav" --dump-events "$T7/sched-check.events" || exit 1
 "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$T7/sched-check.events" --wav-a "$SG/sched-check.wav" --wav-b "$T7/sched-check.wav" | grep -q "COMPARE: IDENTICAL" || { echo "FAIL: sched-check re-render differs (not deterministic)"; exit 1; }
+echo "== Phase 8: 808 fifteen voices (Task 8, gate G8) =="
+bash "$ROOT/scripts/ri_build_host.sh" test t1_808 >/dev/null || { echo "FAIL: t1_808"; exit 1; }
+for v in bd sd lt mt ht lc mc hc rs cl cp ch oh cy cb; do
+  test -f "$ROOT/docs/evidence/808/$v.md" || { echo "FAIL: missing ledger 808/$v.md"; exit 1; }
+  grep -q "EXCITE" "$ROOT/docs/evidence/808/$v.md" || { echo "FAIL: ledger $v lacks accent mapping"; exit 1; }
+done
+grep -q "P-12" "$ROOT/docs/evidence/808/bd.md" || { echo "FAIL: P-12 open state unrecorded"; exit 1; }
+SG8="$ROOT/tests/golden/808"
+for v in bd sd lt mt ht lc mc hc rs cl cp ch oh cy cb storm; do
+  test -f "$SG8/$v.wav" || { echo "FAIL: missing golden 808/$v.wav"; exit 1; }
+  test -f "$SG8/$v.wav.sha256" || { echo "FAIL: missing sidecar 808/$v.wav.sha256"; exit 1; }
+done
+(cd "$ROOT" && sha256sum -c tests/golden/808/bd.wav.sha256 tests/golden/808/sd.wav.sha256 tests/golden/808/lt.wav.sha256 tests/golden/808/mt.wav.sha256 tests/golden/808/ht.wav.sha256 tests/golden/808/lc.wav.sha256 tests/golden/808/mc.wav.sha256 tests/golden/808/hc.wav.sha256 tests/golden/808/rs.wav.sha256 tests/golden/808/cl.wav.sha256 tests/golden/808/cp.wav.sha256 tests/golden/808/ch.wav.sha256 tests/golden/808/oh.wav.sha256 tests/golden/808/cy.wav.sha256 tests/golden/808/cb.wav.sha256 tests/golden/808/storm.wav.sha256) || { echo "FAIL: 808 golden sha256 mismatch"; exit 1; }
+T8=/tmp/ri/run/audit8
+mkdir -p "$T8"
+"$OUT/render" --808 storm --out "$T8/storm.wav" >/dev/null || exit 1
+cmp -s "$SG8/storm.wav" "$T8/storm.wav" || { echo "FAIL: storm re-render differs (not deterministic)"; exit 1; }
 echo "AUDIT 0/0 PASS"

@@ -29,6 +29,7 @@
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
 #include "engine/dsp/rb303.h"
+#include "engine/dsp/rb808.h"
 #include "engine/dsp/kernels.h"
 
 #define RI_SR 48000u
@@ -463,12 +464,77 @@ static int render_math(int is_sine, const char *out_path) {
     return write_wav(out_path, pcm, 96000u);
 }
 
+/* --808 stimulus (Task 8, gate G8): one voice (accent 0, tune 0, default
+ * decay) or the storm fixture (all 15, max decay, full accent), rendered
+ * in 64-frame blocks at 48 kHz. Deterministic (D1): fixed LFSR seeds at
+ * trigger. Durations mirror tests/unit/t1_808.c voice_secs. */
+static float voice_secs808(uint32_t v) {
+    if (v == RB808_CY)
+        return 3.0f;
+    if (v == RB808_OH)
+        return 2.0f;
+    if (v == RB808_BD || v == RB808_LT || v == RB808_MT || v == RB808_HT ||
+        v == RB808_CB)
+        return 1.5f;
+    if (v == RB808_RS || v == RB808_CL || v == RB808_CH)
+        return 0.5f;
+    return 1.0f;
+}
+
+static int render_808(const char *name, const char *out_path) {
+    struct RB808Set s;
+    static int16_t pcm[144000];
+    static float fbuf[RI_BLOCK];
+    uint32_t total, pos = 0, k, v = 0;
+    float secs;
+    int storm = strcmp(name, "storm") == 0;
+    if (!storm) {
+        for (k = 0; k < RI_808_NVOICES; k++)
+            if (strcmp(name, rb808_name(k)) == 0) {
+                v = k;
+                break;
+            }
+        if (k == RI_808_NVOICES) {
+            printf("render: --808 wants bd|sd|lt|mt|ht|lc|mc|hc|rs|cl|cp|ch|oh|cy|cb|storm\n");
+            return 2;
+        }
+        secs = voice_secs808(v);
+    } else {
+        secs = 2.0f;
+    }
+    total = (uint32_t)(secs * (float)RI_SR);
+    if (total > 144000u) {
+        printf("render: --808 fixture too long\n");
+        return 2;
+    }
+    rb808_init_set(&s);
+    if (storm) {
+        rb808_max_decay(&s);
+        for (k = 0; k < RI_808_NVOICES; k++)
+            rb808_trigger(&s, k, 1, 0.0f);
+    } else {
+        rb808_trigger(&s, v, 0, 0.0f);
+    }
+    while (pos < total) {
+        uint32_t cc = total - pos, j;
+        if (cc > RI_BLOCK)
+            cc = RI_BLOCK;
+        rb808_render_mix(&s, fbuf, cc, (float)RI_SR);
+        for (j = 0; j < cc; j++)
+            pcm[pos + j] = f32_to_s16(fbuf[j]);
+        pos += cc;
+    }
+    printf("render: 808 %s, %u samples -> %s\n", name, total, out_path);
+    return write_wav(out_path, pcm, total);
+}
+
 int main(int argc, char **argv) {
-    const char *song = NULL, *out = NULL, *ev = NULL, *math = NULL;
+    const char *song = NULL, *out = NULL, *ev = NULL, *math = NULL, *v808 = NULL;
     int i;
     if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("usage: render --song FILE --out FILE [--dump-events FILE]\n");
         printf("       render --math dc|sine --out FILE\n");
+        printf("       render --808 VOICE|storm --out FILE\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
         printf("NOTE: this golden proves determinism + skeleton, NOT parity.\n");
         return 0;
@@ -482,6 +548,8 @@ int main(int argc, char **argv) {
             ev = argv[++i];
         else if (strcmp(argv[i], "--math") == 0 && i + 1 < argc)
             math = argv[++i];
+        else if (strcmp(argv[i], "--808") == 0 && i + 1 < argc)
+            v808 = argv[++i];
         else {
             printf("render: bad arg %s (see --help)\n", argv[i]);
             return 2;
@@ -496,12 +564,23 @@ int main(int argc, char **argv) {
             printf("render: --math takes no --song/--dump-events\n");
             return 2;
         }
+        if (v808) {
+            printf("render: --math takes no --808\n");
+            return 2;
+        }
         if (strcmp(math, "dc") == 0)
             return render_math(0, out);
         if (strcmp(math, "sine") == 0)
             return render_math(1, out);
         printf("render: --math wants dc|sine\n");
         return 2;
+    }
+    if (v808) {
+        if (song || ev || math) {
+            printf("render: --808 takes no --song/--dump-events/--math\n");
+            return 2;
+        }
+        return render_808(v808, out);
     }
     if (!song) {
         printf("render: --song required\n");
