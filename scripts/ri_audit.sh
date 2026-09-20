@@ -159,4 +159,46 @@ echo "-- S909 render-diff (pack differs from default) --"
 "$OUT/render" --909 bd --out "$T9/dflt.wav" >/dev/null || exit 1
 "$OUT/render" --909pack bd --out "$T9/pack.wav" >/dev/null || exit 1
 if "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$SG/sched-check.events" --wav-a "$T9/dflt.wav" --wav-b "$T9/pack.wav" | grep -q "COMPARE: IDENTICAL"; then echo "FAIL: pack renders identical to default (S909 dead)"; exit 1; fi
+echo "== Phase 10: PCF black-box route + FX trio (Task 10, gate G10) =="
+T10=/tmp/ri/run/audit10
+mkdir -p "$T10" /tmp/ri/run/t10
+bash "$ROOT/scripts/ri_build_host.sh" test t1_fx >/dev/null || { echo "FAIL: t1_fx"; exit 1; }
+test -f "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: missing pcf engine ledger"; exit 1; }
+grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks P-15"; exit 1; }
+grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }
+test -f "$ROOT/docs/evidence/pcf/red-t1_fx.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
+test -f "$ROOT/reference/pcf-table.bin" || { echo "FAIL: missing pcf-table.bin (missing-is-broken)"; exit 1; }
+echo "-- negative gate (no table -> pcf build fails with the #error) --"
+mv "$ROOT/reference/pcf-table.bin" "$T10/hide.bin"
+if bash "$ROOT/scripts/ri_build_host.sh" pcf >"$T10/neg.log" 2>&1; then
+  mv "$T10/hide.bin" "$ROOT/reference/pcf-table.bin"
+  echo "FAIL: pcf build accepted a missing table"
+  exit 1
+fi
+mv "$T10/hide.bin" "$ROOT/reference/pcf-table.bin"
+grep -q "PCF table unverified" "$T10/neg.log" || { echo "FAIL: pcf failure is not the #error gate"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" pcf >/dev/null || { echo "FAIL: pcf rebuild after restore"; exit 1; }
+echo "-- pcf goldens re-verified --"
+SG10="$ROOT/tests/golden/pcf"
+for v in pcf-sweep fx-delay fx-chain; do
+  test -f "$SG10/$v.wav" || { echo "FAIL: missing golden pcf/$v.wav"; exit 1; }
+  test -f "$SG10/$v.wav.sha256" || { echo "FAIL: missing sidecar pcf/$v.wav.sha256"; exit 1; }
+done
+(cd "$ROOT" && sha256sum -c tests/golden/pcf/pcf-sweep.wav.sha256 tests/golden/pcf/fx-delay.wav.sha256 tests/golden/pcf/fx-chain.wav.sha256) || { echo "FAIL: pcf golden sha256 mismatch"; exit 1; }
+"$OUT/render" --pcf sweep --out "$T10/pcf-sweep.wav" >/dev/null || exit 1
+"$OUT/render" --fx delay --out "$T10/fx-delay.wav" >/dev/null || exit 1
+"$OUT/render" --fx chain --out "$T10/fx-chain.wav" >/dev/null || exit 1
+cmp -s "$SG10/pcf-sweep.wav" "$T10/pcf-sweep.wav" || { echo "FAIL: pcf/pcf-sweep re-render differs (not deterministic)"; exit 1; }
+cmp -s "$SG10/fx-delay.wav" "$T10/fx-delay.wav" || { echo "FAIL: pcf/fx-delay re-render differs (not deterministic)"; exit 1; }
+cmp -s "$SG10/fx-chain.wav" "$T10/fx-chain.wav" || { echo "FAIL: pcf/fx-chain re-render differs (not deterministic)"; exit 1; }
+echo "-- audibility floor (silent goldens never pin: peak>=1000, rms>=100) --"
+for v in pcf-sweep fx-delay fx-chain; do
+  od -An -t d2 -v -j44 "$T10/$v.wav" | awk 'BEGIN { m=0; s=0; n=0 }
+    { for (i=1;i<=NF;i++) { a=$i; if (a<0) a=-a; if (a>m) m=a; s+=$i*$i; n++ } }
+    END { r=sqrt(s/n); printf "pcf/%s peak=%d rms=%.0f\n", VN, m, r;
+      if (m<1000 || r<100) exit 1 }' VN="$v" || { echo "FAIL: pcf/$v silent (audibility floor)"; exit 1; }
+done
+echo "-- FX render-diff (chain differs from dry: path live, not a rename) --"
+"$OUT/render" --fx dry --out "$T10/dry.wav" >/dev/null || exit 1
+if "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$SG/sched-check.events" --wav-a "$T10/dry.wav" --wav-b "$T10/fx-chain.wav" | grep -q "COMPARE: IDENTICAL"; then echo "FAIL: fx chain renders identical to dry (FX dead)"; exit 1; fi
 echo "AUDIT 0/0 PASS"

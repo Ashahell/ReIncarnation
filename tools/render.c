@@ -32,6 +32,8 @@
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
 #include "engine/dsp/kernels.h"
+#include "engine/fx/pcf.h"
+#include "engine/fx/fx.h"
 #include "project/rbnm.h"
 
 #define RI_SR 48000u
@@ -758,9 +760,134 @@ static int render_909pack(const char *name, const char *out_path,
     return render_909_common(&s, v, secs, out_path, name);
 }
 
+/* --pcf / --fx stimuli (Task 10, gate G10): deterministic (D1) fixtures
+ * for the pcf goldens. All synthesis via ri_* (host determinism); 64-frame
+ * blocks at 48 kHz; static buffers only. */
+static int render_pcf(const char *name, const char *out_path) {
+    struct PCF p;
+    static float in[96000], out[RI_BLOCK];
+    static int16_t pcm[96000];
+    uint32_t total = 96000u, pos = 0;
+    float phase = 0.0f;
+    if (strcmp(name, "sweep") != 0) {
+        printf("render: --pcf wants sweep\n");
+        return 2;
+    }
+    pcf_init(&p);
+    p.q = 2.0f;
+    p.amt_oct = 0.0f;
+    while (pos < total) {
+        /* input log sweep 100 -> 8000 Hz over the fixture */
+        float t0 = (float)pos / (float)total;
+        float f0 = 100.0f * ri_pow2(t0 * 6.321928f); /* 100->8000 */
+        uint32_t cc = total - pos, j;
+        /* base_fc ramps 200 -> 8000 alongside (tool-side automation) */
+        p.base_fc = 200.0f * ri_pow2(t0 * 5.321928f); /* 200->8000 */
+        if (cc > RI_BLOCK)
+            cc = RI_BLOCK;
+        for (j = 0; j < cc; j++) {
+            phase += f0 / (float)RI_SR;
+            if (phase >= 1.0f)
+                phase -= 1.0f;
+            in[pos + j] = 0.5f * ri_sin(phase * 6.2831853f);
+        }
+        pcf_render(&p, in + pos, out, cc, (float)RI_SR);
+        for (j = 0; j < cc; j++)
+            pcm[pos + j] = f32_to_s16(out[j]);
+        pos += cc;
+    }
+    printf("render: pcf %s, %u samples -> %s\n", name, total, out_path);
+    return write_wav(out_path, pcm, total);
+}
+
+/* Shared 2 s chord input for the fx dry/chain pair (identical stimulus). */
+static void fx_chord(float *b, uint32_t n) {
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        float t = (float)i / 48000.0f;
+        b[i] = 0.30f * ri_sin(red_phase(220.0f * t)) +
+            0.22f * ri_sin(red_phase(277.18f * t)) +
+            0.22f * ri_sin(red_phase(329.63f * t));
+    }
+}
+
+/* Delay fixture input: 440 Hz sine at 0.4 plus a leading impulse so the
+ * echo grid is visible in the golden. */
+static void sine_probe_delay_in(float *b, uint32_t n) {
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        float t = (float)i / 48000.0f;
+        b[i] = 0.4f * ri_sin(red_phase(440.0f * t));
+    }
+    b[0] += 0.5f;
+}
+
+static int render_fx(const char *name, const char *out_path) {
+    static float in[96000], tmp[96000];
+    static float dl[96000];
+    static int16_t pcm[96000];
+    struct PCF p;
+    struct RiFXDelay d;
+    struct RiFXDist ds;
+    struct RiFXComp c;
+    uint32_t total, pos = 0, j;
+    if (strcmp(name, "dry") != 0 && strcmp(name, "delay") != 0 &&
+        strcmp(name, "chain") != 0) {
+        printf("render: --fx wants dry|delay|chain\n");
+        return 2;
+    }
+    if (strcmp(name, "delay") == 0) {
+        total = 72000u; /* 1.5 s */
+        sine_probe_delay_in(in, total);
+        ri_fxdelay_init(&d, dl, 96000u);
+        ri_fxdelay_sync(&d, 140.0f, 0.75f, (float)RI_SR);
+        ri_fxdelay_set(&d, 44, 51); /* fb 0.35, mix 0.4 */
+        while (pos < total) {
+            uint32_t cc = total - pos;
+            if (cc > RI_BLOCK)
+                cc = RI_BLOCK;
+            ri_fxdelay_render(&d, in + pos, tmp + pos, cc);
+            pos += cc;
+        }
+    } else {
+        total = 96000u; /* 2 s */
+        fx_chord(in, total);
+        if (strcmp(name, "dry") == 0) {
+            for (j = 0; j < total; j++)
+                tmp[j] = in[j];
+        } else {
+            pcf_init(&p);
+            p.base_fc = 1500.0f;
+            p.q = 2.0f;
+            ri_fxdist_init(&ds);
+            ri_fxdist_set(&ds, 48, 16);
+            ri_fxdelay_init(&d, dl, 96000u);
+            ri_fxdelay_sync(&d, 140.0f, 0.75f, (float)RI_SR);
+            ri_fxdelay_set(&d, 38, 44); /* fb 0.3, mix 0.35 */
+            ri_fxcomp_init(&c, (float)RI_SR);
+            ri_fxcomp_set(&c, 64);
+            while (pos < total) {
+                uint32_t cc = total - pos;
+                if (cc > RI_BLOCK)
+                    cc = RI_BLOCK;
+                ri_fxdist_render(&ds, in + pos, tmp + pos, cc);
+                pcf_render(&p, tmp + pos, tmp + pos, cc, (float)RI_SR);
+                ri_fxdelay_render(&d, tmp + pos, tmp + pos, cc);
+                ri_fxcomp_render(&c, tmp + pos, tmp + pos, cc);
+                pos += cc;
+            }
+        }
+    }
+    for (j = 0; j < total; j++)
+        pcm[j] = f32_to_s16(tmp[j]);
+    printf("render: fx %s, %u samples -> %s\n", name, total, out_path);
+    return write_wav(out_path, pcm, total);
+}
+
 int main(int argc, char **argv) {
     const char *song = NULL, *out = NULL, *ev = NULL, *math = NULL, *v808 = NULL;
-    const char *v909 = NULL, *v909pack = NULL, *pack = NULL;
+    const char *v909 = NULL, *v909pack = NULL, *pack = NULL, *vpcf = NULL;
+    const char *vfx = NULL;
     int i;
     if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("usage: render --song FILE --out FILE [--dump-events FILE]\n");
@@ -768,6 +895,8 @@ int main(int argc, char **argv) {
         printf("       render --808 VOICE|storm --out FILE\n");
         printf("       render --909 VOICE --out FILE\n");
         printf("       render --909pack VOICE --out FILE [--pack FILE]\n");
+        printf("       render --pcf sweep --out FILE\n");
+        printf("       render --fx dry|delay|chain --out FILE\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
         printf("NOTE: this golden proves determinism + skeleton, NOT parity.\n");
         return 0;
@@ -787,6 +916,10 @@ int main(int argc, char **argv) {
             v909 = argv[++i];
         else if (strcmp(argv[i], "--909pack") == 0 && i + 1 < argc)
             v909pack = argv[++i];
+        else if (strcmp(argv[i], "--pcf") == 0 && i + 1 < argc)
+            vpcf = argv[++i];
+        else if (strcmp(argv[i], "--fx") == 0 && i + 1 < argc)
+            vfx = argv[++i];
         else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
             pack = argv[++i];
         else {
@@ -803,8 +936,8 @@ int main(int argc, char **argv) {
             printf("render: --math takes no --song/--dump-events\n");
             return 2;
         }
-        if (v808) {
-            printf("render: --math takes no --808\n");
+        if (v808 || vpcf || vfx) {
+            printf("render: --math takes no --808/--pcf/--fx\n");
             return 2;
         }
         if (strcmp(math, "dc") == 0)
@@ -816,14 +949,31 @@ int main(int argc, char **argv) {
     }
     if (v808) {
         if (song || ev || math) {
-            printf("render: --808 takes no --song/--dump-events/--math\n");
+            printf("render: --808 takes no --song/--dump-events/--math/--pcf/--fx\n");
+            return 2;
+        }
+        if (vpcf || vfx || v909 || v909pack) {
+            printf("render: --808 takes no --pcf/--fx/--909\n");
             return 2;
         }
         return render_808(v808, out);
     }
+    if (vpcf || vfx) {
+        if (song || ev || math || v808 || v909 || v909pack) {
+            printf("render: --pcf/--fx take no --song/--dump-events/--math/--808/--909\n");
+            return 2;
+        }
+        if (vpcf && vfx) {
+            printf("render: --pcf and --fx are exclusive\n");
+            return 2;
+        }
+        if (vpcf)
+            return render_pcf(vpcf, out);
+        return render_fx(vfx, out);
+    }
     if (v909 || v909pack) {
-        if (song || ev || math || v808) {
-            printf("render: --909 takes no --song/--dump-events/--math/--808\n");
+        if (song || ev || math || v808 || vpcf || vfx) {
+            printf("render: --909 takes no --song/--dump-events/--math/--808/--pcf/--fx\n");
             return 2;
         }
         if (v909 && v909pack) {

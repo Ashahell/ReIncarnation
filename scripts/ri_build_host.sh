@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: ri_build_host.sh [kernels|clock|sched|dsp303|dsp808|dsp909|fx|mixer|all|test NAME|golden NAME|clean]
+# usage: ri_build_host.sh [kernels|clock|sched|dsp303|dsp808|dsp909|fx|pcf|mixer|all|test NAME|golden NAME|clean]
 set -e
 ROOT="$(dirname "$0")/.."
 OUT=/tmp/ri/build
@@ -11,12 +11,28 @@ MOD_sched="engine/seq/sched.c"
 MOD_dsp303="engine/dsp/rb303.c engine/dsp/params.c"
 MOD_dsp808="engine/dsp/rb808.c"
 MOD_dsp909="engine/dsp/rb909.c project/rbnm.c"
+MOD_fx="engine/fx/fx.c"
 MOD_audio="audio_io/audio.c audio_io/backend_null.c"
 # Later tasks APPEND paths to MOD_dsp808, MOD_fx, ... and add matching case lines.
 compile_list() { for f in $1; do test -f "$ROOT/$f" || { echo "MISSING $f"; exit 1; }; gcc $CFLAGS -c "$ROOT/$f" -o "$OUT/$(basename $f .c).o"; done; }
+# PCF ledger gate (Task 10, gate G10): the -D flag is issued ONLY when the
+# ledger-verified data file exists. Without it pcf.c hits its #error, so a
+# missing table fails the pcf target with the compiler error (negative
+# gate). `all` skips pcf when the table is absent (fails that target only,
+# never all); `pcf` is strict.
+build_pcf() {
+  if [ -f "$ROOT/reference/pcf-table.bin" ]; then
+    gcc $CFLAGS -DPCF_TABLE_VERIFIED=1 -c "$ROOT/engine/fx/pcf.c" -o "$OUT/pcf.o";
+  elif [ "$1" = strict ]; then
+    echo "pcf: table missing, proving the gate (expect #error)";
+    gcc $CFLAGS -c "$ROOT/engine/fx/pcf.c" -o "$OUT/pcf.o";
+  else
+    echo "pcf: SKIP (table unverified)";
+  fi }
 case "${1:-all}" in
-  kernels|clock|sched|dsp303|dsp808|dsp909|audio) compile_list "$(eval echo \$MOD_$1)" ;;
-  all) for t in kernels clock sched dsp303 dsp808 dsp909 audio; do "$0" $t; done ;;
+  kernels|clock|sched|dsp303|dsp808|dsp909|fx|audio) compile_list "$(eval echo \$MOD_$1)" ;;
+  pcf) build_pcf strict ;;
+  all) for t in kernels clock sched dsp303 dsp808 dsp909 fx audio; do "$0" $t; done; build_pcf skip ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
     gcc $CFLAGS -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o -lm 2>/dev/null || \
     gcc $CFLAGS -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o -lm

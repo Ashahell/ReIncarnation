@@ -1,0 +1,35 @@
+# RED evidence — t1_fx failure-capability proof (Task 10, gate G10)
+
+**Date:** 2026-09-20. **Method:** injected mutant `+ 0.05f` octave offset
+into `pcf_cutoff_hz` (engine/fx/pcf.c), rebuilt the `pcf` target, ran
+`ri_build_host.sh test t1_fx`. A +0.05 oct error is exactly +60 cents, so
+every one of the 10 ledger rows must fail the ±2-cent band while every
+other section stays green — proving the law test (not the harness) owns
+the verdict. Mutant reverted after capture; the committed tree is GREEN.
+
+```
+FAIL scripts/../tests/unit/t1_fx.c:71: row 0 v=0 amt=4 cents=60
+row 0: v=0 amt=4 got=64.704 want=62.500 (60 cents)
+FAIL scripts/../tests/unit/t1_fx.c:71: row 1 v=16 amt=4 cents=60
+FAIL scripts/../tests/unit/t1_fx.c:71: row 2 v=32 amt=4 cents=60
+FAIL scripts/../tests/unit/t1_fx.c:71: row 3 v=48 amt=4 cents=60
+FAIL scripts/../tests/unit/t1_fx.c:71: row 4 v=64 amt=4 cents=60
+FAIL scripts/../tests/unit/t1_fx.c:71: row 5 v=80 amt=4 cents=60
+FAIL scripts/../tests/unit/t1_fx.c:71: row 6 v=96 amt=4 cents=60
+FAIL scripts/../tests/unit/t1_fx.c:71: row 7 v=112 amt=4 cents=60
+FAIL scripts/../tests/unit/t1_fx.c:71: row 8 v=127 amt=4 cents=60
+row 8: v=127 amt=4 got=15861.969 want=15321.652 (60 cents)
+FAIL scripts/../tests/unit/t1_fx.c:71: row 9 v=32 amt=-4 cents=60
+pcf dc settled rms: 0.5
+bpm 120: delay 18000 smp, sync err 0%
+bpm 140: delay 15429 smp, sync err 0.0027787%
+bpm 174: delay 12414 smp, sync err 0.0016678%
+dist drive0 unity: 0 dB
+comp low-level gain (make-up): 14.9 dB
+comp hot: pk_in=0.9 pk_out=1.732 mu=5.547
+order swap: edge energy 0.8212 (bound 64)
+FAIL 10
+```
+
+Result: 10/10 law rows red, all other sections green, exit 1. The test is
+failure-capable per spec §16. GREEN run is recorded in task-10-report.md.
