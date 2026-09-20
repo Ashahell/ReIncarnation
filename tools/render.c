@@ -12,7 +12,10 @@
  *
  * --song: Task-4 text scaffold (NOT RBNG; real codec is Task 13):
  *     tempo=140
- *     step note=45 [slide=0/1] [accent=0/1]
+ *     shuffle=50       (optional, Task 7: 0..100, default 0)
+ *     legato=1         (optional, Task 7: 0/1, default 0)
+ *     flam_ms=35.0     (optional, Task 7: 0..500 ms, default 35.0 = P-05)
+ *     step note=45 [slide=0/1] [accent=0/1] [flam=0/1]
  *     step rest=1 [slide=0/1]
  *   max 64 steps. Unknown lines/values: fatal (exit 2), never silent.
  * --math dc: 2 s of DC 0.5 through the core ladder (fc=1000, k=0).
@@ -117,12 +120,59 @@ static int take_int(const char *tok, const char *key, int *val) {
     return 0;
 }
 
-/* Parse the Task-4 song scaffold. Returns 0 ok (fills steps/tempo), else 2. */
-static int parse_song(const char *path, struct RIStep *steps, uint32_t *nsteps, int *tempo) {
+/* Parse one "k=v" millisecond value (NNN[.mmm], 0..500). Returns 0 ok,
+ * 1 no match, 2 bad value. Tool-side only (engine takes the double). */
+static int take_ms(const char *tok, const char *key, double *val) {
+    size_t kl = strlen(key);
+    const char *p;
+    long ip = 0;
+    long fp = 0;
+    long div = 1;
+    if (strncmp(tok, key, kl) != 0 || tok[kl] != '=')
+        return 1;
+    p = tok + kl + 1;
+    if (*p < '0' || *p > '9')
+        return 2;
+    while (*p >= '0' && *p <= '9') {
+        ip = ip * 10 + (*p - '0');
+        p++;
+    }
+    if (*p == '.') {
+        int nd = 0;
+        p++;
+        if (*p < '0' || *p > '9')
+            return 2;
+        while (*p >= '0' && *p <= '9' && nd < 3) {
+            fp = fp * 10 + (*p - '0');
+            div *= 10;
+            nd++;
+            p++;
+        }
+        while (*p >= '0' && *p <= '9')
+            p++; /* extra digits: truncate, still well-formed */
+    }
+    if (*p != '\0')
+        return 2;
+    *val = (double)ip + (double)fp / (double)div;
+    if (*val < 0.0 || *val > 500.0)
+        return 2;
+    return 0;
+}
+
+/* Parse the Task-4 song scaffold + Task-7 timing directives. Returns 0 ok
+ * (fills steps/tempo/timing), else 2. Timing headers (all optional):
+ *   shuffle=N (0..100)  legato=0/1  flam_ms=NNN[.mmm] (0..500, def 35.0)
+ * Per-step extra: flam=0/1 (needs a note; rest+flam parses, walker ignores).
+ * Songs without timing headers render exactly as Task 4 (straight). */
+static int parse_song(const char *path, struct RIStep *steps, uint32_t *nsteps, int *tempo,
+    int *shuffle_pct, int *legato, double *flam_ms) {
     char line[256];
     FILE *f = fopen(path, "r");
     *nsteps = 0;
     *tempo = 0;
+    *shuffle_pct = 0;
+    *legato = 0;
+    *flam_ms = RI_FLAM_MS_DEFAULT;
     if (!f) {
         printf("render: cannot open --song %s\n", path);
         return 2;
@@ -145,7 +195,7 @@ static int parse_song(const char *path, struct RIStep *steps, uint32_t *nsteps, 
             continue;
         }
         if (strncmp(line, "step ", 5) == 0) {
-            int note = -1, slide = 0, accent = 0, rest = 0;
+            int note = -1, slide = 0, accent = 0, rest = 0, flam = 0;
             int bad = 0;
             if (*nsteps >= RI_MAX_STEPS) {
                 printf("render: too many steps (max %u)\n", RI_MAX_STEPS);
@@ -192,6 +242,10 @@ static int parse_song(const char *path, struct RIStep *steps, uint32_t *nsteps, 
                     if (v != 0 && v != 1)
                         bad = 1;
                     rest = v;
+                } else if ((r = take_int(word, "flam", &v)) == 0) {
+                    if (v != 0 && v != 1)
+                        bad = 1;
+                    flam = v;
                 } else {
                     bad = 1;
                 }
@@ -203,9 +257,49 @@ static int parse_song(const char *path, struct RIStep *steps, uint32_t *nsteps, 
             }
             steps[*nsteps].note = (uint8_t)(note < 0 ? 0 : note);
             steps[*nsteps].flags = (uint8_t)((rest ? RI_STEP_REST : 0u) |
-                (slide ? RI_STEP_SLIDE : 0u) | (accent ? RI_STEP_ACCENT : 0u));
+                (slide ? RI_STEP_SLIDE : 0u) | (accent ? RI_STEP_ACCENT : 0u) |
+                (flam ? RI_STEP_FLAM : 0u));
             (*nsteps)++;
             continue;
+        }
+        { /* Task-7 timing headers */
+            int v;
+            double ms;
+            int r;
+            if ((r = take_int(line, "shuffle", &v)) == 0) {
+                if (v < 0 || v > 100) {
+                    printf("render: bad shuffle line: %s\n", line);
+                    fclose(f);
+                    return 2;
+                }
+                *shuffle_pct = v;
+                continue;
+            } else if (r == 2) {
+                printf("render: bad shuffle line: %s\n", line);
+                fclose(f);
+                return 2;
+            }
+            if ((r = take_int(line, "legato", &v)) == 0) {
+                if (v != 0 && v != 1) {
+                    printf("render: bad legato line: %s\n", line);
+                    fclose(f);
+                    return 2;
+                }
+                *legato = v;
+                continue;
+            } else if (r == 2) {
+                printf("render: bad legato line: %s\n", line);
+                fclose(f);
+                return 2;
+            }
+            if ((r = take_ms(line, "flam_ms", &ms)) == 0) {
+                *flam_ms = ms;
+                continue;
+            } else if (r == 2) {
+                printf("render: bad flam_ms line: %s\n", line);
+                fclose(f);
+                return 2;
+            }
         }
         printf("render: unknown line: %s\n", line);
         fclose(f);
@@ -250,7 +344,7 @@ static void apply_event(struct RB303Voice *v, const struct RIEvent *e) {
         rb303_accent(v);
         break;
     default:
-        break; /* walker emits only the above for one 303 section */
+        break; /* FLAM (909 second hit, Task 9 voice-side) has no 303 effect */
     }
 }
 
@@ -262,13 +356,17 @@ static int render_song(const char *song_path, const char *out_path, const char *
     struct RB303Voice voice;
     uint32_t nsteps = 0;
     int tempo = 0;
+    int shuffle_pct = 0, legato = 0;
+    double flam_ms = RI_FLAM_MS_DEFAULT;
+    struct RISchedOpts opts;
     uint32_t nev, k;
     uint64_t total, cursor = 0, evpos = 0;
     /* pcm worst case: 64 steps * full bar @30bpm + tail; static bound 2^22 */
     static int16_t pcm[4194304];
     static float fbuf[RI_BLOCK];
     int rc;
-    if ((rc = parse_song(song_path, steps, &nsteps, &tempo)) != 0)
+    if ((rc = parse_song(song_path, steps, &nsteps, &tempo,
+            &shuffle_pct, &legato, &flam_ms)) != 0)
         return rc;
     segs[0].start_tick = 0;
     segs[0].ns_per_quarter = 60000000000ULL / (uint64_t)tempo;
@@ -276,7 +374,10 @@ static int render_song(const char *song_path, const char *out_path, const char *
     map.n = 1;
     map.ppq = 96;
     map.sr = RI_SR;
-    nev = ri_sched_emit_sorted(&map, 0, 96, steps, nsteps, 0, ev, RI_SCHED_MAX_EVENTS);
+    opts.shuffle_pct = (uint8_t)shuffle_pct;
+    opts.legato = (uint8_t)legato;
+    opts.flam_ms = flam_ms;
+    nev = ri_sched_emit_timed(&map, 0, 96, steps, nsteps, 0, &opts, ev, RI_SCHED_MAX_EVENTS);
     if (nev == 0) {
         printf("render: walker emitted no events\n");
         return 2;

@@ -1,0 +1,15 @@
+# sched-check.rbng — Task-7 timing golden SCAFFOLD (NOT RBNG; real codec is Task 13).
+# Exercises shuffle (odd steps +12 ticks at 50) + legato ties + flam=35ms.
+# Pinned output: sched-check.events (+ sched-check.wav) via tools/render.
+tempo=140
+shuffle=50
+legato=1
+flam_ms=35.0
+step note=45
+step note=47 flam=1
+step note=48 accent=1
+step rest=1
+step note=50 slide=1
+step rest=1 slide=1
+step note=52 flam=1 accent=1
+step rest=1

@@ -52,30 +52,66 @@ static inline int ri_event_less(const struct RIEvent *a, const struct RIEvent *b
     return a->seq < b->seq;
 }
 
-/* Minimal walker (Task 4, gate G4): sorted-array emit for ONE section only.
- * Insertion order = song order (seq = emit index). Full shuffle/legato/flam
- * walker is Task 7 — NOT here.
+/* Minimal walker (Task 4, gate G4) + musical-timing upgrade (Task 7,
+ * gate G7): sorted-array emit for ONE section only. Insertion order = song
+ * order (seq = emit index). Full song arrangement is Task 13 — NOT here.
  *
- * Step flags (input): RI_STEP_SLIDE / RI_STEP_ACCENT / RI_STEP_REST.
+ * Step flags (input): RI_STEP_SLIDE / RI_STEP_ACCENT / RI_STEP_REST /
+ * RI_STEP_FLAM (Task 7: flam second-hit request on a NOTE step; ignored on
+ * rest steps, which carry no pitch).
  * Event flag bits (§8 payload mapping; NOTE_ON/OFF/CONTINUE flags =
- * accent | slide | octave): RI_EVFLAG_SLIDE / RI_EVFLAG_ACCENT /
- * RI_EVFLAG_OCTAVE. [E0 decisions, Task 4]
+ * accent | slide | octave, plus Task-7 legato continuity):
+ * RI_EVFLAG_SLIDE / RI_EVFLAG_ACCENT / RI_EVFLAG_OCTAVE / RI_EVFLAG_LEGATO.
+ * FLAM events use a SEPARATE type-dependent meaning (spec §8: value =
+ * delay in samples, flags = second-hit bit): RI_EVFLAG_FLAM2.
+ * Bit meanings are type-dependent per the §8 payload table, so LEGATO
+ * (NOTE_ON context) and FLAM2 (FLAM context) never collide. [E0, Task 7]
  *
  * Emits per the §8 gate/slide table: new note (no slide) -> NOTE_ON
  * (+ACCENT); new note + slide -> NOTE_ON with slide flag; rest + slide ->
  * NOTE_CONTINUE (value = held pitch); rest (no slide) -> NOTE_OFF; accent
  * flag on any of the above -> ACCENT (value = level 1). A NOTE_OFF for the
  * previous note is emitted at a step boundary only when the new step does
- * not continue the gate (new note without slide, or rest without slide);
- * the final note gets its NOTE_OFF at the pattern end tick.
+ * not continue the gate (new note without slide and without legato mode,
+ * or rest without slide); the final note gets its NOTE_OFF at the pattern
+ * end tick.
+ *
+ * Task-7 timing overlays (applied in the spec §7 order):
+ * shuffle -> slide-legato resolution -> flam emission.
+ * - shuffle (opts.shuffle_pct 0..100, clamped): 1-based even 16th steps
+ *   (0-based odd indices) fire shuffle_pct*(ppq/4)/100 ticks late (rounded
+ *   to whole ticks in the tick domain, then ri_map_tick). Slide durations
+ *   stretch/shrink implicitly: NOTE_OFF/NOTE_ON simply land on the offset
+ *   positions (shuffle-stretch-slides stay [HYPOTHESIS] per §8).
+ * - legato (opts.legato != 0): a new note step ties instead of retriggering:
+ *   the gate stays high (no NOTE_OFF) and the NOTE_ON carries SLIDE +
+ *   LEGATO (env-continuity: envelopes do NOT reset voice-side). Rests still
+ *   break/restore the gate per the §8 table.
+ * - flam (RI_STEP_FLAM on a note step): after the step's own events, emit
+ *   RI_EV_FLAM at note_sample + flam_samples where flam_samples =
+ *   round(flam_ms * map.sr / 1000). value saturates at 65535 (spec §8
+ *   bound); the sample offset never saturates. Default flam_ms = 35.0
+ *   (P-05 nominal); negative clamps to 0.
  */
 #define RI_STEP_SLIDE 0x01u
 #define RI_STEP_ACCENT 0x02u
 #define RI_STEP_REST 0x04u
+#define RI_STEP_FLAM 0x08u
 
 #define RI_EVFLAG_SLIDE 0x01u
 #define RI_EVFLAG_ACCENT 0x02u
 #define RI_EVFLAG_OCTAVE 0x04u
+#define RI_EVFLAG_LEGATO 0x08u /* env-continuity (NOTE_ON context only) */
+#define RI_EVFLAG_FLAM2 0x10u  /* second-hit marker (RI_EV_FLAM context only) */
+
+/* P-05 nominal default, Appendix A. Measured row: docs/evidence/sequencer/flam-default.md. */
+#define RI_FLAM_MS_DEFAULT 35.0
+
+struct RISchedOpts {
+    uint8_t shuffle_pct; /* 0..100, clamped; 0 = straight */
+    uint8_t legato;      /* nonzero = tie new notes (no retrigger) */
+    double flam_ms;      /* per-second-hit delay; negative clamps to 0 */
+};
 
 #define RI_SCHED_MAX_EVENTS 256u
 
@@ -88,4 +124,12 @@ struct RITempoMap; /* engine/seq/clock.h (include it for the definition) */
 uint32_t ri_sched_emit_sorted(const struct RITempoMap *map, uint64_t start_tick,
     uint32_t ppq, const struct RIStep *steps, uint32_t nsteps,
     uint16_t device, struct RIEvent *out, uint32_t cap);
+/* Task-7 timed emit: shuffle/legato/flam overlays per the comment above.
+ * opts may be NULL (= straight, no legato, default flam). One section only.
+ * Under cap pressure each emit site is guarded, so later steps (and flams,
+ * emitted per step after the step's own events) drop first — deterministic. */
+uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
+    uint32_t ppq, const struct RIStep *steps, uint32_t nsteps,
+    uint16_t device, const struct RISchedOpts *opts,
+    struct RIEvent *out, uint32_t cap);
 #endif
