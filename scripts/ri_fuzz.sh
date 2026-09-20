@@ -18,6 +18,7 @@ N="${1:-500}"
 OUT=/tmp/ri/build
 FUZZ=/tmp/ri/run/fuzz13
 mkdir -p "$FUZZ"
+rm -f "$FUZZ"/f*.rbng "$FUZZ"/f*.rbnm
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null
 CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT"
 gcc $CFLAGS -o "$OUT/inspect" "$ROOT/tools/inspect.c" "$OUT"/*.o
@@ -80,6 +81,6 @@ for f in "$FUZZ"/f*.rbng "$FUZZ"/f*.rbnm; do
   if [ "$rc" -eq 0 ]; then valid=$((valid + 1)); fi
   if [ "$rc" -eq 1 ]; then invalid=$((invalid + 1)); fi
 done
-echo "FUZZ 500: $pass no-crash (valid=$valid invalid=$invalid ioerr=$((pass - valid - invalid)))"
+echo "FUZZ $N: $pass no-crash (valid=$valid invalid=$invalid ioerr=$((pass - valid - invalid)))"
 test "$pass" -eq "$N" || { echo "FAIL: $pass/$N files checked"; exit 1; }
 echo "FUZZ $pass/$N PASS (no crash, no timeout)"

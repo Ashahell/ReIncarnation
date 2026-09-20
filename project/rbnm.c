@@ -711,8 +711,6 @@ int32_t rbnm_load_smpl(const char *path, const char *id, float *dst,
 int rbnm_read_cprg(const char *path, char *buf, uint32_t cap, int *present,
     char *err, uint32_t errcap) {
     uint32_t n = read_file(path, err, errcap), off, total;
-    static unsigned char zero = 0;
-    (void)zero;
     if (present)
         *present = 0;
     if (n == 0u)

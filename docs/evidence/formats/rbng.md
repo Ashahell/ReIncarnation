@@ -30,6 +30,9 @@ size range-checked before use, never trusted for allocation.
   (10/10 corpus + injected-`TST1` round trip, `cmp` clean).
 - Corrupt length (inflated size) → abort with `<ID> @<off>:` reason;
   the 500-mutation fuzz proves no crash/timeout on any input.
+- Resave normalizes the VERS stamp to the writer's 1.0 (writer-emits-
+  current) while preserving unknown chunks verbatim — a minor-newer
+  file round-trips its data bytes but not its version bytes.
 
 ## SHA-256 identity
 

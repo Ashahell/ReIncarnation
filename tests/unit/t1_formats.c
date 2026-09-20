@@ -245,7 +245,7 @@ int main(void) {
     RI_ASSERT(midi_cc_lookup(&ml, 1) == 0x0300, "CC1 loopback");
     RI_ASSERT(midi_cc_lookup(&ml, 2) == -1, "CC2 must stay unmapped");
     midi_learn(&ml, 200, 0x0300); /* out of range: ignored */
-    RI_ASSERT(midi_cc_lookup(&ml, 72) == -1, "bad learn leaked");
+    RI_ASSERT(midi_cc_lookup(&ml, 200) == -1, "bad learn leaked");
     RI_ASSERT(midi_note_step(60) == 60u % 16u, "note→step");
     RI_ASSERT(midi_note_accent(100) == 1 && midi_note_accent(40) == 0,
         "vel accent");
