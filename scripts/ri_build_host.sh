@@ -15,6 +15,7 @@ MOD_fx="engine/fx/fx.c"
 MOD_mixer="engine/mixer/mixer.c engine/framework/ridevice.c"
 MOD_audio="audio_io/audio.c audio_io/backend_null.c"
 MOD_gui="gui/knob_logic.c gui/panels.c"
+MOD_formats="project/sha256.c project/rbng.c project/arexx.c project/undo.c midi_io/midi.c"
 # Later tasks APPEND paths to MOD_dsp808, MOD_fx, ... and add matching case lines.
 compile_list() { for f in $1; do test -f "$ROOT/$f" || { echo "MISSING $f"; exit 1; }; gcc $CFLAGS -c "$ROOT/$f" -o "$OUT/$(basename $f .c).o"; done; }
 # PCF ledger gate (Task 10, gate G10): the -D flag is issued ONLY when the
@@ -32,9 +33,9 @@ build_pcf() {
     echo "pcf: SKIP (table unverified)";
   fi }
 case "${1:-all}" in
-  kernels|clock|sched|dsp303|dsp808|dsp909|fx|mixer|audio|gui) compile_list "$(eval echo \$MOD_$1)" ;;
+  kernels|clock|sched|dsp303|dsp808|dsp909|fx|mixer|audio|gui|formats) compile_list "$(eval echo \$MOD_$1)" ;;
   pcf) build_pcf strict ;;
-  all) for t in kernels clock sched dsp303 dsp808 dsp909 fx mixer audio gui; do "$0" $t; done; build_pcf skip ;;
+  all) for t in kernels clock sched formats dsp303 dsp808 dsp909 fx mixer audio gui; do "$0" $t; done; build_pcf skip ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
     gcc $CFLAGS -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o -lm 2>/dev/null || \
     gcc $CFLAGS -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o -lm

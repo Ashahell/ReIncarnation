@@ -123,7 +123,7 @@ done
 grep -q "P-13" "$ROOT/docs/evidence/909/bd.md" || { echo "FAIL: P-13 unrecorded"; exit 1; }
 grep -q "NO-OP" "$ROOT/docs/evidence/909/cr.md" || { echo "FAIL: crash quirk unrecorded"; exit 1; }
 grep -q "steal" "$ROOT/docs/evidence/909/ch.md" || { echo "FAIL: hat steal unrecorded"; exit 1; }
-gcc $CFLAGS -o "$OUT/inspect" "$ROOT/tools/inspect.c" "$OUT"/rbnm.o || { echo "FAIL: inspect build"; exit 1; }
+gcc $CFLAGS -o "$OUT/inspect" "$ROOT/tools/inspect.c" "$OUT"/*.o || { echo "FAIL: inspect build"; exit 1; }
 PK="$ROOT/reference/packs/classic-01"
 test -f "$PK/pack.rbnm" || { echo "FAIL: missing clean pack"; exit 1; }
 test -f "$PK/MANIFEST.txt" || { echo "FAIL: missing pack manifest"; exit 1; }
@@ -265,4 +265,73 @@ for w in rknb rfdr rstp rlvl; do
   x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/widgets/$w.mcc.c" -o "$OUT/aros/$w.o" || { echo "FAIL: $w.mcc.c AROS compile"; exit 1; }
 done
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/main.c" -o "$OUT/aros/app_main_aros.o" || { echo "FAIL: app/main.c AROS compile"; exit 1; }
+echo "== Phase 13: formats full + MIDI + automation + ARexx + datatypes + fuzz (Task 13, gate G13) =="
+T13=/tmp/ri/run/audit13
+mkdir -p "$T13/c1" "$T13/c2" "$T13/rs" "$T13/regen"
+bash "$ROOT/scripts/ri_build_host.sh" test t1_formats >/dev/null || { echo "FAIL: t1_formats"; exit 1; }
+for f in rbng rbnm-full midi arexx automation datatypes fuzz green-defects; do
+  test -f "$ROOT/docs/evidence/formats/$f.md" || { echo "FAIL: missing formats ledger $f.md"; exit 1; }
+done
+test -f "$ROOT/docs/evidence/formats/red-t1_formats.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
+grep -q "FAIL\|fatal error" "$ROOT/docs/evidence/formats/red-t1_formats.txt" || { echo "FAIL: RED evidence shows no failure"; exit 1; }
+grep -q "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" "$ROOT/tests/unit/t1_formats.c" || { echo "FAIL: abc vector ungated"; exit 1; }
+echo "-- corpus determinism (regenerate + cmp) --"
+gcc $CFLAGS -o "$OUT/mksong" "$ROOT/tools/mksong.c" "$OUT"/*.o || { echo "FAIL: mksong build"; exit 1; }
+"$OUT/mksong" "$T13/regen" >/dev/null || exit 1
+for k in 01 02 03 04 05 06 07 08 09 10; do
+  test -f "$ROOT/tests/golden/songs/corpus/s$k.rbng" || { echo "FAIL: missing corpus s$k.rbng"; exit 1; }
+  cmp -s "$ROOT/tests/golden/songs/corpus/s$k.rbng" "$T13/regen/s$k.rbng" || { echo "FAIL: corpus s$k not deterministically generated"; exit 1; }
+  "$OUT/inspect" --rbng "$ROOT/tests/golden/songs/corpus/s$k.rbng" | grep -q "RBNG OK" || { echo "FAIL: corpus s$k rejected"; exit 1; }
+done
+echo "-- corpus double-render md5-identical --"
+for k in 01 02 03 04 05 06 07 08 09 10; do
+  "$OUT/render" --rbngsong "$ROOT/tests/golden/songs/corpus/s$k.rbng" --out "$T13/c1/s$k.wav" --dump-events "$T13/c1/s$k.events" >/dev/null || exit 1
+  "$OUT/render" --rbngsong "$ROOT/tests/golden/songs/corpus/s$k.rbng" --out "$T13/c2/s$k.wav" --dump-events "$T13/c2/s$k.events" >/dev/null || exit 1
+  cmp -s "$T13/c1/s$k.wav" "$T13/c2/s$k.wav" || { echo "FAIL: corpus s$k render not deterministic"; exit 1; }
+  cmp -s "$T13/c1/s$k.events" "$T13/c2/s$k.events" || { echo "FAIL: corpus s$k events not deterministic"; exit 1; }
+  "$OUT/mksong" --resave "$ROOT/tests/golden/songs/corpus/s$k.rbng" "$T13/rs/s$k.rbng" >/dev/null || exit 1
+  cmp -s "$ROOT/tests/golden/songs/corpus/s$k.rbng" "$T13/rs/s$k.rbng" || { echo "FAIL: corpus s$k serialize-parse-serialize differs"; exit 1; }
+done
+echo "-- audibility floor on corpus renders (peak>=1000, rms>=100) --"
+for k in 01 02 03 04 05 06 07 08 09 10; do
+  od -An -t d2 -v -j44 "$T13/c1/s$k.wav" | awk 'BEGIN { m=0; s=0; n=0 }
+    { for (i=1;i<=NF;i++) { a=$i; if (a<0) a=-a; if (a>m) m=a; s+=$i*$i; n++ } }
+    END { r=sqrt(s/n); printf "corpus/s%s peak=%d rms=%.0f\n", VN, m, r;
+      if (m<1000 || r<100) exit 1 }' VN="$k" || { echo "FAIL: corpus s$k silent (audibility floor)"; exit 1; }
+done
+echo "-- MODR warn prompt + CPRG hook live --"
+"$OUT/render" --rbngsong "$ROOT/tests/golden/songs/corpus/s10.rbng" --out "$T13/modr.wav" >"$T13/modr.log" 2>&1 || exit 1
+grep -q "MODR: mod 'acid-01'" "$T13/modr.log" || { echo "FAIL: MODR warn prompt missing"; exit 1; }
+grep -q "CPRG:" "$T13/modr.log" || { echo "FAIL: CPRG hook silent"; exit 1; }
+echo "-- WAV headers (sox --i when present, else inspect --wav) --"
+if command -v sox >/dev/null 2>&1; then
+  sox --i "$T13/c1/s01.wav" | grep -q "48000" || { echo "FAIL: sox rate check"; exit 1; }
+else
+  for k in 01 02 03 04 05 06 07 08 09 10; do
+    "$OUT/inspect" --wav "$T13/c1/s$k.wav" | grep -q "WAV OK" || { echo "FAIL: corpus s$k WAV header"; exit 1; }
+  done
+fi
+echo "-- RBNM-full: reserialize byte-identical + CPRG fallback --"
+"$OUT/inspect" --rbnm "$ROOT/reference/packs/classic-01/pack.rbnm" | grep -q "RBNM OK" || { echo "FAIL: pack rejected after full"; exit 1; }
+"$OUT/inspect" --rbnm-reserialize "$ROOT/reference/packs/classic-01/pack.rbnm" "$T13/pack2.rbnm" | grep -q "RESERIALIZED" || exit 1
+cmp -s "$ROOT/reference/packs/classic-01/pack.rbnm" "$T13/pack2.rbnm" || { echo "FAIL: pack reserialize differs (unknown/CPRG bytes lost)"; exit 1; }
+echo "-- fuzz 500/500 no-crash --"
+bash "$ROOT/scripts/ri_fuzz.sh" 500 | tail -2
+echo "-- AROS-only backends guarded + out of host build --"
+for f in midi_io/camd_backend.c project/datatypes/rbng.datatype.c project/datatypes/rbnm.datatype.c; do
+  test -f "$ROOT/$f" || { echo "FAIL: missing $f"; exit 1; }
+  grep -q "#ifndef __AROS__" "$ROOT/$f" || { echo "FAIL: $f lacks __AROS__ guard"; exit 1; }
+  grep -q '#error ".*AROS-only' "$ROOT/$f" || { echo "FAIL: $f lacks AROS-only #error"; exit 1; }
+done
+if grep -rn "camd_backend\|datatypes" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS backends leak into host build"; exit 1; fi
+echo "-- AROS compile of format/MIDI TUs (compile-only, no link) --"
+if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
+. ../Vulkan4Aros/scripts/aros_build_env.sh
+export PATH="$AROS_TOOLCHAIN:$PATH"
+SDK="$AROS_SDK_INCLUDE"
+CFLAGS_FMT="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
+for tu in project/sha256.c project/rbng.c project/arexx.c project/undo.c midi_io/midi.c midi_io/camd_backend.c project/datatypes/rbng.datatype.c project/datatypes/rbnm.datatype.c; do
+  bn=$(basename "$tu" .c)
+  x86_64-aros-gcc $CFLAGS_FMT -c "$ROOT/$tu" -o "$OUT/aros/${bn}_aros.o" || { echo "FAIL: $tu AROS compile"; exit 1; }
+done
 echo "AUDIT 0/0 PASS"

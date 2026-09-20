@@ -36,6 +36,7 @@
 #include "engine/fx/fx.h"
 #include "engine/mixer/mixer.h"
 #include "project/rbnm.h"
+#include "project/rbng.h"
 
 #define RI_SR 48000u
 #define RI_BLOCK 64u
@@ -348,6 +349,12 @@ static void apply_event(struct RB303Voice *v, const struct RIEvent *e) {
         break;
     case RI_EV_ACCENT:
         rb303_accent(v);
+        break;
+    case RI_EV_AUTOMATION:
+        /* AUTO lane: shared control IDs; the 0x0300 block drives the
+         * 303A voice directly (value = ctl, flags = 0..127 value). */
+        if ((e->value & 0xff00u) == 0x0300u)
+            rb303_set_param(v, e->value, (uint8_t)(e->flags & 127u));
         break;
     default:
         break; /* FLAM (909 second hit, Task 9 voice-side) has no 303 effect */
@@ -934,13 +941,156 @@ static int render_mix(const char *name, const char *out_path) {
     return write_wav(out_path, pcm, total);
 }
 
+/* --rbngsong (Task 13, gate G13): the real RBNG codec path. Same
+ * walker + voice + bus as the text scaffold (one renderer): PATT maps
+ * 1:1 onto RIStep (flag bits equal by contract), AUTO ticks convert
+ * tick->sample at song ppq and merge as AUTOMATION events, MODR
+ * missing mods print the warn prompt and render continues without
+ * them, CPRG prints the on-load hook line. Exit 0 ok, 2 usage/IO/
+ * parse error (same contract as --song). */
+static int render_rbngsong(const char *song_path, const char *out_path,
+    const char *ev_path) {
+    struct RISong song;
+    struct RIStep steps[RI_MAX_STEPS];
+    struct RIEvent ev[RI_SCHED_MAX_EVENTS];
+    static struct RISegment segs[1];
+    struct RITempoMap map;
+    struct RB303Voice voice;
+    static char err[192];
+    static char warn[256];
+    struct RISchedOpts opts;
+    uint32_t nev, k, i;
+    uint64_t total, cursor = 0, evpos = 0;
+    static int16_t pcm[4194304];
+    static float fbuf[RI_BLOCK];
+    double nsq, tick2smp;
+    uint64_t pat_end;
+    int rc;
+    if (rbng_read_song(song_path, &song, err, sizeof err) != 0) {
+        printf("render: RBNG invalid: %s: %s\n", song_path, err);
+        return 2;
+    }
+    /* MODR warn path: host installs no mods, so every referenced mod
+     * warns (asserted prompt string) and the render continues. */
+    if (song.nmods > 0u) {
+        static const char *have_none[1] = { "" };
+        if (rbng_missing_warn(&song, have_none, 1, warn, sizeof warn) != 0)
+            printf("render: %s (continuing without the mod)\n", warn);
+    }
+    if (song.cprg[0] != '\0')
+        printf("render: CPRG: %s\n", song.cprg);
+    for (i = 0; i < song.nsteps; i++) {
+        steps[i].note = song.steps[i].note;
+        steps[i].flags = song.steps[i].flags;
+    }
+    segs[0].start_tick = 0;
+    segs[0].ns_per_quarter = 60000000000ULL / (uint64_t)song.tempo;
+    map.segs = segs;
+    map.n = 1;
+    map.ppq = song.ppq;
+    map.sr = RI_SR;
+    opts.shuffle_pct = 0;
+    opts.legato = 0;
+    opts.flam_ms = RI_FLAM_MS_DEFAULT;
+    nev = ri_sched_emit_timed(&map, 0, song.ppq, steps, song.nsteps, 0,
+        &opts, ev, RI_SCHED_MAX_EVENTS);
+    if (nev == 0) {
+        printf("render: walker emitted no events\n");
+        return 2;
+    }
+    /* AUTO lanes: tick (song ppq) -> sample, merged as AUTOMATION. */
+    nsq = 60000000000.0 / (double)song.tempo;
+    tick2smp = nsq * (double)RI_SR / ((double)song.ppq * 1e9);
+    for (i = 0; i < song.nauto; i++) {
+        uint64_t s = (uint64_t)((double)song.auto_ev[i].tick * tick2smp +
+            0.5);
+        uint32_t p = nev;
+        if (nev >= RI_SCHED_MAX_EVENTS) {
+            printf("render: AUTO overflow\n");
+            return 2;
+        }
+        ev[nev].sample = s;
+        ev[nev].type = RI_EV_AUTOMATION;
+        ev[nev].device = 0;
+        ev[nev].voice = 0;
+        ev[nev].value = song.auto_ev[i].ctl;
+        ev[nev].flags = song.auto_ev[i].val;
+        ev[nev].seq = nev;
+        nev++;
+        /* Insertion-sort the newcomer back (list was sorted). */
+        while (p > 0u && ev[p].sample < ev[p - 1u].sample) {
+            struct RIEvent t = ev[p];
+            ev[p] = ev[p - 1u];
+            ev[p - 1u] = t;
+            p--;
+        }
+    }
+    pat_end = (uint64_t)((double)(song.nsteps * (song.ppq / 4u)) *
+        tick2smp + 0.5);
+    total = ev[nev - 1].sample + RI_TAIL_SMP;
+    if (pat_end + RI_TAIL_SMP > total)
+        total = pat_end + RI_TAIL_SMP;
+    if (total > 4194304u) {
+        printf("render: song too long (%llu samples)\n",
+            (unsigned long long)total);
+        return 2;
+    }
+    rb303_init(&voice);
+    rb303_set_param(&voice, RI_CTL_303A_CUTOFF, 80);
+    rb303_set_param(&voice, RI_CTL_303A_RESO, 40);
+    rb303_set_param(&voice, RI_CTL_303A_ENVMOD, 64);
+    rb303_set_param(&voice, RI_CTL_303A_DECAY, 64);
+    rb303_set_param(&voice, RI_CTL_303A_ACCENT, 96);
+    rb303_set_param(&voice, RI_CTL_303A_WAVE, 0);
+    rb303_set_param(&voice, RI_CTL_303A_VOLUME, 127);
+    while (cursor < total) {
+        uint64_t blk = ((cursor + RI_BLOCK) / RI_BLOCK) * RI_BLOCK;
+        uint64_t next = total;
+        uint64_t c;
+        if (blk < next)
+            next = blk;
+        if (evpos < nev && ev[evpos].sample < next)
+            next = ev[evpos].sample;
+        if (next == cursor) {
+            while (evpos < nev && ev[evpos].sample == cursor) {
+                apply_event(&voice, &ev[evpos]);
+                evpos++;
+            }
+            continue;
+        }
+        c = cursor;
+        while (c < next) {
+            uint32_t cc = (uint32_t)(next - c);
+            if (cc > RI_BLOCK)
+                cc = RI_BLOCK;
+            rb303_render(&voice, fbuf, cc, (float)RI_SR);
+            for (k = 0; k < cc; k++)
+                pcm[c + k] = f32_to_s16(fbuf[k]);
+            c += cc;
+        }
+        cursor = next;
+        while (evpos < nev && ev[evpos].sample == cursor) {
+            apply_event(&voice, &ev[evpos]);
+            evpos++;
+        }
+    }
+    if (ev_path && (rc = dump_events(ev_path, ev, nev)) != 0)
+        return rc;
+    if ((rc = write_wav(out_path, pcm, (uint32_t)total)) != 0)
+        return rc;
+    printf("render: %u events, %llu samples -> %s\n", nev,
+        (unsigned long long)total, out_path);
+    return 0;
+}
+
 int main(int argc, char **argv) {
     const char *song = NULL, *out = NULL, *ev = NULL, *math = NULL, *v808 = NULL;
     const char *v909 = NULL, *v909pack = NULL, *pack = NULL, *vpcf = NULL;
-    const char *vfx = NULL, *vmix = NULL;
+    const char *vfx = NULL, *vmix = NULL, *rbngsong = NULL;
     int i;
     if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("usage: render --song FILE --out FILE [--dump-events FILE]\n");
+        printf("       render --rbngsong FILE --out FILE [--dump-events FILE]\n");
         printf("       render --math dc|sine --out FILE\n");
         printf("       render --808 VOICE|storm --out FILE\n");
         printf("       render --909 VOICE --out FILE\n");
@@ -975,6 +1125,8 @@ int main(int argc, char **argv) {
             vmix = argv[++i];
         else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
             pack = argv[++i];
+        else if (strcmp(argv[i], "--rbngsong") == 0 && i + 1 < argc)
+            rbngsong = argv[++i];
         else {
             printf("render: bad arg %s (see --help)\n", argv[i]);
             return 2;
@@ -985,7 +1137,7 @@ int main(int argc, char **argv) {
         return 2;
     }
     if (math) {
-        if (song || ev) {
+        if (song || rbngsong || ev) {
             printf("render: --math takes no --song/--dump-events\n");
             return 2;
         }
@@ -1001,7 +1153,7 @@ int main(int argc, char **argv) {
         return 2;
     }
     if (v808) {
-        if (song || ev || math) {
+        if (song || rbngsong || ev || math) {
             printf("render: --808 takes no --song/--dump-events/--math/--pcf/--fx\n");
             return 2;
         }
@@ -1012,7 +1164,7 @@ int main(int argc, char **argv) {
         return render_808(v808, out);
     }
     if (vpcf || vfx) {
-        if (song || ev || math || v808 || v909 || v909pack || vmix) {
+        if (song || rbngsong || ev || math || v808 || v909 || v909pack || vmix) {
             printf("render: --pcf/--fx take no --song/--dump-events/--math/--808/--909/--mix\n");
             return 2;
         }
@@ -1025,7 +1177,7 @@ int main(int argc, char **argv) {
         return render_fx(vfx, out);
     }
     if (v909 || v909pack) {
-        if (song || ev || math || v808 || vpcf || vfx || vmix) {
+        if (song || rbngsong || ev || math || v808 || vpcf || vfx || vmix) {
             printf("render: --909 takes no --song/--dump-events/--math/--808/--pcf/--fx/--mix\n");
             return 2;
         }
@@ -1038,15 +1190,21 @@ int main(int argc, char **argv) {
         return render_909(v909, out);
     }
     if (vmix) {
-        if (song || ev || math || v808 || v909 || v909pack || vpcf || vfx) {
+        if (song || rbngsong || ev || math || v808 || v909 || v909pack || vpcf || vfx) {
             printf("render: --mix takes no --song/--dump-events/--math/--808/--909/--pcf/--fx\n");
             return 2;
         }
         return render_mix(vmix, out);
     }
-    if (!song) {
-        printf("render: --song required\n");
+    if (!song && !rbngsong) {
+        printf("render: --song/--rbngsong required\n");
         return 2;
     }
+    if (song && rbngsong) {
+        printf("render: --song and --rbngsong are exclusive\n");
+        return 2;
+    }
+    if (rbngsong)
+        return render_rbngsong(rbngsong, out, ev);
     return render_song(song, out, ev);
 }

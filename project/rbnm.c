@@ -4,6 +4,7 @@
  * every length is range-checked against the image before use.
  */
 #include "project/rbnm.h"
+#include "project/sha256.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -703,4 +704,156 @@ int32_t rbnm_load_smpl(const char *path, const char *id, float *dst,
     }
     put_err(err, errcap, "SMPL payload unreachable");
     return -1;
+}
+
+/* ---- RBNM-full (Task 13, gate G13) ---- */
+
+int rbnm_read_cprg(const char *path, char *buf, uint32_t cap, int *present,
+    char *err, uint32_t errcap) {
+    uint32_t n = read_file(path, err, errcap), off, total;
+    static unsigned char zero = 0;
+    (void)zero;
+    if (present)
+        *present = 0;
+    if (n == 0u)
+        return 1;
+    if (n < 12u || memcmp(RI_IMG, "FORM", 4) != 0 ||
+        memcmp(RI_IMG + 8, "RBNM", 4) != 0) {
+        put_err(err, errcap, "not FORM RBNM");
+        return 1;
+    }
+    total = rd32be(RI_IMG + 4);
+    if (total + 8u != n) {
+        ck_err(err, errcap, RI_IMG + 8, 0, "FORM length mismatch");
+        return 1;
+    }
+    off = 12;
+    while (off < n) {
+        uint32_t size, doff;
+        const unsigned char *cid;
+        if (off + 8u > n) {
+            ck_err(err, errcap, 0, off, "chunk header truncated");
+            return 1;
+        }
+        cid = RI_IMG + off;
+        size = rd32be(RI_IMG + off + 4);
+        doff = off + 8u;
+        if (doff + size > n) {
+            ck_err(err, errcap, cid, off, "chunk length overruns file");
+            return 1;
+        }
+        if (memcmp(cid, "CPRG", 4) == 0) {
+            uint32_t ln;
+            uint32_t k;
+            if (size < 1u || size > 128u) {
+                ck_err(err, errcap, cid, off, "CPRG bad length");
+                return 1;
+            }
+            ln = RI_IMG[doff];
+            if (ln + 1u != size) {
+                ck_err(err, errcap, cid, off, "CPRG length mismatch");
+                return 1;
+            }
+            if (present)
+                *present = 1;
+            if (buf && cap > 0u) {
+                if (ln >= cap) {
+                    ck_err(err, errcap, cid, off, "caller CPRG too small");
+                    return 1;
+                }
+                for (k = 0; k < ln; k++)
+                    buf[k] = (char)RI_IMG[doff + 1u + k];
+                buf[ln] = '\0';
+            }
+            return 0;
+        }
+        off = doff + size + (size & 1u);
+    }
+    if (buf && cap > 0u)
+        buf[0] = '\0';
+    return 0; /* absent: fallback, not an error */
+}
+
+int rbnm_reserialize(const char *src, const char *dst, char *err,
+    uint32_t errcap) {
+    static struct LayerRow rows[RBNM_MAX_LAYERS];
+    uint32_t n = read_file(src, err, errcap), nrows = 0, off;
+    FILE *f;
+    if (n == 0u)
+        return 1;
+    /* Validate first: corrupt input never produces an output file. */
+    if (parse_image(RI_IMG, n, rows, &nrows, err, errcap) != 0)
+        return 1;
+    (void)nrows;
+    f = fopen(dst, "wb");
+    if (!f) {
+        put_err(err, errcap, "open failed");
+        return 1;
+    }
+    /* Re-emit FORM + every top-level chunk verbatim (same order, same
+     * sizes, same pads): unknown/CPRG bytes survive byte-identically. */
+    if (fwrite(RI_IMG, 1, 12, f) != 12) {
+        fclose(f);
+        put_err(err, errcap, "write failed");
+        return 1;
+    }
+    off = 12;
+    while (off < n) {
+        uint32_t size = rd32be(RI_IMG + off + 4);
+        uint32_t dend = off + 8u + size;
+        uint32_t wlen = 8u + size + (size & 1u);
+        if (off + 8u > n || dend > n || off + wlen > n) {
+            fclose(f);
+            put_err(err, errcap, "chunk overrun on reserialize");
+            return 1;
+        }
+        if (fwrite(RI_IMG + off, 1, wlen, f) != wlen) {
+            fclose(f);
+            put_err(err, errcap, "write failed");
+            return 1;
+        }
+        off += wlen;
+    }
+    if (fclose(f) != 0) {
+        put_err(err, errcap, "write failed");
+        return 1;
+    }
+    return 0;
+}
+
+int rbnm_sha256_file(const char *path, char hex_out[65], char *err,
+    uint32_t errcap) {
+    FILE *f = fopen(path, "rb");
+    struct RISha256 c;
+    unsigned char out[32];
+    int ch, i;
+    static unsigned char blk[4096];
+    uint32_t nb = 0;
+    if (!f) {
+        put_err(err, errcap, "open failed");
+        return 1;
+    }
+    if (!hex_out) {
+        fclose(f);
+        put_err(err, errcap, "bad digest args");
+        return 1;
+    }
+    ri_sha256_init(&c);
+    while ((ch = fgetc(f)) != EOF) {
+        blk[nb++] = (unsigned char)ch;
+        if (nb == sizeof blk) {
+            ri_sha256_add(&c, blk, nb);
+            nb = 0;
+        }
+    }
+    fclose(f);
+    if (nb > 0u)
+        ri_sha256_add(&c, blk, nb);
+    ri_sha256_end(&c, out);
+    for (i = 0; i < 32; i++) {
+        hex_out[2 * i] = "0123456789abcdef"[(out[i] >> 4) & 0xfu];
+        hex_out[2 * i + 1] = "0123456789abcdef"[out[i] & 0xfu];
+    }
+    hex_out[64] = '\0';
+    return 0;
 }

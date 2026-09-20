@@ -66,4 +66,28 @@ struct RBNMLayerInfo {
 };
 int32_t rbnm_pack_layers(const char *path, struct RBNMLayerInfo *out,
     uint32_t cap, char *err, uint32_t errcap);
+
+/* ---- RBNM-full (Task 13, gate G13): CPRG hook + verbatim reserialize
+ * + SHA-256 identity. The S909-subset validator above is untouched;
+ * CPRG rides the existing unknown-optional skip, so old packs (no
+ * CPRG, e.g. reference/packs/classic-01) stay valid and report
+ * present=0 (copyright/art fallback, TC-2.12.x) instead of failing. */
+
+/* CPRG hook: 0 ok always (even when absent); *present = 1 + buf filled
+ * when a well-formed CPRG chunk (u8 len + UTF-8 text) is present,
+ * *present = 0 when absent. Malformed CPRG (length overrun) is an
+ * error (nonzero, err filled). */
+int rbnm_read_cprg(const char *path, char *buf, uint32_t cap, int *present,
+    char *err, uint32_t errcap);
+
+/* Verbatim reserialize: validates, then re-emits every top-level
+ * chunk (id + size + data + even pad) in file order, so unknown and
+ * CPRG bytes survive the round trip byte-identically. Returns 0 ok. */
+int rbnm_reserialize(const char *src, const char *dst, char *err,
+    uint32_t errcap);
+
+/* SHA-256 hex digest of the whole file (content identity, spec §13).
+ * Returns 0 ok with 64 hex chars + NUL in hex_out. */
+int rbnm_sha256_file(const char *path, char hex_out[65], char *err,
+    uint32_t errcap);
 #endif

@@ -1,0 +1,6 @@
+$ gcc t1_formats (pre-impl, expect missing-header failure)
+tests/unit/t1_formats.c:18:10: fatal error: project/rbng.h: No such file or directory
+   18 | #include "project/rbng.h"
+      |          ^~~~~~~~~~~~~~~~
+compilation terminated.
+exit=1
