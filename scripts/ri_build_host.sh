@@ -15,8 +15,8 @@ case "${1:-all}" in
   kernels|clock|sched|dsp303) compile_list "$(eval echo \$MOD_$1)" ;;
   all) for t in kernels clock sched dsp303; do "$0" $t; done ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
-    gcc $CFLAGS -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o 2>/dev/null || \
-    gcc $CFLAGS -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o
+    gcc $CFLAGS -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o -lm 2>/dev/null || \
+    gcc $CFLAGS -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o -lm
     "$OUT/$2" ;;
   clean) rm -rf /tmp/ri ;;
   *) echo "unknown target $1"; exit 1 ;;
