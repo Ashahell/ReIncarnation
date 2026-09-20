@@ -62,7 +62,12 @@ float ri_meter_peak(const struct RiMeter *t);
 /* Mixer. sr <= 0 falls back to 48000. Setters return 0 ok, 2 bad arg
  * (bus >= 4). ri_mix_audible returns 1 audible, 0 gated (bad bus
  * fails closed to 0). ri_mix_render overwrites out and send_out
- * (caller need not clear); NULL bus inputs read as silence. */
+ * (caller need not clear); NULL bus inputs read as silence.
+ * Handle persistence (fix round 1): applied/master_applied start at 0,
+ * so a fresh handle ramps 0 -> target over the first 64 samples
+ * (1.3 ms at 48 kHz; deterministic, golden-pinned). A live backend
+ * MUST therefore keep the handle across callbacks — recreating it per
+ * callback would cause a 1.3 ms fade per buffer. */
 void ri_mix_init(struct RiMixer *m, float sr);
 int ri_mix_set_fader(struct RiMixer *m, uint32_t bus, uint8_t v);
 int ri_mix_set_send(struct RiMixer *m, uint32_t bus, uint8_t v);
