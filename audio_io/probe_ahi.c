@@ -72,9 +72,9 @@ static struct Hook s_player_hook;
 
 /* AHIBase/DOSBase are the extern globals declared by <proto/ahi.h> and
  * <proto/dos.h>; the inline calls below resolve through them. SysBase and
- * DOSBase are provided by startup.o; the ahi.library base is ours to
- * define (OpenLibrary'd in main) — without this definition the link
- * fails with undefined symbol AHIBase. */
+ * DOSBase are provided by startup.o; the AHI base is ours to define —
+ * taken from the P1 session request's io_Device (device-as-library),
+ * never via OpenLibrary (there is no LIBS:ahi.library by design). */
 struct Library *AHIBase = NULL;
 
 /* PlayerFunc: Signal() + counter only (spec §4.2 hook contract). */
@@ -107,6 +107,12 @@ int main(void)
     ULONG verify_exp = 0;
     ULONG dev_open_rc = 0;
     ULONG i;
+    /* Low-level API session handle: the device IS the library provider
+     * (classic AmigaOS/MorphOS/AROS model — there is no LIBS:ahi.library).
+     * Opened on AHI_NO_UNIT in P1, base taken from io_Device, closed
+     * after P3. P4 uses its own separate port/requests below. */
+    struct MsgPort *port_api = NULL;
+    struct AHIRequest *req_api = NULL;
 
     DOSBase = (struct DosLibrary *) OpenLibrary("dos.library", 0);
     if (DOSBase == NULL)
@@ -118,14 +124,34 @@ int main(void)
            (STRPTR) __TIME__);
     Printf("RI_PROBE engine_block_frames=64 rate=%lu\n", RI_PROBE_RATE);
 
-    /* ---- P1: low-level negotiate ---- */
-    AHIBase = OpenLibrary("ahi.library", 4);
-    if (AHIBase == NULL)
+    /* ---- P1: low-level negotiate (device-as-library) ----
+     * The ONLY supported entry: OpenDevice("ahi.device", AHI_NO_UNIT)
+     * and take the library base from io_Device. There is no
+     * LIBS:ahi.library on AROS by design, so OpenLibrary must NOT be
+     * used here (it reports ABSENT and skips P1-P3). */
+    port_api = CreateMsgPort();
+    if (port_api != NULL)
+        req_api = (struct AHIRequest *) CreateIORequest(port_api,
+                      sizeof (struct AHIRequest));
+    if (req_api == NULL)
     {
-        Printf("RI_PROBE ahi.library: ABSENT\n");
+        Printf("RI_PROBE ahi.session: NO_PORT_OR_REQUEST\n");
+        if (port_api != NULL)
+            DeleteMsgPort(port_api);
+        port_api = NULL;
+    }
+    else if (OpenDevice("ahi.device", AHI_NO_UNIT,
+                        (struct IORequest *) req_api, 0) != 0)
+    {
+        Printf("RI_PROBE ahi.session: OPEN_FAIL\n");
+        DeleteIORequest((struct IORequest *) req_api);
+        DeleteMsgPort(port_api);
+        port_api = NULL;
+        req_api = NULL;
     }
     else
     {
+        AHIBase = (struct Library *) req_api->ahir_Std.io_Device;
         struct TagItem best_tags[] =
         {
             { AHIDB_Frequency, RI_PROBE_RATE },
@@ -134,7 +160,8 @@ int main(void)
             { TAG_DONE,        0 }
         };
 
-        Printf("RI_PROBE ahi.library: PRESENT version=%lu\n",
+        Printf("RI_PROBE ahi.session: OPEN unit=%lu base=0x%p version=%lu\n",
+               (ULONG) AHI_NO_UNIT, (APTR) AHIBase,
                (ULONG) AHIBase->lib_Version);
         mode_id = AHI_BestAudioID(best_tags);
         if (mode_id == AHI_INVALID_ID)
@@ -214,7 +241,12 @@ int main(void)
                 }
                 Printf("RI_PROBE low_min_frames=%lu\n", low_min);
 
-                /* ---- P3: timed verification at the smallest accepted size ---- */
+                /* ---- P3: timed verification at the smallest accepted size ----
+                 * Playback must be STARTED explicitly: AHIC_Play TRUE routes
+                 * through AHIsub_Start, which spawns the driver's timing
+                 * source; without it the mixer idles and PlayerFunc never
+                 * fires (observed: 0 ticks over 5 s on VOID). Stopped after
+                 * the window so FreeAudio sees a quiescent driver. */
                 if (low_min != 0)
                 {
                     struct TagItem lock_tags[] =
@@ -222,11 +254,23 @@ int main(void)
                         { AHIA_PlayerFreq, (IPTR) player_freq_fixed(low_min) },
                         { TAG_DONE,        0 }
                     };
+                    struct TagItem play_tags[] =
+                    {
+                        { AHIC_Play, (IPTR) TRUE },
+                        { TAG_DONE,  0 }
+                    };
+                    struct TagItem stop_tags[] =
+                    {
+                        { AHIC_Play, (IPTR) FALSE },
+                        { TAG_DONE,  0 }
+                    };
 
                     AHI_ControlAudioA(actl, lock_tags);
+                    AHI_ControlAudioA(actl, play_tags);
                     s_player_ticks = 0;
                     Delay((ULONG) (50 * RI_PROBE_VERIFY_S));
                     verify_obs = s_player_ticks;
+                    AHI_ControlAudioA(actl, stop_tags);
                     verify_exp = RI_PROBE_VERIFY_S * (RI_PROBE_RATE / low_min);
                     Printf("RI_PROBE verify frames=%lu window_s=%lu observed=%lu expected=%lu shortfall=%ld\n",
                            low_min, RI_PROBE_VERIFY_S, verify_obs, verify_exp,
@@ -241,7 +285,11 @@ int main(void)
                 actl = NULL;
             }
         }
-        CloseLibrary(AHIBase);
+        CloseDevice((struct IORequest *) req_api);
+        DeleteIORequest((struct IORequest *) req_api);
+        DeleteMsgPort(port_api);
+        port_api = NULL;
+        req_api = NULL;
         AHIBase = NULL;
     }
 
@@ -276,6 +324,14 @@ int main(void)
                 {
                     Printf("RI_PROBE device: unit %lu PRESENT\n",
                            (ULONG) AHI_DEFAULT_UNIT);
+                    /* AHI double-buffer contract: the second request must
+                     * be a copy of the opened first request (same device
+                     * and unit). An unopened r2 (NULL device/unit) faults
+                     * inside SendIO — observed as an Exec SendIO gate
+                     * crash on the codec-less guest (2026-09-21: r2 dev=0
+                     * unit=0 while r1 was fully initialized). */
+                    r2->ahir_Std.io_Device = r1->ahir_Std.io_Device;
+                    r2->ahir_Std.io_Unit   = r1->ahir_Std.io_Unit;
                     r1->ahir_Version   = 4;
                     r1->ahir_Type      = AHIST_S16S;
                     r1->ahir_Frequency = RI_PROBE_RATE;
@@ -295,6 +351,17 @@ int main(void)
                         r2->ahir_Link = r1;
                         SendIO((struct IORequest *) r1);
                         SendIO((struct IORequest *) r2);
+                        /* Bounded completion: a linked request whose
+                         * predecessor never finishes (e.g. chained
+                         * double-buffer on a driver without end-of-sound
+                         * notification, observed on VOID) would block
+                         * WaitIO forever and wedge the probe. Poll one
+                         * second, then abort what is still pending; an
+                         * aborted request reports IOERR_ABORTED and can
+                         * never count toward dev_min below. */
+                        Delay(50);
+                        AbortIO((struct IORequest *) r1);
+                        AbortIO((struct IORequest *) r2);
                         WaitIO((struct IORequest *) r1);
                         WaitIO((struct IORequest *) r2);
                         Printf("RI_PROBE device frames=%lu err1=%ld err2=%ld\n",
