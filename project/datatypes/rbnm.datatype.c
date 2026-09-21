@@ -16,6 +16,7 @@
 
 #include <exec/types.h>
 #include "project/rbnm.h"
+#include "project/datatypes/ridatatype.h"
 
 /* Magic probe: FORM .... RBNM (big-endian IFF, even-pad chunks). */
 LONG ri_rbnm_datatype_probe(const UBYTE *magic, ULONG n) {
@@ -52,11 +53,6 @@ LONG ri_rbnm_datatype_load(const char *path, LONG *cprg_present) {
  * OS registration call consumes. The AddDataType call itself is
  * Task-14-deferred (needs the AROS run — method in
  * docs/evidence/formats/beta-exit.md). */
-struct RIDatatypeReg {
-    const char *dt_name;
-    const char *dt_pattern;
-};
-
 static const struct RIDatatypeReg RI_RBNM_REG = {
     "ReIncarnation sample pack (RBNM)", "#?.rbnm"
 };

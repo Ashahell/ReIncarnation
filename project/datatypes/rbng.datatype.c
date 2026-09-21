@@ -16,6 +16,7 @@
 
 #include <exec/types.h>
 #include "project/rbng.h"
+#include "project/datatypes/ridatatype.h"
 
 /* Magic probe: FORM .... RBNG (big-endian IFF, even-pad chunks). */
 LONG ri_rbng_datatype_probe(const UBYTE *magic, ULONG n) {
@@ -52,11 +53,6 @@ LONG ri_rbng_datatype_load(const char *path, struct RISong *song,
  * AROS run — method in docs/evidence/formats/beta-exit.md); this
  * descriptor is what it will register, pinned here so the run cannot
  * silently register different facts. */
-struct RIDatatypeReg {
-    const char *dt_name;
-    const char *dt_pattern;
-};
-
 static const struct RIDatatypeReg RI_RBNG_REG = {
     "ReIncarnation song (RBNG)", "#?.rbng"
 };

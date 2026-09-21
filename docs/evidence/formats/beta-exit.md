@@ -12,8 +12,8 @@ that will close it.
 
 | Claim | Artifact | Method |
 |---|---|---|
-| Worst-case DSP renders 5.1x realtime, deterministic | `tools/bench.c` + Phase 14 bench run | 45000 blocks (60 s audio) twice, FNV checksums equal; ratio 0.1969 host (frostmourne, GCC 16.2.1, -O2) |
-| 10-min offline soak, switching under load, 0 underruns | `scripts/ri_soak.sh` + `docs/evidence/soak/soak-2026-09-20.md` | bench + render loop (storm/mix/fx/pcf/pack/corpus x10/tempo x3) to a 600 s deadline; per-render md5 vs first-pass pin; MODR prompt asserted every iteration |
+| Worst-case DSP renders 4.9x realtime, deterministic | `tools/bench.c` + Phase 14 bench run | 45000 blocks (60 s audio) twice, FNV checksums equal; ratio 0.2025 host (frostmourne, GCC 16.2.1, -O2) |
+| 5-min offline soak, switching under load, 0 underruns | `scripts/ri_soak.sh` + `docs/evidence/soak/soak-2026-09-20.md` | 300 s deadline → 200 iterations, per-render md5 vs first-pass pin; MODR prompt asserted every iteration (a 600 s run covered its full duration with no summary — process evidence only, see the soak file) |
 | ARexx dispatch replies pinned | `tests/unit/t1_rel.c` PASS | all 5 commands + alias + 4 fail-closed cases |
 | One translated string renders through the lookup | `gui/catalog.c` + `t1_rel` RENDERED-DE line | `ri_catalog_get("DE","MSG_PLAY")` = "Abspielen", printed at runtime, grepped in audit |
 | Manual covers every control (33/33 + 5 ARexx) | `docs/ReIncarnation.guide` | Phase 14 greps all 33 panel-qualified rows + 5 command strings |
