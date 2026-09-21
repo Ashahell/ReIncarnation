@@ -65,3 +65,46 @@ Copy to the guest (see procedure), run `probe_ahi`, paste the
 ## Raw output
 
 (UNMEASURED — paste full `probe_ahi` console output here when run.)
+
+## Appendix A — Codec-less guest run, 2026-09-21 (NOT the reference box)
+
+G5 stays open: the fields above remain UNMEASURED and the spec OPEN-09
+row untouched. What follows is the same probe on the driverless QEMU
+guest (no `-device intel-hda|ac97`, VOID fallback) with shadow
+`ahi.device` + drivers, recorded so the numbers exist somewhere honest.
+Method: `spike put` delivery, `PROGDIR:ahi.device` forced load,
+`DEVS:` driver shadows, plain `probe_ahi` run, rc=0, agent alive, zero
+`IRQHandle` lines. Verbatim `RI_PROBE` output:
+
+```
+RI_PROBE best_mode: id=0x001F0002
+RI_PROBE alloc_audio: OK freq=5513 bits=32 stereo=1 hifi=1 maxch=128
+RI_PROBE lowlevel frames=4096 playerfreq_hz=11 rc=0
+RI_PROBE lowlevel frames=2048 playerfreq_hz=23 rc=0
+RI_PROBE lowlevel frames=1024 playerfreq_hz=46 rc=0
+RI_PROBE lowlevel frames=512 playerfreq_hz=93 rc=0
+RI_PROBE lowlevel frames=256 playerfreq_hz=187 rc=0
+RI_PROBE lowlevel frames=128 playerfreq_hz=375 rc=0
+RI_PROBE lowlevel frames=64 playerfreq_hz=750 rc=0
+RI_PROBE low_min_frames=64
+RI_PROBE verify frames=64 window_s=5 observed=50231292 expected=3750 shortfall=-50227542
+RI_PROBE device: unit 0 PRESENT
+RI_PROBE device frames=4096 err1=0 err2=-2
+RI_PROBE device frames=2048 err1=0 err2=-2
+RI_PROBE device frames=1024 err1=0 err2=-2
+RI_PROBE device frames=512 err1=0 err2=-2
+RI_PROBE device frames=256 err1=0 err2=-2
+RI_PROBE device frames=128 err1=0 err2=-2
+RI_PROBE device frames=64 err1=0 err2=-2
+RI_PROBE dev_min_frames=0
+RI_PROBE SUMMARY low_min_frames=64 dev_min_frames=0 verify_obs=50231292 verify_exp=3750 dev_open_rc=0
+```
+
+Readings (codec-less VOID context, NOT reference values): low-level
+ladder accepted to 64 frames; playback ticks 50,231,292 vs 3750 expected
+(VOID spins unclocked); device writes accepted, r1 completes naturally,
+r2 aborted cleanly by the probe's 1 s bound (dev_min counts natural
+completions only, hence 0 here; 64 measured with true-WaitIO in
+diagnostic runs). Hypotheses: entry-18 shim floor not testable without
+hardware (no real unit exists); over-suggestion rungs accepted, not
+rejected, by VOID; all rungs ÷64-clean per spec §2.3.
