@@ -375,7 +375,14 @@ uint32_t AuQueryAttr(struct AudioObject *ao, uint32_t attr) {
     }
 }
 
-/* The ONE renderer (realtime-safe: no alloc, no IO, bounded loops).
+/* RI_LIVE_FULL_GRAPH_UNIMPLEMENTED — SCAFFOLD (final-review I1, one-renderer
+ * divergence): au_render_frames renders FIRST-LIGHT SCOPE ONLY (one 303
+ * voice, Task-6 first-light songs). Full-graph live rendering
+ * (303+808+909+mixer/FX — the graph tools/render.c drives offline) is
+ * UNIMPLEMENTED here, so live-vs-offline equality holds for first-light
+ * songs only. Removing this marker requires wiring the shared engine
+ * core (spec §5). */
+ /* The ONE renderer (realtime-safe: no alloc, no IO, bounded loops).
  * Renders up to n samples from the cursor, applying walker events at exact
  * sample positions. Chunk-size agnostic: splitting n into a+b renders
  * sample-identical output (voice state is purely sequential). Returns the

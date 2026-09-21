@@ -65,6 +65,8 @@ done
 grep -q '#define RI_DEVICE_FRAMES 256u' "$ROOT/audio_io/audio.h" || { echo "FAIL: device-frames default not 256"; exit 1; }
 grep -q 'audio: AHI unavailable - null backend active (offline render only)' "$ROOT/audio_io/audio.h" || { echo "FAIL: fallback string drifted"; exit 1; }
 if grep -rn "malloc\|calloc\|realloc\|Forbid\|Disable(" "$ROOT/audio_io/audio.c" "$ROOT/audio_io/backend_null.c" 2>/dev/null; then echo "FAIL: banned construct in W1 backend"; exit 1; fi
+echo "-- live-scope tripwire (I1: au_render_frames is first-light only) --"
+if ! grep -q "RI_LIVE_FULL_GRAPH_UNIMPLEMENTED" "$ROOT/audio_io/audio.c"; then echo "FAIL: live-scope marker missing from audio.c (full-graph live rendering still unwired — spec §5; removing the marker requires wiring the shared engine core)"; exit 1; fi
 mkdir -p /tmp/ri/run/t6 # t6 test writes its scaffold here; clean wipes /tmp/ri
 bash "$ROOT/scripts/ri_build_host.sh" test t6_w1backend >/dev/null || { echo "FAIL: t6_w1backend"; exit 1; }
 gcc $CFLAGS -o "$OUT/compare" "$ROOT/tools/compare.c" || { echo "FAIL: compare build"; exit 1; }

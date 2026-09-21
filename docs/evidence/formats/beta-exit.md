@@ -26,6 +26,7 @@ that will close it.
 
 | Item | Method to close | Gate that holds it |
 |---|---|---|
+| Live full-graph render (303+808+909+mixer/FX through au_render_frames — currently first-light 303 only, tripwired by RI_LIVE_FULL_GRAPH_UNIMPLEMENTED in audio_io/audio.c) | Wire the shared engine core into au_render_frames (spec §5); extend the one-renderer file-vs-live diff past first-light songs, then remove the marker | Live-backend follow-up |
 | 20-user beta (TC-2.16.x: zero crashers/data-loss, tutorial A/B ≥ 4/5) | Ship Install/ drawer + guide to 20 testers; collect sign-off sheets with build hash; file as `docs/evidence/beta/signoff-*.md` | TC-2.16.x |
 | On-device GUI acceptance (LED lag, chase, zoom, silhouette) | Run `docs/evidence/gui/acceptance.md` checklist on the AROS box; tester + date + build per row | G12 device pass |
 | M1.1 named-box numbers (AHI floor, device underruns, overnight soak) | `audio_io/probe_ahi.c` on the box; `ri_soak.sh` with an AHI-drain backend; AuQueryAttr AUQA_XRUN_COUNT must read 0 across the run; "overnight" only for an actually-overnight log | G5 + P-19 |
