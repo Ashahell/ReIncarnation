@@ -8,7 +8,19 @@ if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AR
 # Task 1 ledger fact: toolchain binaries live DIRECTLY in $AROS_TOOLCHAIN
 # (no bin/ subdir); callers export PATH themselves.
 export PATH="$AROS_TOOLCHAIN:$PATH"
-SDK="$AROS_SDK_INCLUDE"
+# ABIv1 RULE (2026-09-21, probe_ahi guest page-fault): the v1 guest runs a
+# build-pc lineage system (library base in rdx). The v11 sdk trees emit the
+# stale r12 convention (verified: 15 mov %rax,%r12 in hello_ri) and fault
+# on first LVO call. ALWAYS build guest binaries against the v1 tree below;
+# verify with: objdump -d $OUT | grep -c 'mov *%rax,%r12'  (must be 0).
+V1SDK="../Vulkan4Aros/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include"
+if [ -d "$V1SDK" ]; then
+    # Absolute: derived paths (shim symlinks, -L dirs) must survive CWD changes.
+    SDK="$(cd "$V1SDK" && pwd)"
+else
+    echo "WARN: v1 build-pc SDK absent, falling back to env SDK (expect r12 faults on guest)"
+    SDK="$AROS_SDK_INCLUDE"
+fi
 OUT=/tmp/ri/aros
 mkdir -p "$OUT"
 x86_64-aros-gcc -c -mcmodel=large -mno-red-zone -ffixed-r12 -Wall "$ROOT/audio_io/aros_stub.c" -o "$OUT/aros_stub.o"
@@ -21,9 +33,16 @@ x86_64-aros-gcc $CFLAGS_AROS -c "$ROOT/audio_io/probe_ahi.c" -o "$OUT/probe_ahi.
 # Executable link mirrors build_cap_probes.sh: -nostartfiles + explicit
 # startup.o (guarded) + stub libs; -no-pie is mandatory (gotcha: GCC 16
 # defaults to PIE, AROS LoadSeg rejects R_X86_64_RELATIVE).
+# Build-pc CRT rename shim (2026-09-21): the v1 SDK ships libstdc/libstdcio/
+# libposixc where the cross-gcc LIB_SPEC expects libcrt/libstdlib/libcrtcrtprog.
+# Symlink-shim the old names + link stdio/POSIX explicitly, else
+# `cannot find -lstdlib -lcrt` at link time.
+SHIM=/tmp/ri/libshim_v1
+mkdir -p "$SHIM"
+for _n in libcrt libstdlib libcrtprog; do ln -sf "$SDK/../lib/libstdc.a" "$SHIM/$_n.a"; done
 STARTUP=()
 [ -f "$SDK/../lib/startup.o" ] && STARTUP=("$SDK/../lib/startup.o")
-x86_64-aros-gcc $CFLAGS_AROS -nostartfiles -no-pie -Wa,-W -o "$OUT/probe_ahi" "$OUT/probe_ahi.o" "${STARTUP[@]}" -L "$SDK/../lib" -ldos -lexec
+x86_64-aros-gcc $CFLAGS_AROS -nostartfiles -no-pie -Wa,-W -o "$OUT/probe_ahi" "$OUT/probe_ahi.o" "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" -lstdcio -lposixc -ldos -lexec
 test -f "$OUT/probe_ahi" || { echo "FAIL: probe_ahi not linked"; exit 1; }
 x86_64-aros-readelf -h "$OUT/probe_ahi" | grep -q "Advanced Micro Devices X86-64" || { echo "FAIL: probe_ahi not X86-64 ELF"; exit 1; }
 echo "AROS PROBE BUILD OK"

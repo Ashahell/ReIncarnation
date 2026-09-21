@@ -48,6 +48,14 @@ grep -q '#error "probe_ahi.c is AROS-only' "$ROOT/audio_io/probe_ahi.c" || { ech
 if grep -rn "probe_ahi" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: probe leaks into host build"; exit 1; fi
 bash "$ROOT/scripts/ri_build_aros.sh" >/dev/null || { echo "FAIL: AROS build (stub+probe)"; exit 1; }
 test -f /tmp/ri/aros/probe_ahi || { echo "FAIL: probe_ahi artifact missing"; exit 1; }
+echo "-- ABIv1 LVO convention gate (2026-09-21 probe_ahi guest page-fault) --"
+echo "-- Guest binaries MUST emit rdx-base calls (build-pc SDK); any"
+echo "-- 'mov %rax,%r12' means the stale r12 SDK leaked in and the binary"
+echo "-- will fault on first LVO call. Checked on every AROS artifact. --"
+for _ab in /tmp/ri/aros/probe_ahi /tmp/ri/aros/reincarnation_stub.library; do
+  _r12=$(x86_64-aros-objdump -d "$_ab" 2>/dev/null | grep -c 'mov[[:space:]]*%rax,%r12' || true)
+  test "$_r12" = "0" || { echo "FAIL: stale r12-convention calls in $_ab ($_r12 found)"; exit 1; }
+done
 echo "== Phase 6: W1 one-renderer proof (Task 6, gate G6) =="
 test -f "$ROOT/audio_io/audio.h" || { echo "FAIL: missing audio_io/audio.h"; exit 1; }
 test -f "$ROOT/audio_io/audio.c" || { echo "FAIL: missing audio_io/audio.c"; exit 1; }
@@ -76,7 +84,9 @@ echo "-- AROS compile of backend TUs (compile-only, no link) --"
 if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
 . ../Vulkan4Aros/scripts/aros_build_env.sh
 export PATH="$AROS_TOOLCHAIN:$PATH"
-SDK="$AROS_SDK_INCLUDE"
+# ABIv1 SDK (2026-09-21): v1 build-pc tree, never the env default (r12 convention).
+V1SDK_ABS="$(cd "$ROOT/../Vulkan4Aros/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include" && pwd)"
+if [ -d "$V1SDK_ABS" ]; then SDK="$V1SDK_ABS"; else echo "FAIL: v1 build-pc SDK absent"; exit 1; fi
 CFLAGS_AU="-std=c99 -O2 -Wall -Wextra -Werror -mcmodel=large -mno-red-zone -ffixed-r12 -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
 mkdir -p "$OUT/aros" # AROS objects stay out of $OUT: `test` links $OUT/*.o (host)
 x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/audio.c" -o "$OUT/aros/audio_aros.o" || { echo "FAIL: audio.c AROS compile"; exit 1; }
@@ -258,7 +268,9 @@ echo "-- AROS compile of GUI TUs (compile-only, no link) --"
 if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
 . ../Vulkan4Aros/scripts/aros_build_env.sh
 export PATH="$AROS_TOOLCHAIN:$PATH"
-SDK="$AROS_SDK_INCLUDE"
+# ABIv1 SDK (2026-09-21): v1 build-pc tree, never the env default (r12 convention).
+V1SDK_ABS="$(cd "$ROOT/../Vulkan4Aros/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include" && pwd)"
+if [ -d "$V1SDK_ABS" ]; then SDK="$V1SDK_ABS"; else echo "FAIL: v1 build-pc SDK absent"; exit 1; fi
 CFLAGS_GUI="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
 mkdir -p "$OUT/aros"
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/knob_logic.c" -o "$OUT/aros/knob_logic_aros.o" || { echo "FAIL: knob_logic.c AROS compile"; exit 1; }
