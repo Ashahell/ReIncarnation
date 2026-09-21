@@ -1,0 +1,47 @@
+AUTODOC formats.doc — RBNG codec + RBNM full + SHA-256 + undo (Task 13).
+Headers: project/rbng.h, project/rbnm.h, project/sha256.h, project/undo.h.
+No allocation anywhere. RBNG: FORM RBNG, VERS/SONG/PATT/AUTO/MODR/CPRG,
+unknown-optional preserved verbatim; major!=1 reject.
+
+void rbng_song_init(struct RISong *s)
+  Init empty song. No result.
+
+int rbng_write_song(const char *path, const struct RISong *s, char *err, uint32_t errcap)
+int rbng_read_song(const char *path, struct RISong *s, char *err,
+    uint32_t errcap)
+  Write/read song. Result: 0 ok, nonzero + err text.
+
+int rbng_cprg_line(const char *path, char *line, uint32_t cap)
+  Read the CPRG hook line. Result: 0 ok.
+
+int rbng_missing_warn(const struct RISong *s, const char *const *have, uint32_t nhave, char *warn, uint32_t cap)
+  MODR missing-mod warn prompt. Result: 1 missing (warn set), 0 all present.
+
+int rbng_art_fallback(const struct RISong *s)
+  Partial-art state. Result: 1 fallback (no SKIN), 0 full art.
+
+int rbnm_validate_file(const char *path, char *err, uint32_t errcap)
+  Validate pack. Result: 0 ok.
+
+int rbnm_read_cprg(const char *path, char *buf, uint32_t cap, int *present, char *err, uint32_t errcap)
+  Read CPRG (absent = fallback, not error; present set). Result: 0 ok.
+
+int rbnm_reserialize(const char *src, const char *dst, char *err,
+    uint32_t errcap)
+  Validate-then-verbatim-re-emit (unknown/CPRG bytes survive). Result: 0 ok.
+
+int rbnm_sha256_file(const char *path, char hex_out[65], char *err, uint32_t errcap)
+  File SHA-256 hex identity. Result: 0 ok.
+
+void ri_sha256_init(struct RISha256 *c)
+void ri_sha256_add(struct RISha256 *c, const void *data, uint32_t n)
+void ri_sha256_end(struct RISha256 *c, unsigned char out[32])
+void ri_sha256_hex(const void *data, uint32_t n, char hex[65])
+  FIPS 180-4 streaming hash; 'abc' vector pinned in t1_formats.
+
+void ri_undo_init(struct RIUndo *u)
+int ri_undo_commit(struct RIUndo *u, uint32_t ctl, uint8_t val)
+int ri_undo_undo(struct RIUndo *u, uint32_t *ctl, uint8_t *val)
+int ri_undo_redo(struct RIUndo *u, uint32_t *ctl, uint8_t *val)
+uint32_t ri_undo_depth(const struct RIUndo *u)
+  200-deep scripted undo; commit at 200 fails closed.

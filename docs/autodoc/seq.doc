@@ -1,0 +1,13 @@
+AUTODOC seq.doc — clock + scheduler (Tasks 3/7).
+Headers: engine/seq/clock.h, engine/seq/sched.h.
+Event contract: RIEvent / RI_EV_* / ri_event_less; AUTOMATION events
+ride the same sorted list as notes (one renderer). Recorder quantum
+ppq/24. Flam default 35.0 ms (P-05).
+
+uint64_t ri_map_tick(const struct RITempoMap *m, uint64_t tick)
+uint64_t ri_map_tick_floor(const struct RITempoMap *m, uint64_t tick)
+  Rational tempo map: round / floor variants.
+
+uint32_t ri_sched_emit_sorted(const struct RITempoMap *map, uint64_t start_tick, const struct RIEvent *ev, uint32_t nev, struct RIEvent *out, uint32_t cap)
+uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick, const struct RIEvent *ev, uint32_t nev, struct RIEvent *out, uint32_t cap)
+  Snapshot builder + timed walker (full signatures in sched.h).

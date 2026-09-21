@@ -47,3 +47,20 @@ LONG ri_rbnm_datatype_load(const char *path, LONG *cprg_present) {
         *cprg_present = (LONG)present;
     return 1;
 }
+
+/* Registration descriptor (Task 14, gate G14): the static facts the
+ * OS registration call consumes. The AddDataType call itself is
+ * Task-14-deferred (needs the AROS run — method in
+ * docs/evidence/formats/beta-exit.md). */
+struct RIDatatypeReg {
+    const char *dt_name;
+    const char *dt_pattern;
+};
+
+static const struct RIDatatypeReg RI_RBNM_REG = {
+    "ReIncarnation sample pack (RBNM)", "#?.rbnm"
+};
+
+const struct RIDatatypeReg *ri_rbnm_datatype_reg(void) {
+    return &RI_RBNM_REG;
+}

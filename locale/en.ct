@@ -1,0 +1,10 @@
+## version $VER: ReIncarnation.ct
+## codeset 0
+## language EN
+MSG_PLAY (1//) Play
+MSG_STOP (2//) Stop
+MSG_TEMPO (3//) Tempo
+MSG_MIXER (4//) Mixer
+MSG_PATTERN (5//) Pattern
+MSG_EXPORT (6//) Export WAV
+;

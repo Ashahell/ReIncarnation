@@ -1,0 +1,26 @@
+AUTODOC gui.doc — knob logic + panels + catalog (Tasks 12/14).
+Headers: gui/knob_logic.h, gui/panels.h, gui/catalog.h.
+Owned-UX numbers (P-18): knob 150 px = full 0..127; shift-fine x0.1;
+fader 100 px; commit-on-release. Control IDs: 303A 0x0300, 303B
+0x0310, 808 0x0400, 909 0x0900, FX 0x0A00, mixer/transport 0x0B00.
+
+double ri_knob_drag_to_value(double start, double dy_px, int fine)
+double ri_fader_drag_to_value(double start, double dy_px, int fine)
+  Drag to value (fine = shift). Result: value.
+
+double ri_ctl_clamp(double v)
+int ri_ctl_quantize(double v)
+  Clamp + quantize to 0..127.
+
+unsigned int ri_panel_count(void)
+  Panel count (6: 303A/303B/808/909/mixer/transport). Result: 6.
+
+const struct RIPanelDesc *ri_panel_get(unsigned int i)
+  Panel by index. Result: descriptor or NULL.
+
+const struct RIPanelControl *ri_panel_find_ctl(const struct RIPanelDesc *p, unsigned int ctl_id)
+  Control lookup. Result: row or NULL.
+
+const char *ri_catalog_get(const char *locale, const char *msgid)
+  Locale string (EN fallback; unknown msgid echoes). Proof string:
+  DE MSG_PLAY = "Abspielen" (rendered in t1_rel, grepped in audit).

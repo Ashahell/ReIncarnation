@@ -26,16 +26,35 @@
 /* Device handle owned by the bridge task (opened on DEVS:MIDI/
  * selected driver at transport start, closed at stop). NULL = no
  * device (RI_MIDI_NO_DEVICE); a dead handle after unplug reads as
- * RI_MIDI_TIMEOUT until replug. Full open/pump wiring is Task-14 app
- * wiring; this TU owns the state mapping + the per-buffer pump
- * discipline so the audit can compile-check it. */
+ * RI_MIDI_TIMEOUT until replug. ri_camd_open/close own the
+ * open-state machine; the actual camd.library OpenMidiCluster call
+ * is the one deferred step (needs a live AROS box with a MIDI
+ * driver — method in docs/evidence/formats/beta-exit.md), so open
+ * records intent + clears the dead flag but leaves the cluster NULL
+ * until the device call lands: status honestly reports NO_DEVICE. */
 static APTR ri_camd_cluster = NULL;
 static LONG ri_camd_dead = 0;
+static LONG ri_camd_opened = 0;
+
+/* Transport-start open: mark intent, clear a stale dead flag. Real
+ * device open (camd.library) is Task-14-deferred; until it lands the
+ * cluster stays NULL and status reports NO_DEVICE, never OK. */
+void ri_camd_open(void) {
+    ri_camd_opened = 1;
+    ri_camd_dead = 0;
+}
+
+/* Transport-stop close: drop intent + handle. Idempotent. */
+void ri_camd_close(void) {
+    ri_camd_opened = 0;
+    ri_camd_dead = 0;
+    ri_camd_cluster = NULL;
+}
 
 LONG ri_camd_status(void) {
     if (ri_camd_dead)
         return (LONG)RI_MIDI_TIMEOUT;
-    if (!ri_camd_cluster)
+    if (!ri_camd_opened || !ri_camd_cluster)
         return (LONG)RI_MIDI_NO_DEVICE;
     return (LONG)RI_MIDI_OK;
 }

@@ -1,0 +1,109 @@
+@database "ReIncarnation Classic manual"
+@master "ReIncarnation.guide"
+@node Main "ReIncarnation Classic — user manual"
+ ReIncarnation Classic — user manual (Task 14, gate G14)
+
+ Every control shipped in gui/panels.c is listed here with its stable
+ control ID, range, and default. Ranges are 0..127 knobs/faders except
+ where noted. This manual is AROS-run UNVERIFIED (method in
+ docs/evidence/formats/beta-exit.md): the tables it mirrors are
+ host-pinned by tests/unit/t1_knob.c, and scripts/ri_audit.sh Phase 14
+ greps every control row below so the manual cannot silently drop one.
+
+ @{"Panels" link "Panels"} @{"Transport" link "Transport"}
+ @{"ARexx port" link "ARexx"} @{"MIDI learn" link "MIDI"}
+ @{"Songs, packs, installer" link "Files"} @{"Tutorial ReBirth-101" link "101"}
+@endnode
+
+@node Panels "Panels and every control"
+ PANELS — device order matches the app window (app/main.c, 6 panels).
+
+ 303A — acid bassline voice 1 (base 0x0300, device 0)
+   303A cutoff (0x0300) range 0..127 default 96 — filter cutoff.
+   303A reso (0x0301) range 0..127 default 32 — filter resonance.
+   303A envmod (0x0302) range 0..127 default 64 — envelope to cutoff.
+   303A decay (0x0303) range 0..127 default 64 — envelope decay.
+   303A accent (0x0304) range 0..127 default 64 — accent amount.
+   303A volume (0x0305) range 0..127 default 100 — voice level.
+
+ 303B — acid bassline voice 2 (base 0x0310, device 1)
+   303B cutoff (0x0310) range 0..127 default 96 — filter cutoff.
+   303B reso (0x0311) range 0..127 default 32 — filter resonance.
+   303B envmod (0x0312) range 0..127 default 64 — envelope to cutoff.
+   303B decay (0x0313) range 0..127 default 64 — envelope decay.
+   303B accent (0x0314) range 0..127 default 64 — accent amount.
+   303B volume (0x0315) range 0..127 default 100 — voice level.
+
+ 808 — drum machine (base 0x0400, device 2, 15 voices)
+   808 level (0x0400) range 0..127 default 100 — kit level.
+   808 tune (0x0401) range 0..127 default 64 — drum tuning.
+   808 decay (0x0402) range 0..127 default 64 — drum decay.
+   808 snappy (0x0403) range 0..127 default 64 — snare snap.
+   808 tone (0x0404) range 0..127 default 64 — drum tone.
+   808 accent (0x0405) range 0..127 default 64 — accent amount.
+
+ 909 — sampler kit (base 0x0900, device 3, 6 voices)
+   909 tune (0x0900) range 0..127 default 64 — sample rate knob.
+   909 level (0x0901) range 0..127 default 100 — kit level.
+   909 decay (0x0902) range 0..127 default 64 — sample decay scale.
+   909 flamres (0x0903) range 0..127 default 64 — flam response.
+
+ Mixer — 4 buses + master (base 0x0B00, device 4)
+   mixer bus1 (0x0B00) range 0..127 default 127 — bus 1 fader.
+   mixer bus2 (0x0B01) range 0..127 default 127 — bus 2 fader.
+   mixer bus3 (0x0B02) range 0..127 default 127 — bus 3 fader.
+   mixer bus4 (0x0B03) range 0..127 default 127 — bus 4 fader.
+   mixer master (0x0B04) range 0..127 default 127 — master fader.
+   mixer send1 (0x0B05) range 0..127 default 0 — send 1 amount.
+
+ Mouse feel (host-pinned, P-18): knob 150 px vertical drag = full
+ 0..127; shift-fine x0.1 (1500 px full); fader 100 px = full travel;
+ commit-on-release (one drag = one undo unit).
+@endnode
+
+@node Transport "Transport"
+ TRANSPORT (device 5, base 0x0B00 + 8)
+   transport play (0x0B08) default 0 — start (switch).
+   transport stop (0x0B09) default 0 — stop (switch).
+   transport tempo (0x0B0A) default 120 — tempo BPM.
+   transport pattern (0x0B0B) default 0 — pattern select.
+   transport shuffle (0x0B0C) default 50 — shuffle 0..100.
+
+ Pattern switching never stops the transport (tutorial step 5).
+@endnode
+
+@node ARexx "ARexx port"
+ AREXX — primary port ADDRESS REINCARNATION, alias REBIRTHAROS.
+ Exact strings (uppercase, single spaces):
+   OPENSONG <path> — open a song file.
+   PLAY — start transport. Replies OK PLAYING.
+   STOP — stop transport. Replies OK STOPPED.
+   EXPORTWAV <song> <wav> — offline render to WAV.
+   SETRPPARAM <ctl> <val> — set control (ctl 0..65535, val 0..127).
+ A malformed line replies ERROR and never hangs the sender.
+@endnode
+
+@node MIDI "MIDI learn"
+ MIDI — CC learn map (128 slots, unmapped CCs do nothing), note to
+ step bridge (note % 16, velocity >= 64 accents), MMC play/stop,
+ 24-tick clock, 64-event flood shed oldest-first (counted).
+ Hot-unplug: the bridge times out, pending events drop counted, the
+ transport keeps playing.
+@endnode
+
+@node Files "Songs, packs, installer"
+ FILES — songs are FORM RBNG (unknown chunks preserved verbatim),
+ sample packs are FORM RBNM (copyright chunk optional; without it the
+ copyright fallback mounts). Install with Install/ReIncarnation-Install;
+ icons live in Install/icons (placeholder art, AROS-run unverified).
+@endnode
+
+@node 101 "Tutorial ReBirth-101"
+ REBIRTH-101 (pass >= 4/5):
+   1. Dial a 303 cutoff sweep and hear it (303A cutoff).
+   2. Program a 16-step 303 pattern (pitch mode + slide flag).
+   3. Program a 909 accent + flam step.
+   4. Ride a bus fader + mute/solo the 808 (mixer bus1).
+   5. Switch patterns under transport without stopping
+      (transport pattern).
+@endnode

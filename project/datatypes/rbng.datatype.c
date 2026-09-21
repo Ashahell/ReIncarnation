@@ -45,3 +45,22 @@ LONG ri_rbng_datatype_load(const char *path, struct RISong *song,
         *fallback = (LONG)rbng_art_fallback(song);
     return 1;
 }
+
+/* Registration descriptor (Task 14, gate G14): the static facts the
+ * OS registration call consumes (node name, filename pattern, magic
+ * probe). The AddDataType call itself is Task-14-deferred (needs the
+ * AROS run — method in docs/evidence/formats/beta-exit.md); this
+ * descriptor is what it will register, pinned here so the run cannot
+ * silently register different facts. */
+struct RIDatatypeReg {
+    const char *dt_name;
+    const char *dt_pattern;
+};
+
+static const struct RIDatatypeReg RI_RBNG_REG = {
+    "ReIncarnation song (RBNG)", "#?.rbng"
+};
+
+const struct RIDatatypeReg *ri_rbng_datatype_reg(void) {
+    return &RI_RBNG_REG;
+}

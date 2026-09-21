@@ -1,0 +1,34 @@
+AUTODOC dsp.doc — kernels + 303/808/909 voices (Tasks 2/4/8/9).
+Headers: engine/dsp/kernels.h, rb303.h, rb808.h, rb909.h.
+Accuracy bands (Task 2 ruling): double-precision interior; tanh/exp
+gridded, sin/pow2 via accuracy grids.
+
+float ri_tanh(float x)
+float ri_exp(float x)
+float ri_sin(float x)
+float ri_pow2(float x)
+  Deterministic kernels (finite-input scope; NaN float->int deferred).
+
+void rb303_init(struct RB303Voice *v)
+void rb303_set_param(struct RB303Voice *v, uint32_t ctl_id, uint8_t value)
+void rb303_note(struct RB303Voice *v, uint8_t midi, int slide, int accent)
+void rb303_release(struct RB303Voice *v)
+void rb303_render(struct RB303Voice *v, float *out, uint32_t n, float sr)
+  303 voice lifecycle + block render.
+
+void rb808_init_set(struct RB808Set *s)
+void rb808_trigger(struct RB808Set *s, uint32_t voice, uint32_t accent, float tune_st)
+void rb808_max_decay(struct RB808Set *s)
+  Storm fixture: every voice at ledger max decay.
+void rb808_render_mix(struct RB808Set *s, float *out, uint32_t n, float sr)
+  Sum of triggered voices.
+
+void rb909_init_set(struct RB909Set *s)
+int rb909_set_layers(struct RB909Set *s, uint32_t voice, const struct RISampleLayer *layers, uint32_t n)
+void rb909_trigger(struct RB909Set *s, uint32_t voice, uint32_t accent,
+    uint8_t tune, int32_t flam_delay_smp)
+void rb909_render_mix(struct RB909Set *s, float *out, uint32_t n, float sr)
+  Sampler kit; flam default RI_909_FLAM_DEFAULT_SMP (1680).
+float ri_resample_linear(const float *d, uint32_t n, float pos)
+float ri_layer_mix(const struct RISampleLayer *L, uint32_t n, float pos, uint8_t tune)
+  Sampler utils.

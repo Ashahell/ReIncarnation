@@ -1,0 +1,34 @@
+AUTODOC fx.doc — PCF + FX trio (Task 10).
+Headers: engine/fx/pcf.h, engine/fx/fx.h.
+PCF table loads init-time (control plane) from the ledger-verified
+reference/pcf-table.bin; the build #errors without it (negative gate).
+Wrapper PCF owns a persistent struct PCF (streaming-safe across blocks).
+
+int pcf_table_load(const char *path, struct PCFTable *t)
+  Load + validate table. Result: row count, else negative (-1 IO, -2
+  magic, -3 version, -4 count, -5 row range).
+
+void pcf_init(struct PCF *p)
+void pcf_set_tempo(struct PCF *p, float bpm)
+void pcf_render(struct PCF *p, const float *in, float *out, uint32_t n, float sr)
+  PCF voice render.
+
+int ri_fxdelay_init(struct RiFXDelay *d, float *buf, uint32_t cap)
+  Delay line (caller buffer, cap >= 64). Result: 0 ok, 2 bad arg.
+void ri_fxdelay_render(struct RiFXDelay *d, const float *in, float *out, uint32_t n)
+
+void ri_fxdist_init(struct RiFXDist *d)
+void ri_fxdist_set(struct RiFXDist *d, uint8_t drive, uint8_t shape)
+void ri_fxdist_render(struct RiFXDist *d, const float *in, float *out, uint32_t n)
+
+int ri_fxcomp_init(struct RiFXComp *c, float sr)
+void ri_fxcomp_render(struct RiFXComp *c, const float *in, float *out, uint32_t n)
+
+struct RIFX *RiFXCreate(uint32_t fx_type)
+  Generic handle (RI_FX_DELAY/DIST/COMP/PCF). Result: handle or NULL
+  (bad type, full pool, exhausted delay pool — fail-closed).
+int RiFXValid(const struct RIFX *x)
+void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value)
+void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
+    float sr, float bpm)
+void RiFXReset(struct RIFX *x)

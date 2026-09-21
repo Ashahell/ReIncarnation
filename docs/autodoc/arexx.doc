@@ -1,0 +1,15 @@
+AUTODOC arexx.doc — ARexx parser + dispatch + AROS glue (Task 13/14).
+Headers: project/arexx.h, project/arexx_dispatch.h.
+Exact strings: OPENSONG <path> | PLAY | STOP | EXPORTWAV <song> <wav> |
+SETRPPARAM <ctl> <val> (ctl 0..65535, val 0..127). Optional leading
+REINCARNATION / REBIRTHAROS port token. AROS glue:
+project/arexx_aros.c ri_arexx_handle (AROS-only; MsgPort loop deferred).
+
+int arexx_parse(const char *line, struct RIArexxCmd *cmd)
+  Parse one line into cmd. Result: 0 ok, nonzero malformed (exact
+  spacing: double/leading/trailing spaces reject).
+
+void arexx_dispatch(const struct RIArexxCmd *cmd, struct RIArexxReply *rep)
+  Map command to reply (RIAREXX_RC_OK / RC_BADCMD / RC_BADARG +
+  text). NULL-safe, fail-closed. Reply text truncates long paths
+  (display only; the struct keeps full args).

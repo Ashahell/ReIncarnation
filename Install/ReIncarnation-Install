@@ -1,0 +1,39 @@
+; ReIncarnation-Install — AROS Installer script (Task 14, gate G14).
+; AROS-RUN UNVERIFIED (method in docs/evidence/formats/beta-exit.md):
+; this script has never executed on AROS. Syntax follows the standard
+; Installer tool (welcome, copylib, copyfiles, makeassign); the audit
+; only checks the referenced paths exist in the tree.
+(welcome "Welcome to ReIncarnation Classic.")
+(set ReInDir
+  (askdir
+    (prompt "Where should ReIncarnation live?")
+    (help "A drawer will be created if needed.")
+    (default "SYS:Music/ReIncarnation")
+  )
+)
+(makedir ReInDir)
+(copyfiles
+  (prompt "Installing program + manual...")
+  (source "PROGDIR:ReIncarnation")
+  (dest ReInDir)
+  (files)
+)
+(copyfiles
+  (prompt "Installing locale catalogs...")
+  (source "PROGDIR:Locale")
+  (dest (tackon ReInDir "Locale"))
+  (pattern "#?.catalog")
+)
+(copyfiles
+  (prompt "Installing icons...")
+  (source "PROGDIR:Icons")
+  (dest ReInDir)
+  (pattern "#?.info")
+)
+(copyfiles
+  (prompt "Installing tutorial songs...")
+  (source "PROGDIR:Songs")
+  (dest (tackon ReInDir "Songs"))
+  (pattern "#?.rbng")
+)
+(exit "ReIncarnation installed. See ReIncarnation.guide for the manual.")

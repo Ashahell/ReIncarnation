@@ -334,4 +334,111 @@ for tu in project/sha256.c project/rbng.c project/arexx.c project/undo.c midi_io
   bn=$(basename "$tu" .c)
   x86_64-aros-gcc $CFLAGS_FMT -c "$ROOT/$tu" -o "$OUT/aros/${bn}_aros.o" || { echo "FAIL: $tu AROS compile"; exit 1; }
 done
+echo "== Phase 14: REL soak/docs/installer/beta-exit (Task 14, gate G14) =="
+T14=/tmp/ri/run/audit14
+mkdir -p "$T14"
+bash "$ROOT/scripts/ri_build_host.sh" test t1_rel >"$T14/rel.log" 2>&1 || { echo "FAIL: t1_rel"; exit 1; }
+grep -q "PASS rel" "$T14/rel.log" || { echo "FAIL: t1_rel no PASS"; exit 1; }
+grep -q "RENDERED-DE: Abspielen" "$T14/rel.log" || { echo "FAIL: DE proof string not rendered"; exit 1; }
+echo "-- bench worst-case (short: 4500 blocks = 6 s audio) --"
+gcc $CFLAGS -o "$OUT/bench" "$ROOT/tools/bench.c" "$OUT"/*.o -lm || { echo "FAIL: bench build"; exit 1; }
+"$OUT/bench" 4500 >"$T14/bench.log" 2>&1 || { echo "FAIL: bench run"; exit 1; }
+grep -q "DETERMINISTIC" "$T14/bench.log" || { echo "FAIL: bench nondeterministic"; exit 1; }
+grep -q "BENCH OK" "$T14/bench.log" || { echo "FAIL: bench no OK"; exit 1; }
+echo "-- short soak (30 s, switching under load) --"
+RI_SOAK_BENCH_BLOCKS=4500 bash "$ROOT/scripts/ri_soak.sh" 30 "$T14/soak" >"$T14/soak-tail.log" 2>&1 || { echo "FAIL: soak 30s"; exit 1; }
+grep -q "SOAK PASS" "$T14/soak/SOAK.log" || { echo "FAIL: soak no PASS"; exit 1; }
+grep -q "underruns=0" "$T14/soak/SOAK.log" || { echo "FAIL: soak underruns"; exit 1; }
+echo "-- AmigaGuide: every control row present --"
+test -f "$ROOT/docs/ReIncarnation.guide" || { echo "FAIL: missing manual"; exit 1; }
+for row in "303A cutoff" "303A reso" "303A envmod" "303A decay" "303A accent" "303A volume" \
+  "303B cutoff" "303B reso" "303B envmod" "303B decay" "303B accent" "303B volume" \
+  "808 level" "808 tune" "808 decay" "808 snappy" "808 tone" "808 accent" \
+  "909 tune" "909 level" "909 decay" "909 flamres" \
+  "mixer bus1" "mixer bus2" "mixer bus3" "mixer bus4" "mixer master" "mixer send1" \
+  "transport play" "transport stop" "transport tempo" "transport pattern" "transport shuffle"; do
+  grep -q "$row" "$ROOT/docs/ReIncarnation.guide" || { echo "FAIL: guide lacks: $row"; exit 1; }
+done
+for cmd in OPENSONG PLAY STOP EXPORTWAV SETRPPARAM; do
+  grep -q "$cmd" "$ROOT/docs/ReIncarnation.guide" || { echo "FAIL: guide lacks ARexx $cmd"; exit 1; }
+done
+echo "-- autodocs: exact signatures shipped --"
+for d in audio mixer midi arexx formats dsp seq fx gui; do
+  test -f "$ROOT/docs/autodoc/$d.doc" || { echo "FAIL: missing autodoc $d.doc"; exit 1; }
+done
+check_sig() { # $1=header-rel $2=doc-rel $3=signature-literal
+  grep -qF "$3" "$ROOT/$1" || { echo "FAIL: $1 lacks: $3"; exit 1; }
+  grep -qF "$3" "$ROOT/$2" || { echo "FAIL: $2 lacks: $3"; exit 1; }
+}
+check_sig audio_io/audio.h docs/autodoc/audio.doc "struct AudioObject *AuCreateObject(struct Library *AudioBase, struct TagItem *tags)"
+check_sig audio_io/audio.h docs/autodoc/audio.doc "uint32_t AuAddSource(struct AudioObject *ao, struct TagItem *tags)"
+check_sig audio_io/audio.h docs/autodoc/audio.doc "uint32_t AuAddBus(struct AudioObject *ao, const char *name, struct TagItem *tags)"
+check_sig audio_io/audio.h docs/autodoc/audio.doc "int AuConnect(struct AudioObject *ao, uint32_t src, uint32_t bus)"
+check_sig audio_io/audio.h docs/autodoc/audio.doc "int AuStart(struct AudioObject *ao)"
+check_sig audio_io/audio.h docs/autodoc/audio.doc "void AuStop(struct AudioObject *ao)"
+check_sig audio_io/audio.h docs/autodoc/audio.doc "uint32_t AuQueryAttr(struct AudioObject *ao, uint32_t attr)"
+check_sig audio_io/audio.h docs/autodoc/audio.doc "int AuRenderToFile(struct AudioObject *ao, const char *path, uint32_t ms)"
+check_sig engine/mixer/mixer.h docs/autodoc/mixer.doc "void ri_mix_init(struct RiMixer *m, float sr)"
+check_sig engine/mixer/mixer.h docs/autodoc/mixer.doc "int ri_mix_set_fader(struct RiMixer *m, uint32_t bus, uint8_t v)"
+check_sig engine/mixer/mixer.h docs/autodoc/mixer.doc "void ri_mix_render(struct RiMixer *m, const float *bus_in[RI_MIX_NBUS],"
+check_sig engine/mixer/mixer.h docs/autodoc/mixer.doc "float *out, float *send_out, uint32_t n)"
+check_sig engine/framework/ridevice.h docs/autodoc/mixer.doc "void ri_devices_init(void)"
+check_sig engine/framework/ridevice.h docs/autodoc/mixer.doc "struct RIDevice *ri_device_get(uint32_t index)"
+check_sig engine/framework/ridevice.h docs/autodoc/mixer.doc "uint32_t ri_device_count(void)"
+check_sig midi_io/midi.h docs/autodoc/midi.doc "int32_t midi_cc_lookup(const struct RIMidiLearn *m, uint32_t cc)"
+check_sig midi_io/midi.h docs/autodoc/midi.doc "int midi_mmc_cmd(const void *buf, uint32_t n)"
+check_sig project/arexx.h docs/autodoc/arexx.doc "int arexx_parse(const char *line, struct RIArexxCmd *cmd)"
+check_sig project/arexx_dispatch.h docs/autodoc/arexx.doc "void arexx_dispatch(const struct RIArexxCmd *cmd, struct RIArexxReply *rep)"
+check_sig project/rbng.h docs/autodoc/formats.doc "int rbng_read_song(const char *path, struct RISong *s, char *err,"
+check_sig project/rbnm.h docs/autodoc/formats.doc "int rbnm_reserialize(const char *src, const char *dst, char *err,"
+check_sig project/undo.h docs/autodoc/formats.doc "int ri_undo_commit(struct RIUndo *u, uint32_t ctl, uint8_t val)"
+check_sig gui/panels.h docs/autodoc/gui.doc "unsigned int ri_panel_count(void)"
+check_sig gui/catalog.h docs/autodoc/gui.doc 'const char *ri_catalog_get(const char *locale, const char *msgid)'
+check_sig engine/dsp/rb303.h docs/autodoc/dsp.doc "void rb303_render(struct RB303Voice *v, float *out, uint32_t n, float sr)"
+check_sig engine/dsp/rb808.h docs/autodoc/dsp.doc "void rb808_render_mix(struct RB808Set *s, float *out, uint32_t n, float sr)"
+check_sig engine/dsp/rb909.h docs/autodoc/dsp.doc "void rb909_trigger(struct RB909Set *s, uint32_t voice, uint32_t accent,"
+check_sig engine/dsp/rb909.h docs/autodoc/dsp.doc "uint8_t tune, int32_t flam_delay_smp)"
+check_sig engine/fx/pcf.h docs/autodoc/fx.doc "void pcf_render(struct PCF *p, const float *in, float *out, uint32_t n"
+check_sig engine/fx/fx.h docs/autodoc/fx.doc "void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,"
+check_sig engine/fx/fx.h docs/autodoc/fx.doc "float sr, float bpm)"
+check_sig gui/knob_logic.h docs/autodoc/gui.doc "double ri_knob_drag_to_value(double start, double dy_px, int fine)"
+echo "-- catalogs: EN + DE proof in source AND table --"
+test -f "$ROOT/locale/ReIncarnation.cd" || { echo "FAIL: missing .cd"; exit 1; }
+test -f "$ROOT/locale/en.ct" || { echo "FAIL: missing en.ct"; exit 1; }
+test -f "$ROOT/locale/de.ct" || { echo "FAIL: missing de.ct"; exit 1; }
+grep -q "Abspielen" "$ROOT/locale/de.ct" || { echo "FAIL: de.ct lacks proof string"; exit 1; }
+grep -q "Abspielen" "$ROOT/gui/catalog.c" || { echo "FAIL: catalog.c lacks proof string"; exit 1; }
+echo "-- installer + icons as files --"
+test -f "$ROOT/Install/ReIncarnation-Install" || { echo "FAIL: missing installer"; exit 1; }
+grep -q "PROGDIR:ReIncarnation" "$ROOT/Install/ReIncarnation-Install" || { echo "FAIL: installer lacks program stanza"; exit 1; }
+test -f "$ROOT/Install/icons/tool.png" || { echo "FAIL: missing tool icon"; exit 1; }
+test -f "$ROOT/Install/icons/drawer.png" || { echo "FAIL: missing drawer icon"; exit 1; }
+echo "-- Task-13 deferred wiring now owned --"
+test -f "$ROOT/project/arexx_aros.c" || { echo "FAIL: missing arexx_aros.c"; exit 1; }
+grep -q "#ifndef __AROS__" "$ROOT/project/arexx_aros.c" || { echo "FAIL: arexx_aros lacks guard"; exit 1; }
+grep -q "ri_camd_open" "$ROOT/midi_io/camd_backend.c" || { echo "FAIL: CAMD open unwired"; exit 1; }
+grep -q "ri_camd_close" "$ROOT/midi_io/camd_backend.c" || { echo "FAIL: CAMD close unwired"; exit 1; }
+grep -q "ri_rbng_datatype_reg" "$ROOT/project/datatypes/rbng.datatype.c" || { echo "FAIL: RBNG reg missing"; exit 1; }
+grep -q "ri_rbnm_datatype_reg" "$ROOT/project/datatypes/rbnm.datatype.c" || { echo "FAIL: RBNM reg missing"; exit 1; }
+if grep -rn "arexx_aros\|camd_backend\|datatypes" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS shells leak into host build"; exit 1; fi
+echo "-- AROS compile of new AROS-side code (compile-only, no link) --"
+if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
+. ../Vulkan4Aros/scripts/aros_build_env.sh
+export PATH="$AROS_TOOLCHAIN:$PATH"
+SDK="$AROS_SDK_INCLUDE"
+CFLAGS_REL="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
+for tu in project/arexx_aros.c midi_io/camd_backend.c project/datatypes/rbng.datatype.c project/datatypes/rbnm.datatype.c gui/catalog.c project/arexx_dispatch.c; do
+  bn=$(basename "$tu" .c)
+  x86_64-aros-gcc $CFLAGS_REL -c "$ROOT/$tu" -o "$OUT/aros/${bn}_rel_aros.o" || { echo "FAIL: $tu AROS compile"; exit 1; }
+done
+echo "-- beta-exit record + repo hygiene --"
+test -f "$ROOT/docs/evidence/formats/beta-exit.md" || { echo "FAIL: missing beta-exit.md"; exit 1; }
+grep -q "DEFERRED" "$ROOT/docs/evidence/formats/beta-exit.md" || { echo "FAIL: beta-exit has no DEFERRED rows"; exit 1; }
+grep -q "No beta ran" "$ROOT/docs/evidence/formats/beta-exit.md" || { echo "FAIL: beta-exit claims a beta"; exit 1; }
+for f in ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_fuzz.sh ri_soak.sh; do
+  test -f "$ROOT/scripts/$f" || { echo "FAIL: missing scripts/$f"; exit 1; }
+done
+test "$(ls "$ROOT/scripts" | wc -l)" = "5" || { echo "FAIL: scripts/ holds non-shared files"; exit 1; }
+if git -C "$ROOT" status --porcelain | grep -E "\.o$|\.library$"; then echo "FAIL: build artifacts in tree"; exit 1; fi
+if grep -rnw "TODO\|TBD\|FIXME" "$ROOT/docs/ReIncarnation.guide" "$ROOT/docs/autodoc" "$ROOT/locale" "$ROOT/Install" 2>/dev/null; then echo "FAIL: placeholder in REL docs"; exit 1; fi
 echo "AUDIT 0/0 PASS"

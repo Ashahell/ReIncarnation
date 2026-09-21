@@ -1,0 +1,14 @@
+## version $VER: ReIncarnation.ct
+## codeset 0
+## language DE
+## translator Task 14 (gate G14) — one translated string PROVEN by
+## rendering it: t1_rel prints RENDERED-DE: Abspielen through
+## ri_catalog_get("DE","MSG_PLAY"), and ri_audit.sh Phase 14 greps
+## both this file and gui/catalog.c for "Abspielen".
+MSG_PLAY (1//) Abspielen
+MSG_STOP (2//) Stopp
+MSG_TEMPO (3//) Tempo
+MSG_MIXER (4//) Mischpult
+MSG_PATTERN (5//) Pattern
+MSG_EXPORT (6//) WAV exportieren
+;

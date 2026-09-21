@@ -1,0 +1,35 @@
+AUTODOC mixer.doc + ridevice.doc — mixer + static device registry (Task 11).
+Headers: engine/mixer/mixer.h, engine/framework/ridevice.h.
+Fader law (P-17, E0 record in engine/dsp/params.c): gain = (v/127)^2.
+
+float ri_fader_gain(uint8_t v)
+  Fader 0..127 to linear gain. Result: gain.
+
+void ri_mix_init(struct RiMixer *m, float sr)
+  Init mixer (fresh handle ramps 0->target over first 64 samples).
+  The live backend must keep the handle across callbacks.
+
+int ri_mix_set_fader(struct RiMixer *m, uint32_t bus, uint8_t v)
+int ri_mix_set_send(struct RiMixer *m, uint32_t bus, uint8_t v)
+int ri_mix_set_mute(struct RiMixer *m, uint32_t bus, uint8_t v)
+int ri_mix_set_solo(struct RiMixer *m, uint32_t bus, uint8_t v)
+  Bus setters (bus 0..3). Result: 0 ok, 2 bad bus.
+
+int ri_mix_set_master(struct RiMixer *m, uint8_t v)
+  Master fader. Result: 0 ok.
+
+int ri_mix_audible(const struct RiMixer *m, uint32_t bus)
+  Audibility under mute/solo. Result: 1 audible, 0 gated.
+
+void ri_mix_render(struct RiMixer *m, const float *bus_in[RI_MIX_NBUS],
+    float *out, float *send_out, uint32_t n)
+  Render n frames; overwrites out/send_out; NULL bus = silence.
+
+void ri_devices_init(void)
+  Init the static Classic registry (internal table; freeze gate untouched).
+
+struct RIDevice *ri_device_get(uint32_t index)
+  Registry lookup. Result: device or NULL.
+
+uint32_t ri_device_count(void)
+  Registry size. Result: device count.

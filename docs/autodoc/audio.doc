@@ -1,0 +1,32 @@
+AUTODOC audio.doc — W1 backend graph API (Task 6 signatures, Task 14 docs).
+Header: audio_io/audio.h. Engine/device geometry: RI_AUDIO_SR 48000,
+RI_AUDIO_BLOCK 64 (LOCKED, spec 2.3), RI_DEVICE_FRAMES 256 (hypothesis
+until M1.1). Missing AHI prints RI_AUDIO_NULL_MSG and runs the null
+backend (offline render only).
+
+struct AudioObject *AuCreateObject(struct Library *AudioBase, struct TagItem *tags)
+  Create the graph object. Inputs: library base + tags. Result: object or NULL.
+
+uint32_t AuAddSource(struct AudioObject *ao, struct TagItem *tags)
+  Add a song source (AUTA_SongPath tag). Result: source id.
+
+uint32_t AuAddBus(struct AudioObject *ao, const char *name, struct TagItem *tags)
+  Add a named bus. Result: bus id.
+
+int AuConnect(struct AudioObject *ao, uint32_t src, uint32_t bus)
+  Wire source to bus. Result: 0 ok, nonzero bad id.
+
+int AuStart(struct AudioObject *ao)
+  Start the render task (null backend on host). Result: 0 ok.
+
+void AuStop(struct AudioObject *ao)
+  Stop the render task. No result.
+
+uint32_t AuQueryAttr(struct AudioObject *ao, uint32_t attr)
+  Query AUQA_LatencyFrames / AUQA_XRUN_COUNT. Result: attribute value.
+
+int AuRenderToFile(struct AudioObject *ao, const char *path, uint32_t ms)
+  Offline render ms milliseconds to a 16-bit mono WAV. Result: 0 ok.
+
+Extras (NOT frozen): AuBackendName, AuDumpEvents, au_render_frames,
+au_rewind, au_render_song_to_wav, au_null_render_to_wav — see header.
