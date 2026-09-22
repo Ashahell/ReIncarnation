@@ -5,8 +5,14 @@
 > Published: 2026-09-22
 
 ## Disposition
-New. Closes #3 as "lane proven, full-green scheduled" (NOT "Appendix A
-reproduced end-to-end" — P3/P4 remain Stop-blocked, see below).
+New. ~~Closes #3 as "lane proven, full-green scheduled" (NOT "Appendix A
+reproduced end-to-end" — P3/P4 remain Stop-blocked, see below).~~
+SUPERSEDED 2026-09-22 (same day): full green ACHIEVED — see
+`2026-09-22-abiv1-full-green-one-byte-hookentry-patch.md`. The
+"post-fix void rebuild" scheduled below was the WRONG fix (void
+exonerated by disassembly + identical deadlock in both builds); the real
+fix is the 1-byte HookEntry patch in the ahi.device shadow. This
+article's P1/P2 proof, recipe proof, and failure chain 1–3 stand.
 
 ## TL;DR
 The v1 toolchain path produces runnable ABIv1 binaries and P1/P2

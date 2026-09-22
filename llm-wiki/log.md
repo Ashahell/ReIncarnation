@@ -121,6 +121,12 @@ Platform contract (AHI_NO_UNIT open → base from io_Device); probe fix; BestAud
 - Updated: llm-wiki/raw/articles/2026-09-21-device-as-library-p1-p3.md
 AHIC_Play TRUE → AHIsub_Start; 50,503,035 vs 3750 expected (≈13,467×, VOID unclocked); M1.1 low-level complete; zero faults. Cascade: Status note on the prior record; index entries updated.
 
+## [2026-09-22] green | ABIv1 full green via 1-byte HookEntry patch; Appendix A reproduced end-to-end
+- Disposition: New (closes the Stop-blocker; supersedes the scheduled void rebuild)
+- Raw: llm-wiki/raw/articles/2026-09-22-abiv1-full-green-one-byte-hookentry-patch.md
+- Updated: llm-wiki/raw/articles/2026-09-22-abiv1-acceptance-lane-p1p2-green-stop-blocked.md (Disposition superseded-note); llm-wiki/index.md (entry)
+Stop kill-no-death was the ahi.device shadow's hand HookEntry stub (`jmp *0x10(%rdi)`, 4 install sites), never void (no such jump in either build; trampoline correctly targets Slave). One byte patched (0x5ee5: 0x10→0x18, no relocs), disassembly = documented fixed form. Session-9 PASS 12088 ms: Appendix A line-for-line (50.6M ticks, err1=0/err2=-2, dev_min=0). ABIv1 acceptance evidence COMPLETE; G5 closure (spec row + commit) separate, untaken. Scratch binary only (`/home/miller/Work/ri_build/ahi.device.fixed`); source-faithful clib_stubs rebuild remains the durable path.
+
 ## [2026-09-22] lane | ABIv1 acceptance lane proven P1/P2 (Appendix-A match); full green Stop-blocked, rebuild scheduled
 - Disposition: New (work unit close-out with scheduled follow-up)
 - Raw: llm-wiki/raw/articles/2026-09-22-abiv11-acceptance-lane-p1p2-green-stop-blocked.md
