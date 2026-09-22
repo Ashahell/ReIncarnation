@@ -44,6 +44,13 @@ ABIv1.
    the ~11 Hz-vs-750 Hz player-rate question is characterized on the Dell
    (frames=128/256 follow-up), then confirmed on ABIv1 before any gate
    text cites it.
+   **Status 2026-09-22 (refinement from the 11 Hz case):** confirm-on-ABIv1
+   applies where the ABIv1 vehicle can observe the phenomenon. The
+   driverless QEMU guest cannot confirm driver timing (VOID spins
+   unclocked by design) — driver-timing verdicts stand on Dell
+   characterization alone, labeled as such; ABIv1 confirmation is
+   required for everything the guest CAN observe (negotiation, ladder,
+   device IO).
 5. **QEMU/VOID lane is retained** as the cheap pre-gate and the ABIv1
    acceptance vehicle — not retired.
 

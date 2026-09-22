@@ -133,6 +133,12 @@ Stop kill-no-death was the ahi.device shadow's hand HookEntry stub (`jmp *0x10(%
 - Updated: llm-wiki/index.md (entry)
 v1 recipe byte-identical to Sep21 green (29840 B, symtab shape, task.resource=1, r12=0, UND=1); session-8 PASS P1/P2 = Appendix A line-for-line; repo probe untouched (variants in /home/miller/Work/ri_build/). Chain: setcall-noop startup death → -llibinit real; sb128-stock returns post-reboot → redeploy; ReadConfig-stock wins without PROGDIR open → progdir_probe; Stop kill-no-death in BOTH voids → post-fix void rebuild scheduled. v1 serve 9091/home-spool; v1c untouched. Cascade: none (Vulkan4Aros cross-post needs no change — no lane-infra delta beyond recorded spool move).
 
+## [2026-09-22] m2 | WBS 2.1 snapshot contract + loop cursor (TC-2.1.2 math half, TDD)
+- Disposition: New (contract + cursor + test + audit wiring)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-snapshot-looppos.md
+- Updated: engine/seq/riseq.h, engine/seq/riseq.c, tests/unit/t21_seqloop.c, scripts/ri_audit.sh (Phase 6b), llm-wiki/index.md
+RED (missing type) → mutant-caught → GREEN (both seq tests PASS, audit 0/0). PCM half waits on song→events builder. Uncommitted.
+
 ## [2026-09-22] m2 | WBS 2.1 first step: riseq + TC-2.1.1 (TDD, audit 0/0)
 - Disposition: New (module + test + build + audit phase)
 - Raw: llm-wiki/raw/articles/2026-09-22-wbs21-riseq-tc211.md

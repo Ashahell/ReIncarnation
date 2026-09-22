@@ -28,7 +28,7 @@ Copy to the guest (see procedure), run `probe_ahi`, paste the
 | Low-level min buffer (frames @48 kHz) | 64 — `RI_PROBE low_min_frames=64` (ladder 4096..64 all rc=0) |
 | Device min buffer (frames @48 kHz) | 0 — `RI_PROBE dev_min_frames=0` (metric counts natural completions only; r1 completes naturally err=0, r2 abort-clean err=-2 by the probe's bound, all rungs) |
 | Xrun notes (verify observed/expected/shortfall + any AHIE_* codes) | frames=64: 55/3750 shortfall=3695; frames=128: 55/1875 shortfall=1820; frames=256: 55/935 shortfall=880 (all 5 s windows, rc=0, zero AHIE codes). 11 Hz verdict: observed exactly 55 at all three requests (750/375/187 Hz) → Player rate fixed ~11 Hz, `AHIA_PlayerFreq` accepted-but-not-honored. Full verbatim in Appendix B |
-| Chosen backend (low-level vs `ahi.device`, Task 6 input) | INPUT (Task 6 decides): low-level reaches 64 frames with full MixFreq + player-hook exposure (spec §4.2); device path shows no natural-completion advantage (dev_min=0 by metric design, r1 err=0 / r2 err=-2 throughout). No xrun evidence favors the device path |
+| Chosen backend (low-level vs `ahi.device`, Task 6 input) | DECIDED low-level 2026-09-22 (code default in `audio_io/audio.h` + wiki record `2026-09-22-task6-latency-floor-64-measured.md`): reaches 64 frames with full MixFreq + player-hook exposure (spec §4.2); device path shows no natural-completion advantage (dev_min=0 by metric design, r1 err=0 / r2 err=-2 throughout). No xrun evidence favors the device path |
 | AHI mode actually negotiated (id, freq, bits, stereo, hifi, maxch) | id `0x003E0001`, 44100 Hz, 16-bit, stereo, hifi=1, maxch=128 (`best_mode:` + `alloc_audio: OK` verbatim, Appendix B) |
 
 ## Hypotheses under test (confirm or correct)
