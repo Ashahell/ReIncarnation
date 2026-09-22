@@ -127,6 +127,18 @@ AHIC_Play TRUE → AHIsub_Start; 50,503,035 vs 3750 expected (≈13,467×, VOID 
 - Updated: llm-wiki/index.md (entry)
 Scratch probe_tone (440 Hz sine, v11 27344 B): 2× rc=0 nominal; operator heard ~10 s ring-like tone (ladder bursts, expected). Resolved in the follow-up entry above.
 
+## [2026-09-22] ingest | Storm test mechanics recorded; coverage re-verified
+- Disposition: Update (article gap fill) + ingest (verification)
+- Updated: llm-wiki/raw/articles/2026-09-22-wbs21-storm.md (repeat loop, assert shape, slide-flag structure); llm-wiki/log.md (this entry)
+- Verified: all 4 2.2 articles + 4 test files each indexed/logged exactly once; uncommitted set fully covered (rb303.h/c→click article; audit→phase entries).
+- Live lanes: v1 9091 + laptop 9292 serves up; 4 serve procs total (other session's v1b/v1dh0 untouched).
+
+## [2026-09-22] sound | First music on the reference box (operator: clean)
+- Disposition: New (milestone record)
+- Raw: llm-wiki/raw/articles/2026-09-22-first-music-dell-clean.md
+- Updated: llm-wiki/index.md (entry)
+Scratch dell_player + first-light 3 loops; mono/stereo bug (found by ear, fixed 1 line, replay clean); file exonerated by host analysis. Uncommitted.
+
 ## [2026-09-22] sound | Volume resolved: host + AHI prefs stages, no driver work
 - Disposition: Update (closes the volume question on the first-sound record)
 - Updated: llm-wiki/raw/articles/2026-09-22-first-sound-dell-tone.md (Resolution)
@@ -151,12 +163,48 @@ Stop kill-no-death was the ahi.device shadow's hand HookEntry stub (`jmp *0x10(%
 - Updated: llm-wiki/index.md (entry)
 v1 recipe byte-identical to Sep21 green (29840 B, symtab shape, task.resource=1, r12=0, UND=1); session-8 PASS P1/P2 = Appendix A line-for-line; repo probe untouched (variants in /home/miller/Work/ri_build/). Chain: setcall-noop startup death → -llibinit real; sb128-stock returns post-reboot → redeploy; ReadConfig-stock wins without PROGDIR open → progdir_probe; Stop kill-no-death in BOTH voids → post-fix void rebuild scheduled. v1 serve 9091/home-spool; v1c untouched. Cascade: none (Vulkan4Aros cross-post needs no change — no lane-infra delta beyond recorded spool move).
 
+## [2026-09-22] m2 | TC-2.2.6 two-instance independence (TDD property pin)
+- Disposition: New (test + audit wiring; no production change)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs22-303indep.md
+- Updated: tests/unit/t22_303indep.c, scripts/ri_audit.sh (303 phase), llm-wiki/index.md
+Source audit (no shared state) + A1==A2 across B's activity (crosstalk -inf); energy guards (B-slide silence found); clobber-mutant caught; 2 transient quota-race audit FAILs before green. Uncommitted.
+
+## [2026-09-22] m2 | TC-2.2.3 slide legato (TDD property pin)
+- Disposition: New (test + audit wiring; no production change)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs22-303slide.md
+- Updated: tests/unit/t22_303slide.c, scripts/ri_audit.sh (303 phase), llm-wiki/index.md
+Env continuity + slew + 5τ reach, both entry forms; scratch-mutant caught exactly (frozen file untouched); audit 0/0. Uncommitted.
+
+## [2026-09-22] m2 | TC-2.2.5 waveform-click flag (feature, TDD)
+- Disposition: New (DSP change + test + audit wiring)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs22-303click.md
+- Updated: engine/dsp/rb303.h, engine/dsp/rb303.c, tests/unit/t21_303click.c, scripts/ri_audit.sh (303 phase), llm-wiki/index.md
+RED (missing field) → classic/smooth bounds → mutant-caught → GREEN + audit 0/0 (goldens byte-identical). Env flakes: 2 quota AROS-phase FAILs + 1 CWD-misfire, all verified transient. Uncommitted.
+
+## [2026-09-22] m2 | TC-2.2.2 accent envelope (TDD property pin)
+- Disposition: New (test + audit wiring; no production change)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs22-303accent.md
+- Updated: tests/unit/t22_303accent.c, scripts/ri_audit.sh (303 phase), llm-wiki/index.md
+Peak 1.0 + monotone decay + 1/e window; scratch-mutant caught; audit 0/0. Uncommitted.
+
+## [2026-09-22] ear | Slide feel: 40 ms provisional-good, A/B stays open
+- Disposition: Update (operator judgment recorded; no code change)
+- Updated: llm-wiki/raw/articles/2026-09-22-wbs22-303slide.md (Standing)
+Glide feel hard to judge by ear alone → keep P-03 40 ms default, marked good for now. Blind 40-vs-60 A/B (spec OPEN-01) remains OPEN. Also answered "what should slide sound like" from the dive + spec gate table (glide/no-dip/no-gap; defect checklist: zipper, dip, click, wrong tau).
+
 ## [2026-09-22] ingest | Commits f6df244 + 8487809 recorded; live lane refresh
 - Disposition: Update (commit records missing from log) + ingest (ops state)
 - Updated: llm-wiki/log.md (this entry)
 - `f6df244` feat: WBS 2.1 builder chain songsteps->feed->file->looppcm (TC-2.1.2) — pushed to origin/main.
 - `8487809` feat: WBS 2.1 snapshot playback path, snapbuild + windowing + swap soak + storm (TC-2.1.3/2.1.4) — pushed to origin/main.
 - Live lane refresh: v1 + laptop spike serves up (9091 home-spool anon, 9292 pairs e6320); QEMU aros_v1 idle with green set in RAM:; Dell agent last session 750. ENV CHURN: a new `aros_v1dh0_nocd` guest appeared and `v1c` is gone (other session churning VMs) — always re-verify guest identity (Info volumes) before consequential runs, never assume monitor-port ownership.
+
+## [2026-09-22] ingest | Commits d4f14fb recorded; copytruncate + live lane refresh
+- Disposition: Update (commit record) + ingest (ops, with authorization noted)
+- Updated: llm-wiki/log.md (this entry)
+- `d4f14fb` feat: storm slide coverage + first sound on reference box [TC-2.1.4] — pushed to origin/main.
+- Copytruncate (USER-AUTHORIZED): frozen v1b debug VM's serial log (1.6 GB, still growing) copied to `/home/miller/Work/v1b_gdbdis_serial.log.relocated-20260922`, original truncated to unblock linking. QEMU appends (O_APPEND); seconds of trace at the seam potentially lost, all prior content preserved. NOTE: `du` later showed only 856K real blocks (sparse) — the true hogs are /tmp/claude-1000 (5.4G) + /tmp/opencode (653M), untouched per rule.
+- Live lane refresh: spike serves v1b 9191 + laptop 9292 + v1 9091 + v1dh0 9195 (last is the other session's new guest lane); QEMU aros_v1 idle with green set in RAM:; Dell agent session 750 alive; /tmp quota still binding (link needs a window; TMPDIR ignored by x86_64-aros-ld).
 
 ## [2026-09-22] m2 | TC-2.1.4 storm: held-note slide covered (TDD follow-up)
 - Disposition: Update (slide path in storm context; silence semantics pinned both ways)

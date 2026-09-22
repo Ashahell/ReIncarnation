@@ -43,6 +43,16 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-22-first-music-dell-clean.md](raw/articles/2026-09-22-first-music-dell-clean.md) — **2026-09-22 — First music on the reference box (operator: clean).** Scratch CMD_WRITE player + first-light 3 loops; mono-declared-as-stereo bug found by ear (half-rate alias per channel), fixed (`AHIST_M16S`), replay clean. Source file exonerated by analysis (74% peak, 0 clipped).
+
+- [raw/articles/2026-09-22-wbs22-303click.md](raw/articles/2026-09-22-wbs22-303click.md) — **2026-09-22 — TC-2.2.5 waveform-click flag (feature, TDD).** `classic_click` + 0.5 ms crossfade in `rb303`; classic> smooth ordering + absolute bounds; mutant-caught; goldens byte-identical (classic path preserved).
+
+- [raw/articles/2026-09-22-wbs22-303accent.md](raw/articles/2026-09-22-wbs22-303accent.md) — **2026-09-22 — TC-2.2.2 accent envelope (TDD).** Peak 1.0 + monotone decay + 1/e inside 2592..3168 (±10% of 60 ms); scratch-copy mutant (2x tau) caught; wired with 303 phase.
+
+- [raw/articles/2026-09-22-wbs22-303slide.md](raw/articles/2026-09-22-wbs22-303slide.md) — **2026-09-22 — TC-2.2.3 slide legato (TDD).** Env continuity + gate-high + slew-not-jump + 1% reach inside 5τ (both entry forms); scratch-copy mutant caught exactly; wired with 303 phase.
+
+- [raw/articles/2026-09-22-wbs22-303indep.md](raw/articles/2026-09-22-wbs22-303indep.md) — **2026-09-22 — TC-2.2.6 two-instance independence (TDD).** Source audit (no shared mutable state anywhere in the 303 path) + behavioral pin (A1==A2 bit-exact across B's activity, energy-guarded); clobber-mutant caught; wired with the 303 audit phase.
+
 - [raw/articles/2026-09-22-first-sound-dell-tone.md](raw/articles/2026-09-22-first-sound-dell-tone.md) — **2026-09-22 — First audible sound on the reference box (operator-confirmed).** Scratch `probe_tone` (440 Hz sine in P4 buffers, v11 build): two rc=0 runs, ~10 s ring-like tone (ladder bursts, expected shape); volume resolved via host Fn keys + `SYS:Prefs/AHI` output volume (both maxed, both behaved) — codec amp exonerated, path fully functional.
 
 - [raw/articles/2026-09-22-wbs21-storm.md](raw/articles/2026-09-22-wbs21-storm.md) — **2026-09-22 — TC-2.1.4 DSP-side storm budget (TDD, host proxy).** 4 sections into one 64-frame buffer: ratio 0.459 vs 0.5 budget (THIN margin — AROS-box run open); per-section energy guards (caught real 303B slide-from-silence); determinism; /tmp symlink relocation (quota); Phase 6b runs 10 seq tests.
