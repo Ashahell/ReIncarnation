@@ -121,6 +121,13 @@ Platform contract (AHI_NO_UNIT open → base from io_Device); probe fix; BestAud
 - Updated: llm-wiki/raw/articles/2026-09-21-device-as-library-p1-p3.md
 AHIC_Play TRUE → AHIsub_Start; 50,503,035 vs 3750 expected (≈13,467×, VOID unclocked); M1.1 low-level complete; zero faults. Cascade: Status note on the prior record; index entries updated.
 
+## [2026-09-22] ingest | Docs-accuracy pass committed (9af4966) + live lane state + known wart
+- Disposition: Update (two stalenesses fixed) + ingest (commit record) + ops note
+- Updated: docs/evidence/formats/m1-1-report.md (backend cell INPUT→DECIDED low-level, Task 6 code + record cited); llm-wiki/raw/articles/2026-09-22-dell-reference-box-iteration-abiv1-target.md (confirm-on-ABIv1 refined: driverless QEMU cannot confirm driver timing; verdicts stand on Dell characterization where QEMU is blind, ABIv1-confirm where observable)
+- Committed 9af4966 (with the M2.1 snapshot record) [gate:G14], pushed.
+- Live lane state (volatile, for next session): v1 spike serve up on 9091 (home-fs spool, anon slot); QEMU aros_v1 idle at Workbench with the green shadow set deployed in RAM: (ahi.device.fixed + patched sb128 + void shadow + probes — reboot wipes); Dell agent idle (last session 750); /tmp under quota pressure from a concurrent session (spool symlink fix holds; keep --get destinations off /tmp).
+- Known wart (reported, unordered): ca755fb message trailer says [gate:G6] but the content is WBS 2.1 (TCs, no G-gate). Fixing means amending pushed main — needs explicit order.
+
 ## [2026-09-22] green | ABIv1 full green via 1-byte HookEntry patch; Appendix A reproduced end-to-end
 - Disposition: New (closes the Stop-blocker; supersedes the scheduled void rebuild)
 - Raw: llm-wiki/raw/articles/2026-09-22-abiv1-full-green-one-byte-hookentry-patch.md
@@ -132,6 +139,30 @@ Stop kill-no-death was the ahi.device shadow's hand HookEntry stub (`jmp *0x10(%
 - Raw: llm-wiki/raw/articles/2026-09-22-abiv11-acceptance-lane-p1p2-green-stop-blocked.md
 - Updated: llm-wiki/index.md (entry)
 v1 recipe byte-identical to Sep21 green (29840 B, symtab shape, task.resource=1, r12=0, UND=1); session-8 PASS P1/P2 = Appendix A line-for-line; repo probe untouched (variants in /home/miller/Work/ri_build/). Chain: setcall-noop startup death → -llibinit real; sb128-stock returns post-reboot → redeploy; ReadConfig-stock wins without PROGDIR open → progdir_probe; Stop kill-no-death in BOTH voids → post-fix void rebuild scheduled. v1 serve 9091/home-spool; v1c untouched. Cascade: none (Vulkan4Aros cross-post needs no change — no lane-infra delta beyond recorded spool move).
+
+## [2026-09-22] m2 | TC-2.1.2 PCM half green: loop double-render equality
+- Disposition: New (test + audit wiring; no production change)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-looppcm.md
+- Updated: tests/unit/t21_looppcm.c, scripts/ri_audit.sh (Phase 6b), llm-wiki/index.md
+Doubled pluck-loop iteration-identical (settle-gap design; sustain case needs reset semantics — open); size-guard arithmetic corrected from writer source; pitch-mutant non-vacuity; audit 0/0. Uncommitted.
+
+## [2026-09-22] m2 | WBS 2.1 file-level song path pin (RBNG→builder→walker)
+- Disposition: New (test + audit wiring; no production change)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-songfile.md
+- Updated: tests/unit/t21_songfile.c, scripts/ri_audit.sh (Phase 6b), llm-wiki/index.md
+Round-trip + convert + 6 exact events; PASS first run; test-side mutant (6 cascading fails); audit 0/0. Uncommitted.
+
+## [2026-09-22] m2 | WBS 2.1 converter→walker feed pin (integration)
+- Disposition: New (test + audit wiring; no production change)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-schedfeed.md
+- Updated: tests/unit/t21_schedfeed.c, scripts/ri_audit.sh (Phase 6b), llm-wiki/index.md
+Hand-derived 10-event expectations (NULL-opts FLAM, §8 sort via seq 6,8,7); PASS first run; mutant-caught (16 fails); audit 0/0. Uncommitted.
+
+## [2026-09-22] m2 | WBS 2.1 song→steps converter (builder step 1, TDD)
+- Disposition: New (converter + test + build/audit wiring)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-songsteps.md
+- Updated: engine/seq/songsteps.h, engine/seq/songsteps.c, tests/unit/t21_songsteps.c, scripts/ri_build_host.sh (MOD_sched), scripts/ri_audit.sh (Phase 6b), llm-wiki/index.md
+RED (missing header) → mutant-caught → GREEN (PASS, audit 0/0). Walker feed + file golden next. Uncommitted.
 
 ## [2026-09-22] m2 | WBS 2.1 snapshot contract + loop cursor (TC-2.1.2 math half, TDD)
 - Disposition: New (contract + cursor + test + audit wiring)

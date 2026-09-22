@@ -43,6 +43,14 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-22-wbs21-looppcm.md](raw/articles/2026-09-22-wbs21-looppcm.md) — **2026-09-22 — TC-2.1.2 PCM half green: loop double-render equality.** Doubled pluck-loop renders iteration-identical (96 KB halves byte-equal); settle-gap design (sustain-across-boundary needs loop-reset semantics — open); non-vacuity by pitch mutant (30752 max diff); Phase 6b runs 6 seq tests.
+
+- [raw/articles/2026-09-22-wbs21-songfile.md](raw/articles/2026-09-22-wbs21-songfile.md) — **2026-09-22 — WBS 2.1 file-level song path pin (RBNG→builder→walker).** Write→read round-trip + convert + 6 exact events; PASS first run, no production touch; test-side mutant (dropped ACCENT → 6 cascading fails) proves asserts track file content; Phase 6b runs 5 seq tests.
+
+- [raw/articles/2026-09-22-wbs21-schedfeed.md](raw/articles/2026-09-22-wbs21-schedfeed.md) — **2026-09-22 — WBS 2.1 converter→walker feed pin (integration).** Hand-derived 10-event expectations (incl. NULL-opts zero-offset FLAM + §8 sort proof via seq 6,8,7); PASS first run, no production touch; mutant-caught (16 failures); Phase 6b runs 4 seq tests.
+
+- [raw/articles/2026-09-22-wbs21-songsteps.md](raw/articles/2026-09-22-wbs21-songsteps.md) — **2026-09-22 — WBS 2.1 song→steps converter (builder step 1, TDD).** `ri_song_to_steps` bounded copy (RBNG≡RIStep layout contract); hermetic unit + truncation/null/empty edges; mutant-caught; Phase 6b runs it. Walker feed + file golden path next.
+
 - [raw/articles/2026-09-22-wbs21-snapshot-looppos.md](raw/articles/2026-09-22-wbs21-snapshot-looppos.md) — **2026-09-22 — WBS 2.1 snapshot contract + loop cursor (TC-2.1.2 math half, TDD).** `RISeqSnapshot` (caller-owned, pointer-store load) + `RiSeqLoopPos` (wrap math, iter counts, passthrough fallbacks); `t21_seqloop` pins edges incl. end-1/end wrap + second wrap; mutant-caught; Phase 6b runs both seq tests. PCM double-render half waits on the song→events builder.
 
 - [raw/articles/2026-09-22-wbs21-riseq-tc211.md](raw/articles/2026-09-22-wbs21-riseq-tc211.md) — **2026-09-22 — WBS 2.1 first step: riseq master clock + TC-2.1.1 (TDD, audit 0/0).** New `engine/seq/riseq.{h,c}` (Init/Advance/MasterClock; Create→Init adaptation for the Phase-0a heap ban, documented); `tests/unit/t21_seq.c` pins 10 sim-minutes at 48 kHz + 44.1 kHz sweep (counter exact, map +-1 at integer-ideals, 115200 finals); mutant-caught; audit Phase 6b added. Gotchas: an early +-1-everywhere bound failed correctly (nearest-tick quantization is expected); audit greps banned tokens literally (reword comments).

@@ -97,6 +97,11 @@ test -f "$ROOT/engine/seq/riseq.c" || { echo "FAIL: missing engine/seq/riseq.c";
 bash "$ROOT/scripts/ri_build_host.sh" sched >/dev/null || { echo "FAIL: sched build (riseq)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_seq >/dev/null || { echo "FAIL: t21_seq"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_seqloop >/dev/null || { echo "FAIL: t21_seqloop"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t21_songsteps >/dev/null || { echo "FAIL: t21_songsteps"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t21_schedfeed >/dev/null || { echo "FAIL: t21_schedfeed"; exit 1; }
+mkdir -p /tmp/ri/run/t21 # t21_songfile writes its scaffold here (t6 pattern)
+bash "$ROOT/scripts/ri_build_host.sh" test t21_songfile >/dev/null || { echo "FAIL: t21_songfile"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t21_looppcm >/dev/null || { echo "FAIL: t21_looppcm"; exit 1; }
 echo "== Phase 7: sched shuffle/legato/flam (Task 7, gate G7) =="
 bash "$ROOT/scripts/ri_build_host.sh" test t1_sched >/dev/null || { echo "FAIL: t1_sched"; exit 1; }
 test -f "$ROOT/docs/evidence/sequencer/flam-default.md" || { echo "FAIL: missing P-05 ledger row"; exit 1; }
