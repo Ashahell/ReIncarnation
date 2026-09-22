@@ -133,6 +133,12 @@ Stop kill-no-death was the ahi.device shadow's hand HookEntry stub (`jmp *0x10(%
 - Updated: llm-wiki/index.md (entry)
 v1 recipe byte-identical to Sep21 green (29840 B, symtab shape, task.resource=1, r12=0, UND=1); session-8 PASS P1/P2 = Appendix A line-for-line; repo probe untouched (variants in /home/miller/Work/ri_build/). Chain: setcall-noop startup death → -llibinit real; sb128-stock returns post-reboot → redeploy; ReadConfig-stock wins without PROGDIR open → progdir_probe; Stop kill-no-death in BOTH voids → post-fix void rebuild scheduled. v1 serve 9091/home-spool; v1c untouched. Cascade: none (Vulkan4Aros cross-post needs no change — no lane-infra delta beyond recorded spool move).
 
+## [2026-09-22] m2 | WBS 2.1 first step: riseq + TC-2.1.1 (TDD, audit 0/0)
+- Disposition: New (module + test + build + audit phase)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-riseq-tc211.md
+- Updated: engine/seq/riseq.h, engine/seq/riseq.c, tests/unit/t21_seq.c, scripts/ri_build_host.sh (MOD_sched), scripts/ri_audit.sh (Phase 6b), llm-wiki/index.md
+RED (missing header) → test-logic correction (quantization) → mutant-caught → GREEN (PASS t21_seq, audit 0/0). Create→Init adaptation for heap ban; 44.1 kHz sweep for rate-independence. Uncommitted.
+
 ## [2026-09-22] task6 | Latency floor reconciled to measured 64 + harness exit fix (TDD, audit 0/0)
 - Disposition: New (code + test + gate; backend choice recorded)
 - Raw: llm-wiki/raw/articles/2026-09-22-task6-latency-floor-64-measured.md
