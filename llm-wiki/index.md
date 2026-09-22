@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-22-wbs22-303filter.md](raw/articles/2026-09-22-wbs22-303filter.md) — **2026-09-22 — TC-2.2.1 filter response (TDD).** Independent float64 reference (documented Appendix B form, not the dive sketch); 20 freqs within ±1 dB (worst −0.029 dB, 34x margin); g×1.5 mutant caught at +4.4 dB.
+
 - [raw/articles/2026-09-22-first-music-dell-clean.md](raw/articles/2026-09-22-first-music-dell-clean.md) — **2026-09-22 — First music on the reference box (operator: clean).** Scratch CMD_WRITE player + first-light 3 loops; mono-declared-as-stereo bug found by ear (half-rate alias per channel), fixed (`AHIST_M16S`), replay clean. Source file exonerated by analysis (74% peak, 0 clipped).
 
 - [raw/articles/2026-09-22-wbs22-303click.md](raw/articles/2026-09-22-wbs22-303click.md) — **2026-09-22 — TC-2.2.5 waveform-click flag (feature, TDD).** `classic_click` + 0.5 ms crossfade in `rb303`; classic> smooth ordering + absolute bounds; mutant-caught; goldens byte-identical (classic path preserved).

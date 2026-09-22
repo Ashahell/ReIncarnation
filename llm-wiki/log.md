@@ -192,6 +192,38 @@ Peak 1.0 + monotone decay + 1/e window; scratch-mutant caught; audit 0/0. Uncomm
 - Updated: llm-wiki/raw/articles/2026-09-22-wbs22-303slide.md (Standing)
 Glide feel hard to judge by ear alone → keep P-03 40 ms default, marked good for now. Blind 40-vs-60 A/B (spec OPEN-01) remains OPEN. Also answered "what should slide sound like" from the dive + spec gate table (glide/no-dip/no-gap; defect checklist: zipper, dip, click, wrong tau).
 
+## [2026-09-22] m2 | TC-2.2.1 Dell run GREEN (reference hardware)
+- Disposition: Update (hardware proof for the filter pin)
+- Updated: llm-wiki/raw/articles/2026-09-22-wbs22-303filter.md (Standing)
+Cross-build ABIv11 (32640 B); session 750 PASS rc=0 in 2263 ms, agent alive. All 20 freqs ±1 dB on hardware; AROS libm proven correct by the comparison itself. Scratch: /home/miller/Work/ri_build/aros_storm/.
+
+## [2026-09-22] m2 | TC-2.2.1 filter response (TDD property pin)
+- Disposition: New (test + audit wiring; no production change)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs22-303filter.md
+- Updated: tests/unit/t22_303filter.c, scripts/ri_audit.sh (303 phase), llm-wiki/index.md
+Independent float64 reference (Appendix B form); 20/20 within ±1 dB (34x margin); mutant-caught; audit 0/0. Uncommitted.
+
+## [2026-09-22] measure | Pitch question nailed: 440 Hz on the tuner, rate handling correct
+- Disposition: Update (closes the 48k-into-44100 pitch question with measurement)
+- Updated: llm-wiki/log.md (this entry)
+Continuous 440 Hz tone (10 s, 0.9 FS, scratch `tone_cont`) → phone chromatic tuner reads **440 Hz**. The 8.2%-flat hypothesis (48k data at 44.1k clock → 404 Hz) is REFUTED: the driver delivers correct pitch (resamples or runs 48k clock — mechanism unprobed, outcome measured). Earlier guitar-mode "E string" reading explained (440 > top string E4; wrong tuner mode, not evidence). No resampling work needed. Scratch: `/home/miller/Work/ri_build/tone_cont.c`, guest `RAM:tone_cont`.
+
+## [2026-09-22] sound | Post-reboot replay audible, quality acceptable
+- Disposition: Update (re-replays after laptop reboot)
+- Updated: llm-wiki/log.md (this entry)
+Fresh boot (agent session 752): re-put tone + player + WAV (RAM: wiped as expected); tone SUMMARY nominal, 3 music loops rc=0, agent alive. Operator: tone audible, quality "not amazing, but acceptable" — consistent with known benign factors (48k content into 44100 mode, laptop speakers, ladder-burst shape). No new defect indicated.
+
+## [2026-09-22] ingest | Coverage re-verified (filter/Dell/ABIv1); lanes alive
+- Disposition: Update (verification-only ingest; no new findings)
+- Updated: llm-wiki/log.md (this entry)
+- Verified: filter article + Dell Standing + ABIv1 section all indexed/logged; every uncommitted file (rb303 filter test, audit wiring, storm updates, index/log) traced to a record; all index links resolve.
+- Live lanes: 4 serves up (v1 9091 + laptop 9292 + 2 other-session); QEMU aros_v1 + Dell agent last seen alive (sessions 9 / 750).
+
+## [2026-09-22] m2 | TC-2.1.4 ABIv1 storm run + ftrapv root cause (all lanes reconcile)
+- Disposition: Update (acceptance-lane number + 141-vs-304 curiosity resolved)
+- Updated: llm-wiki/raw/articles/2026-09-22-wbs21-storm.md (ABIv1 section, RESOLVED note)
+Canonical v1 recipe (+ trailing -lstdcio re-scan) → 66064 B, r12=0; QEMU aros_v1 (identity verified) ratio 0.2100 PASS. Full table: host-trapv 0.46, host-plain/QEMU 0.21, Dell 0.90 — ftrapv 2.2x tax × ~4.3x Zen5→SandyBridge gap explains all; no pathology. Scratch: ri_build v1_* objects + storm_v1.
+
 ## [2026-09-22] ingest | Commits f6df244 + 8487809 recorded; live lane refresh
 - Disposition: Update (commit records missing from log) + ingest (ops state)
 - Updated: llm-wiki/log.md (this entry)

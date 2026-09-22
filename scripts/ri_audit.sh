@@ -24,6 +24,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t22_303indep >/dev/null || { echo "FA
 bash "$ROOT/scripts/ri_build_host.sh" test t22_303slide >/dev/null || { echo "FAIL: t22_303slide"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t22_303accent >/dev/null || { echo "FAIL: t22_303accent"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t22_303click >/dev/null || { echo "FAIL: t22_303click"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t22_303filter >/dev/null || { echo "FAIL: t22_303filter"; exit 1; }
 echo "-- re-render-compare --"
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 OUT=/tmp/ri/build
