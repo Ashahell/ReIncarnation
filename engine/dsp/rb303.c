@@ -58,6 +58,9 @@ void rb303_init(struct RB303Voice *v) {
     v->slide_tc = 0.040f; /* P-03 candidate default; M2.2 A/B vs 60 ms */
     v->volume = 1.0f;
     v->wave_square = 0;
+    v->classic_click = 1;
+    v->wave_rendered = 0;
+    v->xfade_n = 0u;
     v->s0 = 0.0f;
     v->s1 = 0.0f;
     v->s2 = 0.0f;
@@ -143,6 +146,7 @@ void rb303_render(struct RB303Voice *v, float *out, uint32_t n, float sr) {
     float slide_a, dec_a, rel_a, acc_a;
     float g1, g2;
     uint32_t i;
+    uint32_t xf_total; /* 0.5 ms crossfade length, samples (TC-2.2.5) */
     if (v->slide_tc * sr > 1.0f)
         slide_a = 1.0f - ri_exp(-1.0f / (v->slide_tc * sr));
     else
@@ -153,6 +157,9 @@ void rb303_render(struct RB303Voice *v, float *out, uint32_t n, float sr) {
         dec_a = 0.0f;
     rel_a = ri_exp(-1.0f / (0.005f * sr)); /* release 5 ms [HYPOTHESIS] */
     acc_a = ri_exp(-1.0f / (0.060f * sr)); /* P-02 accent 60 ms */
+    xf_total = (uint32_t)(0.0005f * sr + 0.5f); /* 24 @48 kHz */
+    if (xf_total < 1u)
+        xf_total = 1u;
     g1 = ri_tan_small(RI_303_PI * RI_303_POST_HP1_HZ / sr);
     g2 = ri_tan_small(RI_303_PI * RI_303_POST_HP2_HZ / sr);
     for (i = 0; i < n; i++) {
@@ -162,10 +169,31 @@ void rb303_render(struct RB303Voice *v, float *out, uint32_t n, float sr) {
         v->phase += v->freq / sr;
         if (v->phase >= 1.0f)
             v->phase -= 1.0f;
-        if (v->wave_square)
-            osc = (v->phase < 0.5f) ? 0.5f : -0.5f; /* 50% square at half level */
-        else
-            osc = 2.0f * v->phase - 1.0f;           /* saw +-1 */
+        /* TC-2.2.5 waveform-switch click flag: classic hard-switches
+         * (deterministic click); otherwise 0.5 ms crossfade. */
+        {
+            int wnow = v->wave_square ? 1 : 0;
+            float o_new = wnow ? ((v->phase < 0.5f) ? 0.5f : -0.5f)
+                               : (2.0f * v->phase - 1.0f);
+            if (wnow != v->wave_rendered && !v->classic_click) {
+                float o_old = v->wave_rendered
+                    ? ((v->phase < 0.5f) ? 0.5f : -0.5f)
+                    : (2.0f * v->phase - 1.0f);
+                v->xfade_n++;
+                if (v->xfade_n >= xf_total) {
+                    v->wave_rendered = wnow;
+                    v->xfade_n = 0u;
+                    osc = o_new;
+                } else {
+                    osc = o_old + (o_new - o_old) *
+                        ((float)v->xfade_n / (float)xf_total);
+                }
+            } else {
+                v->wave_rendered = wnow;
+                v->xfade_n = 0u;
+                osc = o_new;
+            }
+        }
         /* 303 amp envelope: decays per Decay knob while gate high (retrigger
          * restarts at 1; slide leaves it untouched per §8), fast release
          * ramp once the gate drops. */

@@ -28,6 +28,11 @@ struct RB303Voice {
     float slide_tc;    /* s; default 0.040 (P-03 tension: 40 vs 60, M2.2 A/B) */
     float volume;      /* 0..1 linear */
     int wave_square;   /* 0 = saw, 1 = square */
+    int classic_click; /* 1 = hard wave switch with deterministic click
+                        * (classic behavior, default); 0 = 0.5 ms
+                        * crossfade on switch (TC-2.2.5) */
+    int wave_rendered; /* shape currently rendered (crossfade source) */
+    uint32_t xfade_n;  /* crossfade progress samples */
     /* Ladder + chain state (all zero at init). */
     float s0, s1, s2;
     float fb_lp;       /* feedback-loop HPF (150 Hz) lowpass state */

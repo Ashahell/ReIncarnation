@@ -20,6 +20,10 @@ test -f "$G/first-light.rbng" || { echo "FAIL: missing song scaffold"; exit 1; }
 echo "-- math unit goldens re-verified --"
 bash "$ROOT/scripts/ri_build_host.sh" test t1_303math >/dev/null || { echo "FAIL: t1_303math"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t1_303walk >/dev/null || { echo "FAIL: t1_303walk"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t22_303indep >/dev/null || { echo "FAIL: t22_303indep"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t22_303slide >/dev/null || { echo "FAIL: t22_303slide"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t22_303accent >/dev/null || { echo "FAIL: t22_303accent"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t22_303click >/dev/null || { echo "FAIL: t22_303click"; exit 1; }
 echo "-- re-render-compare --"
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 OUT=/tmp/ri/build
