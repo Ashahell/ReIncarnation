@@ -37,15 +37,30 @@ struct RISeq {
     uint64_t samples;
     struct RISegment seg;
     struct RITempoMap map;
-    const struct RISeqSnapshot *snap; /* NULL = no snapshot */
+    const struct RISeqSnapshot *snap;    /* active (render side) */
+    const struct RISeqSnapshot *pending; /* staged (GUI side) */
 };
 
 void RiSeqInit(struct RISeq *s, struct AudioObject *ao, uint32_t ppq);
 void RiSeqAdvanceFrames(struct RISeq *s, uint32_t frames); /* render-side */
 uint64_t RiSeqMasterClock(const struct RISeq *s);          /* samples */
 void RiSeqLoadSnapshot(struct RISeq *s, const struct RISeqSnapshot *snap);
+void RiSeqRequestSnapshot(struct RISeq *s, const struct RISeqSnapshot *snap);
+const struct RISeqSnapshot *RiSeqBeginBuffer(struct RISeq *s);
+/* Staged swap (TC-2.1.3): Request stages (GUI side, pointer store);
+ * BeginBuffer applies staged->active at the next buffer start (render
+ * side) and returns the active snapshot (NULL if none ever set).
+ * Protocol contract: Request only between buffers; single-writer per
+ * side — the store/load pair is lock-free by construction. */
 /* Loop cursor (XX): maps MasterClock into [loop_start, loop_end);
  * *iteration counts completed wraps (0-based pass index); pre-loop and
  * no/degenerate snapshot return the raw clock with iteration 0. */
 uint64_t RiSeqLoopPos(const struct RISeq *s, uint64_t *iteration);
+
+/* Per-buffer event window (XX, playback side): copy events with
+ * s0 <= sample < s1 into out (input order preserved — caller keeps
+ * lists sorted; walker output is sorted by contract), up to cap.
+ * Returns count. NULL/empty/degenerate (s1 <= s0) yields 0. Pure. */
+uint32_t ri_events_in_window(const struct RIEvent *ev, uint32_t n,
+    uint64_t s0, uint64_t s1, struct RIEvent *out, uint32_t cap);
 #endif

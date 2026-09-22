@@ -140,6 +140,24 @@ Stop kill-no-death was the ahi.device shadow's hand HookEntry stub (`jmp *0x10(%
 - Updated: llm-wiki/index.md (entry)
 v1 recipe byte-identical to Sep21 green (29840 B, symtab shape, task.resource=1, r12=0, UND=1); session-8 PASS P1/P2 = Appendix A line-for-line; repo probe untouched (variants in /home/miller/Work/ri_build/). Chain: setcall-noop startup death → -llibinit real; sb128-stock returns post-reboot → redeploy; ReadConfig-stock wins without PROGDIR open → progdir_probe; Stop kill-no-death in BOTH voids → post-fix void rebuild scheduled. v1 serve 9091/home-spool; v1c untouched. Cascade: none (Vulkan4Aros cross-post needs no change — no lane-infra delta beyond recorded spool move).
 
+## [2026-09-22] m2 | TC-2.1.4 DSP-side storm budget (host proxy, TDD)
+- Disposition: New (test + audit wiring; core-path storm waits on device wiring)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-storm.md
+- Updated: tests/unit/t21_storm.c, scripts/ri_audit.sh (Phase 6b), llm-wiki/index.md
+4 sections, ratio 0.459/0.5 (thin — AROS-box run open); per-section energy (303B slide-silence found); determinism; /tmp/ri/build+run symlinked to home fs (quota); audit 0/0. Uncommitted.
+
+## [2026-09-22] m2 | WBS 2.1 staged swap arbiter + 10k soak (TC-2.1.3 event half)
+- Disposition: New (arbiter + soak test; PCM click half waits on voices)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-seqswap.md
+- Updated: engine/seq/riseq.h, engine/seq/riseq.c, tests/unit/t21_seqswap.c, llm-wiki/index.md
+RED (missing fns) → vacuous-proof removed → preset-cancel discriminator → mutant-caught exactly there → GREEN + audit 0/0. Uncommitted. (Phase 6b already runs t21_seqswap from the prior turn.)
+
+## [2026-09-22] m2 | WBS 2.1 snapshot-build + event windowing (TDD)
+- Disposition: New (2 micro-cycles: builder completion + window query)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-snapbuild-evwin.md
+- Updated: engine/seq/snapbuild.h, engine/seq/snapbuild.c, engine/seq/riseq.h, engine/seq/riseq.c, tests/unit/t21_snapbuild.c, tests/unit/t21_evwin.c, scripts/ri_audit.sh (Phase 6b), llm-wiki/index.md
+RED watched both; mutants caught both; GREEN + audit 0/0. Swap-soak + storm next. Uncommitted.
+
 ## [2026-09-22] m2 | TC-2.1.2 PCM half green: loop double-render equality
 - Disposition: New (test + audit wiring; no production change)
 - Raw: llm-wiki/raw/articles/2026-09-22-wbs21-looppcm.md

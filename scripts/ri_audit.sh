@@ -102,6 +102,10 @@ bash "$ROOT/scripts/ri_build_host.sh" test t21_schedfeed >/dev/null || { echo "F
 mkdir -p /tmp/ri/run/t21 # t21_songfile writes its scaffold here (t6 pattern)
 bash "$ROOT/scripts/ri_build_host.sh" test t21_songfile >/dev/null || { echo "FAIL: t21_songfile"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_looppcm >/dev/null || { echo "FAIL: t21_looppcm"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t21_snapbuild >/dev/null || { echo "FAIL: t21_snapbuild"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t21_evwin >/dev/null || { echo "FAIL: t21_evwin"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t21_seqswap >/dev/null || { echo "FAIL: t21_seqswap"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t21_storm >/dev/null || { echo "FAIL: t21_storm"; exit 1; }
 echo "== Phase 7: sched shuffle/legato/flam (Task 7, gate G7) =="
 bash "$ROOT/scripts/ri_build_host.sh" test t1_sched >/dev/null || { echo "FAIL: t1_sched"; exit 1; }
 test -f "$ROOT/docs/evidence/sequencer/flam-default.md" || { echo "FAIL: missing P-05 ledger row"; exit 1; }

@@ -43,6 +43,12 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-22-wbs21-storm.md](raw/articles/2026-09-22-wbs21-storm.md) — **2026-09-22 — TC-2.1.4 DSP-side storm budget (TDD, host proxy).** 4 sections into one 64-frame buffer: ratio 0.459 vs 0.5 budget (THIN margin — AROS-box run open); per-section energy guards (caught real 303B slide-from-silence); determinism; /tmp symlink relocation (quota); Phase 6b runs 10 seq tests.
+
+- [raw/articles/2026-09-22-wbs21-seqswap.md](raw/articles/2026-09-22-wbs21-seqswap.md) — **2026-09-22 — WBS 2.1 staged swap arbiter + 10k soak (TC-2.1.3 event half).** Request/BeginBuffer with cancel/last-wins; 10k-swap continuity (no dup/loss, tails abandoned by definition); a first staging proof was vacuous (observing applies) — replaced by the preset-cancel discriminator (mutant-caught exactly there); stale-build caution.
+
+- [raw/articles/2026-09-22-wbs21-snapbuild-evwin.md](raw/articles/2026-09-22-wbs21-snapbuild-evwin.md) — **2026-09-22 — WBS 2.1 snapshot-build + event windowing (TDD).** `ri_snapshot_build_events` (stack-scratch composition, start_tick 0) + `ri_events_in_window` ([s0,s1) half-open); both mutant-caught (drop-step, closed-end); Phase 6b runs 7 seq tests. Swap-soak (2.1.3) + storm (2.1.4) build on these.
+
 - [raw/articles/2026-09-22-wbs21-looppcm.md](raw/articles/2026-09-22-wbs21-looppcm.md) — **2026-09-22 — TC-2.1.2 PCM half green: loop double-render equality.** Doubled pluck-loop renders iteration-identical (96 KB halves byte-equal); settle-gap design (sustain-across-boundary needs loop-reset semantics — open); non-vacuity by pitch mutant (30752 max diff); Phase 6b runs 6 seq tests.
 
 - [raw/articles/2026-09-22-wbs21-songfile.md](raw/articles/2026-09-22-wbs21-songfile.md) — **2026-09-22 — WBS 2.1 file-level song path pin (RBNG→builder→walker).** Write→read round-trip + convert + 6 exact events; PASS first run, no production touch; test-side mutant (dropped ACCENT → 6 cascading fails) proves asserts track file content; Phase 6b runs 5 seq tests.

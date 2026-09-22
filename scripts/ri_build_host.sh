@@ -7,7 +7,7 @@ CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsa
 mkdir -p "$OUT"
 MOD_kernels="engine/dsp/kernels.c"
 MOD_clock="engine/seq/clock.c"
-MOD_sched="engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c"
+MOD_sched="engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c"
 MOD_dsp303="engine/dsp/rb303.c engine/dsp/params.c"
 MOD_dsp808="engine/dsp/rb808.c"
 MOD_dsp909="engine/dsp/rb909.c project/rbnm.c"
