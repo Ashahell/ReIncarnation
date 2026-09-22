@@ -15,6 +15,7 @@ void RiSeqInit(struct RISeq *s, struct AudioObject *ao, uint32_t ppq) {
     s->ao = ao;
     s->ppq = ppq ? ppq : 96u;
     s->samples = 0ULL;
+    s->snap = 0;
     s->seg.start_tick = 0ULL;
     s->seg.ns_per_quarter = RISEQ_DEFAULT_BPM_NS;
     s->map.segs = &s->seg;
@@ -30,4 +31,27 @@ void RiSeqAdvanceFrames(struct RISeq *s, uint32_t frames) {
 
 uint64_t RiSeqMasterClock(const struct RISeq *s) {
     return s ? s->samples : 0ULL;
+}
+
+void RiSeqLoadSnapshot(struct RISeq *s, const struct RISeqSnapshot *snap) {
+    if (s)
+        s->snap = snap;
+}
+
+uint64_t RiSeqLoopPos(const struct RISeq *s, uint64_t *iteration) {
+    uint64_t samples, len, off;
+    if (iteration)
+        *iteration = 0ULL;
+    if (!s)
+        return 0ULL;
+    samples = s->samples;
+    if (!s->snap || s->snap->loop_end <= s->snap->loop_start)
+        return samples;
+    if (samples < s->snap->loop_start)
+        return samples;
+    len = s->snap->loop_end - s->snap->loop_start;
+    off = samples - s->snap->loop_start;
+    if (iteration)
+        *iteration = off / len;
+    return s->snap->loop_start + (off % len);
 }
