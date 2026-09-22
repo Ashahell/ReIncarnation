@@ -121,6 +121,50 @@ Platform contract (AHI_NO_UNIT open → base from io_Device); probe fix; BestAud
 - Updated: llm-wiki/raw/articles/2026-09-21-device-as-library-p1-p3.md
 AHIC_Play TRUE → AHIsub_Start; 50,503,035 vs 3750 expected (≈13,467×, VOID unclocked); M1.1 low-level complete; zero faults. Cascade: Status note on the prior record; index entries updated.
 
+## [2026-09-22] lane | ABIv1 acceptance lane proven P1/P2 (Appendix-A match); full green Stop-blocked, rebuild scheduled
+- Disposition: New (work unit close-out with scheduled follow-up)
+- Raw: llm-wiki/raw/articles/2026-09-22-abiv11-acceptance-lane-p1p2-green-stop-blocked.md
+- Updated: llm-wiki/index.md (entry)
+v1 recipe byte-identical to Sep21 green (29840 B, symtab shape, task.resource=1, r12=0, UND=1); session-8 PASS P1/P2 = Appendix A line-for-line; repo probe untouched (variants in /home/miller/Work/ri_build/). Chain: setcall-noop startup death → -llibinit real; sb128-stock returns post-reboot → redeploy; ReadConfig-stock wins without PROGDIR open → progdir_probe; Stop kill-no-death in BOTH voids → post-fix void rebuild scheduled. v1 serve 9091/home-spool; v1c untouched. Cascade: none (Vulkan4Aros cross-post needs no change — no lane-infra delta beyond recorded spool move).
+
+## [2026-09-22] docs | m1-1-report.md gains Appendix B + filled hardware fields (G5 still OPEN)
+- Disposition: Update (report doc; no commit, no spec-row change — gate commit rides separately)
+- Updated: docs/evidence/formats/m1-1-report.md (Status PARTIAL; 9/9 fields filled from hardware; hypothesis verdicts incl. accepted-but-not-honored third outcome; Dell-lane procedure-as-executed; Appendix B verbatim runs 1-3); llm-wiki/raw/articles/2026-09-22-m1-1-real-hardware-abiv11-e6320.md (report open-item closed)
+Backend input for Task 6: low-level to 64 frames w/ MixFreq+hook; device path no advantage. Chosen-backend cell is INPUT, not a decision.
+
+## [2026-09-22] measure | 11 Hz verdict CLOSED: Player rate fixed, PlayerFreq accepted-but-not-honored
+- Disposition: Update (verdict on the measurement record; no new raw — ladder-line-only variants are scratch)
+- Updated: llm-wiki/raw/articles/2026-09-22-m1-1-real-hardware-abiv11-e6320.md (verdict + open-item close)
+Variants `probe_ahi_{128,256}` (repo probe untouched; `-O2` recipe proven within 8 B of the recorded `.o`; 24.0 KB, task.resource=0, UND=1): frames=128 → 55/1875, frames=256 → 55/935, repro 64 → 55/3750 (all rc=0, session 750). Observed exactly 55 across all three 5 s windows while requests span 750/375/187 Hz → rate does NOT track; driver-owned fixed ~11 Hz, deterministic. `AHIA_PlayerFreq` accepted (rc=0) but callback delivery stays 11 Hz; AllocAudio still 44100/16-bit. Spec consequence: latency/PlayerFunc-rate gate against ~11 Hz reality or engine independent of Player rate. Scratch sources under /home/miller/Work/ri_build/ (kept, outside repo).
+
+## [2026-09-22] pin | Reference-box identity pinned (BIOS/AROS/stick/HDA) + M1.1 reproduced post-reboot
+- Disposition: Update (pin values into the decision record; reproduction note on the measurement record)
+- Raw: (none new — values landed in existing records)
+- Updated: llm-wiki/raw/articles/2026-09-22-dell-reference-box-iteration-abiv1-target.md (TO-PIN → pinned); llm-wiki/raw/articles/2026-09-22-m1-1-real-hardware-abiv11-e6320.md (session-750 reproduction); llm-wiki/index.md (entry)
+Pinned, all box-measured: BIOS A19 (operator read; no software path on stick); Kickstart 51.51 / AROS 41.3 / Exec 51.8 64-bit / GRUB 2.12 (`vesa=1024x768 ATA=32bit`); stick sha256 `dbbc8fad…e522f` (8,589,837,312 B), mbr md5 `02962980…4ce5b7`; HDA 8086:1C20 rev 04, Dell sub 0x0492, BAR0 0xe2e60000/0x4000, IRQ 22 (PCITool full save 11,606 B GET + ENVARC:hdaudio.config 2,182 B GET, both sha-verified; mode file binds hdaudio↔0x003E0001). Codec: IDT 92HD90 HYPOTHESIS (Dell P12S manual + driver-page compat + driver IDT branch; verb-level OPEN — DumpDebugBuffer absent, Sashimi opens no window via Run). Reproduction: post-reboot probe rerun identical (base 0x0101376c80, varies, >4GB). Lane notes: /tmp usrquota blocked submits twice (cleared own /tmp/ri/run fuzz+audits ~80MB; spool moved to /home/miller/Work/spike_spool_laptop via symlink); RequestChoice + foreground sashimi wedge the agent (operator Enter/close-gadget; redial displaces); errno 60 = ETIMEDOUT (host side verified clean: IP .81, nft+ufw, listener). Cascade: index entry updated.
+
+## [2026-09-22] decision | Dell E6320 named iteration reference; ABIv1 stays the ultimate target
+- Disposition: New (decision record; binds future work)
+- Raw: llm-wiki/raw/articles/2026-09-22-dell-reference-box-iteration-abiv1-target.md
+- Updated: llm-wiki/raw/articles/2026-09-22-m1-1-real-hardware-abiv11-e6320.md (Status note); Vulkan4Aros llm-wiki/raw/articles/2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md (Status note)
+Iteration settles on Dell (real codec/timing); acceptance passes on ABIv1. Consequences: dual-build every probe (v1 SDK + v11 SDK), source-portable not binary-portable, lane-scoped thresholds, characterize-on-Dell/confirm-on-ABIv1, QEMU/VOID retained. Pinned: E6320/stick/MAC/IP/ahi.device v6; TO-PIN: BIOS rev, AROS build/rev, stick hash, codec ID. Cascade: index section entry.
+
+## [2026-09-22] ingest | M1.1 measured on real hardware (E6320 ABIv11, v11-toolchain build fix)
+- Disposition: New (first hardware measurement; toolchain grounding)
+- Raw: llm-wiki/raw/articles/2026-09-22-m1-1-real-hardware-abiv11-e6320.md
+v1-SDK startup.o opens task.resource → ABIv11 privilege violation (Exec_83_OpenResource); v11 build (gcc-16.1.0 + v11 SDK startup.o, AHI header from v11 source) runs the probe fully. Run session 285 PASS: base 0x0100eed720, best_mode 0x003E0001, ladder 7/7 → low_min=64, verify 55/3750 (shortfall 3695, honest real timing), unit 0 PRESENT err1=0/err2=-2, SUMMARY complete. Cascade: cross-posted to Vulkan4AROS wiki (ABIv11 laptop build rule).
+
+## [2026-09-21] integration | work/ri-planexec merged to main and pushed
+- Commits (verified: ri_audit 0/0 on pre-merge tree and on merged result):
+  `a973ea1` probe fix [gate:G5], `39e13b5` campaign docs [gate:G14],
+  `9419def` M1.1 codec-less appendix [gate:G14].
+- Merge: fast-forward `0c23eb8..9419def` into `main`; audit green after;
+  pushed `main`; deleted local branch; pruned `origin/work/ri-planexec`
+  (verified fully merged, tip identical). Tree clean.
+- Held out (local-only, uncommitted): `/tmp/ari-hda-fix` worktree sources
+  (M-markers, ReadConfig barriers, SB128 volatile, HookEntry-adjacent
+  device work); `/tmp` shadows/probes (scratch by convention).
+
 ## [2026-09-21] ingest | ahi.library upstream/deadwood survey + linked-r2 analysis
 - Disposition: New + New (two sources, one turn)
 - Raw: llm-wiki/raw/articles/2026-09-21-ahi-library-upstream-deadwood-survey.md; llm-wiki/raw/articles/2026-09-21-linked-r2-delay-analysis.md
