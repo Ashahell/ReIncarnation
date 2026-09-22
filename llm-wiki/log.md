@@ -121,6 +121,17 @@ Platform contract (AHI_NO_UNIT open → base from io_Device); probe fix; BestAud
 - Updated: llm-wiki/raw/articles/2026-09-21-device-as-library-p1-p3.md
 AHIC_Play TRUE → AHIsub_Start; 50,503,035 vs 3750 expected (≈13,467×, VOID unclocked); M1.1 low-level complete; zero faults. Cascade: Status note on the prior record; index entries updated.
 
+## [2026-09-22] sound | First audible sound on the reference box (operator-confirmed)
+- Disposition: New (milestone record)
+- Raw: llm-wiki/raw/articles/2026-09-22-first-sound-dell-tone.md
+- Updated: llm-wiki/index.md (entry)
+Scratch probe_tone (440 Hz sine, v11 27344 B): 2× rc=0 nominal; operator heard ~10 s ring-like tone (ladder bursts, expected). Resolved in the follow-up entry above.
+
+## [2026-09-22] sound | Volume resolved: host + AHI prefs stages, no driver work
+- Disposition: Update (closes the volume question on the first-sound record)
+- Updated: llm-wiki/raw/articles/2026-09-22-first-sound-dell-tone.md (Resolution)
+`SYS:Prefs/AHI` confirmed (has output volume, maxed; OCR can't read Topaz, operator reads it); laptop Fn volume maxed; replay definitely audible, rc=0 nominal. Two stages behaved — codec amp exonerated. AHI prefs window closed (operator).
+
 ## [2026-09-22] ingest | Docs-accuracy pass committed (9af4966) + live lane state + known wart
 - Disposition: Update (two stalenesses fixed) + ingest (commit record) + ops note
 - Updated: docs/evidence/formats/m1-1-report.md (backend cell INPUT→DECIDED low-level, Task 6 code + record cited); llm-wiki/raw/articles/2026-09-22-dell-reference-box-iteration-abiv1-target.md (confirm-on-ABIv1 refined: driverless QEMU cannot confirm driver timing; verdicts stand on Dell characterization where QEMU is blind, ABIv1-confirm where observable)
@@ -139,6 +150,23 @@ Stop kill-no-death was the ahi.device shadow's hand HookEntry stub (`jmp *0x10(%
 - Raw: llm-wiki/raw/articles/2026-09-22-abiv11-acceptance-lane-p1p2-green-stop-blocked.md
 - Updated: llm-wiki/index.md (entry)
 v1 recipe byte-identical to Sep21 green (29840 B, symtab shape, task.resource=1, r12=0, UND=1); session-8 PASS P1/P2 = Appendix A line-for-line; repo probe untouched (variants in /home/miller/Work/ri_build/). Chain: setcall-noop startup death → -llibinit real; sb128-stock returns post-reboot → redeploy; ReadConfig-stock wins without PROGDIR open → progdir_probe; Stop kill-no-death in BOTH voids → post-fix void rebuild scheduled. v1 serve 9091/home-spool; v1c untouched. Cascade: none (Vulkan4Aros cross-post needs no change — no lane-infra delta beyond recorded spool move).
+
+## [2026-09-22] ingest | Commits f6df244 + 8487809 recorded; live lane refresh
+- Disposition: Update (commit records missing from log) + ingest (ops state)
+- Updated: llm-wiki/log.md (this entry)
+- `f6df244` feat: WBS 2.1 builder chain songsteps->feed->file->looppcm (TC-2.1.2) — pushed to origin/main.
+- `8487809` feat: WBS 2.1 snapshot playback path, snapbuild + windowing + swap soak + storm (TC-2.1.3/2.1.4) — pushed to origin/main.
+- Live lane refresh: v1 + laptop spike serves up (9091 home-spool anon, 9292 pairs e6320); QEMU aros_v1 idle with green set in RAM:; Dell agent last session 750. ENV CHURN: a new `aros_v1dh0_nocd` guest appeared and `v1c` is gone (other session churning VMs) — always re-verify guest identity (Info volumes) before consequential runs, never assume monitor-port ownership.
+
+## [2026-09-22] m2 | TC-2.1.4 storm: held-note slide covered (TDD follow-up)
+- Disposition: Update (slide path in storm context; silence semantics pinned both ways)
+- Updated: tests/unit/t21_storm.c; llm-wiki/raw/articles/2026-09-22-wbs21-storm.md (Standing)
+303B note + mid-buffer slide_to: renders sound AND differs from plain (RED "slide inaudible" watched, GREEN ratio 0.474); slide-from-silence = silence by voice semantics (gate needs held note), coherent. Audit 0/0 (after one transient quota flake on the AROS phase). Uncommitted.
+
+## [2026-09-22] m2 | TC-2.1.4 Dell run GREEN (reference hardware, thin margin)
+- Disposition: Update (first Dell run FAIL was a test bug; fixed; PASS)
+- Updated: tests/unit/t21_storm.c (assert `<= 1.0`); llm-wiki/raw/articles/2026-09-22-wbs21-storm.md (Dell Standing)
+Cross-build ABIv11 clean (no libm needed by DSP; uname/clock/printf work); Dell session 750: ratio 0.9000 PASS (0.45× ≤ 0.5×). Margin thin (10%) — watch item. Assert double-half corrected; -march ruled out first (0.93→0.90). Scratch: /home/miller/Work/ri_build/aros_storm/ + storm_split.c.
 
 ## [2026-09-22] m2 | TC-2.1.4 DSP-side storm budget (host proxy, TDD)
 - Disposition: New (test + audit wiring; core-path storm waits on device wiring)

@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-22-first-sound-dell-tone.md](raw/articles/2026-09-22-first-sound-dell-tone.md) — **2026-09-22 — First audible sound on the reference box (operator-confirmed).** Scratch `probe_tone` (440 Hz sine in P4 buffers, v11 build): two rc=0 runs, ~10 s ring-like tone (ladder bursts, expected shape); volume resolved via host Fn keys + `SYS:Prefs/AHI` output volume (both maxed, both behaved) — codec amp exonerated, path fully functional.
+
 - [raw/articles/2026-09-22-wbs21-storm.md](raw/articles/2026-09-22-wbs21-storm.md) — **2026-09-22 — TC-2.1.4 DSP-side storm budget (TDD, host proxy).** 4 sections into one 64-frame buffer: ratio 0.459 vs 0.5 budget (THIN margin — AROS-box run open); per-section energy guards (caught real 303B slide-from-silence); determinism; /tmp symlink relocation (quota); Phase 6b runs 10 seq tests.
 
 - [raw/articles/2026-09-22-wbs21-seqswap.md](raw/articles/2026-09-22-wbs21-seqswap.md) — **2026-09-22 — WBS 2.1 staged swap arbiter + 10k soak (TC-2.1.3 event half).** Request/BeginBuffer with cancel/last-wins; 10k-swap continuity (no dup/loss, tails abandoned by definition); a first staging proof was vacuous (observing applies) — replaced by the preset-cancel discriminator (mutant-caught exactly there); stale-build caution.
