@@ -26,10 +26,10 @@ Open gates (machine-readable — tools extract rows starting with `| OPEN-`):
 | OPEN-03 | 303/808/909 equation appendices B–C candidates | A/B + measurement TCs |
 | OPEN-04 | PCF pattern contents (54×16) | Per-pattern ledger rows + black-box captures |
 | OPEN-05 | CPU budget numbers | W1.1 benchmark report on named machine |
-| OPEN-06 | Reference box identity | M1.1 benchmark report |
+| OPEN-06 | Reference box identity | NAMED 2026-09-22 — Dell Latitude E6320 (iteration reference); ABIv1 ultimate target / acceptance lane (decision: llm-wiki/raw/articles/2026-09-22-dell-reference-box-iteration-abiv1-target.md) |
 | OPEN-07 | API/ABI freeze (Appendix D checklist) | Freeze review, post-Classic |
 | OPEN-08 | D-001 follow-ups | None — closed ("808-RI"); row kept so tools see zero open naming gates |
-| OPEN-09 | Achievable device buffer / latency on AROS AHI (low-level vs `ahi.device` path) | M1.1 measurement on the named box (§4.2) |
+| OPEN-09 | Achievable device buffer / latency on AROS AHI (low-level vs `ahi.device` path) | MEASURED 2026-09-22 — low-level 64 frames; device dev_min=0 (abort-bounded metric); PlayerFreq accepted-but-not-honored at fixed ~11 Hz; evidence docs/evidence/formats/m1-1-report.md App. B + ABIv1 session-9 full green |
 
 Progress is declared ONLY via the parity matrix (§14) and the evidence ledger (`docs/evidence/`). Binary "M2.x done" language is banned — milestones name gate sets, never declare parity.
 

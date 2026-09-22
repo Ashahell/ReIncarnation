@@ -1,9 +1,10 @@
 # M1.1 AHI measurement report (OPEN-09 / OPEN-06)
 
-**Status:** PARTIAL FILL 2026-09-22 — real-hardware fields filled from
-the reference-box runs (Appendix B); G5 still OPEN (this turn commits
-nothing and touches no spec row — OPEN-09/OPEN-06 row updates ride the
-gate commit per the rule below). Appendix A stays as the VOID baseline.
+**Status:** MEASURED 2026-09-22 — fields filled from the reference-box
+runs (Appendix B) + ABIv1 full green (session 9); spec OPEN-09/OPEN-06
+rows updated in the gate commit (this commit). G5 CLOSED by this commit
+per Task 5 (`chore: M1.1 AHI measurement closes OPEN-09 [gate:G5]`).
+Appendix A stays as the VOID baseline.
 
 **Reference box (decision 2026-09-22):** Dell Latitude E6320, reference
 for ITERATION; ultimate target ABIv1 (acceptance lane). Decision record:
