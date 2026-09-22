@@ -39,7 +39,7 @@ case "${1:-all}" in
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
     gcc $CFLAGS -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o -lm 2>/dev/null || \
     gcc $CFLAGS -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o -lm
-    "$OUT/$2" ;;
+    "$OUT/$2" || exit 1 ;;  # propagate test failures (was masked by BUILD OK echo)
   clean) rm -rf /tmp/ri ;;
   *) echo "unknown target $1"; exit 1 ;;
 esac

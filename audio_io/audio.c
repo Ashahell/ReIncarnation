@@ -12,10 +12,10 @@
  * Task 6 scope: one 303 section, one pattern (first-light). Registration
  * allows up to AU_MAX_SOURCES/AU_MAX_BUSES; the render core builds its
  * event list from the lowest CONNECTED source (multi-device fan-out and
- * the mixer land in later tasks). M1.1 UNMEASURED: latency reports the
- * RI_DEVICE_FRAMES hypothesis default (256); the AROS low-level driver
- * hookup lands once M1.1 numbers exist — all targets boot the null
- * backend in this task.
+ * the mixer land in later tasks). M1.1 MEASURED 2026-09-22: latency
+ * reports RI_DEVICE_FRAMES = 64 (low-level ladder floor, Dell + ABIv1);
+ * the AROS low-level driver hookup remains a later task — all targets
+ * boot the null backend in this task.
  */
 #include <stdio.h>
 #include <string.h>
@@ -367,7 +367,7 @@ uint32_t AuQueryAttr(struct AudioObject *ao, uint32_t attr) {
         return 0;
     switch (attr) {
     case AUQA_LatencyFrames:
-        return RI_DEVICE_FRAMES; /* M1.1 hypothesis default */
+        return RI_DEVICE_FRAMES; /* M1.1-measured floor (64) */
     case AUQA_XRUN_COUNT:
         return ao->xruns;
     default:

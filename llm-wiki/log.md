@@ -133,6 +133,12 @@ Stop kill-no-death was the ahi.device shadow's hand HookEntry stub (`jmp *0x10(%
 - Updated: llm-wiki/index.md (entry)
 v1 recipe byte-identical to Sep21 green (29840 B, symtab shape, task.resource=1, r12=0, UND=1); session-8 PASS P1/P2 = Appendix A line-for-line; repo probe untouched (variants in /home/miller/Work/ri_build/). Chain: setcall-noop startup death → -llibinit real; sb128-stock returns post-reboot → redeploy; ReadConfig-stock wins without PROGDIR open → progdir_probe; Stop kill-no-death in BOTH voids → post-fix void rebuild scheduled. v1 serve 9091/home-spool; v1c untouched. Cascade: none (Vulkan4Aros cross-post needs no change — no lane-infra delta beyond recorded spool move).
 
+## [2026-09-22] task6 | Latency floor reconciled to measured 64 + harness exit fix (TDD, audit 0/0)
+- Disposition: New (code + test + gate; backend choice recorded)
+- Raw: llm-wiki/raw/articles/2026-09-22-task6-latency-floor-64-measured.md
+- Updated: audio_io/audio.h (define 64u), audio_io/audio.c (comments), tests/unit/t6_w1backend.c (assert 64), scripts/ri_audit.sh (gate pins 64u), scripts/ri_build_host.sh (exit propagation), llm-wiki/index.md (entry)
+RED watched ("latency 256, want 64"); GREEN (one-renderer SHA intact, fallback pinned); full audit 0/0. Backend: LOW-LEVEL confirmed by measurement. Uncommitted.
+
 ## [2026-09-22] gate | G5 CLOSED: OPEN-09 measured + OPEN-06 named (spec rows + commit)
 - Disposition: Update (gate commit; report Status flipped)
 - Updated: docs/superpowers/specs/2026-09-20-reincarnation-spec.md (OPEN-09 MEASURED with values + report pointer; OPEN-06 NAMED Dell/ABIv1); docs/evidence/formats/m1-1-report.md (Status PARTIAL→MEASURED)

@@ -3,10 +3,10 @@
  * stays the fallback), §5 (ONE renderer: live playback and offline export
  * share the engine, different sinks only).
  *
- * Routing (Task 6 dispatch): M1.1 UNMEASURED — the low-level backend is the
- * default per spec §4.2 and the device-buffer floor stays a hypothesis:
- * RI_DEVICE_FRAMES 256 (AHI-doc-suggested >= 240 rung, /64-clean per the
- * engine-block lock in spec §2.3; Task 5 concern 2: never assume 64).
+ * Routing (Task 6 dispatch): M1.1 MEASURED 2026-09-22 — low-level ladder
+ * accepted to 64 frames on the Dell reference box + ABIv1 rerun, and the
+ * engine block is locked at 64, so the floor cannot go lower:
+ * RI_DEVICE_FRAMES 64 (/64-clean per spec §2.3).
  *
  * Host/CI: no AHI exists, so AuStart selects the null backend (render task
  * runs, sink discards) and prints RI_AUDIO_NULL_MSG. AROS: the same object
@@ -41,7 +41,7 @@ struct TagItem {
 /* Engine + device geometry [LOCKED where noted]. */
 #define RI_AUDIO_SR 48000u
 #define RI_AUDIO_BLOCK 64u     /* engine block, spec §2.3 LOCKED */
-#define RI_DEVICE_FRAMES 256u  /* HYPOTHESIS default until M1.1 measures it */
+#define RI_DEVICE_FRAMES 64u  /* MEASURED M1.1 2026-09-22 (was 256 hypothesis) */
 
 /* Documented AHI-missing boot message. Printed by AuStart when no AHI
  * device exists; pinned byte-exact by tests/unit/t6_w1backend.c. */

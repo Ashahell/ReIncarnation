@@ -70,7 +70,7 @@ for decl in "AuCreateObject(struct Library \*AudioBase, struct TagItem \*tags)" 
   "AuRenderToFile(struct AudioObject \*ao, const char \*path, uint32_t ms)"; do
   grep -q "$decl" "$ROOT/audio_io/audio.h" || { echo "FAIL: audio.h lacks: $decl"; exit 1; }
 done
-grep -q '#define RI_DEVICE_FRAMES 256u' "$ROOT/audio_io/audio.h" || { echo "FAIL: device-frames default not 256"; exit 1; }
+grep -q '#define RI_DEVICE_FRAMES 64u' "$ROOT/audio_io/audio.h" || { echo "FAIL: device-frames not M1.1-measured 64"; exit 1; }
 grep -q 'audio: AHI unavailable - null backend active (offline render only)' "$ROOT/audio_io/audio.h" || { echo "FAIL: fallback string drifted"; exit 1; }
 if grep -rn "malloc\|calloc\|realloc\|Forbid\|Disable(" "$ROOT/audio_io/audio.c" "$ROOT/audio_io/backend_null.c" 2>/dev/null; then echo "FAIL: banned construct in W1 backend"; exit 1; fi
 echo "-- live-scope tripwire (I1: au_render_frames is first-light only) --"

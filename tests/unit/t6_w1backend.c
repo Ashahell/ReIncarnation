@@ -2,7 +2,8 @@
  * First-light song through the FILE path (AuRenderToFile) vs the LIVE-STUB
  * path (AuStart + backend_null fixed device-chunk drain): PCM + events must
  * be byte-identical (same engine, different sinks — spec §5). Also pins the
- * latency floor (RI_DEVICE_FRAMES, M1.1 hypothesis default) and the exact
+ * latency floor (RI_DEVICE_FRAMES, M1.1-MEASURED 64: low-level ladder 7/7
+ * rc=0 to 64 frames on the Dell reference box + ABIv1 rerun) and the exact
  * AHI-missing fallback string.
  *
  * Hermetic: the song text (== tests/golden/303/first-light.rbng body) is
@@ -112,10 +113,11 @@ int main(void) {
     RI_ASSERT(strcmp(RI_AUDIO_NULL_MSG, k_want_null_msg) == 0,
         "fallback string drifted: '%s'", RI_AUDIO_NULL_MSG);
 
-    /* Latency floor: M1.1 UNMEASURED, so the Task 6 default (256, spec §4.2
-     * low-level path, doc-suggested >= 240 rung, /64-clean). */
+    /* Latency floor: M1.1 MEASURED 64 (low-level ladder accepted to 64
+     * frames, Dell reference box + ABIv1 rerun; engine block locked at 64
+     * so the floor cannot go lower — report Appendix B). */
     lat = AuQueryAttr(ao, AUQA_LatencyFrames);
-    RI_ASSERT(lat == 256 && lat == RI_DEVICE_FRAMES, "latency %u, want 256", lat);
+    RI_ASSERT(lat == 64 && lat == RI_DEVICE_FRAMES, "latency %u, want 64", lat);
     xruns = AuQueryAttr(ao, AUQA_XRUN_COUNT);
     RI_ASSERT(xruns == 0, "xrun count %u, want 0", xruns);
 
