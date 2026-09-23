@@ -254,6 +254,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-23] m17 | Knob art recipe: pointer-angle contract + procedural frames + C port (TDD, eyeballed)
+- Disposition: New (art recipe + pins; AROS blit + device proof next)
+- Raw: llm-wiki/raw/articles/2026-09-23-knob-art-recipe-frames.md
+- Updated: gui/knob_logic.c/.h (mdeg fn), gui/knob_art.h/.c (new: table + renderer), scripts/ri_build_host.sh (MOD_gui), scripts/ri_audit.sh (AROS + Phase 12 lines), tests/unit/t29_knobart.c (new), llm-wiki/index.md
+- **TDD:** RED watched; GREEN all GUI tests. Full `ri_audit.sh` 0/0 frozen tree (0 FAIL lines).
+- **Eyeball:** TR-909 photo + ReBirth screenshot fetched/viewed (design language confirmed; McGill fetch failed transport, unneeded). PIL v1→v2 iterated visually; C port 87% identical (divergences documented).
+- **Honesty:** pointer-low pin corrected pre-GREEN (hub-ring draw order); cleanup done (stale binaries/.o/wavs removed, evidence kept).
+
 ## [2026-09-23] correction | Vision works in this environment (old "cannot view PNGs" lore retired)
 - The `read` tool presents images directly — verified live: viewed the TR-909 reference (1200×1200) and the Dell `e2shot2.png` capture in-session. The Vulkan4Aros 2026-09-20 "cannot view PNGs" record described a different harness, not this one.
 - Consequence: screendump eyeballing is available from here on (complements, never replaces, pixel-census measurement). Prior "blind analysis" wording in the preceding entry now reads as over-cautious, preserved as written.
