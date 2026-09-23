@@ -43,11 +43,17 @@
 #define RI_SR 48000u
 #define RI_BLOCK 64u
 #define RI_MAX_STEPS 64u
-#define RI_TAIL_SMP 48000u /* 1 s release tail after the last event */
+/* (RI_TAIL_SMP retired: release tails are 1 s = g_rate samples now,
+ * scaled with the render rate instead of a fixed 48000.) */
 
 /* Output sample depth, set by --depth (16 default). Process-global:
  * every render mode writes through write_wav with this depth. */
 static int g_depth = 16;
+
+/* Output sample rate, set by --rate (48000 default). Process-global:
+ * every render mode renders AND writes at this rate (engine DSP
+ * takes float sr everywhere; tails are 1 s = g_rate samples). */
+static uint32_t g_rate = RI_SR;
 
 static float clampf(float x) {
     if (x > 1.0f)
@@ -83,7 +89,7 @@ static int write_wav(const char *path, const float *pcm, uint32_t total,
         fclose(f);
         return 2;
     }
-    if (auf_wav_header(hdr, total, (uint8_t)depth, RI_SR) != 0) {
+    if (auf_wav_header(hdr, total, (uint8_t)depth, g_rate) != 0) {
         fclose(f);
         return 2;
     }
@@ -401,7 +407,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
     map.segs = segs;
     map.n = 1;
     map.ppq = 96;
-    map.sr = RI_SR;
+    map.sr = g_rate;
     opts.shuffle_pct = (uint8_t)shuffle_pct;
     opts.legato = (uint8_t)legato;
     opts.flam_ms = flam_ms;
@@ -410,7 +416,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
         printf("render: walker emitted no events\n");
         return 2;
     }
-    total = ev[nev - 1].sample + RI_TAIL_SMP;
+    total = ev[nev - 1].sample + g_rate;
     if (total > 4194304u) {
         printf("render: song too long (%llu samples)\n", (unsigned long long)total);
         return 2;
@@ -446,7 +452,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
             uint32_t cc = (uint32_t)(next - c);
             if (cc > RI_BLOCK)
                 cc = RI_BLOCK;
-            rb303_render(&voice, fbuf, cc, (float)RI_SR);
+            rb303_render(&voice, fbuf, cc, (float)g_rate);
             for (k = 0; k < cc; k++)
                 pcm[c + k] = fbuf[k];
             c += cc;
@@ -477,8 +483,8 @@ static int render_math(int is_sine, const char *out_path) {
         rb303_set_reso(&v, 0.0f);
         for (i = 0; i < 96000u; i++) {
             float in = 0.1f * ri_sin(phase);
-            pcm[i] = rb303_filter_step(&v, in, (float)RI_SR);
-            phase += 2.0f * 3.14159265f * 1000.0f / (float)RI_SR;
+            pcm[i] = rb303_filter_step(&v, in, (float)g_rate);
+            phase += 2.0f * 3.14159265f * 1000.0f / (float)g_rate;
             if (phase > 2.0f * 3.14159265f)
                 phase -= 2.0f * 3.14159265f;
         }
@@ -486,7 +492,7 @@ static int render_math(int is_sine, const char *out_path) {
         rb303_set_cutoff_hz(&v, 1000.0f);
         rb303_set_reso(&v, 0.0f);
         for (i = 0; i < 96000u; i++)
-            pcm[i] = rb303_filter_step(&v, 0.5f, (float)RI_SR);
+            pcm[i] = rb303_filter_step(&v, 0.5f, (float)g_rate);
     }
     return write_wav(out_path, pcm, 96000u, g_depth);
 }
@@ -529,7 +535,7 @@ static int render_808(const char *name, const char *out_path) {
     } else {
         secs = 2.0f;
     }
-    total = (uint32_t)(secs * (float)RI_SR);
+    total = (uint32_t)(secs * (float)g_rate);
     if (total > 144000u) {
         printf("render: --808 fixture too long\n");
         return 2;
@@ -546,7 +552,7 @@ static int render_808(const char *name, const char *out_path) {
         uint32_t cc = total - pos, j;
         if (cc > RI_BLOCK)
             cc = RI_BLOCK;
-        rb808_render_mix(&s, fbuf, cc, (float)RI_SR);
+        rb808_render_mix(&s, fbuf, cc, (float)g_rate);
         for (j = 0; j < cc; j++)
             pcm[pos + j] = fbuf[j];
         pos += cc;
@@ -669,7 +675,7 @@ static int render_909_common(struct RB909Set *s, uint32_t v, float secs,
     const char *out_path, const char *tag) {
     static float pcm[120000];
     static float fbuf[RI_BLOCK];
-    uint32_t total = (uint32_t)(secs * (float)RI_SR);
+    uint32_t total = (uint32_t)(secs * (float)g_rate);
     uint32_t pos = 0, j;
     if (total > 120000u || total == 0u) {
         printf("render: --909 fixture too long\n");
@@ -680,7 +686,7 @@ static int render_909_common(struct RB909Set *s, uint32_t v, float secs,
         uint32_t cc = total - pos;
         if (cc > RI_BLOCK)
             cc = RI_BLOCK;
-        rb909_render_mix(s, fbuf, cc, (float)RI_SR);
+        rb909_render_mix(s, fbuf, cc, (float)g_rate);
         for (j = 0; j < cc; j++)
             pcm[pos + j] = fbuf[j];
         pos += cc;
@@ -700,15 +706,15 @@ static int render_909(const char *name, const char *out_path) {
         return 2;
     }
     secs = voice_secs909(name);
-    bake_default909(v, la, lb, (uint32_t)(secs * (float)RI_SR));
+    bake_default909(v, la, lb, (uint32_t)(secs * (float)g_rate));
     lay[0].data = la;
-    lay[0].frames = (uint32_t)(secs * (float)RI_SR);
-    lay[0].rate = RI_SR;
+    lay[0].frames = (uint32_t)(secs * (float)g_rate);
+    lay[0].rate = g_rate;
     lay[0].lo = 0;
     lay[0].hi = 63;
     lay[1].data = lb;
     lay[1].frames = lay[0].frames;
-    lay[1].rate = RI_SR;
+    lay[1].rate = g_rate;
     lay[1].lo = 64;
     lay[1].hi = 127;
     rb909_init_set(&s);
@@ -809,12 +815,12 @@ static int render_pcf(const char *name, const char *out_path) {
         if (cc > RI_BLOCK)
             cc = RI_BLOCK;
         for (j = 0; j < cc; j++) {
-            phase += f0 / (float)RI_SR;
+            phase += f0 / (float)g_rate;
             if (phase >= 1.0f)
                 phase -= 1.0f;
             in[pos + j] = 0.5f * ri_sin(phase * 6.2831853f);
         }
-        pcf_render(&p, in + pos, out, cc, (float)RI_SR);
+        pcf_render(&p, in + pos, out, cc, (float)g_rate);
         for (j = 0; j < cc; j++)
             pcm[pos + j] = out[j];
         pos += cc;
@@ -863,7 +869,7 @@ static int render_fx(const char *name, const char *out_path) {
         total = 72000u; /* 1.5 s */
         sine_probe_delay_in(in, total);
         ri_fxdelay_init(&d, dl, 96000u);
-        ri_fxdelay_sync(&d, 140.0f, 0.75f, (float)RI_SR);
+        ri_fxdelay_sync(&d, 140.0f, 0.75f, (float)g_rate);
         ri_fxdelay_set(&d, 44, 51); /* fb 0.35, mix 0.4 */
         while (pos < total) {
             uint32_t cc = total - pos;
@@ -885,16 +891,16 @@ static int render_fx(const char *name, const char *out_path) {
             ri_fxdist_init(&ds);
             ri_fxdist_set(&ds, 48, 16);
             ri_fxdelay_init(&d, dl, 96000u);
-            ri_fxdelay_sync(&d, 140.0f, 0.75f, (float)RI_SR);
+            ri_fxdelay_sync(&d, 140.0f, 0.75f, (float)g_rate);
             ri_fxdelay_set(&d, 38, 44); /* fb 0.3, mix 0.35 */
-            ri_fxcomp_init(&c, (float)RI_SR);
+            ri_fxcomp_init(&c, (float)g_rate);
             ri_fxcomp_set(&c, 64);
             while (pos < total) {
                 uint32_t cc = total - pos;
                 if (cc > RI_BLOCK)
                     cc = RI_BLOCK;
                 ri_fxdist_render(&ds, in + pos, tmp + pos, cc);
-                pcf_render(&p, tmp + pos, tmp + pos, cc, (float)RI_SR);
+                pcf_render(&p, tmp + pos, tmp + pos, cc, (float)g_rate);
                 ri_fxdelay_render(&d, tmp + pos, tmp + pos, cc);
                 ri_fxcomp_render(&c, tmp + pos, tmp + pos, cc);
                 pos += cc;
@@ -932,7 +938,7 @@ static int render_mix(const char *name, const char *out_path) {
         for (j = 0; j < total; j++)
             bus[b][j] = 0.35f * ri_sin(red_phase(F[b] * (float)j / 48000.0f));
     }
-    ri_mix_init(&m, (float)RI_SR);
+    ri_mix_init(&m, (float)g_rate);
     for (b = 0; b < 4u; b++)
         ri_mix_set_fader(&m, b, FD[b]);
     if (solo)
@@ -1003,7 +1009,7 @@ static int render_rbngsong(const char *song_path, const char *out_path,
     map.segs = segs;
     map.n = 1;
     map.ppq = song.ppq;
-    map.sr = RI_SR;
+    map.sr = g_rate;
     opts.shuffle_pct = 0;
     opts.legato = 0;
     opts.flam_ms = RI_FLAM_MS_DEFAULT;
@@ -1015,7 +1021,7 @@ static int render_rbngsong(const char *song_path, const char *out_path,
     }
     /* AUTO lanes: tick (song ppq) -> sample, merged as AUTOMATION. */
     nsq = 60000000000.0 / (double)song.tempo;
-    tick2smp = nsq * (double)RI_SR / ((double)song.ppq * 1e9);
+    tick2smp = nsq * (double)g_rate / ((double)song.ppq * 1e9);
     for (i = 0; i < song.nauto; i++) {
         uint64_t s = (uint64_t)((double)song.auto_ev[i].tick * tick2smp +
             0.5);
@@ -1042,9 +1048,9 @@ static int render_rbngsong(const char *song_path, const char *out_path,
     }
     pat_end = (uint64_t)((double)(song.nsteps * (song.ppq / 4u)) *
         tick2smp + 0.5);
-    total = ev[nev - 1].sample + RI_TAIL_SMP;
-    if (pat_end + RI_TAIL_SMP > total)
-        total = pat_end + RI_TAIL_SMP;
+    total = ev[nev - 1].sample + g_rate;
+    if (pat_end + g_rate > total)
+        total = pat_end + g_rate;
     if (total > 4194304u) {
         printf("render: song too long (%llu samples)\n",
             (unsigned long long)total);
@@ -1078,7 +1084,7 @@ static int render_rbngsong(const char *song_path, const char *out_path,
             uint32_t cc = (uint32_t)(next - c);
             if (cc > RI_BLOCK)
                 cc = RI_BLOCK;
-            rb303_render(&voice, fbuf, cc, (float)RI_SR);
+            rb303_render(&voice, fbuf, cc, (float)g_rate);
             for (k = 0; k < cc; k++)
                 pcm[c + k] = fbuf[k];
             c += cc;
@@ -1113,7 +1119,7 @@ int main(int argc, char **argv) {
         printf("       render --pcf sweep --out FILE\n");
         printf("       render --fx dry|delay|chain --out FILE\n");
         printf("       render --mix four|solo --out FILE\n");
-        printf("       [--depth 16|24, default 16]\n");
+        printf("       [--depth 16|24, default 16] [--rate 48000|44100, default 48000]\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
         printf("NOTE: this golden proves determinism + skeleton, NOT parity.\n");
         return 0;
@@ -1146,6 +1152,14 @@ int main(int argc, char **argv) {
                 return 2;
             }
             g_depth = d;
+        }
+        else if (strcmp(argv[i], "--rate") == 0 && i + 1 < argc) {
+            int r = atoi(argv[++i]);
+            if (r != 48000 && r != 44100) {
+                printf("render: bad --rate (want 48000|44100)\n");
+                return 2;
+            }
+            g_rate = (uint32_t)r;
         }
         else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
             pack = argv[++i];
