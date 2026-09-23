@@ -38,6 +38,12 @@ struct RiGesture {
     int moves;
     int commits;
 };
+/* Pointer angle for the custom knob renderer (TC-2.9.2 dial):
+ * value 0..127 -> -135000..+135000 millidegrees (270-degree sweep,
+ * 0 = straight up), round-half-up, clamped. Exact integer contract
+ * (no fp, no trig — endpoint rendering is the draw routine's job). */
+int ri_knob_pointer_mdeg(int value);
+
 void ri_gesture_begin(struct RiGesture *g);
 void ri_gesture_move(struct RiGesture *g);
 void ri_gesture_end(struct RiGesture *g);

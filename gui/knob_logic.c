@@ -33,6 +33,14 @@ int ri_ctl_quantize(double v) {
     return (int)(c + 0.5);
 }
 
+int ri_knob_pointer_mdeg(int value) {
+    if (value < 0)
+        value = 0;
+    if (value > 127)
+        value = 127;
+    return (270000 * value + 63) / 127 - 135000;
+}
+
 void ri_gesture_begin(struct RiGesture *g) {
     if (!g)
         return;

@@ -327,6 +327,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t1_knob >/dev/null || { echo "FAIL: t
 bash "$ROOT/scripts/ri_build_host.sh" test t29_paneldefault >/dev/null || { echo "FAIL: t29_paneldefault (TC-2.9.2/2.9.1)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t29_chase >/dev/null || { echo "FAIL: t29_chase (TC-2.9.3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t29_layout >/dev/null || { echo "FAIL: t29_layout (TC-2.9.1)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t29_knobart >/dev/null || { echo "FAIL: t29_knobart (TC-2.9.2)"; exit 1; }
 test -f "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: missing gui acceptance"; exit 1; }
 grep -q -- "- \[ \]" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance has no checkable boxes"; exit 1; }
 grep -q "P-18" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks P-18"; exit 1; }
@@ -355,6 +356,7 @@ CFLAGS_GUI="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=larg
 mkdir -p "$OUT/aros"
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/knob_logic.c" -o "$OUT/aros/knob_logic_aros.o" || { echo "FAIL: knob_logic.c AROS compile"; exit 1; }
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/panels.c" -o "$OUT/aros/panels_aros.o" || { echo "FAIL: panels.c AROS compile"; exit 1; }
+x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/knob_art.c" -o "$OUT/aros/knob_art_aros.o" || { echo "FAIL: knob_art.c AROS compile"; exit 1; }
 for w in rknb rfdr rstp rlvl; do
   x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/widgets/$w.mcc.c" -o "$OUT/aros/$w.o" || { echo "FAIL: $w.mcc.c AROS compile"; exit 1; }
 done
