@@ -41,12 +41,15 @@ header, no clipping past genuine peaks).
   no rate (RI_AUDIO_SR locked; the AHI path negotiates its own) —
   threading rate through the live path touches Dell-verified 2.7
   code and rides its own slice with on-device proof.
-- External validation (sox/Audition per the TC text): no sox on
-  the host lane; the host gate is structural parse + golden bytes.
-  Device/external import validation rides the on-device pass.
-  (ffmpeg 9.0.1 parses both AIFF goldens and decodes dc-aiff to
-  bytes identical with the WAV golden's PCM — the closest
-  available external check, recorded 2026-09-23.)
+- External validation (sox/Audition per the TC text): sox-ng
+  14.8.0.1 on the host lane reads all 7 export goldens with exact
+  channels/rate/depth/samples (audit Phase 1 sox gate over
+  math-dc/dc-24/dc-441/first-light/first-light-441/dc-aiff/
+  first-light-aiff; AIFF parses included). Audition import
+  remains device-side. Device/external import validation beyond
+  sox rides the on-device pass. (ffmpeg 9.0.1 parses both AIFF
+  goldens and decodes dc-aiff to bytes identical with the WAV
+  golden's PCM — recorded 2026-09-23.)
 
 ## Plain AIFF (`--format aiff`, `t32_aiff`)
 

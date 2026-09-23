@@ -53,6 +53,18 @@ cmp -s "$G/first-light-aiff.wav" "$A/first-light-aiff.wav" || { echo "FAIL: re-r
 bash "$ROOT/scripts/ri_build_host.sh" test t32_aiff >/dev/null || { echo "FAIL: t32_aiff (TC-2.13/WBS-2.13)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t28_wavdepth >/dev/null || { echo "FAIL: t28_wavdepth (TC-2.13.4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t31_rate441 >/dev/null || { echo "FAIL: t31_rate441 (TC-2.13.4)"; exit 1; }
+echo "-- export golden headers (external sox check when present) --"
+if command -v sox >/dev/null 2>&1; then
+  for spec in "math-dc.wav:48000:16:96000" "dc-24.wav:48000:24:96000" "dc-441.wav:44100:16:96000" "first-light.wav:48000:16:125143" "first-light-441.wav:44100:16:114975" "dc-aiff.wav:48000:16:96000" "first-light-aiff.wav:48000:16:125143"; do
+    f="${spec%%:*}"; rest="${spec#*:}"; r="${rest%%:*}"; rest="${rest#*:}"; b="${rest%%:*}"; n="${rest##*:}";
+    [ "$(soxi -c "$G/$f")" = "1" ] || { echo "FAIL: sox ch $f"; exit 1; }
+    [ "$(soxi -r "$G/$f")" = "$r" ] || { echo "FAIL: sox rate $f"; exit 1; }
+    [ "$(soxi -b "$G/$f")" = "$b" ] || { echo "FAIL: sox bits $f"; exit 1; }
+    [ "$(soxi -s "$G/$f")" = "$n" ] || { echo "FAIL: sox samples $f"; exit 1; }
+  done
+else
+  warn "sox missing — export headers covered by t28/t31 in-test parse only"
+fi
 cmp -s "$G/first-light.events" "$A/first-light.events" || { echo "FAIL: re-render events differ"; exit 1; }
 echo "-- ledger-before-code --"
 t_led=$(git -C "$ROOT" log --diff-filter=A --format=%at -- docs/evidence/303/filter-candidate.md | tail -1)

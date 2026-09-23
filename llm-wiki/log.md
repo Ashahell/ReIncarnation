@@ -239,6 +239,12 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] gate | sox external-validation gate live over all 7 export goldens
+- Disposition: Update (closes half of the export.md external-validation OPEN)
+- Updated: scripts/ri_audit.sh (Phase 1 sox loop: ch/rate/bits/samples on math-dc/dc-24/dc-441/first-light/first-light-441/dc-aiff/first-light-aiff, warn-and-skip without sox), docs/evidence/formats/export.md (validation section)
+- sox-ng 14.8.0.1 installed on the host lane (`pacman -S sox`; no apt on Omarchy). All 7 goldens read exact. Audition import remains device-side.
+- The new gate proved load-bearing on its first run: my loop appended `.wav` twice (`math-dc.wav.wav`) and the gate failed honestly before the fix. Full `ri_audit.sh` 0/0 after (0 FAIL lines).
+
 ## [2026-09-23] lint | m5–m14 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), m5–m14 log entries present, metadata headers 3/3 on the 4 newest raws. One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No new material to compile (HEAD `448b7c6` fully ingested, tree clean).
 
