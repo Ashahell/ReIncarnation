@@ -239,6 +239,14 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] m14 | M2.5 AIFF export: plain-AIFF writer + pins + goldens (TDD feature)
+- Disposition: New (both writers + pin + 2 goldens; AIFF-C out, live rate still open)
+- Raw: llm-wiki/raw/articles/2026-09-23-m25-aiff-export-tc213.md
+- Updated: audio_io/audio.c/audio.h (BE writers + header + sink + wrapper), tools/render.c (--format + dispatcher + AIFF writer), scripts/ri_audit.sh (Phase 1 AIFF goldens + t32), tests/golden/303/dc-aiff.wav + first-light-aiff.wav + .sha256 (new), docs/evidence/formats/export.md (AIFF section), llm-wiki/index.md
+- **TDD:** RED watched in two stages (test compile bug, then link-phase 2 symbols). GREEN all checks; WAV default byte-identical.
+- **External:** ffmpeg parses both goldens, dc-aiff decodes byte-identical to WAV PCM (closest available to sox clause). Web: Wikipedia container shape; 80-bit constants verified vs ffmpeg refs (McGill fetch failed transport).
+- Full `ri_audit.sh` 0/0 twice (0 FAIL lines). Spirv-val vacuous.
+
 ## [2026-09-23] m13 | M2.5 export rate: TC-2.13.4 44.1 kHz native render (TDD feature)
 - Disposition: New (--rate threading + 2 goldens; AuRender/live rate + AIFF stay OPEN)
 - Raw: llm-wiki/raw/articles/2026-09-23-m25-export-rate-44100-tc2134.md

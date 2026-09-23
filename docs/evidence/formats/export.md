@@ -1,9 +1,9 @@
 # WAV export — evidence ledger (Module 2.5/2.13, TC-2.13.4 host scope)
 
-**Date:** 2026-09-23. **Status:** PARTIAL (16/24-bit at 48 kHz +
-44.1 kHz offline render locked; AuRender/live rate + AIFF stay
-OPEN, named below — no parity claimed beyond what is pinned
-here).
+**Date:** 2026-09-23. **Status:** PARTIAL (16/24-bit WAV +
+44.1 kHz offline + plain AIFF locked; AuRender/live rate +
+external validation stay OPEN, named below — no parity claimed
+beyond what is pinned here).
 **Spec:** WBS TC-2.13.4 (WAV at 44.1/48 kHz, 16/24-bit, valid
 header, no clipping past genuine peaks).
 
@@ -41,10 +41,24 @@ header, no clipping past genuine peaks).
   no rate (RI_AUDIO_SR locked; the AHI path negotiates its own) —
   threading rate through the live path touches Dell-verified 2.7
   code and rides its own slice with on-device proof.
-- AIFF: no writer exists — own slice when scheduled.
 - External validation (sox/Audition per the TC text): no sox on
   the host lane; the host gate is structural parse + golden bytes.
   Device/external import validation rides the on-device pass.
+  (ffmpeg 9.0.1 parses both AIFF goldens and decodes dc-aiff to
+  bytes identical with the WAV golden's PCM — the closest
+  available external check, recorded 2026-09-23.)
+
+## Plain AIFF (`--format aiff`, `t32_aiff`)
+
+FORM/AIFF + COMM + SSND, big-endian PCM, 16|24-bit, 44100|48000 Hz
+(no MARK/INST; AIFF-C/sowt out — different container). Contract
+owners in `audio_io/audio.{c,h}` (`auf_aiff_header`,
+`au_render_song_to_aiff`, `AuRenderToFileAiff`); the render tool
+dispatches through `write_audio` (same float PCM, same depths).
+80-bit extended rates verified against ffmpeg-generated
+references (44100 = 40 0E AC 44 00.., 48000 = 40 0E BB 80 00..).
+Goldens `dc-aiff.wav` + `first-light-aiff.wav` + `.sha256`
+(sha256 + determinism re-render in audit).
 
 ## 44.1 kHz offline render (`--rate`, `t31_rate441`)
 
