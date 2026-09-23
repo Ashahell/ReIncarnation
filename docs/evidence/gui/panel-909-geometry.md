@@ -1,8 +1,22 @@
 # Panel geometry — 909 (first panel, Module 2.9 partial)
 
-**Date:** 2026-09-20 (E0 authored 2026-09-23, LOCKED to measured
-2026-09-23 — see lock note). **Status:** LOCKED at TC-2.9.1
+**Date:** 2026-09-20 (E0 authored 2026-09-23, compact lock
+2026-09-23, v2 art lock below). **Status:** LOCKED at TC-2.9.1
 (device-measured, ±2 px contract below).
+**Spec:** TC-2.9.1 (silhouette), TC-2.9.4 (zoom); code inventory
+pinned by `tests/unit/t29_paneldefault.c`, rects by
+`t29_layout.c` — doc and code cite each other so neither drifts
+silently.
+
+## v2 art lock (2026-09-23)
+
+Real knob art (52 px bodies) does not fit the compact 33 px
+pitch — measured overlapping on device. Hardware ratio
+(TR-09 photo: ~74 px pitch on ~55 px bodies = 1.35) gives
+pitch 70 for 52 px bodies: centers (40,110,180,250 @ y52),
+window 296×96 at screen origin. Same even/aligned/consistent
+rules, re-measured on device below. The 33-pitch compact
+numbers stay struck through for the audit trail.
 **Spec:** TC-2.9.1 (silhouette), TC-2.9.4 (zoom); code inventory
 pinned by `tests/unit/t29_paneldefault.c` (909 exposes exactly
 tune/level/decay/flamres at 0x0900..0x0903) and rects by
@@ -32,16 +46,22 @@ Window 160×88 at screen origin (0,0). Knob row y = 52.
 
 | Control | ID | Center (x,y) | Diam |
 |---------|----|--------------|------|
-| tune | 0x0900 | (30,52) | 32 |
-| level | 0x0901 | (63,52) | 32 |
-| decay | 0x0902 | (96,52) | 32 |
-| flamres | 0x0903 | (129,52) | 32 |
+| tune | 0x0900 | (40,52) | 52 |
+| level | 0x0901 | (110,52) | 52 |
+| decay | 0x0902 | (180,52) | 52 |
+| flamres | 0x0903 | (250,52) | 52 |
 
-Even 33 px pitch (30/63/96/129 — indicator bars agree with
-bodies within 1 px); value-invariant body centers (pointers move
-with value, bodies don't). Contract: every center within ±2 px
-of the table on re-measurement (regression gate, not design —
-the design is the even/aligned/consistent rule above).
+Even 70 px pitch (40/110/180/250 — hardware 1.35 diameter ratio
+on the 52 px art bodies); value-invariant body centers; 80 px
+frames blit at center−40. Contract: every center within ±2 px
+of the table on re-measurement (regression gate).
+
+## Superseded compact lock (33 px pitch, MUIC era)
+
+Centers (30,63,96,129 @ y52) in a 160×88 window — held for the
+~32 px MUIC visuals. Refuted as an art basis by the 52 px
+measured bodies (overlap at 33 px pitch, proven on device
+2026-09-23). Kept visible so the delta is auditable.
 
 **Spec:** TC-2.9.1 (silhouette), TC-2.9.4 (zoom); code inventory pinned
 by `tests/unit/t29_paneldefault.c` (909 exposes exactly

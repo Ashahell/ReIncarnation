@@ -254,6 +254,13 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-23] m19 | Knob v2 art lock: 70px pitch from hardware ratio, pointer-tip geometry, exact orange on device
+- Disposition: New (geometry re-lock + device proof; art internals already pinned in m17)
+- Raw: llm-wiki/raw/articles/2026-09-23-knob-v2-pitch70-device-lock.md
+- Updated: tests/unit/t29_layout.c (v2 asserts), gui/panels.c (v2 table), app/knobproof.c (v2 geometry + window), docs/evidence/gui/panel-909-geometry.md (v2 lock, history struck visibly), llm-wiki/index.md
+- **Measured:** hardware pitch ratio 1.35 → pitch 70; x exact, y via pointer tips (tick-gap bias diagnosed); angles correct incl. 12°=77.6° convention check; `#e37c3b` byte-exact on device; tick rings visible on all four.
+- Full `ri_audit.sh` 0/0 frozen tree (0 FAIL lines). Remaining: panel composition, MCC integration.
+
 ## [2026-09-23] m18 | Knob blit on device: BGRA root cause via calibration, orange pointers proven
 - Disposition: New (blit helper + proof vehicle + gates; closes the "go" deliverable)
 - Raw: llm-wiki/raw/articles/2026-09-23-knob-blit-device-bgra-proof.md
