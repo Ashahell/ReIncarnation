@@ -447,26 +447,41 @@ void au_rewind(struct AudioObject *ao) {
     ao->total = ao->ev[ao->nev - 1u].sample + AU_TAIL_SMP;
 }
 
-static int auf_write_wav_header(FILE *f, uint32_t total) {
-    unsigned char hdr[44];
-    uint32_t bytes = total * 2u;
-    memset(hdr, 0, sizeof hdr);
+/* Deterministic float -> int24 (round-half-away, no libm). */
+int32_t auf_f32_to_s24(float x) {
+    float c = auf_clampf(x) * 8388607.0f;
+    if (c >= 0.0f)
+        return (int32_t)(c + 0.5f);
+    return (int32_t)(c - 0.5f);
+}
+
+/* Canonical 44-byte PCM header builder (shared by both file sinks). */
+int auf_wav_header(unsigned char hdr[44], uint32_t total, uint8_t depth,
+    uint32_t sr) {
+    uint32_t bps, bytes;
+    if (depth != 16u && depth != 24u)
+        return 2;
+    if (sr == 0u)
+        return 2;
+    bps = depth / 8u;
+    bytes = total * bps;
+    memset(hdr, 0, 44);
     memcpy(hdr, "RIFF", 4);
     write_u32(hdr + 4, 36u + bytes);
     memcpy(hdr + 8, "WAVEfmt ", 8);
     write_u32(hdr + 16, 16u);
     write_u16(hdr + 20, 1u);
     write_u16(hdr + 22, 1u);
-    write_u32(hdr + 24, RI_AUDIO_SR);
-    write_u32(hdr + 28, RI_AUDIO_SR * 2u);
-    write_u16(hdr + 32, 2u);
-    write_u16(hdr + 34, 16u);
+    write_u32(hdr + 24, sr);
+    write_u32(hdr + 28, sr * bps);
+    write_u16(hdr + 32, (uint16_t)bps);
+    write_u16(hdr + 34, depth);
     memcpy(hdr + 36, "data", 4);
     write_u32(hdr + 40, bytes);
-    if (fwrite(hdr, 1, 44, f) != 44)
-        return 2;
     return 0;
 }
+
+
 
 /* Shared file-sink writer: rewind, pump the core in caller-chosen chunks,
  * convert, stream to disk (no multi-megabyte buffer — §17 #6 memory
@@ -474,10 +489,18 @@ static int auf_write_wav_header(FILE *f, uint32_t total) {
  * (live-stub) drain uses RI_DEVICE_FRAMES device chunks. Same core. */
 int au_render_song_to_wav(struct AudioObject *ao, const char *path,
     uint32_t chunk, uint64_t cap_total) {
+    return au_render_song_to_wav_depth(ao, path, chunk, cap_total, 16u);
+}
+
+int au_render_song_to_wav_depth(struct AudioObject *ao, const char *path,
+    uint32_t chunk, uint64_t cap_total, uint8_t depth) {
     static float fbuf[RI_DEVICE_FRAMES];
     FILE *f;
     uint64_t left;
+    unsigned char hdr[44];
     if (!ao || !path || chunk == 0 || chunk > RI_DEVICE_FRAMES)
+        return 2;
+    if (depth != 16u && depth != 24u)
         return 2;
     if (auf_render_source(ao) < 0)
         return 2;
@@ -491,7 +514,11 @@ int au_render_song_to_wav(struct AudioObject *ao, const char *path,
     f = fopen(path, "wb");
     if (!f)
         return 2;
-    if (auf_write_wav_header(f, (uint32_t)ao->total) != 0) {
+    if (auf_wav_header(hdr, (uint32_t)ao->total, depth, RI_AUDIO_SR) != 0) {
+        fclose(f);
+        return 2;
+    }
+    if (fwrite(hdr, 1, 44, f) != 44) {
         fclose(f);
         return 2;
     }
@@ -508,19 +535,46 @@ int au_render_song_to_wav(struct AudioObject *ao, const char *path,
             ao->cursor += want;
         }
         for (k = 0; k < got; k++) {
-            int16_t s = auf_f32_to_s16(fbuf[k]);
-            unsigned char b[2];
-            b[0] = (unsigned char)(s & 0xff);
-            b[1] = (unsigned char)((s >> 8) & 0xff);
-            if (fwrite(b, 1, 2, f) != 2) {
-                fclose(f);
-                return 2;
+            if (depth == 24u) {
+                int32_t s = auf_f32_to_s24(fbuf[k]);
+                unsigned char b[3];
+                b[0] = (unsigned char)(s & 0xff);
+                b[1] = (unsigned char)((s >> 8) & 0xff);
+                b[2] = (unsigned char)((s >> 16) & 0xff);
+                if (fwrite(b, 1, 3, f) != 3) {
+                    fclose(f);
+                    return 2;
+                }
+            } else {
+                int16_t s = auf_f32_to_s16(fbuf[k]);
+                unsigned char b[2];
+                b[0] = (unsigned char)(s & 0xff);
+                b[1] = (unsigned char)((s >> 8) & 0xff);
+                if (fwrite(b, 1, 2, f) != 2) {
+                    fclose(f);
+                    return 2;
+                }
             }
         }
         left -= got;
     }
     fclose(f);
     return 0;
+}
+
+int AuRenderToFileDepth(struct AudioObject *ao, const char *path,
+    uint32_t ms, uint8_t depth) {
+    uint64_t cap = 0;
+    if (!ao || !path || !ao->started)
+        return 2;
+    if (depth != 16u && depth != 24u)
+        return 2;
+    if (ms > 0) {
+        cap = (uint64_t)ms * (RI_AUDIO_SR / 1000u);
+        if (cap == 0)
+            return 2;
+    }
+    return au_render_song_to_wav_depth(ao, path, RI_AUDIO_BLOCK, cap, depth);
 }
 
 int AuRenderToFile(struct AudioObject *ao, const char *path, uint32_t ms) {

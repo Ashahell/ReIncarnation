@@ -14,13 +14,13 @@ for d in 303 808 909 pcf sequencer gui formats; do test -d "$ROOT/docs/evidence/
 echo "== Phase 1: first-light goldens (Task 4, gate G4) =="
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 G="$ROOT/tests/golden/303"
-for f in math-dc math-sine first-light; do
+for f in math-dc math-sine first-light dc-24; do
   test -f "$G/$f.wav" || { echo "FAIL: missing golden $f.wav (missing-is-broken)"; exit 1; }
   test -f "$G/$f.wav.sha256" || { echo "FAIL: missing sidecar $f.wav.sha256"; exit 1; }
 done
 test -f "$G/first-light.events" || { echo "FAIL: missing event golden"; exit 1; }
 test -f "$G/first-light.rbng" || { echo "FAIL: missing song scaffold"; exit 1; }
-(cd "$ROOT" && sha256sum -c tests/golden/303/math-dc.wav.sha256 tests/golden/303/math-sine.wav.sha256 tests/golden/303/first-light.wav.sha256) || { echo "FAIL: golden sha256 mismatch"; exit 1; }
+(cd "$ROOT" && sha256sum -c tests/golden/303/math-dc.wav.sha256 tests/golden/303/math-sine.wav.sha256 tests/golden/303/first-light.wav.sha256 tests/golden/303/dc-24.wav.sha256) || { echo "FAIL: golden sha256 mismatch"; exit 1; }
 echo "-- math unit goldens re-verified --"
 bash "$ROOT/scripts/ri_build_host.sh" test t1_303math >/dev/null || { echo "FAIL: t1_303math"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t1_303walk >/dev/null || { echo "FAIL: t1_303walk"; exit 1; }
@@ -40,6 +40,9 @@ mkdir -p "$A"
 "$OUT/render" --math sine --out "$A/math-sine.wav" || exit 1
 "$OUT/render" --song "$G/first-light.rbng" --out "$A/first-light.wav" --dump-events "$A/first-light.events" || exit 1
 for f in math-dc math-sine first-light; do cmp -s "$G/$f.wav" "$A/$f.wav" || { echo "FAIL: re-render $f differs"; exit 1; }; done
+"$OUT/render" --math dc --depth 24 --out "$A/dc-24.wav" || exit 1
+cmp -s "$G/dc-24.wav" "$A/dc-24.wav" || { echo "FAIL: re-render dc-24 differs"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t28_wavdepth >/dev/null || { echo "FAIL: t28_wavdepth (TC-2.13.4)"; exit 1; }
 cmp -s "$G/first-light.events" "$A/first-light.events" || { echo "FAIL: re-render events differ"; exit 1; }
 echo "-- ledger-before-code --"
 t_led=$(git -C "$ROOT" log --diff-filter=A --format=%at -- docs/evidence/303/filter-candidate.md | tail -1)

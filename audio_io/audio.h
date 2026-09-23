@@ -59,6 +59,10 @@ int AuStart(struct AudioObject *ao);
 void AuStop(struct AudioObject *ao);
 uint32_t AuQueryAttr(struct AudioObject *ao, uint32_t attr); /* AUQA_LatencyFrames, AUQA_XRUN_COUNT */
 int AuRenderToFile(struct AudioObject *ao, const char *path, uint32_t ms);
+/* 24-bit export (TC-2.13.4): depth 16|24, else rc 2. AuRenderToFile
+ * is depth 16 through this entry point. */
+int AuRenderToFileDepth(struct AudioObject *ao, const char *path,
+    uint32_t ms, uint8_t depth);
 
 /* Host-test/CI extras (NOT part of the frozen subset above). */
 const char *AuBackendName(struct AudioObject *ao); /* "null" | "ahi-lowlevel" */
@@ -73,6 +77,17 @@ void au_rewind(struct AudioObject *ao); /* reset voice + event cursor */
  * uses RI_DEVICE_FRAMES; cap_total 0 = full song. */
 int au_render_song_to_wav(struct AudioObject *ao, const char *path,
     uint32_t chunk, uint64_t cap_total);
+/* Depth-parameterized sink (TC-2.13.4): depth 16|24, else rc 2.
+ * Header/packing contract owned by auf_wav_header/auf_f32_to_s24. */
+int au_render_song_to_wav_depth(struct AudioObject *ao, const char *path,
+    uint32_t chunk, uint64_t cap_total, uint8_t depth);
+/* Canonical 44-byte PCM header builder (shared by both file sinks):
+ * depth 16|24 (else rc 2), mono, sr Hz. Returns 0 ok. */
+int auf_wav_header(unsigned char hdr[44], uint32_t total, uint8_t depth,
+    uint32_t sr);
+/* Deterministic float -> int24 (round-half-away, no libm;
+ * auf_f32_to_s16 is the 16-bit twin, kept for the depth-16 path). */
+int32_t auf_f32_to_s24(float x);
 /* Host stub backend (audio_io/backend_null.c): fixed RI_DEVICE_FRAMES drain
  * of the same core into a WAV + events pair. */
 int au_null_render_to_wav(struct AudioObject *ao, const char *wav_path, const char *ev_path);

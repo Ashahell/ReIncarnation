@@ -24,10 +24,12 @@
  * Exit: 0 ok, 2 usage/IO/parse error.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
+#include "audio_io/audio.h"
 #include "engine/dsp/rb303.h"
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
@@ -43,48 +45,9 @@
 #define RI_MAX_STEPS 64u
 #define RI_TAIL_SMP 48000u /* 1 s release tail after the last event */
 
-static void write_u16(unsigned char *p, uint16_t v) {
-    p[0] = (unsigned char)(v & 0xffu);
-    p[1] = (unsigned char)((v >> 8) & 0xffu);
-}
-
-static void write_u32(unsigned char *p, uint32_t v) {
-    p[0] = (unsigned char)(v & 0xffu);
-    p[1] = (unsigned char)((v >> 8) & 0xffu);
-    p[2] = (unsigned char)((v >> 16) & 0xffu);
-    p[3] = (unsigned char)((v >> 24) & 0xffu);
-}
-
-/* Returns 0 on success. out_smp must hold total samples (int16). */
-static int write_wav(const char *path, const int16_t *pcm, uint32_t total) {
-    unsigned char hdr[44];
-    uint32_t bytes = total * 2u;
-    FILE *f = fopen(path, "wb");
-    if (!f) {
-        printf("render: cannot open --out %s\n", path);
-        return 2;
-    }
-    memset(hdr, 0, sizeof hdr);
-    memcpy(hdr, "RIFF", 4);
-    write_u32(hdr + 4, 36u + bytes);
-    memcpy(hdr + 8, "WAVEfmt ", 8);
-    write_u32(hdr + 16, 16u);
-    write_u16(hdr + 20, 1u);
-    write_u16(hdr + 22, 1u);
-    write_u32(hdr + 24, RI_SR);
-    write_u32(hdr + 28, RI_SR * 2u);
-    write_u16(hdr + 32, 2u);
-    write_u16(hdr + 34, 16u);
-    memcpy(hdr + 36, "data", 4);
-    write_u32(hdr + 40, bytes);
-    if (fwrite(hdr, 1, 44, f) != 44 || fwrite(pcm, 2, total, f) != total) {
-        printf("render: write failed %s\n", path);
-        fclose(f);
-        return 2;
-    }
-    fclose(f);
-    return 0;
-}
+/* Output sample depth, set by --depth (16 default). Process-global:
+ * every render mode writes through write_wav with this depth. */
+static int g_depth = 16;
 
 static float clampf(float x) {
     if (x > 1.0f)
@@ -94,12 +57,64 @@ static float clampf(float x) {
     return x;
 }
 
-/* Deterministic float -> int16 (round-half-away, no libm). */
+/* Deterministic float -> int16 (round-half-away, no libm). Depth-16
+ * path of write_wav converts through this exactly as before. */
 static int16_t f32_to_s16(float x) {
     float c = clampf(x) * 32767.0f;
     if (c >= 0.0f)
         return (int16_t)(c + 0.5f);
     return (int16_t)(c - 0.5f);
+}
+
+/* Returns 0 on success. Depth 16|24 (TC-2.13.4); the 16-bit path
+ * converts through f32_to_s16 exactly as before, so existing goldens
+ * are byte-identical by construction. */
+static int write_wav(const char *path, const float *pcm, uint32_t total,
+    int depth) {
+    unsigned char hdr[44];
+    uint32_t i;
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        printf("render: cannot open --out %s\n", path);
+        return 2;
+    }
+    if (depth != 16 && depth != 24) {
+        printf("render: bad --depth %d (want 16|24)\n", depth);
+        fclose(f);
+        return 2;
+    }
+    if (auf_wav_header(hdr, total, (uint8_t)depth, RI_SR) != 0) {
+        fclose(f);
+        return 2;
+    }
+    if (fwrite(hdr, 1, 44, f) != 44) {
+        printf("render: write failed %s\n", path);
+        fclose(f);
+        return 2;
+    }
+    for (i = 0; i < total; i++) {
+        if (depth == 24) {
+            int32_t s = auf_f32_to_s24(pcm[i]);
+            unsigned char b[3];
+            b[0] = (unsigned char)(s & 0xff);
+            b[1] = (unsigned char)((s >> 8) & 0xff);
+            b[2] = (unsigned char)((s >> 16) & 0xff);
+            if (fwrite(b, 1, 3, f) != 3) {
+                printf("render: write failed %s\n", path);
+                fclose(f);
+                return 2;
+            }
+        } else {
+            int16_t s = f32_to_s16(pcm[i]);
+            if (fwrite(&s, 2, 1, f) != 1) {
+                printf("render: write failed %s\n", path);
+                fclose(f);
+                return 2;
+            }
+        }
+    }
+    fclose(f);
+    return 0;
 }
 
 /* Parse one "k=v" token. Returns 0 ok, 1 no match, 2 bad value. */
@@ -375,7 +390,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
     uint32_t nev, k;
     uint64_t total, cursor = 0, evpos = 0;
     /* pcm worst case: 64 steps * full bar @30bpm + tail; static bound 2^22 */
-    static int16_t pcm[4194304];
+    static float pcm[4194304];
     static float fbuf[RI_BLOCK];
     int rc;
     if ((rc = parse_song(song_path, steps, &nsteps, &tempo,
@@ -433,7 +448,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
                 cc = RI_BLOCK;
             rb303_render(&voice, fbuf, cc, (float)RI_SR);
             for (k = 0; k < cc; k++)
-                pcm[c + k] = f32_to_s16(fbuf[k]);
+                pcm[c + k] = fbuf[k];
             c += cc;
         }
         cursor = next;
@@ -444,7 +459,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
     }
     if (ev_path && (rc = dump_events(ev_path, ev, nev)) != 0)
         return rc;
-    if ((rc = write_wav(out_path, pcm, (uint32_t)total)) != 0)
+    if ((rc = write_wav(out_path, pcm, (uint32_t)total, g_depth)) != 0)
         return rc;
     printf("render: %u events, %llu samples -> %s\n", nev, (unsigned long long)total, out_path);
     return 0;
@@ -453,7 +468,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
 /* --math stimulus: core ladder directly (ledger D6). */
 static int render_math(int is_sine, const char *out_path) {
     struct RB303Voice v;
-    static int16_t pcm[96000];
+    static float pcm[96000];
     uint32_t i;
     float phase = 0.0f;
     rb303_init(&v);
@@ -462,7 +477,7 @@ static int render_math(int is_sine, const char *out_path) {
         rb303_set_reso(&v, 0.0f);
         for (i = 0; i < 96000u; i++) {
             float in = 0.1f * ri_sin(phase);
-            pcm[i] = f32_to_s16(rb303_filter_step(&v, in, (float)RI_SR));
+            pcm[i] = rb303_filter_step(&v, in, (float)RI_SR);
             phase += 2.0f * 3.14159265f * 1000.0f / (float)RI_SR;
             if (phase > 2.0f * 3.14159265f)
                 phase -= 2.0f * 3.14159265f;
@@ -471,9 +486,9 @@ static int render_math(int is_sine, const char *out_path) {
         rb303_set_cutoff_hz(&v, 1000.0f);
         rb303_set_reso(&v, 0.0f);
         for (i = 0; i < 96000u; i++)
-            pcm[i] = f32_to_s16(rb303_filter_step(&v, 0.5f, (float)RI_SR));
+            pcm[i] = rb303_filter_step(&v, 0.5f, (float)RI_SR);
     }
-    return write_wav(out_path, pcm, 96000u);
+    return write_wav(out_path, pcm, 96000u, g_depth);
 }
 
 /* --808 stimulus (Task 8, gate G8): one voice (accent 0, tune 0, default
@@ -495,7 +510,7 @@ static float voice_secs808(uint32_t v) {
 
 static int render_808(const char *name, const char *out_path) {
     struct RB808Set s;
-    static int16_t pcm[144000];
+    static float pcm[144000];
     static float fbuf[RI_BLOCK];
     uint32_t total, pos = 0, k, v = 0;
     float secs;
@@ -533,11 +548,11 @@ static int render_808(const char *name, const char *out_path) {
             cc = RI_BLOCK;
         rb808_render_mix(&s, fbuf, cc, (float)RI_SR);
         for (j = 0; j < cc; j++)
-            pcm[pos + j] = f32_to_s16(fbuf[j]);
+            pcm[pos + j] = fbuf[j];
         pos += cc;
     }
     printf("render: 808 %s, %u samples -> %s\n", name, total, out_path);
-    return write_wav(out_path, pcm, total);
+    return write_wav(out_path, pcm, total, g_depth);
 }
 
 /* --909 stimulus (Task 9, gate G9): one voice (accent 0, tune 64) from
@@ -652,7 +667,7 @@ static void bake_default909(uint32_t v, float *a, float *b, uint32_t n) {
 
 static int render_909_common(struct RB909Set *s, uint32_t v, float secs,
     const char *out_path, const char *tag) {
-    static int16_t pcm[120000];
+    static float pcm[120000];
     static float fbuf[RI_BLOCK];
     uint32_t total = (uint32_t)(secs * (float)RI_SR);
     uint32_t pos = 0, j;
@@ -667,11 +682,11 @@ static int render_909_common(struct RB909Set *s, uint32_t v, float secs,
             cc = RI_BLOCK;
         rb909_render_mix(s, fbuf, cc, (float)RI_SR);
         for (j = 0; j < cc; j++)
-            pcm[pos + j] = f32_to_s16(fbuf[j]);
+            pcm[pos + j] = fbuf[j];
         pos += cc;
     }
     printf("render: 909 %s, %u samples -> %s\n", tag, total, out_path);
-    return write_wav(out_path, pcm, total);
+    return write_wav(out_path, pcm, total, g_depth);
 }
 
 static int render_909(const char *name, const char *out_path) {
@@ -774,7 +789,7 @@ static int render_909pack(const char *name, const char *out_path,
 static int render_pcf(const char *name, const char *out_path) {
     struct PCF p;
     static float in[96000], out[RI_BLOCK];
-    static int16_t pcm[96000];
+    static float pcm[96000];
     uint32_t total = 96000u, pos = 0;
     float phase = 0.0f;
     if (strcmp(name, "sweep") != 0) {
@@ -801,11 +816,11 @@ static int render_pcf(const char *name, const char *out_path) {
         }
         pcf_render(&p, in + pos, out, cc, (float)RI_SR);
         for (j = 0; j < cc; j++)
-            pcm[pos + j] = f32_to_s16(out[j]);
+            pcm[pos + j] = out[j];
         pos += cc;
     }
     printf("render: pcf %s, %u samples -> %s\n", name, total, out_path);
-    return write_wav(out_path, pcm, total);
+    return write_wav(out_path, pcm, total, g_depth);
 }
 
 /* Shared 2 s chord input for the fx dry/chain pair (identical stimulus). */
@@ -833,7 +848,7 @@ static void sine_probe_delay_in(float *b, uint32_t n) {
 static int render_fx(const char *name, const char *out_path) {
     static float in[96000], tmp[96000];
     static float dl[96000];
-    static int16_t pcm[96000];
+    static float pcm[96000];
     struct PCF p;
     struct RiFXDelay d;
     struct RiFXDist ds;
@@ -887,9 +902,9 @@ static int render_fx(const char *name, const char *out_path) {
         }
     }
     for (j = 0; j < total; j++)
-        pcm[j] = f32_to_s16(tmp[j]);
+        pcm[j] = tmp[j];
     printf("render: fx %s, %u samples -> %s\n", name, total, out_path);
-    return write_wav(out_path, pcm, total);
+    return write_wav(out_path, pcm, total, g_depth);
 }
 
 /* --mix stimuli (Task 11, gate G11): 4 sine buses through the real
@@ -899,7 +914,7 @@ static int render_fx(const char *name, const char *out_path) {
 static int render_mix(const char *name, const char *out_path) {
     static float bus[4][96000];
     static float tmp[96000], snd[96000];
-    static int16_t pcm[96000];
+    static float pcm[96000];
     struct RiMixer m;
     uint32_t total = 96000u, pos = 0, j, b;
     static const float F[4] = { 110.0f, 138.59f, 164.81f, 220.0f };
@@ -935,10 +950,10 @@ static int render_mix(const char *name, const char *out_path) {
         pos += cc;
     }
     for (j = 0; j < total; j++)
-        pcm[j] = f32_to_s16(tmp[j]);
+        pcm[j] = tmp[j];
     printf("render: mix %s, %u samples -> %s (meter %.4f)\n", name, total,
         out_path, (double)ri_meter_peak(&m.meter));
-    return write_wav(out_path, pcm, total);
+    return write_wav(out_path, pcm, total, g_depth);
 }
 
 /* --rbngsong (Task 13, gate G13): the real RBNG codec path. Same
@@ -961,7 +976,7 @@ static int render_rbngsong(const char *song_path, const char *out_path,
     struct RISchedOpts opts;
     uint32_t nev, k, i;
     uint64_t total, cursor = 0, evpos = 0;
-    static int16_t pcm[4194304];
+    static float pcm[4194304];
     static float fbuf[RI_BLOCK];
     double nsq, tick2smp;
     uint64_t pat_end;
@@ -1065,7 +1080,7 @@ static int render_rbngsong(const char *song_path, const char *out_path,
                 cc = RI_BLOCK;
             rb303_render(&voice, fbuf, cc, (float)RI_SR);
             for (k = 0; k < cc; k++)
-                pcm[c + k] = f32_to_s16(fbuf[k]);
+                pcm[c + k] = fbuf[k];
             c += cc;
         }
         cursor = next;
@@ -1076,7 +1091,7 @@ static int render_rbngsong(const char *song_path, const char *out_path,
     }
     if (ev_path && (rc = dump_events(ev_path, ev, nev)) != 0)
         return rc;
-    if ((rc = write_wav(out_path, pcm, (uint32_t)total)) != 0)
+    if ((rc = write_wav(out_path, pcm, (uint32_t)total, g_depth)) != 0)
         return rc;
     printf("render: %u events, %llu samples -> %s\n", nev,
         (unsigned long long)total, out_path);
@@ -1098,6 +1113,7 @@ int main(int argc, char **argv) {
         printf("       render --pcf sweep --out FILE\n");
         printf("       render --fx dry|delay|chain --out FILE\n");
         printf("       render --mix four|solo --out FILE\n");
+        printf("       [--depth 16|24, default 16]\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
         printf("NOTE: this golden proves determinism + skeleton, NOT parity.\n");
         return 0;
@@ -1123,6 +1139,14 @@ int main(int argc, char **argv) {
             vfx = argv[++i];
         else if (strcmp(argv[i], "--mix") == 0 && i + 1 < argc)
             vmix = argv[++i];
+        else if (strcmp(argv[i], "--depth") == 0 && i + 1 < argc) {
+            int d = atoi(argv[++i]);
+            if (d != 16 && d != 24) {
+                printf("render: bad --depth (want 16|24)\n");
+                return 2;
+            }
+            g_depth = d;
+        }
         else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
             pack = argv[++i];
         else if (strcmp(argv[i], "--rbngsong") == 0 && i + 1 < argc)
