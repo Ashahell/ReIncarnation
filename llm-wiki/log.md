@@ -254,6 +254,13 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-23] correction | Vision works in this environment (old "cannot view PNGs" lore retired)
+- The `read` tool presents images directly — verified live: viewed the TR-909 reference (1200×1200) and the Dell `e2shot2.png` capture in-session. The Vulkan4Aros 2026-09-20 "cannot view PNGs" record described a different harness, not this one.
+- Consequence: screendump eyeballing is available from here on (complements, never replaces, pixel-census measurement). Prior "blind analysis" wording in the preceding entry now reads as over-cautious, preserved as written.
+- Seen in the reference: light warm-gray panel, dark charcoal compact knobs with bright orange radial pointers, orange section labels + Roland mark, dark-red displays, red/orange/yellow buttons, black typography. (The linked image reads as a software-recreation rendering — LCD presets, PANEL/OPTION/HELP/ABOUT — but the shared design language is what matters, not the source.)
+- Seen in ours (`e2shot2.png`): small monochrome gray knob blobs, no pointers/color/labels/structure at this scale. Shape + color mismatch confirmed visually, matching the pixel evidence.
+- Next: custom knob-frame art can now iterate against direct visual reference (render → view → compare), still under never-pixel-copy.
+
 ## [2026-09-23] analysis | TR-909 reference photo measured (knob fidelity groundwork, no art yet)
 - Disposition: New (measurement-only; zero pixels reused, nothing rendered)
 - Raw: reference photo `https://r2.gear4music.com/media/68/683873/1200/preview.jpg` fetched to `/home/miller/Work/ri_build/ref909/tr909.jpg` (scratch, NOT repo — never-pixel-copy policy)
