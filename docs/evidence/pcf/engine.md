@@ -1,6 +1,9 @@
 # PCF engine — SVF + ledger-gated response table (Task 10, gate G10)
 
-**Date:** 2026-09-20. **Status:** HYPOTHESIS (locks at TC-2.5.2).
+**Date:** 2026-09-20 (locked 2026-09-23 at TC-2.5.2/2.5.3/2.5.4/2.5.5:
+TC-2.5.2 cutoff law, TC-2.5.3 delay sync+drift, TC-2.5.4 distortion,
+TC-2.5.5 order swap; TC-2.5.1 pattern contents stay OPEN-04 below).
+**Status:** LOCKED (aforementioned scope).
 **Spec:** §12 (black-box plan), Appendix A P-15, Appendix D sketch.
 **Prior art:** the register carries NO PCF-specific row — the Chamberlin
 two-pole SVF below is a textbook E0 candidate, and no lineage is claimed
@@ -43,7 +46,9 @@ build target with the `#error` in `engine/fx/pcf.c` (G10 negative gate).
 
 Measured (`t1_fx` §1, host GCC): all 10 rows 0 cents vs the ±2-cent band;
 failure-capability proven by mutant (+0.05 oct → 60 cents on 10/10 rows,
-archived in `red-t1_fx.txt`).
+archived in `red-t1_fx.txt`). `t25_pcfcutoff` re-pins the 10 rows plus
+edge ratios (v=64 unity exact, v=0/amt+4 = 1/16 at 0.0625) and the
+clamp rails.
 
 ## SVF engine shape (candidate)
 
@@ -75,12 +80,24 @@ inaudibility; double-render bit-identical (D1).
 Per-pattern capture rows arrive here as `docs/evidence/pcf/pattern-NN.md`.
 Until a row locks, `pcf_pattern_step` returns the neutral 64 for every
 (pattern, step) — an explicit refusal to claim, never a hardcoded fact.
+`t25_pcfopen` pins the refusal (54×16 all neutral, count constants,
+loader double-load identical) so a future capture landing must update
+the pin deliberately. TC-2.5.1 stays OPEN; this pin passing is not
+pattern coverage.
 
 ## FX trio (spec §13 fixtures)
 
 - Delay (BPM-sync): `delay_smp = round(beats·60·sr/bpm)`; measured sync
   error 0% / 0.0028% / 0.0017% at 120/140/174 BPM (band 0.1%);
-  impulse echo lands exactly on `delay_smp` (`t1_fx` §3).
+  impulse echo lands exactly on `delay_smp` (`t1_fx` §3); 5-minute
+  no-drift proven sample-exactly (14,400,000 samples, beat-locked
+  train, `t25_delay`).
+- Distortion (asymmetric tanh, drive + shape): drive 0 + shape 0 is an
+  exact bypass, so unity holds by construction (measured 0 dB vs ±0.2 dB);
+  engaged path normalized so full-scale DC maps to 1.0 (pinned ≤1e-6 on
+  a 3×3 drive×shape grid, `t25_dist`); loudness grows monotonically
+  over the drive sweep (`t25_dist`); 16×16 grid fuzz
+  finite and bounded (`t1_fx` §4).
 - Distortion (asymmetric tanh, drive + shape): drive 0 + shape 0 is an
   exact bypass, so unity holds by construction (measured 0 dB vs ±0.2 dB);
   engaged path normalized so full-scale DC maps to 1.0; 16×16 grid fuzz
@@ -90,7 +107,8 @@ Until a row locks, `pcf_pattern_step` returns the neutral 64 for every
   (measured low-level gain +14.9 dB vs +14.88 theory); hot crest cut;
   fail-closed NaN guard; full-grid fuzz finite (`t1_fx` §5).
 - Order-swap: mid-stream dist↔pcf reorder transient energy 0.81 vs the
-  64.0 bound of one full-scale 64-frame buffer (`t1_fx` §6).
+  64.0 bound of one full-scale 64-frame buffer (`t1_fx` §6;
+  re-pinned by `t25_swap` at 0.8101).
 
 ## Goldens (`tests/golden/pcf/`, all AUDIBLE, D1 double-render clean)
 

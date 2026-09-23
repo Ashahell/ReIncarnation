@@ -239,6 +239,14 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] m8 | WBS 2.5 FX acceptance: TC-2.5.1–2.5.5 pins (M2.4 opens, no production change)
+- Disposition: New (five per-TC pins + ledger lock; no `engine/` file touched)
+- Raw: llm-wiki/raw/articles/2026-09-23-wbs25-fx-acceptance-tc251-tc255.md
+- Updated: scripts/ri_audit.sh (Phase 10 five t25 lines), docs/evidence/pcf/engine.md (LOCKED at 2.5.2–2.5.5, 2.5.1 stays OPEN-04), llm-wiki/index.md
+- **TDD:** four pins green first run (property pins); the fifth caught a REAL bug pre-GREEN — mine (memcmp over loader-unwritten struct tails = my stack garbage; memset, green). Production untouched.
+- **Measured:** cutoff row8 0 cents, v0 ratio exactly 0.0625, v64 unity exact; sync 0/0.0028/0.0017% (ledger match); 5-min 14.4M samples bit-exact (0.119 s); DC-norm 3×3 ≤1e-6; monotonic sweep max 0.90507; swap energy 0.8101; refusal 54×16 neutral. Full `ri_audit.sh` 0/0 twice (0 FAIL lines); goldens re-render identical.
+- **Honesty:** refusal pin ≠ pattern coverage (tag TC-2.5.1-OPEN); no websites needed (contracts local); spirv-val vacuous.
+
 ## [2026-09-23] m7 | WBS 2.9 first panel: TC-2.9.1–2.9.3 host pins + right-click default (TDD)
 - Disposition: New (two pins + one accessor the pins demanded; M2.3's last leg)
 - Raw: llm-wiki/raw/articles/2026-09-23-wbs29-first-panel-tc291-tc293.md
