@@ -1,8 +1,9 @@
 # WAV export — evidence ledger (Module 2.5/2.13, TC-2.13.4 host scope)
 
-**Date:** 2026-09-23. **Status:** PARTIAL (16/24-bit at 48 kHz locked;
-44.1 kHz + AIFF stay OPEN, named below — no parity claimed beyond
-what is pinned here).
+**Date:** 2026-09-23. **Status:** PARTIAL (16/24-bit at 48 kHz +
+44.1 kHz offline render locked; AuRender/live rate + AIFF stay
+OPEN, named below — no parity claimed beyond what is pinned
+here).
 **Spec:** WBS TC-2.13.4 (WAV at 44.1/48 kHz, 16/24-bit, valid
 header, no clipping past genuine peaks).
 
@@ -35,9 +36,26 @@ header, no clipping past genuine peaks).
 
 ## OPEN (not silent)
 
-- 44.1 kHz export: needs a resampler (no rate conversion exists
-  anywhere in the tree) — own slice when scheduled.
+- AuRender/live rate: the engine DSP takes float sr everywhere and
+  the offline tool renders at both rates, but `AudioObject` carries
+  no rate (RI_AUDIO_SR locked; the AHI path negotiates its own) —
+  threading rate through the live path touches Dell-verified 2.7
+  code and rides its own slice with on-device proof.
 - AIFF: no writer exists — own slice when scheduled.
 - External validation (sox/Audition per the TC text): no sox on
   the host lane; the host gate is structural parse + golden bytes.
   Device/external import validation rides the on-device pass.
+
+## 44.1 kHz offline render (`--rate`, `t31_rate441`)
+
+`--rate 48000|44100` (default 48000): every render mode renders
+AND writes at `g_rate` (map/clocks/voices/phases/durations/layer
+rates/syncs/allocation + 1 s tails = `g_rate` samples; the retired
+`RI_TAIL_SMP` constant documented the old fixed tail). Default-rate
+outputs byte-identical (math-dc + first-light proven in audit).
+Goldens `dc-441.wav` (96000 samples) + `first-light-441.wav`
+(114975 samples = song duration × 44100/48000, ratio 0.9187 vs
+exact 0.91875 — duration scaling honored). Engine sanity at
+44100: delay sync exact (16538), 303/PCF DC unity, 808 BD
+finite/in-band; clock already pinned by t21_seq (exact 115200
+ticks both rates, cited not duplicated).

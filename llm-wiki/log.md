@@ -239,6 +239,14 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] m13 | M2.5 export rate: TC-2.13.4 44.1 kHz native render (TDD feature)
+- Disposition: New (--rate threading + 2 goldens; AuRender/live rate + AIFF stay OPEN)
+- Raw: llm-wiki/raw/articles/2026-09-23-m25-export-rate-44100-tc2134.md
+- Updated: tools/render.c (g_rate threading + tail scaling), scripts/ri_audit.sh (Phase 1 44100 goldens + t31), tests/golden/303/dc-441.wav + first-light-441.wav + .sha256 (new), docs/evidence/formats/export.md (status + section), llm-wiki/index.md
+- **Design finding:** no resampler needed — engine DSP is sr-generic; the lock was render-tool RI_SR + fixed tail. Live rate untouched (touches Dell-verified code — own slice).
+- **TDD:** RED watched (missing goldens); GREEN all checks; default-rate outputs byte-identical (math-dc + first-light). Full `ri_audit.sh` 0/0 twice (baseline completed untouched this time).
+- **Honesty:** replaceAll hit the TAIL #define (caught on readback); wrong golden dir caught by failing render; no websites needed; spirv-val vacuous.
+
 ## [2026-09-23] m12 | M2.5 mod pack: TC-2.12.1/TC-2.12.5 pins (no production change)
 - Disposition: New (one pin + ledger lock; no `engine/` file touched)
 - Raw: llm-wiki/raw/articles/2026-09-23-m25-modpack-tc2121-tc2125.md
