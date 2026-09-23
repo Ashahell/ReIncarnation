@@ -23,7 +23,7 @@
 int ri_knob_blit_one(struct RastPort *rp, int value, int dx, int dy);
 
 static const unsigned int KCTL[4] = { 0x0900u, 0x0901u, 0x0902u, 0x0903u };
-static const int KCX[4] = { 30, 63, 96, 129 };
+static const int KCX[4] = { 40, 110, 180, 250 };
 static const int KCY = 52;
 
 int main(void) {
@@ -45,9 +45,9 @@ int main(void) {
     wi_tags[2].ti_Tag = WA_Top;
     wi_tags[2].ti_Data = 0;
     wi_tags[3].ti_Tag = WA_Width;
-    wi_tags[3].ti_Data = 160;
+    wi_tags[3].ti_Data = 296;
     wi_tags[4].ti_Tag = WA_Height;
-    wi_tags[4].ti_Data = 88;
+    wi_tags[4].ti_Data = 96;
     wi_tags[5].ti_Tag = WA_CloseGadget;
     wi_tags[5].ti_Data = TRUE;
     wi_tags[6].ti_Tag = WA_DragBar;
@@ -68,7 +68,8 @@ int main(void) {
         if (v < 0)
             v = 64;
         /* 64px frames centered on the doc centers. */
-        rc = ri_knob_blit_one(win->RPort, v, KCX[i] - 32, KCY - 32);
+        /* 80px frames centered on the doc centers. */
+        rc = ri_knob_blit_one(win->RPort, v, KCX[i] - 40, KCY - 40);
         if (rc <= 0)
             bad++;
     }

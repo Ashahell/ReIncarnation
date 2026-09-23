@@ -115,13 +115,12 @@ int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id) {
     return (int)c->def_value;
 }
 
-/* Doc table: docs/evidence/gui/panel-909-geometry.md — compact
- * measured layout (E0→measured lock 2026-09-23, two independent
- * Dell runs pixel-identical): even 33 px pitch, aligned row,
- * ~32 px knob visuals in a 160x88 window at screen origin. */
-static const int RI_909_KNOB_X[4] = { 30, 63, 96, 129 };
+/* Doc table: docs/evidence/gui/panel-909-geometry.md — v2 layout
+ * (E0→measured→v2-art lock 2026-09-23): even 70 px pitch (hardware
+ * 1.35 diameter ratio on the 52 px art bodies), aligned row. */
+static const int RI_909_KNOB_X[4] = { 40, 110, 180, 250 };
 static const int RI_909_KNOB_Y = 52;
-static const int RI_909_KNOB_D = 32;
+static const int RI_909_KNOB_D = 52;
 
 struct RIPanelRect ri_panel909_knob_rect(unsigned int index, int zoom) {
     struct RIPanelRect r = { 0, 0, 0, 0 };

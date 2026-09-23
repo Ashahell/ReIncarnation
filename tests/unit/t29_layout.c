@@ -24,22 +24,23 @@ int main(void) {
     struct RIPanelRect r;
 
     /* --- doc centers at 1x (TC-2.9.1 ±2px contract values,
-     * compact measured lock: even 33 px pitch, row y=52) --- */
+     * v2 layout: even 70 px pitch = hardware 1.35 ratio on the
+     * 52 px art bodies, row y=52) --- */
     r = ri_panel909_knob_rect(0, 0);
-    CHECK(r.x == 30 && r.y == 52, "tune (%d,%d)", r.x, r.y);
+    CHECK(r.x == 40 && r.y == 52, "tune (%d,%d)", r.x, r.y);
     r = ri_panel909_knob_rect(1, 0);
-    CHECK(r.x == 63 && r.y == 52, "level (%d,%d)", r.x, r.y);
+    CHECK(r.x == 110 && r.y == 52, "level (%d,%d)", r.x, r.y);
     r = ri_panel909_knob_rect(2, 0);
-    CHECK(r.x == 96 && r.y == 52, "decay (%d,%d)", r.x, r.y);
+    CHECK(r.x == 180 && r.y == 52, "decay (%d,%d)", r.x, r.y);
     r = ri_panel909_knob_rect(3, 0);
-    CHECK(r.x == 129 && r.y == 52, "flamres (%d,%d)", r.x, r.y);
+    CHECK(r.x == 250 && r.y == 52, "flamres (%d,%d)", r.x, r.y);
 
-    /* --- radius 32 at 1x, scales with zoom --- */
+    /* --- diameter 52 at 1x, scales with zoom --- */
     r = ri_panel909_knob_rect(0, 0);
-    CHECK(r.w == 32 && r.h == 32, "diam %dx%d", r.w, r.h);
+    CHECK(r.w == 52 && r.h == 52, "diam %dx%d", r.w, r.h);
     r = ri_panel909_knob_rect(0, 2);
-    CHECK(r.x == 60 && r.y == 104, "2x center (%d,%d)", r.x, r.y);
-    CHECK(r.w == 64 && r.h == 64, "2x diam %dx%d", r.w, r.h);
+    CHECK(r.x == 80 && r.y == 104, "2x center (%d,%d)", r.x, r.y);
+    CHECK(r.w == 104 && r.h == 104, "2x diam %dx%d", r.w, r.h);
 
     /* --- fail-closed edges --- */
     r = ri_panel909_knob_rect(4, 0);
