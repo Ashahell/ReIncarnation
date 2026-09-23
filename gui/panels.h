@@ -41,4 +41,16 @@ const struct RIPanelDesc *ri_panel_dummy(void);
  * shell ignores -1). TC-2.9.2. */
 int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id);
 
+/* First-panel knob rects (TC-2.9.1 code side): panel-909-geometry
+ * doc centers at 1024×768, knob 56 px at 1x, scaled to a zoom
+ * level (0/1/2). Index 0..3 = tune/level/decay/flamres; anything
+ * else (or unknown zoom) returns all zeros. */
+struct RIPanelRect {
+    int x; /* center */
+    int y; /* center */
+    int w; /* width */
+    int h; /* height */
+};
+struct RIPanelRect ri_panel909_knob_rect(unsigned int index, int zoom);
+
 #endif

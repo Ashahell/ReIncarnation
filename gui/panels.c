@@ -5,6 +5,7 @@
  * full, transport stopped).
  */
 #include "gui/panels.h"
+#include "gui/knob_logic.h"
 
 #define CTL(id, nm, dv) { (id), (nm), (dv), 0, 127 }
 
@@ -112,4 +113,23 @@ int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id) {
     if (!c)
         return -1;
     return (int)c->def_value;
+}
+
+/* Doc table: docs/evidence/gui/panel-909-geometry.md (centers at
+ * 1024×768, 56 px knobs at 1x). */
+static const int RI_909_KNOB_X[4] = { 176, 400, 624, 848 };
+static const int RI_909_KNOB_Y = 320;
+static const int RI_909_KNOB_D = 56;
+
+struct RIPanelRect ri_panel909_knob_rect(unsigned int index, int zoom) {
+    struct RIPanelRect r = { 0, 0, 0, 0 };
+    if (index >= 4u)
+        return r;
+    if (ri_zoom_factor(zoom) == 0.0)
+        return r;
+    r.x = ri_zoom_scaled_px(RI_909_KNOB_X[index], zoom);
+    r.y = ri_zoom_scaled_px(RI_909_KNOB_Y, zoom);
+    r.w = ri_zoom_scaled_px(RI_909_KNOB_D, zoom);
+    r.h = ri_zoom_scaled_px(RI_909_KNOB_D, zoom);
+    return r;
 }

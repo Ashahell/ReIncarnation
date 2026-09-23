@@ -326,6 +326,7 @@ echo "== Phase 12: GUI logic + MCC shells + panels (Task 12, gate G12) =="
 bash "$ROOT/scripts/ri_build_host.sh" test t1_knob >/dev/null || { echo "FAIL: t1_knob"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t29_paneldefault >/dev/null || { echo "FAIL: t29_paneldefault (TC-2.9.2/2.9.1)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t29_chase >/dev/null || { echo "FAIL: t29_chase (TC-2.9.3)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t29_layout >/dev/null || { echo "FAIL: t29_layout (TC-2.9.1)"; exit 1; }
 test -f "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: missing gui acceptance"; exit 1; }
 grep -q -- "- \[ \]" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance has no checkable boxes"; exit 1; }
 grep -q "P-18" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks P-18"; exit 1; }
