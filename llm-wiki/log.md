@@ -254,6 +254,16 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-23] m16 | Dell 909 panel: explicit-open root cause + compact geometry measured twice, doc locked (TC-2.9.1 device evidence)
+- Disposition: New (H2a proof + E0→E2 sizing trail + E0→measured doc lock)
+- Raw: llm-wiki/raw/articles/2026-09-23-dell-909-panel-measured-lock-tc291.md
+- Updated: app/panel909.c (measured E2 config), gui/panels.c + panels.h (compact accessor), tests/unit/t29_layout.c (compact asserts), docs/evidence/gui/panel-909-geometry.md (lock + struck E0), docs/evidence/gui/acceptance.md (silhouette box checked), llm-wiki/index.md
+- **H2a:** creation-open ignored on lane; explicit post-creation open → `RI-909 288x88` listed. Single variable, decisive.
+- **Measured twice pixel-identical:** 160×88 at (0,0); knobs x 30/63/96/129 (exact 33px pitch), y≈52, ~32px visuals, all four identical. Knob.mui intrinsic wins over FixWidth everywhere measured.
+- **Integrity:** doc-lock-compact chosen over circular lock (design rule + regression gate, falsifiable); custom-draw alternative stays user-optional. Full `ri_audit.sh` 0/0 over frozen tree (0 FAIL lines).
+- **Self-caught:** s3–s5 marker gap (false contradiction), SetAttrs include, #define-eating replaceAll, head-truncated build verdict.
+- Next: knob drag measurement (TC-2.9.2 device half) + LED/chase (needs 2.10 step GUI).
+
 ## [2026-09-23] m15 | Dell GUI first light: Classic window opens, runs, closes clean (TDD layout accessor + v11 lane)
 - Disposition: New (first GUI binary on Dell hardware; delivery pipeline proven with the empty window)
 - Raw: llm-wiki/raw/articles/2026-09-23-dell-gui-first-light-classic-window.md

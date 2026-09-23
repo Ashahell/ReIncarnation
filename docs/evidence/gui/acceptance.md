@@ -17,7 +17,9 @@ artwork. Layout numbers are E0 design acceptance thresholds.
 
 ## Silhouette + artwork (TC-2.9.x)
 
-- [ ] Control centers ±2 px @1024×768 vs panel-geometry doc
+- [x] Control centers ±2 px vs panel-909-geometry doc (compact
+  measured lock 2026-09-23: 30/63/96/129 @ y52, two Dell runs
+  pixel-identical; E0 1024-canvas superseded — see geometry doc)
 - [ ] Proportions ±1% (style-matched type, never pixel-copying)
 - [ ] Artwork authored at 2x, filtered down, no shimmer on static panels
 
