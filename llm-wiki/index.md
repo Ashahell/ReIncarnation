@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-panel-composition-device-proof.md](raw/articles/2026-09-24-panel-composition-device-proof.md) — **2026-09-24 — Panel composition on device: bg, rules, labels, knobs (eyeballed + measured).** Full first-panel composition live: exact-bg fill, divider rules, legible labels, four v2 knobs at doc x ±0px. File-damage self-catch (header API deletion + return-type corruption, repaired pre-build). Audit 0/0. Remaining: MCC integration, typography, 2.10 step GUI.
+
 - [raw/articles/2026-09-23-knob-v2-pitch70-device-lock.md](raw/articles/2026-09-23-knob-v2-pitch70-device-lock.md) — **2026-09-23 — Knob v2 art lock: 70px pitch from hardware ratio, pointer-tip geometry, exact orange on device.** Hardware ratio 1.35 → pitch 70 for 52px bodies (overlap resolved); x exact, y via pointer tips (tick-gap bias diagnosed); `#e37c3b` byte-exact on Dell; tick rings on all four. Audit 0/0. Remaining: panel composition, MCC integration.
 
 - [raw/articles/2026-09-23-knob-blit-device-bgra-proof.md](raw/articles/2026-09-23-knob-blit-device-bgra-proof.md) — **2026-09-23 — Knob blit on device: BGRA root cause via calibration, orange pointers proven.** Lavender ghosts → 6-swatch calibration (red/grn/blk transparent, blue/white exact, half blended exactly 149) proves BGRA words + honored per-pixel alpha → one-line packing fix → dark knobs + byte-exact `#e07b2e` pointers at doc centers ±1px on the Dell. Audit 0/0. Remaining: panel composition, MCC integration.

@@ -254,6 +254,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m20 | Panel composition on device: bg, rules, labels, knobs (eyeballed + measured)
+- Disposition: New (composition helper + proof vehicle + constants + pins)
+- Raw: llm-wiki/raw/articles/2026-09-24-panel-composition-device-proof.md
+- Updated: gui/knob_blit.h (new decls), gui/knob_blit.c (rect helper), gui/panels.h (W/H/BG constants), app/knobproof.c (composition), tests/unit/t29_layout.c (constant pins), llm-wiki/index.md
+- **Measured:** bg exact `#dcdcd6`; knob x 0px error; labels legible; rules code-proven, sub-pixel at capture scale (stated).
+- **Self-caught:** header edit deleted rect API + corrupted return type — repaired pre-build, verified by diff.
+- Full `ri_audit.sh` 0/0 frozen tree (0 FAIL lines). Remaining: MCC integration, typography, 2.10 step GUI.
+
 ## [2026-09-23] m19 | Knob v2 art lock: 70px pitch from hardware ratio, pointer-tip geometry, exact orange on device
 - Disposition: New (geometry re-lock + device proof; art internals already pinned in m17)
 - Raw: llm-wiki/raw/articles/2026-09-23-knob-v2-pitch70-device-lock.md
