@@ -239,6 +239,14 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] m12 | M2.5 mod pack: TC-2.12.1/TC-2.12.5 pins (no production change)
+- Disposition: New (one pin + ledger lock; no `engine/` file touched)
+- Raw: llm-wiki/raw/articles/2026-09-23-m25-modpack-tc2121-tc2125.md
+- Updated: scripts/ri_audit.sh (formats phase t30 line), docs/evidence/formats/rbnm-full.md (first Status line: LOCKED at 2.12.1/2.12.5), llm-wiki/index.md
+- **TDD:** green first run (property pin; layer IDs confirmed by passing load). Measured: 14/14 sane+finite, round-trip identical, 4095/4096 differ + identical remix.
+- Full `ri_audit.sh` 0/0 final (0 FAIL lines). Baseline self-invalidated AGAIN (rc=1 line-417 artifact) — lesson strengthened: no edits until the baseline completes.
+- **Honesty:** 2.12.2 already 500/500, 2.12.3/2.12.4 device-side; no websites needed; spirv-val vacuous.
+
 ## [2026-09-23] m11 | M2.5 export depth: TC-2.13.4 24-bit WAV (TDD feature)
 - Disposition: New (export depth for both writers + pin + golden; 44.1 kHz + AIFF stay OPEN)
 - Raw: llm-wiki/raw/articles/2026-09-23-m25-export-depth-24bit-tc2134.md

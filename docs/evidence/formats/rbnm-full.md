@@ -1,5 +1,9 @@
 # RBNM-full — evidence ledger (Task 13, gate G13)
 
+**Status:** LOCKED at TC-2.12.1/TC-2.12.5 (2026-09-23; TC-2.12.2 fuzz
+measured 500/500 in `fuzz.md`; TC-2.12.3/2.12.4 device-side, noted
+in the article).
+
 The Task-9 S909-subset validator (`rbnm_validate_file`,
 `rbnm_validate_manifest_text`, writer, loader) is UNTOUCHED: the
 clean pack still validates and every Phase-9 gate re-runs green
@@ -24,3 +28,11 @@ task; the song-side `SKIN` rule (`rbng_art_fallback`: absent → 1,
 load continues on the built-in placeholder) is asserted in t1_formats
 §3, and the AROS datatype shells (`project/datatypes/*.datatype.c`)
 report the fallback state to the app instead of failing the load.
+
+## Shipped-pack acceptance (TC-2.12.1/TC-2.12.5, `t30_modpack`)
+
+classic-01 (the only shipped mod): 14 layers inventoried sane
+(44.1/48 kHz, frames > 0, lo ≤ hi), every layer loads finite,
+reserialize byte-identical, BD-LOW vs BD-HI render 4095/4096
+different with bit-identical remix (the pack changes sound per
+S909 chunk, TC-2.12.5).
