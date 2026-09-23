@@ -239,6 +239,14 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] m11 | M2.5 export depth: TC-2.13.4 24-bit WAV (TDD feature)
+- Disposition: New (export depth for both writers + pin + golden; 44.1 kHz + AIFF stay OPEN)
+- Raw: llm-wiki/raw/articles/2026-09-23-m25-export-depth-24bit-tc2134.md
+- Updated: audio_io/audio.c/audio.h (header/pack/depth/wrapper), tools/render.c (--depth + float buffers), scripts/ri_audit.sh (Phase 1 dc-24 + t28), tests/golden/303/dc-24.wav + .sha256 (new), docs/evidence/formats/export.md (new, PARTIAL), llm-wiki/index.md
+- **TDD:** RED watched clean (link-phase, 3 missing symbols, test compiled diagnostic-free). GREEN all checks; 16-bit math-dc byte-identical thru the rewire.
+- **Real finding pre-GREEN:** s24 -1.0 edge (-8388607, truncation, twin-consistent with s16 -32767) — assertion fixed, not code.
+- Full `ri_audit.sh` 0/0 twice (0 FAIL lines). No websites needed; spirv-val vacuous.
+
 ## [2026-09-23] m10 | M2.4 GUI-tail host cores: TC-2.10.3 copypaste + TC-2.11.1 FX latency (no production change)
 - Disposition: New (two pins + two ledger rows; no `engine/` file touched)
 - Raw: llm-wiki/raw/articles/2026-09-23-m24-guitail-copypaste-fxlatency.md
