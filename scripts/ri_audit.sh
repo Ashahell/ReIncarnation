@@ -264,6 +264,9 @@ echo "== Phase 11: mixer + RIDevice registry (Task 11, gate G11) =="
 T11=/tmp/ri/run/audit11
 mkdir -p "$T11"
 bash "$ROOT/scripts/ri_build_host.sh" test t1_mixer >/dev/null || { echo "FAIL: t1_mixer"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t26_gainstage >/dev/null || { echo "FAIL: t26_gainstage (TC-2.6.1)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t26_matrix >/dev/null || { echo "FAIL: t26_matrix (TC-2.6.2)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t26_meter >/dev/null || { echo "FAIL: t26_meter (TC-2.6.3)"; exit 1; }
 test -f "$ROOT/docs/evidence/sequencer/fader-law.md" || { echo "FAIL: missing fader-law ledger"; exit 1; }
 grep -q "P-17" "$ROOT/docs/evidence/sequencer/fader-law.md" || { echo "FAIL: ledger lacks P-17"; exit 1; }
 grep -q "(v/127)" "$ROOT/docs/evidence/sequencer/fader-law.md" || { echo "FAIL: ledger lacks fader law"; exit 1; }
