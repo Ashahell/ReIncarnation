@@ -113,6 +113,7 @@ bash "$ROOT/scripts/ri_build_host.sh" sched >/dev/null || { echo "FAIL: sched bu
 bash "$ROOT/scripts/ri_build_host.sh" test t21_seq >/dev/null || { echo "FAIL: t21_seq"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_seqloop >/dev/null || { echo "FAIL: t21_seqloop"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_songsteps >/dev/null || { echo "FAIL: t21_songsteps"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t27_copypaste >/dev/null || { echo "FAIL: t27_copypaste (TC-2.10.3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_schedfeed >/dev/null || { echo "FAIL: t21_schedfeed"; exit 1; }
 mkdir -p /tmp/ri/run/t21 # t21_songfile writes its scaffold here (t6 pattern)
 bash "$ROOT/scripts/ri_build_host.sh" test t21_songfile >/dev/null || { echo "FAIL: t21_songfile"; exit 1; }
@@ -222,6 +223,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t25_delay >/dev/null || { echo "FAIL:
 bash "$ROOT/scripts/ri_build_host.sh" test t25_dist >/dev/null || { echo "FAIL: t25_dist (TC-2.5.4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t25_swap >/dev/null || { echo "FAIL: t25_swap (TC-2.5.5)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t25_pcfopen >/dev/null || { echo "FAIL: t25_pcfopen (TC-2.5.1-OPEN)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t27_fxlatency >/dev/null || { echo "FAIL: t27_fxlatency (TC-2.11.1)"; exit 1; }
 test -f "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: missing pcf engine ledger"; exit 1; }
 grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks P-15"; exit 1; }
 grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }
