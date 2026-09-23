@@ -45,3 +45,8 @@ record). TDD with two discarded hypotheses on the record.
 ## Files (uncommitted)
 - `tests/unit/t21_swaprender.c` (extended), `scripts/ri_audit.sh`
   (already wired).
+
+## Status (2026-09-23)
+"already wired" above is corrected: `t21_swaprender` was NOT in the
+audit t21 list at 09-22 — `f7b435b` added it (it passes). The test and
+the `ri_audit.sh` change are committed now (f7b435b), not uncommitted.

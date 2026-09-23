@@ -55,3 +55,14 @@ from any invocation directory (verified from Vulkan4Aros CWD).
   (backend AROS-compile lines + CWD pin).
 - Scratch: `/home/miller/Work/ri_build/{ahi_neg,auplay,<t>_main.c}`;
   guest `RAM:ahi_neg`, `RAM:auplay`.
+
+## Status (2026-09-23, continuation)
+- The playback slice reported here and the close path below are
+  committed: `f7b435b` (`AuPlay`, leak fix) and `f41efa8`
+  (`AuPlayEx`, interruptible play — record
+  `2026-09-23-wbs27-close-path-interruptible-play.md`).
+- **ABI correction:** the Dell E6320 is the **ABIv11** iteration
+  reference (m1-1 record: v1-SDK `startup.o` opens `task.resource`,
+  which ABIv11 rejects); "ABIv1 target" in the Disposition above is a
+  conflation — ABIv1 is the ULTIMATE acceptance target (see
+  `2026-09-22-dell-reference-box-iteration-abiv1-target.md`).

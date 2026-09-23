@@ -9,8 +9,10 @@ New. The WBS 2.7 AHI backend now has its close path: playback is
 interruptible (`AuPlayEx`), and a stop releases EVERYTHING (Close +
 CloseDevice + DeleteIORequest + DeleteMsgPort + DeleteFile) — the
 negotiate-slice leak lesson applied to the play side. Proven on the Dell
-(ABIv1 target) on ONE boot in sequence: negotiate → stop-play →
-negotiate → full-play → negotiate, all rc=0, nothing wedges.
+(E6320, the ABIv11 iteration reference — see m1-1; ABIv1 is the
+eventual acceptance target) on ONE boot in sequence: negotiate →
+stop-play → negotiate → full-play → negotiate, all rc=0, nothing
+wedges.
 
 ## What
 - `audio_io/audio_ahi.h`: `AuPlayEx(struct AudioObject *ao, const volatile

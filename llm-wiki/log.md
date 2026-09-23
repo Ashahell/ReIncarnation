@@ -236,6 +236,15 @@ Identity + delivery + bounded/finite + determinism + same-song transparency; ste
 - Updated: audio_io/audio_ahi.h, audio_io/audio_ahi.c, scripts/ri_audit.sh (backend AROS-compile line), llm-wiki/index.md
 Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header friction fixed; playback + close next. Uncommitted.
 
+## [2026-09-23] ingest | Wiki audit: close-path/ABI corrections + record annotations
+- Disposition: Update (three records annotated; one body correction in the fresh close-path record)
+- Updated: llm-wiki/raw/articles/2026-09-22-wbs27-negotiate.md (Status appended), llm-wiki/raw/articles/2026-09-22-wbs21-swappendix.md (Status appended), llm-wiki/raw/articles/2026-09-23-wbs27-close-path-interruptible-play.md (ABI phrase corrected), llm-wiki/index.md (three rows annotated), llm-wiki/log.md (this entry)
+- **ABI correction:** the Dell E6320 is the ABIv11 iteration reference (m1-1: v1-SDK startup.o opens task.resource, which ABIv11 rejects); ABIv1 is the ULTIMATE acceptance target. The close-path record's "ABIv1 target" phrase is corrected in-file (fresh record); the negotiate record carries a Status note instead (older record, body left as written).
+- m3's log said the negotiate article was "Updated" — the file was never touched; it now carries its missing Status (m3 `f7b435b` + m4 `f41efa8` continuation + the ABI clarification).
+- t21_swaprender: the 09-22 swappendix article claimed `ri_audit.sh` "(already wired)" — m3 found it wasn't and wired it; the article now carries a Status so the claim can't contradict the m3 record.
+- Coverage audit: every recent commit topic maps to an indexed article (WBS 2.1 builder/snapshot/swap/storm chain, 2.2 303 family, 2.7 negotiate + close path) — no missing records found.
+- Lane: e6320 healthy, pending 0; no spool restart needed (the user's head-up went unused).
+
 ## [2026-09-23] m4 | WBS 2.7 close path: interruptible playback (AuPlayEx, Dell green)
 - Disposition: New (API + audit decl-wiring + Dell run)
 - Raw: llm-wiki/raw/articles/2026-09-23-wbs27-close-path-interruptible-play.md
