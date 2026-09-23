@@ -106,3 +106,10 @@ const struct RIPanelControl *ri_panel_find_ctl(const struct RIPanelDesc *p,
 const struct RIPanelDesc *ri_panel_dummy(void) {
     return &RI_DUMMY;
 }
+
+int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id) {
+    const struct RIPanelControl *c = ri_panel_find_ctl(p, ctl_id);
+    if (!c)
+        return -1;
+    return (int)c->def_value;
+}

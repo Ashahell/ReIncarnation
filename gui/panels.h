@@ -36,5 +36,9 @@ const struct RIPanelDesc *ri_panel_get(unsigned int i); /* NULL out of range */
 const struct RIPanelControl *ri_panel_find_ctl(const struct RIPanelDesc *p,
                                                unsigned int ctl_id);
 const struct RIPanelDesc *ri_panel_dummy(void);
+/* Right-click → default: the control's neutral value, or -1 when the
+ * panel is NULL or carries no such control (fail-closed; the MCC
+ * shell ignores -1). TC-2.9.2. */
+int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id);
 
 #endif
