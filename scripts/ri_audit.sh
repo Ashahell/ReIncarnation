@@ -217,6 +217,11 @@ echo "== Phase 10: PCF black-box route + FX trio (Task 10, gate G10) =="
 T10=/tmp/ri/run/audit10
 mkdir -p "$T10" /tmp/ri/run/t10
 bash "$ROOT/scripts/ri_build_host.sh" test t1_fx >/dev/null || { echo "FAIL: t1_fx"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t25_pcfcutoff >/dev/null || { echo "FAIL: t25_pcfcutoff (TC-2.5.2)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t25_delay >/dev/null || { echo "FAIL: t25_delay (TC-2.5.3)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t25_dist >/dev/null || { echo "FAIL: t25_dist (TC-2.5.4)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t25_swap >/dev/null || { echo "FAIL: t25_swap (TC-2.5.5)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t25_pcfopen >/dev/null || { echo "FAIL: t25_pcfopen (TC-2.5.1-OPEN)"; exit 1; }
 test -f "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: missing pcf engine ledger"; exit 1; }
 grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks P-15"; exit 1; }
 grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }
