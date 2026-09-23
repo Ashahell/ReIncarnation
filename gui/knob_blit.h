@@ -8,6 +8,7 @@
 #define RI_KNOB_BLIT_H
 
 #include <exec/types.h>
+#include <stdint.h>
 
 struct RastPort;
 

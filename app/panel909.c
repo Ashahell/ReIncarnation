@@ -2,11 +2,9 @@
  * app/panel909.c — ReIncarnation 909 first-panel window (Module 2.9).
  *
  * AROS-ONLY. MUI application window holding the four 909 voice knobs
- * (tune/level/decay/flamres) at the panel-909-geometry doc layout:
- * four 224 px cells in a spacing-0 horizontal group, each cell a
- * 56 px knob with 84 px inner-left pad (knob center = cell + 112).
- * Knobs come from gui/widgets/rknb.mcc.c (MUIC_Knob skin over the
- * host-tested knob_logic math); rects come from
+ * (tune/level/decay/flamres) as custom RKnB objects
+ * (gui/widgets/rknb.mcc.c: MUIC_Numeric subclass rendering the
+ * measured 80 px 909 frames — MUIC_Knob retired). Rects come from
  * ri_panel909_knob_rect (host-pinned, t29_layout). The window is
  * fixed 1024x768 at screen origin so screendump measurement reads
  * doc coordinates plus window-chrome offset only.
@@ -30,7 +28,8 @@
 #include <proto/exec.h>
 #include "gui/panels.h"
 
-extern APTR ri_rknb_create(void);
+extern APTR ri_rknb_create(LONG dflt);
+extern void ri_rknb_dispose_class(void);
 
 #define NKNOB 4
 
@@ -44,20 +43,19 @@ int main(void) {
     if (!panel || panel->nctls != 4u)
         return 5;
     for (i = 0; i < NKNOB; i++) {
-        /* Knobs sized at creation (56x56 request; knob.mui renders
-         * its ~32 px intrinsic — measured on device, see the
-         * geometry doc; FixWidth kept explicit for future MUI).
-         * No cell wrappers: measured 33 px even pitch, aligned
-         * row, identical visuals across two independent runs. */
-        knobs[i] = (Object *)MUI_NewObject(MUIC_Knob,
-            MUIA_Numeric_Min, 0,
-            MUIA_Numeric_Max, 127,
-            MUIA_Numeric_Value, 64,
-            MUIA_FixWidth, 56,
-            MUIA_FixHeight, 56,
-            TAG_DONE);
+        /* Custom RKnB class (measured 80 px 909 frames, NOT MUIC_Knob):
+         * per-control default from the panel table (right-click
+         * target, TC-2.9.2); fail-closed to mid when the table has
+         * no such control. FixWidth/Height match the frame edge so
+         * the MUI layout never scales the art. */
+        int dflt = ri_panel_default_ctl(panel, 0x0900u + i);
+        if (dflt < 0)
+            dflt = 64;
+        knobs[i] = (Object *)ri_rknb_create(dflt);
         if (!knobs[i])
             return 6;
+        SetAttrs(knobs[i], MUIA_FixWidth, 80, MUIA_FixHeight, 80,
+            TAG_DONE);
         cells[i] = knobs[i];
     }
     win = (Object *)MUI_NewObject(MUIC_Window,
@@ -99,5 +97,6 @@ int main(void) {
             Wait(sigs);
     }
     MUI_DisposeObject(app);
+    ri_rknb_dispose_class();
     return 0;
 }
