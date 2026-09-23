@@ -1,11 +1,11 @@
 # CY — 808 cymbal (measured E0 candidate, Task 8 gate G8)
 
-**Date:** 2026-09-20. **Status:** HYPOTHESIS (locks at TC-2.3.1 FFT).
+**Date:** 2026-09-20 (cluster locked 2026-09-23). **Status:** LOCKED (TC-2.3.1 FFT; LOW base 250).
 **Spec:** §10, Appendix A P-10, Appendix C skeleton.
 
 | Parameter | Value | Evidence |
 |-----------|-------|----------|
-| Cluster | 6 squares, LOW base 250 Hz × ratios 1.00/1.30/1.62/1.93/2.27/2.63 | P-10 low-base cluster |
+| Cluster | 6 squares, LOW base 250 Hz × ratios 0.83/1.48/2.26/2.92/3.94/5.31 (208/370/565/730/985/1328 Hz) | shared metal ratio set; CY keeps LOW base |
 | HP | 5 kHz one-pole (E0; hats use 7 kHz) | executor choice |
 | τ_amp | 1.6 s (`RI_808_CY_TAU`) / 2.5 s max | P-10 CY τ1.6 s |
 

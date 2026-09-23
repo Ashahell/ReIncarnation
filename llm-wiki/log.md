@@ -236,6 +236,15 @@ Identity + delivery + bounded/finite + determinism + same-song transparency; ste
 - Updated: audio_io/audio_ahi.h, audio_io/audio_ahi.c, scripts/ri_audit.sh (backend AROS-compile line), llm-wiki/index.md
 Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header friction fixed; playback + close next. Uncommitted.
 
+## [2026-09-23] m5 | WBS 2.3 808 acceptance: TC-2.3.1–2.3.5 pins + metal-ratio lock (TDD)
+- Disposition: New (five per-TC pins + one production constant the pins demanded)
+- Raw: llm-wiki/raw/articles/2026-09-23-wbs23-808-acceptance-tc231-tc235.md
+- Updated: engine/dsp/rb808.c (ratio array → WBS contract {0.83,1.48,2.26,2.92,3.94,5.31}), engine/dsp/rb808.h (`RI_808_METAL_BASE` 400→1000 → partials 830..5310 Hz; ctl-id block `RI_CTL_808_BASE+0..5`; `rb808_set_param` decl), engine/dsp/params.c (808 section: `RI_808_DECAY_TBL` 9 anchors 0.18..2.8 s + `rb808_set_param`), tests/unit/t1_808.c (§2 base literal → `(double)RI_808_METAL_BASE`), scripts/ri_audit.sh (Phase 8 five t23 lines), tests/golden/808/{ch,oh,cy,storm}.wav + `.sha256` (regenerated; other 11 byte-identical), docs/evidence/808/{ch,oh,cy,bd}.md (LOCKED), llm-wiki/index.md
+- **TDD:** RED watched ×2 — `t23_808hat` 8/12 FAIL pre-lock (the 4 passing partials were coincidental harmonics of the 400-base cluster); `bd` build-RED (`rb808_set_param`/`RI_CTL_808_DECAY` undeclared); clap/accent/storm green pins on frozen code (clap peaks 0.21/9.5/18.2/27.3 ms, gaps 9.3/8.7/9.1 ms).
+- **GREEN:** after lock + param section — hat m0 5–45× above ±0.5% skirts at all 6 contract freqs, CH+OH; BD white-box tau 0.18/2.8 ±10% at knob 0/127 + rendered 1/e crossing (64 ms RMS window — 5 ms window was shorter than the 48 Hz settled period); all five exit 0. Full `ri_audit.sh` 0/0 (Phase 8 re-render determinism over all 16 goldens).
+- **Stale-render trap:** `ri_build_host.sh all` compiles MOD objects only; `$OUT/render` is linked by ri_audit.sh (line 36). Hand-run golden renders used the pre-lock `render` binary → byte-identical to committed goldens → suspicious; relinked `render` → expected 4/12 golden split. Golden re-renders must use the relinked tool.
+- **Honesty:** "14-voice" in TC-2.3.5, engine has 15 — the storm pin uses mask 0x7FFF (superset, noted in test + article); spirv-val vacuous (no SPIR-V in repo), noted per standing.
+
 ## [2026-09-23] ingest | Wiki audit: close-path/ABI corrections + record annotations
 - Disposition: Update (three records annotated; one body correction in the fresh close-path record)
 - Updated: llm-wiki/raw/articles/2026-09-22-wbs27-negotiate.md (Status appended), llm-wiki/raw/articles/2026-09-22-wbs21-swappendix.md (Status appended), llm-wiki/raw/articles/2026-09-23-wbs27-close-path-interruptible-play.md (ABI phrase corrected), llm-wiki/index.md (three rows annotated), llm-wiki/log.md (this entry)

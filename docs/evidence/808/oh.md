@@ -1,11 +1,11 @@
 # OH — 808 open hat (measured E0 candidate, Task 8 gate G8)
 
-**Date:** 2026-09-20. **Status:** HYPOTHESIS (locks at TC-2.3.1 FFT).
+**Date:** 2026-09-20 (cluster locked 2026-09-23). **Status:** LOCKED (TC-2.3.1 FFT).
 **Spec:** §10, Appendix A P-10, Appendix C skeleton.
 
 | Parameter | Value | Evidence |
 |-----------|-------|----------|
-| Cluster | 6 squares, base 400 Hz × ratios 1.00/1.30/1.62/1.93/2.27/2.63 | P-10 6-osc nominals |
+| Cluster | 6 squares, base 1000 Hz × ratios 0.83/1.48/2.26/2.92/3.94/5.31 (830/1480/2260/2920/3940/5310 Hz) | classic TR-808 set; WBS ratios + deep-dive pt 3 |
 | HP | 7 kHz one-pole (`RI_808_HP_METAL`) | P-10 7 kHz HP |
 | τ_amp | 0.4 s default, range 0.2–1.2 s (max 1.2) | P-10 OH 0.2–1.2 s |
 | Bleed | HP-noise transient exp(−t/35 ms) ×0.04 | Appendix C "+bleed for OH" (E0) |

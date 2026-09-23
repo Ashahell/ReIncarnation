@@ -1,6 +1,6 @@
 # BD — 808 kick (measured E0 candidate, Task 8 gate G8)
 
-**Date:** 2026-09-20. **Status:** HYPOTHESIS (locks at TC-2.3.1/2.3.2).
+**Date:** 2026-09-20 (decay knob locked 2026-09-23). **Status:** LOCKED (TC-2.3.1/2.3.2).
 **Spec:** §10, Appendix A P-07, Appendix C skeleton.
 
 | Parameter | Value | Evidence |
@@ -9,6 +9,7 @@
 | f_end | 48 Hz | P-07 nominal |
 | τ_pitch | 22 ms (`RI_808_BD_TAU_PITCH`) | P-07 nominal |
 | τ_amp | 0.5 s default / 2.8 s max | P-07 range 0.18–2.8 s |
+| Decay knob | 0.18 s @ knob 0 .. 2.8 s @ knob 127 via `RI_808_DECAY_TBL` (9 anchors, params.c 808 section); rendered 1/e crossing matches ±10% | `t23_808bd` green |
 | Floor | 35 Hz (`RI_808_FLOOR_HZ`; `rb808_pitch_hz` clamps) | P-07 floor |
 | Trajectory gate | ±5% at t = 10/25/50/100/200 ms | `t1_808` §1 green |
 
