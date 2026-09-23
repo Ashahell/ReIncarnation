@@ -16,6 +16,7 @@
  * docs/evidence/sequencer/fader-law.md.
  */
 #include "engine/dsp/rb303.h"
+#include "engine/dsp/rb808.h"
 
 #define RI_N_ANCHOR 9
 
@@ -91,5 +92,40 @@ void rb303_set_param(struct RB303Voice *v, uint32_t ctl_id, uint8_t value) {
     default:
         break; /* unknown control: ignored by the voice; tools/render
                 * rejects bad song lines loudly, so nothing fails silent */
+    }
+}
+
+/* --- 808 control curves (WBS interface line 81; Module 2.3) --- *
+ * DECAY: amplitude tau seconds 0.18..2.8, exponential feel (TC-2.3.2:
+ * 0.18 s at knob 0 .. 2.8 s at knob 127, both +-10%; knob 64 = 0.50 s, the
+ * exact BD ledger default). */
+static const float RI_808_DECAY_TBL[RI_N_ANCHOR] = {
+    0.18f, 0.22f, 0.28f, 0.38f, 0.50f, 0.72f, 1.10f, 1.80f, 2.80f
+};
+
+void rb808_set_param(struct RB808Voice *v, uint32_t ctl_id, uint8_t value) {
+    switch (ctl_id) {
+    case RI_CTL_808_DECAY:
+        v->tau_amp = interp9(RI_808_DECAY_TBL, value);
+        break;
+    case RI_CTL_808_TUNE:
+        /* +/-7 st across the knob (0 -> -7, 127 -> +7); engine clamps. */
+        v->tune_st = ((float)value - 64.0f) * 14.0f / 127.0f;
+        break;
+    case RI_CTL_808_LEVEL:
+        /* Placeholder: no engine gain field yet (auto/panel trim); the
+         * ledger rows keep EXCITE as the only 808 level control. */
+        break;
+    case RI_CTL_808_SNAPPY:
+    case RI_CTL_808_TONE:
+        /* Placeholder: no engine field for either (P-10 E0 keeps fixed
+         * 2 ms clap burst width / fixed cluster HP). */
+        break;
+    case RI_CTL_808_ACCENT:
+        /* Placeholder: trigger-time binary (rb808_trigger accent arg);
+         * a panel 0..127 knob is not wired into the engine state. */
+        break;
+    default:
+        break; /* unknown control: ignored by the voice */
     }
 }

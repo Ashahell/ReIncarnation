@@ -12,7 +12,7 @@
 #define RI_808_PI 3.14159265f
 #define RI_808_TWO_PI 6.2831853f
 
-const float RI_808_METAL_RATIO[6] = { 1.0f, 1.30f, 1.62f, 1.93f, 2.27f, 2.63f };
+const float RI_808_METAL_RATIO[6] = { 0.83f, 1.48f, 2.26f, 2.92f, 3.94f, 5.31f };
 
 static const char *const RI_808_NAMES[RI_808_NVOICES] = {
     "bd", "sd", "lt", "mt", "ht", "lc", "mc", "hc",

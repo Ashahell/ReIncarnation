@@ -107,7 +107,7 @@ int main(void) {
         uint32_t n = 24000;
         render_voice(RB808_CH, 0, 0.5f, buf);
         for (i = 0; i < 6; i++) {
-            double fc = 400.0 * (double)RI_808_METAL_RATIO[i];
+            double fc = (double)RI_808_METAL_BASE * (double)RI_808_METAL_RATIO[i];
             double m0 = goertzel(buf, n, fc);
             double mlo = goertzel(buf, n, fc * 0.995);
             double mhi = goertzel(buf, n, fc * 1.005);

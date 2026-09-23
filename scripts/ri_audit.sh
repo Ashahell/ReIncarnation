@@ -139,6 +139,12 @@ mkdir -p "$T7"
 "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$T7/sched-check.events" --wav-a "$SG/sched-check.wav" --wav-b "$T7/sched-check.wav" | grep -q "COMPARE: IDENTICAL" || { echo "FAIL: sched-check re-render differs (not deterministic)"; exit 1; }
 echo "== Phase 8: 808 fifteen voices (Task 8, gate G8) =="
 bash "$ROOT/scripts/ri_build_host.sh" test t1_808 >/dev/null || { echo "FAIL: t1_808"; exit 1; }
+# Module 2.3 acceptance pins (TC-2.3.1..2.3.5)
+bash "$ROOT/scripts/ri_build_host.sh" test t23_808hat >/dev/null || { echo "FAIL: t23_808hat (TC-2.3.1 hat)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t23_808bd >/dev/null || { echo "FAIL: t23_808bd (TC-2.3.1/2 BD)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t23_808clap >/dev/null || { echo "FAIL: t23_808clap (TC-2.3.3 clap)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t23_808accent >/dev/null || { echo "FAIL: t23_808accent (TC-2.3.4)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t23_808storm >/dev/null || { echo "FAIL: t23_808storm (TC-2.3.5)"; exit 1; }
 for v in bd sd lt mt ht lc mc hc rs cl cp ch oh cy cb; do
   test -f "$ROOT/docs/evidence/808/$v.md" || { echo "FAIL: missing ledger 808/$v.md"; exit 1; }
   grep -q "EXCITE" "$ROOT/docs/evidence/808/$v.md" || { echo "FAIL: ledger $v lacks accent mapping"; exit 1; }

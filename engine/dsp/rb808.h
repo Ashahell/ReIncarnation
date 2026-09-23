@@ -55,7 +55,11 @@
 #define RI_808_CONGA_LC_F 200.0f /* P-09 fixed */
 #define RI_808_CONGA_MC_F 250.0f
 #define RI_808_CONGA_HC_F 310.0f
-#define RI_808_METAL_BASE 400.0f /* Hz; 6-osc cluster base (P-10) */
+#define RI_808_METAL_BASE 1000.0f /* Hz; 6-osc cluster base (P-10, TC-2.3.1).
+                                   * Classic 808 metal set: partials =
+                                   * base x {0.83,1.48,2.26,2.92,3.94,5.31}
+                                   * (WBS ratios; deep-dive part 3: f, 1.48f,
+                                   * 2.26f, 2.92f, 3.94f, 5.3f, f=826-830) */
 #define RI_808_HP_METAL 7000.0f /* Hz one-pole HP (P-10) */
 #define RI_808_CH_TAU 0.035f /* s (P-10) */
 #define RI_808_CY_TAU 1.6f /* s (P-10) */
@@ -69,7 +73,17 @@
 #define RI_808_FLOOR_HZ 35.0f /* P-07 35 Hz floor: no voice ever below */
 #define RI_808_SR_DEFAULT 48000.0f
 
-/* Six-oscillator metal cluster ratios (P-10 E0 nominals; ledger row CH). */
+/* 808 control IDs [WBS interface line 81; order mirrors panels.c] */
+#define RI_CTL_808_LEVEL  0x0400u
+#define RI_CTL_808_TUNE   0x0401u
+#define RI_CTL_808_DECAY  0x0402u
+#define RI_CTL_808_SNAPPY 0x0403u
+#define RI_CTL_808_TONE   0x0404u
+#define RI_CTL_808_ACCENT 0x0405u
+
+/* Six-oscillator metal cluster ratios (P-10 E0 nominals; ledger row CH).
+ * Locked to the classic TR-808 metal set by TC-2.3.1 (WBS ratios
+ * {0.83,1.48,2.26,2.92,3.94,5.31}; see RI_808_METAL_BASE). */
 extern const float RI_808_METAL_RATIO[6];
 
 /* Voice short names for goldens/logs ("bd", "sd", ...). */
@@ -109,6 +123,10 @@ void rb808_max_decay(struct RB808Set *s);
 float rb808_pitch_hz(uint32_t voice, float t, float tune_st);
 /* Excitation gain: 1.0 (accent 0) or 1.5 (accent 1/2). */
 float rb808_excite(uint32_t voice, uint32_t accent);
+/* Knob 0..127 -> voice parameter (WBS interface line 81; 808 section of
+ * engine/dsp/params.c). Ids are the RI_CTL_808_* block above; curves are the
+ * 9-anchor tables in params.c (mirrors rb303_set_param). */
+void rb808_set_param(struct RB808Voice *v, uint32_t ctl_id, uint8_t value);
 /* One sample from a single voice (advances state by 1/sr). */
 float rb808_voice_render(struct RB808Voice *v, float sr);
 /* Sum of all triggered voices (advances each by 1/sr per sample). */
