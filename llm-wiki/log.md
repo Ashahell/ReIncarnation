@@ -239,6 +239,14 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] m10 | M2.4 GUI-tail host cores: TC-2.10.3 copypaste + TC-2.11.1 FX latency (no production change)
+- Disposition: New (two pins + two ledger rows; no `engine/` file touched)
+- Raw: llm-wiki/raw/articles/2026-09-23-m24-guitail-copypaste-fxlatency.md
+- Updated: scripts/ri_audit.sh (songsteps + Phase 10 lines), docs/evidence/formats/rbng.md (TC-2.10.3 section), docs/evidence/pcf/engine.md (latency row), llm-wiki/index.md
+- **TDD:** both green first run (property pins). Measured: 16 steps note+flags identical thru file+convert; RMS move 0.348 (63/64 differ) in buffer N+1. Full `ri_audit.sh` 0/0 final (0 FAIL lines).
+- **Process lesson:** pre-change baseline audit self-invalidated (rc=2 syntax error — bash parses as it executes; never edit ri_audit.sh under a live run). Failure proves nothing; final green stands alone.
+- **Honesty:** TC-2.10.2/2.9.4/2.9.5/2.10.1/2.11.2 out of host scope with per-item reasons; no websites needed; spirv-val vacuous.
+
 ## [2026-09-23] m9 | WBS 2.6 mixer acceptance: TC-2.6.1–2.6.3 pins (no production change)
 - Disposition: New (three per-TC pins + ledger lock; no `engine/` file touched)
 - Raw: llm-wiki/raw/articles/2026-09-23-wbs26-mixer-acceptance-tc261-tc263.md

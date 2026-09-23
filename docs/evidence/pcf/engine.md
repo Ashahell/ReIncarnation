@@ -109,6 +109,9 @@ pattern coverage.
 - Order-swap: mid-stream dist↔pcf reorder transient energy 0.81 vs the
   64.0 bound of one full-scale 64-frame buffer (`t1_fx` §6;
   re-pinned by `t25_swap` at 0.8101).
+- Knob latency (TC-2.11.1): `RiFXSetParam` stores with no smoothing,
+  so a DIST_DRIVE 0 → 127 edit is audible in the very next 64-sample
+  buffer (`t27_fxlatency`: RMS move 0.348, 63/64 samples differ).
 
 ## Goldens (`tests/golden/pcf/`, all AUDIBLE, D1 double-render clean)
 

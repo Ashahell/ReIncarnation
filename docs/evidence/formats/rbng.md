@@ -67,3 +67,11 @@ log); missing CPRG is fallback, not error.
 re-render byte-identical in audit Phases 1/7 below. `--rbngsong`
 is the additive real-codec path. No re-pin: goldens byte-identical
 through the swap by construction, proven by the unchanged audit.
+
+## Step flag preservation (TC-2.10.3)
+
+16 steps exercising every flag bit (REST/SLIDE/ACCENT/FLAM, pairs,
+plain) round-trip write → read → `ri_song_to_steps` with note AND
+flags bit-identical at every step (`t27_copypaste`). Step bits are
+numerically equal to the walker RI_STEP_* bits, so preservation
+here is preservation into playback.
