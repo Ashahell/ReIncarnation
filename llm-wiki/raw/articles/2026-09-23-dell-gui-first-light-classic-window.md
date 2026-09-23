@@ -73,3 +73,24 @@ proves positions; it makes no art claim.
 Next: instantiate the four MUIC_Knob widgets at the accessor
 rects in the Dell window → screendump → measure centers vs doc
 (±2 px, TC-2.9.1 first device evidence).
+
+## Status 2026-09-23 ~21:00 (USB stick errorcode 42 episode)
+
+- After the agent-wedge reboot (power-button), boots showed SFS
+  `errorcode 42` (= `HFERR_Phase`, `devices/scsidisk.h:42` — SCSI
+  phase error on the USB mass-storage read at byte offset 49152),
+  occurring during boot's own volume access with no user action.
+- Recovery: one more reboot + physical USB re-seat → clean boot,
+  all volumes mounted, 0 errors (`C:Info`: DH0: 8 GB SFS-BE,
+  RAM:, 30 GB VFAT stick). The re-seat resolving it points at
+  USB connection/controller state, not media damage.
+- Backup posture (user asked, done): full image `sfs_p5.img` +
+  `mbr.bin` hash-verified intact (`dbbc8fad…`, 8,589,837,312 B);
+  ENVARC: delta pulled fresh to
+  `/home/miller/Work/stickwork/envbak-2026-09-23/` (7 files,
+  incl. `hdaudio.config` 2182 B). Subdirs untouched since
+  imaging (stock timestamps).
+- Rules: never hot-unplug the boot stick (power down first —
+  this episode likely started with dirty SFS buffers); re-image
+  from backup is last resort (ENVARC: delta covered, RAM:
+  never persists anyway).

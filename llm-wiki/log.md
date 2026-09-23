@@ -248,6 +248,12 @@ Index↔raw consistency (all local raws indexed, all local links resolve), metad
 ## [2026-09-23] lint | m5–m14 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), m5–m14 log entries present, metadata headers 3/3 on the 4 newest raws. One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No new material to compile (HEAD `448b7c6` fully ingested, tree clean).
 
+## [2026-09-23] update | USB stick errorcode 42 (HFERR_Phase) → clean boot after re-seat + backup posture
+- Disposition: Update (Status block on the Dell GUI first-light record; no new raw)
+- Updated: llm-wiki/raw/articles/2026-09-23-dell-gui-first-light-classic-window.md, llm-wiki/log.md (this entry)
+- SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
+- Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
+
 ## [2026-09-23] m15 | Dell GUI first light: Classic window opens, runs, closes clean (TDD layout accessor + v11 lane)
 - Disposition: New (first GUI binary on Dell hardware; delivery pipeline proven with the empty window)
 - Raw: llm-wiki/raw/articles/2026-09-23-dell-gui-first-light-classic-window.md
