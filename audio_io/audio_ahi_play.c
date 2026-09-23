@@ -1,9 +1,13 @@
 /* audio_ahi_play.c — AROS low-level AHI backend glue, playback step (WBS 2.7).
- * AuPlay: render ao's song via AuRenderToFile to a RAM: temp, open ahi.device
- * unit 0, and stream the PCM with blocking CMD_WRITE. Whole-song render then
- * stream (streaming-with-render comes later). Self-contained: opens/closes
- * its own device handle, deletes the temp file — independent of any
- * negotiated session. AROS-only; ABI-portable C (v1 + v11 headers).
+ * AuPlay/AuPlayEx: render ao's song via AuRenderToFile to a RAM: temp, open
+ * ahi.device unit 0, and stream the PCM with blocking CMD_WRITE. Whole-song
+ * render then stream (streaming-with-render comes later). Self-contained:
+ * opens/closes its own device handle, deletes the temp file — independent of
+ * any negotiated session. AuPlayEx polls a caller-owned stop flag between
+ * CMD_WRITE chunks and on stop releases EVERYTHING (Close + CloseDevice +
+ * DeleteIORequest + DeleteMsgPort + DeleteFile) — the negotiate lesson: a
+ * leaked alloc/port wedges unit-0 until reboot. AROS-only; ABI-portable C
+ * (v1 + v11 headers).
  */
 #ifndef __AROS__
 #error "audio_ahi_play.c is AROS-only"
@@ -28,13 +32,14 @@ extern int AuRenderToFile(struct AudioObject *ao, const char *path,
 #define AUPLAY_TMP "RAM:auplay.wav"
 #define AUPLAY_CHUNK 16384u
 
-int AuPlay(struct AudioObject *ao) {
+int AuPlayEx(struct AudioObject *ao, const volatile int *stop) {
     struct MsgPort *port;
     struct AHIRequest *req;
     BPTR fh;
     UBYTE buf[AUPLAY_CHUNK];
     LONG rd;
     ULONG total = 0u;
+    int stopped = 0;
     if (!ao)
         return 2;
     if (DOSBase)
@@ -78,6 +83,13 @@ int AuPlay(struct AudioObject *ao) {
         return 7;
     }
     for (;;) {
+        /* Poll the caller's stop flag between CMD_WRITE chunks. Granularity
+         * is <= 1 chunk (~171 ms at 16384 B / 48 kHz mono 16-bit): the
+         * current chunk finishes, then we drop out and release everything. */
+        if (stop && *stop) {
+            stopped = 1;
+            break;
+        }
         rd = Read(fh, buf, AUPLAY_CHUNK);
         if (rd <= 0)
             break;
@@ -99,7 +111,17 @@ int AuPlay(struct AudioObject *ao) {
     DeleteIORequest((struct IORequest *)req);
     DeleteMsgPort(port);
     DeleteFile((STRPTR)AUPLAY_TMP);
+    if (stopped) {
+        if (DOSBase)
+            Printf((STRPTR)"RI_AUPLAY stopped %lu bytes rc=1\n", total);
+        return 1;
+    }
     if (DOSBase)
         Printf((STRPTR)"RI_AUPLAY played %lu bytes rc=0\n", total);
     return 0;
+}
+
+/* Plain non-interruptible playback: AuPlayEx with no stop flag. */
+int AuPlay(struct AudioObject *ao) {
+    return AuPlayEx(ao, NULL);
 }

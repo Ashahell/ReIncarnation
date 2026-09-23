@@ -236,6 +236,15 @@ Identity + delivery + bounded/finite + determinism + same-song transparency; ste
 - Updated: audio_io/audio_ahi.h, audio_io/audio_ahi.c, scripts/ri_audit.sh (backend AROS-compile line), llm-wiki/index.md
 Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header friction fixed; playback + close next. Uncommitted.
 
+## [2026-09-23] m4 | WBS 2.7 close path: interruptible playback (AuPlayEx, Dell green)
+- Disposition: New (API + audit decl-wiring + Dell run)
+- Raw: llm-wiki/raw/articles/2026-09-23-wbs27-close-path-interruptible-play.md
+- Updated: audio_io/audio_ahi.h, audio_io/audio_ahi_play.c, scripts/ri_audit.sh (AuPlayEx decl gate), llm-wiki/index.md
+- `AuPlayEx(ao, stop)` polls the caller-owned flag between CMD_WRITE chunks (granularity ≤ 1 chunk ≈ 171-186 ms) and on stop releases EVERYTHING (Close + CloseDevice + DeleteIORequest + DeleteMsgPort + DeleteFile); `AuPlay` is now a wrapper → `AuPlayEx(ao, NULL)` (full-song path unchanged: `played 250286 bytes rc=0`).
+- **STOP PROVEN ON DELL (one boot, job 20260923-143658-211894-1):** ahi_neg rc=0 → `auplay_stop` `stopped 81920 bytes rc=1` (5×16384 B chunks ≈ 0.93 s of ~2.84 s song; dump on a chunk boundary) exit 0 → ahi_neg rc=0 (NO wedge) → `auplay` `played 250286 bytes rc=0` → ahi_neg rc=0. Stop driven by a spawned task (NewCreateTask + TASKTAG_ARG1, Delay(50) then flag flip).
+- **TDD:** RED = scratch `auplay_stop_main.c` implicit-declaration of AuPlayEx against the pre-API header; GREEN after. Audit gained the decl-grep for both AuPlay and AuPlayEx; fresh `ri_audit.sh` 0/0.
+- **Grounded in driver autodoc** (v11 `Docs/ahidev.texinfo`): "All I/O requests must be completed before CloseDevice()" — between-chunks polling keeps the close-time request table empty, so release needs no AbortIO. spirv-val vacuous (no SPIR-V in repo). ABI gates re-checked: task.resource 0, real UND 0.
+
 ## [2026-09-23] m3 | WBS 2.7 playback slice: engine music on hardware (leak wedge fixed)
 - Disposition: Update (same slice completed) + postmortem (leak wedge)
 - Updated: llm-wiki/raw/articles/2026-09-22-wbs27-negotiate.md, audio_io/audio_ahi_play.c (new TU), scripts/ri_audit.sh (both TUs + CWD pin + t21_swaprender wired), llm-wiki/index.md

@@ -102,6 +102,10 @@ x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/audio.c" -o "$OUT/aros/audio_aros.
 x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/backend_null.c" -o "$OUT/aros/backend_null_aros.o" || { echo "FAIL: backend_null.c AROS compile"; exit 1; }
 x86_64-aros-gcc $CFLAGS_AU -fasm -c "$ROOT/audio_io/audio_ahi.c" -o "$OUT/aros/audio_ahi_aros.o" || { echo "FAIL: audio_ahi.c AROS compile"; exit 1; }
 x86_64-aros-gcc $CFLAGS_AU -fasm -c "$ROOT/audio_io/audio_ahi_play.c" -o "$OUT/aros/audio_ahi_play_aros.o" || { echo "FAIL: audio_ahi_play.c AROS compile"; exit 1; }
+for adecl in "int AuPlay(struct AudioObject \*ao);" \
+  "int AuPlayEx(struct AudioObject \*ao, const volatile int \*stop);"; do
+  grep -q "$adecl" "$ROOT/audio_io/audio_ahi.h" || { echo "FAIL: audio_ahi.h lacks: $adecl"; exit 1; }
+done
 echo "== Phase 6b: seq master clock 10-min accumulation (WBS 2.1, TC-2.1.1) =="
 test -f "$ROOT/engine/seq/riseq.h" || { echo "FAIL: missing engine/seq/riseq.h"; exit 1; }
 test -f "$ROOT/engine/seq/riseq.c" || { echo "FAIL: missing engine/seq/riseq.c"; exit 1; }

@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-23-wbs27-close-path-interruptible-play.md](raw/articles/2026-09-23-wbs27-close-path-interruptible-play.md) — **2026-09-23 — WBS 2.7 close path: interruptible playback on hardware (TDD).** `AuPlayEx(ao, stop)` polls the caller flag between CMD_WRITE chunks and on stop releases EVERYTHING (close + device + IO + port + file): Dell `stopped 81920 bytes rc=1` on a chunk boundary, then ahi_neg rc=0 (nothing wedges), then `AuPlay` wrapper `played 250286 bytes rc=0` unchanged. Clean release grounded in the driver autodoc ("All I/O requests must be completed before CloseDevice"); audit decl-gate RED→GREEN.
+
 - [raw/articles/2026-09-22-wbs27-negotiate.md](raw/articles/2026-09-22-wbs27-negotiate.md) — **2026-09-23 — WBS 2.7 AHI backend: negotiate + playback on hardware.** `au_ahi_negotiate` (no hook, no clamp) leak-free; `AuPlay` plays the song through `ahi.device` on the Dell (250286 B, rc=0); leak-wedge postmortem (one leaked AllocAudio wedges all audio until reboot — fixed); audit CWD pin (S909 silent `|| exit 1` root-caused).
 
 - [raw/articles/2026-09-22-wbs21-swappendix.md](raw/articles/2026-09-22-wbs21-swappendix.md) — **2026-09-22 — TC-2.1.3 PCM half: swap transparency (TDD).** Identity + delivery + bounded/finite per buffer, determinism, same-song transparency; two dead hypotheses kept on record (step metric vacuous on saws; retrigger bit-identity unphysical); arbiter mutant caught at first buffer.
