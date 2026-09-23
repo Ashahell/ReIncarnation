@@ -49,52 +49,46 @@ int main(void) {
     CHECK(ri_knob_pointer_mdeg(200) == 135000, "over clamp %d",
         ri_knob_pointer_mdeg(200));
 
-    /* --- frame renderer (64x64 RGBA, 2x of locked 32px) --- */
+    /* --- v2 art (measured TR-09): 80px frames, tick ring,
+     * shadow, short thick pointer, no hub --- */
     {
-        static unsigned char F1[64 * 64 * 4], F2[64 * 64 * 4];
+        static unsigned char G1[80 * 80 * 4], G2[80 * 80 * 4];
         uint32_t i;
-        /* table integrity: cardinals + norm (catches a pasting slip) */
-        CHECK(RI_SIN_Q15[0] == 0 && RI_SIN_Q15[90] == 32767 &&
-            RI_SIN_Q15[180] == 0 && RI_SIN_Q15[270] == -32767,
-            "sin cardinals");
-        for (i = 0; i < 360; i += 37) {
-            int32_t s = RI_SIN_Q15[i], c = RI_SIN_Q15[(i + 90) % 360];
-            int64_t n = (int64_t)s * s + (int64_t)c * c;
-            int64_t want = (int64_t)32767 * 32767;
-            int64_t err = n > want ? n - want : want - n;
-            CHECK(err < 100000, "sin norm %u", i);
-        }
-        ri_knob_render_frame(F1, 64);
-        /* corners transparent (outside disc) */
-        CHECK(F1[3] == 0 && F1[(63 * 64 + 63) * 4 + 3] == 0,
+        CHECK(RI_KNOB_PX == 80u, "frame size %u", RI_KNOB_PX);
+        ri_knob_render_frame(G1, 64);
+        /* corners transparent (outside disc + shadow reach) */
+        CHECK(G1[3] == 0 && G1[(79 * 80 + 79) * 4 + 3] == 0,
             "corners opaque");
-        /* hub exact at center */
-        CHECK(F1[(32 * 64 + 32) * 4 + 0] == 16 &&
-            F1[(32 * 64 + 32) * 4 + 3] == 255, "hub");
-        /* rim ring exact */
-        CHECK(F1[(56 * 64 + 32) * 4 + 0] == 13 &&
-            F1[(56 * 64 + 32) * 4 + 3] == 255, "rim");
-        /* pointer orange up at value 64 (mid) */
-        CHECK(F1[(10 * 64 + 32) * 4 + 0] == 224 &&
-            F1[(10 * 64 + 32) * 4 + 1] == 123 &&
-            F1[(10 * 64 + 32) * 4 + 2] == 46, "pointer top");
-        CHECK(F1[(19 * 64 + 32) * 4 + 0] == 224, "pointer mid");
-        /* low pin at r=7 (r=6 sits inside the hub-ring zone and is
-         * correctly ring-colored — pointer paints first, hub last) */
-        CHECK(F1[(25 * 64 + 32) * 4 + 0] == 224, "pointer low");
-        /* off-pointer body pixel: gradient range, opaque, not orange */
-        CHECK(F1[(19 * 64 + 40) * 4 + 3] == 255, "body alpha");
-        CHECK(F1[(19 * 64 + 40) * 4 + 0] != 224 ||
-            F1[(19 * 64 + 40) * 4 + 1] != 123, "body is pointer?");
+        CHECK(G1[(0 * 80 + 79) * 4 + 3] == 0, "corner30 opaque");
+        /* face center exact (warm gradient, no hub) */
+        CHECK(G1[(40 * 80 + 40) * 4 + 0] == 63 &&
+            G1[(40 * 80 + 40) * 4 + 1] == 55 &&
+            G1[(40 * 80 + 40) * 4 + 2] == 40 &&
+            G1[(40 * 80 + 40) * 4 + 3] == 255, "face center");
+        /* pointer orange up at value 64 (r19 -> y=21) */
+        CHECK(G1[(21 * 80 + 40) * 4 + 0] == 227 &&
+            G1[(21 * 80 + 40) * 4 + 1] == 124 &&
+            G1[(21 * 80 + 40) * 4 + 2] == 59, "pointer");
+        /* tick at top (r29-35 -> y 5..11): dark tick color */
+        CHECK(G1[(8 * 80 + 40) * 4 + 3] == 255, "tick alpha");
+        CHECK(G1[(8 * 80 + 40) * 4 + 0] < 80, "tick bright %u",
+            G1[(8 * 80 + 40) * 4 + 0]);
+        /* bottom gap: no tick below center (y 72 -> transparent) */
+        CHECK(G1[(72 * 80 + 40) * 4 + 3] == 0, "gap filled?");
+        /* shadow SE of disc (offset silhouette, partial alpha):
+         * (55,62) is outside the body but inside the +2/+3
+         * shifted silhouette */
+        CHECK(G1[(62 * 80 + 55) * 4 + 3] == 64, "shadow alpha %u",
+            G1[(62 * 80 + 55) * 4 + 3]);
         /* determinism + value sensitivity */
-        ri_knob_render_frame(F2, 64);
-        CHECK(memcmp(F1, F2, sizeof F1) == 0, "remix nondet");
-        ri_knob_render_frame(F2, 0);
+        ri_knob_render_frame(G2, 64);
+        CHECK(memcmp(G1, G2, sizeof G1) == 0, "remix nondet");
+        ri_knob_render_frame(G2, 0);
         {
             uint32_t ndiff = 0;
-            for (i = 0; i < 64u * 64u; i++) {
-                if (F1[i * 4] != F2[i * 4] || F1[i * 4 + 1] != F2[i * 4 + 1] ||
-                    F1[i * 4 + 2] != F2[i * 4 + 2])
+            for (i = 0; i < 80u * 80u; i++) {
+                if (G1[i * 4] != G2[i * 4] || G1[i * 4 + 1] != G2[i * 4 + 1] ||
+                    G1[i * 4 + 2] != G2[i * 4 + 2])
                     ndiff++;
             }
             CHECK(ndiff > 50u, "frames too close (%u)", ndiff);

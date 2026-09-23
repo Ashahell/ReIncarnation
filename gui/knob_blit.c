@@ -32,11 +32,11 @@ static int lazy_cyber(void) {
     return CyberGfxBase != NULL;
 }
 
-/* One 64x64 frame staging area (file-static: deterministic, no
+/* One 80x80 frame staging area (file-static: deterministic, no
  * allocation; single-threaded app use like the rest of this task).
  * staged as 0xAARRGGBB words for the blit call. */
-static uint32_t s_argb[64u * 64u];
-static unsigned char s_frame[64u * 64u * 4u];
+static uint32_t s_argb[80u * 80u];
+static unsigned char s_frame[80u * 80u * 4u];
 
 /* Blit one frame (value) with top-left at (dx, dy); negative dx/dy
  * clip the source (a knob centered near an edge keeps its doc
@@ -46,7 +46,7 @@ static unsigned char s_frame[64u * 64u * 4u];
 int ri_knob_blit_one(struct RastPort *rp, int value, int dx, int dy) {
     uint32_t i, n = 0;
     int sx = 0, sy = 0;
-    int w = 64, h = 64;
+    int w = 80, h = 80;
     ULONG rc;
     if (!rp)
         return 0;
@@ -59,7 +59,7 @@ int ri_knob_blit_one(struct RastPort *rp, int value, int dx, int dy) {
      * showed background = alpha-zero low byte; blue/white opaque;
      * half gray blended exactly 50% = 149. An ARGB packing here
      * paints ghost-blue pointers — do not "fix" this line back.) */
-    for (i = 0; i < 64u * 64u; i++) {
+    for (i = 0; i < 80u * 80u; i++) {
         uint32_t r = s_frame[i * 4u];
         uint32_t g = s_frame[i * 4u + 1u];
         uint32_t b = s_frame[i * 4u + 2u];
@@ -81,7 +81,7 @@ int ri_knob_blit_one(struct RastPort *rp, int value, int dx, int dy) {
     if (w <= 0 || h <= 0)
         return 0;
     rc = WritePixelArrayAlpha(s_argb, (UWORD)sx, (UWORD)sy,
-        (UWORD)(64u * 4u), rp, (UWORD)dx, (UWORD)dy, (UWORD)w,
+        (UWORD)(80u * 4u), rp, (UWORD)dx, (UWORD)dy, (UWORD)w,
         (UWORD)h, 0xffffffffUL);
     if (rc == 0)
         return -2;
