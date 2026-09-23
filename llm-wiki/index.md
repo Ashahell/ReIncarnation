@@ -43,6 +43,10 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-22-wbs27-negotiate.md](raw/articles/2026-09-22-wbs27-negotiate.md) — **2026-09-23 — WBS 2.7 AHI backend: negotiate + playback on hardware.** `au_ahi_negotiate` (no hook, no clamp) leak-free; `AuPlay` plays the song through `ahi.device` on the Dell (250286 B, rc=0); leak-wedge postmortem (one leaked AllocAudio wedges all audio until reboot — fixed); audit CWD pin (S909 silent `|| exit 1` root-caused).
+
+- [raw/articles/2026-09-22-wbs21-swappendix.md](raw/articles/2026-09-22-wbs21-swappendix.md) — **2026-09-22 — TC-2.1.3 PCM half: swap transparency (TDD).** Identity + delivery + bounded/finite per buffer, determinism, same-song transparency; two dead hypotheses kept on record (step metric vacuous on saws; retrigger bit-identity unphysical); arbiter mutant caught at first buffer.
+
 - [raw/articles/2026-09-22-wbs22-303filter.md](raw/articles/2026-09-22-wbs22-303filter.md) — **2026-09-22 — TC-2.2.1 filter response (TDD).** Independent float64 reference (documented Appendix B form, not the dive sketch); 20 freqs within ±1 dB (worst −0.029 dB, 34x margin); g×1.5 mutant caught at +4.4 dB.
 
 - [raw/articles/2026-09-22-first-music-dell-clean.md](raw/articles/2026-09-22-first-music-dell-clean.md) — **2026-09-22 — First music on the reference box (operator: clean).** Scratch CMD_WRITE player + first-light 3 loops; mono-declared-as-stereo bug found by ear (half-rate alias per channel), fixed (`AHIST_M16S`), replay clean. Source file exonerated by analysis (74% peak, 0 clipped).

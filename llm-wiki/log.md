@@ -224,6 +224,26 @@ Fresh boot (agent session 752): re-put tone + player + WAV (RAM: wiped as expect
 - Updated: llm-wiki/raw/articles/2026-09-22-wbs21-storm.md (ABIv1 section, RESOLVED note)
 Canonical v1 recipe (+ trailing -lstdcio re-scan) → 66064 B, r12=0; QEMU aros_v1 (identity verified) ratio 0.2100 PASS. Full table: host-trapv 0.46, host-plain/QEMU 0.21, Dell 0.90 — ftrapv 2.2x tax × ~4.3x Zen5→SandyBridge gap explains all; no pathology. Scratch: ri_build v1_* objects + storm_v1.
 
+## [2026-09-22] m2 | TC-2.1.3 PCM half: swap transparency (TDD)
+- Disposition: New (test extension; no production change)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs21-swappendix.md
+- Updated: tests/unit/t21_swaprender.c, llm-wiki/index.md
+Identity + delivery + bounded/finite + determinism + same-song transparency; step-metric and retrigger-identity hypotheses refuted with evidence (saw wraps, filter tails); mutant-caught; audit 0/0. Uncommitted.
+
+## [2026-09-22] m2 | WBS 2.7 negotiate slice: engine AHI open on hardware
+- Disposition: New (unit + audit wiring + Dell run)
+- Raw: llm-wiki/raw/articles/2026-09-22-wbs27-negotiate.md
+- Updated: audio_io/audio_ahi.h, audio_io/audio_ahi.c, scripts/ri_audit.sh (backend AROS-compile line), llm-wiki/index.md
+Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header friction fixed; playback + close next. Uncommitted.
+
+## [2026-09-23] m3 | WBS 2.7 playback slice: engine music on hardware (leak wedge fixed)
+- Disposition: Update (same slice completed) + postmortem (leak wedge)
+- Updated: llm-wiki/raw/articles/2026-09-22-wbs27-negotiate.md, audio_io/audio_ahi_play.c (new TU), scripts/ri_audit.sh (both TUs + CWD pin + t21_swaprender wired), llm-wiki/index.md
+- **PLAYBACK PROVEN ON DELL:** `auplay` → `played 250286 bytes rc=0` (≈2.84 s mono 16-bit @ 44100) via full engine path (AuStart → AuRenderToFile → AuPlay → open unit 0 → CMD_WRITE stream → close). `AHIST_M16S` (mono by design; 09-22 mono-as-stereo bug on record).
+- **LEAK WEDGE POSTMORTEMED:** one leaked `AllocAudioA` wedges the driver-global HW reservation (blocks unit-0 AND fresh NO_UNIT opens) until reboot — the 09-22 `open unit 0 FAILED ioerr=0` + fresh negotiator rc=10. Fix: `au_ahi_negotiate` releases EVERYTHING (FreeAudio + CloseDevice + port/req delete). Proven by sequence on ONE boot: negotiate → play → negotiate all rc=0.
+- **AUDIT ROBUSTNESS FIX:** `ri_audit.sh` `cd "$ROOT"` at startup — S909 (`--909pack`) died with a silent `|| exit 1` from any non-repo CWD (render's pack inventory is CWD-relative, tools/render.c:714); only `bash -x` surfaced it. Audit 0/0 from any directory now.
+- **Straggler wired:** t21_swaprender (TC-2.1.3 PCM half, 09-22 article claimed "already wired" — it wasn't; added to the t21 list; passes).
+
 ## [2026-09-22] ingest | Commits f6df244 + 8487809 recorded; live lane refresh
 - Disposition: Update (commit records missing from log) + ingest (ops state)
 - Updated: llm-wiki/log.md (this entry)

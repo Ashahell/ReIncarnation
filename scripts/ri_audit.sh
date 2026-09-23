@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 ROOT="$(dirname "$0")/.."
+# The render tool resolves some defaults (--909pack inventory) CWD-relative;
+# pin the whole audit to the repo root so invocation CWD cannot silently
+# kill a gate (observed: S909 died with `|| exit 1` from another CWD).
+cd "$ROOT" || { echo "FAIL: cannot cd $ROOT"; exit 1; }
 echo "== Phase 0a: render-path hygiene =="
 if grep -rn "malloc\|calloc\|realloc\|free(\|Forbid\|Disable(" "$ROOT/engine/" 2>/dev/null; then echo "FAIL: banned construct in engine/"; exit 1; fi
 echo "== Phase 0b: no platform transcendentals/FMA in engine/ =="
@@ -96,6 +100,8 @@ CFLAGS_AU="-std=c99 -O2 -Wall -Wextra -Werror -mcmodel=large -mno-red-zone -ffix
 mkdir -p "$OUT/aros" # AROS objects stay out of $OUT: `test` links $OUT/*.o (host)
 x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/audio.c" -o "$OUT/aros/audio_aros.o" || { echo "FAIL: audio.c AROS compile"; exit 1; }
 x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/backend_null.c" -o "$OUT/aros/backend_null_aros.o" || { echo "FAIL: backend_null.c AROS compile"; exit 1; }
+x86_64-aros-gcc $CFLAGS_AU -fasm -c "$ROOT/audio_io/audio_ahi.c" -o "$OUT/aros/audio_ahi_aros.o" || { echo "FAIL: audio_ahi.c AROS compile"; exit 1; }
+x86_64-aros-gcc $CFLAGS_AU -fasm -c "$ROOT/audio_io/audio_ahi_play.c" -o "$OUT/aros/audio_ahi_play_aros.o" || { echo "FAIL: audio_ahi_play.c AROS compile"; exit 1; }
 echo "== Phase 6b: seq master clock 10-min accumulation (WBS 2.1, TC-2.1.1) =="
 test -f "$ROOT/engine/seq/riseq.h" || { echo "FAIL: missing engine/seq/riseq.h"; exit 1; }
 test -f "$ROOT/engine/seq/riseq.c" || { echo "FAIL: missing engine/seq/riseq.c"; exit 1; }
@@ -111,6 +117,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t21_snapbuild >/dev/null || { echo "F
 bash "$ROOT/scripts/ri_build_host.sh" test t21_evwin >/dev/null || { echo "FAIL: t21_evwin"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_seqswap >/dev/null || { echo "FAIL: t21_seqswap"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_storm >/dev/null || { echo "FAIL: t21_storm"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t21_swaprender >/dev/null || { echo "FAIL: t21_swaprender"; exit 1; }
 echo "== Phase 7: sched shuffle/legato/flam (Task 7, gate G7) =="
 bash "$ROOT/scripts/ri_build_host.sh" test t1_sched >/dev/null || { echo "FAIL: t1_sched"; exit 1; }
 test -f "$ROOT/docs/evidence/sequencer/flam-default.md" || { echo "FAIL: missing P-05 ledger row"; exit 1; }
