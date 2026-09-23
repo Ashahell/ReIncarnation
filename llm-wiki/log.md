@@ -248,6 +248,15 @@ Index↔raw consistency (all local raws indexed, all local links resolve), metad
 ## [2026-09-23] lint | m5–m14 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), m5–m14 log entries present, metadata headers 3/3 on the 4 newest raws. One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No new material to compile (HEAD `448b7c6` fully ingested, tree clean).
 
+## [2026-09-23] m15 | Dell GUI first light: Classic window opens, runs, closes clean (TDD layout accessor + v11 lane)
+- Disposition: New (first GUI binary on Dell hardware; delivery pipeline proven with the empty window)
+- Raw: llm-wiki/raw/articles/2026-09-23-dell-gui-first-light-classic-window.md
+- Updated: gui/panels.c (909 knob-rect accessor), gui/panels.h (rect + decl), tests/unit/t29_layout.c (new), scripts/ri_audit.sh (Phase 12 line), llm-wiki/index.md
+- **TDD:** RED watched (missing type+function); GREEN all four GUI tests; audit 0/0.
+- **Dell (agent e6320, all PASS):** v11 build warning-free first try → ri_classic 28,048 B (task.resource 0, r12 live); put 901 ms sha_ok; run rc=0; winlist shows the 6-panel title at 0,0 1024×768; ui-close → gone, no alert.
+- **Fidelity:** layout now (doc-driven, device-measured from here), ReBirth-style art later under never-pixel-copy; MUIC_Knob stock look claimed as-is, not as art.
+- Next: four knob widgets at accessor rects → screendump → centers vs doc ±2px.
+
 ## [2026-09-23] m14 | M2.5 AIFF export: plain-AIFF writer + pins + goldens (TDD feature)
 - Disposition: New (both writers + pin + 2 goldens; AIFF-C out, live rate still open)
 - Raw: llm-wiki/raw/articles/2026-09-23-m25-aiff-export-tc213.md
