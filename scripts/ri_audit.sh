@@ -164,6 +164,11 @@ for v in bd sd lt mt ht lc mc hc rs cl cp ch oh cy cb storm; do
 done
 echo "== Phase 9: 909 sampler + clean pack + provenance gate (Task 9, gate G9) =="
 bash "$ROOT/scripts/ri_build_host.sh" test t1_909 >/dev/null || { echo "FAIL: t1_909"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t24_909xfade >/dev/null || { echo "FAIL: t24_909xfade (TC-2.4.1)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t24_909accent >/dev/null || { echo "FAIL: t24_909accent (TC-2.4.2)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t24_909quirk >/dev/null || { echo "FAIL: t24_909quirk (TC-2.4.3)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t24_909retrig >/dev/null || { echo "FAIL: t24_909retrig (TC-2.4.4)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t24_909swap >/dev/null || { echo "FAIL: t24_909swap (TC-2.4.5)"; exit 1; }
 for v in bd sd ch oh cr rd; do
   test -f "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: missing ledger 909/$v.md"; exit 1; }
   grep -q "Provenance manifest" "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: ledger $v lacks manifest"; exit 1; }

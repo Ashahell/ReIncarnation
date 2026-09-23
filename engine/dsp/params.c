@@ -17,6 +17,7 @@
  */
 #include "engine/dsp/rb303.h"
 #include "engine/dsp/rb808.h"
+#include "engine/dsp/rb909.h"
 
 #define RI_N_ANCHOR 9
 
@@ -124,6 +125,35 @@ void rb808_set_param(struct RB808Voice *v, uint32_t ctl_id, uint8_t value) {
     case RI_CTL_808_ACCENT:
         /* Placeholder: trigger-time binary (rb808_trigger accent arg);
          * a panel 0..127 knob is not wired into the engine state. */
+        break;
+    default:
+        break; /* unknown control: ignored by the voice */
+    }
+}
+
+/* --- 909 control curves (WBS interface line for Module 2.4) ---
+ * TUNE writes the engine tune byte directly: the panel knob domain
+ * 0..127 IS the voice tune domain (rb909_pitch_mult / layer_weight
+ * read it raw), so no curve table is needed. LEVEL/DECAY/FLAMRES are
+ * documented placeholders (TC-2.4 pins the engine behaviour; the
+ * panel path only needs a total, honest entry point). */
+void rb909_set_param(struct RB909Voice *v, uint32_t ctl_id, uint8_t value) {
+    switch (ctl_id) {
+    case RI_CTL_909_TUNE:
+        v->tune = value;
+        break;
+    case RI_CTL_909_LEVEL:
+        /* Placeholder: no engine gain field (voice VCA is the accent
+         * path rb909_accent_gain; static level lives in the mixer). */
+        break;
+    case RI_CTL_909_DECAY:
+        /* Placeholder: decay is baked into the layers; the only
+         * tune-driven decay (CR/RD rb909_decay_scale) derives from
+         * TUNE, not from a second knob. */
+        break;
+    case RI_CTL_909_FLAMRES:
+        /* Placeholder: flam delay is trigger-time (scheduler domain,
+         * rb909_trigger flam_delay_smp arg), not voice state. */
         break;
     default:
         break; /* unknown control: ignored by the voice */

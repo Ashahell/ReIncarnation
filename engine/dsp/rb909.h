@@ -119,6 +119,12 @@ float rb909_accent_gain(const struct RB909Voice *v);
  * 2^(-(tune-64)/48), applied as an extra exp envelope. */
 float rb909_decay_scale(uint8_t voice, uint8_t tune);
 
+/* 909 control IDs [WBS interface line for Module 2.4; order mirrors panels.c] */
+#define RI_CTL_909_TUNE    0x0900u
+#define RI_CTL_909_LEVEL   0x0901u
+#define RI_CTL_909_DECAY   0x0902u
+#define RI_CTL_909_FLAMRES 0x0903u
+
 /* Sampler utils (same TU): linear-interpolated fetch (past-end reads 0)
  * and the normalized triangular layer mix at pos (48 kHz ref domain;
  * per-layer rate scaling is applied inside). Normalization is
@@ -129,6 +135,12 @@ float ri_resample_linear(const float *d, uint32_t n, float pos);
 float ri_layer_mix(const struct RISampleLayer *L, uint32_t n,
     uint8_t tune, float pos);
 
+/* Knob 0..127 -> voice parameter (WBS interface line for Module 2.4;
+ * 909 section of engine/dsp/params.c). Ids are the RI_CTL_909_* block
+ * above; TUNE writes the engine tune byte directly (knob domain IS the
+ * engine domain); LEVEL/DECAY/FLAMRES are documented placeholders
+ * (see params.c). */
+void rb909_set_param(struct RB909Voice *v, uint32_t ctl_id, uint8_t value);
 /* One sample from a single voice (advances playheads by pitch_mult). */
 float rb909_voice_render(struct RB909Voice *v, float sr);
 /* Sum of all active voices. */
