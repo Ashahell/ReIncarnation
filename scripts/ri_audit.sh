@@ -340,6 +340,7 @@ echo "== Phase 13: formats full + MIDI + automation + ARexx + datatypes + fuzz (
 T13=/tmp/ri/run/audit13
 mkdir -p "$T13/c1" "$T13/c2" "$T13/rs" "$T13/regen"
 bash "$ROOT/scripts/ri_build_host.sh" test t1_formats >/dev/null || { echo "FAIL: t1_formats"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t30_modpack >/dev/null || { echo "FAIL: t30_modpack (TC-2.12.1/2.12.5)"; exit 1; }
 for f in rbng rbnm-full midi arexx automation datatypes fuzz green-defects; do
   test -f "$ROOT/docs/evidence/formats/$f.md" || { echo "FAIL: missing formats ledger $f.md"; exit 1; }
 done
