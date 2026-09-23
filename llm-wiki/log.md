@@ -254,6 +254,13 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-23] analysis | TR-909 reference photo measured (knob fidelity groundwork, no art yet)
+- Disposition: New (measurement-only; zero pixels reused, nothing rendered)
+- Raw: reference photo `https://r2.gear4music.com/media/68/683873/1200/preview.jpg` fetched to `/home/miller/Work/ri_build/ref909/tr909.jpg` (scratch, NOT repo — never-pixel-copy policy)
+- Measured: 1200×1200 straight-on (vertical edges constant x24/1176 across all rows); unit palette grays (#30–#e0) + warm orange/amber/rust family (#a06020–#e06020) + reds (#c04040, #804040); saturated elements in bands (knob-row candidate y288-336 tan, button field y480-768 with reds, dark lower section y768-816). User verdict stands: MUIC_Knob gray circles match neither shape nor color.
+- Open: blind analysis cannot attribute blobs to knobs-vs-buttons-vs-trim reliably; need user-confirmed knob specifics (body color, pointer style, voice-knob row) before procedural art.
+- Next: custom knob-frame renderer (original 2x pixels, spec frame counts, measurement-driven colors) replacing MUIC_Knob visuals; knob_logic untouched.
+
 ## [2026-09-23] m16 | Dell 909 panel: explicit-open root cause + compact geometry measured twice, doc locked (TC-2.9.1 device evidence)
 - Disposition: New (H2a proof + E0→E2 sizing trail + E0→measured doc lock)
 - Raw: llm-wiki/raw/articles/2026-09-23-dell-909-panel-measured-lock-tc291.md
