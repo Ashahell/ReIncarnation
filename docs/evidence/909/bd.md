@@ -1,15 +1,18 @@
 # BD — 909 kick (layered sampler, Task 9 gate G9)
 
-**Date:** 2026-09-20. **Status:** HYPOTHESIS (locks at TC-2.4.1/2.4.2).
+**Date:** 2026-09-20 (locked 2026-09-23). **Status:** LOCKED (TC-2.4.1/2.4.2/2.4.4/2.4.5).
 **Spec:** §11, Appendix A P-13/P-14, Appendix C 909 skeleton.
 
 | Parameter | Value | Evidence |
 |-----------|-------|----------|
 | Layers | 3 (BD-LOW 0–42 / BD-MID 43–84 / BD-HI 85–127) | pack spans |
-| Crossfade | triangular, 8-position feather (`RI_909_XFADE_HALF`), equal-power norm | `t1_909` §1: worst adjacent step 0.0128 dB (band 1.0) |
+| Crossfade | triangular, 8-position feather (`RI_909_XFADE_HALF`), equal-power norm | `t1_909` §1: worst adjacent step 0.0128 dB (band 1.0); `t24_909xfade` green (worst 0.01278 dB, boundary 0.008906 dB; feather white-box) |
 | Tune clock | 2^((tune−64)/48) (`rb909_pitch_mult`) | `t1_909` §0 spot-checked |
-| Accent | acc1 ×1.15 + shelf; flam-capable (acc2 = second hit) | `t1_909` §2: ratio 1.1503 (band 1.124–1.178); §3 onset 1682/1680, ratio 0.7605 |
-| Flam | +35 ms (1680 smp @48k) ×0.75 second hit | `t1_909` §3 green |
+| Accent | acc1 ×1.15 + shelf; flam-capable (acc2 = second hit) | `t1_909` §2: ratio 1.1503 (band 1.124–1.178); §3 onset 1682/1680, ratio 0.7605; `t24_909accent` green (same bounds) |
+| Flam | +35 ms (1680 smp @48k) ×0.75 second hit | `t1_909` §3 green; `t24_909accent` green |
+| Tune knob | knob == engine byte via `RI_CTL_909_TUNE` (params.c 909 section) | `t24_909xfade` green (0/64/127) |
+| Retrigger | monophonic, bit-exact cut | `t24_909retrig` green |
+| Swap guard | BUSY while active, click-free idle swap | `t24_909swap` green |
 | Retrigger | monophonic: trigger resets both playheads | `t1_909` §4 bit-exact |
 | Swap | idle-only (`RI_909_BUSY` while active) | `t1_909` §5 green |
 

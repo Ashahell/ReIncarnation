@@ -1,13 +1,13 @@
 # OH — 909 open hat (layered sampler, Task 9 gate G9)
 
-**Date:** 2026-09-20. **Status:** HYPOTHESIS (locks at TC-2.4.1/2.4.3).
+**Date:** 2026-09-20 (locked 2026-09-23). **Status:** LOCKED (TC-2.4.1/2.4.3/2.4.4/2.4.5).
 **Spec:** §11 (shared-hat-ROM steal rule), Appendix A P-13/P-14.
 
 | Parameter | Value | Evidence |
 |-----------|-------|----------|
 | Layers | 2 (OH-A 0–63 / OH-B 64–127) | pack spans |
 | Crossfade | triangular, 8-position feather, equal-power norm | `t1_909` §1 green (shared mixer path) |
-| Accent | acc1 ×1.15 + shelf; acc2 = acc1 (not flam-capable) | `t1_909` §3 (CH-measured, same code path) |
+| Accent | acc1 ×1.15 + shelf; acc2 = acc1 (not flam-capable) | `t1_909` §3 (CH-measured, same code path); `t24_909accent` green (CH-measured, same path) |
 | Steal rule | triggering OH kills CH (shared ROM) and vice versa | `t1_909` §6 green |
 | Retrigger/swap | monophonic / idle-only | `t1_909` §4/§5 |
 

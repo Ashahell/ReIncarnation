@@ -239,6 +239,14 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] m6 | WBS 2.4 909 acceptance: TC-2.4.1–2.4.5 pins + panel-Tune wiring (TDD)
+- Disposition: New (five per-TC pins + one production surface the pins demanded)
+- Raw: llm-wiki/raw/articles/2026-09-23-wbs24-909-acceptance-tc241-tc245.md
+- Updated: engine/dsp/rb909.h (`RI_CTL_909_*` 0x0900–0x0903, `rb909_set_param` decl), engine/dsp/params.c (909 section: TUNE writes the engine byte, LEVEL/DECAY/FLAMRES documented placeholders), scripts/ri_audit.sh (Phase 9 five t24 lines), docs/evidence/909/{bd,sd,ch,oh,cr,rd}.md (LOCKED), llm-wiki/index.md
+- **TDD:** RED watched — `t24_909xfade` build-RED (`rb909_set_param`/`RI_CTL_909_TUNE` undeclared); accent/quirk/retrig/swap green pins on frozen code.
+- **GREEN:** all five exit 0 — xfade worst 0.01278 dB / boundary 0.008906 dB (band 1.0); acc1 1.1503; flam onset 1682, ratio 0.7605; quirk/retrig maxdiff exactly 0.0; swap BUSY×2 + edge ≤1e-4. Full `ri_audit.sh` 0/0 twice (post-change + final incl. ledgers, 0 FAIL lines); all six 909 goldens re-render byte-identical (no regen — param section touches no render path).
+- **Honesty:** retrigger/swap pinned on BD, siblings cite the voice-generic path; quirk pinned per-voice direct (no proxy); no websites needed (contracts local: WBS + spec §11 + prior-art); spirv-val vacuous (no SPIR-V in repo).
+
 ## [2026-09-23] m5 | WBS 2.3 808 acceptance: TC-2.3.1–2.3.5 pins + metal-ratio lock (TDD)
 - Disposition: New (five per-TC pins + one production constant the pins demanded)
 - Raw: llm-wiki/raw/articles/2026-09-23-wbs23-808-acceptance-tc231-tc235.md

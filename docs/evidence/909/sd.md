@@ -1,12 +1,12 @@
 # SD — 909 snare (layered sampler, Task 9 gate G9)
 
-**Date:** 2026-09-20. **Status:** HYPOTHESIS (locks at TC-2.4.1/2.4.2).
+**Date:** 2026-09-20 (locked 2026-09-23). **Status:** LOCKED (TC-2.4.1/2.4.2/2.4.4/2.4.5).
 **Spec:** §11, Appendix A P-13/P-14, Appendix C 909 skeleton.
 
 | Parameter | Value | Evidence |
 |-----------|-------|----------|
 | Layers | 3 (SD-LO 0–42 / SD-MID 43–84 / SD-HI 85–127) | pack spans |
-| Crossfade | triangular, 8-position feather, equal-power norm | `t1_909` §1 green (shared mixer path) |
+| Crossfade | triangular, 8-position feather, equal-power norm | `t1_909` §1 green (shared mixer path); `t24_909xfade` green (BD-measured, same path) |
 | Tune clock | 2^((tune−64)/48) | `t1_909` §0 |
 | Accent | acc1 ×1.15 + shelf; flam-capable (acc2 = second hit) | `t1_909` §2/§3 (BD-measured, same code path) |
 | Retrigger | monophonic | `t1_909` §4 |

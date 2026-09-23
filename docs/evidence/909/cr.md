@@ -1,6 +1,6 @@
 # CR — 909 crash (layered sampler, Task 9 gate G9)
 
-**Date:** 2026-09-20. **Status:** HYPOTHESIS (locks at TC-2.4.1/2.4.3).
+**Date:** 2026-09-20 (locked 2026-09-23). **Status:** LOCKED (TC-2.4.1/2.4.3).
 **Spec:** §11 (crash/ride accent-no-op quirk + decay-shortens-with-Tune),
 Appendix A P-13/P-14.
 
@@ -8,7 +8,7 @@ Appendix A P-13/P-14.
 |-----------|-------|----------|
 | Layers | 2 (CR-A 0–63 / CR-B 64–127) | pack spans |
 | Crossfade | triangular, 8-position feather, equal-power norm | `t1_909` §1 green (shared mixer path) |
-| Accent | NO-OP quirk: gain pinned 1.0, shelf skipped | `t1_909` §2: acc1/accent0 bit-identical |
+| Accent | NO-OP quirk: gain pinned 1.0, shelf skipped | `t1_909` §2: acc1/accent0 bit-identical; `t24_909quirk` green (CR direct, maxdiff 0) |
 | Decay × Tune | extra exp envelope, τ = 1.2 s × 2^(−(tune−64)/48) | `t1_909` §0: monotonic shortening asserted |
 | Retrigger/swap | monophonic / idle-only | `t1_909` §4/§5 |
 
