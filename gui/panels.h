@@ -42,9 +42,9 @@ const struct RIPanelDesc *ri_panel_dummy(void);
 int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id);
 
 /* First-panel knob rects (TC-2.9.1 code side): panel-909-geometry
- * doc centers at 1024×768, knob 56 px at 1x, scaled to a zoom
- * level (0/1/2). Index 0..3 = tune/level/decay/flamres; anything
- * else (or unknown zoom) returns all zeros. */
+ * doc centers, scaled to a zoom level (0/1/2). Index 0..3 =
+ * tune/level/decay/flamres; anything else (or unknown zoom)
+ * returns all zeros. */
 struct RIPanelRect {
     int x; /* center */
     int y; /* center */
@@ -52,5 +52,12 @@ struct RIPanelRect {
     int h; /* height */
 };
 struct RIPanelRect ri_panel909_knob_rect(unsigned int index, int zoom);
+
+/* First-panel composition constants (TC-2.9.1 code side): proof
+ * window size + background, shared by the proof vehicle and the
+ * future MCC panel so both paint the same canvas. */
+#define RI_PANEL909_W 296u
+#define RI_PANEL909_H 96u
+#define RI_PANEL909_BG 0xdcdcd6u
 
 #endif

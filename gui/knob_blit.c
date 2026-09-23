@@ -19,6 +19,7 @@
 #include <proto/cybergraphics.h>
 #include <proto/exec.h>
 #include "gui/knob_art.h"
+#include "gui/knob_blit.h"
 
 /* Owns the cybergraphics handle (lazy open like the proven ICD
  * pattern; never closed — process-lifetime app use). The clib
@@ -86,4 +87,34 @@ int ri_knob_blit_one(struct RastPort *rp, int value, int dx, int dy) {
     if (rc == 0)
         return -2;
     return (int)n;
+}
+
+/* Opaque filled rect (panel background, divider rules): callers
+ * stay in-window (the proof vehicle sizes from RI_PANEL909_W/H).
+ * Packs words exactly like the knob path (proven BGRA order).
+ * Returns pixels painted, 0 on bad args, -1 no cybergraphics. */
+static uint32_t s_scan[320u];
+
+int ri_knob_panel_rect(struct RastPort *rp, int x, int y, int w, int h,
+    uint32_t rgb) {
+    int row;
+    uint32_t i;
+    uint32_t r = (rgb >> 16) & 0xffu;
+    uint32_t g = (rgb >> 8) & 0xffu;
+    uint32_t b = rgb & 0xffu;
+    uint32_t word = (b << 24) | (g << 16) | (r << 8) | 0xffu;
+    ULONG rc;
+    if (!rp || w <= 0 || h <= 0 || w > 320 || x < 0 || y < 0)
+        return 0;
+    if (!lazy_cyber())
+        return -1;
+    for (i = 0; i < (uint32_t)w; i++)
+        s_scan[i] = word;
+    for (row = 0; row < h; row++) {
+        rc = WritePixelArrayAlpha(s_scan, 0, 0, (UWORD)(w * 4u), rp,
+            (UWORD)x, (UWORD)(y + row), (UWORD)w, 1, 0xffffffffUL);
+        if (rc == 0)
+            return -2;
+    }
+    return w * h;
 }

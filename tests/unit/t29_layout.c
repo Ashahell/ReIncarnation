@@ -48,6 +48,11 @@ int main(void) {
     r = ri_panel909_knob_rect(0, 9);
     CHECK(r.x == 0 && r.y == 0 && r.w == 0 && r.h == 0, "zoom bad");
 
+    /* --- composition constants (proof window + background) --- */
+    CHECK(RI_PANEL909_W == 296u, "panel w %u", RI_PANEL909_W);
+    CHECK(RI_PANEL909_H == 96u, "panel h %u", RI_PANEL909_H);
+    CHECK(RI_PANEL909_BG == 0xdcdcd6u, "panel bg 0x%x", RI_PANEL909_BG);
+
     if (fails)
         printf("FAIL %d\n", fails);
     else
