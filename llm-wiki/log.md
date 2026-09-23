@@ -254,6 +254,13 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-23] m18 | Knob blit on device: BGRA root cause via calibration, orange pointers proven
+- Disposition: New (blit helper + proof vehicle + gates; closes the "go" deliverable)
+- Raw: llm-wiki/raw/articles/2026-09-23-knob-blit-device-bgra-proof.md
+- Updated: gui/knob_blit.c (new), app/knobproof.c (new), scripts/ri_audit.sh (guard + leak + compile lines), llm-wiki/index.md
+- **Debugging textbook:** lavender ghosts → SDK .conf + ICD pattern study → 6-swatch calibration hypothesis test → BGRA words proven 6/6 (incl. exact 50%-blend 149) → one-line fix → eyeball + byte-exact `#e07b2e` (32px) + charcoal bodies at doc centers ±1px.
+- Full `ri_audit.sh` 0/0 frozen tree (0 FAIL lines). Remaining art: panel composition around knobs, then MCC integration retiring MUIC_Knob.
+
 ## [2026-09-23] m17 | Knob art recipe: pointer-angle contract + procedural frames + C port (TDD, eyeballed)
 - Disposition: New (art recipe + pins; AROS blit + device proof next)
 - Raw: llm-wiki/raw/articles/2026-09-23-knob-art-recipe-frames.md
