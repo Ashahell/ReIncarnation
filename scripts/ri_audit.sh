@@ -338,12 +338,12 @@ grep -q "Tester:" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: accep
 test -f "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
 grep -q "FAIL" "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: RED evidence has no FAIL lines"; exit 1; }
 echo "-- AROS-only shells guarded + out of host build --"
-for f in gui/widgets/rknb.mcc.c gui/widgets/rfdr.mcc.c gui/widgets/rstp.mcc.c gui/widgets/rlvl.mcc.c app/main.c app/panel909.c; do
+for f in gui/widgets/rknb.mcc.c gui/widgets/rfdr.mcc.c gui/widgets/rstp.mcc.c gui/widgets/rlvl.mcc.c gui/knob_blit.c app/main.c app/panel909.c app/knobproof.c; do
   test -f "$ROOT/$f" || { echo "FAIL: missing $f"; exit 1; }
   grep -q "#ifndef __AROS__" "$ROOT/$f" || { echo "FAIL: $f lacks __AROS__ guard"; exit 1; }
   grep -q '#error ".*AROS-only' "$ROOT/$f" || { echo "FAIL: $f lacks AROS-only #error"; exit 1; }
 done
-if grep -rn "widgets\|app/main\|app/panel909" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS shells leak into host build"; exit 1; fi
+if grep -rn "widgets\|app/main\|app/panel909\|knob_blit\|app/knobproof" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS shells leak into host build"; exit 1; fi
 grep -q "Numeric → Knob" "$ROOT/gui/widgets/rknb.mcc.c" || { echo "FAIL: rknb lacks reuse note"; exit 1; }
 echo "-- AROS compile of GUI TUs (compile-only, no link) --"
 if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
@@ -362,6 +362,8 @@ for w in rknb rfdr rstp rlvl; do
 done
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/main.c" -o "$OUT/aros/app_main_aros.o" || { echo "FAIL: app/main.c AROS compile"; exit 1; }
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/panel909.c" -o "$OUT/aros/app_panel909_aros.o" || { echo "FAIL: app/panel909.c AROS compile"; exit 1; }
+x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/knob_blit.c" -o "$OUT/aros/knob_blit_aros.o" || { echo "FAIL: gui/knob_blit.c AROS compile"; exit 1; }
+x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/knobproof.c" -o "$OUT/aros/app_knobproof_aros.o" || { echo "FAIL: app/knobproof.c AROS compile"; exit 1; }
 echo "== Phase 13: formats full + MIDI + automation + ARexx + datatypes + fuzz (Task 13, gate G13) =="
 T13=/tmp/ri/run/audit13
 mkdir -p "$T13/c1" "$T13/c2" "$T13/rs" "$T13/regen"
