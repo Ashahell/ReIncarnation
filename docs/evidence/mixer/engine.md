@@ -1,6 +1,8 @@
 # Mixer + RIDevice registry engine note (Task 11, gate G11)
 
-**Date:** 2026-09-20. **Status:** implemented, `t1_mixer` green.
+**Date:** 2026-09-20 (locked 2026-09-23 at TC-2.6.1/2.6.2/2.6.3;
+ballistics feel stays GUI-milestone subjective, out of host scope).
+**Status:** LOCKED (aforementioned scope).
 **Spec:** §13 mixer (4 section buses + master, mute/solo, sends, meters;
 P-16/P-17 under TC-2.6.x) + §6 device framework (static table of 4,
 TC-2.1.5/TC-2.9.5). No parity claim anywhere in this file — P-16/P-17
@@ -35,8 +37,13 @@ are E0/HYPOTHESIS values owned by this project, verified by TCs.
 - Anchors v=16/127: gain 0.015872 (−35.99 dB) / 1.0 (0 dB); all 9
   within ±0.5 dB. RED mutant (linear law): exactly the 7 non-unity
   anchors fail (7.0–18.0 dB errors), all other sections green —
-  archived as `red-t1_mixer.txt`.
-- Meter: 1 s decay to 0.0999454 → 20.00 dB/s (gate 20 ± 2).
+  archived as `red-t1_mixer.txt`. `t26_gainstage` re-pins the 9
+  anchors plus send-law-equals-fader-law rendered ratios (16/64/112).
+- Rendered 16×16 mute/solo matrix exact (distinct DCs 1/2/3/4,
+  `t26_matrix`); solo-toggle transients bounded by 9/64 (three
+  simultaneous per-bus 1/64 slews), settle exact both ways.
+- Meter: 1 s decay to 0.0999454 → 20.00 dB/s (gate 20 ± 2);
+  sr-fallback identical; hotter peak adopted exactly (`t26_meter`).
 - Mute transient worst step 0.015625 (bound 0.02); mute/unmute tails
   exact (0.0 / 1.0).
 - D1: re-init + re-render bit-identical (master and send buses).

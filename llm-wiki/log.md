@@ -239,6 +239,14 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] m9 | WBS 2.6 mixer acceptance: TC-2.6.1–2.6.3 pins (no production change)
+- Disposition: New (three per-TC pins + ledger lock; no `engine/` file touched)
+- Raw: llm-wiki/raw/articles/2026-09-23-wbs26-mixer-acceptance-tc261-tc263.md
+- Updated: scripts/ri_audit.sh (mixer phase three t26 lines), docs/evidence/mixer/engine.md (LOCKED at 2.6.1–2.6.3, ballistics stays GUI-subjective), llm-wiki/index.md
+- **TDD:** all three green first run (property pins); no production cycle in this slice — stated plainly.
+- **Measured:** 9 anchors ±0.5 dB + send==fader ratios; rendered 16×16 matrix exact + solo transients ≤9/64; meter 20.00 dB/s (ledger match 0.0999454) + fallback + adoption. Full `ri_audit.sh` 0/0 twice (0 FAIL lines); goldens identical.
+- **Honesty:** absolute 0.02 solo bound corrected pre-run (unachievable by construction → derived 9/64 multi-bus bound); ballistics feel out of host scope; no websites needed; spirv-val vacuous.
+
 ## [2026-09-23] m8 | WBS 2.5 FX acceptance: TC-2.5.1–2.5.5 pins (M2.4 opens, no production change)
 - Disposition: New (five per-TC pins + ledger lock; no `engine/` file touched)
 - Raw: llm-wiki/raw/articles/2026-09-23-wbs25-fx-acceptance-tc251-tc255.md
