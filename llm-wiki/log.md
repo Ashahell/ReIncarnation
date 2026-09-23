@@ -239,6 +239,14 @@ Negotiate-only, hookless (proven on Dell: M1.1 numbers, rc=0); v1-header frictio
 ## [2026-09-23] lint | 2.3 ingest verified, 0 issues found, 0 auto-fixed
 Index↔raw consistency (all local raws indexed, all local links resolve), metadata headers 3/3 on the new article, no contradictions (the sole "400-base" hit is the new log entry's own pre-lock narrative). One dead-link candidate investigated and cleared: `2026-09-22-laptop-abiv11-real-hardware-ahi-probe.md` is an intentional cross-repo reference (index marks it "not copied here") and the file verifies present in the Vulkan4AROS wiki. No cascade updates (WBS + deep-dives are verbatim user sources, immutable; spec v5 untouched by a slice ingest). SDD progress BASE advanced to `f5e6914` (local, gitignored).
 
+## [2026-09-23] m7 | WBS 2.9 first panel: TC-2.9.1–2.9.3 host pins + right-click default (TDD)
+- Disposition: New (two pins + one accessor the pins demanded; M2.3's last leg)
+- Raw: llm-wiki/raw/articles/2026-09-23-wbs29-first-panel-tc291-tc293.md
+- Updated: gui/panels.c (`ri_panel_default_ctl` impl), gui/panels.h (decl), scripts/ri_audit.sh (Phase 12 two t29 lines), docs/evidence/gui/panel-909-geometry.md (new, E0), docs/evidence/gui/acceptance.md (right-click row, unchecked), llm-wiki/index.md
+- **Gap analysis:** TC-2.9.2 right-click had no accessor; TC-2.9.1 named a panel-geometry doc that didn't exist; TC-2.9.3 fully covered by t1 (composition pin only).
+- **TDD:** RED watched — `t29_paneldefault` build-RED (implicit declaration); `t29_chase` green pin first run. GREEN: both exit 0, `t1_knob` still PASS. Full `ri_audit.sh` 0/0 twice (pre-change baseline + final, 0 FAIL lines).
+- **Honesty:** mouse-capture is MCC-shell platform behavior (out of pin scope, stated); one self-caught slip (stray decl in panels.c + comment-only header) fixed pre-GREEN; no websites needed (contracts local); spirv-val vacuous.
+
 ## [2026-09-23] m6 | WBS 2.4 909 acceptance: TC-2.4.1–2.4.5 pins + panel-Tune wiring (TDD)
 - Disposition: New (five per-TC pins + one production surface the pins demanded)
 - Raw: llm-wiki/raw/articles/2026-09-23-wbs24-909-acceptance-tc241-tc245.md

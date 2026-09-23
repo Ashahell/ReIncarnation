@@ -13,6 +13,7 @@ artwork. Layout numbers are E0 design acceptance thresholds.
 - [ ] Shift-fine: ×0.1 (1500 px full, ±10% host band holds on device)
 - [ ] Fader: 100 px = full travel, same fine rule
 - [ ] Commit-on-release: one drag = one undo unit (single commit event)
+- [ ] Right-click: resets control to panel default (`ri_panel_default_ctl`, host-pinned)
 
 ## Silhouette + artwork (TC-2.9.x)
 
