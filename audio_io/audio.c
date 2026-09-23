@@ -70,11 +70,23 @@ static void write_u16(unsigned char *p, uint16_t v) {
     p[1] = (unsigned char)((v >> 8) & 0xffu);
 }
 
+static void write_u16be(unsigned char *p, uint16_t v) {
+    p[0] = (unsigned char)((v >> 8) & 0xffu);
+    p[1] = (unsigned char)(v & 0xffu);
+}
+
 static void write_u32(unsigned char *p, uint32_t v) {
     p[0] = (unsigned char)(v & 0xffu);
     p[1] = (unsigned char)((v >> 8) & 0xffu);
     p[2] = (unsigned char)((v >> 16) & 0xffu);
     p[3] = (unsigned char)((v >> 24) & 0xffu);
+}
+
+static void write_u32be(unsigned char *p, uint32_t v) {
+    p[0] = (unsigned char)((v >> 24) & 0xffu);
+    p[1] = (unsigned char)((v >> 16) & 0xffu);
+    p[2] = (unsigned char)((v >> 8) & 0xffu);
+    p[3] = (unsigned char)(v & 0xffu);
 }
 
 static float auf_clampf(float x) {
@@ -455,6 +467,51 @@ int32_t auf_f32_to_s24(float x) {
     return (int32_t)(c - 0.5f);
 }
 
+/* 80-bit extended sample rates (ffmpeg-verified byte patterns;
+ * only the two engine rates exist — anything else fails closed). */
+static void auf_aiff_ext(uint8_t out[10], uint32_t sr) {
+    static const uint8_t e44100[10] =
+        { 0x40, 0x0e, 0xac, 0x44, 0, 0, 0, 0, 0, 0 };
+    static const uint8_t e48000[10] =
+        { 0x40, 0x0e, 0xbb, 0x80, 0, 0, 0, 0, 0, 0 };
+    const uint8_t *src = (sr == 44100u) ? e44100 : e48000;
+    uint32_t i;
+    for (i = 0; i < 10; i++)
+        out[i] = src[i];
+}
+
+/* Plain-AIFF 54-byte header builder (FORM + COMM + SSND head). */
+int auf_aiff_header(unsigned char hdr[54], uint32_t frames, uint8_t depth,
+    uint32_t sr) {
+    uint32_t bps, bytes, i;
+    uint8_t ext[10];
+    if (depth != 16u && depth != 24u)
+        return 2;
+    if (sr != 44100u && sr != 48000u)
+        return 2;
+    bps = depth / 8u;
+    bytes = frames * bps;
+    for (i = 0; i < 54; i++)
+        hdr[i] = 0;
+    memcpy(hdr, "FORM", 4);
+    /* FORM size = 4 (AIFF) + COMM chunk (8 + 18) + SSND chunk
+     * (8 + 8 + data). */
+    write_u32be(hdr + 4, 4u + 26u + 16u + bytes);
+    memcpy(hdr + 8, "AIFF", 4);
+    memcpy(hdr + 12, "COMM", 4);
+    write_u32be(hdr + 16, 18u);
+    write_u16be(hdr + 20, 1u); /* mono */
+    write_u32be(hdr + 22, frames);
+    write_u16be(hdr + 26, (uint16_t)depth);
+    auf_aiff_ext(ext, sr);
+    for (i = 0; i < 10; i++)
+        hdr[28 + i] = ext[i];
+    memcpy(hdr + 38, "SSND", 4);
+    write_u32be(hdr + 42, 8u + bytes);
+    /* SSND offset (46) + blocksize (50) stay zeroed. */
+    return 0;
+}
+
 /* Canonical 44-byte PCM header builder (shared by both file sinks). */
 int auf_wav_header(unsigned char hdr[44], uint32_t total, uint8_t depth,
     uint32_t sr) {
@@ -575,6 +632,95 @@ int AuRenderToFileDepth(struct AudioObject *ao, const char *path,
             return 2;
     }
     return au_render_song_to_wav_depth(ao, path, RI_AUDIO_BLOCK, cap, depth);
+}
+
+/* Plain-AIFF sink: same core/loop as the WAV sink, big-endian PCM
+ * through the shared packers. au_render_song_to_aiff is the depth
+ * entry point (16|24 else rc 2); the 54-byte header comes from
+ * auf_aiff_header (sr fixed at RI_AUDIO_SR — live rate threading
+ * is its own slice). */
+int au_render_song_to_aiff(struct AudioObject *ao, const char *path,
+    uint32_t chunk, uint64_t cap_total, uint8_t depth) {
+    static float fbuf[RI_DEVICE_FRAMES];
+    FILE *f;
+    uint64_t left;
+    unsigned char hdr[54];
+    if (!ao || !path || chunk == 0 || chunk > RI_DEVICE_FRAMES)
+        return 2;
+    if (depth != 16u && depth != 24u)
+        return 2;
+    if (auf_render_source(ao) < 0)
+        return 2;
+    au_rewind(ao);
+    if (ao->nev == 0)
+        return 2;
+    if (cap_total > 0)
+        ao->total = cap_total;
+    if (ao->total > 0xffffffffu)
+        return 2;
+    f = fopen(path, "wb");
+    if (!f)
+        return 2;
+    if (auf_aiff_header(hdr, (uint32_t)ao->total, depth, RI_AUDIO_SR) != 0) {
+        fclose(f);
+        return 2;
+    }
+    if (fwrite(hdr, 1, 54, f) != 54) {
+        fclose(f);
+        return 2;
+    }
+    left = ao->total;
+    while (left > 0) {
+        uint32_t want = left > chunk ? chunk : (uint32_t)left;
+        uint32_t got, k;
+        got = au_render_frames(ao, fbuf, want);
+        if (got == 0) {
+            for (k = 0; k < want; k++)
+                fbuf[k] = 0.0f;
+            got = want;
+            ao->cursor += want;
+        }
+        for (k = 0; k < got; k++) {
+            if (depth == 24u) {
+                int32_t s = auf_f32_to_s24(fbuf[k]);
+                unsigned char b[3];
+                b[0] = (unsigned char)((s >> 16) & 0xff);
+                b[1] = (unsigned char)((s >> 8) & 0xff);
+                b[2] = (unsigned char)(s & 0xff);
+                if (fwrite(b, 1, 3, f) != 3) {
+                    fclose(f);
+                    return 2;
+                }
+            } else {
+                int16_t s = auf_f32_to_s16(fbuf[k]);
+                unsigned char b[2];
+                b[0] = (unsigned char)((s >> 8) & 0xff);
+                b[1] = (unsigned char)(s & 0xff);
+                if (fwrite(b, 1, 2, f) != 2) {
+                    fclose(f);
+                    return 2;
+                }
+            }
+        }
+        left -= got;
+    }
+    fclose(f);
+    return 0;
+}
+
+int AuRenderToFileAiff(struct AudioObject *ao, const char *path,
+    uint32_t ms, uint8_t depth) {
+    uint64_t cap = 0;
+    if (!ao || !path || !ao->started)
+        return 2;
+    if (depth != 16u && depth != 24u)
+        return 2;
+    if (ms > 0) {
+        cap = (uint64_t)ms * (RI_AUDIO_SR / 1000u);
+        if (cap == 0)
+            return 2;
+    }
+    return au_render_song_to_aiff(ao, path, RI_AUDIO_BLOCK, cap, depth);
 }
 
 int AuRenderToFile(struct AudioObject *ao, const char *path, uint32_t ms) {

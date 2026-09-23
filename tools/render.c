@@ -55,6 +55,11 @@ static int g_depth = 16;
  * takes float sr everywhere; tails are 1 s = g_rate samples). */
 static uint32_t g_rate = RI_SR;
 
+/* Output container, set by --format (0 = WAV default, 1 = AIFF).
+ * Process-global like depth/rate: every render mode writes through
+ * write_audio with this container. */
+static int g_format = 0;
+
 static float clampf(float x) {
     if (x > 1.0f)
         return 1.0f;
@@ -121,6 +126,66 @@ static int write_wav(const char *path, const float *pcm, uint32_t total,
     }
     fclose(f);
     return 0;
+}
+
+/* Plain-AIFF writer (TC-2.13/WBS-2.13 parity): float PCM in,
+ * depth 16|24, big-endian samples through the shared audio.c
+ * packers. Header contract owned by auf_aiff_header. */
+static int write_aiff(const char *path, const float *pcm, uint32_t total,
+    int depth) {
+    unsigned char hdr[54];
+    uint32_t i;
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        printf("render: cannot open --out %s\n", path);
+        return 2;
+    }
+    if (depth != 16 && depth != 24) {
+        printf("render: bad depth %d (want 16|24)\n", depth);
+        fclose(f);
+        return 2;
+    }
+    if (auf_aiff_header(hdr, total, (uint8_t)depth, g_rate) != 0) {
+        fclose(f);
+        return 2;
+    }
+    if (fwrite(hdr, 1, 54, f) != 54) {
+        printf("render: write failed %s\n", path);
+        fclose(f);
+        return 2;
+    }
+    for (i = 0; i < total; i++) {
+        if (depth == 24) {
+            int32_t s = auf_f32_to_s24(pcm[i]);
+            unsigned char b[3];
+            b[0] = (unsigned char)((s >> 16) & 0xff);
+            b[1] = (unsigned char)((s >> 8) & 0xff);
+            b[2] = (unsigned char)(s & 0xff);
+            if (fwrite(b, 1, 3, f) != 3) {
+                printf("render: write failed %s\n", path);
+                fclose(f);
+                return 2;
+            }
+        } else {
+            int16_t s = f32_to_s16(pcm[i]);
+            unsigned char b[2];
+            b[0] = (unsigned char)((s >> 8) & 0xff);
+            b[1] = (unsigned char)(s & 0xff);
+            if (fwrite(b, 1, 2, f) != 2) {
+                printf("render: write failed %s\n", path);
+                fclose(f);
+                return 2;
+            }
+        }
+    }
+    fclose(f);
+    return 0;
+}
+
+static int write_audio(const char *path, const float *pcm, uint32_t total) {
+    if (g_format == 1)
+        return write_aiff(path, pcm, total, g_depth);
+    return write_wav(path, pcm, total, g_depth);
 }
 
 /* Parse one "k=v" token. Returns 0 ok, 1 no match, 2 bad value. */
@@ -465,7 +530,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
     }
     if (ev_path && (rc = dump_events(ev_path, ev, nev)) != 0)
         return rc;
-    if ((rc = write_wav(out_path, pcm, (uint32_t)total, g_depth)) != 0)
+    if ((rc = write_audio(out_path, pcm, (uint32_t)total)) != 0)
         return rc;
     printf("render: %u events, %llu samples -> %s\n", nev, (unsigned long long)total, out_path);
     return 0;
@@ -494,7 +559,7 @@ static int render_math(int is_sine, const char *out_path) {
         for (i = 0; i < 96000u; i++)
             pcm[i] = rb303_filter_step(&v, 0.5f, (float)g_rate);
     }
-    return write_wav(out_path, pcm, 96000u, g_depth);
+    return write_audio(out_path, pcm, 96000u);
 }
 
 /* --808 stimulus (Task 8, gate G8): one voice (accent 0, tune 0, default
@@ -558,7 +623,7 @@ static int render_808(const char *name, const char *out_path) {
         pos += cc;
     }
     printf("render: 808 %s, %u samples -> %s\n", name, total, out_path);
-    return write_wav(out_path, pcm, total, g_depth);
+    return write_audio(out_path, pcm, total);
 }
 
 /* --909 stimulus (Task 9, gate G9): one voice (accent 0, tune 64) from
@@ -692,7 +757,7 @@ static int render_909_common(struct RB909Set *s, uint32_t v, float secs,
         pos += cc;
     }
     printf("render: 909 %s, %u samples -> %s\n", tag, total, out_path);
-    return write_wav(out_path, pcm, total, g_depth);
+    return write_audio(out_path, pcm, total);
 }
 
 static int render_909(const char *name, const char *out_path) {
@@ -826,7 +891,7 @@ static int render_pcf(const char *name, const char *out_path) {
         pos += cc;
     }
     printf("render: pcf %s, %u samples -> %s\n", name, total, out_path);
-    return write_wav(out_path, pcm, total, g_depth);
+    return write_audio(out_path, pcm, total);
 }
 
 /* Shared 2 s chord input for the fx dry/chain pair (identical stimulus). */
@@ -910,7 +975,7 @@ static int render_fx(const char *name, const char *out_path) {
     for (j = 0; j < total; j++)
         pcm[j] = tmp[j];
     printf("render: fx %s, %u samples -> %s\n", name, total, out_path);
-    return write_wav(out_path, pcm, total, g_depth);
+    return write_audio(out_path, pcm, total);
 }
 
 /* --mix stimuli (Task 11, gate G11): 4 sine buses through the real
@@ -959,7 +1024,7 @@ static int render_mix(const char *name, const char *out_path) {
         pcm[j] = tmp[j];
     printf("render: mix %s, %u samples -> %s (meter %.4f)\n", name, total,
         out_path, (double)ri_meter_peak(&m.meter));
-    return write_wav(out_path, pcm, total, g_depth);
+    return write_audio(out_path, pcm, total);
 }
 
 /* --rbngsong (Task 13, gate G13): the real RBNG codec path. Same
@@ -1097,7 +1162,7 @@ static int render_rbngsong(const char *song_path, const char *out_path,
     }
     if (ev_path && (rc = dump_events(ev_path, ev, nev)) != 0)
         return rc;
-    if ((rc = write_wav(out_path, pcm, (uint32_t)total, g_depth)) != 0)
+    if ((rc = write_audio(out_path, pcm, (uint32_t)total)) != 0)
         return rc;
     printf("render: %u events, %llu samples -> %s\n", nev,
         (unsigned long long)total, out_path);
@@ -1120,6 +1185,7 @@ int main(int argc, char **argv) {
         printf("       render --fx dry|delay|chain --out FILE\n");
         printf("       render --mix four|solo --out FILE\n");
         printf("       [--depth 16|24, default 16] [--rate 48000|44100, default 48000]\n");
+        printf("       [--format wav|aiff, default wav]\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
         printf("NOTE: this golden proves determinism + skeleton, NOT parity.\n");
         return 0;
@@ -1160,6 +1226,17 @@ int main(int argc, char **argv) {
                 return 2;
             }
             g_rate = (uint32_t)r;
+        }
+        else if (strcmp(argv[i], "--format") == 0 && i + 1 < argc) {
+            const char *fm = argv[++i];
+            if (strcmp(fm, "wav") == 0)
+                g_format = 0;
+            else if (strcmp(fm, "aiff") == 0)
+                g_format = 1;
+            else {
+                printf("render: bad --format (want wav|aiff)\n");
+                return 2;
+            }
         }
         else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
             pack = argv[++i];

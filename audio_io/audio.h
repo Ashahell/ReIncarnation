@@ -63,6 +63,15 @@ int AuRenderToFile(struct AudioObject *ao, const char *path, uint32_t ms);
  * is depth 16 through this entry point. */
 int AuRenderToFileDepth(struct AudioObject *ao, const char *path,
     uint32_t ms, uint8_t depth);
+/* Plain-AIFF export (WBS 2.13 parity): FORM/AIFF + COMM + SSND,
+ * big-endian PCM, depth 16|24, sr 44100|48000, else rc 2.
+ * AIFF-C/sowt is out (different container). */
+int AuRenderToFileAiff(struct AudioObject *ao, const char *path,
+    uint32_t ms, uint8_t depth);
+/* Depth-parameterized AIFF sink (16|24 else rc 2; sr fixed at
+ * RI_AUDIO_SR — see the header builder). */
+int au_render_song_to_aiff(struct AudioObject *ao, const char *path,
+    uint32_t chunk, uint64_t cap_total, uint8_t depth);
 
 /* Host-test/CI extras (NOT part of the frozen subset above). */
 const char *AuBackendName(struct AudioObject *ao); /* "null" | "ahi-lowlevel" */
@@ -88,6 +97,11 @@ int auf_wav_header(unsigned char hdr[44], uint32_t total, uint8_t depth,
 /* Deterministic float -> int24 (round-half-away, no libm;
  * auf_f32_to_s16 is the 16-bit twin, kept for the depth-16 path). */
 int32_t auf_f32_to_s24(float x);
+/* Plain-AIFF 54-byte header builder (FORM + COMM + SSND head):
+ * frames sample frames, depth 16|24, sr 44100|48000 (80-bit
+ * extended table). Anything else → rc 2. Returns 0 ok. */
+int auf_aiff_header(unsigned char hdr[54], uint32_t frames, uint8_t depth,
+    uint32_t sr);
 /* Host stub backend (audio_io/backend_null.c): fixed RI_DEVICE_FRAMES drain
  * of the same core into a WAV + events pair. */
 int au_null_render_to_wav(struct AudioObject *ao, const char *wav_path, const char *ev_path);

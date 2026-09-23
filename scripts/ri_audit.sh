@@ -14,13 +14,13 @@ for d in 303 808 909 pcf sequencer gui formats; do test -d "$ROOT/docs/evidence/
 echo "== Phase 1: first-light goldens (Task 4, gate G4) =="
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 G="$ROOT/tests/golden/303"
-for f in math-dc math-sine first-light dc-24 dc-441 first-light-441; do
+for f in math-dc math-sine first-light dc-24 dc-441 first-light-441 dc-aiff first-light-aiff; do
   test -f "$G/$f.wav" || { echo "FAIL: missing golden $f.wav (missing-is-broken)"; exit 1; }
   test -f "$G/$f.wav.sha256" || { echo "FAIL: missing sidecar $f.wav.sha256"; exit 1; }
 done
 test -f "$G/first-light.events" || { echo "FAIL: missing event golden"; exit 1; }
 test -f "$G/first-light.rbng" || { echo "FAIL: missing song scaffold"; exit 1; }
-(cd "$ROOT" && sha256sum -c tests/golden/303/math-dc.wav.sha256 tests/golden/303/math-sine.wav.sha256 tests/golden/303/first-light.wav.sha256 tests/golden/303/dc-24.wav.sha256 tests/golden/303/dc-441.wav.sha256 tests/golden/303/first-light-441.wav.sha256) || { echo "FAIL: golden sha256 mismatch"; exit 1; }
+(cd "$ROOT" && sha256sum -c tests/golden/303/math-dc.wav.sha256 tests/golden/303/math-sine.wav.sha256 tests/golden/303/first-light.wav.sha256 tests/golden/303/dc-24.wav.sha256 tests/golden/303/dc-441.wav.sha256 tests/golden/303/first-light-441.wav.sha256 tests/golden/303/dc-aiff.wav.sha256 tests/golden/303/first-light-aiff.wav.sha256) || { echo "FAIL: golden sha256 mismatch"; exit 1; }
 echo "-- math unit goldens re-verified --"
 bash "$ROOT/scripts/ri_build_host.sh" test t1_303math >/dev/null || { echo "FAIL: t1_303math"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t1_303walk >/dev/null || { echo "FAIL: t1_303walk"; exit 1; }
@@ -46,6 +46,11 @@ cmp -s "$G/dc-24.wav" "$A/dc-24.wav" || { echo "FAIL: re-render dc-24 differs"; 
 cmp -s "$G/dc-441.wav" "$A/dc-441.wav" || { echo "FAIL: re-render dc-441 differs"; exit 1; }
 "$OUT/render" --song "$G/first-light.rbng" --rate 44100 --out "$A/first-light-441.wav" || exit 1
 cmp -s "$G/first-light-441.wav" "$A/first-light-441.wav" || { echo "FAIL: re-render first-light-441 differs"; exit 1; }
+"$OUT/render" --math dc --format aiff --out "$A/dc-aiff.wav" || exit 1
+cmp -s "$G/dc-aiff.wav" "$A/dc-aiff.wav" || { echo "FAIL: re-render dc-aiff differs"; exit 1; }
+"$OUT/render" --song "$G/first-light.rbng" --format aiff --out "$A/first-light-aiff.wav" || exit 1
+cmp -s "$G/first-light-aiff.wav" "$A/first-light-aiff.wav" || { echo "FAIL: re-render first-light-aiff differs"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t32_aiff >/dev/null || { echo "FAIL: t32_aiff (TC-2.13/WBS-2.13)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t28_wavdepth >/dev/null || { echo "FAIL: t28_wavdepth (TC-2.13.4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t31_rate441 >/dev/null || { echo "FAIL: t31_rate441 (TC-2.13.4)"; exit 1; }
 cmp -s "$G/first-light.events" "$A/first-light.events" || { echo "FAIL: re-render events differ"; exit 1; }
