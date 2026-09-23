@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md](raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md) — **2026-09-24 — MCC knob class: custom Numeric subclass, device crash, bisection, lane wedge (UNPROVEN).** Class+knob creation rc=0 on device; window-open crash (Show/Draw path); foreground diagnostic wedged the lane (ping queues — needs on-site Kill/restart); modal input unreachable; detached-only rule. Blind hardening (cached `cur`, no Draw reentry). Audit 0/0. Recovery runbook inside.
+
 - [raw/articles/2026-09-24-panel-composition-device-proof.md](raw/articles/2026-09-24-panel-composition-device-proof.md) — **2026-09-24 — Panel composition on device: bg, rules, labels, knobs (eyeballed + measured).** Full first-panel composition live: exact-bg fill, divider rules, legible labels, four v2 knobs at doc x ±0px. File-damage self-catch (header API deletion + return-type corruption, repaired pre-build). Audit 0/0. Remaining: MCC integration, typography, 2.10 step GUI.
 
 - [raw/articles/2026-09-23-knob-v2-pitch70-device-lock.md](raw/articles/2026-09-23-knob-v2-pitch70-device-lock.md) — **2026-09-23 — Knob v2 art lock: 70px pitch from hardware ratio, pointer-tip geometry, exact orange on device.** Hardware ratio 1.35 → pitch 70 for 52px bodies (overlap resolved); x exact, y via pointer tips (tick-gap bias diagnosed); `#e37c3b` byte-exact on Dell; tick rings on all four. Audit 0/0. Remaining: panel composition, MCC integration.

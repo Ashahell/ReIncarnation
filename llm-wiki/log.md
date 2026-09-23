@@ -254,6 +254,16 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m21 | MCC knob class: custom Numeric subclass, device crash, bisection, lane wedge (UNPROVEN)
+- Disposition: New (code-complete, device proof PENDING — window-open crash; Dell lane wedged, needs on-site recovery)
+- Raw: llm-wiki/raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md
+- Updated: gui/widgets/rknb.mcc.c (custom class), app/panel909.c (class wiring), gui/knob_blit.h (stdint), llm-wiki/index.md
+- **Measured:** AROS -Werror compile clean; on-device class+knob create/dispose rc=0 (creation INNOCENT); crash needs window open (Show/Draw path); guru names WHd_panel909.
+- **Doctrine:** NEVER foreground-run any Dell binary — always detached; modal requesters unreachable remotely (click/RETURN/ESC all zero effect); USR1-drop rejected.
+- **Blind hardening:** Draw reads cached `cur`, no dispatcher reentry.
+- Full `ri_audit.sh` 0/0 (0 FAIL lines). Recovery runbook in article (detached A/B/C matrix).
+- Scratch kept: `/home/miller/Work/ri_build/diagrknb*.c`, dell2 binaries/captures/winlists.
+
 ## [2026-09-24] m20 | Panel composition on device: bg, rules, labels, knobs (eyeballed + measured)
 - Disposition: New (composition helper + proof vehicle + constants + pins)
 - Raw: llm-wiki/raw/articles/2026-09-24-panel-composition-device-proof.md
