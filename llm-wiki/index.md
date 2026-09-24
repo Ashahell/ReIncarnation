@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-custom-label-class.md](raw/articles/2026-09-24-custom-label-class.md) — **2026-09-24 — Custom label class.** Text rows compared (names black, values/undo light); owned pixels; eyeball pending.
+
 - [raw/articles/2026-09-24-proof-closeout-seam-steps.md](raw/articles/2026-09-24-proof-closeout-seam-steps.md) — **2026-09-24 — Proof close-out.** Separator resolved (absent fresh), steps approved (visual + doubling); 2nd capture wedge = agent flake.
 
 - [raw/articles/2026-09-24-custom-rstp-class.md](raw/articles/2026-09-24-custom-rstp-class.md) — **2026-09-24 — Custom RStp class.** Stock can't size (FixWidth refuted); 32px own art + armed toggle; click check pending.

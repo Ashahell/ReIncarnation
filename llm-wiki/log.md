@@ -261,6 +261,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m39 | Custom label class: MUIC_Text inverts, own pixels instead
+- Disposition: New (forensics + minimal custom class; device proof pending)
+- Raw: llm-wiki/raw/articles/2026-09-24-custom-label-class.md
+- Updated: gui/widgets/rlbl.{h,mcc.c} (new), app/panel909.c, scripts/ri_audit.sh (gate rlbl), llm-wiki/index.md
+- m31-clean vs names-black isolates the row; undo row light exonerates contents. Owned fill + pen-1 text.
+- AROS -Werror clean. Full `ri_audit.sh` 0/0. Binary on RAM:.
+- Pending: owner eyeball (dark-on-light, no bevels) on a fresh instance.
+
 ## [2026-09-24] m38 | Proof close-out: separator resolved, custom steps approved
 - Disposition: New (verdict capsule; no code)
 - Raw: llm-wiki/raw/articles/2026-09-24-proof-closeout-seam-steps.md
