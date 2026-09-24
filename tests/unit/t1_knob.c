@@ -61,6 +61,24 @@ int main(void) {
     RI_ASSERT(ri_ctl_quantize(-3.0) == 0, "quant lo");
     RI_ASSERT(ri_ctl_quantize(63.5) == 64, "quant round");
 
+    /* --- 2b. accumulator clamp (grab reversal bites at once): --- */
+    {
+        double ax, ay;
+        ax = 500.0; ay = 0.0;
+        ri_knob_clamp_acc(64.0, &ax, &ay, 0);
+        RI_ASSERT(fabs(ax - 74.41) < 0.1 && ay == 0.0, "acc hi %f", ax);
+        ax = -500.0; ay = 0.0;
+        ri_knob_clamp_acc(64.0, &ax, &ay, 0);
+        RI_ASSERT(fabs(ax + 75.59) < 0.1 && ay == 0.0, "acc lo %f", ax);
+        ax = 1000.0; ay = 1000.0;
+        ri_knob_clamp_acc(0.0, &ax, &ay, 1);
+        RI_ASSERT(fabs(ax - 750.0) < 0.1 && fabs(ay - 750.0) < 0.1,
+            "acc fine %f,%f", ax, ay);
+        ax = 10.0; ay = 20.0;
+        ri_knob_clamp_acc(64.0, &ax, &ay, 0);
+        RI_ASSERT(ax == 10.0 && ay == 20.0, "acc inside %f,%f", ax, ay);
+    }
+
     /* --- 3. commit-on-release: N moves → exactly 1 commit --- */
     ri_gesture_begin(&g);
     for (i = 0; i < 40; i++)

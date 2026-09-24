@@ -47,11 +47,9 @@ struct RKnBData {
                * reenter). Every programmatic change flows through
                * OM_SET, so this stays exact. */
     LONG drag_start_val;
-    LONG acc_dx; /* accumulated drag since SELECTDOWN (pointer grab:
-                  * the pointer warps back on screen-edge approach,
-                  * so travel is unbounded — value derives from the
-                  * accumulator, never from absolute position) */
-    LONG acc_dy;
+    double acc_dx; /* accumulated drag since SELECTDOWN (double: LONG
+                    * truncation would strand the clamped extremes) */
+    double acc_dy;
     WORD last_x; /* last seen pointer (window coords) */
     WORD last_y;
     WORD warp_wx; /* drag-start point, window coords (warp target) */
@@ -132,7 +130,8 @@ static void rknb_warp(struct Screen *scr, int sx, int sy) {
 BOOPSI_DISPATCHER_PROTO(IPTR, rknb_dispatcher, Class *, Object *, Msg);
 
 /* Forward: defined below the dispatcher, used inside it. */
-LONG ri_rknb_drag_value(LONG start, LONG dx_px, LONG dy_px, BOOL fine);
+LONG ri_rknb_drag_value(LONG start, double dx_px, double dy_px,
+    BOOL fine);
 void ri_rknb_begin(struct RiGesture *g);
 int ri_rknb_move(struct RiGesture *g);
 int ri_rknb_release(struct RiGesture *g);
@@ -155,8 +154,8 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
             s->ops_AttrList);
         d->cur = GetTagData(MUIA_Numeric_Value, 64, s->ops_AttrList);
         d->drag_start_val = 64;
-        d->acc_dx = 0;
-        d->acc_dy = 0;
+        d->acc_dx = 0.0;
+        d->acc_dy = 0.0;
         d->last_x = 0;
         d->last_y = 0;
         d->warp_wx = 0;
@@ -250,8 +249,8 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 if (!rknb_hit(obj, im->MouseX, im->MouseY))
                     return (IPTR)0;
                 d->dragging = TRUE;
-                d->acc_dx = 0;
-                d->acc_dy = 0;
+                d->acc_dx = 0.0;
+                d->acc_dy = 0.0;
                 d->last_x = im->MouseX;
                 d->last_y = im->MouseY;
                 d->warp_wx = im->MouseX;
@@ -298,10 +297,15 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 return (IPTR)0;
             fine = (im->Qualifier &
                 (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) != 0;
-            d->acc_dx += (LONG)(im->MouseX - d->last_x);
-            d->acc_dy += (LONG)(d->last_y - im->MouseY);
+            d->acc_dx += (double)(im->MouseX - d->last_x);
+            d->acc_dy += (double)(d->last_y - im->MouseY);
             d->last_x = im->MouseX;
             d->last_y = im->MouseY;
+            /* Clamp travel to the value range: reversal bites at
+             * once instead of unwinding dead overshoot (the grab
+             * pins the pointer, so overshoot is unbounded). */
+            ri_knob_clamp_acc((double)d->drag_start_val, &d->acc_dx,
+                &d->acc_dy, fine);
             v = ri_rknb_drag_value(d->drag_start_val, d->acc_dx,
                 d->acc_dy, fine);
             ri_rknb_move(&d->gesture);
@@ -374,9 +378,10 @@ APTR ri_rknb_create(LONG dflt) {
 /* Drag pixels → quantized ctl value (both axes: right and up
  * increase; screen-y negated first, screen-x passes through).
  * Shift passes fine=1 (×0.1, 1500 px full). */
-LONG ri_rknb_drag_value(LONG start, LONG dx_px, LONG dy_px, BOOL fine) {
-    double v = ri_knob_drag_to_value((double)start, (double)dx_px,
-                                     (double)dy_px, fine ? 1 : 0);
+LONG ri_rknb_drag_value(LONG start, double dx_px, double dy_px,
+    BOOL fine) {
+    double v = ri_knob_drag_to_value((double)start, dx_px, dy_px,
+                                     fine ? 1 : 0);
     return (LONG)ri_ctl_quantize(v);
 }
 

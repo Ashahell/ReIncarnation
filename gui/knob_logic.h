@@ -30,6 +30,14 @@
  * added. Diagonal 45° counts double (documented). */
 double ri_knob_drag_to_value(double start, double dx_px, double dy_px,
     int fine);
+
+/* Clamp 2D accumulated drag travel so the mapped value stays in
+ * [0,127]: when dx+dy exceeds the travel that maps start to an end
+ * (×10 span in fine), scale both components toward zero. Reversal
+ * then bites at once instead of unwinding dead overshoot (the grab
+ * pins the pointer, so overshoot is unbounded without this).
+ * No-op when already inside or eff == 0. */
+void ri_knob_clamp_acc(double start, double *adx, double *ady, int fine);
 double ri_fader_drag_to_value(double start, double dy_px, int fine);
 
 /* Clamp to 0..127 (NaN fails closed to 0); quantize to nearest unit. */

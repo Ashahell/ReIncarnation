@@ -9,6 +9,9 @@ double ri_knob_drag_to_value(double start, double dx_px, double dy_px,
 double ri_fader_drag_to_value(double start, double dy_px, int fine)
   Drag to value (knob: both axes, eff = dx+dy; fader: vertical;
   fine = shift). Result: value.
+void ri_knob_clamp_acc(double start, double *adx, double *ady, int fine)
+  Clamp accumulated drag travel to the value range (reversal bites
+  at once). No-op when inside or eff == 0.
 
 double ri_ctl_clamp(double v)
 int ri_ctl_quantize(double v)

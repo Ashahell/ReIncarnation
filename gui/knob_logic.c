@@ -29,6 +29,26 @@ double ri_knob_drag_to_value(double start, double dx_px, double dy_px,
     return drag_to_value(start, dx_px + dy_px, RI_KNOB_TRAVEL_PX, fine);
 }
 
+void ri_knob_clamp_acc(double start, double *adx, double *ady, int fine) {
+    double eff, span, lo, hi, k;
+    if (!adx || !ady)
+        return;
+    eff = *adx + *ady;
+    if (eff == 0.0)
+        return;
+    span = fine ? 10.0 : 1.0;
+    lo = -start * RI_KNOB_TRAVEL_PX / RI_CTL_MAX * span;
+    hi = (RI_CTL_MAX - start) * RI_KNOB_TRAVEL_PX / RI_CTL_MAX * span;
+    if (eff > hi)
+        k = hi / eff;
+    else if (eff < lo)
+        k = lo / eff;
+    else
+        return;
+    *adx *= k;
+    *ady *= k;
+}
+
 double ri_fader_drag_to_value(double start, double dy_px, int fine) {
     return drag_to_value(start, dy_px, RI_FADER_TRAVEL_PX, fine);
 }
