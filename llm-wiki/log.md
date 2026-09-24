@@ -254,6 +254,13 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m32 | Owner numeric approval: full range + readouts verified
+- Disposition: New (verdict capsule; right-click + fine boxes checked)
+- Raw: llm-wiki/raw/articles/2026-09-24-owner-numeric-approval.md
+- Updated: docs/evidence/gui/acceptance.md, llm-wiki/index.md
+- **Approved by number:** 0–127 all knobs, live tracking, LEVEL→100, fine steps, overall fine.
+- **Still open:** commit-on-release, fader travel.
+
 ## [2026-09-24] m31 | Notify wiring + value readouts: knob values go somewhere
 - Disposition: New (RED→GREEN pins; first app listeners; device proof by number)
 - Raw: llm-wiki/raw/articles/2026-09-24-notify-readouts-first-wiring.md

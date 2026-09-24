@@ -14,10 +14,11 @@ artwork. Layout numbers are E0 design acceptance thresholds.
   max with grab, both directions)
 - [x] Reversal inside one press follows at once (acc clamped m29;
   owner-approved — no fresh click needed)
-- [ ] Shift-fine: ×0.1 (1500 px full, ±10% host band holds on device)
+- [x] Shift-fine: ×0.1 (owner device-confirmed single steps m32)
 - [ ] Fader: 100 px = full travel, same fine rule
 - [ ] Commit-on-release: one drag = one undo unit (single commit event)
-- [ ] Right-click: resets control to panel default (`ri_panel_default_ctl`, host-pinned)
+- [x] Right-click: resets control to panel default (owner confirmed
+  LEVEL→100 by readout m32; table host-pinned)
 - [x] Click down/up on a custom knob: no crash, value steady (Dell
   2026-09-24, m22 — full drag needs a hold-and-drag primitive or a
   human hand; remote click = down/up with no move)
