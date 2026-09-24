@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] ingest | Owner requirement: extensible device rack
+- Disposition: New; Update
+- Raw: llm-wiki/raw/articles/2026-09-24-extensible-device-rack-requirement.md
+- Updated: docs/2026-09-24-improvement-opportunities.md (new §5.6, decisions D-k/D-l, work-order steps 2–3); llm-wiki/index.md (Reviews section)
+- Classic stays the default 4-device rack (bit-identical); spec not edited (proposal only)
+
 ## [2026-09-24] m47 | §12.3: one renderer wired (engine core, 303s skeleton)
 - Disposition: New (TDD, t37 link-RED → PASS with revert-check)
 - Raw: llm-wiki/raw/articles/2026-09-24-imp-12-3-one-renderer.md

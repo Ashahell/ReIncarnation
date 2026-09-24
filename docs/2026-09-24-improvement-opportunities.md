@@ -318,6 +318,29 @@ Every coefficient must derive from the render `sr`. There are hard-coded 48000 c
 - Continuous parameters use a smoother at control rate (block/8). Switches (waveform, modes) change at sample-accurate event positions, with the existing click-flag semantics.
 - Automation recording: ReBirth records knob moves in Song mode. The code quantises the 30 Hz GUI moves at ppq/24. Document the resulting maximum automation rate and check it against ReBirth captures (knob sweeps in exported audio).
 
+### 5.6 Extensible device rack (owner requirement, 2026-09-24)
+
+**Requirement (owner):** it must ultimately be possible to add devices beyond the four ReBirth sections, and the **user decides which devices are active**.
+
+**Today:** `engine/framework/ridevice.h` is a static table with four slots (`RI_DEVICE_COUNT 4u`), and its vtable has only `render(ctx, out, n, sr)`. In the rest of the code a section is a hard-coded index: `RIEvent.device` 0..3, control-ID blocks 0x03xx/0x04xx/0x09xx, a four-bus `RiMixer`, and the panel table. The spec already locks the device concept (§6 and WBS §0: "RIDevice = DSP + panel + control map + mod hooks"), keeps the Appendix D signatures as sketch-not-ABI (OPEN-07), and requires W3/Power Mode to use a separate engine or capability table (§3). The dummy-device proof (TC-2.1.5/TC-2.9.5) is the right seed.
+
+**Target model:**
+
+| Concept | Definition |
+|---------|------------|
+| **Device class** | Type descriptor: stable type ID + version, name, control table (ID, name, range, default, curve, automatable flag), pattern model (none / 303-style / drum-grid / other), panel description, mod slots, output channel count, capability flags (Classic-certified vs Power) |
+| **Device instance** | Class + per-instance state + instance ID. A song may hold several instances of one class (303A and 303B are two instances of one `303` class) |
+| **Rack** | Ordered list of active instances. **Classic** is the default rack preset: 303, 303, 808, 909, in ReBirth order |
+| **Addressing** | Controls are `(instance, control)`. Events carry an instance index. Automation lanes, patterns, mixer channels and MIDI-learn entries are keyed by instance. No global per-section ID blocks |
+| **Mixer / FX** | One mixer channel (fader, pan, send, insert switches, meter) is created per active instance. Insert exclusivity (Dist/PCF/Comp, one at a time) routes to instances, not fixed sections |
+| **Activation** | User adds, removes, enables or disables instances from the GUI or ARexx. The change is built off the render path and applied through the existing snapshot swap at a block boundary. Render allocates nothing. A disabled instance costs zero CPU and keeps its state and patterns |
+| **Persistence** | RBNG stores the rack (class ID + version, instance ID, enabled flag, name) plus per-instance `SECT`/`PATS`/`AUTO`. A song that references a missing class loads with that instance **disabled plus a warning**, the same pattern as the missing-mod flow. Unknown class chunks are preserved verbatim |
+| **Classic guarantee** | With the Classic rack loaded, output is bit-identical to the fixed-section engine (golden-pinned). Non-Classic classes or rack layouts mark the song as **Power Mode** (spec §3). Classic DSP never branches on "extra devices present" |
+
+**Consequences for other sections of this review:** §2.2 (control registry) becomes per-class control tables. §5.1 (render graph) iterates the rack instead of four named sections. §5.2 (scheduler) runs one sequencer per instance that has a pattern model. §7.1 (RBNG v2) gains a `RACK` chunk. §9 (GUI) builds panels from class panel descriptions, with an add/remove device requester. The two new rows in §11 are D-k and D-l.
+
+**Constraints to keep:** single-threaded Classic render order (§4.1) becomes "rack order, then FX, mixer and master". A bounded maximum instance count (for example 16) keeps static allocation and a WCET bound. Classes are compiled in first. Loadable classes (an AROS `.library` per device) wait for the ABI freeze (OPEN-07).
+
 ---
 
 ## 6. Performance (AROS CPU budget, OPEN-05)
@@ -418,6 +441,8 @@ This plan converts most of Appendix A (P-01..P-17) from E0 guesses into E3 measu
 | D-h | Gate length | E0 fraction now, measured from ReBirth later (§8) |
 | D-i | `.rbs` import | New OPEN row, legal review first |
 | D-j | Kernel domains | Kernels are total over all finite floats. The domain is a precision statement, not a safety one |
+| D-k | Device architecture (owner requirement 2026-09-24) | Extensible **device rack**: class + instance model, `(instance, control)` addressing, per-instance mixer channels, user-selectable active devices applied via snapshot swap. Classic = default 4-device rack preset, bit-identical to the fixed engine. Other racks = Power Mode (§5.6) |
+| D-l | Device loading | Compile-time class registry now (bounded instance count, static allocation). Loadable device libraries only after the OPEN-07 ABI freeze |
 
 After adoption, update the parity matrix (§14 of the spec) with the new rows: PCF envelope, delay steps/triplet, compressor ratio, 808 switches, 909 instruments, song mode, and pattern edit functions.
 
@@ -426,8 +451,8 @@ After adoption, update the parity matrix (§14 of the spec) with the new rows: P
 ## 12. Suggested order of work (Terry rule: finish one thing before starting the next)
 
 1. **Kernel totality + 808 envelope/deactivation + section clip removal** (§2.1, §2.3, §2.4). Includes the long-silence tests.
-2. **Control registry + 303 ID fix + 303B dispatch + Tune** (§2.2).
-3. **Integrated stereo engine skeleton** (§5.1, §5.3), with only the 303s at first. First-light goldens stay byte-identical for mono 303A by construction (centre pan, equal-power law normalised at centre), or get re-baselined deliberately with a ledger note.
+2. **Control registry + 303 ID fix + 303B dispatch + Tune** (§2.2), designed from the start as per-class control tables (§5.6).
+3. **Integrated stereo engine skeleton on the device rack** (§5.1, §5.3, §5.6), with the Classic rack preset and only the 303s at first. First-light goldens stay byte-identical for mono 303A by construction (centre pan, equal-power law normalised at centre), or get re-baselined deliberately with a ledger note.
 4. **303 fidelity pass:** MEG/VEG split, accent sweep, gate length, log-domain slide, band-limited oscillator (§4.1). Then the ReBirth measurement probes for the 303 (§8).
 5. **808 rebuild:** slots and switches, MA, metal oscillators, per-sound controls, OH/CH rules, accent level (§4.2).
 6. **909 completion:** 11 instruments, controls, step levels, flam knob (§4.3).
