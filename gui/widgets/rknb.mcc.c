@@ -65,7 +65,6 @@ struct RKnBData {
 };
 
 /* Screen-edge margin (px) that triggers a warp-back during drag. */
-#define RKNB_EDGE_MARGIN 8
 
 /* input.device for pointer warps (class lifetime; NULL = fail-soft
  * to absolute positioning, i.e. pre-grab behavior at screen edges). */
@@ -304,30 +303,21 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 d->acc_dy, fine);
             ri_rknb_move(&d->gesture);
             SetAttrs(obj, MUIA_Numeric_Value, v, TAG_DONE);
-            /* Pointer grab: near a screen edge, warp back to the
-             * drag start and continue from there (accumulator keeps
-             * the travel). Skipped when input.device is down or the
-             * start itself hugs an edge (no warp loop). The warp's
-             * own mousemove lands exactly on last_* → zero delta. */
-            {
-                struct Window *w = _window(obj);
+            /* Pointer grab, revised (edge-triggered warp yanked the
+             * pointer across the screen on long drags — hostile):
+             * warp back to the drag start after EVERY move, so the
+             * pointer hovers near the knob while physical motion
+             * accrues 1:1 into acc (next delta is measured from the
+             * warp target). Edges become unreachable; no teleports.
+             * Fail-soft: without input.device this block is skipped
+             * and acc degrades exactly to absolute positioning. The
+             * warp's own mousemove lands on last_* → zero delta. */
+            if (s_inreq) {
                 struct Screen *s = _screen(obj);
-                if (w && s) {
-                    int cx = (int)w->LeftEdge + (int)w->BorderLeft +
-                        (int)im->MouseX;
-                    int cy = (int)w->TopEdge + (int)w->BorderTop +
-                        (int)im->MouseY;
-                    if ((cx < RKNB_EDGE_MARGIN || cy < RKNB_EDGE_MARGIN ||
-                        cx > (int)s->Width - RKNB_EDGE_MARGIN - 1 ||
-                        cy > (int)s->Height - RKNB_EDGE_MARGIN - 1) &&
-                        d->warp_sx > RKNB_EDGE_MARGIN &&
-                        d->warp_sy > RKNB_EDGE_MARGIN &&
-                        d->warp_sx < (int)s->Width - RKNB_EDGE_MARGIN - 1 &&
-                        d->warp_sy < (int)s->Height - RKNB_EDGE_MARGIN - 1) {
-                        rknb_warp(s, d->warp_sx, d->warp_sy);
-                        d->last_x = d->warp_wx;
-                        d->last_y = d->warp_wy;
-                    }
+                if (s) {
+                    rknb_warp(s, d->warp_sx, d->warp_sy);
+                    d->last_x = d->warp_wx;
+                    d->last_y = d->warp_wy;
                 }
             }
             return (IPTR)MUI_EventHandlerRC_Eat;
