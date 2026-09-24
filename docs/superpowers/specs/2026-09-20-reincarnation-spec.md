@@ -354,6 +354,8 @@ Source: `docs/2026-09-24-improvement-opportunities.md` §11. Each row is normati
 | D-h | Gate length = E0 fraction now, measured from ReBirth later | Adopted (§12 item 4) |
 | D-i | `.rbs` import = new OPEN-10 row, legal review first | Adopted above |
 | D-j | Kernels are total over all finite floats; documented domains are precision statements, not safety boundaries | Adopted; enforced by T2 property tests from §12 item 1 on |
+| D-k | Device architecture (owner requirement 2026-09-24) | Extensible **device rack**: class + instance model, `(instance, control)` addressing, per-instance mixer channels, user-selectable active devices applied via snapshot swap. Classic = default 4-device rack preset, bit-identical to the fixed engine. Other racks = Power Mode (review §5.6). Engine skeleton (§12.3 section mask + reserved bits) is compatible; rack iteration lands with §12.7/RBNG v2 |
+| D-l | Device loading | Compile-time class registry now (bounded instance count, static allocation). Loadable device libraries only after the OPEN-07 ABI freeze |
 
 ## Appendix A — Pending measurement ledger (the ONLY home for unverified numbers)
 
