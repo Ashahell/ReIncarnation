@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "audio_io/audio.h"
+#include "engine/engine.h"
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
 #include "engine/dsp/rb303.h"
@@ -52,13 +53,13 @@ struct AudioObject {
     struct AUSource src[AU_MAX_SOURCES];
     struct AUBus bus[AU_MAX_BUSES];
     int connected[AU_MAX_SOURCES]; /* bus index (0-based) or -1 */
-    /* Render cursor built from the lowest connected source. */
-    struct RB303Voice voice;
+    /* Render cursor: the shared engine core (§12.3, spec §5). The event
+     * list + voices + cursor that used to live here now live in the
+     * engine; this object keeps the graph (sources/buses/connections).
+     * ev[] stages emission (per-object: the pool holds several); the
+     * engine borrows it, cursor/evpos live in the engine only. */
+    struct RIEngine eng;
     struct RIEvent ev[RI_SCHED_MAX_EVENTS];
-    uint32_t nev;
-    uint32_t evpos;
-    uint64_t cursor;
-    uint64_t total;
 };
 
 static struct AudioObject s_pool[AU_MAX_OBJECTS];
@@ -227,36 +228,9 @@ static int auf_parse_song(const char *path, struct RIStep *steps, uint32_t *nste
 
 /* First-light knob defaults (Task 4 report: cutoff 80 / reso 40 / envmod 64
  * / decay 64 / accent 96 / saw / vol 127). */
-static void auf_voice_defaults(struct RB303Voice *v) {
-    rb303_init(v);
-    rb303_set_param(v, RI_CTL_303A_CUTOFF, 80);
-    rb303_set_param(v, RI_CTL_303A_RESO, 40);
-    rb303_set_param(v, RI_CTL_303A_ENVMOD, 64);
-    rb303_set_param(v, RI_CTL_303A_DECAY, 64);
-    rb303_set_param(v, RI_CTL_303A_ACCENT, 96);
-    rb303_set_param(v, RI_CTL_303A_WAVE, 0);
-    rb303_set_param(v, RI_CTL_303A_VOLUME, 127);
-}
-
-static void auf_apply_event(struct RB303Voice *v, const struct RIEvent *e) {
-    switch (e->type) {
-    case RI_EV_NOTE_ON:
-        rb303_note(v, (uint8_t)(e->value & 127u), (e->flags & RI_EVFLAG_SLIDE) != 0,
-            (e->flags & RI_EVFLAG_ACCENT) != 0);
-        break;
-    case RI_EV_NOTE_CONTINUE:
-        rb303_slide_to(v, (uint8_t)(e->value & 127u));
-        break;
-    case RI_EV_NOTE_OFF:
-        rb303_release(v);
-        break;
-    case RI_EV_ACCENT:
-        rb303_accent(v);
-        break;
-    default:
-        break;
-    }
-}
+/* First-light knob defaults live in the engine core (ri_engine_defaults);
+ * this TU keeps no voice-default or event-routing copy (one source, §12.3:
+ * ri_engine_apply_event replaces auf_apply_event for all three paths). */
 
 /* Lowest connected source index, or -1 when the graph cannot render. */
 static int auf_render_source(struct AudioObject *ao) {
@@ -280,10 +254,7 @@ struct AudioObject *AuCreateObject(struct Library *AudioBase, struct TagItem *ta
             s_pool[i].started = 0;
             s_pool[i].backend = "null";
             s_pool[i].xruns = 0;
-            s_pool[i].nev = 0;
-            s_pool[i].evpos = 0;
-            s_pool[i].cursor = 0;
-            s_pool[i].total = 0;
+            ri_engine_init(&s_pool[i].eng);
             for (k = 0; k < AU_MAX_SOURCES; k++) {
                 s_pool[i].src[k].used = 0;
                 s_pool[i].src[k].nsteps = 0;
@@ -387,76 +358,50 @@ uint32_t AuQueryAttr(struct AudioObject *ao, uint32_t attr) {
     }
 }
 
-/* RI_LIVE_FULL_GRAPH_UNIMPLEMENTED — SCAFFOLD (final-review I1, one-renderer
- * divergence): au_render_frames renders FIRST-LIGHT SCOPE ONLY (one 303
- * voice, Task-6 first-light songs). Full-graph live rendering
- * (303+808+909+mixer/FX — the graph tools/render.c drives offline) is
- * UNIMPLEMENTED here, so live-vs-offline equality holds for first-light
- * songs only. Removing this marker requires wiring the shared engine
- * core (spec §5). */
+/* §12.3: the shared engine core is wired (spec §5). au_render_frames is a
+ * thin mono sink over ri_engine_render_mono now: file export and the live
+ * device drain run the same core with different chunkings (64-frame engine
+ * blocks vs RI_DEVICE_FRAMES device chunks). The old RI_LIVE_FULL_GRAPH_*
+ * marker is retired by this wiring; full-graph sections (808/909/FX/mixer)
+ * enable inside the engine as their slices land. */
  /* The ONE renderer (realtime-safe: no alloc, no IO, bounded loops).
  * Renders up to n samples from the cursor, applying walker events at exact
  * sample positions. Chunk-size agnostic: splitting n into a+b renders
  * sample-identical output (voice state is purely sequential). Returns the
  * frames actually rendered (0 at end of song). */
 uint32_t au_render_frames(struct AudioObject *ao, float *out, uint32_t n) {
-    uint32_t done = 0;
     if (!ao || !out)
         return 0;
-    while (n > 0 && ao->cursor < ao->total) {
-        uint64_t next = ao->total;
-        uint64_t run;
-        if (ao->evpos < ao->nev && ao->ev[ao->evpos].sample < next)
-            next = ao->ev[ao->evpos].sample;
-        if (next > ao->cursor + n)
-            next = ao->cursor + n;
-        run = next - ao->cursor;
-        if (run > 0) {
-            /* rb303_render is purely sequential in voice state, so any
-             * caller chunking renders sample-identical output (D1). The
-             * file sink pumps 64-frame engine blocks, the null drain
-             * pumps RI_DEVICE_FRAMES device chunks — same core. */
-            uint32_t cc = (uint32_t)run;
-            rb303_render(&ao->voice, out + done, cc, (float)RI_AUDIO_SR);
-            done += cc;
-            ao->cursor += cc;
-            n -= cc;
-        } else {
-            while (ao->evpos < ao->nev && ao->ev[ao->evpos].sample == ao->cursor) {
-                auf_apply_event(&ao->voice, &ao->ev[ao->evpos]);
-                ao->evpos++;
-            }
-        }
-    }
-    return done;
+    return ri_engine_render_mono(&ao->eng, out, n, (float)RI_AUDIO_SR);
 }
 
 /* Reset the voice + event cursor from the lowest connected source. */
 void au_rewind(struct AudioObject *ao) {
     static struct RISegment segs[1];
     struct RITempoMap map;
+    uint32_t nev = 0;
+    uint64_t total = 0;
     int si;
     if (!ao)
         return;
-    ao->nev = 0;
-    ao->evpos = 0;
-    ao->cursor = 0;
-    ao->total = 0;
-    auf_voice_defaults(&ao->voice);
+    ri_engine_init(&ao->eng);
+    ri_engine_defaults(&ao->eng);
     si = auf_render_source(ao);
-    if (si < 0 || ao->src[(uint32_t)si].nsteps == 0)
+    if (si < 0 || ao->src[(uint32_t)si].nsteps == 0) {
+        ri_engine_load(&ao->eng, 0, 0, 0, RI_ENGINE_S303A);
         return;
+    }
     segs[0].start_tick = 0;
     segs[0].ns_per_quarter = 60000000000ULL / (uint64_t)ao->src[(uint32_t)si].tempo;
     map.segs = segs;
     map.n = 1;
     map.ppq = 96;
     map.sr = RI_AUDIO_SR;
-    ao->nev = ri_sched_emit_sorted(&map, 0, 96, ao->src[(uint32_t)si].steps,
+    nev = ri_sched_emit_sorted(&map, 0, 96, ao->src[(uint32_t)si].steps,
         ao->src[(uint32_t)si].nsteps, 0, ao->ev, RI_SCHED_MAX_EVENTS);
-    if (ao->nev == 0)
-        return;
-    ao->total = ao->ev[ao->nev - 1u].sample + AU_TAIL_SMP;
+    if (nev != 0)
+        total = ao->ev[nev - 1u].sample + AU_TAIL_SMP;
+    ri_engine_load(&ao->eng, ao->ev, nev, total, RI_ENGINE_S303A);
 }
 
 /* Deterministic float -> int24 (round-half-away, no libm). */
@@ -553,7 +498,7 @@ int au_render_song_to_wav_depth(struct AudioObject *ao, const char *path,
     uint32_t chunk, uint64_t cap_total, uint8_t depth) {
     static float fbuf[RI_DEVICE_FRAMES];
     FILE *f;
-    uint64_t left;
+    uint64_t left, total;
     unsigned char hdr[44];
     if (!ao || !path || chunk == 0 || chunk > RI_DEVICE_FRAMES)
         return 2;
@@ -562,16 +507,17 @@ int au_render_song_to_wav_depth(struct AudioObject *ao, const char *path,
     if (auf_render_source(ao) < 0)
         return 2;
     au_rewind(ao);
-    if (ao->nev == 0)
+    if (ao->eng.nev == 0)
         return 2;
+    total = ao->eng.total;
     if (cap_total > 0)
-        ao->total = cap_total; /* preview cap (may shorten OR pad — same core) */
-    if (ao->total > 0xffffffffu)
+        total = cap_total; /* preview cap (may shorten OR pad — same core) */
+    if (total > 0xffffffffu)
         return 2;
     f = fopen(path, "wb");
     if (!f)
         return 2;
-    if (auf_wav_header(hdr, (uint32_t)ao->total, depth, RI_AUDIO_SR) != 0) {
+    if (auf_wav_header(hdr, (uint32_t)total, depth, RI_AUDIO_SR) != 0) {
         fclose(f);
         return 2;
     }
@@ -579,17 +525,17 @@ int au_render_song_to_wav_depth(struct AudioObject *ao, const char *path,
         fclose(f);
         return 2;
     }
-    left = ao->total;
+    left = total;
     while (left > 0) {
         uint32_t want = left > chunk ? chunk : (uint32_t)left;
         uint32_t got, k;
         got = au_render_frames(ao, fbuf, want);
         if (got == 0) {
-            /* Song ended early: pad silence (clock never rewinds, §17 #5). */
+            /* Song ended early: pad silence (clock never rewinds, §17 #5).
+             * No cursor bookkeeping: the engine already sits at its end. */
             for (k = 0; k < want; k++)
                 fbuf[k] = 0.0f;
             got = want;
-            ao->cursor += want;
         }
         for (k = 0; k < got; k++) {
             if (depth == 24u) {
@@ -643,7 +589,7 @@ int au_render_song_to_aiff(struct AudioObject *ao, const char *path,
     uint32_t chunk, uint64_t cap_total, uint8_t depth) {
     static float fbuf[RI_DEVICE_FRAMES];
     FILE *f;
-    uint64_t left;
+    uint64_t left, total;
     unsigned char hdr[54];
     if (!ao || !path || chunk == 0 || chunk > RI_DEVICE_FRAMES)
         return 2;
@@ -652,16 +598,17 @@ int au_render_song_to_aiff(struct AudioObject *ao, const char *path,
     if (auf_render_source(ao) < 0)
         return 2;
     au_rewind(ao);
-    if (ao->nev == 0)
+    if (ao->eng.nev == 0)
         return 2;
+    total = ao->eng.total;
     if (cap_total > 0)
-        ao->total = cap_total;
-    if (ao->total > 0xffffffffu)
+        total = cap_total;
+    if (total > 0xffffffffu)
         return 2;
     f = fopen(path, "wb");
     if (!f)
         return 2;
-    if (auf_aiff_header(hdr, (uint32_t)ao->total, depth, RI_AUDIO_SR) != 0) {
+    if (auf_aiff_header(hdr, (uint32_t)total, depth, RI_AUDIO_SR) != 0) {
         fclose(f);
         return 2;
     }
@@ -669,7 +616,7 @@ int au_render_song_to_aiff(struct AudioObject *ao, const char *path,
         fclose(f);
         return 2;
     }
-    left = ao->total;
+    left = total;
     while (left > 0) {
         uint32_t want = left > chunk ? chunk : (uint32_t)left;
         uint32_t got, k;
@@ -678,7 +625,6 @@ int au_render_song_to_aiff(struct AudioObject *ao, const char *path,
             for (k = 0; k < want; k++)
                 fbuf[k] = 0.0f;
             got = want;
-            ao->cursor += want;
         }
         for (k = 0; k < got; k++) {
             if (depth == 24u) {
@@ -744,12 +690,12 @@ const char *AuBackendName(struct AudioObject *ao) {
 int AuDumpEvents(struct AudioObject *ao, const char *path) {
     FILE *f;
     uint32_t i;
-    if (!ao || !path || ao->nev == 0)
+    if (!ao || !path || ao->eng.nev == 0)
         return 2;
     f = fopen(path, "w");
     if (!f)
         return 2;
-    for (i = 0; i < ao->nev; i++)
+    for (i = 0; i < ao->eng.nev; i++)
         fprintf(f, "%llu %u %u %u %u %u %u\n", (unsigned long long)ao->ev[i].sample,
             ao->ev[i].type, ao->ev[i].device, ao->ev[i].voice,
             ao->ev[i].value, ao->ev[i].flags, ao->ev[i].seq);

@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include "engine/engine.h"
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
 #include "audio_io/audio.h"
@@ -420,54 +421,25 @@ static int dump_events(const char *path, const struct RIEvent *ev, uint32_t n) {
     return 0;
 }
 
-/* Apply one walker event to the voice. */
-static void apply_event(struct RB303Voice *v, const struct RIEvent *e) {
-    switch (e->type) {
-    case RI_EV_NOTE_ON:
-        rb303_note(v, (uint8_t)(e->value & 127u), (e->flags & RI_EVFLAG_SLIDE) != 0,
-            (e->flags & RI_EVFLAG_ACCENT) != 0);
-        break;
-    case RI_EV_NOTE_CONTINUE:
-        rb303_slide_to(v, (uint8_t)(e->value & 127u));
-        break;
-    case RI_EV_NOTE_OFF:
-        rb303_release(v);
-        break;
-    case RI_EV_ACCENT:
-        rb303_accent(v);
-        break;
-    case RI_EV_AUTOMATION:
-        /* AUTO lane: shared control IDs; the 0x0300 block drives the
-         * 303A voice directly (value = ctl, flags = 0..127 value).
-         * The 0x0310 block is intentionally NOT forwarded here: this
-         * song path owns a single 303 voice, and 303B automation bent
-         * onto it would mistarget. The second voice (and 303B routing)
-         * arrives with the integrated engine (§12.3); the dispatch
-         * already honors 303B (rb303_set_param normalizes the block). */
-        if ((e->value & 0xff00u) == 0x0300u)
-            rb303_set_param(v, e->value, (uint8_t)(e->flags & 127u));
-        break;
-    default:
-        break; /* FLAM (909 second hit, Task 9 voice-side) has no 303 effect */
-    }
-}
+/* Event routing lives in the shared engine core (ri_engine_apply_event,
+ * §12.3) — the per-path copies are retired, including the AUTOMATION
+ * block note: 303B routes to the second voice inside the engine now. */
 
 static int render_song(const char *song_path, const char *out_path, const char *ev_path) {
     struct RIStep steps[RI_MAX_STEPS];
     struct RIEvent ev[RI_SCHED_MAX_EVENTS];
     static struct RISegment segs[1];
     struct RITempoMap map;
-    struct RB303Voice voice;
+    struct RIEngine eng;
     uint32_t nsteps = 0;
     int tempo = 0;
     int shuffle_pct = 0, legato = 0;
     double flam_ms = RI_FLAM_MS_DEFAULT;
     struct RISchedOpts opts;
-    uint32_t nev, k;
-    uint64_t total, cursor = 0, evpos = 0;
+    uint32_t nev;
+    uint64_t total;
     /* pcm worst case: 64 steps * full bar @30bpm + tail; static bound 2^22 */
     static float pcm[4194304];
-    static float fbuf[RI_BLOCK];
     int rc;
     if ((rc = parse_song(song_path, steps, &nsteps, &tempo,
             &shuffle_pct, &legato, &flam_ms)) != 0)
@@ -491,46 +463,22 @@ static int render_song(const char *song_path, const char *out_path, const char *
         printf("render: song too long (%llu samples)\n", (unsigned long long)total);
         return 2;
     }
-    rb303_init(&voice);
-    /* first-light knob defaults (executor choice, recorded in report) */
-    rb303_set_param(&voice, RI_CTL_303A_CUTOFF, 80);
-    rb303_set_param(&voice, RI_CTL_303A_RESO, 40);
-    rb303_set_param(&voice, RI_CTL_303A_ENVMOD, 64);
-    rb303_set_param(&voice, RI_CTL_303A_DECAY, 64);
-    rb303_set_param(&voice, RI_CTL_303A_ACCENT, 96);
-    rb303_set_param(&voice, RI_CTL_303A_WAVE, 0);
-    rb303_set_param(&voice, RI_CTL_303A_VOLUME, 127);
-    /* event-boundary + 64-frame block render loop (exact event timing) */
-    while (cursor < total) {
-        uint64_t blk = ((cursor + RI_BLOCK) / RI_BLOCK) * RI_BLOCK;
-        uint64_t next = total;
-        uint64_t c;
-        if (blk < next)
-            next = blk;
-        if (evpos < nev && ev[evpos].sample < next)
-            next = ev[evpos].sample;
-        if (next == cursor) {
-            /* event(s) exactly at cursor: apply, no audio to render */
-            while (evpos < nev && ev[evpos].sample == cursor) {
-                apply_event(&voice, &ev[evpos]);
-                evpos++;
-            }
-            continue;
-        }
-        c = cursor;
-        while (c < next) {
-            uint32_t cc = (uint32_t)(next - c);
-            if (cc > RI_BLOCK)
-                cc = RI_BLOCK;
-            rb303_render(&voice, fbuf, cc, (float)g_rate);
-            for (k = 0; k < cc; k++)
-                pcm[c + k] = fbuf[k];
-            c += cc;
-        }
-        cursor = next;
-        while (evpos < nev && ev[evpos].sample == cursor) {
-            apply_event(&voice, &ev[evpos]);
-            evpos++;
+    /* §12.3: the shared engine core renders (303A-only first-light song).
+     * Knob defaults live in ri_engine_defaults (identical set); the mono
+     * fold is bit-identical with the retired walker below by construction
+     * (centre-unity, f64 master) — audit Phase 1 cmp proves it per golden. */
+    ri_engine_init(&eng);
+    ri_engine_defaults(&eng);
+    ri_engine_load(&eng, ev, nev, total, RI_ENGINE_S303A);
+    {
+        uint64_t off = 0;
+        while (off < total) {
+            uint64_t want = total - off > RI_BLOCK ? RI_BLOCK : total - off;
+            uint32_t got = ri_engine_render_mono(&eng, pcm + off,
+                (uint32_t)want, (float)g_rate);
+            if (got == 0)
+                break;
+            off += got;
         }
     }
     if (ev_path && (rc = dump_events(ev_path, ev, nev)) != 0)
@@ -1046,14 +994,13 @@ static int render_rbngsong(const char *song_path, const char *out_path,
     struct RIEvent ev[RI_SCHED_MAX_EVENTS];
     static struct RISegment segs[1];
     struct RITempoMap map;
-    struct RB303Voice voice;
+    struct RIEngine eng;
     static char err[192];
     static char warn[256];
     struct RISchedOpts opts;
-    uint32_t nev, k, i;
-    uint64_t total, cursor = 0, evpos = 0;
+    uint32_t nev, i;
+    uint64_t total;
     static float pcm[4194304];
-    static float fbuf[RI_BLOCK];
     double nsq, tick2smp;
     uint64_t pat_end;
     int rc;
@@ -1126,43 +1073,20 @@ static int render_rbngsong(const char *song_path, const char *out_path,
             (unsigned long long)total);
         return 2;
     }
-    rb303_init(&voice);
-    rb303_set_param(&voice, RI_CTL_303A_CUTOFF, 80);
-    rb303_set_param(&voice, RI_CTL_303A_RESO, 40);
-    rb303_set_param(&voice, RI_CTL_303A_ENVMOD, 64);
-    rb303_set_param(&voice, RI_CTL_303A_DECAY, 64);
-    rb303_set_param(&voice, RI_CTL_303A_ACCENT, 96);
-    rb303_set_param(&voice, RI_CTL_303A_WAVE, 0);
-    rb303_set_param(&voice, RI_CTL_303A_VOLUME, 127);
-    while (cursor < total) {
-        uint64_t blk = ((cursor + RI_BLOCK) / RI_BLOCK) * RI_BLOCK;
-        uint64_t next = total;
-        uint64_t c;
-        if (blk < next)
-            next = blk;
-        if (evpos < nev && ev[evpos].sample < next)
-            next = ev[evpos].sample;
-        if (next == cursor) {
-            while (evpos < nev && ev[evpos].sample == cursor) {
-                apply_event(&voice, &ev[evpos]);
-                evpos++;
-            }
-            continue;
-        }
-        c = cursor;
-        while (c < next) {
-            uint32_t cc = (uint32_t)(next - c);
-            if (cc > RI_BLOCK)
-                cc = RI_BLOCK;
-            rb303_render(&voice, fbuf, cc, (float)g_rate);
-            for (k = 0; k < cc; k++)
-                pcm[c + k] = fbuf[k];
-            c += cc;
-        }
-        cursor = next;
-        while (evpos < nev && ev[evpos].sample == cursor) {
-            apply_event(&voice, &ev[evpos]);
-            evpos++;
+    /* §12.3: the shared engine core renders (303A-only RBNG song).
+     * Same defaults, same mono fold as render_song — one renderer. */
+    ri_engine_init(&eng);
+    ri_engine_defaults(&eng);
+    ri_engine_load(&eng, ev, nev, total, RI_ENGINE_S303A);
+    {
+        uint64_t off = 0;
+        while (off < total) {
+            uint64_t want = total - off > RI_BLOCK ? RI_BLOCK : total - off;
+            uint32_t got = ri_engine_render_mono(&eng, pcm + off,
+                (uint32_t)want, (float)g_rate);
+            if (got == 0)
+                break;
+            off += got;
         }
     }
     if (ev_path && (rc = dump_events(ev_path, ev, nev)) != 0)

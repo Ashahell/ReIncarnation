@@ -6,6 +6,7 @@ OUT=/tmp/ri/build
 CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT"
 mkdir -p "$OUT"
 MOD_kernels="engine/dsp/kernels.c"
+MOD_engine="engine/engine.c"
 MOD_clock="engine/seq/clock.c"
 MOD_sched="engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c"
 MOD_dsp303="engine/dsp/rb303.c engine/dsp/params.c"
@@ -33,9 +34,9 @@ build_pcf() {
     echo "pcf: SKIP (table unverified)";
   fi }
 case "${1:-all}" in
-  kernels|clock|sched|dsp303|dsp808|dsp909|fx|mixer|audio|gui|formats) compile_list "$(eval echo \$MOD_$1)" ;;
+  kernels|engine|clock|sched|dsp303|dsp808|dsp909|fx|mixer|audio|gui|formats) compile_list "$(eval echo \$MOD_$1)" ;;
   pcf) build_pcf strict ;;
-  all) for t in kernels clock sched formats dsp303 dsp808 dsp909 fx mixer audio gui; do "$0" $t; done; build_pcf skip ;;
+  all) for t in kernels engine clock sched formats dsp303 dsp808 dsp909 fx mixer audio gui; do "$0" $t; done; build_pcf skip ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
     gcc $CFLAGS -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o -lm 2>/dev/null || \
     gcc $CFLAGS -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o -lm
