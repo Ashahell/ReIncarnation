@@ -26,6 +26,26 @@ static int fails = 0;
 
 int main(void) {
     const struct RIPanelDesc *p909 = ri_panel_get(3);
+    char buf[8];
+
+    /* --- value readout formatting (proof-vehicle text row): 0..127
+     * as decimal, out-of-range fail-closed to "---". --- */
+    ri_ctl_format_value(buf, 0);
+    CHECK(buf[0] == '0' && buf[1] == '\0', "fmt 0 [%s]", buf);
+    ri_ctl_format_value(buf, 64);
+    CHECK(buf[0] == '6' && buf[1] == '4' && buf[2] == '\0', "fmt 64 [%s]",
+        buf);
+    ri_ctl_format_value(buf, 100);
+    CHECK(buf[0] == '1' && buf[1] == '0' && buf[2] == '0' &&
+        buf[3] == '\0', "fmt 100 [%s]", buf);
+    ri_ctl_format_value(buf, 127);
+    CHECK(buf[0] == '1' && buf[1] == '2' && buf[2] == '7' &&
+        buf[3] == '\0', "fmt 127 [%s]", buf);
+    ri_ctl_format_value(buf, -1);
+    CHECK(buf[0] == '-' && buf[1] == '-' && buf[2] == '-' &&
+        buf[3] == '\0', "fmt neg [%s]", buf);
+    ri_ctl_format_value(buf, 200);
+    CHECK(buf[0] == '-' && buf[3] == '\0', "fmt over [%s]", buf);
 
     /* --- first-panel inventory: 909 exposes exactly 4 controls --- */
     CHECK(p909 != 0, "909 panel missing");

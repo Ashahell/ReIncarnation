@@ -5,7 +5,10 @@
  * (tune/level/decay/flamres) as custom RKnB objects
  * (gui/widgets/rknb.mcc.c: MUIC_Numeric subclass rendering the
  * measured 80 px 909 frames — MUIC_Knob retired). Rects come from
- * ri_panel909_knob_rect (host-pinned, t29_layout). The window is
+ * ri_panel909_knob_rect (host-pinned, t29_layout). A text row under
+ * the knobs shows live values (first notify wiring: each knob
+ * notifies every value change; the loop refreshes its readout via
+ * the host-tested ri_ctl_format_value). The window is
  * fixed 1024x768 at screen origin so screendump measurement reads
  * doc coordinates plus window-chrome offset only.
  *
@@ -32,11 +35,18 @@ extern APTR ri_rknb_create(LONG dflt);
 extern void ri_rknb_dispose_class(void);
 
 #define NKNOB 4
+#define RET_KNOB_BASE 100
+
+/* Value readout buffers (file-static: MUIA_Text_Contents copies on
+ * set, but the initial tag strings must outlive creation). */
+static char s_valbuf[NKNOB][4];
 
 int main(void) {
     Object *app = NULL, *win = NULL, *cells[NKNOB], *knobs[NKNOB];
+    Object *texts[NKNOB];
     const struct RIPanelDesc *panel = ri_panel_get(3);
     ULONG sigs = 0;
+    LONG ret;
     unsigned int i;
 
     /* 909 panel contract: index 3, exactly the 4 voice controls. */
@@ -57,6 +67,14 @@ int main(void) {
         SetAttrs(knobs[i], MUIA_FixWidth, 80, MUIA_FixHeight, 80,
             TAG_DONE);
         cells[i] = knobs[i];
+        /* Readout cell: fixed 80 wide to sit under its knob. */
+        ri_ctl_format_value(s_valbuf[i], 64);
+        texts[i] = (Object *)MUI_NewObject(MUIC_Text,
+            MUIA_Text_Contents, (IPTR)s_valbuf[i],
+            MUIA_FixWidth, 80,
+            TAG_DONE);
+        if (!texts[i])
+            return 7;
     }
     win = (Object *)MUI_NewObject(MUIC_Window,
         MUIA_Window_Title, "RI-909",
@@ -68,12 +86,23 @@ int main(void) {
         MUIA_Window_DepthGadget, TRUE,
         MUIA_Window_DragBar, TRUE,
         MUIA_Window_RootObject, (IPTR)MUI_NewObject(MUIC_Group,
-            MUIA_Group_Horiz, TRUE,
             MUIA_Group_Spacing, 0,
-            Child, cells[0],
-            Child, cells[1],
-            Child, cells[2],
-            Child, cells[3],
+            Child, (IPTR)MUI_NewObject(MUIC_Group,
+                MUIA_Group_Horiz, TRUE,
+                MUIA_Group_Spacing, 0,
+                Child, cells[0],
+                Child, cells[1],
+                Child, cells[2],
+                Child, cells[3],
+                TAG_DONE),
+            Child, (IPTR)MUI_NewObject(MUIC_Group,
+                MUIA_Group_Horiz, TRUE,
+                MUIA_Group_Spacing, 0,
+                Child, texts[0],
+                Child, texts[1],
+                Child, texts[2],
+                Child, texts[3],
+                TAG_DONE),
             TAG_DONE),
         TAG_DONE);
     if (!win)
@@ -91,8 +120,24 @@ int main(void) {
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
     DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, app,
         2, MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
-    while ((LONG)DoMethod(app, MUIM_Application_NewInput, &sigs) !=
-        (LONG)MUIV_Application_ReturnID_Quit) {
+    /* First notify wiring (values finally go somewhere): every knob
+     * reports each value change back here; the loop refreshes that
+     * knob's readout cell. */
+    for (i = 0; i < NKNOB; i++) {
+        DoMethod(knobs[i], MUIM_Notify, MUIA_Numeric_Value,
+            MUIV_EveryTime, app, 2, MUIM_Application_ReturnID,
+            RET_KNOB_BASE + i);
+    }
+    while ((ret = (LONG)DoMethod(app, MUIM_Application_NewInput,
+        &sigs)) != (LONG)MUIV_Application_ReturnID_Quit) {
+        if (ret >= RET_KNOB_BASE && ret < RET_KNOB_BASE + NKNOB) {
+            unsigned int k = (unsigned int)(ret - RET_KNOB_BASE);
+            IPTR v = 0;
+            GetAttr(MUIA_Numeric_Value, knobs[k], &v);
+            ri_ctl_format_value(s_valbuf[k], (int)v);
+            SetAttrs(texts[k], MUIA_Text_Contents,
+                (IPTR)s_valbuf[k], TAG_DONE);
+        }
         if (sigs)
             Wait(sigs);
     }

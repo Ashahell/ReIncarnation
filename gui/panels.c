@@ -115,6 +115,37 @@ int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id) {
     return (int)c->def_value;
 }
 
+/* Value readout formatting (proof-vehicle text row): 0..127 as
+ * decimal into buf (needs 4 bytes); anything else fail-closed to
+ * "---". No libc, no allocation: hand-rolled digits. */
+void ri_ctl_format_value(char *buf, int v) {
+    int h, t;
+    if (!buf)
+        return;
+    if (v < 0 || v > 127) {
+        buf[0] = '-';
+        buf[1] = '-';
+        buf[2] = '-';
+        buf[3] = '\0';
+        return;
+    }
+    h = v / 100;
+    t = (v - h * 100) / 10;
+    if (h > 0) {
+        buf[0] = (char)('0' + h);
+        buf[1] = (char)('0' + t);
+        buf[2] = (char)('0' + (v - h * 100 - t * 10));
+        buf[3] = '\0';
+    } else if (t > 0) {
+        buf[0] = (char)('0' + t);
+        buf[1] = (char)('0' + (v - t * 10));
+        buf[2] = '\0';
+    } else {
+        buf[0] = (char)('0' + v);
+        buf[1] = '\0';
+    }
+}
+
 /* Doc table: docs/evidence/gui/panel-909-geometry.md — v2 layout
  * (E0→measured→v2-art lock 2026-09-23): even 70 px pitch (hardware
  * 1.35 diameter ratio on the 52 px art bodies), aligned row. */

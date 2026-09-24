@@ -41,6 +41,11 @@ const struct RIPanelDesc *ri_panel_dummy(void);
  * shell ignores -1). TC-2.9.2. */
 int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id);
 
+/* Value readout formatting (proof-vehicle text row): 0..127 as
+ * decimal into buf (caller provides 4 bytes); out-of-range
+ * fail-closed to "---". NULL buf ignored. */
+void ri_ctl_format_value(char *buf, int v);
+
 /* First-panel knob rects (TC-2.9.1 code side): panel-909-geometry
  * doc centers, scaled to a zoom level (0/1/2). Index 0..3 =
  * tune/level/decay/flamres; anything else (or unknown zoom)
