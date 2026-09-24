@@ -254,6 +254,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m31 | Notify wiring + value readouts: knob values go somewhere
+- Disposition: New (RED→GREEN pins; first app listeners; device proof by number)
+- Raw: llm-wiki/raw/articles/2026-09-24-notify-readouts-first-wiring.md
+- Updated: gui/panels.[ch] (`ri_ctl_format_value`), tests/unit/t29_paneldefault.c (format pins), app/panel909.c (text row + notify + loop refresh), llm-wiki/index.md
+- AROS -Werror clean. Full `ri_audit.sh` 0/0. Binary on RAM:.
+- Stale-link rule (3rd strike): rebuild ALL lane objects on new symbols, both lanes.
+- Pending: owner numeric confirmation (drag tracks, LEVEL→100) on a fresh instance.
+
 ## [2026-09-24] m30 | Owner device approval: drag arc m25–m29 closed
 - Disposition: New (verdict capsule; flips pendings to approved where earned)
 - Raw: llm-wiki/raw/articles/2026-09-24-owner-approval-drag-arc.md
