@@ -261,6 +261,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m39b | Spike lane wedge fixed: chunked sends, hammer 12/12
+- Disposition: New (cross-repo fix; proof by hammer)
+- Raw: llm-wiki/raw/articles/2026-09-24-spike-lane-wedge-fix.md
+- Root cause: single ~786KB Send() stalls AROSTCP (3 identical server-log signatures; first-frame-post-reboot kills cumulative theory; chunked puts never wedge).
+- Fix in Vulkan4Aros `arostcp_shared.h` (guest-only, committed `67eeca3c`, pushed): 32KB `Send()` cap, byte-identical stream.
+- Agent rebuilt v11, backup-first deploy (BAK kept), reboot, hammer 12/12 PASS session-stable.
+- Aside: `Version <ELF>` kills agent 3/3 (BAK identical — not the new build); avoid, self-restores.
+
 ## [2026-09-24] m39 | Custom label class: MUIC_Text inverts, own pixels instead
 - Disposition: New (forensics + minimal custom class; device proof pending)
 - Raw: llm-wiki/raw/articles/2026-09-24-custom-label-class.md
