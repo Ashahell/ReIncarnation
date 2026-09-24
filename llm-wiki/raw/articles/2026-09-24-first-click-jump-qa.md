@@ -40,4 +40,11 @@ so they are gone by design — never interactive, never will be.
 
 Full `ri_audit.sh` 0/0. Pending: owner first-click check on a
 fresh instance (press should feel 1:1, no jump).
+
+## Approval 2026-09-24: jump gone, counter question, FLAMRES re-asked
+- First press feels direct, no jump — owner: "looks ok". APPROVED.
+- Counter on bare click: yes by design (see below) — owner noticed,
+  not objected.
+- FLAMRES asked again (earlier answers apparently never displayed):
+  re-answered in full below; label stays.
 ",
