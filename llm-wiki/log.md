@@ -1,5 +1,16 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] m48 | §12.4a: gate-length rule (half-step fall, D-h E0)
+- Disposition: New (TDD, t38 RED 2 → PASS; contract change)
+- Raw: llm-wiki/raw/articles/2026-09-24-imp-12-4a-gate-length.md
+- Updated: engine/seq/sched.c (fractional OFFs, tie suppression),
+  tests/unit/t38_gate_fraction.c (new), t1_303walk/t21_songfile/t21_schedfeed/
+  t21_snapbuild/t21_looppcm (deliberate D-h-cited pin updates),
+  3 first-light goldens + events + sha + sox table (root-caused re-baseline),
+  docs/evidence/sequencer/gate-length.md (new E0 ledger),
+  docs/2026-09-24-improvement-todo.md
+- t1_sched passes unchanged (OFF count preserved). Full `ri_audit.sh` 0/0.
+
 ## [2026-09-24] ingest | Owner requirement: extensible device rack
 - Disposition: New; Update
 - Raw: llm-wiki/raw/articles/2026-09-24-extensible-device-rack-requirement.md

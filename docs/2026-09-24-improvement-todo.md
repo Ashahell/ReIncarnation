@@ -40,9 +40,10 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   failed the gate; reworded ("storage lives here"). Comment diction is load-bearing.
 
 ## §12.4 303 fidelity pass (§4.1)
+- [x] Gate-length rule (D-h E0: half-step fall, ties hold) + t38 + ledger + re-baselines (m48)
 - [ ] MEG/VEG split + accent-sweep state + accent→min-MEG-decay
-- [ ] Gate-length rule + NOTE_OFF at gate fraction
 - [ ] Log-domain slide; band-limited osc; 4-pole ladder option; reso taper; cutoff/envmod measurement anchors
+  (filter/osc/taper held for measurement per review; slide τ untouched — OPEN-01)
 - [ ] Per-parameter smoothers at control rate
 
 ## §12.5 808 rebuild (§4.2)
