@@ -24,7 +24,9 @@
    303A envmod (0x0302) range 0..127 default 64 — envelope to cutoff.
    303A decay (0x0303) range 0..127 default 64 — envelope decay.
    303A accent (0x0304) range 0..127 default 64 — accent amount.
-   303A volume (0x0305) range 0..127 default 100 — voice level.
+   303A waveform (0x0305) range 0..127 default 0 — 0..63 saw, 64..127 square.
+   303A volume (0x0306) range 0..127 default 100 — voice level.
+   303A tune (0x0307) range 0..127 default 64 — semitones off center, ±24.
 
  303B — acid bassline voice 2 (base 0x0310, device 1)
    303B cutoff (0x0310) range 0..127 default 96 — filter cutoff.
@@ -32,7 +34,9 @@
    303B envmod (0x0312) range 0..127 default 64 — envelope to cutoff.
    303B decay (0x0313) range 0..127 default 64 — envelope decay.
    303B accent (0x0314) range 0..127 default 64 — accent amount.
-   303B volume (0x0315) range 0..127 default 100 — voice level.
+   303B waveform (0x0315) range 0..127 default 0 — 0..63 saw, 64..127 square.
+   303B volume (0x0316) range 0..127 default 100 — voice level.
+   303B tune (0x0317) range 0..127 default 64 — semitones off center, ±24.
 
  808 — drum machine (base 0x0400, device 2, 15 voices)
    808 level (0x0400) range 0..127 default 100 — kit level.

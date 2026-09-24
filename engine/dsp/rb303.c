@@ -57,6 +57,7 @@ void rb303_init(struct RB303Voice *v) {
     v->accent_amt = 0.8f;
     v->slide_tc = 0.040f; /* P-03 candidate default; M2.2 A/B vs 60 ms */
     v->volume = 1.0f;
+    v->tune_st = 0.0f;
     v->wave_square = 0;
     v->classic_click = 1;
     v->wave_rendered = 0;
@@ -117,7 +118,7 @@ float rb303_filter_step(struct RB303Voice *v, float in, float sr) {
 }
 
 void rb303_note(struct RB303Voice *v, uint8_t midi, int slide, int accent) {
-    v->target_freq = midi_to_hz(midi);
+    v->target_freq = midi_to_hz(midi) * ri_pow2(v->tune_st / 12.0f);
     v->gate = 1.0f;
     if (!slide) {
         v->freq = v->target_freq; /* pitch jumps */
@@ -130,7 +131,7 @@ void rb303_note(struct RB303Voice *v, uint8_t midi, int slide, int accent) {
 }
 
 void rb303_slide_to(struct RB303Voice *v, uint8_t midi) {
-    v->target_freq = midi_to_hz(midi); /* CONTINUE: target only, nothing reset */
+    v->target_freq = midi_to_hz(midi) * ri_pow2(v->tune_st / 12.0f); /* CONTINUE: target only, nothing reset */
 }
 
 void rb303_accent(struct RB303Voice *v) {

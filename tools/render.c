@@ -438,7 +438,12 @@ static void apply_event(struct RB303Voice *v, const struct RIEvent *e) {
         break;
     case RI_EV_AUTOMATION:
         /* AUTO lane: shared control IDs; the 0x0300 block drives the
-         * 303A voice directly (value = ctl, flags = 0..127 value). */
+         * 303A voice directly (value = ctl, flags = 0..127 value).
+         * The 0x0310 block is intentionally NOT forwarded here: this
+         * song path owns a single 303 voice, and 303B automation bent
+         * onto it would mistarget. The second voice (and 303B routing)
+         * arrives with the integrated engine (§12.3); the dispatch
+         * already honors 303B (rb303_set_param normalizes the block). */
         if ((e->value & 0xff00u) == 0x0300u)
             rb303_set_param(v, e->value, (uint8_t)(e->flags & 127u));
         break;

@@ -18,8 +18,17 @@
 #include "engine/dsp/rb303.h"
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
+#include "engine/dsp/kernels.h"
 
 #define RI_N_ANCHOR 9
+
+static float clampf(float x, float lo, float hi) {
+    if (x < lo)
+        return lo;
+    if (x > hi)
+        return hi;
+    return x;
+}
 
 static const unsigned char RI_KNOB[RI_N_ANCHOR] = { 0, 16, 32, 48, 64, 80, 96, 112, 127 };
 
@@ -68,6 +77,10 @@ static float interp9(const float *tbl, uint8_t value) {
 }
 
 void rb303_set_param(struct RB303Voice *v, uint32_t ctl_id, uint8_t value) {
+    /* 303B shares the implementation: normalize the section block (§12.2).
+     * Unknown IDs (other blocks) still fall through to default-ignore. */
+    if ((ctl_id & 0xFFF0u) == 0x0310u)
+        ctl_id -= 0x0010u;
     switch (ctl_id) {
     case RI_CTL_303A_CUTOFF:
         v->cutoff_hz = interp9(RI_CUTOFF_TBL, value);
@@ -90,6 +103,18 @@ void rb303_set_param(struct RB303Voice *v, uint32_t ctl_id, uint8_t value) {
     case RI_CTL_303A_VOLUME:
         v->volume = interp9(RI_VOLUME_TBL, value);
         break;
+    case RI_CTL_303A_TUNE: {
+        /* Semitones off center 64, clamped ±24 (two octaves, ReBirth law).
+         * Live notes bend by the new/old ratio: no jump, pitch-exact. */
+        float nw = clampf((float)value - 64.0f, -24.0f, 24.0f);
+        if (nw != v->tune_st) {
+            float ratio = ri_pow2((nw - v->tune_st) / 12.0f);
+            v->freq *= ratio;
+            v->target_freq *= ratio;
+            v->tune_st = nw;
+        }
+        break;
+    }
     default:
         break; /* unknown control: ignored by the voice; tools/render
                 * rejects bad song lines loudly, so nothing fails silent */

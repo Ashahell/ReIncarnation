@@ -17,6 +17,18 @@
 #define RI_CTL_303A_ACCENT 0x0304u
 #define RI_CTL_303A_WAVE   0x0305u /* 0 = saw, else square */
 #define RI_CTL_303A_VOLUME 0x0306u
+#define RI_CTL_303A_TUNE   0x0307u /* semitones, value - 64, clamped ±24 */
+
+/* 303B control IDs (§12.2: same layout, section block 0x031x; the dispatch
+ * normalizes to 303A so both sections share one implementation). */
+#define RI_CTL_303B_CUTOFF 0x0310u
+#define RI_CTL_303B_RESO   0x0311u
+#define RI_CTL_303B_ENVMOD 0x0312u
+#define RI_CTL_303B_DECAY  0x0313u
+#define RI_CTL_303B_ACCENT 0x0314u
+#define RI_CTL_303B_WAVE   0x0315u /* 0 = saw, else square */
+#define RI_CTL_303B_VOLUME 0x0316u
+#define RI_CTL_303B_TUNE   0x0317u /* semitones, value - 64, clamped ±24 */
 
 struct RB303Voice {
     /* Parameters (rb303_set_param curves, or direct setters for tests). */
@@ -27,6 +39,7 @@ struct RB303Voice {
     float accent_amt;  /* 0..1 */
     float slide_tc;    /* s; default 0.040 (P-03 tension: 40 vs 60, M2.2 A/B) */
     float volume;      /* 0..1 linear */
+    float tune_st;     /* semitones off center, ±24 (§12.2; ReBirth Tune) */
     int wave_square;   /* 0 = saw, 1 = square */
     int classic_click; /* 1 = hard wave switch with deterministic click
                         * (classic behavior, default); 0 = 0.5 ms

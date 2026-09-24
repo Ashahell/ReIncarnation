@@ -15,7 +15,9 @@ static const struct RIPanelControl RI_303A_CTLS[] = {
     CTL(RI_CTL_303A_BASE + 2, "envmod", 64),
     CTL(RI_CTL_303A_BASE + 3, "decay", 64),
     CTL(RI_CTL_303A_BASE + 4, "accent", 64),
-    CTL(RI_CTL_303A_BASE + 5, "volume", 100),
+    CTL(RI_CTL_303A_BASE + 5, "waveform", 0),
+    CTL(RI_CTL_303A_BASE + 6, "volume", 100),
+    CTL(RI_CTL_303A_BASE + 7, "tune", 64),
 };
 
 static const struct RIPanelControl RI_303B_CTLS[] = {
@@ -24,7 +26,9 @@ static const struct RIPanelControl RI_303B_CTLS[] = {
     CTL(RI_CTL_303B_BASE + 2, "envmod", 64),
     CTL(RI_CTL_303B_BASE + 3, "decay", 64),
     CTL(RI_CTL_303B_BASE + 4, "accent", 64),
-    CTL(RI_CTL_303B_BASE + 5, "volume", 100),
+    CTL(RI_CTL_303B_BASE + 5, "waveform", 0),
+    CTL(RI_CTL_303B_BASE + 6, "volume", 100),
+    CTL(RI_CTL_303B_BASE + 7, "tune", 64),
 };
 
 static const struct RIPanelControl RI_808_CTLS[] = {
