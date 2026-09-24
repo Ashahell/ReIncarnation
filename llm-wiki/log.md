@@ -254,6 +254,13 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m24 | Wiki doc-sync: compact lock struck, acceptance earns MCC boxes (Update, no code)
+- Disposition: Update (cascade corrections after m19/m22 moved the code)
+- Raw: llm-wiki/raw/articles/2026-09-24-doc-sync-compact-strike-acceptance.md
+- Updated: docs/evidence/gui/panel-909-geometry.md (compact narrative struck visibly → v2), docs/evidence/gui/acceptance.md (centers box → v2 + m22; new checked boxes: art render, click safety; drag/fine/commit/right-click stay unchecked), llm-wiki/index.md
+- Left alone deliberately: t29_knobart header (historically accurate), log history (immutable), ref909 images (measured in m19/m22).
+- Audit's acceptance-content gates (P-18, TC-2.9/2.10/2.11, ReBirth-101, Tester, boxes) all preserved.
+
 ## [2026-09-24] m23 | Third-party open alternatives: verification + license boundaries (reference, no code)
 - Disposition: Reference (consultant brief checked against the web)
 - Raw: llm-wiki/raw/articles/2026-09-24-third-party-open-alternatives-assessment.md

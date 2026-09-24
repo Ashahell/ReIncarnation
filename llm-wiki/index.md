@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-doc-sync-compact-strike-acceptance.md](raw/articles/2026-09-24-doc-sync-compact-strike-acceptance.md) — **2026-09-24 — Wiki doc-sync: compact lock struck, acceptance earns MCC boxes (Update).** Cascade after m19/m22: geometry lock note struck visibly → v2; centers box re-earned on v2 numbers; art-render + click-safety boxes checked with device evidence; drag rows honestly unchecked.
+
 - [raw/articles/2026-09-24-third-party-open-alternatives-assessment.md](raw/articles/2026-09-24-third-party-open-alternatives-assessment.md) — **2026-09-24 — Third-party open alternatives: verification + boundaries (reference).** JC-303 + RP-8 confirmed (license split noted); RE:BORN 338 + consultant's "jsynth" not found as described (no links given); Open303 = study/ear reference only, GPL out of tree; clean-room rule reinforced.
 
 - [raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md](raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md) — **2026-09-24 — MCC knob class: decoded guru (_win vs _window), ungated Draw, four knobs + click test live (RESOLVED).** Type-confusion crash fixed (event methods to the MUI window object); initial Draw has no DRAWOBJECT flag (paint unconditionally); diag2 lifecycle clean; panel909 four knobs measured (x 54/134/214/294, orange up); click safe. Audit 0/0. Remainder: real drag, notify listeners.
