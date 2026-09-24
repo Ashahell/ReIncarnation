@@ -24,3 +24,9 @@ Slow leakage sweep: N/A (deferred to M2.3 measurement, explicit).
 **ACCENT (excitation pre-envelope):** EXCITE scales osc + click amplitudes
 at the source (×1.0 / ×1.5). Measured +3.45 dB RMS (t1_808, want +3.52±0.5).
 P-12 three-state (off→weak→strong) OPEN: level 2 maps to ×1.5 (binary hold).
+
+**Re-baseline 2026-09-24 (§12.1 kernel totality):** golden re-rendered deliberately.
+Pitch-sweep exp is now exact past t≈22·τp (old ±32-clamp garbage put wrong,
+audible pitch into the tail from ≈0.5 s); envelope tail decays to exact 0.
+First diff at ≈0.75 s of the 1.5 s golden, tail-only. Voice deactivates on
+its own past −100 dBFS (t35).

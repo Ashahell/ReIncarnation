@@ -70,6 +70,11 @@
 #define RI_808_CLAP_BP_F 1100.0f
 #define RI_808_CLAP_TAIL_TAU 0.120f /* s (P-11) */
 #define RI_808_EXCITE_ACC 1.5f /* EXCITE(1): ×1.5 over EXCITE(0)=1.0 */
+#define RI_808_REST_LEVEL 0.00001f /* -100 dBFS: voice rest threshold (§2.3).
+                                    * A voice deactivates once its envelope
+                                    * (clap: tail level) falls below this with
+                                    * all transients past; its output bound is
+                                    * then below threshold by construction. */
 #define RI_808_FLOOR_HZ 35.0f /* P-07 35 Hz floor: no voice ever below */
 #define RI_808_SR_DEFAULT 48000.0f
 
@@ -92,7 +97,8 @@ const char *rb808_name(uint32_t voice);
 struct RB808Voice {
     uint8_t id; /* RB808_* */
     uint8_t accent; /* 0/1 binary; 2 reserved (P-12 OPEN, maps to 1.5) */
-    uint8_t active; /* nonzero after trigger until caller mutes */
+    uint8_t active; /* nonzero after trigger until the envelope rest
+                     * (§2.3: dies on its own; retrigger resets) */
     uint8_t pad;
     float t; /* s since trigger */
     float tune_st; /* semitones, BD ±7 (P-07) */

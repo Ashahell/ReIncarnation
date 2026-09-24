@@ -337,6 +337,19 @@ float rb808_voice_render(struct RB808Voice *v, float sr) {
         y = ri_tanh(exc * v->st_lp * 1.5f);
         out = y * env;
     }
+    /* Voice rest (§2.3): envelope (clap: tail level) below -100 dBFS
+     * with all transients long past -> go inactive. Output is already
+     * bounded below threshold: env-voices scale everything by env
+     * (extra SD/OH terms decay faster than env by construction), and
+     * the clap drive scales with tail_e. Inactive voices return exact
+     * 0 without advancing (early return above). */
+    if (id == RB808_CP) {
+        if (v->t > 0.1f &&
+            ri_exp(-(v->t - 3.0f * RI_808_CLAP_BURST_GAP) / RI_808_CLAP_TAIL_TAU) < RI_808_REST_LEVEL)
+            v->active = 0u;
+    } else if (v->t > 0.01f && env < RI_808_REST_LEVEL) {
+        v->active = 0u;
+    }
     v->t += 1.0f / sr;
     return out;
 }
@@ -347,9 +360,9 @@ void rb808_render_mix(struct RB808Set *s, float *out, uint32_t n, float sr) {
         float m = 0.0f;
         for (k = 0; k < RI_808_NVOICES; k++)
             m += rb808_voice_render(&s->v[k], sr);
-        /* Master safety: soft-clip the storm sum (linear under 1.0). */
-        if (m > 1.0f || m < -1.0f)
-            m = ri_tanh(m * 0.5f) * 1.4f;
+        /* Linear section sum with float headroom (§2.4): no clipping
+         * inside a section (ReBirth manual p. 23). Clipping happens
+         * only at the final integer conversion. */
         out[i] = m;
     }
 }

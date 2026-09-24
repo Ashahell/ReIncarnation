@@ -18,3 +18,9 @@ MIX = cluster + bleed; OUTPUT = y·env_amp + bleed·env_bleed.
 **ACCENT (excitation pre-envelope):** EXCITE scales cluster + bleed at
 the source (×1.0 / ×1.5). Measured +3.51 dB RMS (t1_808, want +3.52±0.5).
 P-12 three-state OPEN (binary hold).
+
+**Re-baseline 2026-09-24 (§12.1 kernel totality):** golden re-rendered deliberately.
+Bleed-term exp is now exact 0 past t≈1.1 s (old ±32-clamp garbage put audible
+hash into the tail); envelope tail decays to exact 0. First diff at ≈1.13 s
+of the 2.0 s golden, tail-only. Voice deactivates on its own past
+−100 dBFS (t35).
