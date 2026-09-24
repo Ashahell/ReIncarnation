@@ -254,6 +254,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m25 | Both-axes knob drag: owner amendment, TDD, device test pending
+- Disposition: New (host-green + deployed; device proof PENDING owner re-test)
+- Raw: llm-wiki/raw/articles/2026-09-24-both-axes-drag-amendment.md
+- Updated: gui/knob_logic.[ch] (dx+dy eff), gui/widgets/rknb.mcc.c (start-x), tests/unit/t1_knob.c (8 migrated + 5 new pins), spec M2.1 (amended), acceptance (reworded, unchecked), llm-wiki/index.md
+- **Decision:** vertical (ReBirth manual + spec lock) vs horizontal (owner feel) → BOTH, owner chose over horizontal-only/keep-vertical.
+- RED (new pins vs old fn) → GREEN (PASS knob) after `all` (stale-object trap: lone `test` links cached objects — 9 phantom FAILs).
+- Full `ri_audit.sh` 0/0. Binary on RAM:. Pending: owner horizontal + vertical regression test.
+
 ## [2026-09-24] m24 | Wiki doc-sync: compact lock struck, acceptance earns MCC boxes (Update, no code)
 - Disposition: Update (cascade corrections after m19/m22 moved the code)
 - Raw: llm-wiki/raw/articles/2026-09-24-doc-sync-compact-strike-acceptance.md
