@@ -276,6 +276,11 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - Jump = press-tremor yank; armed threshold keeps press 1:1. Buttons-gone = by design (bevel boxes retired). FLAMRES = our flam slot, placeholder today (documented in params.c), label stays honestly.
 - Full `ri_audit.sh` 0/0. Binary on RAM:. Pending: owner first-click check on a fresh instance.
 
+## [2026-09-24] m42 | Lane incident: wedged jug v1dh0 with a capture, restored it
+- Myui-capture on their e1000 lane wedged it identically (ping dead, 0 bytes) — 5th incident, 3rd lane/NIC. Reconstructed their exact QEMU launch from recorded `ps`, relaunched, agent back (session 12), desktop verified.
+- Lessons: big captures wedge ANY lane (Dell Intel, QEMU e1000, QEMU rtl8139 eventually) — transfer size, not driver; never test-capture on a shared lane again (private riqemu1 only); their disk untouched (RAM:-only artifacts, died with the process).
+- Apology owed and given; no data loss (reboot-equivalent state).
+
 ## [2026-09-24] m39c | Wedge-fix correction: chunking unproven (session-13 wedge)
 - Session 13 wedged on the chunked agent, identical partial-then-reset signature (299384/786521). "Verified" struck in both lane articles; chunking kept as harmless mitigation.
 - Standing pattern: intermittent ~5–10% per 786 KB frame; small/chunked traffic never wedges. Next wedge: redial-first (untested) before reboot.
