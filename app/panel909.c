@@ -31,6 +31,7 @@
 #include <proto/exec.h>
 #include "gui/panels.h"
 #include "gui/widgets/rknb.h"
+#include "gui/widgets/rlbl.h"
 
 #define NKNOB 4
 #define RET_KNOB_BASE 100
@@ -84,11 +85,10 @@ int main(void) {
             TAG_DONE);
         if (!texts[i])
             return 7;
-        /* Name cell: fixed 80 wide to sit over its knob. */
-        names[i] = (Object *)MUI_NewObject(MUIC_Text,
-            MUIA_Text_Contents, (IPTR)KNOB_NAMES[i],
-            MUIA_FixWidth, 80,
-            TAG_DONE);
+        /* Name cell: custom label (light fill + centered dark
+         * text, knobproof calls) — MUIC_Text renders label rows
+         * inverted for reasons no header explains (m39). */
+        names[i] = (Object *)ri_rlbl_create(KNOB_NAMES[i]);
         if (!names[i])
             return 7;
     }
@@ -195,5 +195,6 @@ int main(void) {
     }
     MUI_DisposeObject(app);
     ri_rknb_dispose_class();
+    ri_rlbl_dispose_class();
     return 0;
 }
