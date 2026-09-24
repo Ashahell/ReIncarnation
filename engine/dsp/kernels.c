@@ -162,6 +162,48 @@ float ri_sin(float x) {
     return (float)(p * y);
 }
 
+/* log2(x): bit-split exponent + double Taylor of log(1+u)/ln2.
+ * x > 0 normal: e = expbits - 127, m in [1,2), u = m - 1 in [0,1).
+ * x <= 0: -Inf (deterministic; slide never queries it — floor is 35 Hz).
+ * NaN propagates; +Inf -> +Inf. Denormals scale up once (exact) first. */
+float ri_log2(float x) {
+    union { float f; uint32_t u; } c;
+    uint32_t ebits;
+    int e;
+    double u2, p, m;
+    c.f = x;
+    ebits = (c.u >> 23) & 0xffu;
+    if (ebits == 0u) {
+        if ((c.u & 0x7fffffu) == 0u)
+            return -ri_inff(); /* +-0 */
+        return ri_log2(x * 33554432.0f) - 25.0f; /* denormal: exact 2^25 up */
+    }
+    if (ebits == 0xffu) {
+        if ((c.u & 0x7fffffu) == 0u)
+            return x > 0.0f ? ri_inff() : -ri_inff(); /* +-Inf */
+        return x; /* NaN propagates */
+    }
+    if (x < 0.0f)
+        return -ri_inff();
+    e = (int)ebits - 127;
+    c.u = (c.u & 0x7fffffu) | 0x3f800000u;
+    m = (double)c.f;
+    /* ln(m)/ln2 via 2*atanh series: v = (m-1)/(m+1) in [0,1/3),
+     * ln(m) = 2*(v + v^3/3 + v^5/5 + ...). Horner in w = v^2. */
+    u2 = (m - 1.0) / (m + 1.0);
+    {
+        double w = u2 * u2, q;
+        q = 1.0 / 13.0;
+        q = q * w + 1.0 / 11.0;
+        q = q * w + 1.0 / 9.0;
+        q = q * w + 1.0 / 7.0;
+        q = q * w + 1.0 / 5.0;
+        q = q * w + 1.0 / 3.0;
+        q = q * w + 1.0;
+        p = 2.0 * u2 * q / 0.6931471805599453;
+    }
+    return (float)((double)e + p);
+}
 /* 2^x, total: 0 for x <= -127 (below float normal floor), +Inf for
  * x >= 128, exact floor split otherwise. n = floor(x), f = x - n in
  * [0,1), order-12 Taylor of 2^f = e^(f*ln2) in double, exact 2^n scale.

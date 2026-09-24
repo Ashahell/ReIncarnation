@@ -75,5 +75,22 @@ int main(void) {
     /* tanh keeps its guards and stays finite everywhere. */
     RI_ASSERT(ri_tanh(8.0f) == 1.0f && ri_tanh(-8.0f) == -1.0f, "tanh guards moved");
     RI_ASSERT(finitef(ri_tanh(1e20f)) && finitef(ri_tanh(-1e20f)), "tanh huge");
+    /* log2: exact powers, accuracy vs libm on the audio range, totality. */
+    RI_ASSERT(ri_log2(1.0f) == 0.0f, "log2(1)=%g", ri_log2(1.0f));
+    RI_ASSERT(ri_log2(2.0f) == 1.0f, "log2(2)=%g", ri_log2(2.0f));
+    RI_ASSERT(ri_log2(0.5f) == -1.0f, "log2(0.5)=%g", ri_log2(0.5f));
+    RI_ASSERT(ri_log2(0.0f) == -1.0f / 0.0f, "log2(0)=%g", ri_log2(0.0f));
+    RI_ASSERT(ri_log2(-3.0f) == -1.0f / 0.0f, "log2(-3)=%g", ri_log2(-3.0f));
+    RI_ASSERT(finitef(ri_log2(FLT_MAX)) && fabsf(ri_log2(FLT_MAX) - 128.0f) < 0.01f,
+        "log2(MAX)=%g", ri_log2(FLT_MAX));
+    for (i = 1; i <= 640; i++) {
+        float x = (float)i * 0.1f, g = ri_log2(x);
+        RI_ASSERT(finitef(g), "log2 non-finite at %g", x);
+        RI_ASSERT(fabsf(g - log2f(x)) <= 1e-6f, "log2 acc %g: %g", x, g);
+    }
+    for (i = 0; i < 200; i++) {
+        float x = 1e-30f * (1.0f + (float)i);
+        RI_ASSERT(finitef(ri_log2(x)), "log2 denorm %g", x);
+    }
     RI_RESULT("kernels_total");
 }

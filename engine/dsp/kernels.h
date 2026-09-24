@@ -19,4 +19,8 @@ float ri_tanh(float x);
 float ri_exp(float x);
 float ri_sin(float x);
 float ri_pow2(float x);
+/* log2(x) for x > 0 (exact at powers of two); -Inf for x <= 0 (deterministic
+ * precision statement per D-j); NaN propagates; +Inf for +Inf. Bit tricks +
+ * double polynomial, no libm. */
+float ri_log2(float x);
 #endif

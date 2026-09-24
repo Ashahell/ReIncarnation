@@ -111,6 +111,8 @@ void rb303_set_param(struct RB303Voice *v, uint32_t ctl_id, uint8_t value) {
             float ratio = ri_pow2((nw - v->tune_st) / 12.0f);
             v->freq *= ratio;
             v->target_freq *= ratio;
+            v->logfreq = ri_log2(v->freq);
+            v->log_target = ri_log2(v->target_freq);
             v->tune_st = nw;
         }
         break;

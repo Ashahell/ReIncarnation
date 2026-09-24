@@ -61,8 +61,10 @@ struct RB303Voice {
     float post_lp1;    /* post HP 44.486 Hz lowpass state */
     float post_lp2;    /* post HP 24.167 Hz lowpass state */
     float phase;       /* VCO phase 0..1 */
-    float freq;        /* slewed freq, Hz */
+    float freq;        /* slewed freq, Hz (== pow2(logfreq) while gliding) */
     float target_freq; /* slide target, Hz */
+    float logfreq;     /* log2(freq): the glide state (RC on pitch CV) */
+    float log_target;  /* log2(target_freq) */
     float meg;         /* filter (MEG) envelope 0..1: Decay knob, min on accent */
     float veg;         /* amp (VEG) envelope 0..1: fixed long decay */
     float sweep;       /* accent-sweep state: saturating buildup, reso lag */

@@ -78,6 +78,8 @@ void rb303_init(struct RB303Voice *v) {
     v->phase = 0.0f;
     v->freq = 55.0f;
     v->target_freq = 55.0f;
+    v->logfreq = ri_log2(55.0f);
+    v->log_target = v->logfreq;
     v->meg = 0.0f;
     v->veg = 0.0f;
     v->sweep = 0.0f;
@@ -129,9 +131,11 @@ float rb303_filter_step(struct RB303Voice *v, float in, float sr) {
 
 void rb303_note(struct RB303Voice *v, uint8_t midi, int slide, int accent) {
     v->target_freq = midi_to_hz(midi) * ri_pow2(v->tune_st / 12.0f);
+    v->log_target = ri_log2(v->target_freq);
     v->gate = 1.0f;
     if (!slide) {
         v->freq = v->target_freq; /* pitch jumps */
+        v->logfreq = v->log_target;
         v->meg = 1.0f;            /* envelopes restart */
         v->veg = 1.0f;
         v->phase = 0.0f;
@@ -146,6 +150,7 @@ void rb303_note(struct RB303Voice *v, uint8_t midi, int slide, int accent) {
 
 void rb303_slide_to(struct RB303Voice *v, uint8_t midi) {
     v->target_freq = midi_to_hz(midi) * ri_pow2(v->tune_st / 12.0f); /* CONTINUE: target only, nothing reset */
+    v->log_target = ri_log2(v->target_freq);
 }
 
 void rb303_accent(struct RB303Voice *v) {
@@ -196,8 +201,13 @@ void rb303_render(struct RB303Voice *v, float *out, uint32_t n, float sr) {
     g2 = ri_tan_small(RI_303_PI * RI_303_POST_HP2_HZ / sr);
     for (i = 0; i < n; i++) {
         float osc, vca, y, fc_save;
-        /* slide slew (fixed tau rate) */
-        v->freq += (v->target_freq - v->freq) * slide_a;
+        /* slide slew in log2 (RC on pitch CV: constant octave rate).
+         * Settled notes skip the conversion (freq stays exactly as set;
+         * pow2(log2(x)) would add a rounding ulp). */
+        if (v->logfreq != v->log_target) {
+            v->logfreq += (v->log_target - v->logfreq) * slide_a;
+            v->freq = ri_pow2(v->logfreq);
+        }
         v->phase += v->freq / sr;
         if (v->phase >= 1.0f)
             v->phase -= 1.0f;
