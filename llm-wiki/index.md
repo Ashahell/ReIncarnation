@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-seam-repaint-step-targets.md](raw/articles/2026-09-24-seam-repaint-step-targets.md) — **2026-09-24 — Separator seam + step hit-rate.** Stale-pixel verdict (Intuition clean, layout uniform); repaint-all; 32px step targets. Refresh-test + clicks pending.
+
 - [raw/articles/2026-09-24-step-toggle-proof-16buttons.md](raw/articles/2026-09-24-step-toggle-proof-16buttons.md) — **2026-09-24 — 2.10 step-toggle proof.** 16 buttons + pattern readout; click check pending; beat clock next.
 
 - [raw/articles/2026-09-24-commit-observable-undo-counter.md](raw/articles/2026-09-24-commit-observable-undo-counter.md) — **2026-09-24 — Commit-on-release observable.** Counter helper pinned; commits attr + UNDO row; owner-approved 2026-09-24 (click→1, drags accumulate).

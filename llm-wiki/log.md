@@ -261,6 +261,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m36 | Separator seam + step hit-rate: repaint-all + 32px targets
+- Disposition: New (forensics + two minimal fixes; device proof pending)
+- Raw: llm-wiki/raw/articles/2026-09-24-seam-repaint-step-targets.md
+- Updated: app/panel909.c (repaint-all on text change), app/stepproof.c (32px targets), llm-wiki/index.md
+- **Bar:** Intuition proofs clean → MUI-side paint; layout uniform → stale-pixel seam at the 80px abutment. Refresh-test discriminates (owner).
+- **Steps:** 14px targets → misses; 32px via shell.
+- Full `ri_audit.sh` 0/0. Both binaries on RAM:. Pending: owner refresh-test + click sequence on fresh instances.
+
 ## [2026-09-24] m35 | 2.10 step-toggle proof: 16 buttons + pattern readout
 - Disposition: New (first 2.10 device slice; chase timing stays host-pinned)
 - Raw: llm-wiki/raw/articles/2026-09-24-step-toggle-proof-16buttons.md
