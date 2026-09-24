@@ -257,14 +257,17 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 d->warp_wx = im->MouseX;
                 d->warp_wy = im->MouseY;
                 d->drag_start_val = d->cur;
-                /* Warp target in screen coords (the warp API speaks
-                 * screen; our math stays window-local). */
+                /* Warp target in screen coords. TRAP (m28): IDCMP
+                 * MouseX/Y are relative to the window's OUTER origin,
+                 * so screen = LeftEdge + Mouse — do NOT add Border*
+                 * (borders offset the RastPort/content space, which is
+                 * where _left/_top live and already measured exact).
+                 * Adding the border biased EVERY warp by (10,25):
+                 * runaway values + dead reversal. */
                 w = _window(obj);
                 if (w) {
-                    d->warp_sx = (WORD)(w->LeftEdge + w->BorderLeft +
-                        im->MouseX);
-                    d->warp_sy = (WORD)(w->TopEdge + w->BorderTop +
-                        im->MouseY);
+                    d->warp_sx = (WORD)(w->LeftEdge + im->MouseX);
+                    d->warp_sy = (WORD)(w->TopEdge + im->MouseY);
                 } else {
                     d->warp_sx = -1000;
                     d->warp_sy = -1000;
