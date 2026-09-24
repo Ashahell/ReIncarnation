@@ -261,6 +261,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m37 | Custom RStp class: stock can't size, build our own
+- Disposition: New (m36 FixWidth refuted on device → custom class)
+- Raw: llm-wiki/raw/articles/2026-09-24-custom-rstp-class.md
+- Updated: gui/widgets/rstp.mcc.c (rewrite), gui/widgets/rstp.h (new), app/stepproof.c, scripts/ri_audit.sh (gate rstp.h), m36 article (struck correction), llm-wiki/index.md
+- 32px AskMinMax, own on/off art, armed click-toggle; m21/m22 lessons in from the start.
+- AROS -Werror clean. Full `ri_audit.sh` 0/0. Binary on RAM:.
+- Pending: owner click sequence (0→1→9→8) on a fresh instance. Next: beat clock + chase highlight.
+
 ## [2026-09-24] m36 | Separator seam + step hit-rate: repaint-all + 32px targets
 - Disposition: New (forensics + two minimal fixes; device proof pending)
 - Raw: llm-wiki/raw/articles/2026-09-24-seam-repaint-step-targets.md
