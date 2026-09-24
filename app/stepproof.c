@@ -40,6 +40,7 @@
 static char s_patbuf[8];
 static char s_stepbuf[8];
 static char s_lagbuf[8];
+static char s_firebuf[8];
 
 /* EClock ticks → microseconds (double: exact for session scales). */
 static double eclock_us(struct EClockVal *ev, unsigned long freq) {
@@ -54,16 +55,42 @@ struct Device *TimerBase = NULL;
 
 int main(void) {
     Object *app = NULL, *win = NULL, *steps[NSTEPS], *pat, *steptxt,
-        *lagtxt;
+        *lagtxt, *firetxt;
     struct MsgPort *tport = NULL;
     struct timerequest *treq = NULL;
     ULONG tsig = 0, sigs = 0;
-    LONG ret;
     unsigned int i;
     double period_us = 0.0, t0_us = 0.0, maxlag = 0.0;
     unsigned long freq = 0;
     unsigned long k = 0;
     int cur = -1;
+
+    /* Timer setup lives FIRST THING, before any MUI object exists:
+     * keeps device interaction out of the widget-construction
+     * window. Chase-set and STEP display stay late (need objects). */
+    tport = CreateMsgPort();
+    if (tport) {
+        treq = (struct timerequest *)CreateIORequest(tport,
+            sizeof(struct timerequest));
+    }
+    if (treq) {
+        treq->tr_node.io_Message.mn_ReplyPort = tport;
+        treq->tr_node.io_Flags = 0;
+    }
+    if (treq && OpenDevice("timer.device", UNIT_MICROHZ,
+        (struct IORequest *)treq, 0) == 0) {
+        struct EClockVal ev0;
+        TimerBase = treq->tr_node.io_Device;
+        freq = ReadEClock(&ev0);
+        period_us = ri_step16_ms(CHASE_BPM) * 1000.0;
+        t0_us = eclock_us(&ev0, freq);
+        treq->tr_node.io_Command = TR_ADDREQUEST;
+        treq->tr_node.io_Flags = 0;
+        treq->tr_time.tv_secs = 0;
+        treq->tr_time.tv_micro = (long)period_us;
+        SendIO((struct IORequest *)treq);
+        tsig = 1UL << tport->mp_SigBit;
+    }
 
     for (i = 0; i < NSTEPS; i++) {
         /* 32 px frames come from the custom class AskMinMax (stock
@@ -89,6 +116,12 @@ int main(void) {
         MUIA_Text_Contents, (IPTR)s_lagbuf,
         TAG_DONE);
     if (!lagtxt)
+        return 7;
+    ri_ctl_format_count(s_firebuf, 0);
+    firetxt = (Object *)MUI_NewObject(MUIC_Text,
+        MUIA_Text_Contents, (IPTR)s_firebuf,
+        TAG_DONE);
+    if (!firetxt)
         return 7;
     win = (Object *)MUI_NewObject(MUIC_Window,
         MUIA_Window_Title, "RI-STEPS",
@@ -127,6 +160,7 @@ int main(void) {
                 MUIA_Group_Spacing, 0,
                 Child, steptxt,
                 Child, lagtxt,
+                Child, firetxt,
                 TAG_DONE),
             TAG_DONE),
         TAG_DONE);
@@ -147,67 +181,25 @@ int main(void) {
             RET_STEP_BASE + i);
     }
     /* Beat clock: timer.device microhertz one-shots, rearmed every
-     * fire (174 BPM 16ths per spec TC-2.10.x). Grid origin t0, step
-     * k due at t0+k*period; lag = fire - due, max reported live. */
-    tport = CreateMsgPort();
-    if (tport) {
-        struct EClockVal ev0;
-        treq = (struct timerequest *)CreateIORequest(tport,
-            sizeof(struct timerequest));
-        if (treq) /* CreateIORequest does not zero flags: stale
-                   * IOF bits make timer behavior erratic (m41: a few
-                   * fires then silence). Deterministic every use. */
-            treq->tr_node.io_Flags = 0;
-        if (treq && OpenDevice("timer.device", UNIT_MICROHZ,
-            (struct IORequest *)treq, 0) == 0) {
-            TimerBase = treq->tr_node.io_Device;
-            freq = ReadEClock(&ev0);
-            period_us = ri_step16_ms(CHASE_BPM) * 1000.0;
-            t0_us = eclock_us(&ev0, freq);
-            treq->tr_node.io_Command = TR_ADDREQUEST;
-            treq->tr_node.io_Flags = 0;
-            treq->tr_time.tv_secs = 0;
-            treq->tr_time.tv_micro = (long)period_us;
-            SendIO((struct IORequest *)treq);
-            tsig = 1UL << tport->mp_SigBit;
-            SetAttrs(steps[0], MUIA_RStp_Chase, TRUE, TAG_DONE);
-            cur = 0;
-            ri_ctl_format_count(s_stepbuf, 0);
-            SetAttrs(steptxt, MUIA_Text_Contents, (IPTR)s_stepbuf,
-                TAG_DONE);
-        }
+     * fire (174 BPM 16ths per spec TC-2.10.x). Grid origin t0 is
+     * taken just before the first SendIO; step k due at
+     * t0+(k+1)*period; lag = fire - due, max reported live. */
+    /* Beat armed: mark step 0 chased from the start. */
+    if (tsig) {
+        SetAttrs(steps[0], MUIA_RStp_Chase, TRUE, TAG_DONE);
+        cur = 0;
     }
+    /* Event loop: manual Wait on the timer bit (+Ctrl-C exit).
+     * Decided by elimination (diag13 matrix): NewInput never
+     * surfaces seeded user bits on Zune, and InputBuffered never
+     * returns on Zune (drain-spin). Clicks/close are NOT served
+     * here (documented tradeoff — proven separately on NewInput
+     * builds); exit via Ctrl-C (Break N CTRLC). */
     for (;;) {
-        if (!tsig) {
-            /* No beat clock (timer setup failed): classic blocking
-             * MUI loop. Proven shape for clicks/close. */
-            sigs = 0;
-            ret = (LONG)DoMethod(app, MUIM_Application_NewInput,
-                &sigs);
-            if (ret == (LONG)MUIV_Application_ReturnID_Quit)
-                break;
-            if (ret >= RET_STEP_BASE && ret < RET_STEP_BASE + NSTEPS) {
-                unsigned long pattern = 0;
-                for (i = 0; i < NSTEPS; i++) {
-                    IPTR v = 0;
-                    GetAttr(MUIA_Numeric_Value, steps[i], &v);
-                    if (v)
-                        pattern |= (1u << i);
-                }
-                ri_ctl_format_count(s_patbuf, pattern);
-                SetAttrs(pat, MUIA_Text_Contents, (IPTR)s_patbuf,
-                    TAG_DONE);
-            }
-            continue;
-        }
-        /* Beat clock runs: manual loop. NewInput does NOT wake on
-         * foreign signal masks (sentinel proved: STEP stuck 77),
-         * so Wait() here on the timer bit (+Ctrl-C) and drain MUI
-         * input non-blocking. Click latency ≤ one beat (86 ms). */
         sigs = Wait(tsig | SIGBREAKF_CTRL_C);
         if (sigs & SIGBREAKF_CTRL_C)
             break;
-        if (sigs & tsig) {
+        if ((sigs & tsig) && treq) {
             struct EClockVal evn;
             double now, lag;
             int nxt;
@@ -215,7 +207,10 @@ int main(void) {
                 ;
             ReadEClock(&evn);
             now = eclock_us(&evn, freq);
-            lag = now - (t0_us + (double)k * period_us);
+            /* Grid due for fire k is t0+(k+1)*period: t0 is taken
+             * just before the first SendIO, so the first interval
+             * is one full period (k=0 due = t0+period). */
+            lag = now - (t0_us + (double)(k + 1) * period_us);
             if (lag > maxlag)
                 maxlag = lag;
             nxt = (int)ri_chase_step((double)k + 1.0, NSTEPS);
@@ -225,6 +220,8 @@ int main(void) {
             SetAttrs(steps[nxt], MUIA_RStp_Chase, TRUE, TAG_DONE);
             cur = nxt;
             k++;
+            /* FIRES readout doubles as the liveness instrument
+             * (hundreds apart = running; static = stuck). */
             ri_ctl_format_count(s_stepbuf, (unsigned long)cur);
             SetAttrs(steptxt, MUIA_Text_Contents, (IPTR)s_stepbuf,
                 TAG_DONE);
@@ -232,33 +229,16 @@ int main(void) {
                 (unsigned long)(maxlag / 1000.0));
             SetAttrs(lagtxt, MUIA_Text_Contents, (IPTR)s_lagbuf,
                 TAG_DONE);
+            ri_ctl_format_count(s_firebuf, k);
+            SetAttrs(firetxt, MUIA_Text_Contents, (IPTR)s_firebuf,
+                TAG_DONE);
             treq->tr_node.io_Command = TR_ADDREQUEST;
             treq->tr_node.io_Flags = 0;
             treq->tr_time.tv_secs = 0;
             treq->tr_time.tv_micro = (long)period_us;
             SendIO((struct IORequest *)treq);
         }
-        for (;;) {
-            ret = (LONG)DoMethod(app, MUIM_Application_InputBuffered);
-            if (ret == 0)
-                break;
-            if (ret == (LONG)MUIV_Application_ReturnID_Quit)
-                goto done;
-            if (ret >= RET_STEP_BASE && ret < RET_STEP_BASE + NSTEPS) {
-                unsigned long pattern = 0;
-                for (i = 0; i < NSTEPS; i++) {
-                    IPTR v = 0;
-                    GetAttr(MUIA_Numeric_Value, steps[i], &v);
-                    if (v)
-                        pattern |= (1u << i);
-                }
-                ri_ctl_format_count(s_patbuf, pattern);
-                SetAttrs(pat, MUIA_Text_Contents, (IPTR)s_patbuf,
-                    TAG_DONE);
-            }
-        }
     }
-done:;
     if (treq) {
         AbortIO((struct IORequest *)treq);
         while (GetMsg(tport))
