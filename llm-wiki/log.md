@@ -1,5 +1,15 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] m50 | §12.4c: log-domain glide (RC on pitch CV, τ kept)
+- Disposition: New (TDD: ri_log2 link-RED → Taylor-RED → atanh-GREEN; t40 RED 3 → PASS)
+- Raw: llm-wiki/raw/articles/2026-09-24-imp-12-4c-logslide.md
+- Updated: engine/dsp/kernels.{c,h} (ri_log2), tests/property/t3 (log2 pins),
+  engine/dsp/rb303.{h,c} (logfreq/log_target + exactness guard), params.c
+  (tune maintains logs), tests/unit/t40_logslide.c (new),
+  first-light set + sched-check.wav + sha (root-caused re-baselines),
+  docs/2026-09-24-improvement-todo.md
+- t22_303slide passes unchanged. Full `ri_audit.sh` 0/0. Owner A/B flagged.
+
 ## [2026-09-24] lint | 1 issue found, 1 fixed (ingest sweep m43–m49 + rack)
 - Coverage: m43/m44/m45/m46/m47/m48/m49 all raw+log+index OK; no unindexed raws.
 - Gap found: D-k/D-l adoption (f959fdf) unlogged; sibling rack entry still said
