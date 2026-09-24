@@ -261,6 +261,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m41 | Live chase: timer beat clock + playhead + self-measured lag
+- Disposition: New (first 2.10-full device slice)
+- Raw: llm-wiki/raw/articles/2026-09-24-live-chase-timer-lag.md
+- Updated: gui/widgets/rstp.{h,mcc.c} (chase attr + highlight), app/stepproof.c (beat clock + lag), llm-wiki/index.md
+- No new pure logic (chase math pinned); timer Base trick; signal-seed loop.
+- AROS -Werror clean. Full `ri_audit.sh` 0/0. Binary on RAM:.
+- Pending: owner eyeball (advancing playhead) + lag number on a fresh instance.
+
 ## [2026-09-24] m40 | First-click jump: warp arms past 3px + owner Q&A
 - Disposition: New (one-variable fix; two questions answered from code)
 - Raw: llm-wiki/raw/articles/2026-09-24-first-click-jump-qa.md
