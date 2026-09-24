@@ -39,10 +39,15 @@ builder), identical sizes usually succeed → not a length bug.
   verified 117,664 B ---rwed.
 - One hypothesis, minimal diff. Host Python untouched.
 
-## Hammer verdict
+## Hammer verdict (CORRECTED — overstated, see session-13 note)
 - 12 consecutive scale-2 captures post-fix: 12/12 PASS, session 11
-  stable throughout (prior rate ~3 wedges / ~25 big captures).
-  Fix verified: behavior + mechanism agree.
+  stable. At the time this read as verification.
+- Session 13 (same chunked agent) wedged on its 3rd big capture
+  with the IDENTICAL partial-then-reset signature (299384/786521).
+  So chunking did NOT fix it; at best it may have lowered the rate
+  (3 wedges/~25 pre vs 1/~16 post — not significant). Status:
+  deployed mitigation, NOT a proven fix. The "verified" claim above
+  stands struck.
 - Separate deterministic landmine found en route: `Version
   <ELF-binary>` hangs/kills the agent task 3/3 (BAK kills
   identically — new binary exonerated; output capture is capped,

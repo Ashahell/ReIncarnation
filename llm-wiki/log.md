@@ -276,6 +276,10 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - Jump = press-tremor yank; armed threshold keeps press 1:1. Buttons-gone = by design (bevel boxes retired). FLAMRES = our flam slot, placeholder today (documented in params.c), label stays honestly.
 - Full `ri_audit.sh` 0/0. Binary on RAM:. Pending: owner first-click check on a fresh instance.
 
+## [2026-09-24] m39c | Wedge-fix correction: chunking unproven (session-13 wedge)
+- Session 13 wedged on the chunked agent, identical partial-then-reset signature (299384/786521). "Verified" struck in both lane articles; chunking kept as harmless mitigation.
+- Standing pattern: intermittent ~5–10% per 786 KB frame; small/chunked traffic never wedges. Next wedge: redial-first (untested) before reboot.
+
 ## [2026-09-24] m39b | Spike lane wedge fixed: chunked sends, hammer 12/12
 - Disposition: New (cross-repo fix; proof by hammer)
 - Raw: llm-wiki/raw/articles/2026-09-24-spike-lane-wedge-fix.md
