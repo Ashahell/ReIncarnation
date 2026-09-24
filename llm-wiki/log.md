@@ -254,6 +254,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m27 | Grab revision: edge-trigger yanked, warp-every-move, device test pending
+- Disposition: New (revises unproven m26 design; m26 article stands as trail)
+- Raw: llm-wiki/raw/articles/2026-09-24-grab-revision-warp-every-move.md
+- Updated: gui/widgets/rknb.mcc.c (warp policy only), llm-wiki/index.md
+- **Evidence:** diag5 0xEF + diag6 raw (borders 10/25 sane) → edge warp fired only on huge drags = giant teleports; horizontal harmed without need, vertical helped at a fight-price.
+- Warp-after-every-move: pointer hovers, motion accrues 1:1, edges unreachable, no teleports. Fail-soft kept.
+- Full `ri_audit.sh` 0/0. v2 binary on RAM:. Pending: owner feel test on a fresh instance.
+
 ## [2026-09-24] m26 | Pointer grab: edge-clamp diagnosed, warp-back implemented, device test pending
 - Disposition: New (host-green + deployed; device proof PENDING owner re-test)
 - Raw: llm-wiki/raw/articles/2026-09-24-pointer-grab-warp.md
