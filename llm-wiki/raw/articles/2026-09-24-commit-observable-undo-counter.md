@@ -29,11 +29,16 @@ counter.
 - AROS -Werror clean (both TUs). Full `ri_audit.sh` 0/0. Binary
   deployed to RAM:.
 
-## Proof (device, detached runs)
+## Proof (device, detached runs — APPROVED by owner 2026-09-24)
 - Fresh window: UNDO 0 alongside the 64s.
 - Bare click (no move) on a knob: UNDO 1 (begin+end = one unit).
-- Drag-release: +1 each; three gestures → UNDO 3.
+- Drag-release: +1 each; three gestures → UNDO 3. Owner-approved.
 - No guru; old instance closed via gadget first.
+- Lane note: a later `ui-capture` wedged the AGENT (jobs queued,
+  ping dead) with NO guru on screen and a healthy detached app —
+  agent-side capture flake, m34 code exonerated; recovered by Dell
+  reboot (session 4). Detached-only rule stands; captures can wedge
+  even when the app is innocent.
 
 ## Files
 - env: `gui/panels.[ch]`, `tests/unit/t29_paneldefault.c`,

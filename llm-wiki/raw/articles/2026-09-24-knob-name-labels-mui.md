@@ -19,10 +19,11 @@ TR-909 and ReBirth alike).
 - AROS -Werror compile clean. Full `ri_audit.sh` 0/0. Binary
   deployed to RAM:.
 
-## Proof (device, detached runs)
+## Proof (device, detached runs — APPROVED by owner 2026-09-24)
 - Fresh window: TUNE/LEVEL/DECAY/FLAMRES legible over the knobs,
   64s below, no guru; old instance closed via gadget first.
 - Spelling + column alignment eyeballed against knobproof.
+  Owner-approved.
 
 ## Files
 - env: `app/panel909.c` (name row only)
