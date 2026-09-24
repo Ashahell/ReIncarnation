@@ -19,12 +19,16 @@
 #endif
 
 #include <exec/types.h>
+#include <exec/ports.h>
+#include <exec/io.h>
 #include <intuition/classes.h>
 #include <intuition/classusr.h>
 #include <intuition/intuition.h>
 #include <utility/tagitem.h>
+#include <devices/input.h>
 #include <devices/inputevent.h>
 #include <libraries/mui.h>
+#include <proto/exec.h>
 #include <proto/intuition.h>
 #include <proto/muimaster.h>
 #include <proto/utility.h>
@@ -43,13 +47,88 @@ struct RKnBData {
                * reenter). Every programmatic change flows through
                * OM_SET, so this stays exact. */
     LONG drag_start_val;
-    WORD drag_start_x;
-    WORD drag_start_y;
+    LONG acc_dx; /* accumulated drag since SELECTDOWN (pointer grab:
+                  * the pointer warps back on screen-edge approach,
+                  * so travel is unbounded — value derives from the
+                  * accumulator, never from absolute position) */
+    LONG acc_dy;
+    WORD last_x; /* last seen pointer (window coords) */
+    WORD last_y;
+    WORD warp_wx; /* drag-start point, window coords (warp target) */
+    WORD warp_wy;
+    WORD warp_sx; /* same point, screen coords (warp API speaks screen) */
+    WORD warp_sy;
     BOOL dragging;
     BOOL shown;
     struct RiGesture gesture;
     struct MUI_EventHandlerNode ehn;
 };
+
+/* Screen-edge margin (px) that triggers a warp-back during drag. */
+#define RKNB_EDGE_MARGIN 8
+
+/* input.device for pointer warps (class lifetime; NULL = fail-soft
+ * to absolute positioning, i.e. pre-grab behavior at screen edges). */
+static struct MsgPort *s_inport = NULL;
+static struct IOStdReq *s_inreq = NULL;
+
+static void rknb_input_open(void) {
+    if (s_inreq)
+        return;
+    s_inport = CreateMsgPort();
+    if (!s_inport)
+        return;
+    s_inreq = (struct IOStdReq *)CreateIORequest(s_inport,
+        sizeof(struct IOStdReq));
+    if (!s_inreq) {
+        DeleteMsgPort(s_inport);
+        s_inport = NULL;
+        return;
+    }
+    if (OpenDevice("input.device", 0, (struct IORequest *)s_inreq, 0)
+        != 0) {
+        DeleteIORequest((struct IORequest *)s_inreq);
+        s_inreq = NULL;
+        DeleteMsgPort(s_inport);
+        s_inport = NULL;
+    }
+}
+
+static void rknb_input_close(void) {
+    if (s_inreq) {
+        CloseDevice((struct IORequest *)s_inreq);
+        DeleteIORequest((struct IORequest *)s_inreq);
+        s_inreq = NULL;
+    }
+    if (s_inport) {
+        DeleteMsgPort(s_inport);
+        s_inport = NULL;
+    }
+}
+
+/* Warp the pointer to absolute screen (sx, sy). Silent no-op when
+ * input.device is unavailable. */
+static void rknb_warp(struct Screen *scr, int sx, int sy) {
+    struct IEPointerPixel px;
+    struct InputEvent ev;
+    if (!s_inreq || !scr)
+        return;
+    px.iepp_Screen = scr;
+    px.iepp_Position.X = (WORD)sx;
+    px.iepp_Position.Y = (WORD)sy;
+    ev.ie_NextEvent = NULL;
+    ev.ie_Class = IECLASS_NEWPOINTERPOS;
+    ev.ie_SubClass = IESUBCLASS_PIXEL;
+    ev.ie_Code = IECODE_NOBUTTON;
+    ev.ie_Qualifier = 0;
+    ev.ie_X = 0;
+    ev.ie_Y = 0;
+    ev.ie_EventAddress = (APTR)&px;
+    s_inreq->io_Command = IND_ADDEVENT;
+    s_inreq->io_Data = (APTR)&ev;
+    s_inreq->io_Length = sizeof(ev);
+    DoIO((struct IORequest *)s_inreq);
+}
 
 BOOPSI_DISPATCHER_PROTO(IPTR, rknb_dispatcher, Class *, Object *, Msg);
 
@@ -77,8 +156,14 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
             s->ops_AttrList);
         d->cur = GetTagData(MUIA_Numeric_Value, 64, s->ops_AttrList);
         d->drag_start_val = 64;
-        d->drag_start_x = 0;
-        d->drag_start_y = 0;
+        d->acc_dx = 0;
+        d->acc_dy = 0;
+        d->last_x = 0;
+        d->last_y = 0;
+        d->warp_wx = 0;
+        d->warp_wy = 0;
+        d->warp_sx = 0;
+        d->warp_sy = 0;
         d->dragging = FALSE;
         d->shown = FALSE;
         d->gesture.begun = 0;
@@ -162,12 +247,29 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
             return (IPTR)0;
         if (im->Class == IDCMP_MOUSEBUTTONS) {
             if (im->Code == SELECTDOWN) {
+                struct Window *w;
                 if (!rknb_hit(obj, im->MouseX, im->MouseY))
                     return (IPTR)0;
                 d->dragging = TRUE;
-                d->drag_start_x = im->MouseX;
-                d->drag_start_y = im->MouseY;
+                d->acc_dx = 0;
+                d->acc_dy = 0;
+                d->last_x = im->MouseX;
+                d->last_y = im->MouseY;
+                d->warp_wx = im->MouseX;
+                d->warp_wy = im->MouseY;
                 d->drag_start_val = d->cur;
+                /* Warp target in screen coords (the warp API speaks
+                 * screen; our math stays window-local). */
+                w = _window(obj);
+                if (w) {
+                    d->warp_sx = (WORD)(w->LeftEdge + w->BorderLeft +
+                        im->MouseX);
+                    d->warp_sy = (WORD)(w->TopEdge + w->BorderTop +
+                        im->MouseY);
+                } else {
+                    d->warp_sx = -1000;
+                    d->warp_sy = -1000;
+                }
                 ri_rknb_begin(&d->gesture);
                 return (IPTR)MUI_EventHandlerRC_Eat;
             }
@@ -194,11 +296,40 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 return (IPTR)0;
             fine = (im->Qualifier &
                 (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) != 0;
-            v = ri_rknb_drag_value(d->drag_start_val,
-                (LONG)(im->MouseX - d->drag_start_x),
-                (LONG)(d->drag_start_y - im->MouseY), fine);
+            d->acc_dx += (LONG)(im->MouseX - d->last_x);
+            d->acc_dy += (LONG)(d->last_y - im->MouseY);
+            d->last_x = im->MouseX;
+            d->last_y = im->MouseY;
+            v = ri_rknb_drag_value(d->drag_start_val, d->acc_dx,
+                d->acc_dy, fine);
             ri_rknb_move(&d->gesture);
             SetAttrs(obj, MUIA_Numeric_Value, v, TAG_DONE);
+            /* Pointer grab: near a screen edge, warp back to the
+             * drag start and continue from there (accumulator keeps
+             * the travel). Skipped when input.device is down or the
+             * start itself hugs an edge (no warp loop). The warp's
+             * own mousemove lands exactly on last_* → zero delta. */
+            {
+                struct Window *w = _window(obj);
+                struct Screen *s = _screen(obj);
+                if (w && s) {
+                    int cx = (int)w->LeftEdge + (int)w->BorderLeft +
+                        (int)im->MouseX;
+                    int cy = (int)w->TopEdge + (int)w->BorderTop +
+                        (int)im->MouseY;
+                    if ((cx < RKNB_EDGE_MARGIN || cy < RKNB_EDGE_MARGIN ||
+                        cx > (int)s->Width - RKNB_EDGE_MARGIN - 1 ||
+                        cy > (int)s->Height - RKNB_EDGE_MARGIN - 1) &&
+                        d->warp_sx > RKNB_EDGE_MARGIN &&
+                        d->warp_sy > RKNB_EDGE_MARGIN &&
+                        d->warp_sx < (int)s->Width - RKNB_EDGE_MARGIN - 1 &&
+                        d->warp_sy < (int)s->Height - RKNB_EDGE_MARGIN - 1) {
+                        rknb_warp(s, d->warp_sx, d->warp_sy);
+                        d->last_x = d->warp_wx;
+                        d->last_y = d->warp_wy;
+                    }
+                }
+            }
             return (IPTR)MUI_EventHandlerRC_Eat;
         }
         return (IPTR)0;
@@ -217,6 +348,8 @@ struct MUI_CustomClass *ri_rknb_class(void) {
     if (!s_rknb_class) {
         s_rknb_class = MUI_CreateCustomClass(MUIMasterBase, MUIC_Numeric,
             NULL, sizeof(struct RKnBData), (APTR)rknb_dispatcher);
+        if (s_rknb_class)
+            rknb_input_open();
     }
     return s_rknb_class;
 }
@@ -226,6 +359,7 @@ void ri_rknb_dispose_class(void) {
         MUI_DeleteCustomClass(s_rknb_class);
         s_rknb_class = NULL;
     }
+    rknb_input_close();
 }
 
 /* Create the knob: 0..127 with a per-control default (right-click
