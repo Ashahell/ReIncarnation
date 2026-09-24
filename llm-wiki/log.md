@@ -254,6 +254,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m34 | Commit-on-release observable: per-knob undo counter
+- Disposition: New (TDD helper; MCC attr + app wiring; device proof by count)
+- Raw: llm-wiki/raw/articles/2026-09-24-commit-observable-undo-counter.md
+- Updated: gui/panels.[ch] (`ri_ctl_format_count`), tests/unit/t29_paneldefault.c (count pins), gui/widgets/rknb.h (new) + rknb.mcc.c (commits attr), app/panel909.c (UNDO row + notifies), scripts/ri_audit.sh (gate rknb.h), llm-wiki/index.md
+- Two file damages self-caught by readback (signature eat + dropped NULL guard), repaired pre-build.
+- AROS -Werror clean. Full `ri_audit.sh` 0/0. Binary on RAM:.
+- Pending: owner count check (click→1, drags accumulate) on a fresh instance.
+
 ## [2026-09-24] m33 | Knob name labels in the MUI app (hardware silkscreen parity)
 - Disposition: New (no new logic; device proof by eyeball)
 - Raw: llm-wiki/raw/articles/2026-09-24-knob-name-labels-mui.md

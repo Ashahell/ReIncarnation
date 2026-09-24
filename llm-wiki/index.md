@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-commit-observable-undo-counter.md](raw/articles/2026-09-24-commit-observable-undo-counter.md) — **2026-09-24 — Commit-on-release observable.** Counter helper pinned; commits attr + UNDO row; count check pending.
+
 - [raw/articles/2026-09-24-knob-name-labels-mui.md](raw/articles/2026-09-24-knob-name-labels-mui.md) — **2026-09-24 — Knob name labels in the MUI app.** Names/knobs/values rows; eyeball proof pending.
 
 - [raw/articles/2026-09-24-owner-numeric-approval.md](raw/articles/2026-09-24-owner-numeric-approval.md) — **2026-09-24 — Owner numeric approval.** 0–127, live tracking, LEVEL→100, fine steps; right-click + fine boxes checked. Open: commit, fader.
