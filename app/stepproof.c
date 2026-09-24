@@ -154,6 +154,10 @@ int main(void) {
         struct EClockVal ev0;
         treq = (struct timerequest *)CreateIORequest(tport,
             sizeof(struct timerequest));
+        if (treq) /* CreateIORequest does not zero flags: stale
+                   * IOF bits make timer behavior erratic (m41: a few
+                   * fires then silence). Deterministic every use. */
+            treq->tr_node.io_Flags = 0;
         if (treq && OpenDevice("timer.device", UNIT_MICROHZ,
             (struct IORequest *)treq, 0) == 0) {
             TimerBase = treq->tr_node.io_Device;
@@ -161,6 +165,7 @@ int main(void) {
             period_us = ri_step16_ms(CHASE_BPM) * 1000.0;
             t0_us = eclock_us(&ev0, freq);
             treq->tr_node.io_Command = TR_ADDREQUEST;
+            treq->tr_node.io_Flags = 0;
             treq->tr_time.tv_secs = 0;
             treq->tr_time.tv_micro = (long)period_us;
             SendIO((struct IORequest *)treq);
@@ -173,23 +178,36 @@ int main(void) {
         }
     }
     for (;;) {
-        sigs |= tsig;
-        ret = (LONG)DoMethod(app, MUIM_Application_NewInput, &sigs);
-        if (ret == (LONG)MUIV_Application_ReturnID_Quit)
-            break;
-        if (ret >= RET_STEP_BASE && ret < RET_STEP_BASE + NSTEPS) {
-            unsigned long pattern = 0;
-            for (i = 0; i < NSTEPS; i++) {
-                IPTR v = 0;
-                GetAttr(MUIA_Numeric_Value, steps[i], &v);
-                if (v)
-                    pattern |= (1u << i);
+        if (!tsig) {
+            /* No beat clock (timer setup failed): classic blocking
+             * MUI loop. Proven shape for clicks/close. */
+            sigs = 0;
+            ret = (LONG)DoMethod(app, MUIM_Application_NewInput,
+                &sigs);
+            if (ret == (LONG)MUIV_Application_ReturnID_Quit)
+                break;
+            if (ret >= RET_STEP_BASE && ret < RET_STEP_BASE + NSTEPS) {
+                unsigned long pattern = 0;
+                for (i = 0; i < NSTEPS; i++) {
+                    IPTR v = 0;
+                    GetAttr(MUIA_Numeric_Value, steps[i], &v);
+                    if (v)
+                        pattern |= (1u << i);
+                }
+                ri_ctl_format_count(s_patbuf, pattern);
+                SetAttrs(pat, MUIA_Text_Contents, (IPTR)s_patbuf,
+                    TAG_DONE);
             }
-            ri_ctl_format_count(s_patbuf, pattern);
-            SetAttrs(pat, MUIA_Text_Contents, (IPTR)s_patbuf,
-                TAG_DONE);
+            continue;
         }
-        if ((sigs & tsig) && treq) {
+        /* Beat clock runs: manual loop. NewInput does NOT wake on
+         * foreign signal masks (sentinel proved: STEP stuck 77),
+         * so Wait() here on the timer bit (+Ctrl-C) and drain MUI
+         * input non-blocking. Click latency ≤ one beat (86 ms). */
+        sigs = Wait(tsig | SIGBREAKF_CTRL_C);
+        if (sigs & SIGBREAKF_CTRL_C)
+            break;
+        if (sigs & tsig) {
             struct EClockVal evn;
             double now, lag;
             int nxt;
@@ -215,11 +233,32 @@ int main(void) {
             SetAttrs(lagtxt, MUIA_Text_Contents, (IPTR)s_lagbuf,
                 TAG_DONE);
             treq->tr_node.io_Command = TR_ADDREQUEST;
+            treq->tr_node.io_Flags = 0;
             treq->tr_time.tv_secs = 0;
             treq->tr_time.tv_micro = (long)period_us;
             SendIO((struct IORequest *)treq);
         }
+        for (;;) {
+            ret = (LONG)DoMethod(app, MUIM_Application_InputBuffered);
+            if (ret == 0)
+                break;
+            if (ret == (LONG)MUIV_Application_ReturnID_Quit)
+                goto done;
+            if (ret >= RET_STEP_BASE && ret < RET_STEP_BASE + NSTEPS) {
+                unsigned long pattern = 0;
+                for (i = 0; i < NSTEPS; i++) {
+                    IPTR v = 0;
+                    GetAttr(MUIA_Numeric_Value, steps[i], &v);
+                    if (v)
+                        pattern |= (1u << i);
+                }
+                ri_ctl_format_count(s_patbuf, pattern);
+                SetAttrs(pat, MUIA_Text_Contents, (IPTR)s_patbuf,
+                    TAG_DONE);
+            }
+        }
     }
+done:;
     if (treq) {
         AbortIO((struct IORequest *)treq);
         while (GetMsg(tport))

@@ -130,6 +130,7 @@ static void rknb_warp(struct Screen *scr, int sx, int sy) {
     ev.ie_Y = 0;
     ev.ie_EventAddress = (APTR)&px;
     s_inreq->io_Command = IND_ADDEVENT;
+    s_inreq->io_Flags = 0; /* heap/stack reuse: stale flags erratic */
     s_inreq->io_Data = (APTR)&ev;
     s_inreq->io_Length = sizeof(ev);
     DoIO((struct IORequest *)s_inreq);

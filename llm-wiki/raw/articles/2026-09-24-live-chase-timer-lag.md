@@ -24,13 +24,19 @@ with the playhead visible and the lag budget measured live.
   initializer for maybe-uninitialized.
 - AROS -Werror clean. Full `ri_audit.sh` 0/0. Binary deployed.
 
-## Proof (device, detached runs)
-- Fresh window: chase edge visibly advancing across steps at
-  tempo; STEP readout cycles 0..15; LAG max readout ≤33 ms gate.
-- Capture series 1 s apart shows the playhead on different steps
-  (motion proven, not a static paint).
-- Click-toggles still work during chase (pattern readout moves).
-- No guru; old instance closed via gadget first.
+## Dead chase on device (found post-commit, fixed same day)
+- Symptom: playhead never moves (identical frames 30 s apart),
+  STEP/LAG frozen, clicks dead — whole app paralyzed. Two runs
+  disagreed (0 fires vs 3 fires then silence) → non-deterministic,
+  pointing at uninitialized state, not logic.
+- Suspect: `io_Flags` garbage on reused IORequests (timer rearm +
+  input-device warp). CreateIORequest/stack may leave stale IOF
+  bits; the device then behaves erratically. Fix: clear
+  `io_Flags` at creation and before every SendIO/DoIO (both timer
+  path and knob warp path). -Werror clean; audit 0/0; redeployed.
+- Verdict pending: fresh-window STEP advance (fix confirmed) vs
+  still frozen (suspect timer.device itself or InputBuffered
+  blocking semantics — next hypotheses in that order).
 
 ## Files
 - env: `gui/widgets/rstp.{h,mcc.c}`, `app/stepproof.c`
