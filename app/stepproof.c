@@ -42,9 +42,15 @@ int main(void) {
     unsigned int i;
 
     for (i = 0; i < NSTEPS; i++) {
+        /* Generous 32 px targets: the intrinsic Numericbutton (~14px)
+         * misses too often under a real mouse (m36: clicks mostly
+         * landed between buttons). Shell stays the construction
+         * point; size pinned here like the knob FixWidth pattern. */
         steps[i] = (Object *)ri_rstp_create();
         if (!steps[i])
             return 6;
+        SetAttrs(steps[i], MUIA_FixWidth, 32, MUIA_FixHeight, 32,
+            TAG_DONE);
     }
     ri_ctl_format_count(s_patbuf, 0);
     pat = (Object *)MUI_NewObject(MUIC_Text,

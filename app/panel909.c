@@ -165,6 +165,7 @@ int main(void) {
     }
     while ((ret = (LONG)DoMethod(app, MUIM_Application_NewInput,
         &sigs)) != (LONG)MUIV_Application_ReturnID_Quit) {
+        int repaint = 0;
         if (ret >= RET_KNOB_BASE && ret < RET_KNOB_BASE + NKNOB) {
             unsigned int k = (unsigned int)(ret - RET_KNOB_BASE);
             IPTR v = 0;
@@ -172,11 +173,22 @@ int main(void) {
             ri_ctl_format_value(s_valbuf[k], (int)v);
             SetAttrs(texts[k], MUIA_Text_Contents,
                 (IPTR)s_valbuf[k], TAG_DONE);
+            repaint = 1;
         } else if (ret >= RET_UNDO_BASE && ret < RET_UNDO_BASE + NKNOB) {
             s_undo++;
             ri_ctl_format_count(s_undobuf, s_undo);
             SetAttrs(undo, MUIA_Text_Contents, (IPTR)s_undobuf,
                 TAG_DONE);
+            repaint = 1;
+        }
+        /* Text refreshes can relayout the window under static knobs
+         * (a value/undo cell changing width shifts columns), leaving
+         * stale-pixel seams at frame abutments (grey bar, m36). Knob
+         * repaints are idempotent full frames, so refresh them all
+         * whenever any text changed. */
+        if (repaint) {
+            for (i = 0; i < NKNOB; i++)
+                DoMethod(knobs[i], MUIM_Draw, MADF_DRAWOBJECT);
         }
         if (sigs)
             Wait(sigs);
