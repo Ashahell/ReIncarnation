@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-knob-name-labels-mui.md](raw/articles/2026-09-24-knob-name-labels-mui.md) — **2026-09-24 — Knob name labels in the MUI app.** Names/knobs/values rows; eyeball proof pending.
+
 - [raw/articles/2026-09-24-owner-numeric-approval.md](raw/articles/2026-09-24-owner-numeric-approval.md) — **2026-09-24 — Owner numeric approval.** 0–127, live tracking, LEVEL→100, fine steps; right-click + fine boxes checked. Open: commit, fader.
 
 - [raw/articles/2026-09-24-notify-readouts-first-wiring.md](raw/articles/2026-09-24-notify-readouts-first-wiring.md) — **2026-09-24 — Notify wiring + value readouts.** `ri_ctl_format_value` pinned; text row + notify loop; drag/right-click verifiable by number; stale-link rule recorded.
