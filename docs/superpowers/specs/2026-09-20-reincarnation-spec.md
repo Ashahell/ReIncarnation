@@ -30,6 +30,7 @@ Open gates (machine-readable — tools extract rows starting with `| OPEN-`):
 | OPEN-07 | API/ABI freeze (Appendix D checklist) | Freeze review, post-Classic |
 | OPEN-08 | D-001 follow-ups | None — closed ("808-RI"); row kept so tools see zero open naming gates |
 | OPEN-09 | Achievable device buffer / latency on AROS AHI (low-level vs `ahi.device` path) | MEASURED 2026-09-22 — low-level 64 frames; device dev_min=0 (abort-bounded metric); PlayerFreq accepted-but-not-honored at fixed ~11 Hz; evidence docs/evidence/formats/m1-1-report.md App. B + ABIv1 session-9 full green |
+| OPEN-10 | ReBirth `.rbs` import (clean-room, user-owned files) | Legal review first, then importer (adopted 2026-09-24, review D-i) |
 
 Progress is declared ONLY via the parity matrix (§14) and the evidence ledger (`docs/evidence/`). Binary "M2.x done" language is banned — milestones name gate sets, never declare parity.
 
@@ -98,6 +99,7 @@ A feature is not parity-complete merely because it is implemented. Parity matrix
 3. PCF index: pattern select 0..53 is stored state; step index derives from `beat_pos` on the 16th grid (v1 conflated the two).
 4. 909 flam: `[HYPOTHESIS]` nominal 35 ms, per-voice table 30–40 ms, second hit ×0.75.
 5. 808 accent: the v1 gain formula `accent ? 1.0 : 0.66` (= ×1.5 boost) is the **placeholder** for the pre-envelope excitation model of §10 (register entry 9) and the three-state off→weak→strong question (P-12). It lives in one place (`dsp/params.c`), is a ledger row, and is not a contract.
+6. 808 voice set (adopted 2026-09-24, review D-b): the playable model is **11 slots / 16 sounds with 5 switches** (LT/LC, MT/MC, HT/HC, RS/CL, CP/MA — MA included), superseding item 1's 15-voice lock above (kept as the historical record; code migrates in §12 item 5). Per-sound Level plus per-sound parameters replace kit-wide knobs.
 
 ## 3. Workstreams (reduced W1 first)
 
@@ -283,6 +285,13 @@ The 54×16 pattern table is **STATUS UNVERIFIED placeholder dataset** and is NOT
 | Sequencer/song/shuffle | — | — | — | LOW (event + timing rules frozen; PPQ P-20 pending) |
 | Mixer/FX ranges | — | — | — | LOW (P-16–P-17 pending) |
 | RBNM/RBNG round-trip | — | — | — | LOW (rules defined, tests unwritten) |
+| PCF envelope (attack/decay, LP/BP) | — | — | — | LOW (adopted D-d; patterns OPEN-04) |
+| Delay steps/triplet + fb 1.0 + pan | — | — | — | LOW (adopted; §3.2 target) |
+| Compressor ratio + GR meter | — | — | — | LOW (adopted; §3.2 target) |
+| 808 slots/switches + MA | — | — | — | LOW (adopted D-b; §2.3 item 6) |
+| 909 instruments (11) + flam knob | — | — | — | LOW (adopted; §4.3 target) |
+| Song mode + transport machine | — | — | — | LOW (adopted; §3.1 target) |
+| Pattern edit ops | — | — | — | LOW (adopted; pure-function target) |
 
 Cells move only on evidence (E3+ measurement, E4+ regression). This matrix and the evidence ledger are the ONLY places that declare progress. "Sounds close / looks right / worked once" are never completion criteria.
 
@@ -328,6 +337,23 @@ Every test must be capable of failing on a meaningful implementation error (revi
 ## 19. What left v1 normative core (deleted/reduced per review §31)
 
 Blanket "ReBirth-compatible" as fact; legal conclusions; cross-platform "bit-identical"; ops/sample counts; unverified PCF table as fact; finished-ABI implication; W3 detail in Classic contract; unmeasured "feel" requirements; "14 voices" wording; unevidenced constants as truth.
+
+## 20. Adopted review decisions (2026-09-24 improvement review)
+
+Source: `docs/2026-09-24-improvement-opportunities.md` §11. Each row is normative from this spec version on; execution order is §12 of the review (tracked in `docs/2026-09-24-improvement-todo.md`).
+
+| ID | Decision | Status |
+|----|----------|--------|
+| D-a | ReBirth 2.0.1 Owner's Manual added as E1 source in the Prior-Art Register | Adopted; register entry to be added with the PCF-pattern work (§12 item 8) |
+| D-b | 808 model = 11 slots / 16 sounds + 5 switches, MA included | Adopted; recorded in §2.3 item 6, supersedes the item-1 lock |
+| D-c | 808 = real-time synthesis now + mod sample override; offline-render fallback stays the §17 degraded profile | Adopted; RBNM must cover 808 sounds (§12 items 5, 8) |
+| D-d | PCF = envelope model, LP/BP only, patterns from manual Appendix D (E1); HP moves to Power Mode | Adopted (§12 item 8) |
+| D-e | Tempo range 20–500 BPM everywhere (delay/PCF buffers sized for 20 BPM) | Adopted (§12 items 7, 8) |
+| D-f | Stereo engine, stereo export, stereo AHI output | Adopted (§12 item 3) |
+| D-g | Solo is NOT a ReBirth feature: kept as a marked UX extension, never persisted in RBNG | Adopted (audit Phase 11 solo-vs-four gate stays green) |
+| D-h | Gate length = E0 fraction now, measured from ReBirth later | Adopted (§12 item 4) |
+| D-i | `.rbs` import = new OPEN-10 row, legal review first | Adopted above |
+| D-j | Kernels are total over all finite floats; documented domains are precision statements, not safety boundaries | Adopted; enforced by T2 property tests from §12 item 1 on |
 
 ## Appendix A — Pending measurement ledger (the ONLY home for unverified numbers)
 

@@ -286,6 +286,20 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - Full `ri_audit.sh` 0/0. Binary on RAM:. Pending: owner first-click check on a fresh instance.
 
 ## [2026-09-24] m43 | Chase beat runs: manual-Wait + MICROHZ measured, VBLANK rejected
+
+## [2026-09-24] m44 | §12.1: kernel totality + 808 voice rest + linear sum
+- Disposition: New (first improvement-review slice; TDD, 4 new tests RED-first)
+- Raw: llm-wiki/raw/articles/2026-09-24-imp-12-1-kernel-totality-808-rest.md
+- Updated: engine/dsp/kernels.{c,h} (total: exp 0/+Inf, sin int64, pow2 ±127/128),
+  engine/dsp/rb808.{c,h} (rest at −100 dBFS, linear section sum),
+  tests/property/t3_kernels_total.c, tests/unit/t33_808_silence.c,
+  t34_808_storm_linear.c, t35_808_deactivate.c (RED 731/253/1246/395 → PASS),
+  6× 808 goldens re-baselined with per-diff root causes + ledger notes,
+  spec §20/OPEN-10/parity rows (D-a–D-j adopted), docs/2026-09-24-improvement-todo.md
+- Suite caught a real 2.4× storm-CPU regression from the widened scale loop; fixed
+  (32-iteration common path kept). 303 first-light re-renders byte-identical.
+- Full `ri_audit.sh` 0/0. Held with justification: multiplicative envelopes,
+  integer voice time (both subsumed by the rest bound); 909 clip → §12.6.
 - Disposition: New (m41 pending closed with numbers; vehicle loop-shape change)
 - Raw: llm-wiki/raw/articles/2026-09-24-chase-beat-manual-wait-microhz.md
 - Updated: app/stepproof.c (manual Wait + Break exit, early MICROHZ setup, grid off-by-one fix, diag stripped), llm-wiki/index.md
