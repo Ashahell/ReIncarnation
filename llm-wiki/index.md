@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-owner-approval-drag-arc.md](raw/articles/2026-09-24-owner-approval-drag-arc.md) — **2026-09-24 — Owner device approval: drag arc closed.** Horizontal/vertical/sensitivity/reversal/click approved; fine/right-click/commit/fader + divider + grey stay open (named, unclaimed).
+
 - [raw/articles/2026-09-24-accumulator-clamp-reversal.md](raw/articles/2026-09-24-accumulator-clamp-reversal.md) — **2026-09-24 — Accumulator clamp: reversal bites at once.** Overshoot-unwind diagnosed; `ri_knob_clamp_acc` pinned+proven host-side; double acc; deployed, owner re-test pending.
 
 - [raw/articles/2026-09-24-warp-target-basis-fix.md](raw/articles/2026-09-24-warp-target-basis-fix.md) — **2026-09-24 — Warp-target basis fix.** Border double-count biased every warp (runaway + dead reversal); terms dropped. Fixed binary on RAM:, owner re-test pending.
