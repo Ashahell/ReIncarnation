@@ -46,6 +46,11 @@ int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id);
  * fail-closed to "---". NULL buf ignored. */
 void ri_ctl_format_value(char *buf, int v);
 
+/* Undo-commit counter formatting (arbitrary counts): decimal into
+ * buf (caller provides 6 bytes, up to 65535); saturates above.
+ * NULL buf ignored. */
+void ri_ctl_format_count(char *buf, unsigned long n);
+
 /* First-panel knob rects (TC-2.9.1 code side): panel-909-geometry
  * doc centers, scaled to a zoom level (0/1/2). Index 0..3 =
  * tune/level/decay/flamres; anything else (or unknown zoom)

@@ -47,6 +47,22 @@ int main(void) {
     ri_ctl_format_value(buf, 200);
     CHECK(buf[0] == '-' && buf[3] == '\0', "fmt over [%s]", buf);
 
+    /* --- undo-commit counter formatting (arbitrary counts, not just
+     * 0..127 ctl values): decimal into buf (needs 6 bytes), large
+     * values saturate at 65535, no negatives in-range. --- */
+    {
+        char cbuf[8];
+        ri_ctl_format_count(cbuf, 0);
+        CHECK(cbuf[0] == '0' && cbuf[1] == '\0', "cnt 0 [%s]", cbuf);
+        ri_ctl_format_count(cbuf, 7);
+        CHECK(cbuf[0] == '7' && cbuf[1] == '\0', "cnt 7 [%s]", cbuf);
+        ri_ctl_format_count(cbuf, 12345);
+        CHECK(cbuf[0] == '1' && cbuf[4] == '5' && cbuf[5] == '\0',
+            "cnt 12345 [%s]", cbuf);
+        ri_ctl_format_count(cbuf, 999999);
+        CHECK(cbuf[4] == '5' && cbuf[5] == '\0', "cnt sat [%s]", cbuf);
+    }
+
     /* --- first-panel inventory: 909 exposes exactly 4 controls --- */
     CHECK(p909 != 0, "909 panel missing");
     if (p909) {

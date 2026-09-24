@@ -36,6 +36,7 @@
 #include <clib/muimaster_protos.h>
 #include "gui/knob_logic.h"
 #include "gui/knob_blit.h"
+#include "gui/widgets/rknb.h"
 
 #define RKNB_PX 80 /* frame edge, matches RI_KNOB_PX */
 
@@ -47,6 +48,9 @@ struct RKnBData {
                * reenter). Every programmatic change flows through
                * OM_SET, so this stays exact. */
     LONG drag_start_val;
+    LONG commits; /* completed gestures (press→release with begun
+                   * gesture = one undo unit); readable + notifiable
+                   * via MUIA_RKnB_Commits */
     double acc_dx; /* accumulated drag since SELECTDOWN (double: LONG
                     * truncation would strand the clamped extremes) */
     double acc_dy;
@@ -129,13 +133,6 @@ static void rknb_warp(struct Screen *scr, int sx, int sy) {
 
 BOOPSI_DISPATCHER_PROTO(IPTR, rknb_dispatcher, Class *, Object *, Msg);
 
-/* Forward: defined below the dispatcher, used inside it. */
-LONG ri_rknb_drag_value(LONG start, double dx_px, double dy_px,
-    BOOL fine);
-void ri_rknb_begin(struct RiGesture *g);
-int ri_rknb_move(struct RiGesture *g);
-int ri_rknb_release(struct RiGesture *g);
-
 static int rknb_hit(Object *obj, WORD mx, WORD my) {
     return mx >= _left(obj) && mx < _left(obj) + _width(obj) &&
         my >= _top(obj) && my < _top(obj) + _height(obj);
@@ -144,6 +141,17 @@ static int rknb_hit(Object *obj, WORD mx, WORD my) {
 BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
     struct RKnBData *d;
     switch (msg->MethodID) {
+    case OM_GET: {
+        /* Our own attribute served here; everything else runs the
+         * superclass (Numeric value etc.). */
+        struct opGet *g = (struct opGet *)msg;
+        if (g->opg_AttrID == MUIA_RKnB_Commits) {
+            d = (struct RKnBData *)INST_DATA(cl, obj);
+            *g->opg_Storage = (ULONG)d->commits;
+            return (IPTR)1;
+        }
+        return DoSuperMethodA(cl, obj, msg);
+    }
     case OM_NEW: {
         struct opSet *s = (struct opSet *)msg;
         Object *o = (Object *)DoSuperMethodA(cl, obj, msg);
@@ -154,6 +162,7 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
             s->ops_AttrList);
         d->cur = GetTagData(MUIA_Numeric_Value, 64, s->ops_AttrList);
         d->drag_start_val = 64;
+        d->commits = 0;
         d->acc_dx = 0.0;
         d->acc_dy = 0.0;
         d->last_x = 0;
@@ -278,7 +287,14 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 if (!d->dragging)
                     return (IPTR)0;
                 d->dragging = FALSE;
-                ri_rknb_release(&d->gesture);
+                /* Exactly one undo unit per completed gesture: bump
+                 * the counter THROUGH OM_SET so MUI fires notifies
+                 * registered on MUIA_RKnB_Commits. */
+                if (ri_rknb_release(&d->gesture)) {
+                    d->commits++;
+                    SetAttrs(obj, MUIA_RKnB_Commits, d->commits,
+                        TAG_DONE);
+                }
                 return (IPTR)MUI_EventHandlerRC_Eat;
             }
             if (im->Code == MENUDOWN) {

@@ -115,6 +115,30 @@ int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id) {
     return (int)c->def_value;
 }
 
+/* Undo-commit counter formatting (arbitrary counts): decimal into
+ * buf (needs 6 bytes: up to 65535); saturates above, "---" has no
+ * meaning here so negatives clamp to 0. No libc. */
+void ri_ctl_format_count(char *buf, unsigned long n) {
+    char tmp[6];
+    int len = 0, i;
+    if (!buf)
+        return;
+    if (n > 65535u)
+        n = 65535u;
+    if (n == 0) {
+        buf[0] = '0';
+        buf[1] = '\0';
+        return;
+    }
+    while (n > 0 && len < 5) {
+        tmp[len++] = (char)('0' + (n % 10u));
+        n /= 10u;
+    }
+    for (i = 0; i < len; i++)
+        buf[i] = tmp[len - 1 - i];
+    buf[len] = '\0';
+}
+
 /* Value readout formatting (proof-vehicle text row): 0..127 as
  * decimal into buf (needs 4 bytes); anything else fail-closed to
  * "---". No libc, no allocation: hand-rolled digits. */

@@ -30,12 +30,11 @@
 #include <clib/intuition_protos.h>
 #include <proto/exec.h>
 #include "gui/panels.h"
-
-extern APTR ri_rknb_create(LONG dflt);
-extern void ri_rknb_dispose_class(void);
+#include "gui/widgets/rknb.h"
 
 #define NKNOB 4
 #define RET_KNOB_BASE 100
+#define RET_UNDO_BASE 200
 
 /* Knob names (match the Intuition proof vehicle and the panel-table
  * controls tune/level/decay/flamres; uppercase like the hardware
@@ -47,10 +46,13 @@ static const char *KNOB_NAMES[NKNOB] = {
 /* Value readout buffers (file-static: MUIA_Text_Contents copies on
  * set, but the initial tag strings must outlive creation). */
 static char s_valbuf[NKNOB][4];
+/* Undo-commit readout ("UNDO n", total across knobs). */
+static char s_undobuf[8];
+static unsigned long s_undo = 0;
 
 int main(void) {
     Object *app = NULL, *win = NULL, *cells[NKNOB], *knobs[NKNOB];
-    Object *texts[NKNOB], *names[NKNOB];
+    Object *texts[NKNOB], *names[NKNOB], *undo;
     const struct RIPanelDesc *panel = ri_panel_get(3);
     ULONG sigs = 0;
     LONG ret;
@@ -90,6 +92,13 @@ int main(void) {
         if (!names[i])
             return 7;
     }
+    /* Undo-commit readout (single text, full row). */
+    ri_ctl_format_count(s_undobuf, s_undo);
+    undo = (Object *)MUI_NewObject(MUIC_Text,
+        MUIA_Text_Contents, (IPTR)s_undobuf,
+        TAG_DONE);
+    if (!undo)
+        return 7;
     win = (Object *)MUI_NewObject(MUIC_Window,
         MUIA_Window_Title, "RI-909",
         MUIA_Window_LeftEdge, 0,
@@ -125,6 +134,7 @@ int main(void) {
                 Child, texts[2],
                 Child, texts[3],
                 TAG_DONE),
+            Child, undo,
             TAG_DONE),
         TAG_DONE);
     if (!win)
@@ -144,11 +154,14 @@ int main(void) {
         2, MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
     /* First notify wiring (values finally go somewhere): every knob
      * reports each value change back here; the loop refreshes that
-     * knob's readout cell. */
+     * knob's readout cell. Commit notifies feed the undo counter. */
     for (i = 0; i < NKNOB; i++) {
         DoMethod(knobs[i], MUIM_Notify, MUIA_Numeric_Value,
             MUIV_EveryTime, app, 2, MUIM_Application_ReturnID,
             RET_KNOB_BASE + i);
+        DoMethod(knobs[i], MUIM_Notify, MUIA_RKnB_Commits,
+            MUIV_EveryTime, app, 2, MUIM_Application_ReturnID,
+            RET_UNDO_BASE + i);
     }
     while ((ret = (LONG)DoMethod(app, MUIM_Application_NewInput,
         &sigs)) != (LONG)MUIV_Application_ReturnID_Quit) {
@@ -159,6 +172,11 @@ int main(void) {
             ri_ctl_format_value(s_valbuf[k], (int)v);
             SetAttrs(texts[k], MUIA_Text_Contents,
                 (IPTR)s_valbuf[k], TAG_DONE);
+        } else if (ret >= RET_UNDO_BASE && ret < RET_UNDO_BASE + NKNOB) {
+            s_undo++;
+            ri_ctl_format_count(s_undobuf, s_undo);
+            SetAttrs(undo, MUIA_Text_Contents, (IPTR)s_undobuf,
+                TAG_DONE);
         }
         if (sigs)
             Wait(sigs);
