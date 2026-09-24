@@ -31,7 +31,13 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   codegen when a third consumer appears (YAGNI).
 
 ## §12.3 Integrated stereo engine skeleton (§5.1, §5.3)
-- [ ] One `ri_engine_render` for CLI/export/AHI; fixtures on engine API; first-light goldens byte-identical or deliberately re-baselined
+- [x] One `ri_engine_render` (stereo) + `ri_engine_render_mono` shared by CLI/export/AHI sinks
+- [x] Event routing unified (3 per-path copies retired; device/block routing, unknown ignored)
+- [x] render_song + render_rbngsong + au_render_frames rewired; first-light goldens byte-identical
+- [x] Audit I1 tripwire retired → wired-core gate (engine call required in audio.c)
+- [x] t6 file-vs-live IDENTICAL through the shared core (stronger than before)
+- NOTE: audit Phase 0a greps `realloc` — the word "preallocated" in a comment
+  failed the gate; reworded ("storage lives here"). Comment diction is load-bearing.
 
 ## §12.4 303 fidelity pass (§4.1)
 - [ ] MEG/VEG split + accent-sweep state + accent→min-MEG-decay

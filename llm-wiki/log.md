@@ -1,5 +1,16 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] m47 | §12.3: one renderer wired (engine core, 303s skeleton)
+- Disposition: New (TDD, t37 link-RED → PASS with revert-check)
+- Raw: llm-wiki/raw/articles/2026-09-24-imp-12-3-one-renderer.md
+- Updated: engine/engine.{h,c} (new; walker + 303A/303B + f64 master + mono fold),
+  tools/render.c (both song loops rewired, apply_event retired),
+  audio_io/audio.c (thin mono sink, engine-loaded rewind, I1 marker retired),
+  scripts/ri_audit.sh (tripwire → wired-core gate), scripts/ri_build_host.sh
+  (MOD_engine), tests/unit/t37_engine_single.c, docs/2026-09-24-improvement-todo.md
+- First-light golden + events byte-identical; t6 file-vs-live IDENTICAL.
+- Full `ri_audit.sh` 0/0 (one incident: 0a rejects "preallocated" in comments).
+
 ## [2026-09-24] m46 | §12.2: 303 control-ID contract (wave/volume, 303B, Tune)
 - Disposition: New (TDD, t36 RED 19 → PASS)
 - Raw: llm-wiki/raw/articles/2026-09-24-imp-12-2-303-control-contract.md
