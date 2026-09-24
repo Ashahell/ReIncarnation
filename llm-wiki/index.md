@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-warp-target-basis-fix.md](raw/articles/2026-09-24-warp-target-basis-fix.md) — **2026-09-24 — Warp-target basis fix.** Border double-count biased every warp (runaway + dead reversal); terms dropped. Fixed binary on RAM:, owner re-test pending.
+
 - [raw/articles/2026-09-24-grab-revision-warp-every-move.md](raw/articles/2026-09-24-grab-revision-warp-every-move.md) — **2026-09-24 — Grab revision: warp-every-move.** diag numbers convicted the edge trigger (giant teleports on long drags); pointer now hovers, motion accrues 1:1. v2 on RAM:, owner feel test pending.
 
 - [raw/articles/2026-09-24-pointer-grab-warp.md](raw/articles/2026-09-24-pointer-grab-warp.md) — **2026-09-24 — Pointer grab: edge-clamp diagnosed, warp-back implemented.** Absolute math + 66px-to-edge vs 75px-needed; accumulator + warp-back (agent's own call); fail-soft; deployed, owner re-test pending.
