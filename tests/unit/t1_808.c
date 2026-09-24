@@ -1,9 +1,9 @@
-/* t1_808 — Task 8 (gate G8): fifteen-voice 808 tests.
+/* t1_808 — Task 8 (gate G8): sixteen-sound 808 tests (§12.5a/b updates).
  * Gates (brief order): BD trajectory ±5% at 5 envelope points; hat FFT
- * peaks within ±0.5% of the listed ratios; clap envelope shows 4 bursts;
- * accent x1.5 ±0.5 dB on every accent-capable voice (all 16, per ledger);
- * 35 Hz floor (sweep never below); storm render-time <= 0.3x buffer via
- * clock(); determinism (D1) double-render identical.
+ * peaks at the E1 fixed partials ±0.5% (§2; was WBS ratios); clap envelope
+ * shows 4 bursts; accent x1.5 ±0.5 dB on every accent-capable voice
+ * (all 16, per ledger); 35 Hz floor (sweep never below); storm render-time
+ * <= 0.3x buffer via clock(); determinism (D1) double-render identical.
  * Analysis may use libm (tests/ only; engine/ stays kernels-only).
  */
 #include <stdio.h>
@@ -102,17 +102,17 @@ int main(void) {
             RI_ASSERT(r1 < r0, "bd not decaying %.6g vs %.6g", (double)r1, (double)r0);
         }
     }
-    /* --- 2. hat FFT peaks within ±0.5% of listed ratios --- */
+    /* --- 2. hat FFT peaks at the E1 fixed set (§12.5b; was WBS ratios) --- */
     {
         uint32_t n = 24000;
         render_voice(RB808_CH, 0, 0.5f, buf);
-        for (i = 0; i < 6; i++) {
-            double fc = (double)RI_808_METAL_BASE * (double)RI_808_METAL_RATIO[i];
+        for (i = 1; i < 6; i++) { /* index 0 below method floor on CH (§12.5b) */
+            double fc = (double)RI_808_METAL_HZ[i];
             double m0 = goertzel(buf, n, fc);
             double mlo = goertzel(buf, n, fc * 0.995);
             double mhi = goertzel(buf, n, fc * 1.005);
             RI_ASSERT(m0 > mlo && m0 > mhi,
-                "ch ratio %u (%.3f Hz): peak %.6g not above -0.5%% %.6g / +0.5%% %.6g",
+                "ch partial %u (%.3f Hz): peak %.6g not above -0.5%% %.6g / +0.5%% %.6g",
                 i, fc, m0, mlo, mhi);
         }
     }

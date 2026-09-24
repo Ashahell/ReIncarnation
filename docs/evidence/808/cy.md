@@ -18,3 +18,7 @@ test for the cluster chain: deferred to M2.3 (explicit).
 **ACCENT (excitation pre-envelope):** EXCITE scales the cluster sum at
 the source (×1.0 / ×1.5). Measured +3.50 dB RMS (t1_808, want +3.52±0.5).
 P-12 three-state OPEN (binary hold).
+
+**Re-baseline 2026-09-25 (§12.5b metal):** golden re-rendered deliberately.
+CY joins the shared fixed set (its old base-250 path retired); HP stays
+5 kHz (Tone knob scales it around 5 kHz, §12.5b).

@@ -90,10 +90,10 @@
 #define RI_CTL_808_TONE   0x0404u
 #define RI_CTL_808_ACCENT 0x0405u
 
-/* Six-oscillator metal cluster ratios (P-10 E0 nominals; ledger row CH).
- * Locked to the classic TR-808 metal set by TC-2.3.1 (WBS ratios
- * {0.83,1.48,2.26,2.92,3.94,5.31}; see RI_808_METAL_BASE). */
-extern const float RI_808_METAL_RATIO[6];
+/* Six fixed metal oscillators, Hz (E1 Werner/Abel/Smith ICMC 2014, §12.5b;
+ * shared by CY, OH and CH through their per-voice HP networks). Supersedes
+ * RI_808_METAL_BASE/RATIO (WBS-ratio cluster) below, kept for the record. */
+extern const float RI_808_METAL_HZ[6];
 
 /* Slot assignment: index = slot 0..10, value = default sound (§2.3 item 6:
  * BD SD LT MT HT RS CP CB CY OH CH; switched slots default to the upper
@@ -117,6 +117,8 @@ struct RB808Voice {
     float tau_amp; /* s amplitude decay (per-voice default or max) */
     float level; /* per-sound linear trim, knob 0..127/127 (§12.5a) */
     float accent_amt; /* excitation amount 0..1, knob/127 (default 0.5) */
+    float snappy; /* SD noise mix ratio, knob/64 (default 1.0, §12.5b) */
+    float tone; /* BD click / CY HP knob value 0..127 (default 64, §12.5b) */
     float phase; /* main osc 0..1 */
     float phase2; /* second partial 0..1 */
     float mph[6]; /* metal cluster phases 0..1 */

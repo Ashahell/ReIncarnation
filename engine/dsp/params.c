@@ -146,9 +146,12 @@ void rb808_set_param(struct RB808Voice *v, uint32_t ctl_id, uint8_t value) {
         v->level = (float)value / 127.0f;
         break;
     case RI_CTL_808_SNAPPY:
+        /* SD noise mix ratio (§12.5b); knob 64 = legacy 0.11 exactly. */
+        v->snappy = (float)value / 64.0f;
+        break;
     case RI_CTL_808_TONE:
-        /* Placeholder: no engine field for either (P-10 E0 keeps fixed
-         * 2 ms clap burst width / fixed cluster HP). */
+        /* BD click gain / CY HP knob value (§12.5b); 64 = legacy exactly. */
+        v->tone = (float)value;
         break;
     case RI_CTL_808_ACCENT:
         /* Excitation amount 0..1 (§12.5a); 0.5 reproduces the legacy binary

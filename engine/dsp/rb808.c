@@ -13,6 +13,7 @@
 #define RI_808_TWO_PI 6.2831853f
 
 const float RI_808_METAL_RATIO[6] = { 0.83f, 1.48f, 2.26f, 2.92f, 3.94f, 5.31f };
+const float RI_808_METAL_HZ[6] = { 205.3f, 304.4f, 369.6f, 522.7f, 540.0f, 800.0f };
 
 static const char *const RI_808_NAMES[RI_808_NSOUNDS] = {
     "bd", "sd", "lt", "mt", "ht", "lc", "mc", "hc",
@@ -63,8 +64,34 @@ static float lfsr_next(uint32_t *s) {
     return (float)(x >> 8) * (1.0f / 8388608.0f) - 1.0f;
 }
 
-static float square(float s) {
-    return (s >= 0.0f) ? 0.05f : -0.05f;
+/* PolyBLEP correction at one discontinuity (phase in [0,1), dt = f/sr).
+ * Returns the additive correction in unit amplitude (caller scales). */
+static float blep_corr(float phase, float dt) {
+    float t;
+    if (dt <= 0.0f || dt >= 0.5f)
+        return 0.0f;
+    if (phase < dt) {
+        t = phase / dt;
+        return t + t - t * t - 1.0f;
+    }
+    if (phase >= 1.0f - dt) {
+        t = (phase - 1.0f) / dt;
+        return t * t + t + t + 1.0f;
+    }
+    return 0.0f;
+}
+
+/* Band-limited square, ±0.05 (naive sign + rise/fall PolyBLEP, D1). */
+static float blep_square(float phase, float dt) {
+    float half = phase + 0.5f >= 1.0f ? phase - 0.5f : phase + 0.5f;
+    float s = (phase < 0.5f) ? 0.05f : -0.05f;
+    return s + 0.05f * blep_corr(phase, dt) - 0.05f * blep_corr(half, dt);
+}
+
+/* Semitone tune ratio with the engine ±7 clamp (§12.5b). */
+static float tune_ratio(float tune_st) {
+    float t = tune_st < -7.0f ? -7.0f : (tune_st > 7.0f ? 7.0f : tune_st);
+    return ri_pow2(t / 12.0f);
 }
 
 /* One-pole coefficients via the allowlisted kernel (spec §10: no libm). */
@@ -90,21 +117,21 @@ float rb808_pitch_hz(uint32_t voice, float t, float tune_st) {
         f = RI_808_BD_F_END + (fstart - RI_808_BD_F_END) * ri_exp(-t / RI_808_BD_TAU_PITCH);
     } else if (voice == RB808_LT) {
         f = RI_808_TOM_LT_F0 * (RI_808_TOM_F1_RATIO +
-            (1.0f - RI_808_TOM_F1_RATIO) * ri_exp(-t / 0.030f));
+            (1.0f - RI_808_TOM_F1_RATIO) * ri_exp(-t / 0.030f)) * tune_ratio(tune_st);
     } else if (voice == RB808_MT) {
         f = RI_808_TOM_MT_F0 * (RI_808_TOM_F1_RATIO +
-            (1.0f - RI_808_TOM_F1_RATIO) * ri_exp(-t / 0.030f));
+            (1.0f - RI_808_TOM_F1_RATIO) * ri_exp(-t / 0.030f)) * tune_ratio(tune_st);
     } else if (voice == RB808_HT) {
         f = RI_808_TOM_HT_F0 * (RI_808_TOM_F1_RATIO +
-            (1.0f - RI_808_TOM_F1_RATIO) * ri_exp(-t / 0.030f));
+            (1.0f - RI_808_TOM_F1_RATIO) * ri_exp(-t / 0.030f)) * tune_ratio(tune_st);
     } else if (voice == RB808_SD) {
-        f = RI_808_SD_F1;
+        f = RI_808_SD_F1 * tune_ratio(tune_st);
     } else if (voice == RB808_LC) {
-        f = RI_808_CONGA_LC_F;
+        f = RI_808_CONGA_LC_F * tune_ratio(tune_st);
     } else if (voice == RB808_MC) {
-        f = RI_808_CONGA_MC_F;
+        f = RI_808_CONGA_MC_F * tune_ratio(tune_st);
     } else if (voice == RB808_HC) {
-        f = RI_808_CONGA_HC_F;
+        f = RI_808_CONGA_HC_F * tune_ratio(tune_st);
     } else if (voice == RB808_RS) {
         f = 800.0f;
     } else if (voice == RB808_CL) {
@@ -173,6 +200,8 @@ void rb808_init_set(struct RB808Set *s) {
         s->v[i].tau_amp = default_tau(i);
         s->v[i].level = 1.0f;
         s->v[i].accent_amt = 0.5f; /* legacy x1.5 excitation, bit-exact */
+        s->v[i].snappy = 1.0f; /* SD noise ratio, knob 64 (exact) */
+        s->v[i].tone = 64.0f; /* BD click / CY HP knob value (exact) */
         s->v[i].phase = 0.0f;
         s->v[i].phase2 = 0.0f;
         for (k = 0; k < 6; k++)
@@ -207,6 +236,14 @@ void rb808_trigger(struct RB808Set *s, uint32_t voice, uint32_t accent, float tu
     v->st_lp = 0.0f;
     s->triggered |= (1u << voice);
     s->slot[rb808_slot_of(voice)] = (uint8_t)voice;
+    /* Choke rules (§12.5b, ReBirth manual p. 35): CH cuts a ringing OH
+     * hard; an OH landing within 50 ms after a CH trigger (same step,
+     * E0 window) is pre-rolled to ~1e-3 level — a very short OH — while
+     * a late OH (CH long dead) rings normally. Knob state untouched. */
+    if (voice == RB808_CH && s->v[RB808_OH].active)
+        s->v[RB808_OH].active = 0u;
+    if (voice == RB808_OH && s->v[RB808_CH].active && s->v[RB808_CH].t < 0.05f)
+        v->t = 6.9f * v->tau_amp;
 }
 
 void rb808_set_decay(struct RB808Set *s, uint32_t voice, float tau_amp) {
@@ -251,18 +288,20 @@ float rb808_voice_render(struct RB808Voice *v, float sr) {
             v->phase -= 1.0f;
         osc = exc * 0.16f * osc_sin(v->phase);
         if (v->t < 0.006f)
-            click = exc * 0.08f * ri_exp(-v->t / 0.0012f)
+            click = exc * (0.08f * (v->tone / 64.0f)) * ri_exp(-v->t / 0.0012f)
                 * ri_sin(RI_808_TWO_PI * 2500.0f * v->t); /* radians form */
         y = ri_tanh(osc + click);
         out = y * env;
     } else if (id == RB808_SD) {
-        /* P-08: two partials + BP noise (HP 1.4k + LP 2.3k cascade). */
+        /* P-08: two partials (tuneable body) + BP noise (HP 1.4k + LP
+         * 2.3k cascade); noise mix follows the Snappy knob. */
         float p1, p2, nz, h, y;
         float a_hp = lp_a(1400.0f, sr), a_lp = lp_a(2300.0f, sr);
-        v->phase += RI_808_SD_F1 / sr;
+        float tr = tune_ratio(v->tune_st);
+        v->phase += (RI_808_SD_F1 * tr) / sr;
         if (v->phase >= 1.0f)
             v->phase -= 1.0f;
-        v->phase2 += RI_808_SD_F2 / sr;
+        v->phase2 += (RI_808_SD_F2 * tr) / sr;
         if (v->phase2 >= 1.0f)
             v->phase2 -= 1.0f;
         p1 = exc * 0.13f * osc_sin(v->phase);
@@ -272,7 +311,7 @@ float rb808_voice_render(struct RB808Voice *v, float sr) {
         h = nz - v->st_hp;
         v->st_lp = ftz(v->st_lp + a_lp * (h - v->st_lp));
         y = ri_tanh(p1 + p2);
-        out = y * env + exc * 0.11f * v->st_lp * ri_exp(-v->t / 0.09f);
+        out = y * env + exc * (0.11f * v->snappy) * v->st_lp * ri_exp(-v->t / 0.09f);
     } else if (id == RB808_LT || id == RB808_MT || id == RB808_HT ||
                id == RB808_LC || id == RB808_MC || id == RB808_HC) {
         /* P-09 sweep family (toms) / fixed congas. */
@@ -324,17 +363,20 @@ float rb808_voice_render(struct RB808Voice *v, float sr) {
         y = ri_tanh(v->st_lp * 2.0f * drive);
         out = y; /* envelope inherent in the burst/tail function */
     } else if (id == RB808_CH || id == RB808_OH || id == RB808_CY) {
-        /* P-10: six-square cluster + HP (7 kHz hats; 5 kHz cymbal). */
-        float base = (id == RB808_CY) ? 250.0f : RI_808_METAL_BASE;
-        float hpf = (id == RB808_CY) ? 5000.0f : RI_808_HP_METAL;
+        /* P-10 (E1 Werner/Abel/Smith): six fixed Schmitt oscillators shared
+         * by CY/OH/CH; per-voice HP (7 kHz hats; 5 kHz cymbal, Tone knob
+         * scales the cymbal HP around it). Squares are PolyBLEP'd. */
+        float hpf = (id == RB808_CY)
+            ? 5000.0f * ri_pow2((v->tone - 64.0f) / 48.0f) : RI_808_HP_METAL;
         float a_hp = lp_a(hpf, sr);
         float sum = 0.0f, h, y;
         uint32_t k;
         for (k = 0; k < 6; k++) {
-            v->mph[k] += base * RI_808_METAL_RATIO[k] / sr;
+            float dt = RI_808_METAL_HZ[k] / sr;
+            v->mph[k] += dt;
             if (v->mph[k] >= 1.0f)
                 v->mph[k] -= 1.0f;
-            sum += square(osc_sin(v->mph[k]));
+            sum += blep_square(v->mph[k], dt);
         }
         sum *= exc;
         v->st_hp = ftz(v->st_hp + a_hp * (sum - v->st_hp));
@@ -367,8 +409,8 @@ float rb808_voice_render(struct RB808Voice *v, float sr) {
         v->phase2 += RI_808_CB_F2 / sr;
         if (v->phase2 >= 1.0f)
             v->phase2 -= 1.0f;
-        s1 = square(osc_sin(v->phase));
-        s2 = square(osc_sin(v->phase2));
+        s1 = blep_square(v->phase, RI_808_CB_F1 / sr);
+        s2 = blep_square(v->phase2, RI_808_CB_F2 / sr);
         v->st_hp = ftz(v->st_hp + a_hp * ((s1 + s2) - v->st_hp));
         h = (s1 + s2) - v->st_hp;
         v->st_lp = ftz(v->st_lp + a_lp * (h - v->st_lp));

@@ -19,3 +19,7 @@ MIX = cluster sum; OUTPUT = y·env_amp.
 **ACCENT (excitation pre-envelope):** EXCITE scales the cluster sum at
 the source (×1.0 / ×1.5). Measured +3.51 dB RMS (t1_808, want +3.52±0.5).
 P-12 three-state OPEN (binary hold).
+
+**Re-baseline 2026-09-25 (§12.5b metal):** golden re-rendered deliberately.
+Six fixed oscillators (205.3–800 Hz, E1) replace the WBS-ratio cluster;
+squares are PolyBLEP'd. First diff at sample 4, peaks/levels preserved.

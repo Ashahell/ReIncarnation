@@ -33,6 +33,9 @@ int main(void) {
     for (v = 0; v < 11u; v++) {
         rb808_init_set(&one);
         rb808_max_decay(&one);
+        if (SEL[v] == 12u)
+            rb808_trigger(&one, 11u, 1u, 0.0f); /* OH solo reproduces the
+            storm's same-step pre-roll (CH first, unrendered) bit-exactly */
         rb808_trigger(&one, SEL[v], 1u, 0.0f);
         for (i = 0; i < N; i++) {
             solo[i] = rb808_voice_render(&one.v[SEL[v]], SR);

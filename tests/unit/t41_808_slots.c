@@ -100,9 +100,12 @@ int main(void) {
         rb = rms(refbuf, N);
         RI_ASSERT(fabsf(rb / ra - 2.0f / 1.5f) <= 0.05f, "accent law %g/%g", rb, ra);
     }
-    /* (e) 11 slots render (trigger order 0..15 selects the higher pair). */
+    /* (e) 11 slots render (trigger order 0..15 selects the higher pair).
+     * Ref triggers slot-ordered with CH before OH and nothing after, so OH
+     * ends pre-rolled exactly like the numeric-order mix (hard choke would
+     * need a CH trigger AFTER the OH trigger — order matters, pinned). */
     {
-        static const uint32_t sel[11] = { 0, 1, 5, 6, 7, 9, 15, 14, 13, 12, 11 };
+        static const uint32_t sel[11] = { 0, 1, 5, 6, 7, 9, 15, 14, 13, 11, 12 };
         struct RB808Set b;
         rb808_init_set(&s);
         for (v = 0; v < 16u; v++)

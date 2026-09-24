@@ -17,3 +17,6 @@ on the band sum, peak |x| ≤ 0.23); MIX = square sum; OUTPUT = y·env_amp.
 **ACCENT (excitation pre-envelope):** EXCITE scales the square sum at
 the source (×1.0 / ×1.5). Measured +3.49 dB RMS (t1_808, want +3.52±0.5).
 P-12 three-state OPEN (binary hold).
+
+**Re-baseline 2026-09-25 (§12.5b metal):** golden re-rendered deliberately.
+540 + 800 Hz pair kept (already the E1 pair); squares are PolyBLEP'd.

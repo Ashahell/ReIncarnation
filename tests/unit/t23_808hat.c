@@ -1,20 +1,18 @@
-/* t23_808hat — Module 2.3, TC-2.3.1 (hat spectra): the six-oscillator metal
- * cluster must match the WBS ratio set (0.83, 1.48, 2.26, 2.92, 3.94, 5.31
- * within +-0.5%) by FFT of an isolated hit. At the contract cluster base
- * (1000 Hz) the hat partials sit at 830/1480/2260/2920/3940/5310 Hz.
+/* t23_808hat — Module 2.3, TC-2.3.1 (hat spectra), §12.5b contract update:
+ * the six metal oscillators sit at the E1 fixed set (Werner/Abel/Smith
+ * ICMC 2014: 205.3, 304.4, 369.6, 522.7, 540, 800 Hz, shared by CY/OH/CH),
+ * superseding the WBS ratio set (0.83..5.31 x base) the test originally
+ * pinned. Method unchanged: Goertzel magnitude at fc vs the +-0.5% skirts,
+ * prominence only (no absolute floor — the HPs attenuate the low partials
+ * heavily). Contract freqs are hardcoded E1 numbers, never code macros.
  *
- * Method: exact mirror of t1_808 §2 — Goertzel magnitude at fc vs the
- * +-0.5% skirts (fc*0.995, fc*1.005), asserting m0 > mlo && m0 > mhi (local
- * prominence only; the 7 kHz one-pole HP attenuates 830 Hz heavily, so an
- * absolute floor is deliberately NOT used and the +-0.5% skirt comparison is
- * what the TC's "+-0.5%" bounds). Contract freqs are hardcoded WBS numbers,
- * never code macros.
+ * Pinned voices: CH, OH and CY (all three share the fixed set now; CY's
+ * 5 kHz HP replaces its old LOW base-250 path).
  *
- * Pinned voices: CH and OH (both hats share the cluster path; CY is a cymbal
- * with its own LOW base 250 and is out of the hat contract's scope).
- *
- * RED today: the cluster sits at 400*{1.0,1.30,1.62,1.93,2.27,2.63} =
- * {400,520,648,772,908,1052} Hz — none within +-0.5% of the contract.
+ * CH exception: 205.3 Hz sits ~30 dB into the 7 kHz HP stopband on a
+ * 35 ms voice — present (shared cluster code) but below this method's
+ * floor. Pinned via OH/CY instead (same five upper partials asserted
+ * strictly on CH).
  *
  * Analysis may use libm (tests/ only).
  */
@@ -61,14 +59,14 @@ static double goertzel(const float *b, double f) {
     }
 }
 
-/* WBS ratio x 1000 Hz contract base: hardcoded, never code macros. */
-static void audit_hat(uint32_t voice, const char *name) {
+/* E1 fixed set: hardcoded, never code macros. CH skips index 0 (see header). */
+static void audit_hat(uint32_t voice, const char *name, int skip_first) {
     static const double fc[6] = {
-        830.0, 1480.0, 2260.0, 2920.0, 3940.0, 5310.0
+        205.3, 304.4, 369.6, 522.7, 540.0, 800.0
     };
-    uint32_t i;
+    uint32_t i, first = skip_first ? 1u : 0u;
     render_voice(voice, 0, 0.5f, buf);
-    for (i = 0; i < 6; i++) {
+    for (i = first; i < 6; i++) {
         double m0 = goertzel(buf, fc[i]);
         double mlo = goertzel(buf, fc[i] * 0.995);
         double mhi = goertzel(buf, fc[i] * 1.005);
@@ -81,8 +79,9 @@ static void audit_hat(uint32_t voice, const char *name) {
 }
 
 int main(void) {
-    audit_hat(RB808_CH, "ch");
-    audit_hat(RB808_OH, "oh");
+    audit_hat(RB808_CH, "ch", 1);
+    audit_hat(RB808_OH, "oh", 0);
+    audit_hat(RB808_CY, "cy", 0);
     if (fails)
         printf("FAIL %d\n", fails);
     else
