@@ -338,7 +338,7 @@ grep -q "Tester:" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: accep
 test -f "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
 grep -q "FAIL" "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: RED evidence has no FAIL lines"; exit 1; }
 echo "-- AROS-only shells guarded + out of host build --"
-for f in gui/widgets/rknb.mcc.c gui/widgets/rknb.h gui/widgets/rfdr.mcc.c gui/widgets/rstp.mcc.c gui/widgets/rlvl.mcc.c gui/knob_blit.c app/main.c app/panel909.c app/knobproof.c; do
+for f in gui/widgets/rknb.mcc.c gui/widgets/rknb.h gui/widgets/rfdr.mcc.c gui/widgets/rstp.mcc.c gui/widgets/rlvl.mcc.c gui/knob_blit.c app/main.c app/panel909.c app/knobproof.c app/stepproof.c; do
   test -f "$ROOT/$f" || { echo "FAIL: missing $f"; exit 1; }
   grep -q "#ifndef __AROS__" "$ROOT/$f" || { echo "FAIL: $f lacks __AROS__ guard"; exit 1; }
   grep -q '#error ".*AROS-only' "$ROOT/$f" || { echo "FAIL: $f lacks AROS-only #error"; exit 1; }
