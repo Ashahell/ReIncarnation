@@ -43,7 +43,7 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
-- [raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md](raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md) — **2026-09-24 — MCC knob class: custom Numeric subclass, device crash, bisection, lane wedge (UNPROVEN).** Class+knob creation rc=0 on device; window-open crash (Show/Draw path); foreground diagnostic wedged the lane (ping queues — needs on-site Kill/restart); modal input unreachable; detached-only rule. Blind hardening (cached `cur`, no Draw reentry). Audit 0/0. Recovery runbook inside.
+- [raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md](raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md) — **2026-09-24 — MCC knob class: decoded guru (_win vs _window), ungated Draw, four knobs + click test live (RESOLVED).** Type-confusion crash fixed (event methods to the MUI window object); initial Draw has no DRAWOBJECT flag (paint unconditionally); diag2 lifecycle clean; panel909 four knobs measured (x 54/134/214/294, orange up); click safe. Audit 0/0. Remainder: real drag, notify listeners.
 
 - [raw/articles/2026-09-24-panel-composition-device-proof.md](raw/articles/2026-09-24-panel-composition-device-proof.md) — **2026-09-24 — Panel composition on device: bg, rules, labels, knobs (eyeballed + measured).** Full first-panel composition live: exact-bg fill, divider rules, legible labels, four v2 knobs at doc x ±0px. File-damage self-catch (header API deletion + return-type corruption, repaired pre-build). Audit 0/0. Remaining: MCC integration, typography, 2.10 step GUI.
 

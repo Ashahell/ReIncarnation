@@ -254,6 +254,16 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m22 | MCC knobs live: _win crash fixed, ungated Draw proven, four knobs + click test on device
+- Disposition: Resolved (m21's crash + wedge closed)
+- Raw: llm-wiki/raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md (Resolution section)
+- Updated: gui/widgets/rknb.mcc.c (_win target, unconditional Draw), llm-wiki/index.md
+- **Root cause:** `MUIM_Window_Add/RemEventHandler` sent to `_window` (Intuition Window*) instead of `_win` (MUI window object) — decoded from the on-site guru disassembly (`obj+0x38` renderinfo, `+0x20` mri_Window, inline dispatch through garbage). One-letter macro, full type confusion.
+- **Second defect:** initial show-time Draw carries no MADF_DRAWOBJECT (gated red blank, ungated green painted) — production Draw paints unconditionally (idempotent full frame).
+- **Measured:** diag2 open/live/close clean, no guru; panel909 four olive knobs, orange pointers up, tick rings, pitch-80, x 54/134/214/294; click down/up no crash, pointers steady.
+- **Honest remainder:** real drag needs hold-and-drag primitive or human; no app notify listeners yet.
+- Full `ri_audit.sh` 0/0 (0 FAIL lines). Detached-only throughout.
+
 ## [2026-09-24] m21 | MCC knob class: custom Numeric subclass, device crash, bisection, lane wedge (UNPROVEN)
 - Disposition: New (code-complete, device proof PENDING — window-open crash; Dell lane wedged, needs on-site recovery)
 - Raw: llm-wiki/raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md

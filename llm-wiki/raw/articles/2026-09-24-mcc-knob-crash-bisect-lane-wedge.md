@@ -6,14 +6,14 @@
 > Published: 2026-09-24
 
 ## Disposition
-New. MCC integration is CODE-COMPLETE but NOT device-proven: the
-custom class builds clean (audit -Werror flags) and object
-creation passes on-device (rc=0), but opening a window with the
-new knobs crashes the task, and the follow-up diagnostic wedged
-the Dell lane (foreground exec of a crashing GUI binary —
-protocol deadlock; the agent never replied, even ping queues).
-Device proof + recovery are PENDING on-site help. This article is
-the full handoff.
+RESOLVED (was: code-complete unproven + wedged lane). Two defects,
+both found by evidence: a type-confusion crash (_win vs _window,
+decoded from the on-site guru disassembly against my own object
+file) and a flags-gated Draw (initial show-time Draw carries no
+MADF_DRAWOBJECT on this Zune — gated variant blank, ungated
+paints). Custom knobs render on device, click-tested, full audit
+0/0. Drag needs a human or a hold-and-drag agent primitive
+(click = down/up with no move); notify has no app listener yet.
 
 ## What
 - `gui/widgets/rknb.mcc.c` rewritten from MUIC_Knob skin to a real
@@ -37,14 +37,15 @@ the full handoff.
   the last OM_NEW/OM_SET value (every programmatic change flows
   through OM_SET, so it stays exact). Render must not reenter.
 
-## Proof so far
+## Proof (completed — see Resolution above; the trail stays)
 - AROS compile clean under the audit's own flags (-Werror):
   rknb.mcc.c + panel909.c. Four header/API errors caught locally
   first (stdint, proto/utility.h, RemEventHandler name, forward
   decls) — the edit/understand loop stayed on host.
 - On-device `ri_diag1` (class create → knob create → dispose):
   **rc=0**. Creation path (OM_NEW/OM_SET, GetTagData/FindTagItem,
-  MUIMasterBase/UtilityBase) is INNOCENT.
+  MUIMasterBase/UtilityBase) was INNOCENT — the crash needed a
+  window open, which pointed at Show (event-handler target).
 - Crash needs a window open (Show/Draw/window path): `ri_panel909`
   opens its RI-909 window (348×121, content-sized) then dies —
   guru names task WHd_panel909, PC inside a function (NOT a clean
@@ -53,6 +54,21 @@ the full handoff.
 - Reference fidelity unchanged: ReBirth RB-338 screenshot viewed
   (dark 909 section, small dark knobs) — our hardware-measured
   olive/orange art stays the target.
+
+## Resolution (same day, post-reboot lane)
+- `_window` → `_win` at both handler sites; rebuilt, redeployed.
+- `ri_diag2` detached: window opened, lived, self-closed, NO guru
+  (Show + EHN add + Draw ×4 + Hide + remove all survive).
+- Red-rect variant (gated Draw): blank. Green-rect variant
+  (ungated): 4 boxes, correct geometry. Verdict: draw on ANY
+  MUIM_Draw — production Draw paints unconditionally now.
+- `ri_panel909`: four olive knobs, orange pointers up (value 64),
+  tick rings, pitch-80 MUI layout; x-centers 54/134/214/294,
+  60 orange px. Click on knob 1 (down/up): no crash, pointers
+  steady (global capture diff = pointer/refresh noise).
+- Detached-only throughout (the wedge lesson held).
+- Remaining: real drag (needs hold-and-drag primitive or human),
+  app-side notify listeners, MCC typography, 2.10 step GUI.
 
 ## Lane wedge postmortem (doctrine addition)
 - `ri_diag2` (window open, Delay, close, exit) was run FOREGROUND.
