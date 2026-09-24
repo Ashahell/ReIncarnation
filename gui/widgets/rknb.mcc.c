@@ -61,12 +61,16 @@ struct RKnBData {
     WORD warp_sx; /* same point, screen coords (warp API speaks screen) */
     WORD warp_sy;
     BOOL dragging;
+    BOOL warp_armed; /* grab engages past RKNB_WARP_ARM_PX travel */
     BOOL shown;
     struct RiGesture gesture;
     struct MUI_EventHandlerNode ehn;
 };
 
-/* Screen-edge margin (px) that triggers a warp-back during drag. */
+/* Pixels of accumulated travel before the grab engages: below this
+ * the pointer tracks freely (no yank on press-tremor); once crossed,
+ * warp-every-move pins it. Transition yank ≤ threshold ≈ invisible. */
+#define RKNB_WARP_ARM_PX 3.0
 
 /* input.device for pointer warps (class lifetime; NULL = fail-soft
  * to absolute positioning, i.e. pre-grab behavior at screen edges). */
@@ -172,6 +176,7 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
         d->warp_sx = 0;
         d->warp_sy = 0;
         d->dragging = FALSE;
+        d->warp_armed = FALSE;
         d->shown = FALSE;
         d->gesture.begun = 0;
         d->gesture.moves = 0;
@@ -231,6 +236,7 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
         DoMethod(_win(obj), MUIM_Window_RemEventHandler, &d->ehn);
         d->shown = FALSE;
         d->dragging = FALSE;
+        d->warp_armed = FALSE;
         return DoSuperMethodA(cl, obj, msg);
     }
     case MUIM_Draw: {
@@ -258,6 +264,7 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 if (!rknb_hit(obj, im->MouseX, im->MouseY))
                     return (IPTR)0;
                 d->dragging = TRUE;
+                d->warp_armed = FALSE;
                 d->acc_dx = 0.0;
                 d->acc_dy = 0.0;
                 d->last_x = im->MouseX;
@@ -287,6 +294,7 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 if (!d->dragging)
                     return (IPTR)0;
                 d->dragging = FALSE;
+                d->warp_armed = FALSE;
                 /* Exactly one undo unit per completed gesture: bump
                  * the counter THROUGH OM_SET so MUI fires notifies
                  * registered on MUIA_RKnB_Commits. */
@@ -326,16 +334,23 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 d->acc_dy, fine);
             ri_rknb_move(&d->gesture);
             SetAttrs(obj, MUIA_Numeric_Value, v, TAG_DONE);
-            /* Pointer grab, revised (edge-triggered warp yanked the
-             * pointer across the screen on long drags — hostile):
-             * warp back to the drag start after EVERY move, so the
-             * pointer hovers near the knob while physical motion
-             * accrues 1:1 into acc (next delta is measured from the
-             * warp target). Edges become unreachable; no teleports.
+            /* Pointer grab, revised twice: edge-trigger yanked the
+             * pointer across the screen on long drags (m27); then
+             * unthrottled warp-every-move yanked on press-tremor
+             * (m40: slight jump on first click). Now the grab ARMS
+             * past RKNB_WARP_ARM_PX of travel and only then pins:
+             * press feel stays 1:1, transition yank ≤ threshold.
              * Fail-soft: without input.device this block is skipped
              * and acc degrades exactly to absolute positioning. The
              * warp's own mousemove lands on last_* → zero delta. */
-            if (s_inreq) {
+            {
+                double travel = d->acc_dx >= 0.0 ? d->acc_dx : -d->acc_dx;
+                double ady = d->acc_dy >= 0.0 ? d->acc_dy : -d->acc_dy;
+                travel += ady;
+                if (travel >= RKNB_WARP_ARM_PX)
+                    d->warp_armed = TRUE;
+            }
+            if (d->warp_armed && s_inreq) {
                 struct Screen *s = _screen(obj);
                 if (s) {
                     rknb_warp(s, d->warp_sx, d->warp_sy);
