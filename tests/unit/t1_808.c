@@ -1,7 +1,7 @@
 /* t1_808 — Task 8 (gate G8): fifteen-voice 808 tests.
  * Gates (brief order): BD trajectory ±5% at 5 envelope points; hat FFT
  * peaks within ±0.5% of the listed ratios; clap envelope shows 4 bursts;
- * accent x1.5 ±0.5 dB on every accent-capable voice (all 15, per ledger);
+ * accent x1.5 ±0.5 dB on every accent-capable voice (all 16, per ledger);
  * 35 Hz floor (sweep never below); storm render-time <= 0.3x buffer via
  * clock(); determinism (D1) double-render identical.
  * Analysis may use libm (tests/ only; engine/ stays kernels-only).
@@ -152,7 +152,7 @@ int main(void) {
         RI_ASSERT(peaks == 4, "clap bursts: %u peaks (want 4)", peaks);
     }
     /* --- 4. accent x1.5 ±0.5 dB on every voice --- */
-    for (v = 0; v < RI_808_NVOICES; v++) {
+    for (v = 0; v < RI_808_NSOUNDS; v++) {
         uint32_t n = (uint32_t)(voice_secs(v) * SR);
         float r0, r1, db;
         render_voice(v, 0, voice_secs(v), buf);
@@ -173,7 +173,7 @@ int main(void) {
         static const float tunes[3] = { -7.0f, 0.0f, 7.0f };
         static const float times[4] = { 0.0f, 0.05f, 0.5f, 2.0f };
         uint32_t ti, kj;
-        for (v = 0; v < RI_808_NVOICES; v++)
+        for (v = 0; v < RI_808_NSOUNDS; v++)
             for (ti = 0; ti < 3; ti++)
                 for (kj = 0; kj < 4; kj++) {
                     float q = rb808_pitch_hz(v, times[kj], tunes[ti]);
@@ -191,9 +191,9 @@ int main(void) {
         double cpu, buf_dur = 2.0;
         rb808_init_set(&s);
         rb808_max_decay(&s);
-        for (v = 0; v < RI_808_NVOICES; v++)
+        for (v = 0; v < RI_808_NSOUNDS; v++)
             rb808_trigger(&s, v, 1, 0.0f);
-        RI_ASSERT(s.triggered == 0x7FFFu, "storm mask 0x%04x", s.triggered);
+        RI_ASSERT(s.triggered == 0xFFFFu, "storm mask 0x%04x", s.triggered);
         c0 = clock();
         while (pos < n) {
             uint32_t cc = (n - pos > blk) ? blk : (n - pos);
@@ -209,7 +209,7 @@ int main(void) {
         /* determinism: identical re-trigger re-renders bit-exact */
         rb808_init_set(&s);
         rb808_max_decay(&s);
-        for (v = 0; v < RI_808_NVOICES; v++)
+        for (v = 0; v < RI_808_NSOUNDS; v++)
             rb808_trigger(&s, v, 1, 0.0f);
         pos = 0;
         while (pos < n) {

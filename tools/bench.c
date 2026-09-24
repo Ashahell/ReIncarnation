@@ -1,7 +1,7 @@
 /* tools/bench — worst-case fixture benchmark (Task 14, gate G14).
  * Plan file list (Task 1 §file-list) named this TU; it lands here.
  *
- * Worst case per 64-frame block: 2x 303 voices retriggered, all 15 808
+ * Worst case per 64-frame block: 2x 303 voices retriggered, all 16 808
  * voices at max decay retriggered every block, all 6 909 voices
  * retriggered every block, PCF + delay/dist/comp chain, 4-bus mixer
  * render, meter tap. Two full passes must checksum-identical (FNV-1a
@@ -101,7 +101,7 @@ static uint64_t bench_pass(uint32_t blocks) {
             rb303_note(&v303a, (uint8_t)(flip ? 45 : 33), 1, 1);
             rb303_note(&v303b, (uint8_t)(flip ? 57 : 40), 0, 1);
         }
-        for (v = 0; v < RI_808_NVOICES; v++)
+        for (v = 0; v < RI_808_NSOUNDS; v++)
             rb808_trigger(&s808, v, 1u, 0.0f);
         for (v = 0; v < RI_909_NVOICES; v++)
             rb909_trigger(&s909, v, 1u, 64u, RI_909_FLAM_DEFAULT_SMP);

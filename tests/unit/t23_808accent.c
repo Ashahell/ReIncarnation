@@ -1,5 +1,5 @@
 /* t23_808accent — Module 2.3, TC-2.3.4 (accent +1.5x +-0.5 dB on every
- * accent-capable voice): all RI_808_NVOICES = 15 voices must show accent
+ * accent-capable voice): all RI_808_NSOUNDS = 16 voices must show accent
  * (excite acc=1) raising the rendered RMS by 20*log10(1.5) = 3.52 dB within
  * +-0.5 dB. Mirror of t1_808 §4 (same render lengths, same helpers).
  * Green-pin expectation: t1_808 §4 already passes this on the current tree.
@@ -55,7 +55,7 @@ static void render_voice(uint32_t v, uint32_t accent, float secs, float *out) {
 
 int main(void) {
     uint32_t v, i;
-    for (v = 0; v < RI_808_NVOICES; v++) {
+    for (v = 0; v < RI_808_NSOUNDS; v++) {
         uint32_t n = (uint32_t)(voice_secs(v) * T23_SR);
         float r0, r1, db;
         render_voice(v, 0, voice_secs(v), buf);

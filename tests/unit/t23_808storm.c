@@ -3,9 +3,9 @@
  * must fit in <= 0.3x the buffer duration of CPU time, and re-rendering must
  * be bit-identical (determinism). Mirror of t1_808 §6.
  *
- * The WBS contract says "14-voice"; the engine hosts RI_808_NVOICES = 15
- * voices, and this pin exercises all 15 (a superset whose trigger mask is
- * 0x7FFF), which strictly covers the TC.
+ * The WBS contract says "14-voice"; the engine hosts 16 sounds in 11 slots
+ * (§2.3 item 6, §12.5a), and this pin exercises all 16 (trigger mask 0xFFFF;
+ * slots collide to 11 sounding, which strictly covers the TC).
  *
  * Clock-only timing (no libm needed).
  */
@@ -36,9 +36,9 @@ int main(void) {
 
     rb808_init_set(&s);
     rb808_max_decay(&s);
-    for (v = 0; v < RI_808_NVOICES; v++)
+    for (v = 0; v < RI_808_NSOUNDS; v++)
         rb808_trigger(&s, v, 1, 0.0f);
-    CHECK(s.triggered == 0x7FFFu, "storm mask 0x%04x (want 0x7fff, all 15)",
+    CHECK(s.triggered == 0xFFFFu, "storm mask 0x%04x (want 0xffff, all 16)",
         s.triggered);
     c0 = clock();
     while (pos < n) {
@@ -55,7 +55,7 @@ int main(void) {
     /* determinism: identical re-trigger re-renders bit-exact */
     rb808_init_set(&s);
     rb808_max_decay(&s);
-    for (v = 0; v < RI_808_NVOICES; v++)
+    for (v = 0; v < RI_808_NSOUNDS; v++)
         rb808_trigger(&s, v, 1, 0.0f);
     pos = 0;
     while (pos < n) {

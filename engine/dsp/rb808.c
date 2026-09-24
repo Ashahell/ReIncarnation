@@ -14,13 +14,27 @@
 
 const float RI_808_METAL_RATIO[6] = { 0.83f, 1.48f, 2.26f, 2.92f, 3.94f, 5.31f };
 
-static const char *const RI_808_NAMES[RI_808_NVOICES] = {
+static const char *const RI_808_NAMES[RI_808_NSOUNDS] = {
     "bd", "sd", "lt", "mt", "ht", "lc", "mc", "hc",
-    "rs", "cl", "cp", "ch", "oh", "cy", "cb"
+    "rs", "cl", "cp", "ch", "oh", "cy", "cb", "ma"
 };
 
+/* Default slot occupants (upper row) + sound->slot map (§2.3 item 6). */
+const uint8_t RI_808_SLOT_DEFAULT[RI_808_NSLOTS] = {
+    0, 1, 2, 3, 4, 8, 10, 14, 13, 12, 11
+};
+static const uint8_t RI_808_SOUND_SLOT[RI_808_NSOUNDS] = {
+    0, 1, 2, 3, 4, 2, 3, 4, 5, 5, 6, 10, 9, 8, 7, 6
+};
+
+uint32_t rb808_slot_of(uint32_t sound) {
+    if (sound < RI_808_NSOUNDS)
+        return RI_808_SOUND_SLOT[sound];
+    return 0;
+}
+
 const char *rb808_name(uint32_t voice) {
-    if (voice < RI_808_NVOICES)
+    if (voice < RI_808_NSOUNDS)
         return RI_808_NAMES[voice];
     return "?";
 }
@@ -58,12 +72,13 @@ static float lp_a(float fc, float sr) {
     return 1.0f - ri_exp(-RI_808_TWO_PI * fc / sr);
 }
 
-float rb808_excite(uint32_t voice, uint32_t accent) {
-    (void)voice; /* one excitation law for all 15 voices (ledger rows note
+float rb808_excite(uint32_t voice, uint32_t accent, float amt) {
+    (void)voice; /* one excitation law for all 16 sounds (ledger rows note
                   * per-voice source mapping; P-12 three-state OPEN) */
     if (accent == 0u)
         return 1.0f;
-    return RI_808_EXCITE_ACC; /* accent 1, and reserved 2 (binary hold) */
+    return 1.0f + amt; /* continuous accent level (§12.5a); the 0.5 default
+                        * reproduces the legacy binary x1.5 bit-exactly */
 }
 
 float rb808_pitch_hz(uint32_t voice, float t, float tune_st) {
@@ -98,6 +113,8 @@ float rb808_pitch_hz(uint32_t voice, float t, float tune_st) {
         f = RI_808_CLAP_BP_F;
     } else if (voice == RB808_CB) {
         f = RI_808_CB_F2;
+    } else if (voice == RB808_MA) {
+        f = RI_808_FLOOR_HZ; /* maracas are HP noise (no pitched partial) */
     } else { /* CH/OH/CY: metal cluster base (partials = base * ratio) */
         f = RI_808_METAL_BASE;
     }
@@ -119,6 +136,7 @@ static float default_tau(uint32_t voice) {
     case RB808_OH: return 0.4f;
     case RB808_CY: return RI_808_CY_TAU;
     case RB808_CB: return 0.2f;
+    case RB808_MA: return 0.04f; /* maracas: short sharp envelope (§12.5a) */
     default: return 0.3f;
     }
 }
@@ -135,6 +153,7 @@ static float max_tau(uint32_t voice) {
     case RB808_OH: return 1.2f; /* P-10 OH range 0.2..1.2 */
     case RB808_CY: return 2.5f;
     case RB808_CB: return 0.5f;
+    case RB808_MA: return 0.1f;
     default: return 0.5f;
     }
 }
@@ -142,7 +161,9 @@ static float max_tau(uint32_t voice) {
 void rb808_init_set(struct RB808Set *s) {
     uint32_t i, k;
     s->triggered = 0u;
-    for (i = 0; i < RI_808_NVOICES; i++) {
+    for (i = 0; i < RI_808_NSLOTS; i++)
+        s->slot[i] = RI_808_SLOT_DEFAULT[i];
+    for (i = 0; i < RI_808_NSOUNDS; i++) {
         s->v[i].id = (uint8_t)i;
         s->v[i].accent = 0u;
         s->v[i].active = 0u;
@@ -150,6 +171,8 @@ void rb808_init_set(struct RB808Set *s) {
         s->v[i].t = 0.0f;
         s->v[i].tune_st = 0.0f;
         s->v[i].tau_amp = default_tau(i);
+        s->v[i].level = 1.0f;
+        s->v[i].accent_amt = 0.5f; /* legacy x1.5 excitation, bit-exact */
         s->v[i].phase = 0.0f;
         s->v[i].phase2 = 0.0f;
         for (k = 0; k < 6; k++)
@@ -164,12 +187,15 @@ void rb808_init_set(struct RB808Set *s) {
 void rb808_trigger(struct RB808Set *s, uint32_t voice, uint32_t accent, float tune_st) {
     struct RB808Voice *v;
     uint32_t k;
-    if (voice >= RI_808_NVOICES)
+    if (voice >= RI_808_NSOUNDS)
         return;
     v = &s->v[voice];
     v->accent = (uint8_t)(accent & 3u);
     v->active = 1u;
-    /* Appendix C TRIGGER: phase=0; env_pitch=1; env_amp=1 (implicit in t=0). */
+    /* Appendix C TRIGGER: phase=0; env_pitch=1; env_amp=1 (implicit in t=0).
+     * Knob state (tau_amp, level, accent_amt) persists across triggers;
+     * tune follows the trigger arg. The sound's slot selects it (last-wins
+     * over its switch-pair partner). */
     v->t = 0.0f;
     v->tune_st = clampf(tune_st, -7.0f, 7.0f);
     v->phase = 0.0f;
@@ -179,18 +205,19 @@ void rb808_trigger(struct RB808Set *s, uint32_t voice, uint32_t accent, float tu
     v->rng = 0x12345678u + (uint32_t)voice * 0x9e3779b9u; /* fixed seed: D1 */
     v->st_hp = 0.0f;
     v->st_lp = 0.0f;
-    s->triggered |= (uint16_t)(1u << voice);
+    s->triggered |= (1u << voice);
+    s->slot[rb808_slot_of(voice)] = (uint8_t)voice;
 }
 
 void rb808_set_decay(struct RB808Set *s, uint32_t voice, float tau_amp) {
-    if (voice >= RI_808_NVOICES)
+    if (voice >= RI_808_NSOUNDS)
         return;
     s->v[voice].tau_amp = clampf(tau_amp, 0.005f, 4.0f);
 }
 
 void rb808_max_decay(struct RB808Set *s) {
     uint32_t i;
-    for (i = 0; i < RI_808_NVOICES; i++)
+    for (i = 0; i < RI_808_NSOUNDS; i++)
         s->v[i].tau_amp = max_tau(i);
 }
 
@@ -209,7 +236,7 @@ float rb808_voice_render(struct RB808Voice *v, float sr) {
     if (!v->active)
         return 0.0f;
     id = v->id;
-    exc = rb808_excite(id, v->accent);
+    exc = rb808_excite(id, v->accent, v->accent_amt);
     if (v->tau_amp * sr > 1.0f)
         env = ri_exp(-v->t / v->tau_amp);
     else
@@ -320,6 +347,17 @@ float rb808_voice_render(struct RB808Voice *v, float sr) {
             v->st_lp = ftz(v->st_lp + a_hp * (nz - v->st_lp));
             out += exc * 0.04f * (nz - v->st_lp) * ri_exp(-v->t / 0.035f);
         }
+    } else if (id == RB808_MA) {
+        /* Maracas (§12.5a, §4.2 action 1): HP noise, short sharp envelope
+         * plus a click transient. Excitation-scaled like the RS family. */
+        float a_hp = lp_a(6000.0f, sr);
+        float nz, h;
+        nz = lfsr_next(&v->rng);
+        v->st_hp = ftz(v->st_hp + a_hp * (nz - v->st_hp));
+        h = nz - v->st_hp;
+        out = exc * 0.22f * h * ri_exp(-v->t / 0.04f);
+        if (v->t < 0.001f)
+            out += exc * 0.10f * ri_exp(-v->t / 0.0004f);
     } else { /* RB808_CB: 540 + 800 Hz squares + 800 Hz BP. */
         float a_hp = lp_a(600.0f, sr), a_lp = lp_a(1100.0f, sr);
         float s1, s2, h, y;
@@ -350,6 +388,7 @@ float rb808_voice_render(struct RB808Voice *v, float sr) {
     } else if (v->t > 0.01f && env < RI_808_REST_LEVEL) {
         v->active = 0u;
     }
+    out *= v->level; /* per-sound trim (§12.5a; default 1.0, bit-exact) */
     v->t += 1.0f / sr;
     return out;
 }
@@ -358,8 +397,10 @@ void rb808_render_mix(struct RB808Set *s, float *out, uint32_t n, float sr) {
     uint32_t i, k;
     for (i = 0; i < n; i++) {
         float m = 0.0f;
-        for (k = 0; k < RI_808_NVOICES; k++)
-            m += rb808_voice_render(&s->v[k], sr);
+        /* Slot walk in order (the mix law): each slot renders its selected
+         * sound; switch-pair partners keep silent unless selected. */
+        for (k = 0; k < RI_808_NSLOTS; k++)
+            m += rb808_voice_render(&s->v[s->slot[k]], sr);
         /* Linear section sum with float headroom (§2.4): no clipping
          * inside a section (ReBirth manual p. 23). Clipping happens
          * only at the final integer conversion. */

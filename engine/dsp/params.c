@@ -141,8 +141,9 @@ void rb808_set_param(struct RB808Voice *v, uint32_t ctl_id, uint8_t value) {
         v->tune_st = ((float)value - 64.0f) * 14.0f / 127.0f;
         break;
     case RI_CTL_808_LEVEL:
-        /* Placeholder: no engine gain field yet (auto/panel trim); the
-         * ledger rows keep EXCITE as the only 808 level control. */
+        /* Per-sound linear trim (§12.5a). Default 1.0 (knob 127); the
+         * goldens never touch the knob, so they render bit-identically. */
+        v->level = (float)value / 127.0f;
         break;
     case RI_CTL_808_SNAPPY:
     case RI_CTL_808_TONE:
@@ -150,8 +151,11 @@ void rb808_set_param(struct RB808Voice *v, uint32_t ctl_id, uint8_t value) {
          * 2 ms clap burst width / fixed cluster HP). */
         break;
     case RI_CTL_808_ACCENT:
-        /* Placeholder: trigger-time binary (rb808_trigger accent arg);
-         * a panel 0..127 knob is not wired into the engine state. */
+        /* Excitation amount 0..1 (§12.5a); 0.5 reproduces the legacy binary
+         * x1.5 exactly. Kit-global knob staging waits on the panel
+         * inventory (§12.10); per-voice amount keeps twin-voice
+         * independence (t22 ethos). */
+        v->accent_amt = (float)value / 127.0f;
         break;
     default:
         break; /* unknown control: ignored by the voice */

@@ -516,7 +516,7 @@ static int render_math(int is_sine, const char *out_path) {
 }
 
 /* --808 stimulus (Task 8, gate G8): one voice (accent 0, tune 0, default
- * decay) or the storm fixture (all 15, max decay, full accent), rendered
+ * decay) or the storm fixture (all 16, max decay, full accent), rendered
  * in 64-frame blocks at 48 kHz. Deterministic (D1): fixed LFSR seeds at
  * trigger. Durations mirror tests/unit/t1_808.c voice_secs. */
 static float voice_secs808(uint32_t v) {
@@ -540,13 +540,13 @@ static int render_808(const char *name, const char *out_path) {
     float secs;
     int storm = strcmp(name, "storm") == 0;
     if (!storm) {
-        for (k = 0; k < RI_808_NVOICES; k++)
+        for (k = 0; k < RI_808_NSOUNDS; k++)
             if (strcmp(name, rb808_name(k)) == 0) {
                 v = k;
                 break;
             }
-        if (k == RI_808_NVOICES) {
-            printf("render: --808 wants bd|sd|lt|mt|ht|lc|mc|hc|rs|cl|cp|ch|oh|cy|cb|storm\n");
+        if (k == RI_808_NSOUNDS) {
+            printf("render: --808 wants bd|sd|lt|mt|ht|lc|mc|hc|rs|cl|cp|ch|oh|cy|cb|ma|storm\n");
             return 2;
         }
         secs = voice_secs808(v);
@@ -561,7 +561,7 @@ static int render_808(const char *name, const char *out_path) {
     rb808_init_set(&s);
     if (storm) {
         rb808_max_decay(&s);
-        for (k = 0; k < RI_808_NVOICES; k++)
+        for (k = 0; k < RI_808_NSOUNDS; k++)
             rb808_trigger(&s, k, 1, 0.0f);
     } else {
         rb808_trigger(&s, v, 0, 0.0f);

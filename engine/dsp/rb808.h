@@ -23,7 +23,10 @@
 #define RI_RB808_H
 #include <stdint.h>
 
-#define RI_808_NVOICES 15u
+#define RI_808_NSOUNDS 16u /* sixteen sounds (§2.3 item 6, §12.5a). */
+#define RI_808_NSLOTS 11u /* eleven slots; pairs share (§2.3 item 6). */
+
+/* Voice ids, classic order (spec §2.3 item 6: 16 sounds, 11 slots). */
 
 /* Voice ids, classic order (spec §2.3 LOCKED set). */
 #define RB808_BD 0u
@@ -41,6 +44,7 @@
 #define RB808_OH 12u
 #define RB808_CY 13u
 #define RB808_CB 14u
+#define RB808_MA 15u /* maracas (§12.5a; HP noise, §4.2 action 1) */
 
 /* Appendix A nominals [HYPOTHESIS] (full rows in docs/evidence/808/). */
 #define RI_808_BD_F_START 170.0f /* Hz at tune 0 (P-07; tune ±7 st) */
@@ -91,18 +95,28 @@
  * {0.83,1.48,2.26,2.92,3.94,5.31}; see RI_808_METAL_BASE). */
 extern const float RI_808_METAL_RATIO[6];
 
+/* Slot assignment: index = slot 0..10, value = default sound (§2.3 item 6:
+ * BD SD LT MT HT RS CP CB CY OH CH; switched slots default to the upper
+ * row: LT MT HT RS CP). rb808_trigger re-points a slot at the triggered
+ * sound (last-wins); render_mix walks slots in order (the mix law). */
+extern const uint8_t RI_808_SLOT_DEFAULT[RI_808_NSLOTS];
+/* Sound -> slot lookup (pair members share). */
+uint32_t rb808_slot_of(uint32_t sound);
+
 /* Voice short names for goldens/logs ("bd", "sd", ...). */
 const char *rb808_name(uint32_t voice);
 
 struct RB808Voice {
     uint8_t id; /* RB808_* */
-    uint8_t accent; /* 0/1 binary; 2 reserved (P-12 OPEN, maps to 1.5) */
+    uint8_t accent; /* 0/1 binary; 2 reserved (P-12 OPEN, maps to level) */
     uint8_t active; /* nonzero after trigger until the envelope rest
                      * (§2.3: dies on its own; retrigger resets) */
     uint8_t pad;
     float t; /* s since trigger */
     float tune_st; /* semitones, BD ±7 (P-07) */
     float tau_amp; /* s amplitude decay (per-voice default or max) */
+    float level; /* per-sound linear trim, knob 0..127/127 (§12.5a) */
+    float accent_amt; /* excitation amount 0..1, knob/127 (default 0.5) */
     float phase; /* main osc 0..1 */
     float phase2; /* second partial 0..1 */
     float mph[6]; /* metal cluster phases 0..1 */
@@ -113,8 +127,9 @@ struct RB808Voice {
 };
 
 struct RB808Set {
-    struct RB808Voice v[RI_808_NVOICES];
-    uint16_t triggered; /* bit i = voice i triggered */
+    struct RB808Voice v[RI_808_NSOUNDS];
+    uint32_t triggered; /* bit i = sound i triggered (16 bits used) */
+    uint8_t slot[RI_808_NSLOTS]; /* slot -> selected sound */
 };
 
 void rb808_init_set(struct RB808Set *s);
@@ -128,7 +143,7 @@ void rb808_max_decay(struct RB808Set *s);
  * Same function the renderer uses; clamped to RI_808_FLOOR_HZ. */
 float rb808_pitch_hz(uint32_t voice, float t, float tune_st);
 /* Excitation gain: 1.0 (accent 0) or 1.5 (accent 1/2). */
-float rb808_excite(uint32_t voice, uint32_t accent);
+float rb808_excite(uint32_t voice, uint32_t accent, float amt);
 /* Knob 0..127 -> voice parameter (WBS interface line 81; 808 section of
  * engine/dsp/params.c). Ids are the RI_CTL_808_* block above; curves are the
  * 9-anchor tables in params.c (mirrors rb303_set_param). */

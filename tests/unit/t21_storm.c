@@ -1,6 +1,6 @@
 /* t21_storm — TC-2.1.4 DSP-side storm budget (WBS 2.1).
  * All 4 sections at once into one 64-frame buffer @48 kHz: 303A + 303B
- * (distinct notes/accents/slides), all 15 808 voices (max decay,
+ * (distinct notes/accents/slides), all 16 808 voices (max decay,
  * accented), all 6 909 voices (baked sine layers, accented). Timed with
  * clock(); budget 0.5x buffer (666.7 us). Energy guard (peak > 0.01:
  * a silent storm is a broken storm) + determinism (re-init/re-trigger/
@@ -82,10 +82,10 @@ static void storm(float *out, int slide) {
         rb303_slide_to(&v303b, 52);
     }
     rb303_render(&v303b, sec303b + 32u, T21S_N - 32u, T21S_SR);
-    /* 808: all 15, max decay, accented. */
+    /* 808: all 16, max decay, accented. */
     rb808_init_set(&s808);
     rb808_max_decay(&s808);
-    for (v = 0u; v < RI_808_NVOICES; v++)
+    for (v = 0u; v < RI_808_NSOUNDS; v++)
         rb808_trigger(&s808, v, 1u, 0.0f);
     rb808_render_mix(&s808, sec808, T21S_N, T21S_SR);
     /* 909: all 6, baked layers, accented. */

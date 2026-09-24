@@ -16,7 +16,7 @@
 
 int main(void) {
     uint32_t v, w, i;
-    for (v = 0; v < RI_808_NVOICES; v++) {
+    for (v = 0; v < RI_808_NSOUNDS; v++) {
         struct RB808Set s;
         float rms[NWIN];
         rb808_init_set(&s);

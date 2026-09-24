@@ -20,7 +20,7 @@
 int main(void) {
     static float ring[TAILN];
     uint32_t v;
-    for (v = 0; v < RI_808_NVOICES; v++) {
+    for (v = 0; v < RI_808_NSOUNDS; v++) {
         struct RB808Set s;
         uint32_t n = 0, i;
         float tm = 0.0f;
