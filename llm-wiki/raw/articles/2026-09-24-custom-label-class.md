@@ -37,6 +37,10 @@ defaults are the culprit — replaced with owned pixels.
 ## Proof (device, detached runs)
 - Fresh window: dark-on-light labels, no bevel boxes, columns
   aligned; knobs/values/undo unchanged; no guru.
+- Agent-verified 2026-09-24 on the committed build: label band
+  1924/2040 px light bucket + dark glyph pixels; seam zone zero
+  grey hits (separator still absent — m38 holds).
+- Owner full-res eyeball still open (spelling crispness).
 
 ## Files
 - env: `gui/widgets/rlbl.{h,mcc.c}` (new), `app/panel909.c`,
