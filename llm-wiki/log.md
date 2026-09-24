@@ -1,5 +1,12 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] ingest | Owner approvals close m33/m34 pendings + ui-capture lane note
+- Disposition: Update (index cascade; approval + lane findings already written in the articles during device testing)
+- Raw: llm-wiki/raw/articles/2026-09-24-knob-name-labels-mui.md, llm-wiki/raw/articles/2026-09-24-commit-observable-undo-counter.md
+- Updated: llm-wiki/index.md (eyeball/count pendings → owner-approved 2026-09-24)
+- m33 knob labels approved (spelling + alignment); m34 commit observable approved (UNDO click→1, drags accumulate; acceptance checkbox checked); lane note: ui-capture wedged the agent with a healthy app — agent-side flake, detached-only rule stands
+- Still open per acceptance.md: fader travel; step-toggle click check (m35)
+
 ## [2026-09-21] upstream | Filed aros-development-team/AROS#1281, corrected twice, now OCR-verified
 First filing quoted screenshot-derived values that failed corroboration against the ISO driver binary. Second pass used tesseract OCR on our OWN QEMU HMP screenshots: verified call chain probe main → OpenDevice → lddemon → ahi _DevOpen → _LoadModeFile → hdaudio _LibInit → InitResident → fault, plus config-parse signpost just before and crash-alert buttons present. Issue rewritten to verified facts + marked hypotheses: https://github.com/aros-development-team/AROS/issues/1281. Lesson reinforced: screenshot values are observations until cross-checked; OCR+HMP makes them checkable even when images can't be viewed.
 

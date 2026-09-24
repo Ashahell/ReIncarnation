@@ -45,9 +45,9 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 - [raw/articles/2026-09-24-step-toggle-proof-16buttons.md](raw/articles/2026-09-24-step-toggle-proof-16buttons.md) — **2026-09-24 — 2.10 step-toggle proof.** 16 buttons + pattern readout; click check pending; beat clock next.
 
-- [raw/articles/2026-09-24-commit-observable-undo-counter.md](raw/articles/2026-09-24-commit-observable-undo-counter.md) — **2026-09-24 — Commit-on-release observable.** Counter helper pinned; commits attr + UNDO row; count check pending.
+- [raw/articles/2026-09-24-commit-observable-undo-counter.md](raw/articles/2026-09-24-commit-observable-undo-counter.md) — **2026-09-24 — Commit-on-release observable.** Counter helper pinned; commits attr + UNDO row; owner-approved 2026-09-24 (click→1, drags accumulate).
 
-- [raw/articles/2026-09-24-knob-name-labels-mui.md](raw/articles/2026-09-24-knob-name-labels-mui.md) — **2026-09-24 — Knob name labels in the MUI app.** Names/knobs/values rows; eyeball proof pending.
+- [raw/articles/2026-09-24-knob-name-labels-mui.md](raw/articles/2026-09-24-knob-name-labels-mui.md) — **2026-09-24 — Knob name labels in the MUI app.** Names/knobs/values rows; owner-approved 2026-09-24 (spelling + alignment).
 
 - [raw/articles/2026-09-24-owner-numeric-approval.md](raw/articles/2026-09-24-owner-numeric-approval.md) — **2026-09-24 — Owner numeric approval.** 0–127, live tracking, LEVEL→100, fine steps; right-click + fine boxes checked. Open: commit, fader.
 
