@@ -1,5 +1,16 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m51 | §12.5a: 808 slots/MA/level (structural, 16 sounds)
+- Disposition: New (TDD, t41 + per-family revert-checks)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-5a-808-slots.md
+- Updated: engine/dsp/rb808.{h,c} (slots, MA, level, accent law),
+  engine/dsp/params.c (LEVEL/ACCENT wired), tools/render.c + bench.c (NSOUNDS),
+  tests/unit/t41 (new), t34 (slot rewrite), mask pins (0xFFFF),
+  storm + ma goldens + sha, audit Phase 8 (ma loops), docs/evidence/808/ma.md,
+  docs/2026-09-24-improvement-todo.md
+- 15 single-voice goldens byte-identical; storm structural (11 slots).
+- Full `ri_audit.sh` 0/0.
+
 ## [2026-09-24] m50 | §12.4c: log-domain glide (RC on pitch CV, τ kept)
 - Disposition: New (TDD: ri_log2 link-RED → Taylor-RED → atanh-GREEN; t40 RED 3 → PASS)
 - Raw: llm-wiki/raw/articles/2026-09-24-imp-12-4c-logslide.md

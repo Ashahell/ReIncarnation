@@ -48,7 +48,9 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 - [ ] Per-parameter smoothers at control rate
 
 ## §12.5 808 rebuild (§4.2)
-- [ ] 11 slots + 5 switches + MA; per-sound controls; metal oscillators; BD/SD models; accent level; choke rules; recursive envelopes
+- [x] 11 slots + 5 switches (last-wins) + MA + per-sound Level + accent-level law + LEVEL/ACCENT knob wiring (m51)
+- [ ] Metal fixed oscillators + choke rules + per-sound Tune/Decay/Snappy/Tone wiring
+- [ ] BD bridged-T + SD two-resonator + recursive envelopes
 
 ## §12.6 909 completion (§4.3)
 - [ ] LT/MT/HT/RS/CP; analog-vs-ROM split; accent/flam decouple; per-voice decay/level; shared CH/OH level + rule; layer morph stays internal
