@@ -261,6 +261,13 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m38 | Proof close-out: separator resolved, custom steps approved
+- Disposition: New (verdict capsule; no code)
+- Raw: llm-wiki/raw/articles/2026-09-24-proof-closeout-seam-steps.md
+- Updated: m36 + m37 articles (proof sections flipped), llm-wiki/index.md
+- Separator absent fresh (census clean) → transient artifact, refresh moot. Steps: visual + doubling clicks approved.
+- 2nd capture wedge = agent flake (no guru, healthy apps); reboot recovered (session 5).
+
 ## [2026-09-24] m37 | Custom RStp class: stock can't size, build our own
 - Disposition: New (m36 FixWidth refuted on device → custom class)
 - Raw: llm-wiki/raw/articles/2026-09-24-custom-rstp-class.md

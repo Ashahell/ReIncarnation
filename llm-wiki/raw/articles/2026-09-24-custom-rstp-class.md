@@ -26,11 +26,13 @@ knob.mui). Correct fix: custom class, which 2.10-full needs anyway.
 - AROS -Werror clean (both TUs). Full `ri_audit.sh` 0/0. Binary
   deployed to RAM:.
 
-## Proof (device, detached runs)
-- Fresh RI-STEPS window ~512+ wide with 16 chunky 32 px buttons,
+## Proof (device, detached runs — APPROVED 2026-09-24)
+- Fresh RI-STEPS window 540 wide with 16 chunky 32 px custom
+  buttons (visually confirmed in capture — dark squares row),
   readout 0, no guru.
-- Click step 0 → depresses red, readout 1; step 3 → 9; step 0
-  again → 8 (toggle-off reads back).
+- Owner click test pre-reboot (same binary): each button clicked
+  separately doubles the readout (bits toggle exactly) — the
+  m35 click sequence subsumed.
 - Old instance closed via gadget first.
 
 ## Files

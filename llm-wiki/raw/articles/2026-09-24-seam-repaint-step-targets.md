@@ -44,4 +44,12 @@ found painting/input): a stale-pixel seam and 14 px click targets.
 
 Full `ri_audit.sh` 0/0. Pending: owner refresh-test (seam) +
 step click sequence on fresh instances (close both windows first).
-",
+
+## Resolution 2026-09-24: bar absent on fresh instance
+Fresh m36-build window (post-reboot lane): no grey concentration
+anywhere near the old seam (≤1 noise hit/column vs 40–50 before).
+Verdict: transient stale-pixel artifact of the long-lived,
+heavily-dragged prior instance — fresh opens paint clean and
+repaint-all guards text-driven shifts. Refresh-test moot. If it
+ever reappears, suspect a non-text relayout trigger (e.g. manual
+window resize) and report it as new evidence.
