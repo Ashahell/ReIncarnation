@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] ingest | Codebase review: ReBirth 2.0 + hardware fidelity, verified defects
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-09-24-codebase-review-rebirth-fidelity.md (companion doc: docs/2026-09-24-improvement-opportunities.md)
+- Updated: llm-wiki/index.md (new "Reviews" section)
+- Verified by host harness: `ri_exp` diverges below ≈ −25 (exp(-100)=-60.1); 808 RS/CL/CH/OH reach 1.400 full-scale 2–3 s after one trigger; ri_sin(500)=-7.8e15
+- Code defects: 303 ID 0x0305 volume/wave mismatch + 303B unhandled; delay beats overridden (fx.c:332); FX pool leak; PCF beat_pos stall; 808 soft-clip step 1.0→0.647; one-renderer 303-only; mono
+- New E1 source: ReBirth RB-338 2.0.1 Owner's Manual — PCF Appendix D diagrams (patterns 0–53) = OPEN-04 closure candidate; tempo 20–500 contradicts code/RBNG 30–300; 808 11 slots/16 sounds (maracas missing) re-opens spec §2.3 item 1
+- Cascade: spec not edited (proposals only, doc §11); working-tree rknb.mcc.c reply-port line noted as redundant, not reviewed further
+
 ## [2026-09-24] ingest | Owner approvals close m33/m34 pendings + ui-capture lane note
 - Disposition: Update (index cascade; approval + lane findings already written in the articles during device testing)
 - Raw: llm-wiki/raw/articles/2026-09-24-knob-name-labels-mui.md, llm-wiki/raw/articles/2026-09-24-commit-observable-undo-counter.md
