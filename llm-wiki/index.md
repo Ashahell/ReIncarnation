@@ -60,6 +60,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 - [raw/articles/2026-09-24-imp-12-4a-gate-length.md](raw/articles/2026-09-24-imp-12-4a-gate-length.md) — **2026-09-24 — §12.4a (m48).** Half-step gate fall (D-h E0); t38 + 5 deliberate pin updates; 3 goldens re-baselined with root causes.
 
+- [raw/articles/2026-09-24-imp-12-4b-meg-veg.md](raw/articles/2026-09-24-imp-12-4b-meg-veg.md) — **2026-09-24 — §12.4b (m49).** MEG/VEG split + sweep (E1 values); t39; revoiced goldens root-caused; owner A/B flagged.
+
 - [raw/articles/2026-09-24-first-click-jump-qa.md](raw/articles/2026-09-24-first-click-jump-qa.md) — **2026-09-24 — First-click jump + Q&A.** Warp arms past 3px; buttons-gone by design; FLAMRES = documented placeholder slot.
 
 - [raw/articles/2026-09-24-spike-lane-wedge-fix.md](raw/articles/2026-09-24-spike-lane-wedge-fix.md) — **2026-09-24 — Spike lane wedge fixed.** Giant-send root cause, 32KB chunk fix (Vulkan4Aros `67eeca3c`), hammer 12/12.

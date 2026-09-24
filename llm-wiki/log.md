@@ -1,5 +1,16 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] m49 | §12.4b: dual envelopes (MEG/VEG + sweep, E1 values)
+- Disposition: New (TDD, t39 compile-RED → PASS; deliberate revoicing)
+- Raw: llm-wiki/raw/articles/2026-09-24-imp-12-4b-meg-veg.md
+- Updated: engine/dsp/rb303.{h,c} (meg/veg/sweep/accented, lineage laws),
+  engine/dsp/params.c (unchanged dispatch — TUNE/normalize carry over),
+  tests/unit/t39_meg_veg.c (new), tests/unit/t22_303slide.c (dual-env pins),
+  first-light set + sched-check.wav + sha (root-caused re-baselines),
+  docs/evidence/303/filter-candidate.md (D7 superseded, D8 added),
+  docs/2026-09-24-improvement-todo.md
+- Accent pins green unmodified. Full `ri_audit.sh` 0/0. Owner A/B flagged.
+
 ## [2026-09-24] m48 | §12.4a: gate-length rule (half-step fall, D-h E0)
 - Disposition: New (TDD, t38 RED 2 → PASS; contract change)
 - Raw: llm-wiki/raw/articles/2026-09-24-imp-12-4a-gate-length.md

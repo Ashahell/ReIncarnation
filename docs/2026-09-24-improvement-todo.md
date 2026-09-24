@@ -41,7 +41,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 
 ## §12.4 303 fidelity pass (§4.1)
 - [x] Gate-length rule (D-h E0: half-step fall, ties hold) + t38 + ledger + re-baselines (m48)
-- [ ] MEG/VEG split + accent-sweep state + accent→min-MEG-decay
+- [x] MEG/VEG split + accent-sweep state + accent→min-MEG-decay (E1 lineage; t39; revoiced goldens) (m49)
 - [ ] Log-domain slide; band-limited osc; 4-pole ladder option; reso taper; cutoff/envmod measurement anchors
   (filter/osc/taper held for measurement per review; slide τ untouched — OPEN-01)
 - [ ] Per-parameter smoothers at control rate
