@@ -276,8 +276,16 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - Jump = press-tremor yank; armed threshold keeps press 1:1. Buttons-gone = by design (bevel boxes retired). FLAMRES = our flam slot, placeholder today (documented in params.c), label stays honestly.
 - Full `ri_audit.sh` 0/0. Binary on RAM:. Pending: owner first-click check on a fresh instance.
 
-## [2026-09-24] m42 | Lane incident: wedged jug v1dh0 with a capture, restored it
-- Myui-capture on their e1000 lane wedged it identically (ping dead, 0 bytes) — 5th incident, 3rd lane/NIC. Reconstructed their exact QEMU launch from recorded `ps`, relaunched, agent back (session 12), desktop verified.
+## [2026-09-24] m43 | Chase beat runs: manual-Wait + MICROHZ measured, VBLANK rejected
+- Disposition: New (m41 pending closed with numbers; vehicle loop-shape change)
+- Raw: llm-wiki/raw/articles/2026-09-24-chase-beat-manual-wait-microhz.md
+- Updated: app/stepproof.c (manual Wait + Break exit, early MICROHZ setup, grid off-by-one fix, diag stripped), llm-wiki/index.md
+- diag13 matrix (bare/+libs/+window/+MUI = rc 1/11/21/31): device delivers everywhere — NewInput never surfaces seeded bits on Zune (blind instrument, struck all NewInput-observed "stall" verdicts incl. the session-13 microhz hypothesis).
+- Measured QEMU file-log, 255 fires: mean 86554 µs vs 86207 requested (+0.4%), jitter ±0.1 ms, drift +347 µs/fire. VBLANK same loop fires at 100.18 ms (blank quantization) — rejected for tempo.
+- Full `ri_audit.sh` 0/0. Final binary QSTEPF opens + Break-exits clean. Glow-motion pixel proof deferred (capture slots unstable; same-SetAttrs FIRES repaints live).
+- Pending: owner Dell eyeball (advancing glow) + LAG/FIRES numbers on a fresh instance.
+
+## [2026-09-24] m42 | Lane incident: wedged jug v1dh0 with a capture, restored it- Myui-capture on their e1000 lane wedged it identically (ping dead, 0 bytes) — 5th incident, 3rd lane/NIC. Reconstructed their exact QEMU launch from recorded `ps`, relaunched, agent back (session 12), desktop verified.
 - Lessons: big captures wedge ANY lane (Dell Intel, QEMU e1000, QEMU rtl8139 eventually) — transfer size, not driver; never test-capture on a shared lane again (private riqemu1 only); their disk untouched (RAM:-only artifacts, died with the process).
 - Apology owed and given; no data loss (reboot-equivalent state).
 
