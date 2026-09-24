@@ -20,6 +20,11 @@ struct MUI_CustomClass;
 struct MUI_CustomClass *ri_rstp_class(void);
 void ri_rstp_dispose_class(void);
 
+/* Chase playhead (BOOL): set on the current step, cleared on the
+ * previous. Renders as a warm white edge; the app drives it from
+ * its beat clock and self-measures lag (TC-2.10.x). */
+#define MUIA_RStp_Chase (TAG_USER + 0x5253u)
+
 /* Create one step button (0/1, initial 0). NULL = class failed. */
 APTR ri_rstp_create(void);
 

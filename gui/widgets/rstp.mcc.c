@@ -34,10 +34,12 @@
 #define RSTP_OFF 0x3a3a38u /* step off: dark grey */
 #define RSTP_ON 0xc04028u /* step on: warm red (ReBirth LED language) */
 #define RSTP_EDGE 0x1c1c1au /* frame edge: near-black */
+#define RSTP_CHASE 0xe8e4dau /* chase playhead: warm white edge */
 
 struct RStpData {
     BOOL armed; /* press began inside (click completes on release) */
     BOOL shown;
+    BOOL chase; /* playhead on this step (MUIA_RStp_Chase mirror) */
     struct MUI_EventHandlerNode ehn;
 };
 
@@ -48,14 +50,17 @@ static int rstp_hit(Object *obj, WORD mx, WORD my) {
         my >= _top(obj) && my < _top(obj) + _height(obj);
 }
 
-/* Paint the 32 px step: fill by state + 1 px edge on all sides. */
-static void rstp_paint(struct RastPort *rp, int x, int y, int on) {
+/* Paint the 32 px step: fill by state + 1 px edge on all sides
+ * (warm white edge while chased = the playhead). */
+static void rstp_paint(struct RastPort *rp, int x, int y, int on,
+    int chase) {
     uint32_t fill = on ? RSTP_ON : RSTP_OFF;
+    uint32_t edge = chase ? RSTP_CHASE : RSTP_EDGE;
     ri_knob_panel_rect(rp, x, y, RSTP_PX, RSTP_PX, fill);
-    ri_knob_panel_rect(rp, x, y, RSTP_PX, 1, RSTP_EDGE);
-    ri_knob_panel_rect(rp, x, y + RSTP_PX - 1, RSTP_PX, 1, RSTP_EDGE);
-    ri_knob_panel_rect(rp, x, y, 1, RSTP_PX, RSTP_EDGE);
-    ri_knob_panel_rect(rp, x + RSTP_PX - 1, y, 1, RSTP_PX, RSTP_EDGE);
+    ri_knob_panel_rect(rp, x, y, RSTP_PX, 1, edge);
+    ri_knob_panel_rect(rp, x, y + RSTP_PX - 1, RSTP_PX, 1, edge);
+    ri_knob_panel_rect(rp, x, y, 1, RSTP_PX, edge);
+    ri_knob_panel_rect(rp, x + RSTP_PX - 1, y, 1, RSTP_PX, edge);
 }
 
 BOOPSI_DISPATCHER(IPTR, rstp_dispatcher, cl, obj, msg) {
@@ -68,13 +73,30 @@ BOOPSI_DISPATCHER(IPTR, rstp_dispatcher, cl, obj, msg) {
         d = (struct RStpData *)INST_DATA(cl, o);
         d->armed = FALSE;
         d->shown = FALSE;
+        d->chase = FALSE;
         return (IPTR)o;
+    }
+    case OM_GET: {
+        /* Our own attribute served here; everything else runs the
+         * superclass (Numeric value etc.). */
+        struct opGet *g = (struct opGet *)msg;
+        if (g->opg_AttrID == MUIA_RStp_Chase) {
+            d = (struct RStpData *)INST_DATA(cl, obj);
+            *g->opg_Storage = (ULONG)(d->chase ? 1 : 0);
+            return (IPTR)1;
+        }
+        return DoSuperMethodA(cl, obj, msg);
     }
     case OM_SET: {
         struct opSet *s = (struct opSet *)msg;
+        struct TagItem *ti;
         IPTR rc = DoSuperMethodA(cl, obj, msg);
         d = (struct RStpData *)INST_DATA(cl, obj);
-        if (d->shown && FindTagItem(MUIA_Numeric_Value, s->ops_AttrList))
+        ti = FindTagItem(MUIA_RStp_Chase, s->ops_AttrList);
+        if (ti)
+            d->chase = ti->ti_Data ? TRUE : FALSE;
+        if (d->shown && (ti ||
+            FindTagItem(MUIA_Numeric_Value, s->ops_AttrList)))
             DoMethod(obj, MUIM_Draw, MADF_DRAWOBJECT);
         return rc;
     }
@@ -122,9 +144,9 @@ BOOPSI_DISPATCHER(IPTR, rstp_dispatcher, cl, obj, msg) {
          * flag on this Zune (m22 verdict on knobs, same toolkit). */
         LONG v = 0;
         d = (struct RStpData *)INST_DATA(cl, obj);
-        (void)d;
         DoMethod(obj, OM_GET, MUIA_Numeric_Value, &v);
-        rstp_paint(_rp(obj), _left(obj), _top(obj), v != 0);
+        rstp_paint(_rp(obj), _left(obj), _top(obj), v != 0,
+            d->chase);
         return (IPTR)0;
     }
     case MUIM_HandleEvent: {
