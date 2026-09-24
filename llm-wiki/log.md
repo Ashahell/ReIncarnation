@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] m45 | Input-device ReplyPort hygiene (shared-lane commit)
+- 2-line fix in `gui/widgets/rknb.mcc.c` (`rknb_input_open`): set
+  `io_Message.mn_ReplyPort` after `CreateIORequest` (AROS convention — the
+  call does not set it; same pattern as stepproof/diag13 timer setup).
+  Behavior-neutral on today's DoIO-only warp path; forward-correct for SendIO.
+- Verified: AROS compile-only with exact audit Phase-12 flags (v1 SDK) clean.
+  Stale ~6.5 h in the tree, sibling lane undisturbed (RAM: binaries unaffected).
+- No new raw (convention already practiced in-tree); recorded here for coverage.
+
 ## [2026-09-24] ingest | Codebase review: ReBirth 2.0 + hardware fidelity, verified defects
 - Disposition: New
 - Raw: llm-wiki/raw/articles/2026-09-24-codebase-review-rebirth-fidelity.md (companion doc: docs/2026-09-24-improvement-opportunities.md)

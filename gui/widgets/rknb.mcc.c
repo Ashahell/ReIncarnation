@@ -85,6 +85,8 @@ static void rknb_input_open(void) {
         return;
     s_inreq = (struct IOStdReq *)CreateIORequest(s_inport,
         sizeof(struct IOStdReq));
+    if (s_inreq)
+        s_inreq->io_Message.mn_ReplyPort = s_inport;
     if (!s_inreq) {
         DeleteMsgPort(s_inport);
         s_inport = NULL;
