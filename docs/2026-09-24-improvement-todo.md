@@ -49,7 +49,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 
 ## §12.5 808 rebuild (§4.2)
 - [x] 11 slots + 5 switches (last-wins) + MA + per-sound Level + accent-level law + LEVEL/ACCENT knob wiring (m51)
-- [ ] Metal fixed oscillators + choke rules + per-sound Tune/Decay/Snappy/Tone wiring
+- [x] Metal fixed oscillators + choke rules + per-sound Tune/Decay/Snappy/Tone wiring (m52)
 - [ ] BD bridged-T + SD two-resonator + recursive envelopes
 
 ## §12.6 909 completion (§4.3)

@@ -1,5 +1,15 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m52 | §12.5b: metal fixed freqs + choke + per-sound params
+- Disposition: New (TDD, t42 RED → PASS with honest meters)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-5b-808-metal.md
+- Updated: engine/dsp/rb808.{h,c} (METAL_HZ, blep, choke, tune/snappy/tone),
+  engine/dsp/params.c (SNAPPY/TONE wired), tests/unit/t42 (new),
+  tests/unit/t23_808hat + t1_808 §2 (E1 re-contract),
+  ch/oh/cy/cb/storm goldens + sha (root-caused), 4 voice ledgers,
+  docs/2026-09-24-improvement-todo.md
+- 11 other goldens byte-identical (exact defaults). Full `ri_audit.sh` 0/0.
+
 ## [2026-09-25] m51 | §12.5a: 808 slots/MA/level (structural, 16 sounds)
 - Disposition: New (TDD, t41 + per-family revert-checks)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-5a-808-slots.md
