@@ -120,25 +120,36 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
             d->ehn.ehn_Object = obj;
             d->ehn.ehn_Class = cl;
             d->ehn.ehn_Events = IDCMP_MOUSEBUTTONS | IDCMP_MOUSEMOVE;
-            DoMethod(_window(obj), MUIM_Window_AddEventHandler,
+            /* NOTE: the handler goes to the MUI window OBJECT (_win),
+             * never the Intuition window (_window): MUIM_Window_*
+             * methods belong to MUIC_Window, and DoMethod on an
+             * Intuition Window* dispatches through garbage (crashed
+             * both Dell vehicles 2026-09-24, illegal-address guru).
+             * _win vs _window is one letter and a type error. */
+            DoMethod(_win(obj), MUIM_Window_AddEventHandler,
                 &d->ehn);
         }
         return rc;
     }
     case MUIM_Hide: {
         d = (struct RKnBData *)INST_DATA(cl, obj);
-        DoMethod(_window(obj), MUIM_Window_RemEventHandler, &d->ehn);
+        /* _win (MUI object), never _window — see the Show note. */
+        DoMethod(_win(obj), MUIM_Window_RemEventHandler, &d->ehn);
         d->shown = FALSE;
         d->dragging = FALSE;
         return DoSuperMethodA(cl, obj, msg);
     }
     case MUIM_Draw: {
+        /* Paint on ANY Draw call: the initial show-time Draw does NOT
+         * carry MADF_DRAWOBJECT on this Zune (gated variant painted
+         * nothing on device 2026-09-24; ungated paints — evidence
+         * over docs). Full-frame repaint is idempotent, so partial
+         * updates are harmless. */
         struct MUIP_Draw *m = (struct MUIP_Draw *)msg;
-        if (m->flags & MADF_DRAWOBJECT) {
-            d = (struct RKnBData *)INST_DATA(cl, obj);
-            ri_knob_blit_one(_rp(obj), (int)d->cur, _left(obj),
-                _top(obj));
-        }
+        (void)m;
+        d = (struct RKnBData *)INST_DATA(cl, obj);
+        ri_knob_blit_one(_rp(obj), (int)d->cur, _left(obj),
+            _top(obj));
         return (IPTR)0;
     }
     case MUIM_HandleEvent: {
