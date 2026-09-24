@@ -254,6 +254,14 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m29 | Accumulator clamp: reversal bites at once (TDD), device test pending
+- Disposition: New (host-green + deployed; device proof PENDING owner re-test)
+- Raw: llm-wiki/raw/articles/2026-09-24-accumulator-clamp-reversal.md
+- Updated: gui/knob_logic.[ch] (`ri_knob_clamp_acc`), gui/widgets/rknb.mcc.c (double acc + per-move clamp), tests/unit/t1_knob.c (2b pins), docs/autodoc/gui.doc + audit check_sig, llm-wiki/index.md
+- **Root cause:** pinned pointer → unbounded overshoot past clamp → reversal unwinds dead zone; fresh click re-anchors (why it always worked).
+- RED → GREEN (PASS knob). Stale-object trap both lanes (host `all`-first; AROS relink deps).
+- Full `ri_audit.sh` 0/0. Binary on RAM:. Pending: owner in-press reversal test on a fresh instance.
+
 ## [2026-09-24] m28 | Warp-target basis fix: outer- vs content-relative coords, device test pending
 - Disposition: New (single-variable fix; device proof PENDING owner re-test)
 - Raw: llm-wiki/raw/articles/2026-09-24-warp-target-basis-fix.md
