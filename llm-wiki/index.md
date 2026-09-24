@@ -43,6 +43,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
+- [raw/articles/2026-09-24-first-click-jump-qa.md](raw/articles/2026-09-24-first-click-jump-qa.md) — **2026-09-24 — First-click jump + Q&A.** Warp arms past 3px; buttons-gone by design; FLAMRES = documented placeholder slot.
+
 - [raw/articles/2026-09-24-spike-lane-wedge-fix.md](raw/articles/2026-09-24-spike-lane-wedge-fix.md) — **2026-09-24 — Spike lane wedge fixed.** Giant-send root cause, 32KB chunk fix (Vulkan4Aros `67eeca3c`), hammer 12/12.
 
 - [raw/articles/2026-09-24-custom-label-class.md](raw/articles/2026-09-24-custom-label-class.md) — **2026-09-24 — Custom label class.** Text rows compared (names black, values/undo light); owned pixels; eyeball pending.
