@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] m46 | §12.2: 303 control-ID contract (wave/volume, 303B, Tune)
+- Disposition: New (TDD, t36 RED 19 → PASS)
+- Raw: llm-wiki/raw/articles/2026-09-24-imp-12-2-303-control-contract.md
+- Updated: engine/dsp/rb303.h (303B IDs + TUNE + `tune_st`), params.c (shared
+  dispatch + ratio bend), rb303.c (tune in note/slide), gui/panels.c (8 rows ×
+  2 sections), docs/ReIncarnation.guide (map corrected), tools/render.c
+  (303B non-forwarding documented for §12.3), docs/2026-09-24-improvement-todo.md
+- 303 goldens byte-identical. Full `ri_audit.sh` 0/0. Codegen HELD (YAGNI, t36 pins it).
+
 ## [2026-09-24] m45 | Input-device ReplyPort hygiene (shared-lane commit)
 - 2-line fix in `gui/widgets/rknb.mcc.c` (`rknb_input_open`): set
   `io_Message.mn_ReplyPort` after `CreateIORequest` (AROS convention — the

@@ -21,9 +21,14 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   inflating it cost 2.4× storm CPU (t1_808/t21/t23 budgets RED); caught by suite, fixed.
 
 ## §12.2 Control registry + 303 ID fix + 303B dispatch + Tune (§2.2)
-- [ ] One control table as source; generate panels.c / set_param dispatch / guide rows / audit greps
-- [ ] Fix 0x0305 volume-vs-wave; route 0x031x (303B); render.c forward full 0x03xx
-- [ ] Add Tune + Waveform to panel
+- [x] Fix 0x0305 volume-vs-wave (panel row renamed waveform@0x0305 def 0; volume moves to 0x0306 def 100; guide corrected, audit strings kept)
+- [x] Route 0x031x via shared dispatch (set_param normalizes block; twin-voice behavior test t36)
+- [x] Add Tune (0x0307/0x0317, ±24 st, live ratio bend, pitch-exact) + Waveform to panel (both sections)
+- [x] Panel/engine contract test-enforced (all 16 IDs reachable from panels; rows whitelisted to handled map; defaults pinned)
+- [x] 303 goldens byte-identical (tune 0 = ×1.0 exact); render-path 303B voice scoped to §12.3 (comment in render.c, no mistarget)
+- HELD: full single-source codegen (generate panels/guide/greps from one table) —
+  engine IDs canonical in rb303.h, panel uses BASE+offset, contract pinned by t36;
+  codegen when a third consumer appears (YAGNI).
 
 ## §12.3 Integrated stereo engine skeleton (§5.1, §5.3)
 - [ ] One `ri_engine_render` for CLI/export/AHI; fixtures on engine API; first-light goldens byte-identical or deliberately re-baselined
