@@ -17,10 +17,11 @@
 #define T21L_SONG T21L_DIR "/loop.rbng"
 #define T21L_WAV T21L_DIR "/loop.wav"
 /* 16th = 24 ticks = 6000 samples @120 BPM/48 kHz; 8-step loop = 48000.
- * File total = last NOTE_OFF (step 9 @54000) + 1 s tail (48000). */
+ * File total = last NOTE_OFF (step 9 gate-fraction @51000, D-h §12.4)
+ * + 1 s tail (48000). */
 #define T21L_HALF_SAMPLES 48000u
 #define T21L_HALF_BYTES (T21L_HALF_SAMPLES * 2u)
-#define T21L_WANT_SIZE (44u + (54000u + 48000u) * 2u)
+#define T21L_WANT_SIZE (44u + (51000u + 48000u) * 2u)
 
 static int fails = 0;
 #define CHECK(cond, ...) do { \

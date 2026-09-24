@@ -54,8 +54,10 @@ int main(void) {
         RI_ASSERT(ev[0].type == RI_EV_NOTE_ON && ev[0].sample == t0, "accent ev0 type %u", ev[0].type);
         RI_ASSERT(ev[1].type == RI_EV_ACCENT && ev[1].sample == t0 && ev[1].value == 1, "accent ev1 (%u,%u)",
             ev[1].type, ev[1].value);
-        RI_ASSERT(ev[2].type == RI_EV_NOTE_OFF && ev[2].sample == t1, "accent ev2 (%u,%llu)",
-            ev[2].type, (unsigned long long)ev[2].sample);
+        /* D-h gate rule (§12.4): the OFF falls at the half-step tick now,
+         * not at the rest boundary. */
+        RI_ASSERT(ev[2].type == RI_EV_NOTE_OFF && ev[2].sample == ri_map_tick(&map, 12),
+            "accent ev2 (%u,%llu)", ev[2].type, (unsigned long long)ev[2].sample);
     }
 
     /* Total-order invariant on every emitted stream. */

@@ -31,7 +31,9 @@ int main(void) {
     struct RIEvent ev[32];
     char err[256];
     uint32_t n, i;
-    static const uint64_t k_sample[6] = { 0, 6000, 12000, 12000, 12000, 18000 };
+    /* D-h gate rule (§12.4): the final OFF falls at the half-step tick
+     * (15000 = 60 ticks) now, not at the rest boundary (18000). */
+    static const uint64_t k_sample[6] = { 0, 6000, 12000, 12000, 12000, 15000 };
     static const uint32_t k_type[6] =
         { RI_EV_NOTE_ON, RI_EV_NOTE_ON, RI_EV_NOTE_OFF, RI_EV_NOTE_ON,
           RI_EV_ACCENT, RI_EV_NOTE_OFF };

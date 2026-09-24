@@ -27,8 +27,12 @@ int main(void) {
     struct RITempoMap map;
     struct RIEvent ev[32];
     uint32_t n, i;
+    /* D-h gate rule (§12.4): OFFs fall at half-step ticks now (15000/27000),
+     * and emit right after their ON (seq follows emission order, NOT sample
+     * order — the final insertion sort sets stream order). Types/values/flags
+     * are unchanged; only OFF samples + seq permutation move. */
     static const uint64_t k_sample[10] =
-        { 0, 6000, 12000, 12000, 12000, 18000, 24000, 24000, 24000, 30000 };
+        { 0, 6000, 12000, 12000, 12000, 15000, 24000, 24000, 24000, 27000 };
     static const uint32_t k_type[10] =
         { RI_EV_NOTE_ON, RI_EV_NOTE_ON, RI_EV_NOTE_OFF, RI_EV_NOTE_ON,
           RI_EV_ACCENT, RI_EV_NOTE_OFF, RI_EV_NOTE_ON, RI_EV_ACCENT,
@@ -37,7 +41,7 @@ int main(void) {
     static const uint16_t k_flags[10] =
         { 0, RI_EVFLAG_SLIDE, 0, RI_EVFLAG_ACCENT, 0, 0,
           RI_EVFLAG_ACCENT, 0, RI_EVFLAG_FLAM2, 0 };
-    static const uint32_t k_seq[10] = { 0, 1, 2, 3, 4, 5, 6, 8, 7, 9 };
+    static const uint32_t k_seq[10] = { 0, 1, 2, 3, 5, 4, 6, 9, 8, 7 };
 
     memset(&song, 0, sizeof song);
     song.nsteps = 5u;

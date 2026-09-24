@@ -24,8 +24,9 @@ int main(void) {
     struct RITempoMap map;
     struct RIEvent ev[32];
     uint32_t n, i;
+    /* D-h gate rule (§12.4): OFFs at half-step ticks (15000/27000). */
     static const uint64_t k_sample[10] =
-        { 0, 6000, 12000, 12000, 12000, 18000, 24000, 24000, 24000, 30000 };
+        { 0, 6000, 12000, 12000, 12000, 15000, 24000, 24000, 24000, 27000 };
     static const uint32_t k_type[10] =
         { RI_EV_NOTE_ON, RI_EV_NOTE_ON, RI_EV_NOTE_OFF, RI_EV_NOTE_ON,
           RI_EV_ACCENT, RI_EV_NOTE_OFF, RI_EV_NOTE_ON, RI_EV_ACCENT,

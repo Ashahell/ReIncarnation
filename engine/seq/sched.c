@@ -83,6 +83,31 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
             }
             held = steps[i].note;
             gate = 1;
+            /* §12.4 gate-length rule (D-h, E0 fraction 1/2): a non-slide,
+             * non-legato note falls at its start + half a step. Ties
+             * (slide/rest+slide next, legato mode) hold the gate instead.
+             * gate = 0 suppresses the boundary OFFs below naturally, so
+             * each note carries exactly one OFF. Under cap pressure the
+             * OFF is dropped and the note stays full-length (fail-open
+             * toward legacy, deterministic). */
+            if (!is_slide && !legato && n < cap) {
+                uint64_t frac_tick;
+                int ties_next = 0;
+                if (i + 1u < nsteps)
+                    ties_next = (steps[i + 1u].flags & RI_STEP_SLIDE) != 0;
+                if (!ties_next) {
+                    frac_tick = tick + (uint64_t)(step_ticks / 2u);
+                    out[n].sample = ri_map_tick(map, frac_tick);
+                    out[n].type = RI_EV_NOTE_OFF;
+                    out[n].device = device;
+                    out[n].voice = 0;
+                    out[n].value = steps[i].note;
+                    out[n].flags = 0;
+                    out[n].seq = seq++;
+                    n++;
+                    gate = 0;
+                }
+            }
             /* §7 last: flam second hit as a separate timestamped event. */
             if (is_flam && n < cap) {
                 out[n].sample = sample + (uint64_t)flam_samples;

@@ -55,7 +55,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t28_wavdepth >/dev/null || { echo "FA
 bash "$ROOT/scripts/ri_build_host.sh" test t31_rate441 >/dev/null || { echo "FAIL: t31_rate441 (TC-2.13.4)"; exit 1; }
 echo "-- export golden headers (external sox check when present) --"
 if command -v sox >/dev/null 2>&1; then
-  for spec in "math-dc.wav:48000:16:96000" "dc-24.wav:48000:24:96000" "dc-441.wav:44100:16:96000" "first-light.wav:48000:16:125143" "first-light-441.wav:44100:16:114975" "dc-aiff.wav:48000:16:96000" "first-light-aiff.wav:48000:16:125143"; do
+  for spec in "math-dc.wav:48000:16:96000" "dc-24.wav:48000:24:96000" "dc-441.wav:44100:16:96000" "first-light.wav:48000:16:122571" "first-light-441.wav:44100:16:112612" "dc-aiff.wav:48000:16:96000" "first-light-aiff.wav:48000:16:122571"; do
     f="${spec%%:*}"; rest="${spec#*:}"; r="${rest%%:*}"; rest="${rest#*:}"; b="${rest%%:*}"; n="${rest##*:}";
     [ "$(soxi -c "$G/$f")" = "1" ] || { echo "FAIL: sox ch $f"; exit 1; }
     [ "$(soxi -r "$G/$f")" = "$r" ] || { echo "FAIL: sox rate $f"; exit 1; }
