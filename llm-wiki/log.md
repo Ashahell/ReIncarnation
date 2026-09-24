@@ -285,6 +285,16 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - Full `ri_audit.sh` 0/0. Final binary QSTEPF opens + Break-exits clean. Glow-motion pixel proof deferred (capture slots unstable; same-SetAttrs FIRES repaints live).
 - Pending: owner Dell eyeball (advancing glow) + LAG/FIRES numbers on a fresh instance.
 
+## [2026-09-24] m41b + label-proof | Belated verdict pointers (no new code)
+- m41b: commit `3175071` (feat: `io_Flags` hygiene on timer rearm + warp DoIO, plus the
+  m41-article forensics section) shipped without its own log line — recorded here
+  belatedly. Verdict arrived in m43: hygiene was innocent-but-insufficient; the loop
+  was blind (NewInput), not dirty. See the Resolution section in
+  `2026-09-24-live-chase-timer-lag.md` and the m43 record.
+- Label proof: commit `8d53322` flipped the m39 proof section (agent census
+  1924/2040 px light bucket, zero grey seam hits) with no log line — recorded here.
+  Owner spelling-crispness eyeball still open.
+
 ## [2026-09-24] m42 | Lane incident: wedged jug v1dh0 with a capture, restored it- Myui-capture on their e1000 lane wedged it identically (ping dead, 0 bytes) — 5th incident, 3rd lane/NIC. Reconstructed their exact QEMU launch from recorded `ps`, relaunched, agent back (session 12), desktop verified.
 - Lessons: big captures wedge ANY lane (Dell Intel, QEMU e1000, QEMU rtl8139 eventually) — transfer size, not driver; never test-capture on a shared lane again (private riqemu1 only); their disk untouched (RAM:-only artifacts, died with the process).
 - Apology owed and given; no data loss (reboot-equivalent state).

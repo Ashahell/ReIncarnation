@@ -43,7 +43,7 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Session findings (2026-09-22, real hardware ABIv11)
 
-- [raw/articles/2026-09-24-live-chase-timer-lag.md](raw/articles/2026-09-24-live-chase-timer-lag.md) — **2026-09-24 — Live chase: timer beat clock + playhead + lag.** Chase attr + highlight; 174 BPM clock; lag self-measured; eyeball + number pending.
+- [raw/articles/2026-09-24-live-chase-timer-lag.md](raw/articles/2026-09-24-live-chase-timer-lag.md) — **2026-09-24 — Live chase: timer beat clock + playhead + lag.** Chase attr + highlight; 174 BPM clock; dead-chase forensics (`io_Flags` hygiene); verdict in m43 (NewInput blind, manual-Wait runs).
 
 - [raw/articles/2026-09-24-chase-beat-manual-wait-microhz.md](raw/articles/2026-09-24-chase-beat-manual-wait-microhz.md) — **2026-09-24 — Chase beat runs (m43).** NewInput exonerated-blind (diag13 1/11/21/31); manual-Wait + MICROHZ measured 255 fires @ 86.55 ms ±0.1 ms (+0.35 ms/fire drift); VBLANK rejected (100 ms quantization); glow visual to Dell.
 
@@ -51,7 +51,7 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 - [raw/articles/2026-09-24-spike-lane-wedge-fix.md](raw/articles/2026-09-24-spike-lane-wedge-fix.md) — **2026-09-24 — Spike lane wedge fixed.** Giant-send root cause, 32KB chunk fix (Vulkan4Aros `67eeca3c`), hammer 12/12.
 
-- [raw/articles/2026-09-24-custom-label-class.md](raw/articles/2026-09-24-custom-label-class.md) — **2026-09-24 — Custom label class.** Text rows compared (names black, values/undo light); owned pixels; eyeball pending.
+- [raw/articles/2026-09-24-custom-label-class.md](raw/articles/2026-09-24-custom-label-class.md) — **2026-09-24 — Custom label class.** Text rows compared (names black, values/undo light); owned pixels; agent census proof recorded (1924/2040 light, zero seam); owner spelling eyeball open.
 
 - [raw/articles/2026-09-24-proof-closeout-seam-steps.md](raw/articles/2026-09-24-proof-closeout-seam-steps.md) — **2026-09-24 — Proof close-out.** Separator resolved (absent fresh), steps approved (visual + doubling); 2nd capture wedge = agent flake.
 

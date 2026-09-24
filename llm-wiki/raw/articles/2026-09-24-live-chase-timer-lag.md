@@ -38,6 +38,17 @@ with the playhead visible and the lag budget measured live.
   still frozen (suspect timer.device itself or InputBuffered
   blocking semantics — next hypotheses in that order).
 
+## Resolution (m43, same day — this section added after the fact; above kept as written)
+- The hygiene fix did NOT unfreeze the loop: with clean flags the setup-bits
+  diagnostic read 107 (port + signal + open all ok) and STEP still froze.
+- diag13 matrix (bare/+libs/+window/+MUI app all reply, rc 1/11/21/31) killed
+  the timer.device suspect; rebuilding the loop on manual `Wait` produced
+  255 continuous fires at 86.55 ms. The blind instrument was
+  `MUIM_Application_NewInput`, which never surfaces seeded user bits on Zune;
+  the "0 vs 3 fires" nondeterminism is reframed as NewInput flakiness, not
+  device state. Full record:
+  `2026-09-24-chase-beat-manual-wait-microhz.md` (m43).
+
 ## Files
 - env: `gui/widgets/rstp.{h,mcc.c}`, `app/stepproof.c`
 - Dell scratch: `/home/miller/Work/ri_build/dell2/ri_stepproof`
