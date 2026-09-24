@@ -14,12 +14,20 @@ artwork. Layout numbers are E0 design acceptance thresholds.
 - [ ] Fader: 100 px = full travel, same fine rule
 - [ ] Commit-on-release: one drag = one undo unit (single commit event)
 - [ ] Right-click: resets control to panel default (`ri_panel_default_ctl`, host-pinned)
+- [x] Click down/up on a custom knob: no crash, value steady (Dell
+  2026-09-24, m22 — full drag needs a hold-and-drag primitive or a
+  human hand; remote click = down/up with no move)
 
 ## Silhouette + artwork (TC-2.9.x)
 
-- [x] Control centers ±2 px vs panel-909-geometry doc (compact
-  measured lock 2026-09-23: 30/63/96/129 @ y52, two Dell runs
-  pixel-identical; E0 1024-canvas superseded — see geometry doc)
+- [x] Control centers ±2 px vs panel-909-geometry doc (v2 lock
+  2026-09-23/24: 40/110/180/250 @ y52, pitch 70 from hardware 1.35
+  ratio; Dell m22 re-measurement 0 px x-error net of MUI chrome
+  offset, y via pointer-tip geometry; compact 33 px numbers struck
+  in the geometry doc — see it, not here)
+- [x] Custom RKnB class renders measured 909 art on device (Dell
+  2026-09-24, m22: four olive knobs, `#e37c3b` pointers byte-exact,
+  tick rings, MUIC_Knob retired)
 - [ ] Proportions ±1% (style-matched type, never pixel-copying)
 - [ ] Artwork authored at 2x, filtered down, no shimmer on static panels
 

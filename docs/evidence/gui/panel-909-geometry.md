@@ -23,7 +23,7 @@ tune/level/decay/flamres at 0x0900..0x0903) and rects by
 `t29_layout.c` — doc and code cite each other so neither drifts
 silently.
 
-## Lock note (E0→measured 2026-09-23)
+## Lock note (E0→measured 2026-09-23; SUPERSEDED by v2 lock above 2026-09-23/24)
 
 The E0 draft assumed a 1024×768 canvas with the panel at
 (64,96). Device measurement (Dell E6320, two independent runs
@@ -31,16 +31,16 @@ of the same binary, pixel-identical both times) showed Zune
 MUI auto-layout instead: knob.mui renders its ~32 px intrinsic
 (FixWidth honored nowhere measurable), cells added only slack,
 and the window sizes to content (160×88 at screen origin — the
-1024×768 request ignored). Rather than fight the toolkit for
+1024×768 request ignored). ~~Rather than fight the toolkit for
 the E0 numbers, the doc locks the measured compact panel: even
-33 px pitch, aligned row, identical visuals — principled order,
-not accident. The 1024-canvas full panel + ReBirth-style knob
+33 px pitch, aligned row, identical visuals~~ — SUPERSEDED:
+real 52 px art bodies overlap at 33 px pitch (proven on device),
+so the lock moved to even 70 px pitch (v2 section above).
+~~The 1024-canvas full panel + ReBirth-style knob
 art stay future work (M2.4); MUIC_Knob stock look claimed
-as-is, never as art (never-pixel-copy policy holds).
-
-## Canvas (measured)
-
-Window 160×88 at screen origin (0,0). Knob row y = 52.
+as-is, never as art~~ — SUPERSEDED: custom RKnB class renders
+measured 909 art on device (m22), MUIC_Knob retired; the
+never-pixel-copy policy holds unchanged.
 
 ## Controls (centers, screen px @1x)
 
