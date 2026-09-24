@@ -37,17 +37,19 @@ static void setup(struct RB303Voice *v) {
 int main(void) {
     struct RB303Voice v;
     float s[1u];
-    float env0, tgt;
+    float meg0, veg0, tgt;
     uint32_t n;
     int reached = 0;
     setup(&v);
 
-    /* Retrigger with slide: env must NOT reset, gate stays high. */
-    env0 = v.env;
+    /* Retrigger with slide: envelopes must NOT reset, gate stays high. */
+    meg0 = v.meg;
+    veg0 = v.veg;
     CHECK(v.gate == 1.0f, "gate %f want 1", (double)v.gate);
     rb303_note(&v, 52, 1, 0);
     CHECK(v.gate == 1.0f, "gate after slide %f", (double)v.gate);
-    CHECK(v.env == env0, "env reset %f was %f", (double)v.env, (double)env0);
+    CHECK(v.meg == meg0 && v.veg == veg0, "env reset meg %f was %f veg %f was %f",
+        (double)v.meg, (double)meg0, (double)v.veg, (double)veg0);
     tgt = v.target_freq;
 
     /* Slew, not jump: after 1 sample still far from target. */
@@ -55,13 +57,13 @@ int main(void) {
     CHECK(fabsf((v.freq - tgt) / tgt) > 0.10f, "jumped instantly %f vs %f",
           (double)v.freq, (double)tgt);
 
-    /* Reach within 5*tau (9600 samples), env keeps decaying (no reset). */
+    /* Reach within 5*tau (9600 samples), envs keep decaying (no reset). */
     for (n = 0u; n < 9600u; n++) {
-        float eprev = v.env;
+        float mprev = v.meg, vprev = v.veg;
         rb303_render(&v, s, 1u, T22S_SR);
-        if (v.env > eprev * 1.001f + 1e-6f) {
-            printf("FAIL env reset at %u (%f -> %f)\n", n,
-                   (double)eprev, (double)v.env);
+        if (v.meg > mprev * 1.001f + 1e-6f || v.veg > vprev * 1.001f + 1e-6f) {
+            printf("FAIL env reset at %u (meg %f -> %f veg %f -> %f)\n", n,
+                   (double)mprev, (double)v.meg, (double)vprev, (double)v.veg);
             fails++;
             break;
         }
@@ -73,9 +75,9 @@ int main(void) {
     CHECK(reached, "no reach within 5tau");
     /* slide_to form: target-only, nothing reset. */
     {
-        float e1 = v.env;
+        float m1 = v.meg, v1 = v.veg;
         rb303_slide_to(&v, 45);
-        CHECK(v.env == e1 && v.gate == 1.0f, "slide_to touched env/gate");
+        CHECK(v.meg == m1 && v.veg == v1 && v.gate == 1.0f, "slide_to touched env/gate");
     }
 
     if (fails)

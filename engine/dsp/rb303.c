@@ -38,6 +38,13 @@ static float clampf(float x, float lo, float hi) {
     return x;
 }
 
+/* Accent-sweep charge: saturating buildup, so consecutive accents peak
+ * higher (the "wow" on accent runs). Discharge is per-sample in render
+ * with a reso-dependent lag. */
+static void sweep_hit(struct RB303Voice *v) {
+    v->sweep += v->accent_amt * (1.0f - v->sweep);
+}
+
 /* MIDI note -> Hz: 440 * 2^((m-69)/12). Exponent in [-5.75, 4.83]. */
 static float midi_to_hz(uint8_t m) {
     return 440.0f * ri_pow2(((float)m - 69.0f) / 12.0f);
@@ -71,7 +78,10 @@ void rb303_init(struct RB303Voice *v) {
     v->phase = 0.0f;
     v->freq = 55.0f;
     v->target_freq = 55.0f;
-    v->env = 0.0f;
+    v->meg = 0.0f;
+    v->veg = 0.0f;
+    v->sweep = 0.0f;
+    v->accented = 0;
     v->accent_env = 0.0f;
     v->prev_in = 0.0f;
     v->gate = 0.0f;
@@ -122,12 +132,16 @@ void rb303_note(struct RB303Voice *v, uint8_t midi, int slide, int accent) {
     v->gate = 1.0f;
     if (!slide) {
         v->freq = v->target_freq; /* pitch jumps */
-        v->env = 1.0f;            /* envelopes reset */
+        v->meg = 1.0f;            /* envelopes restart */
+        v->veg = 1.0f;
         v->phase = 0.0f;
     }
     /* slide: gate stays high, no env reset (§8 table); pitch slews in render */
-    if (accent)
+    v->accented = accent ? 1 : 0;
+    if (accent) {
         v->accent_env = 1.0f;
+        sweep_hit(v);
+    }
 }
 
 void rb303_slide_to(struct RB303Voice *v, uint8_t midi) {
@@ -136,6 +150,7 @@ void rb303_slide_to(struct RB303Voice *v, uint8_t midi) {
 
 void rb303_accent(struct RB303Voice *v) {
     v->accent_env = 1.0f;
+    sweep_hit(v);
 }
 
 void rb303_release(struct RB303Voice *v) {
@@ -144,20 +159,36 @@ void rb303_release(struct RB303Voice *v) {
 
 /* Full voice render: VCO -> env -> VCA -> ladder -> post HPs -> volume. */
 void rb303_render(struct RB303Voice *v, float *out, uint32_t n, float sr) {
-    float slide_a, dec_a, rel_a, acc_a;
+    float slide_a, meg_a, veg_a, rel_a, acc_a, sw_a;
     float g1, g2;
     uint32_t i;
     uint32_t xf_total; /* 0.5 ms crossfade length, samples (TC-2.2.5) */
+    float meg_tau = v->accented ? RI_303_MEG_ACC_TAU : v->decay_tau;
+    float veg_tau = v->accented ? RI_303_VEG_ACC_TAU : RI_303_VEG_TAU;
+    float rel_tau = v->accented ? RI_303_REL_ACC_TAU : RI_303_REL_TAU;
+    float sw_tau = 0.05f + v->reso_k * 0.05f; /* accent-sweep lag follows
+        resonance (E0); reso_k here is the base (per-sample mod copies it) */
     if (v->slide_tc * sr > 1.0f)
         slide_a = 1.0f - ri_exp(-1.0f / (v->slide_tc * sr));
     else
         slide_a = 1.0f;
-    if (v->decay_tau * sr > 1.0f)
-        dec_a = ri_exp(-1.0f / (v->decay_tau * sr));
+    if (meg_tau * sr > 1.0f)
+        meg_a = ri_exp(-1.0f / (meg_tau * sr));
     else
-        dec_a = 0.0f;
-    rel_a = ri_exp(-1.0f / (0.005f * sr)); /* release 5 ms [HYPOTHESIS] */
+        meg_a = 0.0f;
+    if (veg_tau * sr > 1.0f)
+        veg_a = ri_exp(-1.0f / (veg_tau * sr));
+    else
+        veg_a = 0.0f;
+    if (rel_tau * sr > 1.0f)
+        rel_a = ri_exp(-1.0f / (rel_tau * sr));
+    else
+        rel_a = 0.0f;
     acc_a = ri_exp(-1.0f / (0.060f * sr)); /* P-02 accent 60 ms */
+    if (sw_tau * sr > 1.0f)
+        sw_a = ri_exp(-1.0f / (sw_tau * sr));
+    else
+        sw_a = 0.0f;
     xf_total = (uint32_t)(0.0005f * sr + 0.5f); /* 24 @48 kHz */
     if (xf_total < 1u)
         xf_total = 1u;
@@ -195,20 +226,24 @@ void rb303_render(struct RB303Voice *v, float *out, uint32_t n, float sr) {
                 osc = o_new;
             }
         }
-        /* 303 amp envelope: decays per Decay knob while gate high (retrigger
-         * restarts at 1; slide leaves it untouched per §8), fast release
-         * ramp once the gate drops. */
-        if (v->gate > 0.5f)
-            v->env *= dec_a;
-        else
-            v->env *= rel_a;
+        /* Dual envelopes (§12.4b): MEG (filter) follows the Decay knob
+         * (minimum on accents); VEG (amp) is fixed and long; the gate
+         * closes the VCA via the release ramp while MEG keeps its note
+         * decay. Slide leaves both untouched per §8. */
+        if (v->gate > 0.5f) {
+            v->meg *= meg_a;
+            v->veg *= veg_a;
+        } else {
+            v->veg *= rel_a;
+        }
+        v->sweep *= sw_a;
         v->accent_env *= acc_a;
-        vca = v->env * (1.0f + v->accent_amt * v->accent_env);
+        vca = v->veg * (1.0f + v->accent_amt * v->accent_env);
         if (vca > RI_303_VCA_CLAMP)
             vca = RI_303_VCA_CLAMP;
-        /* cutoff mod: fc_base * 2^(env*env_mod + accent sweep); reso +15% */
+        /* cutoff mod: fc_base * 2^(meg*envmod + accent sweep); reso +15% */
         fc_save = v->cutoff_hz;
-        v->cutoff_hz = fc_save * ri_pow2(v->env * v->env_mod + v->accent_env * v->accent_amt * 0.5f);
+        v->cutoff_hz = fc_save * ri_pow2(v->meg * v->env_mod + v->sweep * 0.5f);
         {
             float k_save = v->reso_k;
             v->reso_k = k_save * (1.0f + 0.15f * v->accent_env);

@@ -30,7 +30,8 @@ stepped), stability clamp `fc < fs/6`.
 | D4 | Post-chain | one-pole HP 44.486 Hz + one-pole HP 24.167 Hz — IN SCOPE | M2.2 TC-2.2.1 |
 | D5 | Post allpass 14.008 Hz + notch 7.5164 Hz/BW 4.7 | DEFERRED to M2.2 (skeleton omits them; math fixture isolates the core ladder) | M2.2 |
 | D6 | Math-fixture stimulus point | `--math` modes drive the core ladder directly (DC/sine at fixed fc/k), bypassing VCO/envelope/post-chain; isolates the recurrence under test | — (scaffold) |
-| D7 | Voice chain around the ladder | VCO saw + 50% square ±1.0f; amp env τ 350 ms (P-01); accent env τ 60 ms, VCA clamp 1.2 (P-02); slide τ runtime field, default 0.040 s (P-03 tension: 40 vs 60 resolved by M2.2 A/B); reso coeff 0..~3.8 (P-04); decay-knob τ 80 ms..4 s (P-06); accent reso boost ~15%; no env retrigger on slide (§8 table) | M2.2 A/B |
+| D7 | Voice chain around the ladder | VCO saw + 50% square ±1.0f; amp env τ 350 ms (P-01); accent env τ 60 ms, VCA clamp 1.2 (P-02); slide τ runtime field, default 0.040 s (P-03 tension: 40 vs 60 resolved by M2.2 A/B); reso coeff 0..~3.8 (P-04); decay-knob τ 80 ms..4 s (P-06); accent reso boost ~15%; no env retrigger on slide (§8 table). SUPERSEDED 2026-09-24 (§12.4b) by the MEG/VEG topology below; kept as the pre-split record | M2.2 A/B |
+| D8 | Dual envelopes (§12.4b) | MEG (filter): Decay-knob τ, 200 ms minimum on accented notes. VEG (amp): fixed 1.23 s normal / 200 ms accented (E1 lineage; Devil-Fish 3–4 s tension open for measurement). Accent sweep: saturating buildup per accent, reso-dependent lag (τ = 50 ms + 50 ms·reso_k, E0), drives cutoff at ×0.5. Releases 0.5 ms normal / 50 ms accented. Gate closes VCA via release; MEG keeps note decay; slide retriggers neither (t22_303slide now pins both) | M2.2 A/B + measurement |
 
 All P-01–P-06 numeric values are spec Appendix A hypotheses, repeated here
 as implemented defaults — not measurements.

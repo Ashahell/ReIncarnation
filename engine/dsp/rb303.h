@@ -30,6 +30,15 @@
 #define RI_CTL_303B_VOLUME 0x0316u
 #define RI_CTL_303B_TUNE   0x0317u /* semitones, value - 64, clamped ±24 */
 
+/* MEG/VEG envelope laws (E1 Open303-lineage starting values, spec §10-area
+ * lineage list; M2.2 A/B decides. Devil-Fish tension — VEG fixed 3–4 s —
+ * recorded for the measurement pass, see the §12.4b article). */
+#define RI_303_MEG_ACC_TAU 0.2f /* MEG decay on accented notes (minimum) */
+#define RI_303_VEG_TAU 1.23f /* VEG fixed decay, normal notes */
+#define RI_303_VEG_ACC_TAU 0.2f /* VEG decay on accented notes */
+#define RI_303_REL_TAU 0.0005f /* release, normal notes (0.5 ms) */
+#define RI_303_REL_ACC_TAU 0.05f /* release, accented notes (50 ms) */
+
 struct RB303Voice {
     /* Parameters (rb303_set_param curves, or direct setters for tests). */
     float cutoff_hz;  /* fc_base, Hz */
@@ -54,8 +63,11 @@ struct RB303Voice {
     float phase;       /* VCO phase 0..1 */
     float freq;        /* slewed freq, Hz */
     float target_freq; /* slide target, Hz */
-    float env;         /* amp envelope 0..1 (decay while gate high) */
-    float accent_env;  /* accent envelope 0..1 */
+    float meg;         /* filter (MEG) envelope 0..1: Decay knob, min on accent */
+    float veg;         /* amp (VEG) envelope 0..1: fixed long decay */
+    float sweep;       /* accent-sweep state: saturating buildup, reso lag */
+    int accented;      /* nonzero when the current note is accented */
+    float accent_env;  /* accent amount envelope 0..1 (P-02, 60 ms) */
     float gate;        /* 1 = gate high (sustain/decay), 0 = release ramp */
     float prev_in;     /* oversample interpolation memory */
 };
