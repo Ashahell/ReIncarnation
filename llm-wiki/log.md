@@ -254,6 +254,15 @@ Index↔raw consistency (all local raws indexed, all local links resolve), m5–
 - SFS errorcode 42 = `HFERR_Phase` (`devices/scsidisk.h:42`) on USB mass-storage read at offset 49152, during boot self-access after a power-button reboot. Recovery: reboot + physical re-seat → all volumes mounted, 0 errors. Points at connection/controller state, not media.
 - Backup: full image + mbr hash-verified intact; ENVARC: delta (7 files) pulled fresh to `/home/miller/Work/stickwork/envbak-2026-09-23/`. Rules: never hot-unplug the boot stick; re-image is last resort.
 
+## [2026-09-24] m23 | Third-party open alternatives: verification + license boundaries (reference, no code)
+- Disposition: Reference (consultant brief checked against the web)
+- Raw: llm-wiki/raw/articles/2026-09-24-third-party-open-alternatives-assessment.md
+- Updated: llm-wiki/index.md
+- **Verified:** JC-303 (`midilab/jc303`, mixed GPL shell / MIT DSP core — touch separately), RP-8 (`luchak.itch.io/rp8`, workflow-only reference).
+- **Not found as described:** RE:BORN 338 (no repo/demo surfaced), consultant's "jsynth" (.rbs player claim matches nothing; only a generic web synth exists).
+- **Assessment:** Open303 analysis = legitimate study/ear reference, GPL stays out of tree; RP-8 song automation supports M2.6 scope; .rbs import NOT in scope; 2017 Roland takedown reinforces clean-room rule (unchanged).
+- No repo files touched.
+
 ## [2026-09-24] m22 | MCC knobs live: _win crash fixed, ungated Draw proven, four knobs + click test on device
 - Disposition: Resolved (m21's crash + wedge closed)
 - Raw: llm-wiki/raw/articles/2026-09-24-mcc-knob-crash-bisect-lane-wedge.md (Resolution section)
