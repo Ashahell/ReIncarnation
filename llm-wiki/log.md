@@ -1,5 +1,24 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-24] lint | 1 issue found, 1 fixed (ingest sweep m43–m49 + rack)
+- Coverage: m43/m44/m45/m46/m47/m48/m49 all raw+log+index OK; no unindexed raws.
+- Gap found: D-k/D-l adoption (f959fdf) unlogged; sibling rack entry still said
+  "proposal only" — closed by the adopt entry above (append-only, no rewrite).
+- Links: all index/log targets resolve. Evidence: RED counts (731/253/1246/395),
+  revert-check (19201), gate lengths (2572), onset (sample 4), 86.55 ms mean
+  (rounded conversion of verbatim 86554.2 µs) all traced to raw.
+- No contradictions (12.1's identical-goldens claim predates the deliberate
+  12.4a/b re-baselines; each article is dated).
+
+## [2026-09-24] adopt | D-k/D-l moved proposal → normative (spec §20)
+- The device-rack ingest entry below recorded "spec not edited (proposal only)".
+  Superseded same day: `f959fdf` adopts D-k (rack model, Classic bit-identical
+  preset, other racks = Power Mode) and D-l (compiled-in registry until OPEN-07)
+  into `docs/superpowers/specs/2026-09-20-reincarnation-spec.md` §20.
+- Engine skeleton (§12.3 section mask + reserved bits) noted compatible; rack
+  iteration deferred to §12.7/RBNG v2. No raw article (two-row table change);
+  source of truth is the spec diff itself.
+
 ## [2026-09-24] m49 | §12.4b: dual envelopes (MEG/VEG + sweep, E1 values)
 - Disposition: New (TDD, t39 compile-RED → PASS; deliberate revoicing)
 - Raw: llm-wiki/raw/articles/2026-09-24-imp-12-4b-meg-veg.md
