@@ -26,8 +26,7 @@
 #include <proto/muimaster.h>
 #include <stdint.h>
 #include "gui/panels.h"
-
-extern APTR ri_rstp_create(void);
+#include "gui/widgets/rstp.h"
 
 #define NSTEPS 16
 #define RET_STEP_BASE 300
@@ -42,15 +41,11 @@ int main(void) {
     unsigned int i;
 
     for (i = 0; i < NSTEPS; i++) {
-        /* Generous 32 px targets: the intrinsic Numericbutton (~14px)
-         * misses too often under a real mouse (m36: clicks mostly
-         * landed between buttons). Shell stays the construction
-         * point; size pinned here like the knob FixWidth pattern. */
+        /* 32 px frames come from the custom class AskMinMax (stock
+         * Numericbutton ignores Fix sizes — m36). */
         steps[i] = (Object *)ri_rstp_create();
         if (!steps[i])
             return 6;
-        SetAttrs(steps[i], MUIA_FixWidth, 32, MUIA_FixHeight, 32,
-            TAG_DONE);
     }
     ri_ctl_format_count(s_patbuf, 0);
     pat = (Object *)MUI_NewObject(MUIC_Text,
@@ -126,5 +121,6 @@ int main(void) {
             Wait(sigs);
     }
     MUI_DisposeObject(app);
+    ri_rstp_dispose_class();
     return 0;
 }

@@ -24,13 +24,18 @@ found painting/input): a stale-pixel seam and 14 px click targets.
   cover/uncover or slightly resize the window — a stale seam
   repaints away, a structural one persists.
 
-## Step clicks: verdict + fix
+## Step clicks: verdict + fix (CORRECTED — FixWidth does nothing)
 - RI-STEPS buttons render ~14 px wide (no Fix size ever set):
   most clicks land BETWEEN buttons. "Sometimes works" = hit-rate,
   not logic (button + notify + loop all proven shapes).
-- Fix (`app/stepproof.c`): FixWidth/Height 32 via the rstp shell
+- ~~Fix (`app/stepproof.c`): FixWidth/Height 32 via the rstp shell
   (shell stays the construction point, knob FixWidth pattern).
-  Window grows to ~512 + chrome.
+  Window grows to ~512 + chrome.~~ — REFUTED ON DEVICE: stock
+  MUIC_Numericbutton ignores Fix sizes exactly like knob.mui (E0
+  lock note); window stayed 268 px. Sizing a stock class is
+  impossible; m37 builds the custom RStp class instead (32 px
+  AskMinMax + own art + click toggle), which 2.10-full needs
+  anyway for chase LEDs.
 
 ## Files
 - env: `app/panel909.c` (repaint-all), `app/stepproof.c` (targets)
