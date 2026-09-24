@@ -37,13 +37,20 @@ extern void ri_rknb_dispose_class(void);
 #define NKNOB 4
 #define RET_KNOB_BASE 100
 
+/* Knob names (match the Intuition proof vehicle and the panel-table
+ * controls tune/level/decay/flamres; uppercase like the hardware
+ * silkscreen). */
+static const char *KNOB_NAMES[NKNOB] = {
+    "TUNE", "LEVEL", "DECAY", "FLAMRES"
+};
+
 /* Value readout buffers (file-static: MUIA_Text_Contents copies on
  * set, but the initial tag strings must outlive creation). */
 static char s_valbuf[NKNOB][4];
 
 int main(void) {
     Object *app = NULL, *win = NULL, *cells[NKNOB], *knobs[NKNOB];
-    Object *texts[NKNOB];
+    Object *texts[NKNOB], *names[NKNOB];
     const struct RIPanelDesc *panel = ri_panel_get(3);
     ULONG sigs = 0;
     LONG ret;
@@ -75,6 +82,13 @@ int main(void) {
             TAG_DONE);
         if (!texts[i])
             return 7;
+        /* Name cell: fixed 80 wide to sit over its knob. */
+        names[i] = (Object *)MUI_NewObject(MUIC_Text,
+            MUIA_Text_Contents, (IPTR)KNOB_NAMES[i],
+            MUIA_FixWidth, 80,
+            TAG_DONE);
+        if (!names[i])
+            return 7;
     }
     win = (Object *)MUI_NewObject(MUIC_Window,
         MUIA_Window_Title, "RI-909",
@@ -87,6 +101,14 @@ int main(void) {
         MUIA_Window_DragBar, TRUE,
         MUIA_Window_RootObject, (IPTR)MUI_NewObject(MUIC_Group,
             MUIA_Group_Spacing, 0,
+            Child, (IPTR)MUI_NewObject(MUIC_Group,
+                MUIA_Group_Horiz, TRUE,
+                MUIA_Group_Spacing, 0,
+                Child, names[0],
+                Child, names[1],
+                Child, names[2],
+                Child, names[3],
+                TAG_DONE),
             Child, (IPTR)MUI_NewObject(MUIC_Group,
                 MUIA_Group_Horiz, TRUE,
                 MUIA_Group_Spacing, 0,
