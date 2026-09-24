@@ -19,28 +19,43 @@ int main(void) {
     int i;
 
     /* --- 0. knob full travel: 150 px up from 0 → 127 ±5% --- */
-    v = ri_knob_drag_to_value(0.0, 150.0, 0);
+    v = ri_knob_drag_to_value(0.0, 0.0, 150.0, 0);
     RI_ASSERT(fabs(v - 127.0) <= 127.0 * 0.05, "knob full %f", v);
     /* partial: 75 px → half ±5% */
-    v = ri_knob_drag_to_value(0.0, 75.0, 0);
+    v = ri_knob_drag_to_value(0.0, 0.0, 75.0, 0);
     RI_ASSERT(fabs(v - 63.5) <= 127.0 * 0.05, "knob half %f", v);
     /* direction: down-drag decreases */
-    v = ri_knob_drag_to_value(64.0, -75.0, 0);
+    v = ri_knob_drag_to_value(64.0, 0.0, -75.0, 0);
     RI_ASSERT(v < 64.0, "knob down %f", v);
     RI_ASSERT(fabs(v - 0.5) <= 127.0 * 0.05, "knob down val %f", v);
 
-    /* --- 1. fine ×0.1 ±10%: 1500 px fine == 150 px coarse --- */
-    v = ri_knob_drag_to_value(0.0, 1500.0, 1);
+    /* --- 1. fine ×0.1 ±10%: 1500 px fine == 150 px coarse --- */    v = ri_knob_drag_to_value(0.0, 0.0, 1500.0, 1);
     RI_ASSERT(fabs(v - 127.0) <= 127.0 * 0.10, "fine full %f", v);
     {
-        double a = ri_knob_drag_to_value(10.0, 150.0, 1);
-        double b = ri_knob_drag_to_value(10.0, 15.0, 0);
+        double a = ri_knob_drag_to_value(10.0, 0.0, 150.0, 1);
+        double b = ri_knob_drag_to_value(10.0, 0.0, 15.0, 0);
         RI_ASSERT(fabs(a - b) <= 127.0 * 0.10, "fine ratio %f vs %f", a, b);
     }
 
+    /* --- 1b. horizontal axis (owner amendment 2026-09-24, both-axes
+     * mapping): right increases like up does; eff = dx + dy. --- */
+    v = ri_knob_drag_to_value(0.0, 150.0, 0.0, 0);
+    RI_ASSERT(fabs(v - 127.0) <= 127.0 * 0.05, "knob right full %f", v);
+    v = ri_knob_drag_to_value(64.0, -75.0, 0.0, 0);
+    RI_ASSERT(fabs(v - 0.5) <= 127.0 * 0.05, "knob left val %f", v);
+    /* diagonal adds (documented 2x on 45°): 75+75 = full */
+    v = ri_knob_drag_to_value(0.0, 75.0, 75.0, 0);
+    RI_ASSERT(fabs(v - 127.0) <= 127.0 * 0.05, "knob diag %f", v);
+    /* opposing axes cancel */
+    v = ri_knob_drag_to_value(64.0, 50.0, -50.0, 0);
+    RI_ASSERT(fabs(v - 64.0) <= 1.0, "knob cancel %f", v);
+    /* fine applies to horizontal too */
+    v = ri_knob_drag_to_value(0.0, 1500.0, 0.0, 1);
+    RI_ASSERT(fabs(v - 127.0) <= 127.0 * 0.10, "fine horiz %f", v);
+
     /* --- 2. clamp: overshoot sticks, NaN fails closed --- */
-    RI_ASSERT(ri_knob_drag_to_value(120.0, 500.0, 0) == 127.0, "clamp hi");
-    RI_ASSERT(ri_knob_drag_to_value(7.0, -500.0, 0) == 0.0, "clamp lo");
+    RI_ASSERT(ri_knob_drag_to_value(120.0, 0.0, 500.0, 0) == 127.0, "clamp hi");
+    RI_ASSERT(ri_knob_drag_to_value(7.0, 0.0, -500.0, 0) == 0.0, "clamp lo");
     RI_ASSERT(ri_ctl_clamp(0.0 / 0.0) == 0.0, "nan closed");
     RI_ASSERT(ri_ctl_quantize(200.0) == 127, "quant hi");
     RI_ASSERT(ri_ctl_quantize(-3.0) == 0, "quant lo");

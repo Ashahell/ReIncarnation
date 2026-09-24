@@ -1,6 +1,10 @@
 /* gui/knob_logic.c — pure drag→value mapping (Task 12, gate G12).
  * No AROS/MUI includes, no libm, no allocation: host + AROS safe.
- * Up-drag (dy > 0) increases; screen-y callers negate first.
+ * Knob: BOTH axes (owner amendment 2026-09-24, ReBirth vertical kept
+ * + horizontal added) — up (dy > 0) and right (dx > 0) increase,
+ * effective travel eff = dx + dy; screen-y callers negate first,
+ * screen-x passes through (right is positive both sides).
+ * Fader stays vertical-only per spec M2.1.
  */
 #include "gui/knob_logic.h"
 
@@ -20,8 +24,9 @@ static double drag_to_value(double start, double dy_px, double travel, int fine)
     return ri_ctl_clamp(v);
 }
 
-double ri_knob_drag_to_value(double start, double dy_px, int fine) {
-    return drag_to_value(start, dy_px, RI_KNOB_TRAVEL_PX, fine);
+double ri_knob_drag_to_value(double start, double dx_px, double dy_px,
+    int fine) {
+    return drag_to_value(start, dx_px + dy_px, RI_KNOB_TRAVEL_PX, fine);
 }
 
 double ri_fader_drag_to_value(double start, double dy_px, int fine) {

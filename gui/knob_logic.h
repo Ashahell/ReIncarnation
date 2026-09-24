@@ -5,8 +5,9 @@
  * into it, so the owned-UX numbers live in ONE place.
  *
  * Spec §13 M2.1 locked values (E0 design decisions owned by this
- * project): knob 150 px = full 0..127 vertical drag, Shift-fine ×0.1
- * (1500 px full); fader 100 px = full travel with the same fine rule;
+ * project): knob 150 px = full 0..127 on EITHER axis (vertical kept
+ * for ReBirth parity + horizontal added per owner 2026-09-24),
+ * Shift-fine ×0.1 (1500 px full); fader 100 px = full travel with the same fine rule;
  * continuous notify while dragging + single commit event on release =
  * one undo unit; step-LED update ≤ 1 frame (33 ms); 16th chase
  * stutter-free at 174 BPM; zoom 1x/1.5x/2x authored at 2x.
@@ -21,10 +22,14 @@
 #define RI_FINE_DIV 10.0
 #define RI_LED_FRAME_MS 33.0
 
-/* Vertical drag math: start + dy·(127/travel)·(fine ? 0.1 : 1),
- * clamped to 0..127. dy>0 = upward drag = increase (callers negate
- * screen-y deltas, where down is positive, before calling). */
-double ri_knob_drag_to_value(double start, double dy_px, int fine);
+/* Knob drag math, both axes (owner amendment 2026-09-24): start +
+ * (dx+dy)·(127/travel)·(fine ? 0.1 : 1), clamped to 0..127. dy>0 =
+ * upward drag = increase (callers negate screen-y deltas, where down
+ * is positive, before calling); dx>0 = rightward drag = increase
+ * (screen-x passes through). ReBirth vertical preserved; horizontal
+ * added. Diagonal 45° counts double (documented). */
+double ri_knob_drag_to_value(double start, double dx_px, double dy_px,
+    int fine);
 double ri_fader_drag_to_value(double start, double dy_px, int fine);
 
 /* Clamp to 0..127 (NaN fails closed to 0); quantize to nearest unit. */

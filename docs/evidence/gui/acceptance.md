@@ -9,7 +9,7 @@ artwork. Layout numbers are E0 design acceptance thresholds.
 
 ## Owned-UX numbers (P-18, TC-2.9.2 — host-verified in t1_knob)
 
-- [ ] Knob: 150 px vertical drag = full 0..127 (±5% host band holds on device)
+- [ ] Knob: 150 px drag on either axis = full 0..127 (±5% host band holds on device; vertical = ReBirth, horizontal added per owner)
 - [ ] Shift-fine: ×0.1 (1500 px full, ±10% host band holds on device)
 - [ ] Fader: 100 px = full travel, same fine rule
 - [ ] Commit-on-release: one drag = one undo unit (single commit event)

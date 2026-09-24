@@ -501,7 +501,7 @@ check_sig engine/dsp/rb909.h docs/autodoc/dsp.doc "uint8_t tune, int32_t flam_de
 check_sig engine/fx/pcf.h docs/autodoc/fx.doc "void pcf_render(struct PCF *p, const float *in, float *out, uint32_t n"
 check_sig engine/fx/fx.h docs/autodoc/fx.doc "void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,"
 check_sig engine/fx/fx.h docs/autodoc/fx.doc "float sr, float bpm)"
-check_sig gui/knob_logic.h docs/autodoc/gui.doc "double ri_knob_drag_to_value(double start, double dy_px, int fine)"
+check_sig gui/knob_logic.h docs/autodoc/gui.doc "double ri_knob_drag_to_value(double start, double dx_px, double dy_px,"
 echo "-- catalogs: EN + DE proof in source AND table --"
 test -f "$ROOT/locale/ReIncarnation.cd" || { echo "FAIL: missing .cd"; exit 1; }
 test -f "$ROOT/locale/en.ct" || { echo "FAIL: missing en.ct"; exit 1; }

@@ -43,6 +43,7 @@ struct RKnBData {
                * reenter). Every programmatic change flows through
                * OM_SET, so this stays exact. */
     LONG drag_start_val;
+    WORD drag_start_x;
     WORD drag_start_y;
     BOOL dragging;
     BOOL shown;
@@ -53,7 +54,7 @@ struct RKnBData {
 BOOPSI_DISPATCHER_PROTO(IPTR, rknb_dispatcher, Class *, Object *, Msg);
 
 /* Forward: defined below the dispatcher, used inside it. */
-LONG ri_rknb_drag_value(LONG start, LONG dy_px, BOOL fine);
+LONG ri_rknb_drag_value(LONG start, LONG dx_px, LONG dy_px, BOOL fine);
 void ri_rknb_begin(struct RiGesture *g);
 int ri_rknb_move(struct RiGesture *g);
 int ri_rknb_release(struct RiGesture *g);
@@ -76,6 +77,7 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
             s->ops_AttrList);
         d->cur = GetTagData(MUIA_Numeric_Value, 64, s->ops_AttrList);
         d->drag_start_val = 64;
+        d->drag_start_x = 0;
         d->drag_start_y = 0;
         d->dragging = FALSE;
         d->shown = FALSE;
@@ -163,6 +165,7 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
                 if (!rknb_hit(obj, im->MouseX, im->MouseY))
                     return (IPTR)0;
                 d->dragging = TRUE;
+                d->drag_start_x = im->MouseX;
                 d->drag_start_y = im->MouseY;
                 d->drag_start_val = d->cur;
                 ri_rknb_begin(&d->gesture);
@@ -192,6 +195,7 @@ BOOPSI_DISPATCHER(IPTR, rknb_dispatcher, cl, obj, msg) {
             fine = (im->Qualifier &
                 (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) != 0;
             v = ri_rknb_drag_value(d->drag_start_val,
+                (LONG)(im->MouseX - d->drag_start_x),
                 (LONG)(d->drag_start_y - im->MouseY), fine);
             ri_rknb_move(&d->gesture);
             SetAttrs(obj, MUIA_Numeric_Value, v, TAG_DONE);
@@ -240,11 +244,12 @@ APTR ri_rknb_create(LONG dflt) {
         TAG_DONE);
 }
 
-/* Vertical drag pixels → quantized ctl value (callers negate screen-y
- * first: up-drag increases). Shift passes fine=1 (×0.1, 1500 px full). */
-LONG ri_rknb_drag_value(LONG start, LONG dy_px, BOOL fine) {
-    double v = ri_knob_drag_to_value((double)start, (double)dy_px,
-                                     fine ? 1 : 0);
+/* Drag pixels → quantized ctl value (both axes: right and up
+ * increase; screen-y negated first, screen-x passes through).
+ * Shift passes fine=1 (×0.1, 1500 px full). */
+LONG ri_rknb_drag_value(LONG start, LONG dx_px, LONG dy_px, BOOL fine) {
+    double v = ri_knob_drag_to_value((double)start, (double)dx_px,
+                                     (double)dy_px, fine ? 1 : 0);
     return (LONG)ri_ctl_quantize(v);
 }
 
