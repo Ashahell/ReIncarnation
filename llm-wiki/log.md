@@ -1,5 +1,17 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m59 | §12.8c2: Appendix-D patterns extracted + wired
+- Disposition: New (E1 mechanical extraction + TDD wiring)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8c2-pcf-patterns.md
+- Updated: engine/fx/pcf.{h,c} (table, install, wrap, resolutions),
+  tools/render.c (fixtures install pattern 0), tests/unit/t49 (new),
+  tests/unit/t25_pcfopen (55 + refusal intact),
+  docs/evidence/pcf/patterns.md (new E1 ledger) + engine.md (OPEN-04 closed),
+  reference/pcf-patterns.{bin,json} (new ledger), scripts/ri_audit.sh
+  (patterns presence gate), docs/2026-09-24-improvement-todo.md
+- 55 patterns (review said 54 — off by one). Zero golden fallout.
+- Full `ri_audit.sh` 0/0.
+
 ## [2026-09-25] m58 | §12.8c1: PCF envelope + integer clock + HP drop
 - Disposition: New (TDD, t48 link-RED → PASS with revert-checks)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8c1-pcf-envelope.md

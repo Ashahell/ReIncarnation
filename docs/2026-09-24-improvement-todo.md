@@ -66,7 +66,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 - [x] Delay Steps/triplet/fb-infinite/sustain-structure (m57)
 - [x] PCF envelope + integer clock + Decay knob + HP drop, patterns open (m58)
 - [ ] Delay pan + stereo return + routing matrix/exclusivity
-- [ ] Appendix-D patterns (E1 extraction) + per-pattern velocity/attack
+- [x] Appendix-D patterns (55 E1 rows + wrap + resolution wired) (m59)
 - [ ] Dist oversample + comp ratio/GR meter
 
 ## §12.9 Song mode + transport + pattern edits (§3.1)
