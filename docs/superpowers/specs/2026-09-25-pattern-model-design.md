@@ -2,7 +2,10 @@
 
 **Date:** 2026-09-25. **Status:** owner-approved §§1–5 (chat); revised by
 fidelity review 2026-09-25 (§7); **owner re-approved the §7 revisions
-2026-09-25 (directed implementation of the plan in chat).**
+2026-09-25 (directed implementation of the plan in chat). Implemented in
+`f6b958f` (model) + `7f20572` (edit ops) + `4afcfc7` (walker) +
+`1fd0d38`/`f25f2ec` (303 emit) + `e925f6e`/`0961d60` (v1.1 codec);
+open items §6 unchanged.**
 **Scope:** per-instance pattern banks, full step data, pure edit ops,
 pattern emit, RBNG v1.1 codec. Explicitly OUT: scheduler streaming,
 song track/transport (§12.9), engine 808/909 hosting, GUI step entry.

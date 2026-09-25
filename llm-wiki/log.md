@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m63 | §12.7a pattern model + RBNG v1.1 (first slice)
+- Disposition: New (architectural path; TDD t53–t56)
+- Raw: llm-wiki/raw/articles/2026-09-25-pattern-model-rbng-v11.md
+- Updated: engine/seq/pattern.{h,c} + pattern_emit.c (new), sched
+  (octave/carry/gate), project/rbng.* (BANK + conversion), 7 ledgers,
+  bank-v11 golden + fuzz seeds, audit Phase 7b, todo §12.7, spec status
+- Commits f6b958f/7f20572/4afcfc7/1fd0d38/f25f2ec/e925f6e/0961d60.
+- Full `ri_audit.sh` 0/0 (baseline 0/0 before).
+
 ## [2026-09-25] ingest | Pattern model: fidelity review, implementation plan, slide-direction finding
 - Disposition: New
 - Raw: llm-wiki/raw/articles/2026-09-25-pattern-model-fidelity-review-and-plan.md

@@ -92,6 +92,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 - [raw/articles/2026-09-25-imp-12-8-routing.md](raw/articles/2026-09-25-imp-12-8-routing.md) — **2026-09-25 — §12.8 routing (m62).** Radio matrix + pan + stereo return in the engine; zero golden fallout.
 
+- [raw/articles/2026-09-25-pattern-model-rbng-v11.md](raw/articles/2026-09-25-pattern-model-rbng-v11.md) — **2026-09-25 — §12.7a pattern model (m63).** Banks + Edit ops + emit + v1.1 codec; first-light compat pinned.
+
 - [raw/articles/2026-09-24-first-click-jump-qa.md](raw/articles/2026-09-24-first-click-jump-qa.md) — **2026-09-24 — First-click jump + Q&A.** Warp arms past 3px; buttons-gone by design; FLAMRES = documented placeholder slot.
 
 - [raw/articles/2026-09-24-spike-lane-wedge-fix.md](raw/articles/2026-09-24-spike-lane-wedge-fix.md) — **2026-09-24 — Spike lane wedge fixed.** Giant-send root cause, 32KB chunk fix (Vulkan4Aros `67eeca3c`), hammer 12/12.

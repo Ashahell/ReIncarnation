@@ -164,6 +164,20 @@ T7=/tmp/ri/run/audit7
 mkdir -p "$T7"
 "$OUT/render" --song "$SG/sched-check.rbng" --out "$T7/sched-check.wav" --dump-events "$T7/sched-check.events" || exit 1
 "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$T7/sched-check.events" --wav-a "$SG/sched-check.wav" --wav-b "$T7/sched-check.wav" | grep -q "COMPARE: IDENTICAL" || { echo "FAIL: sched-check re-render differs (not deterministic)"; exit 1; }
+echo "== Phase 7b: pattern model (§12.7a) =="
+for t in t53_pattern_model t54_pattern_edit t55_pattern_emit t56_rbng_bank; do
+  bash "$ROOT/scripts/ri_build_host.sh" test $t >/dev/null || { echo "FAIL: $t"; exit 1; }
+done
+# no RNG/time/global state in the model
+if grep -nE "\brand\(|srand|time\(|clock\(|static uint32_t [a-z_]*seed" engine/seq/pattern*.c; then echo "FAIL: nondeterminism in pattern model"; exit 1; fi
+# the 909 accent==2 overload must not come back through the emitter
+if grep -n "accent *== *2\|accent = 2" engine/seq/pattern_emit.c; then echo "FAIL: accent/flam overload"; exit 1; fi
+# ledger rows exist for every E0/OPEN constant
+for f in sequencer/303-base-note sequencer/slide-direction sequencer/shuffle-scope 909/flam-level sequencer/transpose-encoding sequencer/random-alter sequencer/random-pattern-rhythm; do
+  test -f "docs/evidence/$f.md" || { echo "FAIL: missing ledger $f"; exit 1; }; done
+grep -q "RI_303_BASE_NOTE" docs/evidence/sequencer/303-base-note.md || { echo "FAIL: base-note ledger unlinked"; exit 1; }
+# RISong never on the stack outside project/
+if grep -rnE "^\s+struct RISong [a-z_]+;" tools/ engine/ audio_io/ tests/ | grep -v static; then echo "FAIL: stack RISong"; exit 1; fi
 echo "== Phase 8: 808 fifteen voices (Task 8, gate G8) =="
 bash "$ROOT/scripts/ri_build_host.sh" test t1_808 >/dev/null || { echo "FAIL: t1_808"; exit 1; }
 # Module 2.3 acceptance pins (TC-2.3.1..2.3.5)
@@ -377,6 +391,10 @@ done
 test -f "$ROOT/docs/evidence/formats/red-t1_formats.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
 grep -q "FAIL\|fatal error" "$ROOT/docs/evidence/formats/red-t1_formats.txt" || { echo "FAIL: RED evidence shows no failure"; exit 1; }
 grep -q "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" "$ROOT/tests/unit/t1_formats.c" || { echo "FAIL: abc vector ungated"; exit 1; }
+echo "-- v1.1 bank golden + fuzz seeds --"
+test -f "$ROOT/tests/golden/formats/bank-v11.rbng" || { echo "FAIL: missing bank-v11 golden"; exit 1; }
+test -f "$ROOT/tests/golden/formats/bank-v11.rbng.sha256" || { echo "FAIL: missing bank-v11 sidecar"; exit 1; }
+(cd "$ROOT" && sha256sum -c tests/golden/formats/bank-v11.rbng.sha256) || { echo "FAIL: bank-v11 sha256 mismatch"; exit 1; }
 echo "-- corpus determinism (regenerate + cmp) --"
 gcc $CFLAGS -o "$OUT/mksong" "$ROOT/tools/mksong.c" "$OUT"/*.o || { echo "FAIL: mksong build"; exit 1; }
 "$OUT/mksong" "$T13/regen" >/dev/null || exit 1
@@ -384,6 +402,10 @@ for k in 01 02 03 04 05 06 07 08 09 10; do
   test -f "$ROOT/tests/golden/songs/corpus/s$k.rbng" || { echo "FAIL: missing corpus s$k.rbng"; exit 1; }
   cmp -s "$ROOT/tests/golden/songs/corpus/s$k.rbng" "$T13/regen/s$k.rbng" || { echo "FAIL: corpus s$k not deterministically generated"; exit 1; }
   "$OUT/inspect" --rbng "$ROOT/tests/golden/songs/corpus/s$k.rbng" | grep -q "RBNG OK" || { echo "FAIL: corpus s$k rejected"; exit 1; }
+done
+for k in 11 12; do
+  test -f "$ROOT/tests/golden/songs/corpus/s$k-bank.rbng" || { echo "FAIL: missing bank seed s$k"; exit 1; }
+  "$OUT/inspect" --rbng "$ROOT/tests/golden/songs/corpus/s$k-bank.rbng" | grep -q "RBNG OK" || { echo "FAIL: bank seed s$k rejected"; exit 1; }
 done
 echo "-- corpus double-render md5-identical --"
 for k in 01 02 03 04 05 06 07 08 09 10; do

@@ -59,7 +59,8 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 ## §12.7 Scheduler + RBNG v2 (§5.2, §7.1) — DEFERRED after §12.8 (FX first:
   self-contained, no format surgery; rack iteration builds on the §12.3
   section mask meanwhile)
-- [ ] 4 sections, pattern banks/lengths/shuffle flags; streaming emission; song track; RBNG chunk plan
+- [x] Pattern banks/lengths (per-instance model + Edit ops + emit) + RBNG chunk plan (v1.1 BANK) (m63)
+- [ ] 4 sections (engine 808/909 hosting), shuffle flags (OPEN), streaming emission; song track (§12.9)
 
 ## §12.8 FX routing + parity + PCF envelope (§3.2, §4.4)
 - [x] Delay beats-honoring + caller-owned lines + tap slew + live-rate comp + pool retired (m56)
