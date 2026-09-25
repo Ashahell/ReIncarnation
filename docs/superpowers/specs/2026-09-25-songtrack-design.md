@@ -31,7 +31,7 @@
 * Capture never moves the cursor. Emission never moves the cursor. Display never moves the cursor.
 
 ### Geometry
-* The song is ALWAYS 999 bars (E1 §0). There is no length field, no short song, no tail pointer. `RI_SONG_BARS 999u` === `RI_SEQ_MAX_BARS + 1` — the count and the ceiling are the same fact, stated once in `transport.h` and reused here.
+* The song is ALWAYS 999 bars (E1 §0). There is no length field, no short song, no tail pointer. `RI_SONG_BARS === RI_SEQ_MAX_BARS` (single source in `transport.h`; both name the full-song count 999 — the `+1` sentinel form lives only in loop staging as `MAX_BARS + 1` and is never a bar count).
 * Valid bar starts: `0..998`. `ri_song_ended(bar_now)` (`bar_now >= 999`) is the ONLY end test.
 * Policy-vs-primitive split (transport law, reused verbatim): `selected/capture/emit` normalize indices BEFORE touching storage. No silent modulo, no wraparound reads.
 
@@ -83,7 +83,7 @@ Every invariant has (1) one named enforcement point, (2) executable tests, (3) a
 - Init fills slot 0 everywhere (= single pattern looping = today's playback, bit-identical).
 - `selected(bar, instance)`: bar `>= 999` fail-closed → slot 0; instance ≥ 4 fail-closed → slot 0. Normalizes BEFORE storage (policy-vs-primitive law).
 - Capture writes only through `ri_track_capture(track, bar, instance, slot)` with the same fail-closed clamps. Downbeat law (§0 p. 84 + p. 76): the CALLER passes the downbeat (real-time flips quantize to the NEXT bar GUI-side — `next_bar = bar_at_tick(cursor) + 1`, clamped to 998); the model writes exactly the given bar, total and testable.
-- Transport seeks take `song_bars = RI_SONG_BARS` (999, === `RI_SEQ_MAX_BARS + 1`); the track owns no length because there is none.
+- Transport seeks take `song_bars = RI_SONG_BARS` (=== `RI_SEQ_MAX_BARS`); the track owns no length because there is none.
 
 ## 2. Emission (recorded truth, not sounding truth)
 
