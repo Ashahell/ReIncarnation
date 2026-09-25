@@ -14,6 +14,7 @@
 #include <utility/tagitem.h>
 #include <libraries/mui.h>
 #include "gui/sectui.h"
+#include "gui/panelui.h"
 
 struct MUI_CustomClass;
 
@@ -23,6 +24,13 @@ struct MUI_CustomClass;
 #define MUIA_RSection_State (TAG_USER + 0x52534302u)
 /* Read-only pointer: const struct RSectionDiag * (event plumbing proof). */
 #define MUIA_RSection_Diag (TAG_USER + 0x52534303u)
+
+/* Settable pointer: struct RIPanelUI * shared by every canvas of a window
+ * (focus bar, click-to-focus, keyboard). NULL = standalone section. */
+#define MUIA_RSection_Panel (TAG_USER + 0x52534304u)
+/* Settable BOOL: this canvas takes the window's raw keys for the panel
+ * (exactly one canvas per window). */
+#define MUIA_RSection_KeyOwner (TAG_USER + 0x52534305u)
 
 struct RSectionDiag {
     LONG events;          /* MUIM_HandleEvent calls with a message */

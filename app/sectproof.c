@@ -1,7 +1,7 @@
 /*
  * app/sectproof.c — section canvas on-device proof (§12.10 G4).
  *
- * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr] [demo]
+ * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr|keys] [demo]
  * One window with the RSection canvas for the chosen section at 1x plus a
  * readout row, so state can be verified by number as well as by ui_capture.
  * "demo" drives the same behaviour calls a click makes (gui/sectui.h):
@@ -22,7 +22,12 @@
  *         mode, tempo 120 -> 128 by arrows, Record (plays), FF x2 + Bar
  *         arrow -> bar 22, loop 17 + 8 on, Shuffle 40, Sync/MIDI lit;
  *         Synth 1 C3, Synth 2 A1 length 12, 808 bank B armed only (no
- *         pattern lit) + shuffle, 909 section off.
+ *         pattern lit) + shuffle, 909 section off;
+ *   keys — G5 proof: Transport, the four Pattern sections and Synth 1 on
+ *         ONE front panel (gui/panelui.h): focus bar, click-to-focus and
+ *         the Appendix E keyboard, driven by real key events (no demo:
+ *         keys arrive through the QEMU monitor's sendkey). Every panel
+ *         change appends the readout line to RAM:RISECT.LOG.
  * Exit: close gadget or Ctrl-C. Return codes: 0 ok, 5+ build failures.
  * Must NEVER enter the host build (audit gates app/).
  */
@@ -44,7 +49,8 @@
 #include "gui/widgets/rsection.h"
 
 static char s_readout[160];
-static Object *s_mix[5];
+static Object *s_mix[6];
+static struct RIPanelUI s_panel;
 
 static void put_num(char **p, long v) {
     char t[12];
@@ -68,6 +74,41 @@ static void put_str(char **p, const char *s) {
 
 static void format_readout(const struct RISectUI *ui, const struct RSectionDiag *dg, long changes) {
     char *p = s_readout;
+    if (s_panel.tr == ui && s_panel.synth[0]) {   /* keys mode */
+        unsigned int k;
+        put_str(&p, "FOCUS ");
+        put_num(&p, s_panel.focus);
+        put_str(&p, " OPT ");
+        *p++ = s_panel.opts.select_patterns ? 'P' : '-';
+        *p++ = s_panel.opts.program_synth ? 'S' : '-';
+        put_str(&p, " PAT");
+        for (k = 0; k < 4; k++) {
+            *p++ = ' ';
+            *p++ = (char)('A' + ri_spat_selected(&s_panel.pat[k]->u.pat) / 8);
+            *p++ = (char)('1' + ri_spat_selected(&s_panel.pat[k]->u.pat) % 8);
+        }
+        put_str(&p, " STEP ");
+        put_num(&p, ri_sui_display(s_panel.synth[0], RI_S303_DISPLAY));
+        put_str(&p, " BPM ");
+        put_num(&p, ri_sui_value(ui, RI_STR_TEMPO));
+        put_str(&p, " ST ");
+        put_num(&p, ui->u.tr.tr.state);
+        put_str(&p, " LAST ");
+        put_num(&p, s_panel.last.kind);
+        *p++ = '/';
+        put_num(&p, s_panel.last.arg);
+        put_str(&p, " N ");
+        put_num(&p, (long)s_panel.changes);
+        put_str(&p, " RAW ");
+        put_num(&p, s_panel.last_raw);
+        *p++ = '/';
+        put_num(&p, s_panel.last_qual);
+        put_str(&p, " CLK ");   /* mouse buttons seen by the transport canvas */
+        put_num(&p, dg ? dg->buttons : -1);
+        *p = 0;
+        (void)changes;
+        return;
+    }
     if (ui->section == RI_SEC_TRANSPORT) {
         unsigned int k;
         put_str(&p, "SONG ");
@@ -304,7 +345,11 @@ int main(int argc, char **argv) {
     LONG ret;
     struct RISectUI *ui = 0;
     const struct RSectionDiag *dg = 0;
-    int i, do_demo = 0, mix = 0, fx = 0, trp = 0;
+    int i, do_demo = 0, mix = 0, fx = 0, trp = 0, keys = 0;
+    ULONG seen = 0;
+    UBYTE seen_st = 0;
+    UWORD seen_raw = 0;
+    BPTR trace = 0;
     Object *row = 0;
 
     for (i = 1; i < argc; i++) {
@@ -318,10 +363,47 @@ int main(int argc, char **argv) {
             fx = 1;
         else if (argv[i][0] == 't')
             trp = 1;
+        else if (argv[i][0] == 'k')
+            keys = 1;
         else if (argv[i][0] == 'd')
             do_demo = 1;
     }
-    if (trp) {                         /* transport (compact) over the four pattern sections */
+    if (keys) {                        /* G5: one front panel across six canvases */
+        Object *pats;
+        struct RISectUI *u = 0;
+        ri_panel_init(&s_panel);
+        s_mix[0] = (Object *)ri_rsection_create(RI_SEC_TRANSPORT, 0);
+        for (i = 0; i < 4; i++)
+            s_mix[i + 1] = (Object *)ri_rsection_create(RI_SEC_PAT_SYNTH1 + (ULONG)i, 0);
+        s_mix[5] = (Object *)ri_rsection_create(RI_SEC_SYNTH1, 0);
+        for (i = 0; i < 6; i++) {
+            if (!s_mix[i])
+                return 5;
+            GetAttr(MUIA_RSection_State, s_mix[i], (IPTR *)&u);
+            if (i == 0)
+                s_panel.tr = u;
+            else if (i < 5)
+                s_panel.pat[i - 1] = u;
+            else
+                s_panel.synth[0] = u;
+            SetAttrs(s_mix[i], MUIA_RSection_Panel, (IPTR)&s_panel, MUIA_RSection_KeyOwner, i == 0, TAG_DONE);
+        }
+        ui = s_panel.tr;
+        canvas = s_mix[0];
+        /* fixed-size canvases in a wider column: rectangles fill the slack
+         * so no stale pixels show beside them */
+        pats = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
+            Child, (IPTR)MUI_NewObject(MUIC_Rectangle, TAG_DONE),
+            Child, (IPTR)s_mix[1], Child, (IPTR)s_mix[2], Child, (IPTR)s_mix[3], Child, (IPTR)s_mix[4],
+            Child, (IPTR)MUI_NewObject(MUIC_Rectangle, TAG_DONE), TAG_DONE);
+        row = pats ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_mix[0], Child, (IPTR)pats, Child, (IPTR)s_mix[5], TAG_DONE) : 0;
+        if (!row)
+            return 5;
+        section = RI_SEC_TRANSPORT;
+        mix = 4;
+        trace = Open((CONST_STRPTR)"RAM:RISECT.LOG", MODE_NEWFILE);
+    } else if (trp) {                  /* transport (compact) over the four pattern sections */
         Object *pats;
         s_mix[0] = (Object *)ri_rsection_create(RI_SEC_TRANSPORT, RI_GEO_ZOOM_COMPACT);
         for (i = 0; i < 4; i++)
@@ -386,7 +468,7 @@ int main(int argc, char **argv) {
     if (!readout)
         return 6;
     win = (Object *)MUI_NewObject(MUIC_Window,
-        MUIA_Window_Title, mix == 3 ? "RI-TRANSPORT" : mix == 2 ? "RI-FX" : mix ? "RI-MIX" : section == RI_SEC_808 ? "RI-808" : section == RI_SEC_909 ? "RI-909" : "RI-303",
+        MUIA_Window_Title, mix == 4 ? "RI-KEYS" : mix == 3 ? "RI-TRANSPORT" : mix == 2 ? "RI-FX" : mix ? "RI-MIX" : section == RI_SEC_808 ? "RI-808" : section == RI_SEC_909 ? "RI-909" : "RI-303",
         MUIA_Window_LeftEdge, 0,
         MUIA_Window_TopEdge, 0,
         MUIA_Window_CloseGadget, TRUE,
@@ -422,6 +504,19 @@ int main(int argc, char **argv) {
         if (ret == (LONG)MUIV_Application_ReturnID_Quit)
             break;
         GetAttr(MUIA_RSection_Changes, canvas, &ch);
+        if (keys && (s_panel.changes != seen || ui->u.tr.tr.state != seen_st || s_panel.last_raw != seen_raw)) {
+            seen_st = ui->u.tr.tr.state;
+            seen_raw = s_panel.last_raw;   /* focus/keys touch several canvases */
+            seen = s_panel.changes;
+            for (i = 0; i < 6; i++)
+                ri_rsection_refresh(s_mix[i]);
+            if (trace) {                          /* one line per change: key-proof evidence */
+                format_readout(ui, dg, 0);
+                FPuts(trace, (CONST_STRPTR)s_readout);
+                FPuts(trace, (CONST_STRPTR)"\n");
+                Flush(trace);
+            }
+        }
         format_readout(ui, dg, (long)ch);
         SetAttrs(readout, MUIA_Text_Contents, (IPTR)s_readout, TAG_DONE);
         sigs |= SIGBREAKF_CTRL_C;
@@ -429,6 +524,8 @@ int main(int argc, char **argv) {
         if (sigs & SIGBREAKF_CTRL_C)
             break;
     }
+    if (trace)
+        Close(trace);
     SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
     MUI_DisposeObject(app);
     ri_rsection_dispose_class();

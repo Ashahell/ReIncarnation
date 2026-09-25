@@ -142,6 +142,19 @@ int ri_str_led(const struct RISectTr *s, uint32_t idx, uint32_t which) {
     }
 }
 
+int ri_str_goto_loop(struct RISectTr *s, int end) {
+    uint64_t bar, before;
+    if (!s || !s->song_mode)
+        return 0;
+    bar = (uint64_t)s->loop.start_bar + (end ? s->loop.len_bars : 0u);
+    if (bar > (uint64_t)s->song_bars - 1u)
+        bar = (uint64_t)s->song_bars - 1u;
+    before = s->cursor;
+    s->cursor = ri_seq_tick_of_bar(s->ppq, bar);
+    s->tr.clicks = 0;   /* cursor intent replaces the stop sequence (engine seek law) */
+    return s->cursor != before;
+}
+
 void ri_str_indicator_set(struct RISectTr *s, uint32_t idx, int v) {
     if (!s)
         return;

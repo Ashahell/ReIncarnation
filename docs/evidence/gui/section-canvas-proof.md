@@ -1,7 +1,7 @@
 # Section canvas (RSection) — riqemu1 proof (§12.10 G4)
 
 **Date:** 2026-09-25. **Lane:** riqemu1 (QEMU, ABIv1 live ISO, private; Dell unavailable — stick backup).
-**Binary:** `RISECT` (`RISECT [303|808|909|mix|fx|tr] [demo]`), built by `bash scripts/ri_build_aros.sh sections` → `/tmp/ri/aros/RISECT` (v1 recipe: v1 build-pc SDK, `startup.o`, `-nostartfiles -no-pie`, `-lmui -lamiga -lstdcio -lposixc -lintuition -lgraphics -lutility -ldos -lexec -lautoinit`; 0 unresolved, 0 `mov %rax,%r12`).
+**Binary:** `RISECT` (`RISECT [303|808|909|mix|fx|tr|keys] [demo]`), built by `bash scripts/ri_build_aros.sh sections` → `/tmp/ri/aros/RISECT` (v1 recipe: v1 build-pc SDK, `startup.o`, `-nostartfiles -no-pie`, `-lmui -lamiga -lstdcio -lposixc -lintuition -lgraphics -lutility -ldos -lexec -lautoinit`; 0 unresolved, 0 `mov %rax,%r12`).
 **Code:** `gui/widgets/rsection.mcc.c` (one canvas class for every laid-out section), `gui/sectui.c` (behaviour dispatch, host-tested t64), `app/sectproof.c` (proof window + readout). The first build was a 303-only class (`RSec303`); it was generalised the same day when the 808 landed.
 
 ## Proven
@@ -18,9 +18,11 @@
 - **Transport + Pattern sections (p. 144, 147).** `RISECT tr demo` shows the Transport at compact zoom above the four Pattern sections at 1×. Transport: Song mode (Song LED), Tempo 120 → **128** by eight arrow-ups, Record (so playing; the play glyph green, the record dot red), FF ×2 plus one Bar arrow → **22**, Loop on at 17 for 8 bars, Shuffle 40, Sync and MIDI lit. Patterns: Synth 1 on **C3**; Synth 2 on A1 with length **12**; the 808 has bank **B armed** with no pattern lit (still A1), plus Shuffle; the 909's section lamp is off. Capture `img/2026-09-25-ritr-demo.png`. Readout `SONG 1 BPM 128 ST 2 BAR 22 LOOP 17+8 PAT C3/16 A1/12 A1/16 -1/16`.
 - **303 regression through the generic canvas.** `RISECT 303 demo` reproduces the RSec303 capture (EDIT STEP 04, Pitch Mode lit, SQR).
 
+- **Keyboard + focus (G5).** `RISECT keys` driven by real key events from QEMU `sendkey`: pattern keys, focus arrows, keypad transport, Ctrl+G / Ctrl+F, synth Step/Accent. The capture shows the orange focus bar on Synth 1 and the readout reproduces the expected state exactly. Details and trace: `keyboard.md`.
+
 ## Not proven here (and why)
 
-- **Mouse clicks on the lane.** Neither the agent's `ui_click` (input.device `IND_ADDEVENT` chain: pointer-pos + LBUTTON down/up) nor QEMU monitor `mouse_move`/`mouse_button` (usb-tablet is the absolute device) produced a single `IDCMP_MOUSEBUTTONS` in the window; monitor clicks landed on the backdrop. Remote click injection is therefore not a valid instrument on this lane; knob drag, button presses and right-click default need a human hand on the riqemu1 window (GTK display on the host) or the Dell. Earlier device notes (m22: “remote click = down/up with no move”) never proved a click either.
+- **Mouse clicks on the lane.** (Keyboard input IS injectable: QEMU monitor `sendkey` reaches the active window — see `keyboard.md`.) Neither the agent's `ui_click` (input.device `IND_ADDEVENT` chain: pointer-pos + LBUTTON down/up) nor QEMU monitor `mouse_move`/`mouse_button` (usb-tablet is the absolute device) produced a single `IDCMP_MOUSEBUTTONS` in the window; monitor clicks landed on the backdrop. Remote click injection is therefore not a valid instrument on this lane; knob drag, button presses and right-click default need a human hand on the riqemu1 window (GTK display on the host) or the Dell. Earlier device notes (m22: “remote click = down/up with no move”) never proved a click either.
 
 ## Bug caught by the readout
 

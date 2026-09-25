@@ -489,3 +489,19 @@ uint16_t ri_geo_hit_opt(const struct RIGeoSection *s, int x, int y, int zoom, in
 uint16_t ri_geo_hit(const struct RIGeoSection *s, int x, int y, int zoom) {
     return ri_geo_hit_opt(s, x, y, zoom, 0);
 }
+
+/* E0 position: the p. 147 figure ends at the Pattern selectors; the p. 22
+ * figure (not measured) shows the bar just right of them. Placed in the
+ * right margin of the section, full height of the selector column. */
+int ri_geo_focus_bar(uint32_t section, struct RIGeoItem *out) {
+    if (!out || section < RI_SEC_PAT_SYNTH1 || section > RI_SEC_PAT_909)
+        return 2;
+    out->reg_id = 0;
+    out->shape = RI_GEO_RECT;
+    out->opt = 0;
+    out->cx = 272;
+    out->cy = 232;
+    out->w = 10;
+    out->h = 420;
+    return 0;
+}

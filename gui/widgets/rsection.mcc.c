@@ -97,6 +97,8 @@ struct RSectionData {
     uint8_t rep_ticks;
     struct MUI_EventHandlerNode ehn;
     struct RSectionDiag diag;
+    struct RIPanelUI *panel;   /* shared front panel (focus, keys), may be NULL */
+    BOOL key_owner;
 };
 
 static void pen(struct RastPort *rp, ULONG col) {
@@ -475,6 +477,19 @@ static const char *legend_fx(const char *leg) {
 }
 
 /* ------------------------------------------------------------ generic */
+static void draw_focus_bar(struct RastPort *rp, const struct RSectionData *dd, int ox, int oy, int z) {
+    struct RIGeoItem fb;
+    int f = ri_panel_focus_of(dd->ui.section), cx, cy, hw, hh;
+    if (!dd->panel || f < 0 || ri_geo_focus_bar(dd->ui.section, &fb) != 0)
+        return;
+    cx = ox + ri_geo_px(fb.cx, z);
+    cy = oy + ri_geo_px(fb.cy, z);
+    hw = ri_geo_px(fb.w, z) / 2;
+    hh = ri_geo_px(fb.h, z) / 2;
+    /* orange when this section has the focus (p. 22), a dark groove otherwise */
+    fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, dd->panel->focus == (uint8_t)f ? C_909_ORANGE : C_MIX_SLOT);
+}
+
 static void draw_section(Object *obj, struct RSectionData *dd) {
     struct RastPort *rp = _rp(obj);
     uint8_t sec = dd->ui.section;
@@ -502,6 +517,8 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
         bg_tr(rp, g, ox, oy, z);
     else
         bg_303(rp, g, ox, oy, z);
+    if (ispat)
+        draw_focus_bar(rp, dd, ox, oy, z);
     for (i = 0; i < g->nitems; i++) {
         const struct RIGeoItem *it = &g->items[i];
         uint32_t idx = it->reg_id & 0xFFu;
@@ -700,7 +717,19 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
         d->drag_id = 0xFFFFu;
         d->rep_idx = 0xFFFFu;
         d->shown = FALSE;
+        d->panel = (struct RIPanelUI *)GetTagData(MUIA_RSection_Panel, 0, s->ops_AttrList);
+        d->key_owner = (BOOL)GetTagData(MUIA_RSection_KeyOwner, FALSE, s->ops_AttrList);
         return (IPTR)o;
+    }
+    case OM_SET: {
+        struct opSet *os = (struct opSet *)msg;
+        struct TagItem *tag;
+        d = (struct RSectionData *)INST_DATA(cl, obj);
+        if ((tag = FindTagItem(MUIA_RSection_Panel, os->ops_AttrList)) != NULL)
+            d->panel = (struct RIPanelUI *)tag->ti_Data;
+        if ((tag = FindTagItem(MUIA_RSection_KeyOwner, os->ops_AttrList)) != NULL)
+            d->key_owner = (BOOL)(tag->ti_Data != 0);
+        return DoSuperMethodA(cl, obj, msg);
     }
     case OM_GET: {
         struct opGet *gm = (struct opGet *)msg;
@@ -740,7 +769,8 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             d->ehn.ehn_Flags = 0;
             d->ehn.ehn_Object = obj;
             d->ehn.ehn_Class = cl;
-            d->ehn.ehn_Events = IDCMP_MOUSEBUTTONS | IDCMP_MOUSEMOVE | IDCMP_INTUITICKS;
+            d->ehn.ehn_Events = IDCMP_MOUSEBUTTONS | IDCMP_MOUSEMOVE | IDCMP_INTUITICKS |
+                (d->key_owner ? IDCMP_RAWKEY : 0);
             DoMethod(_win(obj), MUIM_Window_AddEventHandler, &d->ehn); /* _win, never _window */
             d->diag.setups++;
         }
@@ -780,6 +810,15 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             return (IPTR)0;
         }
         d->diag.events++;
+        if (im->Class == IDCMP_RAWKEY) {   /* Appendix E: one owner per window */
+            if (!d->key_owner || !d->panel)
+                return (IPTR)0;
+            if (ri_key_decode(im->Code, im->Qualifier, &d->panel->opts, d->panel->focus).kind == RI_KA_NONE)
+                return (IPTR)0;   /* not ours: leave it to MUI (window cycling etc.) */
+            if (ri_panel_key(d->panel, im->Code, im->Qualifier))
+                changed(obj, d);
+            return (IPTR)MUI_EventHandlerRC_Eat;
+        }
         if (im->Class == IDCMP_MOUSEBUTTONS) {
             int lx = im->MouseX - _mleft(obj), ly = im->MouseY - _mtop(obj), opt = -1;
             uint16_t id = ri_geo_hit_opt(geo(d), lx, ly, (int)d->zoom, &opt);
@@ -789,6 +828,9 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             d->diag.last_x = lx;
             d->diag.last_y = ly;
             d->diag.last_hit = id;
+            if (im->Code == SELECTDOWN && d->panel && lx >= 0 && ly >= 0 && lx < _mwidth(obj) &&
+                ly < _mheight(obj) && ri_panel_click(d->panel, d->ui.section))
+                changed(obj, d);   /* p. 22: clicking in a section gives it the focus */
             if (im->Code == SELECTUP) {
                 d->rep_idx = 0xFFFFu;
                 if (d->drag_id == 0xFFFFu)

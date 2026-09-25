@@ -49,5 +49,9 @@ int ri_str_reset(struct RISectTr *s, uint32_t idx);
 int ri_str_step(struct RISectTr *s, uint32_t idx, int dir);
 int ri_str_value(const struct RISectTr *s, uint32_t idx); /* displays 1-based */
 int ri_str_led(const struct RISectTr *s, uint32_t idx, uint32_t which);
+/* Keypad 1 / 2 (p. 224): Song Position to the Loop Start / Loop End (the
+ * bar after the last loop bar, clamped to the last valid start). Song
+ * mode only, like the other position controls. Returns 1 when moved. */
+int ri_str_goto_loop(struct RISectTr *s, int end);
 void ri_str_indicator_set(struct RISectTr *s, uint32_t idx, int v); /* MIDI / Sync feed */
 #endif

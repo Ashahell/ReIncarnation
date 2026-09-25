@@ -57,5 +57,9 @@ int ri_geo_px(int q, int zoom);
  * *opt (may be NULL) receives the option value for RI_GEO_OPTION hits,
  * RI_GEO_HIT_UP / RI_GEO_HIT_DOWN for RI_GEO_STEPPER hits and -1 otherwise. */
 uint16_t ri_geo_hit(const struct RIGeoSection *s, int x, int y, int zoom);
+/* Focus bar (p. 22: "the vertical orange bar, to the right of the Pattern
+ * selectors") of a pattern section, as a RECT item (reg_id 0). Returns 0
+ * with *out filled, 2 when the section carries no focus bar. */
+int ri_geo_focus_bar(uint32_t section, struct RIGeoItem *out);
 uint16_t ri_geo_hit_opt(const struct RIGeoSection *s, int x, int y, int zoom, int *opt);
 #endif

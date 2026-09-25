@@ -305,6 +305,23 @@ int main(void) {
                 RI_ASSERT(s->items[k].cy > 200, "banks below the pattern buttons");
         }
         RI_ASSERT(np == 8 && nb == 4, "8 pattern + 4 bank buttons");
+        {   /* focus bar: right of every selector, inside the section, hits nothing */
+            struct RIGeoItem fb;
+            RI_ASSERT(ri_geo_focus_bar(i, &fb) == 0, "focus bar %u", i);
+            RI_ASSERT(fb.cx + fb.w / 2 <= s->w && fb.cy - fb.h / 2 >= 0 && fb.cy + fb.h / 2 <= s->h, "bar inside");
+            for (k = 0; k < s->nitems; k++)
+                if (is_hit(&s->items[k])) {
+                    int a0, b0, a1, b1;
+                    box(&s->items[k], &a0, &b0, &a1, &b1);
+                    RI_ASSERT(a1 < fb.cx - fb.w / 2, "item %u not left of the focus bar", k);
+                }
+            RI_ASSERT(ri_geo_hit(s, ri_geo_px(fb.cx, 0), ri_geo_px(fb.cy, 0), 0) == 0xFFFFu, "bar is not a control");
+        }
+    }
+    {
+        struct RIGeoItem fb;
+        RI_ASSERT(ri_geo_focus_bar(RI_SEC_909, &fb) == 2 && ri_geo_focus_bar(RI_SEC_TRANSPORT, &fb) == 2 &&
+            ri_geo_focus_bar(RI_SEC_PAT_808, 0) == 2, "focus bar only on pattern sections");
     }
     check_section(RI_SEC_TRANSPORT);
     s = ri_geo_section(RI_SEC_TRANSPORT);
