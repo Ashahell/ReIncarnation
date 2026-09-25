@@ -1,5 +1,16 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] lint | 0 issues (post-m63 sweep)
+- m63 (pattern-model-rbng-v11) verified present in raw + log + index.
+- No unindexed raws; all index/log links resolve.
+- Sibling lanes untouched by this sweep: §12.10 GUI work
+  (gui-parity plan + ctlreg.{h,c} + t60 + MOD_gui line) is uncommitted
+  under its own coexistence rule; its G1.6 audit wiring is unblocked
+  now that §12.7a has merged — flagging, not claiming.
+- check_evidence.py not run: it targets the skill's wiki/<topic>/
+  layout with Raw fields; this wiki's raw/articles ARE the source
+  records, so index+link lint is the applicable check.
+
 ## [2026-09-25] m63 | §12.7a pattern model + RBNG v1.1 (first slice)
 - Disposition: New (architectural path; TDD t53–t56)
 - Raw: llm-wiki/raw/articles/2026-09-25-pattern-model-rbng-v11.md
