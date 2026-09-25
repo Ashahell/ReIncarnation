@@ -16,4 +16,16 @@ void     ri_track_init(struct RISongTrack *t);
 uint8_t  ri_track_selected(const struct RISongTrack *t, uint64_t bar, uint32_t instance);
 int      ri_track_capture(struct RISongTrack *t, uint64_t bar, uint32_t instance, uint8_t slot);
 int      ri_track_is_empty(const struct RISongTrack *t);
+struct RITrackClip { uint16_t len; uint8_t slot[RI_SONGTRACK_BARS][RI_SONGTRACK_INSTANCES]; };
+/* Writers that take slot values: 0 ok (incl. a range that clamps to
+ * nothing), 2 refused (NULL, slot > 31, clip len > 999) — track untouched. */
+int  ri_track_init_song(struct RISongTrack *t, const uint8_t slots[RI_SONGTRACK_INSTANCES]);
+int  ri_track_init_loop(struct RISongTrack *t, const uint8_t slots[RI_SONGTRACK_INSTANCES],
+                        uint64_t start_bar, uint64_t len_bars);
+void ri_track_copy(const struct RISongTrack *t, uint64_t start, uint64_t len,
+                   struct RITrackClip *clip);
+void ri_track_cut(struct RISongTrack *t, uint64_t start, uint64_t len,
+                  struct RITrackClip *clip);
+int  ri_track_paste(struct RISongTrack *t, uint64_t at, const struct RITrackClip *clip);
+int  ri_track_paste_replace(struct RISongTrack *t, uint64_t at, const struct RITrackClip *clip);
 #endif

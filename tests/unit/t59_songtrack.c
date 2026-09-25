@@ -332,7 +332,153 @@ int main(void) {
             (void)ri_track_capture(&tr, b, 0u, (uint8_t)(b % 2u));
         memset(&carry, 0, sizeof carry);
         n = ri_track_emit_range(&tr, 0u, RI_SONGTRACK_BARS, 0, &map, 96u, &carry, big, 4096u);
+        memset(&carry, 0, sizeof carry);
+        n = ri_track_emit_range(&tr, 0u, RI_SONGTRACK_BARS, 0, &map, 96u, &carry, big, 4096u);
         RI_ASSERT(n == 4u + 998u, "sweep %u", n);
+    }
+    /* ---- edits ---- */
+    {
+        struct RISongTrack tr;
+        struct RITrackClip clip;
+        uint8_t s4[4];
+        uint8_t bad4[4];
+        uint64_t b;
+        uint32_t i;
+
+        /* init-song: every bar, every instance. */
+        s4[0] = 3u; s4[1] = 1u; s4[2] = 0u; s4[3] = 2u;
+        ri_track_init(&tr);
+        ri_track_capture(&tr, 500u, 0u, 9u);
+        ri_track_init_song(&tr, s4);
+        for (b = 0u; b < RI_SONGTRACK_BARS; b++)
+            for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+                RI_ASSERT(ri_track_selected(&tr, b, i) == s4[i],
+                    "init song %llu/%u", (unsigned long long)b, i);
+        /* Slot law (one law, no masking): {32,40,1,2} is refused whole and
+         * the track keeps the previous init-song content. */
+        bad4[0] = 32u; bad4[1] = 40u; bad4[2] = 1u; bad4[3] = 2u;
+        RI_ASSERT(ri_track_init_song(&tr, bad4) == 2, "init song refuses slot 32/40");
+        RI_ASSERT(ri_track_selected(&tr, 0u, 0u) == 3u && ri_track_selected(&tr, 998u, 2u) == 0u,
+            "refused init song left the track untouched");
+        RI_ASSERT(ri_track_init_loop(&tr, bad4, 0u, 4u) == 2 && ri_track_selected(&tr, 1u, 1u) == 1u,
+            "init loop refuses bad slots, all-or-nothing");
+
+        /* init-loop: EVERY bar inside the loop (E1 p. 176), nothing outside. */
+        ri_track_init(&tr);
+        ri_track_capture(&tr, 12u, 0u, 9u);   /* prior content inside */
+        ri_track_capture(&tr, 20u, 0u, 9u);   /* content outside */
+        ri_track_init_loop(&tr, s4, 10u, 4u);
+        for (b = 10u; b < 14u; b++)
+            for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+                RI_ASSERT(ri_track_selected(&tr, b, i) == s4[i],
+                    "init loop %llu/%u", (unsigned long long)b, i);
+        RI_ASSERT(ri_track_selected(&tr, 14u, 0u) == 0u, "init loop above");
+        RI_ASSERT(ri_track_selected(&tr, 20u, 0u) == 9u, "init loop outside kept");
+        /* Loop range clamps at the song end; zero len and past-end are no-ops. */
+        ri_track_init(&tr);
+        ri_track_init_loop(&tr, s4, 997u, 10u);
+        RI_ASSERT(ri_track_selected(&tr, 997u, 0u) == 3u &&
+            ri_track_selected(&tr, 998u, 3u) == 2u, "init loop clamped");
+        ri_track_init(&tr);
+        RI_ASSERT(ri_track_init_loop(&tr, s4, 10u, 0u) == 0 &&
+            ri_track_init_loop(&tr, s4, 999u, 4u) == 0, "empty ranges are no-ops, not refusals");
+        RI_ASSERT(ri_track_is_empty(&tr) == 1, "init loop no-ops");
+
+        /* copy: pure, clamped, and overflow-proof on a huge len. */
+        ri_track_init(&tr);
+        for (b = 0u; b < RI_SONGTRACK_BARS; b++)
+            for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+                (void)ri_track_capture(&tr, b, i, (uint8_t)(b % 8u));
+        ri_track_copy(&tr, 5u, 4u, &clip);
+        RI_ASSERT(clip.len == 4u, "copy len %u", (unsigned)clip.len);
+        RI_ASSERT(clip.slot[0][0] == 5u && clip.slot[3][0] == 0u, "copy rows");
+        RI_ASSERT(ri_track_selected(&tr, 5u, 0u) == 5u, "copy is pure");
+        ri_track_copy(&tr, 998u, 5u, &clip);
+        RI_ASSERT(clip.len == 1u, "copy clamps %u", (unsigned)clip.len);
+        /* Overflow pin, non-zero start: 500 + (2^64-1) WRAPS to 499, so a bare
+         * `start + len > BARS` check waves the huge len through and the fill
+         * loop runs off the grid. The clamp is evaluated before any addition. */
+        ri_track_copy(&tr, 500u, ~(uint64_t)0, &clip);
+        RI_ASSERT(clip.len == 499u, "copy huge len %u", (unsigned)clip.len);
+        ri_track_copy(&tr, 0u, ~(uint64_t)0, &clip);
+        RI_ASSERT(clip.len == 999u, "copy huge len at 0 %u", (unsigned)clip.len);
+
+        /* cut: clip holds the range, the tail closes the gap, the freed end
+         * fills with slot 0 without reading past bar 998. */
+        ri_track_cut(&tr, 2u, 3u, &clip);
+        RI_ASSERT(clip.len == 3u && clip.slot[0][0] == 2u && clip.slot[2][0] == 4u, "cut clip");
+        RI_ASSERT(ri_track_selected(&tr, 2u, 0u) == 5u, "gap closed");
+        RI_ASSERT(ri_track_selected(&tr, 5u, 0u) == 0u, "shift alias");
+        RI_ASSERT(ri_track_selected(&tr, 995u, 0u) == 6u, "shift tail from 998");
+        RI_ASSERT(ri_track_selected(&tr, 996u, 0u) == 0u &&
+            ri_track_selected(&tr, 998u, 0u) == 0u, "freed end zeroed");
+        /* Cut aimed past the end clamps to the last bar available. */
+        ri_track_cut(&tr, 997u, 5u, &clip);
+        RI_ASSERT(clip.len == 2u, "cut end len %u", (unsigned)clip.len);
+        RI_ASSERT(ri_track_selected(&tr, 997u, 0u) == 0u &&
+            ri_track_selected(&tr, 998u, 0u) == 0u, "cut end zeroed");
+        /* No-op cuts still clear the clip (stale clipboard is a bug source). */
+        ri_track_cut(&tr, 999u, 3u, &clip);
+        RI_ASSERT(clip.len == 0u, "cut past end");
+        ri_track_cut(&tr, 0u, 0u, &clip);
+        RI_ASSERT(clip.len == 0u, "cut zero len");
+
+        /* paste inserts (tail shifts right, drops past the end). */
+        ri_track_init(&tr);
+        for (b = 0u; b < 6u; b++)
+            (void)ri_track_capture(&tr, b, 0u, (uint8_t)(b + 1u));
+        ri_track_copy(&tr, 0u, 2u, &clip);
+        RI_ASSERT(clip.len == 2u && clip.slot[0][0] == 1u && clip.slot[1][0] == 2u,
+            "paste pre");
+        ri_track_paste(&tr, 3u, &clip);
+        RI_ASSERT(ri_track_selected(&tr, 2u, 0u) == 3u, "insert kept bar 2");
+        RI_ASSERT(ri_track_selected(&tr, 3u, 0u) == 1u && ri_track_selected(&tr, 4u, 0u) == 2u,
+            "inserted clip");
+        RI_ASSERT(ri_track_selected(&tr, 5u, 0u) == 4u && ri_track_selected(&tr, 6u, 0u) == 5u,
+            "tail shifted");
+        RI_ASSERT(ri_track_selected(&tr, 8u, 0u) == 0u, "tail end clear");
+        /* Overflow: the 2-bar clip pasted at bar 998 keeps only bar 998. */
+        RI_ASSERT(ri_track_paste(&tr, 998u, &clip) == 0, "overflow paste rc");
+        RI_ASSERT(ri_track_selected(&tr, 998u, 0u) == 1u, "paste dropped overflow");
+        /* Hand-built clip with an out-of-range slot in its LAST row is refused
+         * whole: nothing shifts, nothing is written (validate before write). */
+        clip.len = 2u;
+        memset(clip.slot, 0, sizeof clip.slot);
+        clip.slot[1][3] = 40u;
+        RI_ASSERT(ri_track_paste(&tr, 0u, &clip) == 2, "paste refuses clip slot 40");
+        RI_ASSERT(ri_track_selected(&tr, 0u, 0u) == 1u && ri_track_selected(&tr, 3u, 0u) == 1u,
+            "refused paste shifted nothing");
+        RI_ASSERT(ri_track_paste_replace(&tr, 0u, &clip) == 2 && ri_track_selected(&tr, 0u, 0u) == 1u,
+            "paste-replace refuses too");
+        clip.len = 1000u;
+        clip.slot[1][3] = 0u;
+        RI_ASSERT(ri_track_paste(&tr, 0u, &clip) == 2, "clip len 1000 is malformed");
+
+        /* paste-replace overwrites in place, leaving the tail alone. */
+        ri_track_init(&tr);
+        for (b = 0u; b < 8u; b++)
+            (void)ri_track_capture(&tr, b, 0u, (uint8_t)(b + 1u));
+        ri_track_copy(&tr, 0u, 2u, &clip);
+        ri_track_paste_replace(&tr, 3u, &clip);
+        RI_ASSERT(ri_track_selected(&tr, 3u, 0u) == 1u && ri_track_selected(&tr, 4u, 0u) == 2u,
+            "replace wrote");
+        RI_ASSERT(ri_track_selected(&tr, 2u, 0u) == 3u && ri_track_selected(&tr, 5u, 0u) == 6u,
+            "replace left neighbors");
+
+        /* NULL / degenerate edges. */
+        RI_ASSERT(ri_track_init_song(0, s4) == 2 && ri_track_init_song(&tr, 0) == 2, "init song null");
+        RI_ASSERT(ri_track_init_loop(0, s4, 0u, 1u) == 2 && ri_track_init_loop(&tr, 0, 0u, 1u) == 2,
+            "init loop null");
+        ri_track_copy(&tr, 0u, 1u, 0);
+        ri_track_copy(0, 0u, 1u, &clip);
+        ri_track_cut(&tr, 0u, 1u, 0);
+        ri_track_cut(0, 0u, 1u, &clip);
+        RI_ASSERT(ri_track_paste(&tr, 0u, 0) == 2 && ri_track_paste(0, 0u, &clip) == 2, "paste null");
+        RI_ASSERT(ri_track_paste_replace(&tr, 0u, 0) == 2 && ri_track_paste_replace(0, 0u, &clip) == 2,
+            "replace null");
+        clip.len = 0u;
+        RI_ASSERT(ri_track_paste(&tr, 0u, &clip) == 0 && ri_track_paste_replace(&tr, 0u, &clip) == 0,
+            "empty clip is a no-op");
     }
     RI_RESULT("songtrack");
 }

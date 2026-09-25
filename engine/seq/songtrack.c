@@ -119,3 +119,139 @@ int ri_track_is_empty(const struct RISongTrack *t) {
                 return 0;
     return 1;
 }
+
+/* Slot law, one enforcement point for every bulk writer: validate ALL
+ * values before the first write (capture refuses the same way). */
+static int track_row_ok(const uint8_t row[RI_SONGTRACK_INSTANCES]) {
+    uint32_t i;
+    for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+        if (row[i] > RI_SONGTRACK_MAX_SLOT)
+            return 0;
+    return 1;
+}
+
+/* Clip rows [0, len) that a paste would write: all valid, or refuse. */
+static int track_clip_ok(const struct RITrackClip *clip, uint64_t len) {
+    uint64_t b;
+    for (b = 0u; b < len; b++)
+        if (!track_row_ok(clip->slot[b]))
+            return 0;
+    return 1;
+}
+
+/* Clamp [start, start+len) into the song. Never evaluates start+len on an
+ * unbounded len (unsigned addition is modulo and would wrap the check). */
+static uint64_t track_clamp_len(uint64_t start, uint64_t len) {
+    if (start >= (uint64_t)RI_SONGTRACK_BARS)
+        return 0u;
+    if (len > (uint64_t)RI_SONGTRACK_BARS - start)
+        return (uint64_t)RI_SONGTRACK_BARS - start;
+    return len;
+}
+
+static void track_clip_fill(const struct RISongTrack *t, uint64_t start,
+    uint64_t len, struct RITrackClip *clip) {
+    uint64_t k;
+    uint32_t i;
+    clip->len = (uint16_t)len;
+    for (k = 0u; k < len; k++)
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+            clip->slot[k][i] = t->slot[start + k][i];
+}
+
+int ri_track_init_song(struct RISongTrack *t, const uint8_t slots[RI_SONGTRACK_INSTANCES]) {
+    uint32_t b, i;
+    if (!t || !slots || !track_row_ok(slots))
+        return 2;
+    /* Slot half of the E1 p. 75 promise: pattern-mode selections travel
+     * into the song (the automation slice owns the knob half). */
+    for (b = 0u; b < RI_SONGTRACK_BARS; b++)
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+            t->slot[b][i] = slots[i];
+    return 0;
+}
+
+int ri_track_init_loop(struct RISongTrack *t, const uint8_t slots[RI_SONGTRACK_INSTANCES],
+                       uint64_t start_bar, uint64_t len_bars) {
+    uint64_t b, end, len;
+    uint32_t i;
+    if (!t || !slots || !track_row_ok(slots))
+        return 2;
+    len = track_clamp_len(start_bar, len_bars);
+    if (len == 0u)
+        return 0; /* range repair: an empty range is a no-op, not a refusal */
+    end = start_bar + len; /* bounded: both <= 999 here */
+    /* E1 p. 176: ALL measures inside the loop take the pattern-mode
+     * selections; the writes replace whatever was there. */
+    for (b = start_bar; b < end; b++)
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+            t->slot[b][i] = slots[i];
+    return 0;
+}
+
+void ri_track_copy(const struct RISongTrack *t, uint64_t start, uint64_t len,
+                   struct RITrackClip *clip) {
+    uint64_t n;
+    if (!t || !clip)
+        return;
+    clip->len = 0u; /* never leave a stale clipboard behind a refused op */
+    n = track_clamp_len(start, len);
+    if (n == 0u)
+        return;
+    track_clip_fill(t, start, n, clip);
+}
+
+void ri_track_cut(struct RISongTrack *t, uint64_t start, uint64_t len,
+                  struct RITrackClip *clip) {
+    uint64_t b, n;
+    uint32_t i;
+    if (!t || !clip)
+        return;
+    clip->len = 0u;
+    n = track_clamp_len(start, len);
+    if (n == 0u)
+        return;
+    track_clip_fill(t, start, n, clip);
+    for (b = start; b + n < (uint64_t)RI_SONGTRACK_BARS; b++)
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+            t->slot[b][i] = t->slot[b + n][i]; /* close the gap */
+    for (b = (uint64_t)RI_SONGTRACK_BARS - n; b < (uint64_t)RI_SONGTRACK_BARS; b++)
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+            t->slot[b][i] = 0u; /* freed end: slot 0, never silence */
+}
+
+int ri_track_paste(struct RISongTrack *t, uint64_t at, const struct RITrackClip *clip) {
+    uint64_t len, b;
+    uint32_t i;
+    int64_t s;
+    if (!t || !clip || clip->len > RI_SONGTRACK_BARS)
+        return 2; /* a clip longer than the song is malformed caller data */
+    len = track_clamp_len(at, clip->len); /* drops overflow, never grows */
+    if (len == 0u)
+        return 0;
+    if (!track_clip_ok(clip, len))
+        return 2; /* validated before the shift: all-or-nothing */
+    for (s = (int64_t)((uint64_t)RI_SONGTRACK_BARS - len) - 1; s >= (int64_t)at; s--)
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+            t->slot[(uint64_t)s + len][i] = t->slot[(uint64_t)s][i];
+    for (b = 0u; b < len; b++)
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+            t->slot[at + b][i] = clip->slot[b][i];
+    return 0;
+}
+
+int ri_track_paste_replace(struct RISongTrack *t, uint64_t at, const struct RITrackClip *clip) {
+    uint64_t len, b;
+    uint32_t i;
+    if (!t || !clip || clip->len > RI_SONGTRACK_BARS)
+        return 2;
+    len = track_clamp_len(at, clip->len);
+    if (len == 0u)
+        return 0;
+    if (!track_clip_ok(clip, len))
+        return 2;
+    for (b = 0u; b < len; b++)
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+            t->slot[at + b][i] = clip->slot[b][i];
+    return 0;
+}
