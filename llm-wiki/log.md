@@ -1,5 +1,10 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] lint | 0 issues (post-m66 sweep)
+- m66 (songtrack) verified present in raw + log + index.
+- No unindexed raws; all index/log links resolve.
+- Sibling G5 commits present in history; their records are theirs.
+
 ## [2026-09-25] m66 | §12.9b song track (dense grid + emission + STRK)
 - Disposition: New (reviewed plan, native execution, TDD t59)
 - Raw: llm-wiki/raw/articles/2026-09-25-songtrack.md
