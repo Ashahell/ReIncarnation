@@ -1,5 +1,21 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m57 | §12.8b1: delay Steps/triplet/fb-infinite
+- Disposition: New (TDD, t47 RED 6 → PASS)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8b1-delay-parity.md
+- Updated: engine/fx/fx.{h,c} (steps model, STEPS/TRIPLET IDs, fb 1.0),
+  tests/unit/t47 (new), fx-delay + fx-chain goldens + sha (root-caused),
+  docs/2026-09-24-improvement-todo.md
+- First diffs at second echo (mechanism proof). Full `ri_audit.sh` 0/0.
+
+## [2026-09-25] ingest | Lane wedge root cause: e1000.device FreeMem() in IRQ context
+- Disposition: New; Disputed
+- Raw: llm-wiki/raw/articles/2026-09-25-e1000-wedge-root-cause-freemem-in-irq.md
+- Updated: llm-wiki/index.md (new "Lane infrastructure" section)
+- Proven by reproduction: original driver + memstress wedged at round 14 with `tlsf_freevec` ← `Exec_35_FreeMem` ← `e1000func_clean_tx_irq` ← `e1000func_IntHandler`; fixed driver 45/45, memstress corrupt=0
+- Supersedes: 2026-09-24-spike-lane-wedge-fix ("single ~786 KB Send()") and m42 "transfer size, not driver"; disputes Vulkan4Aros arostcp-outbound-wedge.md "QEMU-emulation-side"
+- Dell patched driver built (sha b98be161…), not deployed (approval pending); aros_v1j untouched (busy)
+
 ## [2026-09-25] m56 | §12.8a: delay beats + caller-owned lines + live comp
 - Disposition: New (TDD, t46 link-RED → PASS with revert-checks)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8a-fx-delay.md

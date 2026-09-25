@@ -16,6 +16,10 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 - [../docs/2026-09-24-improvement-opportunities.md](../docs/2026-09-24-improvement-opportunities.md) + record [raw/articles/2026-09-24-codebase-review-rebirth-fidelity.md](raw/articles/2026-09-24-codebase-review-rebirth-fidelity.md) — **2026-09-24 — Codebase review vs ReBirth 2.0.1 + TB-303/TR-808/TR-909.** CRITICAL: `ri_exp` diverges below ≈ −25 → 808 RS/CL/CH/OH ramp to full-scale buzz 2–3 s after the last hit (measured); 303 panel 0x0305 "volume" = engine WAVE, 303B IDs unhandled. Also: delay ignores beats (0.75 hard-coded), FX pool leak, PCF float clock stalls ≈ 7 min at 140 BPM, 808 section soft-clip step, one-renderer = 303 only, mono. ReBirth 2.0.1 manual adopted as E1 source (tempo 20–500, 32 patterns/section, 808 16 sounds/11 slots incl. maracas, 909 11 instruments, PCF = LP/BP + AD envelope, **PCF patterns 0–53 drawn in Appendix D → OPEN-04 E1 candidate**). 808 metal osc 205.3/304.4/369.6/522.7/540/800 Hz; 303 MEG/VEG split. Proposed decisions + work order in the doc.
 - [raw/articles/2026-09-24-extensible-device-rack-requirement.md](raw/articles/2026-09-24-extensible-device-rack-requirement.md) — **2026-09-24 — Owner requirement: extensible device rack.** Add devices beyond the 4 ReBirth sections; user chooses active devices. Review §5.6 + D-k/D-l: class/instance model, `(instance, control)` addressing, per-instance mixer channels, activation via snapshot swap, RBNG `RACK` chunk (missing class → disabled + warning), Classic = default 4-device rack bit-identical, other racks = Power Mode; compiled-in classes until OPEN-07 ABI freeze. Replaces static `RI_DEVICE_COUNT 4u` registry.
 
+## Lane infrastructure
+
+- [raw/articles/2026-09-25-e1000-wedge-root-cause-freemem-in-irq.md](raw/articles/2026-09-25-e1000-wedge-root-cause-freemem-in-irq.md) — **2026-09-25 — Lane wedge ROOT CAUSE: e1000.device FreeMem() from the interrupt handler.** Per-packet AllocMem (Tx softint) + FreeMem (IntHandler → clean_tx_irq) race exec TLSF (MEM_LOCK = Forbid). Reproduced on private QEMU e1000 lane: Software Failure in `tlsf_freevec` from IRQ #43 at round 14; fixed driver 45/45 + memstress corrupt=0. Fixes: v1/v11 source (preallocated Tx buffers, ring-full guard), Dell binary patch (lock-free Tx pool, 2 relocations), agent drops desynced connections. Supersedes the 786 KB Send() theory. Dell NOT yet deployed (approval pending).
+
 ## Ingested articles
 
 - [raw/articles/2026-07-16-hosted-aros-wsl2-audio-ahi-alsa-pulse-bridge.md](raw/articles/2026-07-16-hosted-aros-wsl2-audio-ahi-alsa-pulse-bridge.md) — ✅ **2026-07-16 — hosted AROS SDL games (MBX, xRick, SokobanGP2X) black-screen + SIGILL-cascade under WSL2 — missing ALSA→Pulse bridge, NOT r12.** `SDL_SetError: Unable to open AHI device! Error code -1` → trap-handler re-entry (RSP −0x400/iter) → stack overflow. Fix: `libasound2-plugins` + `~/.asoundrc` (`type pulse`). Env-only, no repo change.
@@ -75,6 +79,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 - [raw/articles/2026-09-25-imp-12-6b-909-decouple.md](raw/articles/2026-09-25-imp-12-6b-909-decouple.md) — **2026-09-25 — §12.6b (m55).** Flam bit, OH-wins hats, linear mix; zero golden fallout.
 
 - [raw/articles/2026-09-25-imp-12-8a-fx-delay.md](raw/articles/2026-09-25-imp-12-8a-fx-delay.md) — **2026-09-25 — §12.8a (m56).** Delay beats-honoring + pool retired + live-rate comp; zero golden fallout.
+
+- [raw/articles/2026-09-25-imp-12-8b1-delay-parity.md](raw/articles/2026-09-25-imp-12-8b1-delay-parity.md) — **2026-09-25 — §12.8b1 (m57).** Steps/triplet/fb-infinite; second-echo proof; 2 goldens root-caused.
 
 - [raw/articles/2026-09-24-first-click-jump-qa.md](raw/articles/2026-09-24-first-click-jump-qa.md) — **2026-09-24 — First-click jump + Q&A.** Warp arms past 3px; buttons-gone by design; FLAMRES = documented placeholder slot.
 

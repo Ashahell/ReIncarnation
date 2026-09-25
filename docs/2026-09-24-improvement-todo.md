@@ -63,7 +63,8 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 
 ## §12.8 FX routing + parity + PCF envelope (§3.2, §4.4)
 - [x] Delay beats-honoring + caller-owned lines + tap slew + live-rate comp + pool retired (m56)
-- [ ] Delay parity (steps/triplet/fb=1.0/pan/sustain) + routing matrix/exclusivity
+- [x] Delay Steps/triplet/fb-infinite/sustain-structure (m57)
+- [ ] Delay pan + stereo return + routing matrix/exclusivity
 - [ ] PCF clock lock + envelope model + Appendix-D patterns + HP drop
 - [ ] Dist oversample + comp ratio/GR meter
 
