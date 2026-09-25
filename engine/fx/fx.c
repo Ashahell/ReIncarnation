@@ -304,6 +304,7 @@ static void ri_fx_pcf_apply(struct RIFX *x) {
     x->pcf.amt_oct = ((float)x->pcf_amt / 127.0f) * 8.0f - 4.0f;
     x->pcf.mode = x->pcf_mode;
     x->pcf.pattern = x->pcf_pattern;
+    pcf_set_decay(&x->pcf, x->pcf_decay);
 }
 
 struct RIFX *RiFXCreate(uint32_t fx_type) {
@@ -327,9 +328,9 @@ struct RIFX *RiFXCreate(uint32_t fx_type) {
     x->pcf_base = 64;
     x->pcf_q = 64;
     x->pcf_amt = 64;
+    x->pcf_decay = 64;
     x->pad2[0] = 0;
     x->pad2[1] = 0;
-    x->pad2[2] = 0;
     x->delay.buf = 0;
     x->delay.cap = 0;
     x->delay.pos = 0;
@@ -368,9 +369,9 @@ struct RIFX *RiFXCreateDelay(float *buf, uint32_t cap) {
     x->pcf_base = 64;
     x->pcf_q = 64;
     x->pcf_amt = 64;
+    x->pcf_decay = 64;
     x->pad2[0] = 0;
     x->pad2[1] = 0;
-    x->pad2[2] = 0;
     ri_fxdelay_init(&x->delay, buf, cap);
     pcf_init(&x->pcf);
     ri_fx_pcf_apply(x);
@@ -450,6 +451,9 @@ void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value) {
     case RI_FXID_PCF_PATTERN:
         x->pcf_pattern = value > 53u ? 53u : value;
         break;
+    case RI_FXID_PCF_DECAY:
+        x->pcf_decay = value;
+        break;
     default:
         break;
     }
@@ -496,7 +500,7 @@ void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
     }
     /* PCF via the OWNED voice: parameters re-applied, state preserved. */
     ri_fx_pcf_apply(x);
-    pcf_set_tempo(&x->pcf, bpm >= 30.0f && bpm <= 300.0f ? bpm : 140.0f);
+    pcf_set_tempo(&x->pcf, bpm >= 20.0f && bpm <= 500.0f ? bpm : 140.0f);
     pcf_render(&x->pcf, in, out, frames, sr);
 }
 

@@ -1,12 +1,15 @@
-/* pcf.h — PCF 12 dB SVF + ledger-gated response table (Task 10, gate G10).
+/* pcf.h — PCF 12 dB SVF + attack/decay envelope (§12.8c1) + ledger-gated
+ * response table (Task 10, gate G10).
  * Spec §12 (demoted black-box plan) + Appendix A P-15 + Appendix D sketch.
  *
  * locked requirements regardless of route: 12 dB SVF engine shape
  * (candidate, textbook Chamberlin two-pole form — the register carries no
- * PCF-specific prior-art row, so no lineage is claimed), free-running
- * transport clock (beat_pos advances every render), fixed-seed
- * determinism (zero init, no RNG), 16th-grid stepping (step index derives
- * from beat_pos), 54-tile picker UI (count constant only).
+ * PCF-specific prior-art row, so no lineage is claimed), integer sample
+ * clock (pos_smp; the step index is a pure function of samples rendered —
+ * never drifts), pattern retrigger (neutral: every 16th at velocity 64
+ * until per-pattern rows lock), fixed-seed determinism (zero init, no RNG),
+ * 16th-grid stepping, 54-tile picker UI (count constant only). No HP mode
+ * (ReBirth has LP/BP only; mode 2 maps to band).
  *
  * The 54x16 pattern contents are UNVERIFIED (OPEN-04): no implementation
  * may hardcode them as fact. Until per-pattern ledger rows lock, every
@@ -60,13 +63,16 @@ struct PCFSVF {
 struct PCF {
     struct PCFSVF svf;
     uint8_t pattern; /* 0..53 stored state (spec §2.3 item 3) */
-    uint8_t mode; /* 0 = low, 1 = band, 2 = high */
+    uint8_t mode; /* 0 = low, 1 = band (2 maps to band: no HP in ReBirth) */
     uint8_t pad[2];
     float base_fc;
     float q;
     float amt_oct; /* ±4 response amount (P-15) */
-    float bpm; /* free-running transport clock rate */
-    float beat_pos; /* 16th-note position, advances every render */
+    float bpm; /* transport clock rate */
+    uint64_t pos_smp; /* integer sample clock (§12.8c1: never drifts) */
+    uint32_t last_step; /* last 16th rendered (hit detection) */
+    float env; /* attack/decay envelope, velocity units 0..127 */
+    float decay; /* envelope decay tau, s (Decay knob) */
 };
 
 /* Load + validate the ledger-verified table. Returns row count, else
@@ -79,6 +85,13 @@ float pcf_cutoff_hz(float base_fc, int v, float amt_oct);
 uint8_t pcf_pattern_step(uint8_t pattern, uint32_t step16);
 void pcf_init(struct PCF *p);
 void pcf_set_tempo(struct PCF *p, float bpm);
+/* Decay knob 0..127 -> tau 0.05*2^((v-64)/16) s (3 ms .. 0.8 s, E0). */
+void pcf_set_decay(struct PCF *p, uint8_t v);
+/* Transport restart: clock + envelope reset, SVF + params preserved. */
+void pcf_restart(struct PCF *p);
+/* 16th step index at an absolute sample position (pure function: the
+ * integer clock — exact at any horizon, never drifts). */
+uint32_t pcf_step_index(uint64_t pos_smp, float bpm, float sr);
 void pcf_render(struct PCF *p, const float *in, float *out, uint32_t n,
     float sr);
 #endif

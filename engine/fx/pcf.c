@@ -128,15 +128,43 @@ void pcf_init(struct PCF *p) {
     p->q = 2.0f;
     p->amt_oct = 0.0f;
     p->bpm = 140.0f;
-    p->beat_pos = 0.0f;
+    p->pos_smp = 0ull;
+    p->last_step = 0u;
+    p->env = 64.0f; /* neutral velocity (matches old v=64 at t=0) */
+    p->decay = 0.05f;
 }
 
 void pcf_set_tempo(struct PCF *p, float bpm) {
-    if (bpm < 30.0f)
-        bpm = 30.0f;
-    if (bpm > 300.0f)
-        bpm = 300.0f;
+    if (bpm < 20.0f)
+        bpm = 20.0f;
+    if (bpm > 500.0f)
+        bpm = 500.0f;
     p->bpm = bpm;
+}
+
+void pcf_set_decay(struct PCF *p, uint8_t v) {
+    int vv = v > 127u ? 127 : (int)v;
+    p->decay = 0.05f * ri_pow2(((float)vv - 64.0f) / 16.0f);
+}
+
+void pcf_restart(struct PCF *p) {
+    p->svf.low = 0.0f;
+    p->svf.band = 0.0f;
+    p->pos_smp = 0ull;
+    p->last_step = 0u;
+    p->env = 64.0f;
+}
+
+uint32_t pcf_step_index(uint64_t pos_smp, float bpm, float sr) {
+    double s;
+    if (!(bpm > 0.0f) || !(sr > 0.0f))
+        return 0u;
+    /* 16th index = pos * bpm * 4 / (60 * sr); double holds integer
+     * positions exactly to 2^53 samples (3400 years at 48 kHz). */
+    s = (double)pos_smp * (double)bpm * 4.0 / (60.0 * (double)sr);
+    if (s < 0.0)
+        return 0u;
+    return (uint32_t)s;
 }
 
 /* One Chamberlin SVF sample on the low/band/high taps (12 dB). */
@@ -164,7 +192,7 @@ static float pcf_svf_step(struct PCFSVF *s, float x, float f, float damp,
 
 void pcf_render(struct PCF *p, const float *in, float *out, uint32_t n,
     float sr) {
-    float q, damp, fc, fmax, f, step_f;
+    float q, damp, fc, fmax, f, dec_a;
     uint32_t i, mode;
     if (!p || !in || !out || n == 0u || !(sr > 0.0f))
         return;
@@ -174,12 +202,25 @@ void pcf_render(struct PCF *p, const float *in, float *out, uint32_t n,
     if (q > RI_PCF_Q_MAX)
         q = RI_PCF_Q_MAX;
     damp = 1.0f / q;
-    mode = p->mode > 2u ? 0u : (uint32_t)p->mode;
+    /* No HP mode in ReBirth (§12.8c1): 2 maps to band. */
+    mode = p->mode > 1u ? 1u : (uint32_t)p->mode;
     fmax = sr / 6.0f;
+    if (p->decay * sr > 1.0f)
+        dec_a = ri_exp(-1.0f / (p->decay * sr));
+    else
+        dec_a = 0.0f;
     for (i = 0; i < n; i++) {
-        uint32_t step16 = (uint32_t)(p->beat_pos);
-        uint8_t sv = pcf_pattern_step(p->pattern, step16);
-        fc = pcf_cutoff_hz(p->base_fc, (int)sv, p->amt_oct);
+        /* Integer clock: step is a pure function of the absolute sample
+         * (§12.8c1 — the float accumulator stalled near 7 min). A new
+         * 16th retriggers the neutral hit (velocity 64, instant attack;
+         * per-pattern velocity/attack arrive with the pattern rows). */
+        uint32_t step16 = pcf_step_index(p->pos_smp, p->bpm, sr);
+        if (step16 != p->last_step) {
+            p->last_step = step16;
+            p->env = 64.0f;
+        }
+        p->env *= dec_a;
+        fc = p->base_fc * ri_pow2(p->amt_oct * p->env / 64.0f);
         if (fc < RI_PCF_FC_MIN_HZ)
             fc = RI_PCF_FC_MIN_HZ;
         if (fc > fmax)
@@ -188,8 +229,6 @@ void pcf_render(struct PCF *p, const float *in, float *out, uint32_t n,
          * the fs/6 clamp), well inside the ri_sin cycle clamp. */
         f = 2.0f * ri_sin(RI_PCF_PI * fc / sr);
         out[i] = pcf_svf_step(&p->svf, in[i], f, damp, mode);
-        /* Free-running 16th-grid clock: beat_pos in 16ths. */
-        step_f = p->beat_pos + (p->bpm * 4.0f) / (60.0f * sr);
-        p->beat_pos = step_f;
+        p->pos_smp++;
     }
 }

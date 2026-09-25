@@ -109,7 +109,7 @@ int main(void) {
         r_hf = rms(OA + SRU - 4096, 4096);
         RI_ASSERT(r_hf < 0.25f, "hf not cut (%.5g)", (double)r_hf);
         RI_ASSERT(finite_buf(OA, SRU), "pcf non-finite");
-        RI_ASSERT(a.beat_pos > 0.0f, "clock not free-running");
+        RI_ASSERT(a.pos_smp == SRU && a.last_step > 0u, "clock not advancing");
     }
 
     /* --- 3. delay sync error <0.1% at 120/140/174 BPM --- */

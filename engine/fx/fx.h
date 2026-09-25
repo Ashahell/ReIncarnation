@@ -40,6 +40,7 @@
 #define RI_FXID_PCF_AMT 0x0A08u /* 0..127 -> -4..+4 oct */
 #define RI_FXID_PCF_MODE 0x0A09u /* 0..2 low/band/high */
 #define RI_FXID_PCF_PATTERN 0x0A0Au /* 0..53 stored state */
+#define RI_FXID_PCF_DECAY 0x0A0Du /* 0..127 envelope decay (§12.8c1) */
 #define RI_FXCOMP_RATIO 4.0f
 #define RI_FXCOMP_ATTACK_S 0.010f
 #define RI_FXCOMP_RELEASE_S 0.100f
@@ -73,7 +74,7 @@ struct RiFXComp {
 
 /* Generic handle (Appendix D RIFX sketch, executor-defined shape).
  * Fix round 1: the handle OWNS a persistent struct PCF (streaming-safe:
- * SVF state + beat_pos survive across RiFXRender block calls; the render
+ * SVF state + clock survive across RiFXRender block calls; the render
  * path never re-inits it). §12.8a: delay lines are CALLER-OWNED (no static
  * pool — it leaked by never releasing): RiFXCreateDelay takes the buffer;
  * plain RiFXCreate(RI_FX_DELAY) fails closed (NULL). RiFXDestroy releases
@@ -91,7 +92,8 @@ struct RIFX {
     uint8_t pcf_base; /* knob echoes for the wrapped PCF */
     uint8_t pcf_q;
     uint8_t pcf_amt;
-    uint8_t pad2[3];
+    uint8_t pcf_decay; /* envelope decay knob (§12.8c1) */
+    uint8_t pad2[2];
 };
 
 /* Delay. buf/cap caller-owned (cap >= 64, sized for the worst case:
