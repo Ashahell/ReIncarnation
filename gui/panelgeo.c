@@ -252,6 +252,45 @@ static const struct RIGeoItem RI_GEO_909[] = {
     { S9(45), RI_GEO_RECT, 0, 1408, 378, 62, 62 },
 };
 
+/* Section mixer: Owner's Manual p. 157 figure (71 x 116 px = 284 x 464 Q),
+ * identical for Synth 1/2, 808 and 909. Header: on/off (mute) button left,
+ * "MIX", output meter right; Pan knob top-left, Dist/PCF/Comp switches with
+ * LEDs down the right, volume fader bottom-left, Delay knob bottom-right. */
+#define MX(sec, i) (uint16_t)(((sec) << 8) | (i))
+#define RI_GEO_MIXER(sec) \
+    { MX(sec, 0), RI_GEO_RECT, 0, 49, 46, 32, 32 }, \
+    { MX(sec, 1), RI_GEO_RECT, 0, 235, 45, 24, 44 }, \
+    { MX(sec, 3), RI_GEO_KNOB, 0, 80, 132, 45, 70 }, \
+    { MX(sec, 3), RI_GEO_LEGEND, 0, 80, 215, 0, 0 }, \
+    { MX(sec, 5), RI_GEO_RECT, 0, 200, 96, 45, 22 }, \
+    { MX(sec, 5), RI_GEO_LED, 0, 245, 98, 8, 8 }, \
+    { MX(sec, 5), RI_GEO_LEGEND, 0, 200, 131, 0, 0 }, \
+    { MX(sec, 6), RI_GEO_RECT, 0, 200, 168, 45, 22 }, \
+    { MX(sec, 6), RI_GEO_LED, 0, 245, 170, 8, 8 }, \
+    { MX(sec, 6), RI_GEO_LEGEND, 0, 200, 205, 0, 0 }, \
+    { MX(sec, 7), RI_GEO_RECT, 0, 200, 241, 45, 22 }, \
+    { MX(sec, 7), RI_GEO_LED, 0, 245, 242, 8, 8 }, \
+    { MX(sec, 7), RI_GEO_LEGEND, 0, 200, 272, 0, 0 }, \
+    { MX(sec, 2), RI_GEO_RECT, 0, 75, 345, 60, 200 }, \
+    { MX(sec, 4), RI_GEO_KNOB, 0, 205, 352, 45, 70 }, \
+    { MX(sec, 4), RI_GEO_LEGEND, 0, 205, 432, 0, 0 }
+static const struct RIGeoItem RI_GEO_MIX1[] = { RI_GEO_MIXER(RI_SEC_MIX_SYNTH1) };
+static const struct RIGeoItem RI_GEO_MIX2[] = { RI_GEO_MIXER(RI_SEC_MIX_SYNTH2) };
+static const struct RIGeoItem RI_GEO_MIX8[] = { RI_GEO_MIXER(RI_SEC_MIX_808) };
+static const struct RIGeoItem RI_GEO_MIX9[] = { RI_GEO_MIXER(RI_SEC_MIX_909) };
+
+/* Master: p. 23 figure (83 x 98 px = 332 x 392 Q). "MASTER" header, L/R
+ * meters (clip lamp on top) either side of the level fader, Comp switch
+ * with LED at the bottom. */
+static const struct RIGeoItem RI_GEO_MASTER[] = {
+    { MX(RI_SEC_MASTER, 1), RI_GEO_RECT, 0, 98, 209, 38, 192 },
+    { MX(RI_SEC_MASTER, 0), RI_GEO_RECT, 0, 165, 208, 58, 200 },
+    { MX(RI_SEC_MASTER, 2), RI_GEO_RECT, 0, 238, 209, 38, 192 },
+    { MX(RI_SEC_MASTER, 3), RI_GEO_RECT, 0, 202, 345, 45, 22 },
+    { MX(RI_SEC_MASTER, 3), RI_GEO_LED, 0, 245, 345, 8, 8 },
+    { MX(RI_SEC_MASTER, 3), RI_GEO_LEGEND, 0, 125, 350, 0, 0 },
+};
+
 static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_SYNTH1, 0, 1464, 460, RI_GEO_303,
       (uint32_t)(sizeof(RI_GEO_303) / sizeof(RI_GEO_303[0])) },
@@ -259,6 +298,11 @@ static const struct RIGeoSection RI_GEO_SECTIONS[] = {
       (uint32_t)(sizeof(RI_GEO_808) / sizeof(RI_GEO_808[0])) },
     { RI_SEC_909, 0, 1460, 468, RI_GEO_909,
       (uint32_t)(sizeof(RI_GEO_909) / sizeof(RI_GEO_909[0])) },
+    { RI_SEC_MIX_SYNTH1, 0, 284, 464, RI_GEO_MIX1, (uint32_t)(sizeof(RI_GEO_MIX1) / sizeof(RI_GEO_MIX1[0])) },
+    { RI_SEC_MIX_SYNTH2, 0, 284, 464, RI_GEO_MIX2, (uint32_t)(sizeof(RI_GEO_MIX2) / sizeof(RI_GEO_MIX2[0])) },
+    { RI_SEC_MIX_808, 0, 284, 464, RI_GEO_MIX8, (uint32_t)(sizeof(RI_GEO_MIX8) / sizeof(RI_GEO_MIX8[0])) },
+    { RI_SEC_MIX_909, 0, 284, 464, RI_GEO_MIX9, (uint32_t)(sizeof(RI_GEO_MIX9) / sizeof(RI_GEO_MIX9[0])) },
+    { RI_SEC_MASTER, 0, 332, 392, RI_GEO_MASTER, (uint32_t)(sizeof(RI_GEO_MASTER) / sizeof(RI_GEO_MASTER[0])) },
 };
 
 const struct RIGeoSection *ri_geo_section(uint32_t section) {

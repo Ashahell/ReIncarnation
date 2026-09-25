@@ -54,6 +54,7 @@ enum { C_PANEL, C_PANEL_DK, C_BLACK, C_WHITEKEY, C_BTN, C_BTN_HI, C_BTN_LO,
        C_808_PANEL, C_808_LINE, C_KNOB_RED, C_KNOB_WHITE, C_CREAM, C_CREAM_LIT,
        C_STEP_RED, C_STEP_ORANGE, C_STEP_YELLOW, C_STEP_WHITE, C_LAMP_OFF,
        C_909_PANEL, C_909_BAR, C_909_ORANGE, C_909_KNOB, C_LAMP_LOW, C_LAMP_FLAM, C_909_STEP,
+       C_MIX_PANEL, C_MIX_HEAD, C_MIX_HEADTX, C_MIX_SLOT, C_MIX_GREEN, C_MIX_GREEN_OFF, C_MIX_KNOB, C_MIX_TEXT,
        C_NCOL };
 static const ULONG RI_RSECT_RGB[C_NCOL] = {
     0xD6D6CEu, 0x8C8C84u, 0x141414u, 0xF4F4F0u, 0xB4B4AEu, 0xF0F0EAu, 0x5A5A56u,
@@ -61,7 +62,8 @@ static const ULONG RI_RSECT_RGB[C_NCOL] = {
     0x280808u, 0xFF3020u, 0x9C9C96u,
     0x3A362Eu, 0x6A6458u, 0xC41E1Eu, 0xE6E6E0u, 0xE8E0C8u, 0xFFF6D0u,
     0xC82020u, 0xE07418u, 0xE6D21Eu, 0xE4E4DCu, 0x2A2620u,
-    0xDCDCD4u, 0x2E2E2Cu, 0xE8761Eu, 0x4A4A48u, 0xE8901Eu, 0x30D040u, 0xC4C4BCu
+    0xDCDCD4u, 0x2E2E2Cu, 0xE8761Eu, 0x4A4A48u, 0xE8901Eu, 0x30D040u, 0xC4C4BCu,
+    0x5E6A72u, 0x8E8A3Au, 0xF2EAB8u, 0x1A1E22u, 0x38E040u, 0x1E4A22u, 0x9AA0A6u, 0xE8ECEEu
 };
 static LONG s_pens[C_NCOL];
 
@@ -266,14 +268,68 @@ static const char *legend_909(const char *leg) {
     return !strcmp(leg, "Attack") ? "ATT" : !strcmp(leg, "Decay") ? "DEC" : !strcmp(leg, "Snappy") ? "SNAP" : leg;
 }
 
+/* ------------------------------------------------------ mixers/master */
+/* ReBirth mixer (p. 157) and master (p. 23): blue-grey panel, olive title
+ * bar, green on/off lamp, segment meters, fader with scale, small rockers
+ * with red LEDs. */
+static void bg_mix(struct RastPort *rp, const struct RIGeoSection *g, int ox, int oy, int z, int master) {
+    static const char *const db[5] = { "CLIP", "-6", "-12", "-24", "-36" };
+    static const int dby[5] = { 120, 158, 200, 240, 272 };
+    int k;
+#define PX(q) ri_geo_px((q), z)
+    fill_rect(rp, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_MIX_PANEL);
+    if (master) {
+        fill_rect(rp, ox + PX(22), oy + PX(20), ox + PX(315), oy + PX(70), C_MIX_HEAD);
+        text_c(rp, ox + PX(170), oy + PX(45), "MASTER", C_MIX_HEADTX);
+        for (k = 0; k < 5; k++) {
+            text_c(rp, ox + PX(42), oy + PX(dby[k]), db[k], C_MIX_TEXT);
+            text_c(rp, ox + PX(292), oy + PX(dby[k]), db[k], C_MIX_TEXT);
+        }
+        for (k = 0; k < 8; k++)                    /* fader scale */
+            line(rp, ox + PX(128), oy + PX(120 + 25 * k), ox + PX(202), oy + PX(120 + 25 * k), C_MIX_TEXT);
+    } else {
+        fill_rect(rp, ox + PX(10), oy + PX(10), ox + PX(274), oy + PX(82), C_MIX_HEAD);
+        text_c(rp, ox + PX(142), oy + PX(45), "MIX", C_MIX_HEADTX);
+        text_c(rp, ox + PX(32), oy + PX(190), "L", C_MIX_TEXT);
+        text_c(rp, ox + PX(125), oy + PX(190), "R", C_MIX_TEXT);
+        text_c(rp, ox + PX(160), oy + PX(407), "0", C_MIX_TEXT);
+        text_c(rp, ox + PX(245), oy + PX(407), "10", C_MIX_TEXT);
+        for (k = 0; k < 7; k++)                    /* fader scale */
+            line(rp, ox + PX(32), oy + PX(262 + 28 * k), ox + PX(118), oy + PX(262 + 28 * k), C_MIX_TEXT);
+    }
+#undef PX
+}
+
+/* vertical segment meter, level 0..127; master: clip lamp on top */
+static void meter(struct RastPort *rp, int x0, int y0, int x1, int y1, int level, int nseg, int master) {
+    int k, h = (y1 - y0 - 2) / nseg;
+    fill_rect(rp, x0, y0, x1, y1, C_MIX_SLOT);
+    for (k = 0; k < nseg; k++) {                   /* k = 0 bottom */
+        int lit = level * nseg > k * 127 && level > 0;
+        int top = k == nseg - 1, warn = k >= nseg - (master ? 3 : 2);
+        ULONG on = top ? C_LED_ON : warn ? C_STEP_YELLOW : C_MIX_GREEN;
+        ULONG off = top ? C_LED_OFF : warn ? C_LAMP_OFF : C_MIX_GREEN_OFF;
+        int yb = y1 - 1 - k * h;
+        fill_rect(rp, x0 + 2, yb - h + 2, x1 - 2, yb, lit ? on : off);
+    }
+}
+
+/* ReBirth fader: dark slot, black cap with a light index line */
+static void fader(struct RastPort *rp, int cx, int y0, int y1, int capw, int caph, int n) {
+    int travel = (y1 - y0) - caph, cy = y0 + caph / 2 + (int)((long)travel * (127 - n) / 127);
+    fill_rect(rp, cx - 1, y0, cx + 1, y1, C_BLACK);
+    bevel(rp, cx - capw / 2, cy - caph / 2, cx + capw / 2, cy + caph / 2, C_MIX_SLOT);
+    line(rp, cx - capw / 2 + 2, cy, cx + capw / 2 - 2, cy, C_MIX_TEXT);
+}
+
 /* ------------------------------------------------------------ generic */
 static void draw_section(Object *obj, struct RSectionData *dd) {
     struct RastPort *rp = _rp(obj);
     uint8_t sec = dd->ui.section;
     const struct RIGeoSection *g = ri_geo_section(sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec);
     int ox = _mleft(obj), oy = _mtop(obj), z = (int)dd->zoom, is808 = sec == RI_SEC_808;
-    int is909 = sec == RI_SEC_909;
-    ULONG txt = is808 ? C_CREAM : C_TEXT;
+    int is909 = sec == RI_SEC_909, ismix = ri_smix_strip(sec) >= 0;
+    ULONG txt = is808 ? C_CREAM : ismix ? C_MIX_TEXT : C_TEXT;
     uint32_t i;
     char buf[4];
 #define PX(q) ri_geo_px((q), z)
@@ -283,6 +339,8 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
         bg_808(rp, g, ox, oy, z);
     else if (is909)
         bg_909(rp, g, ox, oy, z);
+    else if (ismix)
+        bg_mix(rp, g, ox, oy, z, sec == RI_SEC_MASTER);
     else
         bg_303(rp, g, ox, oy, z);
     for (i = 0; i < g->nitems; i++) {
@@ -302,14 +360,29 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                     208.0f + 28.2f * (float)v);
             } else {
                 ULONG face = d->bind == RI_BIND_NONE ? C_DISABLED
-                    : is909 ? C_909_KNOB
+                    : is909 ? C_909_KNOB : ismix ? C_MIX_KNOB
                     : !is808 ? C_KNOB : !strcmp(d->legend, "Level") ? C_KNOB_RED : C_KNOB_WHITE;
                 draw_knob(rp, cx, cy, PX(it->w), PX(it->h), face, is909 ? C_909_ORANGE : C_BLACK, !is808,
                     (float)ri_knob_pointer_mdeg((int)to_n(d, v)) / 1000.0f);
             }
             break;
         case RI_GEO_RECT:
-            if (d->kind == RI_CK_DISPLAY) {
+            if (ismix) {
+                if (d->kind == RI_CK_METER) {
+                    meter(rp, cx - hw, cy - hh, cx + hw, cy + hh, v, sec == RI_SEC_MASTER ? 12 : 4,
+                        sec == RI_SEC_MASTER);
+                } else if (d->kind == RI_CK_FADER) {
+                    fader(rp, cx, cy - hh, cy + hh, 2 * hw, PX(it->w) * 3 / 5, (int)to_n(d, v));
+                } else if (idx == RI_SMIX_ONOFF && sec != RI_SEC_MASTER) {   /* mute lamp button */
+                    bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
+                    fill_rect(rp, cx - hw + 3, cy - hh + 3, cx + hw - 3, cy + hh - 3,
+                        ri_sui_led(&dd->ui, idx, 0) ? C_MIX_GREEN : C_MIX_GREEN_OFF);
+                } else {                                                    /* insert rocker */
+                    fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
+                    bevel(rp, cx - hw + 2, cy - hh + 2, cx + hw - 2, cy + hh - 2,
+                        ri_sui_led(&dd->ui, idx, 0) ? C_WHITEKEY : C_BTN);
+                }
+            } else if (d->kind == RI_CK_DISPLAY) {
                 int n = ri_sui_display(&dd->ui, idx);
                 fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_SEG_BG);
                 buf[0] = (char)('0' + n / 10);
@@ -531,7 +604,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             if (opt >= 0) {                                   /* instrument legend */
                 if (ri_sui_set(&d->ui, idx, opt))
                     changed(obj, d);
-            } else if (cd->kind == RI_CK_KNOB || cd->kind == RI_CK_SELECTOR) {
+            } else if (cd->kind == RI_CK_KNOB || cd->kind == RI_CK_SELECTOR || cd->kind == RI_CK_FADER) {
                 d->drag_id = id;
                 d->drag_n0 = to_n(cd, ri_sui_value(&d->ui, idx));
                 d->acc_dx = d->acc_dy = 0.0;

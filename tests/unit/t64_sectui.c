@@ -24,6 +24,20 @@ int main(void) {
     RI_ASSERT(ri_sui_display(&b, RI_S808_STEP0) == 0, "808 has no numeric display");
     ri_sui_init(&b, RI_SEC_909);
     RI_ASSERT(ri_sui_press(&b, RI_S909_STEP0) == 1 && ri_sui_led(&b, RI_S909_STEP0, 0) == RI_HIT_LOW, "909 route");
-    RI_ASSERT(ri_sui_init(&b, RI_SEC_MASTER) == 2 && ri_sui_press(&b, 0) == 0, "master not laid out yet");
+    /* mixers: one shared board across canvases (radio insert routing) */
+    ri_sui_init(&a, RI_SEC_MIX_SYNTH1);
+    ri_sui_init(&b, RI_SEC_MIX_808);
+    RI_ASSERT(ri_sui_bind_board(&b, a.u.mix.board) == 0, "bind shared board");
+    RI_ASSERT(ri_sui_press(&a, RI_SMIX_PCF) == 1 && ri_sui_led(&a, RI_SMIX_PCF, 0) == 1, "mixer route");
+    RI_ASSERT(ri_sui_press(&b, RI_SMIX_PCF) == 1 && ri_sui_led(&b, RI_SMIX_PCF, 0) == 1 &&
+        ri_sui_led(&a, RI_SMIX_PCF, 0) == 0, "PCF stolen across canvases");
+    RI_ASSERT(ri_sui_set(&b, RI_SMIX_PAN, 0) == 1 && ri_sui_value(&b, RI_SMIX_PAN) == 0 &&
+        ri_sui_value(&a, RI_SMIX_PAN) == 64, "values stay per strip");
+    RI_ASSERT(ri_sui_bind_board(&b, 0) == 2, "null board refused");
+    ri_sui_init(&b, RI_SEC_909);
+    RI_ASSERT(ri_sui_bind_board(&b, a.u.mix.board) == 2, "only mixers take a board");
+    ri_sui_init(&b, RI_SEC_MASTER);
+    RI_ASSERT(ri_sui_press(&b, RI_SMST_COMP) == 1 && ri_sui_led(&b, RI_SMST_COMP, 0) == 1, "master comp");
+    RI_ASSERT(ri_sui_init(&b, RI_SEC_PCF) == 2 && ri_sui_press(&b, 0) == 0, "PCF not laid out yet");
     RI_RESULT("sectui");
 }

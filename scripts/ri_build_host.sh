@@ -15,7 +15,7 @@ MOD_dsp909="engine/dsp/rb909.c project/rbnm.c"
 MOD_fx="engine/fx/fx.c engine/fx/route.c"
 MOD_mixer="engine/mixer/mixer.c engine/framework/ridevice.c"
 MOD_audio="audio_io/audio.c audio_io/backend_null.c"
-MOD_gui="gui/knob_logic.c gui/panels.c gui/catalog.c gui/knob_art.c gui/ctlreg.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectui.c"
+MOD_gui="gui/knob_logic.c gui/panels.c gui/catalog.c gui/knob_art.c gui/ctlreg.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectmix.c gui/sectui.c"
 MOD_formats="project/sha256.c project/rbng.c project/arexx.c project/arexx_dispatch.c project/undo.c midi_io/midi.c"
 # Later tasks APPEND paths to MOD_dsp808, MOD_fx, ... and add matching case lines.
 compile_list() { for f in $1; do test -f "$ROOT/$f" || { echo "MISSING $f"; exit 1; }; gcc $CFLAGS -c "$ROOT/$f" -o "$OUT/$(basename $f .c).o"; done; }

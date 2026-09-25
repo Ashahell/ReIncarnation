@@ -5,6 +5,16 @@
 static int is303(const struct RISectUI *s) {
     return s->section == RI_SEC_SYNTH1 || s->section == RI_SEC_SYNTH2;
 }
+static int ismix(const struct RISectUI *s) {
+    return ri_smix_strip(s->section) >= 0;
+}
+
+int ri_sui_bind_board(struct RISectUI *s, struct RIMixBoard *b) {
+    if (!s || !b || !ismix(s))
+        return 2;
+    s->u.mix.board = b;
+    return 0;
+}
 
 int ri_sui_init(struct RISectUI *s, uint8_t section) {
     if (!s)
@@ -17,6 +27,11 @@ int ri_sui_init(struct RISectUI *s, uint8_t section) {
         return ri_s808_init(&s->u.s808);
     if (section == RI_SEC_909)
         return ri_s909_init(&s->u.s909);
+    if (ismix(s)) {
+        ri_smix_init(&s->u.mix.own);
+        s->u.mix.board = &s->u.mix.own;
+        return 0;
+    }
     return 2;
 }
 
@@ -25,7 +40,8 @@ int ri_sui_press(struct RISectUI *s, uint32_t idx) {
         return 0;
     return is303(s) ? ri_s303_press(&s->u.s303, idx)
          : s->section == RI_SEC_808 ? ri_s808_press(&s->u.s808, idx)
-         : s->section == RI_SEC_909 ? ri_s909_press(&s->u.s909, idx) : 0;
+         : s->section == RI_SEC_909 ? ri_s909_press(&s->u.s909, idx)
+         : ismix(s) ? ri_smix_press(s->u.mix.board, s->section, idx) : 0;
 }
 
 int ri_sui_set(struct RISectUI *s, uint32_t idx, int v) {
@@ -33,7 +49,8 @@ int ri_sui_set(struct RISectUI *s, uint32_t idx, int v) {
         return 0;
     return is303(s) ? ri_s303_set_value(&s->u.s303, idx, v)
          : s->section == RI_SEC_808 ? ri_s808_set_value(&s->u.s808, idx, v)
-         : s->section == RI_SEC_909 ? ri_s909_set_value(&s->u.s909, idx, v) : 0;
+         : s->section == RI_SEC_909 ? ri_s909_set_value(&s->u.s909, idx, v)
+         : ismix(s) ? ri_smix_set_value(s->u.mix.board, s->section, idx, v) : 0;
 }
 
 int ri_sui_reset(struct RISectUI *s, uint32_t idx) {
@@ -41,7 +58,8 @@ int ri_sui_reset(struct RISectUI *s, uint32_t idx) {
         return 0;
     return is303(s) ? ri_s303_reset(&s->u.s303, idx)
          : s->section == RI_SEC_808 ? ri_s808_reset(&s->u.s808, idx)
-         : s->section == RI_SEC_909 ? ri_s909_reset(&s->u.s909, idx) : 0;
+         : s->section == RI_SEC_909 ? ri_s909_reset(&s->u.s909, idx)
+         : ismix(s) ? ri_smix_reset(s->u.mix.board, s->section, idx) : 0;
 }
 
 int ri_sui_value(const struct RISectUI *s, uint32_t idx) {
@@ -53,6 +71,8 @@ int ri_sui_value(const struct RISectUI *s, uint32_t idx) {
         return idx < RI_S808_NCTL ? s->u.s808.val[idx] : 0;
     if (s->section == RI_SEC_909)
         return idx < RI_S909_NCTL ? s->u.s909.val[idx] : 0;
+    if (ismix(s))
+        return ri_smix_value(s->u.mix.board, s->section, idx);
     return 0;
 }
 
@@ -61,7 +81,8 @@ int ri_sui_led(const struct RISectUI *s, uint32_t idx, uint32_t which) {
         return 0;
     return is303(s) ? ri_s303_led(&s->u.s303, idx, which)
          : s->section == RI_SEC_808 ? ri_s808_led(&s->u.s808, idx)
-         : s->section == RI_SEC_909 ? ri_s909_led(&s->u.s909, idx) : 0;
+         : s->section == RI_SEC_909 ? ri_s909_led(&s->u.s909, idx)
+         : ismix(s) ? ri_smix_led(s->u.mix.board, s->section, idx) : 0;
 }
 
 int ri_sui_display(const struct RISectUI *s, uint32_t idx) {

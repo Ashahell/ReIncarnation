@@ -1,6 +1,6 @@
 # Panel geometry (E1 layout, measured) — §12.10 G2
 
-**Status:** 303, 808 and 909 sections measured 2026-09-25. Other sections pending their slices.
+**Status:** 303, 808, 909, section mixers and Master measured 2026-09-25. Other sections pending their slices.
 **Source:** ReBirth RB-338 2.0.1 Owner's Manual, synth-section figure on p. 153
 (embedded image 366 × 115 px, extracted with `pdfimages`, viewed at 4× with a
 10-px grid). Layout is measured, never pixel-copied (spec §1): artwork stays
@@ -67,3 +67,26 @@ span 658 Q / 5 = 131.6 Q).
 | Flam knob | 60, 335 | | |
 | Flam button | 60, 405 | 40 × 40 | toggles the next step click to flam (p. 30) |
 | Group bars (drawing only) | y 24–60 | | legends AC … RC in orange on dark |
+
+## Section mixer (Q units, p. 157 figure 71 × 116 px = 284 × 464 Q; same for Synth 1/2, 808, 909)
+
+| Element | Centre (x, y) | Size | Note |
+|---------|---------------|------|------|
+| Title bar "MIX" | 142, 45 | 264 × 72 | olive |
+| On/Off (mute) lamp button | 49, 46 | 32 × 32 | green = sounding; not automated (p. 56) |
+| Output meter | 235, 45 | 24 × 44 | 4 segments |
+| Pan knob | 80, 132 | body Ø 45, ticks Ø 70 | L / R marks, legend y 215 |
+| Dist / PCF / Comp rockers | 200 @ y 96 / 168 / 241 | 45 × 22 | red LED at x 245; legends y 131 / 205 / 272 |
+| Volume fader | 75, 345 | 60 × 200 (travel + cap) | scale lines x 32–118 |
+| Delay knob | 205, 352 | body Ø 45, ticks Ø 70 | "0" / "10" marks, legend y 432 |
+
+## Master (Q units, p. 23 figure 83 × 98 px = 332 × 392 Q)
+
+| Element | Centre (x, y) | Size | Note |
+|---------|---------------|------|------|
+| Title bar "MASTER" | 170, 45 | 293 × 50 | |
+| Meter L / R | 98 / 238, 209 | 38 × 192 | 12 segments, clip lamp on top; scale CLIP −6 −12 −24 −36 both sides |
+| Level fader | 165, 208 | 58 × 200 | not automated (p. 24) |
+| Comp rocker | 202, 345 | 45 × 22 | LED x 245; legend at x 125 |
+
+**Insert routing (behaviour, `gui/sectmix.c`, t66).** The four mixers and the Master share one board. PCF: one section at a time, and switching it on elsewhere turns the old LED off (p. 62 step 16, p. 70). Comp: one section or the Master (p. 67). Dist follows the engine's one-owner routing (`engine/fx/route.h`). The manual contradicts itself on Dist: p. 59 says "four distortion units… all sections can use the distortion", but p. 157 says "One section at a time". This is left open for the owner; changing it touches only `unit_of()` plus the engine route.

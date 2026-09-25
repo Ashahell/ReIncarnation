@@ -1,7 +1,7 @@
 /*
  * app/sectproof.c — section canvas on-device proof (§12.10 G4).
  *
- * AROS-ONLY. usage: RISECT [303|808|909] [demo]
+ * AROS-ONLY. usage: RISECT [303|808|909|mix] [demo]
  * One window with the RSection canvas for the chosen section at 1x plus a
  * readout row, so state can be verified by number as well as by ui_capture.
  * "demo" drives the same behaviour calls a click makes (gui/sectui.h):
@@ -9,7 +9,11 @@
  *   808 — BD four-on-the-floor, CH offbeats, AC on 5 and 13, LT->LC switch,
  *         CH left selected (steps show the CH row), BD Level/Tone moved;
  *   909 — BD low/high alternating on 1,5,9,13, SD flam on 5 and 13, CH
- *         selected with low hits on the off-beats, BD Tune / Flam moved.
+ *         selected with low hits on the off-beats, BD Tune / Flam moved;
+ *   mix — the four section mixers + Master side by side on ONE board:
+ *         808 muted, PCF on Synth 1 then stolen by the 808 (p. 62), Dist
+ *         on the 909, Comp on the Master, faders/Pan/Delay moved, meters
+ *         fed fixed test levels.
  * Exit: close gadget or Ctrl-C. Return codes: 0 ok, 5+ build failures.
  * Must NEVER enter the host build (audit gates app/).
  */
@@ -30,6 +34,7 @@
 #include "gui/widgets/rsection.h"
 
 static char s_readout[160];
+static Object *s_mix[5];
 
 static void put_num(char **p, long v) {
     char t[12];
@@ -53,7 +58,25 @@ static void put_str(char **p, const char *s) {
 
 static void format_readout(const struct RISectUI *ui, const struct RSectionDiag *dg, long changes) {
     char *p = s_readout;
-    if (ui->section == RI_SEC_909) {
+    if (ri_smix_strip(ui->section) >= 0) {
+        const struct RIMixBoard *b = ui->u.mix.board;
+        unsigned int st;
+        put_str(&p, "ON ");
+        for (st = 0; st < 4; st++)
+            *p++ = b->val[st][RI_SMIX_ONOFF] ? '1' : '0';
+        put_str(&p, " DIST ");
+        put_num(&p, ri_route_owner(&b->route, RI_ROUTE_DIST));
+        put_str(&p, " PCF ");
+        put_num(&p, ri_route_owner(&b->route, RI_ROUTE_PCF));
+        put_str(&p, " COMP ");
+        put_num(&p, ri_route_owner(&b->route, RI_ROUTE_COMP));
+        put_str(&p, " LVL ");
+        for (st = 0; st < 4; st++) {
+            put_num(&p, b->val[st][RI_SMIX_LEVEL]);
+            *p++ = '/';
+        }
+        put_num(&p, b->val[4][RI_SMST_LEVEL]);
+    } else if (ui->section == RI_SEC_909) {
         const struct RISect909 *s = &ui->u.s909;
         unsigned int st;
         put_str(&p, "SEL ");
@@ -102,6 +125,29 @@ static void format_readout(const struct RISectUI *ui, const struct RSectionDiag 
 
 static void demo(Object *canvas, struct RISectUI *ui) {
     unsigned int i;
+    if (ri_smix_strip(ui->section) >= 0) {
+        struct RIMixBoard *b = ui->u.mix.board;
+        static const unsigned char lvl[4] = { 110, 90, 100, 120 }, pan[4] = { 30, 98, 64, 64 };
+        static const unsigned char dly[4] = { 80, 0, 40, 0 }, mtr[4] = { 100, 60, 0, 127 };
+        (void)canvas;
+        ri_smix_press(b, RI_SEC_MIX_808, RI_SMIX_ONOFF);          /* mute 808 */
+        ri_smix_press(b, RI_SEC_MIX_SYNTH1, RI_SMIX_PCF);
+        ri_smix_press(b, RI_SEC_MIX_808, RI_SMIX_PCF);            /* steals it */
+        ri_smix_press(b, RI_SEC_MIX_909, RI_SMIX_DIST);
+        ri_smix_press(b, RI_SEC_MASTER, RI_SMST_COMP);
+        for (i = 0; i < 4; i++) {
+            ri_smix_set_value(b, RI_SEC_MIX_SYNTH1 + i, RI_SMIX_LEVEL, lvl[i]);
+            ri_smix_set_value(b, RI_SEC_MIX_SYNTH1 + i, RI_SMIX_PAN, pan[i]);
+            ri_smix_set_value(b, RI_SEC_MIX_SYNTH1 + i, RI_SMIX_DELAY, dly[i]);
+            ri_smix_meter_set(b, RI_SEC_MIX_SYNTH1 + i, 0, mtr[i]);
+        }
+        ri_smix_set_value(b, RI_SEC_MASTER, RI_SMST_LEVEL, 90);
+        ri_smix_meter_set(b, RI_SEC_MASTER, 0, 96);
+        ri_smix_meter_set(b, RI_SEC_MASTER, 1, 127);
+        for (i = 0; i < 5; i++)
+            ri_rsection_refresh(s_mix[i]);
+        return;
+    }
     if (ui->section == RI_SEC_909) {
         for (i = 0; i < 16; i += 4) {
             ri_sui_press(ui, RI_S909_STEP0 + i);          /* BD low */
@@ -154,27 +200,53 @@ int main(int argc, char **argv) {
     LONG ret;
     struct RISectUI *ui = 0;
     const struct RSectionDiag *dg = 0;
-    int i, do_demo = 0;
+    int i, do_demo = 0, mix = 0;
+    Object *row = 0;
 
     for (i = 1; i < argc; i++) {
         if (argv[i][0] == '8')
             section = RI_SEC_808;
         else if (argv[i][0] == '9')
             section = RI_SEC_909;
+        else if (argv[i][0] == 'm')
+            mix = 1;
         else if (argv[i][0] == 'd')
             do_demo = 1;
     }
-    canvas = (Object *)ri_rsection_create(section, 0);
-    if (!canvas)
-        return 5;
-    GetAttr(MUIA_RSection_State, canvas, (IPTR *)&ui);
+    if (mix) {                         /* four mixers + master, one shared board */
+        struct RISectUI *u = 0;
+        for (i = 0; i < 5; i++) {
+            s_mix[i] = (Object *)ri_rsection_create(i < 4 ? RI_SEC_MIX_SYNTH1 + (ULONG)i : RI_SEC_MASTER, 0);
+            if (!s_mix[i])
+                return 5;
+            GetAttr(MUIA_RSection_State, s_mix[i], (IPTR *)&u);
+            if (i == 0)
+                ui = u;
+            else
+                ri_sui_bind_board(u, ui->u.mix.board);
+        }
+        canvas = s_mix[0];
+        row = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_mix[0], Child, (IPTR)s_mix[1], Child, (IPTR)s_mix[2], Child, (IPTR)s_mix[3],
+            Child, (IPTR)s_mix[4], TAG_DONE);
+        if (!row)
+            return 5;
+        section = RI_SEC_MIX_SYNTH1;
+    } else {
+        canvas = (Object *)ri_rsection_create(section, 0);
+        if (!canvas)
+            return 5;
+        row = canvas;
+    }
+    if (!mix)
+        GetAttr(MUIA_RSection_State, canvas, (IPTR *)&ui);
     GetAttr(MUIA_RSection_Diag, canvas, (IPTR *)&dg);
     format_readout(ui, dg, 0);
     readout = (Object *)MUI_NewObject(MUIC_Text, MUIA_Text_Contents, (IPTR)s_readout, TAG_DONE);
     if (!readout)
         return 6;
     win = (Object *)MUI_NewObject(MUIC_Window,
-        MUIA_Window_Title, section == RI_SEC_808 ? "RI-808" : section == RI_SEC_909 ? "RI-909" : "RI-303",
+        MUIA_Window_Title, mix ? "RI-MIX" : section == RI_SEC_808 ? "RI-808" : section == RI_SEC_909 ? "RI-909" : "RI-303",
         MUIA_Window_LeftEdge, 0,
         MUIA_Window_TopEdge, 0,
         MUIA_Window_CloseGadget, TRUE,
@@ -182,7 +254,7 @@ int main(int argc, char **argv) {
         MUIA_Window_DragBar, TRUE,
         MUIA_Window_RootObject, (IPTR)MUI_NewObject(MUIC_Group,
             MUIA_Group_Spacing, 2,
-            Child, (IPTR)canvas,
+            Child, (IPTR)row,
             Child, (IPTR)readout,
             TAG_DONE),
         TAG_DONE);

@@ -9,6 +9,7 @@
 #include "gui/sect303.h"
 #include "gui/sect808.h"
 #include "gui/sect909.h"
+#include "gui/sectmix.h"
 
 struct RISectUI {
     uint8_t section;  /* RI_SEC_* */
@@ -17,10 +18,17 @@ struct RISectUI {
         struct RISect303 s303;
         struct RISect808 s808;
         struct RISect909 s909;
+        struct {                  /* RI_SEC_MIX_* / RI_SEC_MASTER */
+            struct RIMixBoard *board; /* shared board (own unless bound) */
+            struct RIMixBoard own;
+        } mix;
     } u;
 };
 
 int ri_sui_init(struct RISectUI *s, uint8_t section); /* 0 ok, 2 not laid out */
+/* Mixers/master: share one board across canvases (insert radio routing
+ * spans sections). Returns 0 ok, 2 when s is not a mixer/master. */
+int ri_sui_bind_board(struct RISectUI *s, struct RIMixBoard *b);
 int ri_sui_press(struct RISectUI *s, uint32_t idx);
 int ri_sui_set(struct RISectUI *s, uint32_t idx, int v);
 int ri_sui_reset(struct RISectUI *s, uint32_t idx);

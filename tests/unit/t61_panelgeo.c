@@ -214,5 +214,32 @@ int main(void) {
             }
         }
     }
+    /* ---- mixers (p. 157) + master (p. 23) ---- */
+    for (i = RI_SEC_MIX_SYNTH1; i <= RI_SEC_MIX_909; i++) {
+        const struct RIGeoSection *m = ri_geo_section(i), *m0 = ri_geo_section(RI_SEC_MIX_SYNTH1);
+        uint32_t k;
+        check_section(i);
+        RI_ASSERT(m && m->w == 284 && m->h == 464, "mixer = p. 157 figure");
+        if (!m || !m0)
+            continue;
+        RI_ASSERT(m->nitems == m0->nitems, "mixers share one layout");
+        for (k = 0; k < m->nitems && k < m0->nitems; k++)
+            RI_ASSERT((m->items[k].reg_id & 0xFF) == (m0->items[k].reg_id & 0xFF) && m->items[k].cx == m0->items[k].cx &&
+                m->items[k].cy == m0->items[k].cy && m->items[k].shape == m0->items[k].shape, "mixer item %u", k);
+        {   /* fader left of the switches, Pan above the fader, Delay below the switches */
+            const struct RIGeoItem *fad = value_item(m, ID(i, 2)), *pan = value_item(m, ID(i, 3));
+            const struct RIGeoItem *dly = value_item(m, ID(i, 4)), *cmp = value_item(m, ID(i, 7));
+            RI_ASSERT(fad && pan && dly && cmp && pan->cy < fad->cy && fad->cx < cmp->cx && dly->cy > cmp->cy &&
+                fad->h > 3 * fad->w, "mixer arrangement");
+        }
+    }
+    check_section(RI_SEC_MASTER);
+    s = ri_geo_section(RI_SEC_MASTER);
+    if (s) {
+        const struct RIGeoItem *l = value_item(s, ID(RI_SEC_MASTER, 1)), *f = value_item(s, ID(RI_SEC_MASTER, 0));
+        const struct RIGeoItem *r = value_item(s, ID(RI_SEC_MASTER, 2));
+        RI_ASSERT(s->w == 332 && s->h == 392, "master = p. 23 figure");
+        RI_ASSERT(l && f && r && l->cx < f->cx && f->cx < r->cx && l->h == r->h, "meters either side of the fader");
+    }
     RI_RESULT("panelgeo");
 }
