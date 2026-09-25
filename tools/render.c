@@ -595,6 +595,13 @@ static float voice_secs909(const char *name) {
         return 1.0f;
     if (strcmp(name, "ch") == 0)
         return 0.5f;
+    if (strcmp(name, "lt") == 0 || strcmp(name, "mt") == 0 ||
+        strcmp(name, "ht") == 0)
+        return 1.0f;
+    if (strcmp(name, "rs") == 0)
+        return 0.3f;
+    if (strcmp(name, "cp") == 0)
+        return 1.0f;
     return -1.0f;
 }
 
@@ -611,6 +618,16 @@ static uint32_t voice_idx909(const char *name) {
         return RB909_CR;
     if (strcmp(name, "rd") == 0)
         return RB909_RD;
+    if (strcmp(name, "lt") == 0)
+        return RB909_LT;
+    if (strcmp(name, "mt") == 0)
+        return RB909_MT;
+    if (strcmp(name, "ht") == 0)
+        return RB909_HT;
+    if (strcmp(name, "rs") == 0)
+        return RB909_RS;
+    if (strcmp(name, "cp") == 0)
+        return RB909_CP;
     return RI_909_NVOICES;
 }
 
@@ -627,10 +644,16 @@ static float red_phase(float cycles) {
 static void bake_default909(uint32_t v, float *a, float *b, uint32_t n) {
     uint32_t i;
     float f0 = 55.0f, f1 = 350.0f, tau = 0.4f, nz = 0.0f;
+    float sweep_end = 0.0f, sweep_tau = 0.008f, click = 0.0f;
     if (v == RB909_BD) {
-        f0 = 55.0f;
+        /* §12.6a 909-regime: pitch-envelope VCO + click (E0 starting
+         * point; was a static 55 Hz bake). */
+        f0 = 150.0f;
         f1 = 0.0f;
         tau = 0.40f;
+        sweep_end = 50.0f;
+        sweep_tau = 0.008f;
+        click = 0.30f;
     } else if (v == RB909_SD) {
         f0 = 200.0f;
         f1 = 350.0f;
@@ -648,11 +671,72 @@ static void bake_default909(uint32_t v, float *a, float *b, uint32_t n) {
         f0 = 320.0f;
         f1 = 640.0f;
         tau = 1.20f;
+    } else if (v == RB909_LT) {
+        /* §12.6a toms: swept VCO (E0 starting points). */
+        f0 = 150.0f;
+        f1 = 0.0f;
+        tau = 0.30f;
+        sweep_end = 100.0f;
+        sweep_tau = 0.030f;
+    } else if (v == RB909_MT) {
+        f0 = 225.0f;
+        f1 = 0.0f;
+        tau = 0.30f;
+        sweep_end = 150.0f;
+        sweep_tau = 0.030f;
+    } else if (v == RB909_HT) {
+        f0 = 300.0f;
+        f1 = 0.0f;
+        tau = 0.30f;
+        sweep_end = 200.0f;
+        sweep_tau = 0.030f;
+    } else if (v == RB909_RS) {
+        /* Rimshot: short woody blip + click (E0). */
+        f0 = 1800.0f;
+        f1 = 0.0f;
+        tau = 0.030f;
+        click = 0.40f;
+    } else if (v == RB909_CP) {
+        /* Clap: noise burst with a fast body decay (E0; burst trains
+         * deferred to measurement). */
+        f0 = 1100.0f;
+        f1 = 0.0f;
+        tau = 0.150f;
+        nz = 0.50f;
     } else {
         f0 = 560.0f;
         f1 = 820.0f;
         tau = 1.50f;
     }
+    if (sweep_end > 0.0f) {
+        /* Swept-VCO bake: incremental phase at f(t) = end + (start-end) *
+         * exp(-t/sweep_tau); detuned pair (b = 1.12x); click transient. */
+        float pha = 0.0f, phb = 0.0f;
+        for (i = 0; i < n; i++) {
+            float t = (float)i / 48000.0f;
+            float e, fa, fb, ck = 0.0f;
+            uint32_t h;
+            float w;
+            e = ri_exp(-t / tau);
+            fa = sweep_end + (f0 - sweep_end) * ri_exp(-t / sweep_tau);
+            fb = fa * 1.12f;
+            pha += fa / 48000.0f;
+            if (pha >= 1.0f)
+                pha -= 1.0f;
+            phb += fb / 48000.0f;
+            if (phb >= 1.0f)
+                phb -= 1.0f;
+            a[i] = 0.55f * ri_sin(red_phase(pha)) * e;
+            b[i] = 0.55f * ri_sin(red_phase(phb)) * e;
+            h = i * 1664525u + 1013904223u;
+            w = (float)(h >> 8) * (1.0f / 8388608.0f) - 1.0f;
+            ck = click * w * ri_exp(-t / 0.002f);
+            a[i] += ck;
+            b[i] += click * ((float)(((uint32_t)((float)i * 0.5f) * 1664525u +
+                1013904223u) >> 8) * (1.0f / 8388608.0f) - 1.0f) *
+                ri_exp(-t / 0.002f);
+        }
+    } else
     for (i = 0; i < n; i++) {
         float t = (float)i / 48000.0f;
         float e;
@@ -720,7 +804,7 @@ static int render_909(const char *name, const char *out_path) {
     uint32_t v = voice_idx909(name);
     float secs;
     if (v >= RI_909_NVOICES) {
-        printf("render: --909 wants bd|sd|ch|oh|cr|rd\n");
+        printf("render: --909 wants bd|sd|ch|oh|cr|rd|lt|mt|ht|rs|cp\n");
         return 2;
     }
     secs = voice_secs909(name);

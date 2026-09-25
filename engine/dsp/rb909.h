@@ -28,15 +28,20 @@
 #define RI_RB909_H
 #include <stdint.h>
 
-#define RI_909_NVOICES 6u
+#define RI_909_NVOICES 11u
 
-/* Voice ids, classic order subset shipped in the clean pack. */
+/* Voice ids: 0..5 original six + LT/MT/HT/RS/CP (§12.6a). */
 #define RB909_BD 0u
 #define RB909_SD 1u
 #define RB909_CH 2u
 #define RB909_OH 3u
 #define RB909_CR 4u
 #define RB909_RD 5u
+#define RB909_LT 6u
+#define RB909_MT 7u
+#define RB909_HT 8u
+#define RB909_RS 9u
+#define RB909_CP 10u
 
 #define RI_909_MAX_LAYERS 4u
 /* P-13: layer interpolation is a triangular crossfade whose feather spans
@@ -83,6 +88,8 @@ struct RB909Voice {
     uint8_t flam_capable; /* BD/SD: acc2 = flam; else acc2 = acc1 */
     uint8_t accent_noop; /* CR/RD quirk: accent gain pinned to 1.0 */
     uint8_t pad;
+    float level; /* per-voice linear trim (default 1.0, §12.6a) */
+    float decay_tau; /* per-voice extra decay, s; <= 0 = bypass (§12.6a) */
 };
 
 struct RB909Set {

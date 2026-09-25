@@ -88,7 +88,7 @@ int main(void) {
     RI_ASSERT(rb909_set_layers(&s, RB909_OH, PAIR2, 2) == 0, "set oh");
     RI_ASSERT(rb909_set_layers(&s, RB909_CR, PAIR2, 2) == 0, "set cr");
     RI_ASSERT(rb909_set_layers(&s, RB909_RD, PAIR2, 2) == 0, "set rd");
-    RI_ASSERT(rb909_set_layers(&s, 6, PAIR2, 2) == RI_909_BADARG, "bad voice");
+    RI_ASSERT(rb909_set_layers(&s, 11, PAIR2, 2) == RI_909_BADARG, "bad voice");
     RI_ASSERT(rb909_set_layers(&s, RB909_BD, PAIR2, 0) == RI_909_BADARG, "bad n");
     RI_ASSERT(rb909_set_layers(&s, RB909_BD, 0, 2) == RI_909_BADARG, "null");
 

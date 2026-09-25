@@ -13,7 +13,7 @@
 #define RI_909_REF_RATE 48000.0f
 
 static const char *const RI_909_NAMES[RI_909_NVOICES] = {
-    "bd", "sd", "ch", "oh", "cr", "rd"
+    "bd", "sd", "ch", "oh", "cr", "rd", "lt", "mt", "ht", "rs", "cp"
 };
 
 const char *rb909_name(uint32_t voice) {
@@ -154,6 +154,8 @@ void rb909_init_set(struct RB909Set *s) {
         s->v[i].flam_capable = (i == RB909_BD || i == RB909_SD) ? 1u : 0u;
         s->v[i].accent_noop = (i == RB909_CR || i == RB909_RD) ? 1u : 0u;
         s->v[i].pad = 0;
+        s->v[i].level = 1.0f;
+        s->v[i].decay_tau = -1.0f; /* bypass until the DECAY knob writes */
     }
 }
 
@@ -242,9 +244,19 @@ float rb909_voice_render(struct RB909Voice *v, float sr) {
         }
     }
     g = rb909_accent_gain(v);
-    out = y * g * decay_env(v, v->pos, sr);
-    if (has2)
-        out += y2 * RI_909_FLAM_GAIN * g * decay_env(v, v->pos2, sr);
+    {
+        /* Per-voice knob decay (extra exp envelope; bypass at <= 0 keeps
+         * goldens bit-identical — §12.6a). Applied to both playheads. */
+        float dk = 1.0f, dk2 = 1.0f;
+        if (v->decay_tau > 0.0f) {
+            dk = ri_exp(-(v->pos / sr) / v->decay_tau);
+            if (has2)
+                dk2 = ri_exp(-(v->pos2 / sr) / v->decay_tau);
+        }
+        out = y * g * decay_env(v, v->pos, sr) * v->level * dk;
+        if (has2)
+            out += y2 * RI_909_FLAM_GAIN * g * decay_env(v, v->pos2, sr) * v->level * dk2;
+    }
     /* Accent shelf: small HF lift on accented non-quirk voices. */
     if (v->accent != 0u && !v->accent_noop) {
         a = 1.0f - ri_exp(-RI_909_PI * 2.0f * 6000.0f / sr);

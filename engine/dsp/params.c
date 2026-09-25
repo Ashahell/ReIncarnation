@@ -177,13 +177,15 @@ void rb909_set_param(struct RB909Voice *v, uint32_t ctl_id, uint8_t value) {
         v->tune = value;
         break;
     case RI_CTL_909_LEVEL:
-        /* Placeholder: no engine gain field (voice VCA is the accent
-         * path rb909_accent_gain; static level lives in the mixer). */
+        /* Per-voice linear trim (§12.6a); default 1.0 keeps goldens
+         * bit-identical (×1.0 is exact). */
+        v->level = (float)value / 127.0f;
         break;
     case RI_CTL_909_DECAY:
-        /* Placeholder: decay is baked into the layers; the only
-         * tune-driven decay (CR/RD rb909_decay_scale) derives from
-         * TUNE, not from a second knob. */
+        /* Extra per-voice decay tau (§12.6a): 0.05 s at knob 0 .. 8 s at
+         * 127 (exponential feel); bypass until written (goldens never
+         * touch the knob — bit-identical without it). */
+        v->decay_tau = 0.05f * ri_pow2(((float)value / 127.0f) * 7.33f);
         break;
     case RI_CTL_909_FLAMRES:
         /* Placeholder: flam delay is trigger-time (scheduler domain,

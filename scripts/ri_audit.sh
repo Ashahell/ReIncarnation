@@ -196,7 +196,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t24_909accent >/dev/null || { echo "F
 bash "$ROOT/scripts/ri_build_host.sh" test t24_909quirk >/dev/null || { echo "FAIL: t24_909quirk (TC-2.4.3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t24_909retrig >/dev/null || { echo "FAIL: t24_909retrig (TC-2.4.4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t24_909swap >/dev/null || { echo "FAIL: t24_909swap (TC-2.4.5)"; exit 1; }
-for v in bd sd ch oh cr rd; do
+for v in bd sd ch oh cr rd lt mt ht rs cp; do
   test -f "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: missing ledger 909/$v.md"; exit 1; }
   grep -q "Provenance manifest" "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: ledger $v lacks manifest"; exit 1; }
   grep -q "CC0/RI" "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: ledger $v lacks license row"; exit 1; }
@@ -220,17 +220,17 @@ head -c 120 "$PK/pack.rbnm" > "$T9/trunc.rbnm"
 if "$OUT/inspect" --rbnm "$T9/trunc.rbnm" >/dev/null 2>&1; then echo "FAIL: truncated pack accepted"; exit 1; fi
 echo "-- 909 goldens re-verified --"
 SG9="$ROOT/tests/golden/909"
-for v in bd sd ch oh cr rd; do
+for v in bd sd ch oh cr rd lt mt ht rs cp; do
   test -f "$SG9/$v.wav" || { echo "FAIL: missing golden 909/$v.wav"; exit 1; }
   test -f "$SG9/$v.wav.sha256" || { echo "FAIL: missing sidecar 909/$v.wav.sha256"; exit 1; }
 done
-(cd "$ROOT" && sha256sum -c tests/golden/909/bd.wav.sha256 tests/golden/909/sd.wav.sha256 tests/golden/909/ch.wav.sha256 tests/golden/909/oh.wav.sha256 tests/golden/909/cr.wav.sha256 tests/golden/909/rd.wav.sha256) || { echo "FAIL: 909 golden sha256 mismatch"; exit 1; }
-for v in bd sd ch oh cr rd; do
+(cd "$ROOT" && sha256sum -c tests/golden/909/bd.wav.sha256 tests/golden/909/sd.wav.sha256 tests/golden/909/ch.wav.sha256 tests/golden/909/oh.wav.sha256 tests/golden/909/cr.wav.sha256 tests/golden/909/rd.wav.sha256 tests/golden/909/lt.wav.sha256 tests/golden/909/mt.wav.sha256 tests/golden/909/ht.wav.sha256 tests/golden/909/rs.wav.sha256 tests/golden/909/cp.wav.sha256) || { echo "FAIL: 909 golden sha256 mismatch"; exit 1; }
+for v in bd sd ch oh cr rd lt mt ht rs cp; do
   "$OUT/render" --909 "$v" --out "$T9/$v.wav" >/dev/null || exit 1
   cmp -s "$SG9/$v.wav" "$T9/$v.wav" || { echo "FAIL: 909/$v re-render differs (not deterministic)"; exit 1; }
 done
 echo "-- audibility floor (silent goldens never pin: peak>=1000, rms>=100) --"
-for v in bd sd ch oh cr rd; do
+for v in bd sd ch oh cr rd lt mt ht rs cp; do
   od -An -t d2 -v -j44 "$T9/$v.wav" | awk 'BEGIN { m=0; s=0; n=0 }
     { for (i=1;i<=NF;i++) { a=$i; if (a<0) a=-a; if (a>m) m=a; s+=$i*$i; n++ } }
     END { r=sqrt(s/n); printf "909/%s peak=%d rms=%.0f\n", VN, m, r;
