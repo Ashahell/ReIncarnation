@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m58 | §12.8c1: PCF envelope + integer clock + HP drop
+- Disposition: New (TDD, t48 link-RED → PASS with revert-checks)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8c1-pcf-envelope.md
+- Updated: engine/fx/pcf.{h,c} (env, integer clock, restart, step_index,
+  decay knob, HP drop), engine/fx/fx.{h,c} (PCF_DECAY echo/apply),
+  tests/unit/t48 (new), tests/unit/t1_fx (clock assert),
+  docs/2026-09-24-improvement-todo.md
+- Zero golden fallout (Amt≈0 fixtures). Full `ri_audit.sh` 0/0.
+
 ## [2026-09-25] deploy | New ATCPBIN (drops desynced sessions) live on the Dell
 - Disposition: Update (deployment status in the 2026-09-25 root-cause record)
 - `SYS:ATCPBIN` sha `a576a88f…` (backup `.pre-sendbroken`); reboot → agent back 10:13:37 (session 23); 5/5 captures PASS

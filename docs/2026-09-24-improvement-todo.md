@@ -64,8 +64,9 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 ## §12.8 FX routing + parity + PCF envelope (§3.2, §4.4)
 - [x] Delay beats-honoring + caller-owned lines + tap slew + live-rate comp + pool retired (m56)
 - [x] Delay Steps/triplet/fb-infinite/sustain-structure (m57)
+- [x] PCF envelope + integer clock + Decay knob + HP drop, patterns open (m58)
 - [ ] Delay pan + stereo return + routing matrix/exclusivity
-- [ ] PCF clock lock + envelope model + Appendix-D patterns + HP drop
+- [ ] Appendix-D patterns (E1 extraction) + per-pattern velocity/attack
 - [ ] Dist oversample + comp ratio/GR meter
 
 ## §12.9 Song mode + transport + pattern edits (§3.1)
