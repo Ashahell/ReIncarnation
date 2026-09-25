@@ -36,6 +36,7 @@
 #define RI_FXID_DELAY_TRIPLET 0x0A0Cu /* 0 straight 16ths, nonzero 8th-triplets (§12.8b1) */
 #define RI_FXID_DELAY_FB 0x0A01u /* 0..127 -> 0..0.8 */
 #define RI_FXID_DELAY_MIX 0x0A02u /* 0..127 -> 0..1 */
+#define RI_FXID_DELAY_RETPAN 0x0A0Fu /* 0..127 stereo return pan (§12.8) */
 #define RI_FXID_DIST_DRIVE 0x0A03u /* 0..127 */
 #define RI_FXID_DIST_SHAPE 0x0A04u /* 0..127 */
 #define RI_FXID_COMP_THRESH 0x0A05u /* 0..127 -> -40..0 dB */
@@ -111,6 +112,9 @@ struct RIFX {
 int ri_fxdelay_init(struct RiFXDelay *d, float *buf, uint32_t cap);
 uint32_t ri_fxdelay_sync(struct RiFXDelay *d, float bpm, float beats,
     float sr);
+/* Resolve the STORED musical delay (steps/triplet) against a live tempo
+ * (retarget slews). Shared by the wrapper and the engine. */
+uint32_t ri_fxdelay_resync(struct RiFXDelay *d, float bpm, float sr);
 /* Retarget without jumping (render slews to it); returns the target. */
 uint32_t ri_fxdelay_retarget(struct RiFXDelay *d, float bpm, float beats,
     float sr);
@@ -128,6 +132,9 @@ void ri_fxdist_render(struct RiFXDist *d, const float *in, float *out,
 
 /* Compressor. sr > 0 required at init (coeffs); returns 0 ok, 2 bad. */
 int ri_fxcomp_init(struct RiFXComp *c, float sr);
+/* Retrack a live rate without touching env/threshold/ratio (the engine
+ * calls this per render when the rate moved; init-time 48 kHz otherwise). */
+void ri_fxcomp_set_rate(struct RiFXComp *c, float sr);
 void ri_fxcomp_set(struct RiFXComp *c, uint8_t thresh);
 void ri_fxcomp_set_ratio(struct RiFXComp *c, uint8_t ratio128);
 void ri_fxcomp_reset(struct RiFXComp *c);
@@ -137,6 +144,14 @@ void ri_fxcomp_render(struct RiFXComp *c, const float *in, float *out,
  * (<= 0; 0 when nothing compressed). gr_reset restarts the block peak. */
 float ri_fxcomp_gr_db(const struct RiFXComp *c);
 void ri_fxcomp_gr_reset(struct RiFXComp *c);
+/* Stereo-linked render: one detector on max(|l|,|r|), same gain both
+ * channels (master comp). GR meter tracks. */
+void ri_fxcomp_render_linked(struct RiFXComp *c, float *l, float *r,
+    uint32_t n);
+/* Raw PCF knob application (the wrapper's mapping, minus the handle):
+ * base 0..127 -> 100..8000 Hz exp, q -> 0.7..8, amt -> -4..+4 oct. */
+void ri_fx_pcf_apply_raw(struct PCF *p, uint8_t base, uint8_t q,
+    uint8_t amt, uint8_t mode, uint8_t pattern, uint8_t decay);
 
 /* Generic wrapper (Appendix D names, executor-defined shape).
  * RiFXCreate returns 0 on bad type or full pool. RI_FX_DELAY needs a

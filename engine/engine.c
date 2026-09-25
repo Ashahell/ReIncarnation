@@ -22,6 +22,37 @@ void ri_engine_init(struct RIEngine *e) {
     e->sections = 0;
     for (i = 0; i < RI_ENGINE_BLOCK; i++)
         e->scratch[i] = 0.0f;
+    /* Routing neutral: no owners, sends 0, pans centre, delay dry. */
+    ri_route_init(&e->route);
+    ri_fxdist_init(&e->dist);
+    pcf_init(&e->pcf);
+    e->pcf_base = 64;
+    e->pcf_q = 64;
+    e->pcf_amt = 64;
+    e->pcf_mode = 0;
+    e->pcf_pattern = 0;
+    e->pcf_decay = 64;
+    ri_fx_pcf_apply_raw(&e->pcf, 64, 64, 64, 0, 0, 64);
+    ri_fxcomp_init(&e->comp, 48000.0f);
+    for (i = 0; i < RI_ROUTE_NSECTIONS; i++) {
+        e->pan[i] = RI_ENGINE_PAN_CENTER;
+        e->send[i] = 0;
+    }
+    e->tempo = RI_ENGINE_TEMPO_DEFAULT;
+    e->dline = 0;
+    e->dcap = 0;
+    /* Delay knob defaults (match ri_fxdelay_init; mix forced wet). */
+    e->delay.buf = 0;
+    e->delay.cap = 0;
+    e->delay.pos = 0;
+    e->delay.delay_smp = 0;
+    e->delay.target_smp = 0;
+    e->delay.beats = 0.75f;
+    e->delay.steps = 3u;
+    e->delay.triplet = 0u;
+    e->delay.fb = 0.0f;
+    e->delay.mix = 1.0f;
+    e->dret_pan = RI_ENGINE_PAN_CENTER;
 }
 
 /* First-light knob defaults (identical set both voices; mirrors the legacy
@@ -43,6 +74,172 @@ void ri_engine_defaults(struct RIEngine *e) {
         rb303_set_param(vs[k], RI_CTL_303A_WAVE, 0);
         rb303_set_param(vs[k], RI_CTL_303A_VOLUME, 127);
     }
+}
+
+/* Pan law (starting point, pending §8 ear-fit): linear wings with an
+ * exact centre detent. v = 64 -> (1, 1) exactly (neutral bit-identical);
+ * v < 64 -> (1, v/64); v > 64 -> ((127-v)/63, 1). Continuous at 64. */
+static void engine_pan_gains(uint8_t v, double *gl, double *gr) {
+    if (v >= 127u) {
+        *gl = 0.0;
+        *gr = 1.0;
+    } else if (v == RI_ENGINE_PAN_CENTER) {
+        *gl = 1.0;
+        *gr = 1.0;
+    } else if (v < RI_ENGINE_PAN_CENTER) {
+        *gl = 1.0;
+        *gr = (double)v / 64.0;
+    } else {
+        *gl = (double)(127u - v) / 63.0;
+        *gr = 1.0;
+    }
+}
+
+/* One section bus: inserts (Dist->PCF->Comp) in series, post-insert mono
+ * send tap, pan into the f64 master. No allocation; scratch is the bus. */
+static void engine_section(struct RIEngine *e, uint32_t section,
+    double *ml, double *mr, float *sendbus, uint32_t cc, float sr) {
+    uint32_t i, mask;
+    double gl, gr, t, sg;
+    mask = ri_route_section_mask(&e->route, section);
+    if (mask & (1u << RI_ROUTE_DIST))
+        ri_fxdist_render(&e->dist, e->scratch, e->scratch, cc);
+    if (mask & (1u << RI_ROUTE_PCF))
+        pcf_render(&e->pcf, e->scratch, e->scratch, cc, sr);
+    if (mask & (1u << RI_ROUTE_COMP))
+        ri_fxcomp_render(&e->comp, e->scratch, e->scratch, cc);
+    t = (double)e->send[section] / 127.0;
+    sg = t * t; /* square law (E0 P-17), 0 -> exactly 0 */
+    engine_pan_gains(e->pan[section], &gl, &gr);
+    for (i = 0; i < cc; i++) {
+        double s = (double)e->scratch[i];
+        sendbus[i] += (float)(s * sg);
+        ml[i] += s * gl;
+        mr[i] += s * gr;
+    }
+}
+
+int ri_engine_assign_insert(struct RIEngine *e, uint32_t unit, int owner) {
+    if (!e)
+        return -2;
+    return ri_route_assign(&e->route, unit, owner);
+}
+
+void ri_engine_fx_set(struct RIEngine *e, uint32_t id, uint8_t value) {
+    if (!e)
+        return;
+    switch (id) {
+    case RI_FXID_DIST_DRIVE:
+        e->dist.drive = value > 127u ? 127u : value;
+        break;
+    case RI_FXID_DIST_SHAPE:
+        e->dist.shape = value > 127u ? 127u : value;
+        break;
+    case RI_FXID_COMP_THRESH:
+        ri_fxcomp_set(&e->comp, value);
+        break;
+    case RI_FXID_COMP_RATIO:
+        ri_fxcomp_set_ratio(&e->comp, value);
+        break;
+    case RI_FXID_DELAY_STEPS:
+        e->delay.steps = value < 1u ? 1u : (value > 32u ? 32u : value);
+        break;
+    case RI_FXID_DELAY_TRIPLET:
+        e->delay.triplet = value ? 1u : 0u;
+        break;
+    case RI_FXID_DELAY_FB:
+        /* Send topology is always wet (no dry path): mix hardwired. */
+        e->delay.fb = (float)(value > 127u ? 127u : value) *
+            (0.8f / 127.0f);
+        e->delay.mix = 1.0f;
+        break;
+    case RI_FXID_DELAY_MIX:
+        break; /* send topology is always wet (no dry path) */
+    case RI_FXID_DELAY_RETPAN:
+        e->dret_pan = value > 127u ? 127u : value;
+        break;
+    case RI_FXID_PCF_BASE:
+        e->pcf_base = value;
+        break;
+    case RI_FXID_PCF_Q:
+        e->pcf_q = value;
+        break;
+    case RI_FXID_PCF_AMT:
+        e->pcf_amt = value;
+        break;
+    case RI_FXID_PCF_MODE:
+        e->pcf_mode = value > 2u ? 2u : value;
+        break;
+    case RI_FXID_PCF_PATTERN:
+        e->pcf_pattern = value > 54u ? 54u : value;
+        break;
+    case RI_FXID_PCF_DECAY:
+        e->pcf_decay = value;
+        break;
+    default:
+        return;
+    }
+    if (id == RI_FXID_PCF_BASE || id == RI_FXID_PCF_Q ||
+        id == RI_FXID_PCF_AMT || id == RI_FXID_PCF_MODE ||
+        id == RI_FXID_PCF_PATTERN || id == RI_FXID_PCF_DECAY)
+        ri_fx_pcf_apply_raw(&e->pcf, e->pcf_base, e->pcf_q, e->pcf_amt,
+            e->pcf_mode, e->pcf_pattern, e->pcf_decay);
+}
+
+int ri_engine_set_pan(struct RIEngine *e, uint32_t section, uint8_t v) {
+    if (!e || section >= RI_ROUTE_NSECTIONS)
+        return 2;
+    e->pan[section] = v > 127u ? 127u : v;
+    return 0;
+}
+
+int ri_engine_set_send(struct RIEngine *e, uint32_t section, uint8_t v) {
+    if (!e || section >= RI_ROUTE_NSECTIONS)
+        return 2;
+    e->send[section] = v > 127u ? 127u : v;
+    return 0;
+}
+
+void ri_engine_set_tempo(struct RIEngine *e, float bpm) {
+    if (!e)
+        return;
+    if (!(bpm >= 20.0f))
+        bpm = 20.0f;
+    if (bpm > 500.0f)
+        bpm = 500.0f;
+    e->tempo = bpm;
+}
+
+int ri_engine_set_delay(struct RIEngine *e, float *buf, uint32_t cap) {
+    uint8_t steps, triplet, fb128;
+    if (!e)
+        return 2;
+    if (!buf) {
+        e->dline = 0; /* detach: dry default */
+        e->dcap = 0;
+        return 0;
+    }
+    if (cap < 64u)
+        return 2;
+    /* init wipes knob fields: snapshot and restore (attach keeps sound). */
+    steps = e->delay.steps;
+    triplet = e->delay.triplet;
+    fb128 = (uint8_t)(e->delay.fb * (127.0f / 0.8f));
+    if (ri_fxdelay_init(&e->delay, buf, cap) != 0)
+        return 2;
+    e->delay.steps = steps < 1u ? 1u : (steps > 32u ? 32u : steps);
+    e->delay.triplet = triplet ? 1u : 0u;
+    e->delay.fb = (float)(fb128 > 127u ? 127u : fb128) * (0.8f / 127.0f);
+    e->delay.mix = 1.0f; /* send topology: always wet */
+    e->dline = buf;
+    e->dcap = cap;
+    return 0;
+}
+
+float ri_engine_comp_gr(const struct RIEngine *e) {
+    if (!e)
+        return 0.0f;
+    return ri_fxcomp_gr_db(&e->comp);
 }
 
 void ri_engine_load(struct RIEngine *e, const struct RIEvent *ev,
@@ -135,27 +332,49 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
         for (c = 0; c < run;) {
             uint32_t cc = (uint32_t)(run - c);
             double ml[RI_ENGINE_BLOCK], mr[RI_ENGINE_BLOCK];
+            float sendbus[RI_ENGINE_BLOCK], retbus[RI_ENGINE_BLOCK];
+            double rgl, rgr;
             uint32_t i;
             if (cc > RI_ENGINE_BLOCK)
                 cc = RI_ENGINE_BLOCK;
             for (i = 0; i < cc; i++)
                 ml[i] = mr[i] = 0.0;
+            for (i = 0; i < cc; i++)
+                sendbus[i] = 0.0f;
             if (e->sections & RI_ENGINE_S303A) {
                 rb303_render(&e->v303a, e->scratch, cc, sr);
-                for (i = 0; i < cc; i++) {
-                    ml[i] += (double)e->scratch[i]; /* centre unity */
-                    mr[i] += (double)e->scratch[i];
-                }
+                engine_section(e, 0, ml, mr, sendbus, cc, sr);
             }
             if (e->sections & RI_ENGINE_S303B) {
                 rb303_render(&e->v303b, e->scratch, cc, sr);
+                engine_section(e, 1, ml, mr, sendbus, cc, sr);
+            }
+            /* Shared delay send: one line over the summed post-insert
+             * sends; stereo return with its own pan (NULL = dry). */
+            if (e->dline) {
+                ri_fxdelay_resync(&e->delay, e->tempo, sr);
+                ri_fxdelay_render(&e->delay, sendbus, retbus, cc);
+                engine_pan_gains(e->dret_pan, &rgl, &rgr);
                 for (i = 0; i < cc; i++) {
-                    ml[i] += (double)e->scratch[i];
-                    mr[i] += (double)e->scratch[i];
+                    ml[i] += (double)retbus[i] * rgl;
+                    mr[i] += (double)retbus[i] * rgr;
                 }
             }
-            /* Per-section pan multiplies here once sections carry pan
-             * (mixer slice); the f64 master already holds. */
+            /* Master comp: stereo-linked (one detector, both buses). */
+            if (ri_route_owner(&e->route, RI_ROUTE_COMP) ==
+                RI_ROUTE_MASTER) {
+                float tl[RI_ENGINE_BLOCK], tr[RI_ENGINE_BLOCK];
+                ri_fxcomp_set_rate(&e->comp, sr);
+                for (i = 0; i < cc; i++) {
+                    tl[i] = (float)ml[i];
+                    tr[i] = (float)mr[i];
+                }
+                ri_fxcomp_render_linked(&e->comp, tl, tr, cc);
+                for (i = 0; i < cc; i++) {
+                    ml[i] = (double)tl[i];
+                    mr[i] = (double)tr[i];
+                }
+            }
             for (i = 0; i < cc; i++) {
                 out_l[done + c + i] = (float)ml[i];
                 out_r[done + c + i] = (float)mr[i];

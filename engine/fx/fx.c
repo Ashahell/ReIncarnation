@@ -33,6 +33,14 @@ static float delay_beats(const struct RiFXDelay *d) {
     return (float)d->steps * per;
 }
 
+/* Resolve the STORED musical delay against a live tempo (retarget
+ * slews — no zipper jumps). Shared by the wrapper and the engine. */
+uint32_t ri_fxdelay_resync(struct RiFXDelay *d, float bpm, float sr) {
+    if (!d)
+        return 0u;
+    return ri_fxdelay_retarget(d, bpm, delay_beats(d), sr);
+}
+
 static uint8_t delay_steps_for(float beats) {
     /* Snap to the 16th grid (straight): the direct-sync entry point for
      * arbitrary floats; all in-tree callers pass table values (exact). */
@@ -241,6 +249,12 @@ static void ri_fxcomp_makeup(struct RiFXComp *c) {
     c->mu_lin = ri_pow2(mu_db * 0.1660964f);
 }
 
+void ri_fxcomp_set_rate(struct RiFXComp *c, float sr) {
+    if (!c)
+        return;
+    ri_fxcomp_derive(c, sr);
+}
+
 int ri_fxcomp_init(struct RiFXComp *c, float sr) {
     if (!c || !(sr > 0.0f))
         return 2;
@@ -333,6 +347,50 @@ void ri_fxcomp_render(struct RiFXComp *c, const float *in, float *out,
     }
 }
 
+void ri_fxcomp_render_linked(struct RiFXComp *c, float *l, float *r,
+    uint32_t n) {
+    uint32_t i;
+    if (!c || !l || !r)
+        return;
+    for (i = 0; i < n; i++) {
+        float al = l[i] < 0.0f ? -l[i] : l[i];
+        float ar = r[i] < 0.0f ? -r[i] : r[i];
+        float ax = al > ar ? al : ar;
+        float a = ax > c->env ? c->atk_a : c->rel_a;
+        float g;
+        c->env = a * c->env + (1.0f - a) * ax;
+        if (c->ratio <= 1.0f) {
+            g = 1.0f;
+        } else if (c->env > c->thresh_lin && c->env > 1e-9f) {
+            float revised = c->thresh_lin +
+                (c->env - c->thresh_lin) / c->ratio;
+            g = revised / c->env;
+        } else {
+            g = 1.0f;
+        }
+        if (g < c->gr_min_g)
+            c->gr_min_g = g;
+        l[i] = l[i] * g * c->mu_lin;
+        r[i] = r[i] * g * c->mu_lin;
+        if (!(l[i] == l[i]))
+            l[i] = 0.0f;
+        if (!(r[i] == r[i]))
+            r[i] = 0.0f;
+    }
+}
+
+void ri_fx_pcf_apply_raw(struct PCF *p, uint8_t base, uint8_t q,
+    uint8_t amt, uint8_t mode, uint8_t pattern, uint8_t decay) {
+    if (!p)
+        return;
+    p->base_fc = 100.0f * ri_pow2(((float)base / 127.0f) * 6.321928f);
+    p->q = RI_PCF_Q_MIN + ((float)q / 127.0f) * (RI_PCF_Q_MAX - RI_PCF_Q_MIN);
+    p->amt_oct = ((float)amt / 127.0f) * 8.0f - 4.0f;
+    p->mode = mode;
+    p->pattern = pattern;
+    pcf_set_decay(p, decay);
+}
+
 /* ---- generic wrapper (Appendix D names) ---- */
 
 #define RI_FX_POOL 8u
@@ -362,14 +420,8 @@ static void fx_release(struct RIFX *x) {
  * parameters only — SVF state (low/band) and beat_pos are never reset
  * here, so block streaming stays continuous. */
 static void ri_fx_pcf_apply(struct RIFX *x) {
-    x->pcf.base_fc =
-        100.0f * ri_pow2(((float)x->pcf_base / 127.0f) * 6.321928f);
-    x->pcf.q = RI_PCF_Q_MIN +
-        ((float)x->pcf_q / 127.0f) * (RI_PCF_Q_MAX - RI_PCF_Q_MIN);
-    x->pcf.amt_oct = ((float)x->pcf_amt / 127.0f) * 8.0f - 4.0f;
-    x->pcf.mode = x->pcf_mode;
-    x->pcf.pattern = x->pcf_pattern;
-    pcf_set_decay(&x->pcf, x->pcf_decay);
+    ri_fx_pcf_apply_raw(&x->pcf, x->pcf_base, x->pcf_q, x->pcf_amt,
+        x->pcf_mode, x->pcf_pattern, x->pcf_decay);
 }
 
 struct RIFX *RiFXCreate(uint32_t fx_type) {
@@ -546,7 +598,7 @@ void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
         if (bpm >= 20.0f && bpm <= 500.0f) {
             /* Re-resolve the STORED musical delay against the live tempo
              * (retarget slews — the old code overwrote beats with 0.75). */
-            ri_fxdelay_retarget(&x->delay, bpm, delay_beats(&x->delay), sr);
+            ri_fxdelay_resync(&x->delay, bpm, sr);
         }
         ri_fxdelay_render(&x->delay, in, out, frames);
         return;
