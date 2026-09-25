@@ -26,6 +26,7 @@
 #define RI_DRUM_AC        0x01u  /* RIDrumRow.flags: global accent row */
 
 #include "engine/seq/sched.h"
+#include "engine/seq/clock.h"
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
 
@@ -96,5 +97,16 @@ int ri_p303_transpose(struct RIPattern *p, int semis, uint32_t *nfolded);
 int ri_p303_random(struct RIPattern *p, uint32_t what, uint32_t seed);
 int ri_p303_alter(struct RIPattern *p, uint32_t what, uint32_t seed);
 int ri_pdrum_random_lane(struct RIPattern *p, uint32_t lane, uint32_t seed);
-int ri_pdrum_alter_lane(struct RIPattern *p, uint32_t lane, uint32_t seed);
+/* Pattern -> events (Tasks 6-7). 303 rows expand through the shared
+ * timed-emit loop (cyclic seam via carry); drum rows emit per-lane
+ * one-shots. Hosting contract (engine slice): NOTE_ON + ACCENT flag ->
+ * rb909_trigger(accent=1); RI_EV_FLAM -> rb909_arm_flam(width). The
+ * accent == 2 overload must never come back. */
+uint32_t ri_pattern303_to_steps(const struct RIPattern *p, int cyclic,
+    struct RIStep out[RI_PATTERN_STEPS]);
+uint32_t ri_sched_emit_pattern(const struct RIPattern *p, uint16_t device,
+    const struct RITempoMap *map, uint64_t start_tick, uint32_t ppq,
+    const struct RISchedOpts *opts,
+    const struct RISchedCarry *carry_in, struct RISchedCarry *carry_out,
+    struct RIEvent *out, uint32_t cap);
 #endif

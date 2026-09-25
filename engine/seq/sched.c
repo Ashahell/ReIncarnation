@@ -106,7 +106,10 @@ uint32_t ri_sched_emit_timed_carry(const struct RITempoMap *map, uint64_t start_
              * each note carries exactly one OFF. Under cap pressure the
              * OFF is dropped and the note stays full-length (fail-open
              * toward legacy, deterministic). */
-            if (!is_slide && !legato && n < cap) {
+            /* Carried seam steps never take the fractional OFF: the tie
+             * was decided by the previous iteration (which suppressed
+             * its own OFF via TIE_OUT). */
+            if (!is_slide && !legato && !carried && n < cap) {
                 uint64_t frac_tick;
                 int ties_next = 0;
                 if (i + 1u < nsteps)

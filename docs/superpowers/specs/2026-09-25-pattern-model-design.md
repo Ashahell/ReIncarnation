@@ -92,14 +92,20 @@ ledger row, never a silent choice.
 
 - Octave: Up → +12, Down → −12, `RI_EVFLAG_OCTAVE` set when either
   applies; key → MIDI via `RI_303_BASE_NOTE` (§1.1).
-- `ri_sched_emit_pattern(pat, device, map, start_tick, ppq, opts, out,
-  cap)`: 303 rows expand through the existing timed-emit loop
+- `ri_sched_emit_pattern(pat, device, map, start_tick, ppq, opts,
+  carry_in, carry_out, out, cap)`: 303 rows expand through the existing timed-emit loop
   (shuffle/legato/flam overlays unchanged); rests (Pause) flow through
   the existing gate/slide table; Accent or Slide on a Pause step emits
   nothing for that step (slide from the *previous* note still holds the
   gate per the §8 table).
 - Slide on the last step of the pattern ties into step 1 of the next
   loop (the pattern is cyclic; ReBirth p. 154: “tied to the next”).
+- Slide direction (ledger `docs/evidence/sequencer/slide-direction.md`):
+  rows store the ReBirth meaning (“tie to next”); the walker flag means
+  “slide into”. The converter shifts by one step (walker SLIDE on step
+  i ⇔ row i−1 is a sounding slide); the seam rides the carry channel,
+  never a step-0 SLIDE. Verified by the Task 6 contrasting event lists
+  (slide-on-row-0 ties, slide-on-row-1 breaks).
 - **Gate length is not decided here.** The existing loop holds the gate
   to the next step boundary; the review (§4.1) flags that the 303 gate
   falls partway through a non-slide step. Emit must take the gate point
