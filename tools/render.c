@@ -907,6 +907,15 @@ static int render_pcf(const char *name, const char *out_path) {
     pcf_init(&p);
     p.q = 2.0f;
     p.amt_oct = 0.0f;
+    /* Real pattern data (§12.8c2): envelope follows pattern 0 (Amt 0
+     * keeps this fixture bit-identical — proven by the golden cmp). */
+    {
+        static struct PCFPatterns pt;
+        if (pcf_patterns_load("reference/pcf-patterns.bin", &pt) > 0) {
+            pcf_install_patterns(&p, &pt);
+            p.pattern = 0;
+        }
+    }
     while (pos < total) {
         /* input log sweep 100 -> 8000 Hz over the fixture */
         float t0 = (float)pos / (float)total;
@@ -990,6 +999,20 @@ static int render_fx(const char *name, const char *out_path) {
             pcf_init(&p);
             p.base_fc = 1500.0f;
             p.q = 2.0f;
+            {
+                /* Real pattern data (§12.8c2): Amt 0 keeps this fixture
+                 * bit-identical (golden cmp proves it). */
+                static struct PCFPatterns pt;
+                static int loaded = 0;
+                if (!loaded) {
+                    loaded = pcf_patterns_load("reference/pcf-patterns.bin",
+                        &pt) > 0 ? 1 : -1;
+                }
+                if (loaded > 0) {
+                    pcf_install_patterns(&p, &pt);
+                    p.pattern = 0;
+                }
+            }
             ri_fxdist_init(&ds);
             ri_fxdist_set(&ds, 48, 16);
             ri_fxdelay_init(&d, dl, 96000u);

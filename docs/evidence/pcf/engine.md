@@ -73,17 +73,22 @@ inaudibility; double-render bit-identical (D1).
   (`t1_fx` §2 asserts `beat_pos > 0` after one buffer).
 - Fixed-seed determinism: zero init, no RNG (`t1_fx` §2/§9 double-render).
 - 16th-grid stepping: step index derives from `beat_pos` (`pcf_render`).
-- 54-tile picker UI: `RI_PCF_NPATTERNS` 54 stored state (count only).
+- 55-tile picker UI: `RI_PCF_NPATTERNS` 55 stored state (count only;
+  corrected §12.8c2: the manual holds patterns 0–54, not 0–53).
 
-## Pattern contents (OPEN-04): 0/54 locked
+## Pattern contents (OPEN-04 — CLOSED §12.8c2 by E1 extraction)
 
-Per-pattern capture rows arrive here as `docs/evidence/pcf/pattern-NN.md`.
-Until a row locks, `pcf_pattern_step` returns the neutral 64 for every
-(pattern, step) — an explicit refusal to claim, never a hardcoded fact.
-`t25_pcfopen` pins the refusal (54×16 all neutral, count constants,
-loader double-load identical) so a future capture landing must update
-the pin deliberately. TC-2.5.1 stays OPEN; this pin passing is not
-pattern coverage.
+Extracted mechanically from the manual diagrams (55 patterns 0–54;
+method + verification: `docs/evidence/pcf/patterns.md`; machine ledger
+`reference/pcf-patterns.bin`/`.json`; extractor scripts in
+`/home/miller/Work/ri_build/pcf_{extract,decode,overlay}.py`).
+`t25_pcfopen` still pins the no-table refusal path (table absent →
+neutral); installed-table behavior is pinned by `t49_pcf_patterns`.
+TC-2.5.1 stays OPEN only for black-box capture cross-checks.
+
+Superseded refusal-era notes (kept for the record): per-pattern rows
+were to arrive as `docs/evidence/pcf/pattern-NN.md`; the E1 extraction
+landed them in bulk instead (55/55 in one ledger).
 
 ## FX trio (spec §13 fixtures)
 

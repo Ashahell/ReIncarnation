@@ -255,6 +255,7 @@ grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks
 grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }
 test -f "$ROOT/docs/evidence/pcf/red-t1_fx.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
 test -f "$ROOT/reference/pcf-table.bin" || { echo "FAIL: missing pcf-table.bin (missing-is-broken)"; exit 1; }
+test -f "$ROOT/reference/pcf-patterns.bin" || { echo "FAIL: missing pcf-patterns.bin (missing-is-broken)"; exit 1; }
 echo "-- negative gate (no table -> pcf build fails with the #error) --"
 mv "$ROOT/reference/pcf-table.bin" "$T10/hide.bin"
 if bash "$ROOT/scripts/ri_build_host.sh" pcf >"$T10/neg.log" 2>&1; then

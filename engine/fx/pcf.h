@@ -29,7 +29,14 @@
 #define RI_PCF_H
 #include <stdint.h>
 
-#define RI_PCF_NPATTERNS 54u
+#define RI_PCF_NPATTERNS 55u
+#define RI_PCF_TABLE_MAX 64u
+#define RI_PCF_TABLE_VERSION 1u
+/* Pattern steps per row (max 32) and resolution codes. */
+#define RI_PCF_PSTEPS_MAX 32u
+#define RI_PCF_RES_16TH 0u
+#define RI_PCF_RES_32ND 1u
+#define RI_PCF_RES_8TH 2u
 #define RI_PCF_NSTEPS 16u
 #define RI_PCF_TABLE_MAX 64u
 #define RI_PCF_TABLE_VERSION 1u
@@ -55,6 +62,22 @@ struct PCFTable {
     uint32_t n;
 };
 
+/* One extracted Appendix-D pattern (E1; see docs/evidence/pcf/patterns.md).
+ * vel holds per-step velocities 0..127 (0 = rest); only length entries
+ * are meaningful. res selects the step grid (16th/32nd/8th). */
+struct PCFPattern {
+    uint8_t res;
+    uint8_t length;
+    uint8_t vel[RI_PCF_PSTEPS_MAX];
+};
+
+/* Installed pattern set (caller-owned, e.g. loaded from
+ * reference/pcf-patterns.bin; NULL = neutral legacy sustain). */
+struct PCFPatterns {
+    struct PCFPattern pat[RI_PCF_TABLE_MAX];
+    uint32_t n;
+};
+
 struct PCFSVF {
     float low;
     float band;
@@ -70,9 +93,10 @@ struct PCF {
     float amt_oct; /* ±4 response amount (P-15) */
     float bpm; /* transport clock rate */
     uint64_t pos_smp; /* integer sample clock (§12.8c1: never drifts) */
-    uint32_t last_step; /* last 16th rendered (hit detection) */
+    uint32_t last_step; /* last pattern-step rendered (hit detection) */
     float env; /* attack/decay envelope, velocity units 0..127 */
     float decay; /* envelope decay tau, s (Decay knob) */
+    const struct PCFPatterns *ptab; /* installed patterns (NULL = neutral) */
 };
 
 /* Load + validate the ledger-verified table. Returns row count, else
@@ -83,6 +107,17 @@ float pcf_cutoff_hz(float base_fc, int v, float amt_oct);
 /* Pattern step on the 16th grid. UNVERIFIED: returns RI_PCF_STEP_NEUTRAL
  * for every (pattern, step) until per-pattern ledger rows lock. */
 uint8_t pcf_pattern_step(uint8_t pattern, uint32_t step16);
+/* Load + validate the extracted pattern set (magic PCFP, version 1).
+ * Returns pattern count, else negative: -1 IO, -2 magic, -3 version,
+ * -4 count, -5 row range. Mirrors pcf_table_load's contract. */
+int pcf_patterns_load(const char *path, struct PCFPatterns *t);
+/* Install (or uninstall with NULL) the pattern set. Neutral behavior
+ * without a table is unchanged (sustain). */
+void pcf_install_patterns(struct PCF *p, const struct PCFPatterns *t);
+/* Velocity at a pattern step (0 = rest/out of range/no table installed
+ * rows beyond length read 0 — the wrap lives in render). */
+uint8_t pcf_pattern_vel(const struct PCFPatterns *t, uint32_t pattern,
+    uint32_t pstep);
 void pcf_init(struct PCF *p);
 void pcf_set_tempo(struct PCF *p, float bpm);
 /* Decay knob 0..127 -> tau 0.05*2^((v-64)/16) s (3 ms .. 0.8 s, E0). */

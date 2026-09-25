@@ -129,9 +129,10 @@ void pcf_init(struct PCF *p) {
     p->amt_oct = 0.0f;
     p->bpm = 140.0f;
     p->pos_smp = 0ull;
-    p->last_step = 0u;
+    p->last_step = 0xffffffffu; /* step 0 fires on the first sample */
     p->env = 64.0f; /* neutral velocity (matches old v=64 at t=0) */
     p->decay = 0.05f;
+    p->ptab = 0;
 }
 
 void pcf_set_tempo(struct PCF *p, float bpm) {
@@ -151,8 +152,78 @@ void pcf_restart(struct PCF *p) {
     p->svf.low = 0.0f;
     p->svf.band = 0.0f;
     p->pos_smp = 0ull;
-    p->last_step = 0u;
+    p->last_step = 0xffffffffu;
     p->env = 64.0f;
+}
+
+int pcf_patterns_load(const char *path, struct PCFPatterns *t) {
+    unsigned char hdr[8];
+    FILE *f;
+    uint32_t ver, n, i;
+    if (!path || !t)
+        return -1;
+    f = fopen(path, "rb");
+    if (!f)
+        return -1;
+    if (fread(hdr, 1, 8, f) != 8) {
+        fclose(f);
+        return -1;
+    }
+    if (hdr[0] != 'P' || hdr[1] != 'C' || hdr[2] != 'F' || hdr[3] != 'P') {
+        fclose(f);
+        return -2;
+    }
+    ver = (uint32_t)hdr[4] | ((uint32_t)hdr[5] << 8);
+    if (ver != 1u) {
+        fclose(f);
+        return -3;
+    }
+    n = (uint32_t)hdr[6] | ((uint32_t)hdr[7] << 8);
+    if (n == 0u || n > RI_PCF_TABLE_MAX) {
+        fclose(f);
+        return -4;
+    }
+    for (i = 0; i < n; i++) {
+        unsigned char row[34];
+        uint32_t k;
+        if (fread(row, 1, 34, f) != 34) {
+            fclose(f);
+            return -1;
+        }
+        if (row[0] > RI_PCF_RES_8TH || row[1] < 1u || row[1] > RI_PCF_PSTEPS_MAX) {
+            fclose(f);
+            return -5;
+        }
+        for (k = 0; k < 32u; k++)
+            if (row[2u + k] > 127u) {
+                fclose(f);
+                return -5;
+            }
+        t->pat[i].res = row[0];
+        t->pat[i].length = row[1];
+        for (k = 0; k < 32u; k++)
+            t->pat[i].vel[k] = row[2u + k];
+    }
+    fclose(f);
+    t->n = n;
+    return (int)n;
+}
+
+void pcf_install_patterns(struct PCF *p, const struct PCFPatterns *t) {
+    if (!p)
+        return;
+    p->ptab = t;
+}
+
+uint8_t pcf_pattern_vel(const struct PCFPatterns *t, uint32_t pattern,
+    uint32_t pstep) {
+    const struct PCFPattern *r;
+    if (!t || pattern >= t->n)
+        return 0u;
+    r = &t->pat[pattern];
+    if (r->length < 1u)
+        return 0u;
+    return r->vel[pstep % r->length];
 }
 
 uint32_t pcf_step_index(uint64_t pos_smp, float bpm, float sr) {
@@ -162,6 +233,18 @@ uint32_t pcf_step_index(uint64_t pos_smp, float bpm, float sr) {
     /* 16th index = pos * bpm * 4 / (60 * sr); double holds integer
      * positions exactly to 2^53 samples (3400 years at 48 kHz). */
     s = (double)pos_smp * (double)bpm * 4.0 / (60.0 * (double)sr);
+    if (s < 0.0)
+        return 0u;
+    return (uint32_t)s;
+}
+
+/* Pattern-step index at a divider (4 = 16th, 8 = 32nd, 2 = 8th). */
+static uint32_t pcf_pstep_at(uint64_t pos_smp, float bpm, float sr,
+    uint32_t div) {
+    double s;
+    if (!(bpm > 0.0f) || !(sr > 0.0f) || div == 0u)
+        return 0u;
+    s = (double)pos_smp * (double)bpm * (double)div / (60.0 * (double)sr);
     if (s < 0.0)
         return 0u;
     return (uint32_t)s;
@@ -210,14 +293,28 @@ void pcf_render(struct PCF *p, const float *in, float *out, uint32_t n,
     else
         dec_a = 0.0f;
     for (i = 0; i < n; i++) {
-        /* Integer clock: step is a pure function of the absolute sample
-         * (§12.8c1 — the float accumulator stalled near 7 min). A new
-         * 16th retriggers the neutral hit (velocity 64, instant attack;
-         * per-pattern velocity/attack arrive with the pattern rows). */
-        uint32_t step16 = pcf_step_index(p->pos_smp, p->bpm, sr);
-        if (step16 != p->last_step) {
-            p->last_step = step16;
-            p->env = 64.0f;
+        /* Pattern position: sixteenth grid scaled by the pattern's own
+         * resolution (16th x1, 32nd x2, 8th x1/2); wrapped at its length.
+         * A table hit retriggers to its velocity; rests let env decay.
+         * No table = neutral sustain (hit every 16th at 64, legacy path). */
+        if (p->ptab && p->pattern < p->ptab->n) {
+            const struct PCFPattern *r = &p->ptab->pat[p->pattern];
+            uint32_t div = (r->res == RI_PCF_RES_32ND) ? 8u :
+                (r->res == RI_PCF_RES_8TH ? 2u : 4u);
+            uint32_t pstep = pcf_pstep_at(p->pos_smp, p->bpm, sr, div);
+            if (pstep != p->last_step) {
+                uint8_t v;
+                p->last_step = pstep;
+                v = pcf_pattern_vel(p->ptab, p->pattern, pstep);
+                if (v > 0u)
+                    p->env = (float)v;
+            }
+        } else {
+            uint32_t step16 = pcf_step_index(p->pos_smp, p->bpm, sr);
+            if (step16 != p->last_step) {
+                p->last_step = step16;
+                p->env = 64.0f;
+            }
         }
         p->env *= dec_a;
         fc = p->base_fc * ri_pow2(p->amt_oct * p->env / 64.0f);

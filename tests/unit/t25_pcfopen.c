@@ -1,19 +1,18 @@
 /* t25_pcfopen — Module 2.5, TC-2.5.1 status pin (OPEN-04):
  *
- * Per-pattern captures have NOT landed (0/54 rows): pcf_pattern_step
- * explicitly refuses to claim and returns RI_PCF_STEP_NEUTRAL (64)
- * for every (pattern, step). This pin LOCKS THE REFUSAL — it fails
- * if any pattern/step returns anything else, so a future capture
- * landing must update this pin deliberately (not silently):
+ * Per-pattern E1 rows HAVE landed (55/55, §12.8c2): pcf_pattern_step
+ * still explicitly refuses (RI_PCF_STEP_NEUTRAL for every input) and
+ * this pin LOCKS THAT REFUSAL — the no-table path never claims.
+ * Installed-table behavior is pinned separately by t49_pcf_patterns.
  *
- *   - all 54 patterns × 16 steps read neutral 64;
- *   - RI_PCF_NPATTERNS == 54, RI_PCF_NSTEPS == 16;
+ *   - all 55 patterns × 16 steps read neutral 64 (no table);
+ *   - RI_PCF_NPATTERNS == 55, RI_PCF_NSTEPS == 16;
  *   - the ledger table loads (10 calibration rows) and loads
  *     identically twice (restart determinism of the loader path).
  *
- * This pin passing does NOT pass TC-2.5.1 (that needs the 54
- * black-box captures); it pins the documented OPEN state so the
- * gate cannot be mistaken for pattern coverage.
+ * This pin passing does NOT pass TC-2.5.1 (that needs the 55
+ * black-box captures for cross-check); it pins the documented refusal
+ * so the gate cannot be mistaken for pattern coverage.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -29,7 +28,7 @@ int main(void) {
     int n1, n2;
     uint32_t p, s;
 
-    CHECK(RI_PCF_NPATTERNS == 54u, "npatterns %u", RI_PCF_NPATTERNS);
+    CHECK(RI_PCF_NPATTERNS == 55u, "npatterns %u", RI_PCF_NPATTERNS);
     CHECK(RI_PCF_NSTEPS == 16u, "nsteps %u", RI_PCF_NSTEPS);
 
     /* --- refusal: every (pattern, step) reads neutral --- */
@@ -39,7 +38,7 @@ int main(void) {
                 "pattern %u step %u claims %u", p, s,
                 pcf_pattern_step((uint8_t)p, s));
     }
-    printf("refusal: 54x16 all neutral\n");
+    printf("refusal: 55x16 all neutral\n");
 
     /* --- loader path: 10 calibration rows, identical twice.
      * (memset first: the loader writes rows[0..n) + n only; the
