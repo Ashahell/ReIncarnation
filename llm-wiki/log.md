@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | §12.10 G7 Remote MIDI (Standard Mapping) + AROS camd fix
+- Disposition: New (slice record; camd finding cross-posted to Vulkan4AROS)
+- Raw: llm-wiki/raw/articles/2026-09-26-gui-remote-midi-g7.md
+- Updated: llm-wiki/index.md (GUI (§12.10) entry)
+Appendix C mapping proven over real CAMD after fixing camd's x86-64 varargs bug; debugdriver hang open; riqemu1 reboots pinned to 1280x1024.
+
 ## [2026-09-25] ingest | §12.10 G6a live state
 - Disposition: New (slice record; lane notes cross-posted to Vulkan4AROS)
 - Raw: llm-wiki/raw/articles/2026-09-25-gui-live-state-g6a.md
