@@ -6,6 +6,7 @@
 #include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include "engine/seq/transport.h"
+#include "engine/seq/riseq.h"
 
 int main(void) {
     struct RITransport t;
@@ -217,6 +218,37 @@ int main(void) {
         ri_loop_stage(0, &nl, 3u, 100u); ri_loop_stage(&pend, 0, 3u, 100u);
         RI_ASSERT(ri_loop_poll(0, &live, 4u) == 0, "poll null p");
         RI_ASSERT(ri_loop_poll(&pend, 0, 4u) == 0, "poll null live");
+    }
+    /* RISeq owns transport state; init is neutral. */
+    {
+        struct RISeq sq;
+        RiSeqInit(&sq, 0, 96);
+        RI_ASSERT(sq.transport.state == RI_TR_STOPPED, "init state");
+        RI_ASSERT(sq.transport.clicks == 0u, "init clicks");
+        RI_ASSERT(sq.loop.on == 0u, "init loop");
+        RI_ASSERT(sq.loop_staged.valid == 0u, "init staged");
+        RI_ASSERT(sq.cursor_ticks == 0ULL, "init cursor");
+        RI_ASSERT(sq.ppq == 96u, "init ppq kept");
+        /* Drive a full stop-play-stop cycle through the struct. */
+        ri_tr_play(&sq.transport, &sq.cursor_ticks);
+        RI_T58_LAW(sq.transport);
+        sq.cursor_ticks = ri_seq_tick_of_bar(sq.ppq, 30u);
+        ri_tr_stop(&sq.transport, &sq.cursor_ticks, 0ULL, 0ULL);
+        ri_tr_stop(&sq.transport, &sq.cursor_ticks, 0ULL, 0ULL);
+        RI_ASSERT(sq.transport.clicks == 2u && sq.cursor_ticks == 0ULL, "struct cycle");
+    }
+    /* Reentrancy: two instances step independently (no static state). */
+    {
+        struct RISeq a, b;
+        RiSeqInit(&a, 0, 96); RiSeqInit(&b, 0, 96);
+        ri_tr_play(&a.transport, &a.cursor_ticks);
+        a.cursor_ticks = ri_seq_tick_of_bar(96u, 10u);
+        RI_ASSERT(b.transport.state == RI_TR_STOPPED && b.cursor_ticks == 0ULL,
+            "b untouched");
+        RI_ASSERT(a.transport.state == RI_TR_PLAYING && a.cursor_ticks == 3840u,
+            "a stepped");
+        ri_loop_stage(&a.loop_staged, &a.loop, ri_seq_bar_at_tick(a.cursor_ticks, 96u), 100u);
+        RI_ASSERT(b.loop_staged.valid == 0u, "b staging clean");
     }
 #undef RI_T58_LAW
     RI_RESULT("transport");

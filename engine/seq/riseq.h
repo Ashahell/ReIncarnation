@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
+#include "engine/seq/transport.h"
 
 struct AudioObject; /* audio_io/audio.h (opaque here; no link dependency) */
 
@@ -39,6 +40,10 @@ struct RISeq {
     struct RITempoMap map;
     const struct RISeqSnapshot *snap;    /* active (render side) */
     const struct RISeqSnapshot *pending; /* staged (GUI side) */
+    struct RITransport transport;   /* §12.9a: stop/play/record + clicks */
+    struct RILoop loop;             /* song geometry (bars, 0-based) */
+    struct RILoopPending loop_staged; /* next-bar swap staging */
+    uint64_t cursor_ticks;          /* held cursor (ticks; samples via ri_map_tick) */
 };
 
 void RiSeqInit(struct RISeq *s, struct AudioObject *ao, uint32_t ppq);

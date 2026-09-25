@@ -23,6 +23,14 @@ void RiSeqInit(struct RISeq *s, struct AudioObject *ao, uint32_t ppq) {
     s->map.n = 1u;
     s->map.ppq = s->ppq;
     s->map.sr = RISEQ_SR;
+    s->transport.state = RI_TR_STOPPED;
+    s->transport.clicks = 0u;
+    s->loop.on = 0u;
+    s->loop.start_bar = 0u;
+    s->loop.len_bars = 1u;
+    s->loop_staged.valid = 0u;
+    s->loop_staged.apply_bar = 0ULL;
+    s->cursor_ticks = 0ULL;
 }
 
 void RiSeqAdvanceFrames(struct RISeq *s, uint32_t frames) {
