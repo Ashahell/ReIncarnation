@@ -86,7 +86,9 @@ struct RIKeyOpts {
 };
 
 /* Decode one raw key event. focus = RI_FOCUS_* of the section that has
- * the focus. Precedence (E0, ledger docs/evidence/gui/keyboard.md):
+ * the focus. Precedence (decided 2026-09-25, rationale in the ledger
+ * docs/evidence/gui/keyboard.md — like the hardware's write mode, a key
+ * that programs the focused section never also switches a pattern):
  * menu shortcut > keypad transport > focus arrows > programming keys of
  * the focused section (when program_synth is on) > pattern keys (when
  * select_patterns is on). Unmapped keys and key-ups decode to NONE,
