@@ -72,19 +72,20 @@ static void render_voice(uint32_t v, uint32_t accent, float secs, float *out) {
 
 int main(void) {
     uint32_t v, i;
-    /* --- 1. BD trajectory ±5% at 5 envelope points (P-07 nominals) --- */
+    /* --- 1. BD trajectory ±5% at 5 envelope points (P-07 as re-based §12.5c:
+     * 62 Hz start, 4 ms sigh, 48 Hz boom) --- */
     {
         static const float tp[5] = { 0.010f, 0.025f, 0.050f, 0.100f, 0.200f };
         for (i = 0; i < 5; i++) {
             float q = rb808_pitch_hz(RB808_BD, tp[i], 0.0f);
-            double m = 48.0 + (170.0 - 48.0) * exp((double)-tp[i] / 0.022);
+            double m = 48.0 + (62.0 - 48.0) * exp((double)-tp[i] / 0.004);
             RI_ASSERT(fabs((double)q - m) / m <= 0.05, "bd traj t=%.3f q=%.4g model=%.4g",
                 tp[i], (double)q, m);
         }
         /* tune ends stay on-model too (±7 st maps f_start only) */
         {
             float qlo = rb808_pitch_hz(RB808_BD, 0.05f, -7.0f);
-            double mlo = 48.0 + (170.0 * pow(2.0, -7.0 / 12.0) - 48.0) * exp(-0.05 / 0.022);
+            double mlo = 48.0 + (62.0 * pow(2.0, -7.0 / 12.0) - 48.0) * exp(-0.05 / 0.004);
             RI_ASSERT(fabs((double)qlo - mlo) / mlo <= 0.05, "bd tune-7 q=%.4g m=%.4g",
                 (double)qlo, mlo);
         }

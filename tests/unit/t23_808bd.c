@@ -79,12 +79,13 @@ static double measure_crossing(uint32_t t1s, uint32_t w, uint32_t n) {
 int main(void) {
     uint32_t i, w = 3072u /* 64 ms */, t1s = 960u /* 20 ms */;
     uint32_t n = (uint32_t)(3.5f * T23_SR);
-    /* --- TC-2.3.1 BD trajectory +-5% at 5 envelope points (P-07) --- */
+    /* --- TC-2.3.1 BD trajectory +-5% at 5 envelope points (P-07 as re-based
+     * §12.5c: 62 Hz start, 4 ms sigh) --- */
     {
         static const float tp[5] = { 0.010f, 0.025f, 0.050f, 0.100f, 0.200f };
         for (i = 0; i < 5; i++) {
             float q = rb808_pitch_hz(RB808_BD, tp[i], 0.0f);
-            double m = 48.0 + (170.0 - 48.0) * exp((double)-tp[i] / 0.022);
+            double m = 48.0 + (62.0 - 48.0) * exp((double)-tp[i] / 0.004);
             CHECK(fabs((double)q - m) / m <= 0.05,
                 "bd traj t=%.3f q=%.4g model=%.4g", tp[i], (double)q, m);
         }

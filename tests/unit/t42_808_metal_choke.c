@@ -150,33 +150,26 @@ int main(void) {
         glo = goertzel(lo, 4800u, 1800.0, SR);
         RI_ASSERT(ghi > 5.0 * glo, "snappy adds no noise: %g vs %g", ghi, glo);
     }
-    /* (d) BD click tone: 3 ms peak follows the click gain (measured 1.31x,
-     * bound 1.2x — deterministic phases, no flake risk). */
+    /* (d) BD click tone: 2.5 kHz click-band energy follows the click gain
+     * (bound 3x — broadband peak was phase-fragile across the BD remodel,
+     * the band meter separates click from osc body). */
     {
         struct RB808Set a, b;
-        static float hi[2400u], lo[2400u];
-        float phi, plo;
+        static float hi[480u], lo[480u];
+        double ghi, glo;
         rb808_init_set(&a);
         rb808_set_param(&a.v[0], RI_CTL_808_TONE, 127);
         rb808_trigger(&a, 0u, 0u, 0.0f);
-        for (i = 0; i < 2400u; i++)
+        for (i = 0; i < 480u; i++)
             hi[i] = rb808_voice_render(&a.v[0], SR);
         rb808_init_set(&b);
         rb808_set_param(&b.v[0], RI_CTL_808_TONE, 0);
         rb808_trigger(&b, 0u, 0u, 0.0f);
-        for (i = 0; i < 2400u; i++)
+        for (i = 0; i < 480u; i++)
             lo[i] = rb808_voice_render(&b.v[0], SR);
-        phi = 0.0f;
-        plo = 0.0f;
-        for (i = 0; i < 144u; i++) {
-            float ahi = hi[i] < 0.0f ? -hi[i] : hi[i];
-            float alo = lo[i] < 0.0f ? -lo[i] : lo[i];
-            if (ahi > phi)
-                phi = ahi;
-            if (alo > plo)
-                plo = alo;
-        }
-        RI_ASSERT(phi > 1.2f * plo, "BD tone flat: %g vs %g", phi, plo);
+        ghi = goertzel(hi, 480u, 2500.0, SR);
+        glo = goertzel(lo, 480u, 2500.0, SR);
+        RI_ASSERT(ghi > 3.0 * glo, "BD tone flat: %g vs %g", ghi, glo);
     }
     /* CY tone moves the HP cutoff: low-partial energy ratio (measured
      * 13.6x at 304.4 Hz, bound 4x). Tone-up = brighter AND thinner —

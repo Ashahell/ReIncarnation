@@ -46,10 +46,13 @@
 #define RB808_CB 14u
 #define RB808_MA 15u /* maracas (§12.5a; HP noise, §4.2 action 1) */
 
-/* Appendix A nominals [HYPOTHESIS] (full rows in docs/evidence/808/). */
-#define RI_808_BD_F_START 170.0f /* Hz at tune 0 (P-07; tune ±7 st) */
+/* Appendix A nominals [HYPOTHESIS] (full rows in docs/evidence/808/).
+ * BD (§12.5c 808 regime): ~62 Hz start with a 4 ms sigh to the 48 Hz boom
+ * (E1 Werner/Abel/Smith: ~56 Hz center; the old 170 Hz/22 ms candidate was
+ * 909-like). Full WDF bridged-T topology awaits measurement (ledger BD). */
+#define RI_808_BD_F_START 62.0f /* Hz at tune 0 (P-07 as re-based; tune ±7 st) */
 #define RI_808_BD_F_END 48.0f
-#define RI_808_BD_TAU_PITCH 0.022f /* s (P-07) */
+#define RI_808_BD_TAU_PITCH 0.004f /* s sigh (P-07 as re-based) */
 #define RI_808_SD_F1 185.0f /* Hz (P-08; 173.3 also passes: revision tol) */
 #define RI_808_SD_F2 330.0f /* Hz (P-08; 336.0 also passes: revision tol) */
 #define RI_808_TOM_LT_F0 75.0f /* P-09 sweep starts */
