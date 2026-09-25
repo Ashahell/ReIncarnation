@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] ingest | Song track plan review (§12.9b)
+- Disposition: New (review record; plan + spec committed `39d8de4`)
+- Raw: llm-wiki/raw/articles/2026-09-25-songtrack-plan-review.md
+- Updated: llm-wiki/index.md (Reviews entry)
+Eleven findings (3 HIGH: lost capped changes, unclamped loop, dropped replay property), all applied; plan code assembled in a scratch worktree: t59 PASS, eight mutants FAIL, one self-inflicted guard trip caught and fixed.
+
 ## [2026-09-25] ingest | riqemu1 DH0 boot with visible agent; aros_v1j on rtl8139
 - Disposition: New (lane record; cross-posted to Vulkan4AROS)
 - Raw: llm-wiki/raw/articles/2026-09-25-riqemu1-dh0-boot-v1j-rtl8139.md
