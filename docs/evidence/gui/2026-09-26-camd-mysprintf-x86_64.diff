@@ -1,0 +1,42 @@
+diff --git i/workbench/libs/camd/strings.c w/workbench/libs/camd/strings.c
+index 5b481b56ed..108cdce8f3 100644
+--- i/workbench/libs/camd/strings.c
++++ w/workbench/libs/camd/strings.c
+@@ -5,6 +5,8 @@
+ */
+ 
+ #include <proto/exec.h>
++#include <exec/rawfmt.h>
++#include <stdarg.h>
+ #include <proto/utility.h>
+ #include "camd_intern.h"
+ 
+@@ -44,18 +46,18 @@ ASM void stuffChar( REG(d0) UBYTE in,REG(a3) char **stream){
+ 
+ 
+ #ifndef __amigaos4__
++/* The varargs must be read through a va_list. The old body took
++ * `&fmt+1` as the argument stream, which only holds where variadic
++ * arguments are pushed on the stack (m68k). On x86_64 they arrive in
++ * registers, so every cluster name was copied from stack garbage,
++ * FindName() never matched, and each AddMidiLink() created a private
++ * cluster: no two links could ever exchange MIDI. */
+ void mysprintf(struct CamdBase *CamdBase,char *string,char *fmt,...){
+-	void *start=&fmt+1;
++	va_list args;
+ 
+-	// You should change your proto-file, if there is a warning about const.
+-	CONST_STRPTR string2=string;
+-
+-	RawDoFmt(
+-		 fmt,
+-		 start,
+-		 (VOID_FUNC)stuffChar,
+-		 (APTR)&string2
+-		 );
++	va_start(args,fmt);
++	VNewRawDoFmt((CONST_STRPTR)fmt,RAWFMTFUNC_STRING,(APTR)string,args);
++	va_end(args);
+ }
+ #endif
+ 

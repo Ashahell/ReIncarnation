@@ -15,6 +15,10 @@ void ri_panel_init(struct RIPanelUI *p) {
     p->synth[0] = p->synth[1] = p->drum[0] = p->drum[1] = p->tr = 0;
     for (i = 0; i < RI_FOCUS_COUNT; i++)
         p->pat[i] = 0;
+    for (i = 0; i < 5; i++)
+        p->mix[i] = 0;
+    for (i = 0; i < 4; i++)
+        p->fx[i] = 0;
     p->last.kind = RI_KA_NONE;
     p->last.section = 0;
     p->last.arg = 0;

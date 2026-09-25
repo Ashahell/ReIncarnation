@@ -1,0 +1,3 @@
+# G7 proof, part 2
+90 46 64   A#3 70 Stop
+FC         MIDI Stop

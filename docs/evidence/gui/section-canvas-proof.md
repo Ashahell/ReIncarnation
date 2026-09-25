@@ -1,7 +1,7 @@
 # Section canvas (RSection) — riqemu1 proof (§12.10 G4)
 
 **Date:** 2026-09-25. **Lane:** riqemu1 (QEMU, ABIv1 live ISO, private; Dell unavailable — stick backup).
-**Binary:** `RISECT` (`RISECT [303|808|909|mix|fx|tr|keys|live] [demo]`), built by `bash scripts/ri_build_aros.sh sections` → `/tmp/ri/aros/RISECT` (v1 recipe: v1 build-pc SDK, `startup.o`, `-nostartfiles -no-pie`, `-lmui -lamiga -lstdcio -lposixc -lintuition -lgraphics -lutility -ldos -lexec -lautoinit`; 0 unresolved, 0 `mov %rax,%r12`).
+**Binary:** `RISECT` (`RISECT [303|808|909|mix|fx|tr|keys|live|remote] [demo]`), built by `bash scripts/ri_build_aros.sh sections` → `/tmp/ri/aros/RISECT` (v1 recipe: v1 build-pc SDK, `startup.o`, `-nostartfiles -no-pie`, `-lmui -lamiga -lstdcio -lposixc -lintuition -lgraphics -lutility -ldos -lexec -lautoinit`; 0 unresolved, 0 `mov %rax,%r12`).
 **Code:** `gui/widgets/rsection.mcc.c` (one canvas class for every laid-out section), `gui/sectui.c` (behaviour dispatch, host-tested t64), `app/sectproof.c` (proof window + readout). The first build was a 303-only class (`RSec303`); it was generalised the same day when the 808 landed.
 
 ## Proven
@@ -21,6 +21,8 @@
 - **Keyboard + focus (G5).** `RISECT keys` driven by real key events from QEMU `sendkey`: pattern keys, focus arrows, keypad transport, Ctrl+G / Ctrl+F, synth Step/Accent. The capture shows the orange focus bar on Synth 1 and the readout reproduces the expected state exactly. Details and trace: `keyboard.md`.
 
 - **Live state (G6a).** `RISECT live`: playheads, running light, taps at the playhead, held delete, meters — driven by a STAND-IN wall-time clock. Details, trace and the open G6b binding: `live-state.md`.
+
+- **Remote MIDI, Standard Mapping (G7).** `RISECT remote` driven through real camd.library by `MIDISEND`: CCs, pattern/section/switch notes, channel filter, MIDI and Sync LEDs. This needed an AROS camd fix (cluster names on x86-64). Details: `midi.md`.
 
 ## Not proven here (and why)
 

@@ -1,7 +1,7 @@
 /*
  * app/sectproof.c — section canvas on-device proof (§12.10 G4).
  *
- * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr|keys|live] [demo]
+ * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr|keys|live|remote] [demo]
  * One window with the RSection canvas for the chosen section at 1x plus a
  * readout row, so state can be verified by number as well as by ui_capture.
  * "demo" drives the same behaviour calls a click makes (gui/sectui.h):
@@ -34,7 +34,11 @@
  *         STAND-IN: the sample position comes from Intuition CurrentTime()
  *         (wall time), not the render task — riqemu1 has no audio device
  *         and binding the render task is G6b. Meter source is a stand-in
- *         too: a hit at the playhead = 0 dBFS, 20 dB/s decay (P-16).
+ *         too: a hit at the playhead = 0 dBFS, 20 dB/s decay (P-16);
+ *   remote — G7 proof: the live panel plus a CAMD receiver on cluster
+ *         "ri.remote", channel 1: Standard Mapping (gui/midimap.h) drives
+ *         the panel; MIDISEND plays a message script into the same
+ *         cluster, i.e. the real camd.library path without hardware.
  * Exit: close gadget or Ctrl-C. Return codes: 0 ok, 5+ build failures.
  * Must NEVER enter the host build (audit gates app/).
  */
@@ -54,11 +58,17 @@
 #include "gui/sectui.h"
 #include "gui/panelgeo.h"
 #include "gui/livestate.h"
+#include "gui/midimap.h"
+#include <midi/camd.h>
+#include <proto/camd.h>
 #include "gui/widgets/rsection.h"
 
 static char s_readout[160];
 static Object *s_mix[10];
 static int s_nall;
+static struct RIMidiIn s_midi;
+static ULONG s_camd_got, s_camd_last;   /* raw CAMD diagnostics: messages taken, last mm_Msg */
+struct Library *CamdBase;
 static struct RIPanelUI s_panel;
 
 static void put_num(char **p, long v) {
@@ -114,6 +124,23 @@ static void format_readout(const struct RISectUI *ui, const struct RSectionDiag 
         put_num(&p, (long)s_panel.changes);
         put_str(&p, " RAW ");
         put_num(&p, s_panel.last_raw);
+        put_str(&p, " MIDI ");
+        put_num(&p, (long)s_midi.messages);
+        *p++ = '/';
+        put_num(&p, (long)s_midi.ignored);
+        put_str(&p, " LED ");
+        put_num(&p, ri_sui_value(ui, RI_STR_MIDI));
+        put_num(&p, ri_sui_value(ui, RI_STR_SYNC));
+        put_str(&p, " CAMD ");
+        put_num(&p, (long)s_camd_got);
+        *p++ = '/';
+        put_num(&p, (long)(s_camd_last >> 24));
+        *p++ = '.';
+        put_num(&p, (long)(s_camd_last & 0xFFu));
+        put_str(&p, " SEL8 ");
+        put_num(&p, ri_sui_value(s_panel.drum[0], RI_S808_SELECT));
+        put_str(&p, " P909 ");
+        put_num(&p, ri_spat_selected(&s_panel.pat[3]->u.pat));
         *p = 0;
         (void)dg;
         (void)changes;
@@ -390,7 +417,10 @@ int main(int argc, char **argv) {
     LONG ret;
     struct RISectUI *ui = 0;
     const struct RSectionDiag *dg = 0;
-    int i, do_demo = 0, mix = 0, fx = 0, trp = 0, keys = 0, live = 0;
+    int i, do_demo = 0, mix = 0, fx = 0, trp = 0, keys = 0, live = 0, remote = 0;
+    struct MidiNode *mnode = 0;
+    BYTE msig = -1;
+    ULONG lms = 0, lmu = 0;
     ULONG t0s = 0, t0u = 0;
     int meter_lvl[2] = { 0, 0 }, last_ph[2] = { -1, -1 };
     ULONG seen = 0;
@@ -414,6 +444,8 @@ int main(int argc, char **argv) {
             keys = 1;
         else if (argv[i][0] == 'l')
             live = 1;
+        else if (argv[i][0] == 'r')
+            live = remote = 1;
         else if (argv[i][0] == 'd')
             do_demo = 1;
     }
@@ -433,9 +465,11 @@ int main(int argc, char **argv) {
             else if (i == 1 || i == 3)
                 s_panel.drum[i == 3] = u;
             else if (i == 2)
-                mix8 = u;
-            else if (i == 4)
+                s_panel.mix[2] = mix8 = u;
+            else if (i == 4) {
                 ri_sui_bind_board(u, mix8->u.mix.board);
+                s_panel.mix[3] = u;
+            }
             else
                 s_panel.pat[i - 5] = u;
             SetAttrs(s_mix[i], MUIA_RSection_Panel, (IPTR)&s_panel, MUIA_RSection_KeyOwner, i == 0, TAG_DONE);
@@ -458,6 +492,15 @@ int main(int argc, char **argv) {
         mix = 5;
         keys = 1;                      /* same key/trace/refresh path as keys mode */
         trace = Open((CONST_STRPTR)"RAM:RISECT.LOG", MODE_NEWFILE);
+        ri_midi_init(&s_midi, 0);
+        if (remote) {                  /* CAMD receiver: cluster "ri.remote", channel 1 */
+            CamdBase = OpenLibrary((CONST_STRPTR)"camd.library", 0);
+            msig = AllocSignal(-1);
+            if (CamdBase && msig >= 0)
+                mnode = CreateMidi(MIDI_Name, (IPTR)"RISECT", MIDI_RecvSignal, (IPTR)msig, MIDI_MsgQueue, 512, TAG_END);
+            if (!mnode || !AddMidiLink(mnode, MLTYPE_Receiver, MLINK_Location, (IPTR)"ri.remote", TAG_END))
+                return 9;
+        }
     } else if (keys) {                 /* G5: one front panel across six canvases */
         Object *pats;
         struct RISectUI *u = 0;
@@ -595,6 +638,20 @@ int main(int argc, char **argv) {
         if (ret == (LONG)MUIV_Application_ReturnID_Quit)
             break;
         GetAttr(MUIA_RSection_Changes, canvas, &ch);
+        if (mnode) {                   /* drain CAMD: Standard Mapping onto the panel */
+            MidiMsg mm;
+            ULONG ns, nu, dms;
+            while (GetMidi(mnode, &mm)) {
+                s_camd_got++;
+                s_camd_last = mm.mm_Msg;
+                ri_midi_msg(&s_midi, &s_panel, mm.mm_Status, mm.mm_Data1, mm.mm_Data2);
+            }
+            CurrentTime(&ns, &nu);
+            dms = lms ? (ns - lms) * 1000u + nu / 1000u - lmu / 1000u : 0u;
+            lms = ns;
+            lmu = nu;
+            ri_midi_elapse(&s_midi, &s_panel, dms);
+        }
         if (live) {   /* STAND-IN clock: wall time -> samples (G6b: the render task) */
             ULONG ns, nu;
             int playing = ui->u.tr.tr.state != RI_TR_STOPPED, k;
@@ -637,13 +694,19 @@ int main(int argc, char **argv) {
         }
         format_readout(ui, dg, (long)ch);
         SetAttrs(readout, MUIA_Text_Contents, (IPTR)s_readout, TAG_DONE);
-        sigs |= SIGBREAKF_CTRL_C;
+        sigs |= SIGBREAKF_CTRL_C | (msig >= 0 ? 1UL << msig : 0UL);
         sigs = Wait(sigs);
         if (sigs & SIGBREAKF_CTRL_C)
             break;
     }
     if (trace)
         Close(trace);
+    if (mnode)
+        DeleteMidi(mnode);
+    if (msig >= 0)
+        FreeSignal(msig);
+    if (CamdBase)
+        CloseLibrary(CamdBase);
     SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
     MUI_DisposeObject(app);
     ri_rsection_dispose_class();

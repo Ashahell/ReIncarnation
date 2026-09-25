@@ -1,0 +1,44 @@
+# G7 proof, part 1 (MIDI channel 1 unless noted). Appendix C numbers.
+90 5F 64   B5 95 Program Synths from Keyboard ON
+90 43 64   G3 67 focus to 808
+90 1D 64   F0 29 808 instrument BD
+90 0C 64   C-1 12 step 1
+90 10 64   E-1 16 step 5
+90 14 64   G#-1 20 step 9
+90 18 64   C0 24 step 13
+B0 26 7F   CC 38 808 BD Level 127
+B0 11 1E   CC 17 808 mixer Level 30
+90 58 64   E5 88 808 PCF on
+90 60 64   C6 96 Select Patterns ON
+90 3F 64   D#3 63 909 pattern 8
+91 45 64   channel 2 Play: must be ignored
+D 300
+90 45 64   A3 69 Play
+FA         Start
+D 200
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
+F8
