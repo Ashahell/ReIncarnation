@@ -61,7 +61,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   section mask meanwhile)
 - [x] Pattern banks/lengths (per-instance model + Edit ops + emit) + RBNG chunk plan (v1.1 BANK) (m63)
 - [x] 4 sections (engine 808/909 hosting: sets, event consumption, AC stamp, 909 bind) (m64)
-- [ ] Shuffle flags (OPEN), streaming emission; song track (§12.9)
+- [ ] Shuffle flags (OPEN); streaming emission (m67 §12.9c); song track (m66)
 
 ## §12.8 FX routing + parity + PCF envelope (§3.2, §4.4)
 - [x] Delay beats-honoring + caller-owned lines + tap slew + live-rate comp + pool retired (m56)
@@ -74,7 +74,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 ## §12.9 Song mode + transport + pattern edits (§3.1)
 - [x] Transport state machine (states, bar mapping, loop model, record/display) (m65)
 - [x] Song track (dense grid, downbeat capture, change emission, edits, STRK) (m66)
-- [ ] Automation lanes; record-path capture gating; streaming changeover (§12.9c)
+- [ ] Automation lanes; record-path capture gating (§12.9c); [x] streaming player/changeover (m67)
 
 ## §12.10 GUI parity + skins + MIDI (§9, §3.1)
 - [ ] Panel inventory; focus bar; meters; skins via MCC classes; knob modifiers; transport/playhead from audio clock (§2.9 last row); MIDI maps from manual

@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | §12.9c streaming player (m67)
+- Disposition: New (slice record)
+- Raw: llm-wiki/raw/articles/2026-09-26-streaming-player.md
+- Updated: llm-wiki/index.md (§12.9 entry), docs/2026-09-24-improvement-todo.md (streaming ticked, m67)
+Streaming player shipped (feat 2a9d111 + 49e362f): per-section phase, pattern-end changeover, per-block emission; t74 PASS; 8/9 mutants killed (END-carry survivor documented R-MUTSURV); audit 0/0. Open: songtrack implementation (owner direction), automation lanes + record gating.
+
 ## [2026-09-26] ingest | §12.10 G7 Remote MIDI (Standard Mapping) + AROS camd fix
 - Disposition: New (slice record; camd finding cross-posted to Vulkan4AROS)
 - Raw: llm-wiki/raw/articles/2026-09-26-gui-remote-midi-g7.md
