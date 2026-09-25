@@ -72,6 +72,14 @@ Page numbers are the manual's printed numbers.
   This emitter marks downbeat selections — never the sounding switch.
 - Pure function over (track, banks, bar range, map) → events;
   cap-guarded like existing emitters (later bars drop first).
+- Loop wrap (E1 p. 73: loop repeats infinitely): the emitter takes
+  the loop `(on, start_bar, len_bars)` as read-only inputs. When a
+  bar range crosses the loop end, iteration wraps to the loop start
+  and change detection continues against the loop-end bar's slots
+  (a wrap that lands on identical slots emits nothing extra). Loop
+  OFF (or a range that never touches the loop) behaves exactly as
+  the unwrapped path. Loop ON means bar 999 is unreachable, so
+  end-of-song never fires mid-loop.
 - End of song: `ri_song_ended(bar_now)` (`bar_now >= 999`) tells the
   player to stop (E1: playback continues to 999 unless stopped). The
   engine never invents silence — silent tails are user data (§0).
@@ -108,7 +116,9 @@ Page numbers are the manual's printed numbers.
   instance ≥ 4), capture writes-exactly + pattern-mode path never
   calls capture (gating is caller-side; test asserts the model writes
   only what it is told), emission at measure lines with exact
-  samples + range-start establishment + steady silence, init
+  samples + range-start establishment + steady silence, loop wrap
+  (crossing the loop end re-emits only real changes vs the loop-end
+  bar; loop ON never reaches 999), init
   song/loop (incl. rest-of-loop cleared, outside untouched),
   cut/copy/paste(-replace) incl. close-gap shift, slot-0 tail fill,
   and insert-overflow truncation,
