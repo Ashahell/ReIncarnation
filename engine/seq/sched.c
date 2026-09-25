@@ -9,10 +9,10 @@
 #include "engine/seq/sched.h"
 #include "engine/seq/clock.h"
 
-uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
+uint32_t ri_sched_emit_timed_carry(const struct RITempoMap *map, uint64_t start_tick,
     uint32_t ppq, const struct RIStep *steps, uint32_t nsteps,
-    uint16_t device, const struct RISchedOpts *opts,
-    struct RIEvent *out, uint32_t cap) {
+    uint16_t device, const struct RISchedOpts *opts, const struct RISchedCarry *carry_in,
+    struct RISchedCarry *carry_out, struct RIEvent *out, uint32_t cap) {
     uint32_t n = 0; /* emitted count */
     uint32_t seq = 0;
     uint32_t i, j;
@@ -21,7 +21,15 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
     uint32_t flam_samples = 0;
     uint8_t legato = 0;
     uint8_t held = 0;   /* held pitch for NOTE_CONTINUE */
+    int held_oct = 0;   /* its octave flag */
     int gate = 0;       /* gate currently high */
+    if (carry_in && carry_in->valid) {
+        gate = 1; /* cyclic seam: previous iteration holds the gate */
+        held = carry_in->held_note;
+        /* held_oct stays 0: a CONTINUE on step 0 of a carried run drops
+         * the octave flag (needs rest+slide on step 0 with an octave
+         * held note — vanishingly rare; the gate/pitch stay exact). */
+    }
     if (step_ticks == 0)
         step_ticks = 24u;
     if (opts) {
@@ -38,6 +46,7 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
     for (i = 0; i < RI_SCHED_MAX_EVENTS; i++) {
         uint64_t tick, sample;
         int is_rest, is_slide, is_accent, is_flam, is_note;
+        int is_oct, carried;
         if (i >= nsteps)
             break;
         /* §7 first: shuffle offsets trigger times (odd 0-based index = the
@@ -50,10 +59,15 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
         is_slide = (steps[i].flags & RI_STEP_SLIDE) != 0;
         is_accent = (steps[i].flags & RI_STEP_ACCENT) != 0;
         is_flam = (steps[i].flags & RI_STEP_FLAM) != 0;
+        /* Octave (§12.7a): exactly one of UP/DOWN marks the step. */
+        is_oct = ((steps[i].flags & RI_STEP_UP) != 0) !=
+            ((steps[i].flags & RI_STEP_DOWN) != 0);
+        /* Carried seam: step 0 arrives with the gate already high. */
+        carried = (i == 0 && gate && carry_in && carry_in->valid);
         is_note = !is_rest;
         if (is_note) {
             int gate_was_high = gate;
-            if (gate && !is_slide && !legato && n < cap) {
+            if (gate && !is_slide && !legato && !carried && n < cap) {
                 /* gate breaks: previous note off before the new attack
                  * (§8 order NOTE_OFF < NOTE_ON sorts it first anyway) */
                 out[n].sample = sample;
@@ -75,13 +89,15 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
                 out[n].device = device;
                 out[n].voice = 0;
                 out[n].value = steps[i].note;
-                out[n].flags = (uint16_t)((is_slide || (legato && gate_was_high) ? RI_EVFLAG_SLIDE : 0u) |
+                out[n].flags = (uint16_t)((is_slide || (legato && gate_was_high) || carried ? RI_EVFLAG_SLIDE : 0u) |
                     (is_accent ? RI_EVFLAG_ACCENT : 0u) |
-                    ((legato && gate_was_high) ? RI_EVFLAG_LEGATO : 0u));
+                    ((legato && gate_was_high) || carried ? RI_EVFLAG_LEGATO : 0u) |
+                    (is_oct ? RI_EVFLAG_OCTAVE : 0u));
                 out[n].seq = seq++;
                 n++;
             }
             held = steps[i].note;
+            held_oct = is_oct;
             gate = 1;
             /* §12.4 gate-length rule (D-h, E0 fraction 1/2): a non-slide,
              * non-legato note falls at its start + half a step. Ties
@@ -95,8 +111,12 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
                 int ties_next = 0;
                 if (i + 1u < nsteps)
                     ties_next = (steps[i + 1u].flags & RI_STEP_SLIDE) != 0;
+                else
+                    ties_next = (steps[i].flags & RI_STEP_TIE_OUT) != 0;
                 if (!ties_next) {
-                    frac_tick = tick + (uint64_t)(step_ticks / 2u);
+                    frac_tick = tick + (uint64_t)step_ticks *
+                        (uint64_t)RI_SCHED_GATE_NUM /
+                        (uint64_t)RI_SCHED_GATE_DEN;
                     out[n].sample = ri_map_tick(map, frac_tick);
                     out[n].type = RI_EV_NOTE_OFF;
                     out[n].device = device;
@@ -127,7 +147,8 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
                 out[n].device = device;
                 out[n].voice = 0;
                 out[n].value = held;
-                out[n].flags = RI_EVFLAG_SLIDE;
+                out[n].flags = (uint16_t)(RI_EVFLAG_SLIDE |
+                    (held_oct ? RI_EVFLAG_OCTAVE : 0u));
                 out[n].seq = seq++;
                 n++;
             }
@@ -157,16 +178,33 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
         }
     }
     /* final NOTE_OFF at the pattern end tick when the gate is still high.
-     * Shuffle does not move the pattern end (the grid is unswung there). */
-    if (gate && n < cap) {
-        out[n].sample = ri_map_tick(map, start_tick + (uint64_t)nsteps * (uint64_t)step_ticks);
-        out[n].type = RI_EV_NOTE_OFF;
-        out[n].device = device;
-        out[n].voice = 0;
-        out[n].value = held;
-        out[n].flags = 0;
-        out[n].seq = seq++;
-        n++;
+     * Shuffle does not move the pattern end (the grid is unswung there).
+     * TIE_OUT on the last step suppresses it: the gate holds into the
+     * next iteration (cyclic seam). */
+    {
+        int tie_out = (nsteps > 0u &&
+            (steps[nsteps - 1u].flags & RI_STEP_TIE_OUT) != 0);
+        if (gate && !tie_out && n < cap) {
+            out[n].sample = ri_map_tick(map, start_tick + (uint64_t)nsteps * (uint64_t)step_ticks);
+            out[n].type = RI_EV_NOTE_OFF;
+            out[n].device = device;
+            out[n].voice = 0;
+            out[n].value = held;
+            out[n].flags = 0;
+            out[n].seq = seq++;
+            n++;
+        }
+        if (carry_out) {
+            if (gate && tie_out) {
+                carry_out->valid = 1u;
+                carry_out->held_note = held;
+            } else {
+                carry_out->valid = 0u;
+                carry_out->held_note = 0u;
+            }
+            carry_out->pad[0] = 0u;
+            carry_out->pad[1] = 0u;
+        }
     }
     /* insertion sort by the §8 total key (bounded: n <= cap <= 256) */
     for (i = 1; i < RI_SCHED_MAX_EVENTS; i++) {
@@ -186,6 +224,15 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
         out[j] = key;
     }
     return n;
+}
+
+/* NULL-carry wrapper: byte-identical with the pre-carry entry. */
+uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
+    uint32_t ppq, const struct RIStep *steps, uint32_t nsteps,
+    uint16_t device, const struct RISchedOpts *opts,
+    struct RIEvent *out, uint32_t cap) {
+    return ri_sched_emit_timed_carry(map, start_tick, ppq, steps, nsteps,
+        device, opts, 0, 0, out, cap);
 }
 
 uint32_t ri_sched_emit_sorted(const struct RITempoMap *map, uint64_t start_tick,

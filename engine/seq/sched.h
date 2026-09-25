@@ -99,6 +99,10 @@ static inline int ri_event_less(const struct RIEvent *a, const struct RIEvent *b
 #define RI_STEP_FLAM 0x08u
 #define RI_STEP_UP 0x10u
 #define RI_STEP_DOWN 0x20u
+/* Walker-internal: last step ties its gate into the next iteration
+ * (cyclic seam, §12.7a). Never stored in RIPattern rows (validity
+ * rejects it); set by the pattern converter on RIStep scratch only. */
+#define RI_STEP_TIE_OUT 0x40u
 
 #define RI_EVFLAG_SLIDE 0x01u
 #define RI_EVFLAG_ACCENT 0x02u
@@ -117,6 +121,21 @@ struct RISchedOpts {
 
 #define RI_SCHED_MAX_EVENTS 256u
 
+/* Gate-length rule (D-h, E0 fraction 1/2):
+ * docs/evidence/sequencer/gate-length.md. */
+#define RI_SCHED_GATE_NUM 1u
+#define RI_SCHED_GATE_DEN 2u
+
+/* Total-accent voice id: an RI_EV_ACCENT with voice == RI_VOICE_ALL
+ * applies to all voices of a drum section (909 AC row). */
+#define RI_VOICE_ALL 0xFFFFu
+
+struct RISchedCarry {
+    uint8_t valid;     /* 1 = carry_in describes a held gate */
+    uint8_t held_note; /* MIDI note whose gate is still high */
+    uint8_t pad[2];
+};
+
 struct RIStep {
     uint8_t note;  /* MIDI note (ignored when RI_STEP_REST set) */
     uint8_t flags; /* RI_STEP_* */
@@ -134,4 +153,11 @@ uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick,
     uint32_t ppq, const struct RIStep *steps, uint32_t nsteps,
     uint16_t device, const struct RISchedOpts *opts,
     struct RIEvent *out, uint32_t cap);
+/* Extended entry: identical to ri_sched_emit_timed when both carries are
+ * NULL. carry_in->valid starts the run with the gate held (cyclic seam);
+ * carry_out reports the held gate when the last step carries TIE_OUT. */
+uint32_t ri_sched_emit_timed_carry(const struct RITempoMap *map, uint64_t start_tick,
+    uint32_t ppq, const struct RIStep *steps, uint32_t nsteps,
+    uint16_t device, const struct RISchedOpts *opts, const struct RISchedCarry *carry_in,
+    struct RISchedCarry *carry_out, struct RIEvent *out, uint32_t cap);
 #endif
