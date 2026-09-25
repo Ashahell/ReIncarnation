@@ -55,7 +55,7 @@ enum { C_PANEL, C_PANEL_DK, C_BLACK, C_WHITEKEY, C_BTN, C_BTN_HI, C_BTN_LO,
        C_STEP_RED, C_STEP_ORANGE, C_STEP_YELLOW, C_STEP_WHITE, C_LAMP_OFF,
        C_909_PANEL, C_909_BAR, C_909_ORANGE, C_909_KNOB, C_LAMP_LOW, C_LAMP_FLAM, C_909_STEP,
        C_MIX_PANEL, C_MIX_HEAD, C_MIX_HEADTX, C_MIX_SLOT, C_MIX_GREEN, C_MIX_GREEN_OFF, C_MIX_KNOB, C_MIX_TEXT,
-       C_FX_PANEL, C_FX_HEAD, C_SEG_DIM,
+       C_FX_PANEL, C_FX_HEAD, C_SEG_DIM, C_PAT_HEAD, C_PAT_SEL, C_TR_PANEL,
        C_NCOL };
 static const ULONG RI_RSECT_RGB[C_NCOL] = {
     0xD6D6CEu, 0x8C8C84u, 0x141414u, 0xF4F4F0u, 0xB4B4AEu, 0xF0F0EAu, 0x5A5A56u,
@@ -65,7 +65,7 @@ static const ULONG RI_RSECT_RGB[C_NCOL] = {
     0xC82020u, 0xE07418u, 0xE6D21Eu, 0xE4E4DCu, 0x2A2620u,
     0xDCDCD4u, 0x2E2E2Cu, 0xE8761Eu, 0x4A4A48u, 0xE8901Eu, 0x30D040u, 0xC4C4BCu,
     0x5E6A72u, 0x8E8A3Au, 0xF2EAB8u, 0x1A1E22u, 0x38E040u, 0x1E4A22u, 0x9AA0A6u, 0xE8ECEEu,
-    0x6E7276u, 0x2E3A7Au, 0x4A1210u
+    0x6E7276u, 0x2E3A7Au, 0x4A1210u, 0x8C2444u, 0xF08888u, 0x7A7E82u
 };
 static LONG s_pens[C_NCOL];
 
@@ -379,14 +379,14 @@ static void bg_fx(struct RastPort *rp, const struct RIGeoSection *g, int ox, int
 }
 
 /* two red LED digits (unlit "8" behind, as on the ReBirth displays) */
-static void led_digits(struct RastPort *rp, int x0, int y0, int x1, int y1, int v) {
-    char b[3];
-    int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+static void led_digits(struct RastPort *rp, int x0, int y0, int x1, int y1, int v, int ndig) {
+    char b[4];
+    int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, k, p = 1;
     fill_rect(rp, x0, y0, x1, y1, C_SEG_BG);
-    text_c(rp, cx, cy, "88", C_SEG_DIM);
-    b[0] = (char)(v >= 10 ? '0' + v / 10 % 10 : ' ');
-    b[1] = (char)('0' + v % 10);
-    b[2] = 0;
+    text_c(rp, cx, cy, ndig == 3 ? "888" : "88", C_SEG_DIM);
+    for (k = ndig - 1; k >= 0; k--, p *= 10)       /* leading digits blank */
+        b[k] = (char)(k == ndig - 1 || v >= p ? '0' + v / p % 10 : ' ');
+    b[ndig] = 0;
     text_c(rp, cx, cy, b, C_SEG);
 }
 
@@ -407,8 +407,71 @@ static void gr_row(struct RastPort *rp, int x0, int y0, int x1, int y1, int v) {
     }
 }
 
+/* ------------------------------------------- pattern sections + transport */
+/* Pattern section (p. 147): maroon title bar with the section lamp, light
+ * numbered buttons (selected = lit pink), Bank A-D, Shuffle button, Steps
+ * LED display. Transport (p. 144): grey bar, LED displays with arrows, a
+ * framed row of transport keys, small levers with green LEDs. */
+static void bg_pat(struct RastPort *rp, const struct RIGeoSection *g, int ox, int oy, int z) {
+#define PX(q) ri_geo_px((q), z)
+    fill_rect(rp, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_FX_PANEL);
+    fill_rect(rp, ox + PX(20), oy + PX(17), ox + PX(262), oy + PX(72), C_PAT_HEAD);
+    text_c(rp, ox + PX(158), oy + PX(45), "PATTERN", C_MIX_TEXT);
+    fill_rect(rp, ox + PX(18), oy + PX(92), ox + PX(262), oy + PX(212), C_MIX_SLOT);
+    fill_rect(rp, ox + PX(18), oy + PX(258), ox + PX(262), oy + PX(318), C_MIX_SLOT);
+#undef PX
+}
+
+/* text anchored at its right (align < 0) or left (align > 0) edge: keeps
+ * legends clear of a control whatever the font width (compact zoom) */
+static void text_at(struct RastPort *rp, int x, int cy, const char *t, ULONG col, int align) {
+    int w = TextLength(rp, (STRPTR)t, (ULONG)strlen(t));
+    text_c(rp, align < 0 ? x - w / 2 : x + w / 2, cy, t, col);
+}
+
+static void bg_tr(struct RastPort *rp, const struct RIGeoSection *g, int ox, int oy, int z) {
+#define PX(q) ri_geo_px((q), z)
+    fill_rect(rp, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_TR_PANEL);
+    text_c(rp, ox + PX(25), oy + PX(150), "0", C_MIX_TEXT);
+    text_c(rp, ox + PX(132), oy + PX(150), "10", C_MIX_TEXT);
+    text_c(rp, ox + PX(242), oy + PX(40), "SYNC", C_MIX_TEXT);
+    text_c(rp, ox + PX(372), oy + PX(40), "MIDI", C_MIX_TEXT);
+    text_at(rp, ox + PX(642), oy + PX(45), "PATTERN", C_MIX_TEXT, -1);
+    text_at(rp, ox + PX(740), oy + PX(45), "SONG MODE", C_MIX_TEXT, 1);
+    fill_rect(rp, ox + PX(384), oy + PX(94), ox + PX(1028), oy + PX(180), C_MIX_SLOT);
+    line(rp, ox + PX(1330), oy + PX(38), ox + PX(1400), oy + PX(38), C_MIX_TEXT);
+    text_c(rp, ox + PX(1444), oy + PX(38), "LOOP", C_MIX_TEXT);
+    line(rp, ox + PX(1488), oy + PX(38), ox + PX(1560), oy + PX(38), C_MIX_TEXT);
+#undef PX
+}
+
+/* transport key glyphs: 4 play, 5 stop, 6 rewind, 7 fast forward, 8 record */
+static void tr_key(struct RastPort *rp, int x0, int y0, int x1, int y1, uint32_t idx, int lit, int z) {
+    int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, h = ri_geo_px(14, z), k, j;
+    ULONG col = lit ? (idx == 8 ? C_LED_ON : C_MIX_GREEN) : C_BLACK;
+    bevel(rp, x0, y0, x1, y1, C_BTN);
+    if (idx == 5) {
+        fill_rect(rp, cx - h / 2, cy - h / 2, cx + h / 2, cy + h / 2, C_BLACK);
+    } else if (idx == 8) {
+        fill_circle(rp, cx, cy, h * 2 / 3, lit ? C_LED_ON : C_LED_OFF);
+    } else {
+        int n = idx == 4 ? 1 : 2, left = idx == 6;
+        for (j = 0; j < n; j++) {
+            int bx = cx + (n == 2 ? (j ? h / 2 : -h / 2) : 0) - h / 2;
+            for (k = 0; k <= h; k++) {
+                int w = (k <= h / 2 ? k : h - k);
+                if (left)
+                    line(rp, bx + h / 2 - w, cy - h / 2 + k, bx + h / 2, cy - h / 2 + k, col);
+                else
+                    line(rp, bx, cy - h / 2 + k, bx + w, cy - h / 2 + k, col);
+            }
+        }
+    }
+}
+
 static const char *legend_fx(const char *leg) {
-    return !strcmp(leg, "Decay") ? "DEC" : !strcmp(leg, "Threshold") ? "THRES" : leg;
+    return !strcmp(leg, "Decay") ? "DEC" : !strcmp(leg, "Threshold") ? "THRES" : !strcmp(leg, "Loop Start") ? "START"
+         : !strcmp(leg, "Loop Length") ? "LENGTH" : leg;
 }
 
 /* ------------------------------------------------------------ generic */
@@ -418,7 +481,8 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
     const struct RIGeoSection *g = ri_geo_section(sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec);
     int ox = _mleft(obj), oy = _mtop(obj), z = (int)dd->zoom, is808 = sec == RI_SEC_808;
     int is909 = sec == RI_SEC_909, ismix = ri_smix_strip(sec) >= 0, isfx = sec >= RI_SEC_PCF && sec <= RI_SEC_COMP;
-    ULONG txt = is808 ? C_CREAM : ismix || isfx ? C_MIX_TEXT : C_TEXT;
+    int ispat = sec >= RI_SEC_PAT_SYNTH1 && sec <= RI_SEC_PAT_909, istr = sec == RI_SEC_TRANSPORT;
+    ULONG txt = is808 ? C_CREAM : ismix || isfx || ispat || istr ? C_MIX_TEXT : C_TEXT;
     uint32_t i;
     char buf[4];
 #define PX(q) ri_geo_px((q), z)
@@ -432,6 +496,10 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
         bg_mix(rp, g, ox, oy, z, sec == RI_SEC_MASTER);
     else if (isfx)
         bg_fx(rp, g, ox, oy, z, sec);
+    else if (ispat)
+        bg_pat(rp, g, ox, oy, z);
+    else if (istr)
+        bg_tr(rp, g, ox, oy, z);
     else
         bg_303(rp, g, ox, oy, z);
     for (i = 0; i < g->nitems; i++) {
@@ -451,17 +519,34 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                     208.0f + 28.2f * (float)v);
             } else {
                 ULONG face = d->bind == RI_BIND_NONE ? C_DISABLED
-                    : is909 ? C_909_KNOB : ismix || isfx ? C_MIX_KNOB
+                    : is909 ? C_909_KNOB : ismix || isfx || istr ? C_MIX_KNOB
                     : !is808 ? C_KNOB : !strcmp(d->legend, "Level") ? C_KNOB_RED : C_KNOB_WHITE;
                 draw_knob(rp, cx, cy, PX(it->w), PX(it->h), face, is909 ? C_909_ORANGE : C_BLACK, !is808,
                     (float)ri_knob_pointer_mdeg((int)to_n(d, v)) / 1000.0f);
             }
             break;
         case RI_GEO_RECT:
-            if (isfx && d->kind == RI_CK_METER && idx == RI_SFX_COMP_GR) {
+            if (ispat && idx == RI_SPAT_LENGTH) {
+                led_digits(rp, cx - hw, cy - hh, cx + hw, cy + hh, v, 2);
+            } else if (ispat && idx == RI_SPAT_SHUFFLE) {
+                bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, v ? C_PAT_SEL : C_WHITEKEY);
+            } else if (ispat) {                                            /* section lamp */
+                bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
+                fill_rect(rp, cx - hw + 3, cy - hh + 3, cx + hw - 3, cy + hh - 3,
+                    ri_sui_led(&dd->ui, idx, 0) ? C_MIX_GREEN : C_MIX_GREEN_OFF);
+            } else if (istr && d->kind == RI_CK_DISPLAY) {
+                led_digits(rp, cx - hw, cy - hh, cx + hw, cy + hh, v, 3);
+            } else if (istr && d->kind == RI_CK_BUTTON) {
+                tr_key(rp, cx - hw, cy - hh, cx + hw, cy + hh, idx, ri_sui_led(&dd->ui, idx, 0), z);
+            } else if (istr && d->kind == RI_CK_LED) {
+                fill_circle(rp, cx, cy, hw + 1, v == 2 ? C_MIX_GREEN : v ? C_LED_ON : C_LED_OFF);
+            } else if (istr) {                                             /* Pattern/Song, Loop levers */
+                fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
+                bevel(rp, cx - hw + 2, v ? cy - hh + 2 : cy + 1, cx + hw - 2, v ? cy - 1 : cy + hh - 2, C_BTN);
+            } else if (isfx && d->kind == RI_CK_METER && idx == RI_SFX_COMP_GR) {
                 gr_row(rp, cx - hw, cy - hh, cx + hw, cy + hh, v);
             } else if (isfx && d->kind == RI_CK_SELECTOR) {
-                led_digits(rp, cx - hw, cy - hh, cx + hw, cy + hh, v);
+                led_digits(rp, cx - hw, cy - hh, cx + hw, cy + hh, v, 2);
             } else if (isfx && d->kind == RI_CK_SWITCH && idx != RI_SFX_ONOFF) {  /* vertical lever */
                 fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
                 bevel(rp, cx - hw + 2, v ? cy - hh + 2 : cy + 1, cx + hw - 2, v ? cy - 1 : cy + hh - 2, C_BTN);
@@ -518,6 +603,14 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
             break;
         case RI_GEO_OPTION: {
             BOOL lit = v == it->opt;
+            if (ispat) {                                  /* numbered / lettered key */
+                char t[2];
+                t[0] = (char)(idx == RI_SPAT_BANK ? 'A' + it->opt : '1' + it->opt);
+                t[1] = 0;
+                bevel(rp, cx - hw + 1, cy - hh + 1, cx + hw - 1, cy + hh - 1, lit ? C_PAT_SEL : C_WHITEKEY);
+                text_c(rp, cx, cy, t, C_BLACK);
+                break;
+            }
             if (is909) {                                  /* outlined legend box, LED left */
                 const char *t = it->opt < 12 ? RI_909_OPT[it->opt] : "?";
                 if (TextLength(rp, (STRPTR)t, (ULONG)strlen(t)) + PX(40) > 2 * hw)
@@ -541,7 +634,8 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
             for (j = 0; j < i; j++)
                 if (g->items[j].reg_id == it->reg_id && g->items[j].shape == RI_GEO_LED)
                     which++;
-            fill_circle(rp, cx, cy, PX(it->w) / 2 + 1, ri_sui_led(&dd->ui, idx, which) ? C_LED_ON : C_LED_OFF);
+            fill_circle(rp, cx, cy, PX(it->w) / 2 + 1, ri_sui_led(&dd->ui, idx, which)
+                ? (istr ? C_MIX_GREEN : C_LED_ON) : (istr ? C_MIX_GREEN_OFF : C_LED_OFF));
             break;
         }
         case RI_GEO_STEPPER:
@@ -556,8 +650,10 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                 s = idx == 9 ? "LC" : idx == 12 ? "MC" : idx == 15 ? "HC" : idx == 17 ? "CL" : "MA";
             else if (is909)
                 s = legend_909(s);
-            else if (isfx)
+            else if (isfx || istr)
                 s = legend_fx(s);
+            else if (ispat)
+                s = idx == RI_SPAT_LENGTH ? "STEPS" : s;
             text_c(rp, cx, cy, s, col);
             break;
         }

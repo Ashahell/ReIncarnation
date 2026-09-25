@@ -19,8 +19,8 @@
 #define RI_GEO_DIVIDER 4u /* decoration: vertical rule; cx = x, cy = top, h = length */
 #define RI_GEO_OPTION 5u  /* hit rect that sets the owning SELECTOR to value `opt`
                            * (808/909 instrument legends and selector ring labels) */
-#define RI_GEO_STEPPER 6u /* hit rect: arrow button of the owning SELECTOR's value
-                           * display; opt 1 = up, 0 = down (p. 18) */
+#define RI_GEO_STEPPER 6u /* hit rect: arrow button of the owning SELECTOR's or
+                           * DISPLAY's value display; opt 1 = up, 0 = down (p. 18) */
 /* ri_geo_hit_opt() *opt values for stepper hits */
 #define RI_GEO_HIT_DOWN (-2)
 #define RI_GEO_HIT_UP (-3)
@@ -46,8 +46,11 @@ struct RIGeoSection {
 #define RI_GEO_BASE_SCALE_DEN 1
 
 const struct RIGeoSection *ri_geo_section(uint32_t section); /* NULL if not laid out yet */
-/* Q units -> window pixels at a zoom level (0 = 1x, 1 = 1.5x, 2 = 2x),
- * rounded half away from zero; unknown zoom -> 0. */
+/* Compact zoom (0.75x) for 800-px-wide screens: the Transport (p. 144,
+ * 1684 Q) is 842 px at 1x. */
+#define RI_GEO_ZOOM_COMPACT 3
+/* Q units -> window pixels at a zoom level (0 = 1x, 1 = 1.5x, 2 = 2x,
+ * 3 = compact 0.75x), rounded half away from zero; unknown zoom -> 0. */
 int ri_geo_px(int q, int zoom);
 /* Hit test: the control (reg_id) whose value or option item contains (x,y)
  * in window pixels at zoom; decorations never hit. Returns 0xFFFF when none.

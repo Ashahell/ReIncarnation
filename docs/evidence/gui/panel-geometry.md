@@ -1,6 +1,6 @@
 # Panel geometry (E1 layout, measured) — §12.10 G2
 
-**Status:** 303, 808, 909, section mixers, Master and the four FX units measured 2026-09-25. Other sections pending their slices.
+**Status:** every panel section measured 2026-09-25 (303, 808, 909, mixers, Master, FX units, Transport, Pattern sections). Other sections pending their slices.
 **Source:** ReBirth RB-338 2.0.1 Owner's Manual, synth-section figure on p. 153
 (embedded image 366 × 115 px, extracted with `pdfimages`, viewed at 4× with a
 10-px grid). Layout is measured, never pixel-copied (spec §1): artwork stays
@@ -108,3 +108,32 @@ Common header on all four: an on/off (bypass) lamp at (50, 45) 30 × 30, a navy 
 | | Ratio / Thres knobs | 88 / 248, 265 | Ø 48, ticks 80 | 0 10 marks |
 
 Value displays use the new `RI_GEO_STEPPER` item (the owning SELECTOR's up/down arrows). One click steps by one and stops at the ends, and holding repeats after about 0.4 s (p. 18).
+
+## Pattern section (Q units, p. 147 figure 71 × 116 px = 284 × 464 Q; same for all four sections)
+
+| Element | Centre (x, y) | Size | Note |
+|---------|---------------|------|------|
+| Section on/off lamp | 42, 45 | 30 × 30 | on a maroon "PATTERN" title bar; off = "the same as an empty Pattern" |
+| Pattern buttons 1–4 / 5–8 | x 50, 110, 170, 230 @ y 122 / 182 | 55 × 55 | selected = lit |
+| Bank buttons A–D | same x @ y 288 | 55 × 55 | "BANK" legend (60, 240); a Bank click only arms the bank (p. 147) |
+| Shuffle button | 50, 408 | 55 × 55 | legend (70, 360) |
+| Steps display | 180, 411 | 70 × 58 | 1..16, arrows (244, 395 / 430) 32 × 28; per-pattern length |
+
+## Transport (Q units, p. 144 figure 421 × 52 px = 1684 × 208 Q)
+
+| Element | Centre (x, y) | Size | Note |
+|---------|---------------|------|------|
+| Shuffle knob | 80, 95 | Ø 50, ticks 90 | 0 / 10 marks; not automated (p. 72) |
+| Sync / MIDI LEDs | 188 / 318, 40 | 12 | Sync: red downbeat, green other beats (p. 145) |
+| Tempo display | 232, 142 | 115 × 65 | 20..500, arrows at x 312 |
+| Pattern / Song lever | 690, 45 | 24 × 40 | Pattern LED 655, Song LED 725 |
+| Play Stop Rewind FF Record | x 450, 578, 706, 834, 962 @ y 137 | 120 × 76 | one framed row |
+| Bar display | 1139, 143 | 110 × 70 | arrows at x 1222 |
+| Loop lever + LED | 1274 / 1300, 45 | 24 × 40 | "LOOP" title with rules |
+| Loop Start / Length displays | 1369 / 1544, 143 | 110 × 70 | arrows at x 1452 / 1629 |
+
+At 1× the Transport is 842 px wide, which doesn't fit an 800-px screen. For those screens there is a compact zoom (`RI_GEO_ZOOM_COMPACT` = 0.75×, 632 px). Transport legends next to the mode lever are anchored to the lever's sides so they stay clear at any font width.
+
+**Transport laws are the engine's** (`engine/seq/transport.h`, opencode §12.9a). The panel only routes clicks. Two points differ from the manual, and both are recorded here for the §12.9 owner rather than changed from the GUI side:
+1. With the song stopped, the engine's first Stop click only arms the stop sequence. The manual (p. 145) says it moves the position to the Loop Start.
+2. The manual's exception is not modelled. It says that when the position is already before the Left Locator, Stop goes to the song start.

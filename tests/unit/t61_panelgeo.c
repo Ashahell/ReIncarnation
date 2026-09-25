@@ -60,7 +60,8 @@ static void check_section(uint32_t sec) {
         if (!d)
             continue;
         if (it->shape == RI_GEO_STEPPER)
-            RI_ASSERT(d->kind == RI_CK_SELECTOR && it->opt <= 1, "stepper on non-selector %s", d->legend);
+            RI_ASSERT((d->kind == RI_CK_SELECTOR || d->kind == RI_CK_DISPLAY) && it->opt <= 1,
+                "stepper on %s (selector/display only)", d->legend);
         if (it->shape == RI_GEO_OPTION) {
             RI_ASSERT(d->kind == RI_CK_SELECTOR, "option on non-selector %s", d->legend);
             RI_ASSERT(it->opt >= d->min_v && it->opt <= d->max_v, "option %u out of range", it->opt);
@@ -117,7 +118,7 @@ static void check_section(uint32_t sec) {
         }
     }
     /* hit round-trip at every zoom */
-    for (z = 0; z < 3; z++)
+    for (z = 0; z < 4; z++)
         for (i = 0; i < s->nitems; i++) {
             const struct RIGeoItem *it = &s->items[i];
             int opt = -2;
@@ -141,6 +142,7 @@ int main(void) {
     RI_ASSERT(ri_geo_px(1464, 0) == 732 && ri_geo_px(460, 0) == 230, "1x = 732x230 px");
     RI_ASSERT(ri_geo_px(1464, 2) == 1464 && ri_geo_px(1464, 1) == 1098, "2x / 1.5x");
     RI_ASSERT(ri_geo_px(100, 7) == 0, "unknown zoom -> 0");
+    RI_ASSERT(ri_geo_px(1684, RI_GEO_ZOOM_COMPACT) == 632 && ri_geo_px(1684, 0) == 842, "compact transport fits 800 px");
 
     /* ---- 303 (p. 153) ---- */
     check_section(RI_SEC_SYNTH1);
@@ -288,5 +290,35 @@ int main(void) {
     RI_ASSERT(s && s->w == 336 && s->h == 264, "Dist = p. 163");
     s = ri_geo_section(RI_SEC_COMP);
     RI_ASSERT(s && s->w == 332 && s->h == 376, "Comp = p. 164");
+    /* ---- pattern sections (p. 147) + transport (p. 144) ---- */
+    for (i = RI_SEC_PAT_SYNTH1; i <= RI_SEC_PAT_909; i++) {
+        uint32_t k, nb = 0, np = 0;
+        check_section(i);
+        s = ri_geo_section(i);
+        RI_ASSERT(s && s->w == 284 && s->h == 464 && has_steppers(s, ID(i, 3)), "pattern section = p. 147, steps arrows");
+        if (!s)
+            continue;
+        for (k = 0; k < s->nitems; k++) {
+            np += s->items[k].reg_id == ID(i, 2) && s->items[k].shape == RI_GEO_OPTION;
+            nb += s->items[k].reg_id == ID(i, 1) && s->items[k].shape == RI_GEO_OPTION;
+            if (s->items[k].reg_id == ID(i, 1) && s->items[k].shape == RI_GEO_OPTION)
+                RI_ASSERT(s->items[k].cy > 200, "banks below the pattern buttons");
+        }
+        RI_ASSERT(np == 8 && nb == 4, "8 pattern + 4 bank buttons");
+    }
+    check_section(RI_SEC_TRANSPORT);
+    s = ri_geo_section(RI_SEC_TRANSPORT);
+    if (s) {
+        static const int order[] = { 2, 1, 4, 5, 6, 7, 8, 3, 10, 11 }; /* Shuffle Tempo Play..Record Bar Start Length */
+        uint32_t k;
+        RI_ASSERT(s->w == 1684 && s->h == 208, "transport = p. 144 figure");
+        for (k = 1; k < sizeof(order) / sizeof(order[0]); k++) {
+            const struct RIGeoItem *a = value_item(s, ID(RI_SEC_TRANSPORT, order[k - 1]));
+            const struct RIGeoItem *b = value_item(s, ID(RI_SEC_TRANSPORT, order[k]));
+            RI_ASSERT(a && b && a->cx < b->cx, "transport left-to-right order at %u", k);
+        }
+        RI_ASSERT(has_steppers(s, ID(RI_SEC_TRANSPORT, 1)) && has_steppers(s, ID(RI_SEC_TRANSPORT, 3)) &&
+            has_steppers(s, ID(RI_SEC_TRANSPORT, 10)) && has_steppers(s, ID(RI_SEC_TRANSPORT, 11)), "display arrows");
+    }
     RI_RESULT("panelgeo");
 }

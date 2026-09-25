@@ -345,6 +345,74 @@ static const struct RIGeoItem RI_GEO_COMP[] = {
     { MX(RI_SEC_COMP, 3), RI_GEO_LEGEND, 0, 248, 342, 0, 0 },
 };
 
+/* Pattern section: Owner's Manual p. 147 figure (71 x 116 px = 284 x 464 Q),
+ * identical for all four sections. Header: on/off lamp + "PATTERN";
+ * Pattern buttons 1-4 / 5-8, "BANK", Bank buttons A-D, Shuffle button and
+ * the Steps display with arrows. */
+#define RI_GEO_PATSEC(sec) \
+    { MX(sec, 0), RI_GEO_RECT, 0, 42, 45, 30, 30 }, \
+    { MX(sec, 2), RI_GEO_OPTION, 0, 50, 122, 55, 55 }, \
+    { MX(sec, 2), RI_GEO_OPTION, 1, 110, 122, 55, 55 }, \
+    { MX(sec, 2), RI_GEO_OPTION, 2, 170, 122, 55, 55 }, \
+    { MX(sec, 2), RI_GEO_OPTION, 3, 230, 122, 55, 55 }, \
+    { MX(sec, 2), RI_GEO_OPTION, 4, 50, 182, 55, 55 }, \
+    { MX(sec, 2), RI_GEO_OPTION, 5, 110, 182, 55, 55 }, \
+    { MX(sec, 2), RI_GEO_OPTION, 6, 170, 182, 55, 55 }, \
+    { MX(sec, 2), RI_GEO_OPTION, 7, 230, 182, 55, 55 }, \
+    { MX(sec, 1), RI_GEO_LEGEND, 0, 60, 240, 0, 0 }, \
+    { MX(sec, 1), RI_GEO_OPTION, 0, 50, 288, 55, 55 }, \
+    { MX(sec, 1), RI_GEO_OPTION, 1, 110, 288, 55, 55 }, \
+    { MX(sec, 1), RI_GEO_OPTION, 2, 170, 288, 55, 55 }, \
+    { MX(sec, 1), RI_GEO_OPTION, 3, 230, 288, 55, 55 }, \
+    { MX(sec, 4), RI_GEO_RECT, 0, 50, 408, 55, 55 }, \
+    { MX(sec, 4), RI_GEO_LEGEND, 0, 70, 360, 0, 0 }, \
+    { MX(sec, 3), RI_GEO_RECT, 0, 180, 411, 70, 58 }, \
+    { MX(sec, 3), RI_GEO_STEPPER, 1, 244, 395, 32, 28 }, \
+    { MX(sec, 3), RI_GEO_STEPPER, 0, 244, 430, 32, 28 }, \
+    { MX(sec, 3), RI_GEO_LEGEND, 0, 188, 360, 0, 0 }
+static const struct RIGeoItem RI_GEO_PAT1[] = { RI_GEO_PATSEC(RI_SEC_PAT_SYNTH1) };
+static const struct RIGeoItem RI_GEO_PAT2[] = { RI_GEO_PATSEC(RI_SEC_PAT_SYNTH2) };
+static const struct RIGeoItem RI_GEO_PAT8[] = { RI_GEO_PATSEC(RI_SEC_PAT_808) };
+static const struct RIGeoItem RI_GEO_PAT9[] = { RI_GEO_PATSEC(RI_SEC_PAT_909) };
+
+/* Transport panel: p. 144 figure (421 x 52 px = 1684 x 208 Q). Left to
+ * right: Shuffle knob; Sync + MIDI LEDs over the Tempo display; the
+ * Pattern/Song lever between its two LEDs; Play Stop Rewind FastForward
+ * Record; Bar display; Loop lever + LED; Loop Start and Length displays. */
+#define TR(i) MX(RI_SEC_TRANSPORT, i)
+static const struct RIGeoItem RI_GEO_TRANSPORT[] = {
+    { TR(2), RI_GEO_KNOB, 0, 80, 95, 50, 90 },
+    { TR(2), RI_GEO_LEGEND, 0, 80, 178, 0, 0 },
+    { TR(13), RI_GEO_RECT, 0, 188, 40, 12, 12 },
+    { TR(12), RI_GEO_RECT, 0, 318, 40, 12, 12 },
+    { TR(1), RI_GEO_RECT, 0, 232, 142, 115, 65 },
+    { TR(1), RI_GEO_STEPPER, 1, 312, 127, 32, 28 },
+    { TR(1), RI_GEO_STEPPER, 0, 312, 158, 32, 28 },
+    { TR(1), RI_GEO_LEGEND, 0, 230, 88, 0, 0 },
+    { TR(0), RI_GEO_LED, 0, 655, 45, 10, 10 },
+    { TR(0), RI_GEO_RECT, 0, 690, 45, 24, 40 },
+    { TR(0), RI_GEO_LED, 0, 725, 45, 10, 10 },
+    { TR(4), RI_GEO_RECT, 0, 450, 137, 120, 76 },
+    { TR(5), RI_GEO_RECT, 0, 578, 137, 120, 76 },
+    { TR(6), RI_GEO_RECT, 0, 706, 137, 120, 76 },
+    { TR(7), RI_GEO_RECT, 0, 834, 137, 120, 76 },
+    { TR(8), RI_GEO_RECT, 0, 962, 137, 120, 76 },
+    { TR(3), RI_GEO_RECT, 0, 1139, 143, 110, 70 },
+    { TR(3), RI_GEO_STEPPER, 1, 1222, 127, 32, 28 },
+    { TR(3), RI_GEO_STEPPER, 0, 1222, 158, 32, 28 },
+    { TR(3), RI_GEO_LEGEND, 0, 1134, 88, 0, 0 },
+    { TR(9), RI_GEO_RECT, 0, 1274, 45, 24, 40 },
+    { TR(9), RI_GEO_LED, 0, 1300, 45, 10, 10 },
+    { TR(10), RI_GEO_RECT, 0, 1369, 143, 110, 70 },
+    { TR(10), RI_GEO_STEPPER, 1, 1452, 127, 32, 28 },
+    { TR(10), RI_GEO_STEPPER, 0, 1452, 158, 32, 28 },
+    { TR(10), RI_GEO_LEGEND, 0, 1364, 88, 0, 0 },
+    { TR(11), RI_GEO_RECT, 0, 1544, 143, 110, 70 },
+    { TR(11), RI_GEO_STEPPER, 1, 1629, 127, 32, 28 },
+    { TR(11), RI_GEO_STEPPER, 0, 1629, 158, 32, 28 },
+    { TR(11), RI_GEO_LEGEND, 0, 1544, 88, 0, 0 },
+};
+
 static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_SYNTH1, 0, 1464, 460, RI_GEO_303,
       (uint32_t)(sizeof(RI_GEO_303) / sizeof(RI_GEO_303[0])) },
@@ -361,6 +429,12 @@ static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_DELAY, 0, 332, 376, RI_GEO_DELAY, (uint32_t)(sizeof(RI_GEO_DELAY) / sizeof(RI_GEO_DELAY[0])) },
     { RI_SEC_DIST, 0, 336, 264, RI_GEO_DIST, (uint32_t)(sizeof(RI_GEO_DIST) / sizeof(RI_GEO_DIST[0])) },
     { RI_SEC_COMP, 0, 332, 376, RI_GEO_COMP, (uint32_t)(sizeof(RI_GEO_COMP) / sizeof(RI_GEO_COMP[0])) },
+    { RI_SEC_TRANSPORT, 0, 1684, 208, RI_GEO_TRANSPORT,
+      (uint32_t)(sizeof(RI_GEO_TRANSPORT) / sizeof(RI_GEO_TRANSPORT[0])) },
+    { RI_SEC_PAT_SYNTH1, 0, 284, 464, RI_GEO_PAT1, (uint32_t)(sizeof(RI_GEO_PAT1) / sizeof(RI_GEO_PAT1[0])) },
+    { RI_SEC_PAT_SYNTH2, 0, 284, 464, RI_GEO_PAT2, (uint32_t)(sizeof(RI_GEO_PAT2) / sizeof(RI_GEO_PAT2[0])) },
+    { RI_SEC_PAT_808, 0, 284, 464, RI_GEO_PAT8, (uint32_t)(sizeof(RI_GEO_PAT8) / sizeof(RI_GEO_PAT8[0])) },
+    { RI_SEC_PAT_909, 0, 284, 464, RI_GEO_PAT9, (uint32_t)(sizeof(RI_GEO_PAT9) / sizeof(RI_GEO_PAT9[0])) },
 };
 
 const struct RIGeoSection *ri_geo_section(uint32_t section) {
@@ -372,13 +446,14 @@ const struct RIGeoSection *ri_geo_section(uint32_t section) {
 }
 
 /* zoom factor as a fraction: 1x = 2/2, 1.5x = 3/2, 2x = 4/2 */
+/* zoom factor in quarters: 1x = 4, 1.5x = 6, 2x = 8, compact 0.75x = 3 */
 static int zoom_num(int zoom) {
-    return zoom == 0 ? 2 : zoom == 1 ? 3 : zoom == 2 ? 4 : 0;
+    return zoom == 0 ? 4 : zoom == 1 ? 6 : zoom == 2 ? 8 : zoom == RI_GEO_ZOOM_COMPACT ? 3 : 0;
 }
 
 int ri_geo_px(int q, int zoom) {
     long num = (long)q * RI_GEO_BASE_SCALE_NUM * zoom_num(zoom);
-    long den = 4L * RI_GEO_BASE_SCALE_DEN * 2L;
+    long den = 4L * RI_GEO_BASE_SCALE_DEN * 4L;
     if (!zoom_num(zoom))
         return 0;
     return (int)(num >= 0 ? (num + den / 2) / den : -((-num + den / 2) / den));

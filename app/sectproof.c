@@ -1,7 +1,7 @@
 /*
  * app/sectproof.c — section canvas on-device proof (§12.10 G4).
  *
- * AROS-ONLY. usage: RISECT [303|808|909|mix|fx] [demo]
+ * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr] [demo]
  * One window with the RSection canvas for the chosen section at 1x plus a
  * readout row, so state can be verified by number as well as by ui_capture.
  * "demo" drives the same behaviour calls a click makes (gui/sectui.h):
@@ -17,7 +17,12 @@
  *   fx  — PCF, Delay, Dist, Comp side by side: all on, PCF pattern 12 by
  *         twelve arrow-up clicks, BP, sliders moved; Delay steps 3 -> 6 by
  *         arrows, triplets, Pan/F.Back moved; Dist Amount/Shape; Comp
- *         Ratio/Threshold, input meters and level reduction fed.
+ *         Ratio/Threshold, input meters and level reduction fed;
+ *   tr  — Transport (compact 0.75x) over the four Pattern sections: Song
+ *         mode, tempo 120 -> 128 by arrows, Record (plays), FF x2 + Bar
+ *         arrow -> bar 22, loop 17 + 8 on, Shuffle 40, Sync/MIDI lit;
+ *         Synth 1 C3, Synth 2 A1 length 12, 808 bank B armed only (no
+ *         pattern lit) + shuffle, 909 section off.
  * Exit: close gadget or Ctrl-C. Return codes: 0 ok, 5+ build failures.
  * Must NEVER enter the host build (audit gates app/).
  */
@@ -35,6 +40,7 @@
 #include <proto/muimaster.h>
 #include "gui/ctlreg.h"
 #include "gui/sectui.h"
+#include "gui/panelgeo.h"
 #include "gui/widgets/rsection.h"
 
 static char s_readout[160];
@@ -62,7 +68,31 @@ static void put_str(char **p, const char *s) {
 
 static void format_readout(const struct RISectUI *ui, const struct RSectionDiag *dg, long changes) {
     char *p = s_readout;
-    if (ui->section >= RI_SEC_PCF && ui->section <= RI_SEC_COMP) {
+    if (ui->section == RI_SEC_TRANSPORT) {
+        unsigned int k;
+        put_str(&p, "SONG ");
+        put_num(&p, ri_sui_value(ui, RI_STR_MODE));
+        put_str(&p, " BPM ");
+        put_num(&p, ri_sui_value(ui, RI_STR_TEMPO));
+        put_str(&p, " ST ");
+        put_num(&p, ui->u.tr.tr.state);
+        put_str(&p, " BAR ");
+        put_num(&p, ri_sui_value(ui, RI_STR_BAR));
+        put_str(&p, " LOOP ");
+        put_num(&p, ri_sui_value(ui, RI_STR_LOOP_START));
+        *p++ = '+';
+        put_num(&p, ri_sui_value(ui, RI_STR_LOOP_LEN));
+        put_str(&p, " PAT");
+        for (k = 0; k < 4; k++) {
+            const struct RISectUI *f = 0;
+            GetAttr(MUIA_RSection_State, s_mix[k + 1], (IPTR *)&f);
+            *p++ = ' ';
+            *p++ = f->u.pat.off ? '-' : (char)('A' + ri_spat_selected(&f->u.pat) / 8);
+            *p++ = (char)('1' + ri_spat_selected(&f->u.pat) % 8);
+            *p++ = '/';
+            put_num(&p, ri_sui_value(f, RI_SPAT_LENGTH));
+        }
+    } else if (ui->section >= RI_SEC_PCF && ui->section <= RI_SEC_COMP) {
         unsigned int k;
         for (k = 0; k < 4; k++) {
             const struct RISectUI *f = 0;
@@ -141,6 +171,35 @@ static void format_readout(const struct RISectUI *ui, const struct RSectionDiag 
 
 static void demo(Object *canvas, struct RISectUI *ui) {
     unsigned int i;
+    if (ui->section == RI_SEC_TRANSPORT) {
+        struct RISectUI *p[4];
+        ri_sui_press(ui, RI_STR_MODE);
+        for (i = 0; i < 8; i++)
+            ri_sui_step(ui, RI_STR_TEMPO, 1);
+        ri_sui_press(ui, RI_STR_RECORD);
+        ri_sui_press(ui, RI_STR_FF);
+        ri_sui_press(ui, RI_STR_FF);
+        ri_sui_step(ui, RI_STR_BAR, 1);
+        ri_sui_press(ui, RI_STR_LOOP);
+        ri_sui_set(ui, RI_STR_LOOP_START, 17);
+        ri_sui_set(ui, RI_STR_LOOP_LEN, 8);
+        ri_sui_set(ui, RI_STR_SHUFFLE, 40);
+        ri_str_indicator_set(&ui->u.tr, RI_STR_SYNC, 1);
+        ri_str_indicator_set(&ui->u.tr, RI_STR_MIDI, 1);
+        for (i = 0; i < 4; i++)
+            GetAttr(MUIA_RSection_State, s_mix[i + 1], (IPTR *)&p[i]);
+        ri_sui_set(p[0], RI_SPAT_BANK, 2);
+        ri_sui_set(p[0], RI_SPAT_PATTERN, 2);
+        for (i = 0; i < 4; i++)
+            ri_sui_step(p[1], RI_SPAT_LENGTH, -1);
+        ri_sui_set(p[2], RI_SPAT_BANK, 1);
+        ri_sui_press(p[2], RI_SPAT_SHUFFLE);
+        ri_sui_press(p[3], RI_SPAT_OFF);
+        for (i = 0; i < 5; i++)
+            ri_rsection_refresh(s_mix[i]);
+        (void)canvas;
+        return;
+    }
     if (ui->section >= RI_SEC_PCF && ui->section <= RI_SEC_COMP) {
         struct RISectUI *f[4];
         for (i = 0; i < 4; i++) {
@@ -245,7 +304,7 @@ int main(int argc, char **argv) {
     LONG ret;
     struct RISectUI *ui = 0;
     const struct RSectionDiag *dg = 0;
-    int i, do_demo = 0, mix = 0, fx = 0;
+    int i, do_demo = 0, mix = 0, fx = 0, trp = 0;
     Object *row = 0;
 
     for (i = 1; i < argc; i++) {
@@ -257,10 +316,30 @@ int main(int argc, char **argv) {
             mix = 1;
         else if (argv[i][0] == 'f')
             fx = 1;
+        else if (argv[i][0] == 't')
+            trp = 1;
         else if (argv[i][0] == 'd')
             do_demo = 1;
     }
-    if (fx) {                          /* the four effect units */
+    if (trp) {                         /* transport (compact) over the four pattern sections */
+        Object *pats;
+        s_mix[0] = (Object *)ri_rsection_create(RI_SEC_TRANSPORT, RI_GEO_ZOOM_COMPACT);
+        for (i = 0; i < 4; i++)
+            s_mix[i + 1] = (Object *)ri_rsection_create(RI_SEC_PAT_SYNTH1 + (ULONG)i, 0);
+        for (i = 0; i < 5; i++)
+            if (!s_mix[i])
+                return 5;
+        GetAttr(MUIA_RSection_State, s_mix[0], (IPTR *)&ui);
+        canvas = s_mix[0];
+        pats = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_mix[1], Child, (IPTR)s_mix[2], Child, (IPTR)s_mix[3], Child, (IPTR)s_mix[4], TAG_DONE);
+        row = pats ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_mix[0], Child, (IPTR)pats, TAG_DONE) : 0;
+        if (!row)
+            return 5;
+        section = RI_SEC_TRANSPORT;
+        mix = 3;
+    } else if (fx) {                   /* the four effect units */
         for (i = 0; i < 4; i++) {
             s_mix[i] = (Object *)ri_rsection_create(RI_SEC_PCF + (ULONG)i, 0);
             if (!s_mix[i])
@@ -307,7 +386,7 @@ int main(int argc, char **argv) {
     if (!readout)
         return 6;
     win = (Object *)MUI_NewObject(MUIC_Window,
-        MUIA_Window_Title, mix == 2 ? "RI-FX" : mix ? "RI-MIX" : section == RI_SEC_808 ? "RI-808" : section == RI_SEC_909 ? "RI-909" : "RI-303",
+        MUIA_Window_Title, mix == 3 ? "RI-TRANSPORT" : mix == 2 ? "RI-FX" : mix ? "RI-MIX" : section == RI_SEC_808 ? "RI-808" : section == RI_SEC_909 ? "RI-909" : "RI-303",
         MUIA_Window_LeftEdge, 0,
         MUIA_Window_TopEdge, 0,
         MUIA_Window_CloseGadget, TRUE,

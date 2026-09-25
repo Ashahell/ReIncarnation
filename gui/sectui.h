@@ -11,6 +11,8 @@
 #include "gui/sect909.h"
 #include "gui/sectmix.h"
 #include "gui/sectfx.h"
+#include "gui/sectpat.h"
+#include "gui/secttr.h"
 
 struct RISectUI {
     uint8_t section;  /* RI_SEC_* */
@@ -20,6 +22,8 @@ struct RISectUI {
         struct RISect808 s808;
         struct RISect909 s909;
         struct RISectFx fx;       /* RI_SEC_PCF..RI_SEC_COMP */
+        struct RISectPat pat;     /* RI_SEC_PAT_* */
+        struct RISectTr tr;       /* RI_SEC_TRANSPORT */
         struct {                  /* RI_SEC_MIX_* / RI_SEC_MASTER */
             struct RIMixBoard *board; /* shared board (own unless bound) */
             struct RIMixBoard own;

@@ -42,6 +42,14 @@ int main(void) {
     RI_ASSERT(ri_sui_step(&b, RI_SFX_DLY_STEPS, 1) == 1 && ri_sui_value(&b, RI_SFX_DLY_STEPS) == 4, "fx arrow route");
     RI_ASSERT(ri_sui_press(&b, RI_SFX_ONOFF) == 1 && ri_sui_led(&b, RI_SFX_ONOFF, 0) == 1, "fx on/off route");
     RI_ASSERT(ri_sui_step(&a, RI_SMIX_PAN, 1) == 0, "arrows only on value displays");
-    RI_ASSERT(ri_sui_init(&b, RI_SEC_TRANSPORT) == 2 && ri_sui_press(&b, 0) == 0, "transport not laid out yet");
+    ri_sui_init(&b, RI_SEC_PAT_808);
+    RI_ASSERT(ri_sui_set(&b, RI_SPAT_BANK, 1) == 1 && ri_sui_set(&b, RI_SPAT_PATTERN, 3) == 1 &&
+        ri_spat_selected(&b.u.pat) == 11 && ri_sui_step(&b, RI_SPAT_LENGTH, -1) == 1 && ri_sui_value(&b, RI_SPAT_LENGTH) == 15,
+        "pattern route");
+    ri_sui_init(&b, RI_SEC_TRANSPORT);
+    RI_ASSERT(ri_sui_press(&b, RI_STR_PLAY) == 1 && ri_sui_led(&b, RI_STR_PLAY, 0) == 1 &&
+        ri_sui_led(&b, RI_STR_MODE, 0) == 1 && ri_sui_led(&b, RI_STR_MODE, 1) == 0, "transport route, LED which");
+    RI_ASSERT(ri_sui_step(&b, RI_STR_TEMPO, 1) == 1 && ri_sui_value(&b, RI_STR_TEMPO) == 121, "tempo arrow route");
+    RI_ASSERT(ri_sui_init(&b, RI_SEC_COUNT) == 2 && ri_sui_press(&b, 0) == 0, "unknown section refused");
     RI_RESULT("sectui");
 }
