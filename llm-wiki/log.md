@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m60 | RI-STEPS exit path: canonical union loop (close + clicks live)
+- Fix: `app/stepproof.c` event loop is now NewInput-first + `Wait(app|timer|break)`
+  (replaces pure manual-`Wait`; diag13 reason superseded — the seeded-bit failure
+  only applied to pure-NewInput sleep, the union serves both).
+- Device proof (QEMU lane): `ui-close RI-STEPS` exits the process cleanly
+  (Status confirms gone); step-toggle click moves PAT 0000→0001 (clicks served).
+- Gates: V11 `-Werror` clean, V1 link clean, full `ri_audit.sh` 0/0.
+- Closes the owner-feedback entry below (close gadget was dead, now served).
+
 ## [2026-09-25] owner-feedback | RI-STEPS close gadget dead (m43 tradeoff confirmed)
 - Owner tried to close the RI-STEPS window via gadget on the QEMU lane: nothing
   happens (manual-`Wait` loop never serves NewInput — documented m43 tradeoff).

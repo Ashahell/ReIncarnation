@@ -59,6 +59,7 @@ int main(void) {
     struct MsgPort *tport = NULL;
     struct timerequest *treq = NULL;
     ULONG tsig = 0, sigs = 0;
+    LONG ret;
     unsigned int i;
     double period_us = 0.0, t0_us = 0.0, maxlag = 0.0;
     unsigned long freq = 0;
@@ -189,14 +190,31 @@ int main(void) {
         SetAttrs(steps[0], MUIA_RStp_Chase, TRUE, TAG_DONE);
         cur = 0;
     }
-    /* Event loop: manual Wait on the timer bit (+Ctrl-C exit).
-     * Decided by elimination (diag13 matrix): NewInput never
-     * surfaces seeded user bits on Zune, and InputBuffered never
-     * returns on Zune (drain-spin). Clicks/close are NOT served
-     * here (documented tradeoff — proven separately on NewInput
-     * builds); exit via Ctrl-C (Break N CTRLC). */
+    /* Event loop: canonical MUI shape (NewInput serves app input; manual
+     * Wait sleeps on the union of app-sigs + timer + break). History:
+     * pure NewInput with a seeded timer bit never surfaces the bit on
+     * Zune (diag13 matrix); pure manual Wait starves clicks/close
+     * (owner-confirmed: close gadget dead, m60). The union serves both:
+     * NewInput reports app returns immediately (proven for clicks/close
+     * on pre-m43 builds); Wait blocks on (app | timer | break). */
     for (;;) {
-        sigs = Wait(tsig | SIGBREAKF_CTRL_C);
+        ret = (LONG)DoMethod(app, MUIM_Application_NewInput, &sigs);
+        if (ret == (LONG)MUIV_Application_ReturnID_Quit)
+            break;
+        if (ret >= RET_STEP_BASE && ret < RET_STEP_BASE + NSTEPS) {
+            unsigned long pattern = 0;
+            for (i = 0; i < NSTEPS; i++) {
+                IPTR vv = 0;
+                GetAttr(MUIA_Numeric_Value, steps[i], &vv);
+                if (vv)
+                    pattern |= (1u << i);
+            }
+            ri_ctl_format_count(s_patbuf, pattern);
+            SetAttrs(pat, MUIA_Text_Contents, (IPTR)s_patbuf,
+                TAG_DONE);
+        }
+        sigs |= tsig | SIGBREAKF_CTRL_C;
+        sigs = Wait(sigs);
         if (sigs & SIGBREAKF_CTRL_C)
             break;
         if ((sigs & tsig) && treq) {
