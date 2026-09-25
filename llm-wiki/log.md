@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m64 | §12.7 engine 808/909 hosting (4 sections live)
+- Disposition: New (bounded design, owner-approved; TDD t57)
+- Raw: llm-wiki/raw/articles/2026-09-25-engine-808-909-hosting.md
+- Updated: engine/engine.{h,c} (sets, routing, sections, bind),
+  tests/unit/t57 (new), scripts/ri_audit.sh (Phase 7b loop),
+  docs/2026-09-24-improvement-todo.md
+- Review's "808: no choke" outdated (t42 pins it); AC retroactive exact.
+- Full `ri_audit.sh` 0/0. Zero golden fallout.
+
 ## [2026-09-25] lint | 0 issues (post-m63 sweep)
 - m63 (pattern-model-rbng-v11) verified present in raw + log + index.
 - No unindexed raws; all index/log links resolve.
