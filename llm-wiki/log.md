@@ -1,5 +1,15 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m62 | §12.8 routing matrix + pan + stereo return (engine home)
+- Disposition: New (bounded design, owner-approved; TDD t51/t52)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8-routing.md
+- Updated: engine/fx/route.{h,c} (new), engine/engine.{h,c} (inserts,
+  pan/send, delay send + stereo return, master linked comp),
+  engine/fx/fx.{h,c} (resync/pcf-raw/set-rate/linked helpers),
+  scripts/ri_build_host.sh (route TU), tests/unit/t51+t52 (new),
+  docs/2026-09-24-improvement-todo.md
+- Neutral bit-identical (zero golden fallout). Full `ri_audit.sh` 0/0.
+
 ## [2026-09-25] m61 | §12.8: dist 2x oversample + comp ratio/GR meter
 - Disposition: New (TDD t50 RED-first)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8-dist-comp.md

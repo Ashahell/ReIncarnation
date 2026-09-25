@@ -65,7 +65,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 - [x] Delay beats-honoring + caller-owned lines + tap slew + live-rate comp + pool retired (m56)
 - [x] Delay Steps/triplet/fb-infinite/sustain-structure (m57)
 - [x] PCF envelope + integer clock + Decay knob + HP drop, patterns open (m58)
-- [ ] Delay pan + stereo return + routing matrix/exclusivity
+- [x] Delay pan + stereo return + routing matrix/exclusivity (m62)
 - [x] Appendix-D patterns (55 E1 rows + wrap + resolution wired) (m59)
 - [x] Dist 2x oversample + comp ratio/GR meter (m61)
 
