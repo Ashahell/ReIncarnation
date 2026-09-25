@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m65 | §12.9a transport state machine (first song slice)
+- Disposition: New (reviewed plan, native execution, TDD t58)
+- Raw: llm-wiki/raw/articles/2026-09-25-transport.md
+- Updated: engine/seq/transport.{h,c} (new), riseq.{h,c} (state),
+  tests/unit/t58 (new), scripts/ri_audit.sh (seq block),
+  docs/2026-09-24-improvement-todo.md
+- Laws: stop-click, last-valid-bar seeks, loop canonicals, ppq norm.
+- Full `ri_audit.sh` 0/0. 3 mutants proven.
+
 ## [2026-09-25] m64 | §12.7 engine 808/909 hosting (4 sections live)
 - Disposition: New (bounded design, owner-approved; TDD t57)
 - Raw: llm-wiki/raw/articles/2026-09-25-engine-808-909-hosting.md

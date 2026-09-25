@@ -72,7 +72,8 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 - [x] Dist 2x oversample + comp ratio/GR meter (m61)
 
 ## §12.9 Song mode + transport + pattern edits (§3.1)
-- [ ] Transport state machine; song track + automation; edit ops as pure functions
+- [x] Transport state machine (states, bar mapping, loop model, record/display) (m65)
+- [ ] Song track + automation; edit ops as pure functions (pattern edits done in m63)
 
 ## §12.10 GUI parity + skins + MIDI (§9, §3.1)
 - [ ] Panel inventory; focus bar; meters; skins via MCC classes; knob modifiers; transport/playhead from audio clock (§2.9 last row); MIDI maps from manual
