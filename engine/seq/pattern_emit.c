@@ -21,8 +21,15 @@ uint32_t ri_pattern303_to_steps(const struct RIPattern *p, int cyclic,
         out[i].note = ri_p303_note(&p->row.r303[i]);
         out[i].flags = 0u;
         if (rest) {
-            /* Pause: slide/accent/octave flags on the row are inert. */
+            /* Pause: the row's own slide/accent/octave flags are inert,
+             * but the shifted tie from row i-1 still applies (a slide
+             * into a Pause holds the gate: NOTE_CONTINUE). */
             out[i].flags = RI_STEP_REST;
+            if (i > 0u) {
+                uint8_t pf = p->row.r303[i - 1u].flags;
+                if ((pf & RI_STEP_SLIDE) && !(pf & RI_STEP_REST))
+                    out[i].flags |= RI_STEP_SLIDE;
+            }
             continue;
         }
         if (rf & RI_STEP_ACCENT)
