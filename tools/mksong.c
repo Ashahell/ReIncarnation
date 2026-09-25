@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     if (argc == 2) {
         uint32_t k;
         for (k = 0; k < 10u; k++) {
-            struct RISong s;
+            static struct RISong s;
             char path[512];
             make_song(k, &s);
             snprintf(path, sizeof path, "%s/s%02u.rbng", argv[1], k + 1u);
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
         return 0;
     }
     if (argc == 4 && strcmp(argv[1], "--resave") == 0) {
-        struct RISong s;
+        static struct RISong s;
         if (rbng_read_song(argv[2], &s, err, sizeof err) != 0) {
             printf("mksong: read %s failed: %s\n", argv[2], err);
             return 2;

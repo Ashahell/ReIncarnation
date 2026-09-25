@@ -8,6 +8,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/seq/sched.h"
 #include "engine/seq/clock.h"
+#include "project/rbng.h"
 
 #define SRU 48000u
 static const struct RISegment SEG0[] = { { 0, 428571428ULL } }; /* 140 BPM */
@@ -436,6 +437,72 @@ int main(void) {
         n1 = ri_sched_emit_pattern(&p, 2, &MAP, 0, 96, 0, 0, 0, e1,
             64);
         RI_ASSERT(n1 == 0u, "dcorrupt events %u", n1);
+    }
+
+    /* ---- Task 8 case 8: v1.0 first-light song converts to a bank whose
+     * emit equals the golden event array (OCTAVE masked: the new path
+     * adds octave metadata the v1.0 walker could not express; pitch and
+     * timing are identical). Steps mirror tests/golden/303/first-light
+     * text song (16 steps, tempo 140, straight, flam default). */
+    {
+        static struct RISong vs;
+        struct RIPatternBank b;
+        struct RIEvent e[256];
+        struct RISchedOpts fo = { 0, 0, RI_FLAM_MS_DEFAULT };
+        struct RISegment seg = { 0, 428571428ULL };
+        struct RITempoMap m2 = { &seg, 1, 96, SRU };
+        static const uint8_t fn[16] = { 45, 45, 48, 45, 52, 50, 0, 48,
+            45, 43, 0, 45, 47, 48, 50, 0 };
+        static const uint8_t ff[16] = { 0, 1, 2, 0, 1, 0, 4, 0,
+            3, 0, 5, 0, 0, 1, 2, 4 };
+        char warn[256];
+        FILE *g;
+        uint32_t k, nn = 0, nexp = 0;
+        struct RIEvent exp[256];
+        rbng_song_init(&vs);
+        vs.nsteps = 16;
+        for (k = 0; k < 16u; k++) {
+            vs.steps[k].note = fn[k];
+            vs.steps[k].flags = ff[k];
+        }
+        warn[0] = '\0';
+        RI_ASSERT(rbng_patt_to_bank(&vs, &b, warn, sizeof warn) == 0,
+            "case8 convert: %s", warn);
+        nn = ri_sched_emit_pattern(&b.pat[0], 0, &m2, 0, 96, &fo, 0, 0,
+            e, 256);
+        RI_ASSERT(nn > 0u, "case8 no events");
+        g = fopen("tests/golden/303/first-light.events", "r");
+        RI_ASSERT(g != 0, "case8 golden missing");
+        if (g) {
+            unsigned long long smp;
+            unsigned a, b2, c, d, fl, sq;
+            while (nexp < 256u && fscanf(g, "%llu %u %u %u %u %u %u",
+                &smp, &a, &b2, &c, &d, &fl, &sq) == 7) {
+                exp[nexp].sample = (uint64_t)smp;
+                exp[nexp].type = a;
+                exp[nexp].device = (uint16_t)b2;
+                exp[nexp].voice = (uint16_t)c;
+                exp[nexp].value = (uint16_t)d;
+                exp[nexp].flags = (uint16_t)fl;
+                exp[nexp].seq = sq;
+                nexp++;
+            }
+            fclose(g);
+        }
+        RI_ASSERT(nexp == nn, "case8 count %u vs %u", nn, nexp);
+        for (k = 0; k < nn && k < nexp; k++) {
+            uint16_t ef = (uint16_t)(e[k].flags &
+                (uint16_t)~RI_EVFLAG_OCTAVE);
+            RI_ASSERT(e[k].sample == exp[k].sample, "case8 sample %u",
+                k);
+            RI_ASSERT(e[k].type == exp[k].type, "case8 type %u", k);
+            RI_ASSERT(e[k].device == exp[k].device, "case8 dev %u", k);
+            RI_ASSERT(e[k].voice == exp[k].voice, "case8 voice %u", k);
+            RI_ASSERT(e[k].value == exp[k].value, "case8 value %u", k);
+            RI_ASSERT(ef == exp[k].flags, "case8 flags %u (%u vs %u)",
+                k, ef, exp[k].flags);
+            RI_ASSERT(e[k].seq == exp[k].seq, "case8 seq %u", k);
+        }
     }
 
     RI_RESULT("pattern_emit");

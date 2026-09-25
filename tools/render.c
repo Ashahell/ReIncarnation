@@ -1096,7 +1096,7 @@ static int render_mix(const char *name, const char *out_path) {
  * parse error (same contract as --song). */
 static int render_rbngsong(const char *song_path, const char *out_path,
     const char *ev_path) {
-    struct RISong song;
+    static struct RISong song;
     struct RIStep steps[RI_MAX_STEPS];
     struct RIEvent ev[RI_SCHED_MAX_EVENTS];
     static struct RISegment segs[1];

@@ -18,7 +18,7 @@ static int fails = 0;
 } while (0)
 
 int main(void) {
-    struct RISong song;
+    static struct RISong song;
     struct RIStep out[8];
     uint32_t n;
     memset(&song, 0, sizeof song);

@@ -1,6 +1,7 @@
 /* pattern.c — per-instance pattern model (spec 2026-09-25 §1).
  * Pure functions; no allocation, no IO, no RNG state, no time.
  */
+#include <string.h>
 #include "engine/seq/pattern.h"
 
 const uint8_t RI_LANE_TO_RB808_SLOT[RI_DRUM_CLASSIC_LANES] = {
@@ -16,6 +17,10 @@ void ri_pattern_init(struct RIPattern *p, uint8_t kind, uint8_t drum_class) {
     uint32_t i;
     if (!p || kind > RI_PATTERN_KIND_DRUM)
         return;
+    /* Zero first: the union's inactive overlay has no meaning, and
+     * cleared-state memcmp (sparse BANK writing, round-trip tests)
+     * needs deterministic bytes. */
+    memset(p, 0, sizeof *p);
     p->kind = kind;
     p->length = RI_PATTERN_STEPS;
     p->payload_ver = RI_PATTERN_PAYLOAD_VERSION;

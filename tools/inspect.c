@@ -80,7 +80,7 @@ static int cmd_manifest(const char *path) {
 }
 
 static int cmd_rbng(const char *path) {
-    struct RISong s;
+    static struct RISong s;
     static char err[192];
     char cprg[136];
     if (rbng_read_song(path, &s, err, sizeof err) != 0) {

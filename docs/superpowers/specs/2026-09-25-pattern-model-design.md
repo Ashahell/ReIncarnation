@@ -145,19 +145,22 @@ target; only the *scope* of each op is.
 ## 4. RBNG v1.1 codec (`project/rbng.h` + codec)
 
 - `RI_RBNG_MINOR 1` (major stays 1). New `BANK` chunk: u8 instance,
-  u8 count (≤ 32), then per pattern **u8 slot (0–31)**, u8 kind,
-  u8 length, u8 payload_ver + fixed 16 rows:
+  u8 kind, u8 drum_class, u8 count (1–32), then per pattern
+  **u8 slot (0–31)**, u8 kind, u8 length, u8 payload_ver (=1),
+  fixed 16 rows:
   - 303: 16 × {key, flags}
   - drum: 16 × {on LE16, high LE16, flam LE16, flags}
-- Slots are explicit so an instance may store only non-empty patterns;
-  a missing slot loads as a cleared pattern of the instance's kind.
-  Duplicate slot → reject.
+- Per-pattern kind must equal the bank kind. Slots are explicit so an
+  instance may store only non-empty patterns; a missing slot loads as
+  a cleared pattern of the instance's kind. Duplicate slot → reject.
 - Compat: the v1.0 `PATT` reader is preserved byte-for-byte (→ instance
   0, kind 303, slot 0, length clamped to 16). v1.0 notes are MIDI
   numbers: converted to key + Up/Down relative to `RI_303_BASE_NOTE`;
   notes outside the 3-octave range fold by octaves (same rule as
   Transpose) and the reader reports a warning, never a silent change.
-  The writer emits `BANK` only.
+  The writer emits `BANK` chunks (never `PATT`) when the song holds
+  banks, and stays byte-identical v1.0 (minor 0 + `PATT`, no `BANK`)
+  when nbanks == 0 — so legacy round-trips never change shape.
 - The `BANK` reader is defensive: length clamps to 1–16, count ≤ 32,
   slot ≤ 31, unknown kinds/instances or invalid drum combinations
   (§1.2) rejected (returns 2, nothing stored). t1_formats v1.0 pins

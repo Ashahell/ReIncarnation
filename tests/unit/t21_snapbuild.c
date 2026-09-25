@@ -19,7 +19,7 @@ static int fails = 0;
 } while (0)
 
 int main(void) {
-    struct RISong song;
+    static struct RISong song;
     struct RISegment seg;
     struct RITempoMap map;
     struct RIEvent ev[32];

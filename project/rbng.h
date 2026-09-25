@@ -11,11 +11,20 @@
  *   FORM u32_tot 'RBNG' { chunk }          (u32_tot = bytes after it)
  *   chunk = ID32 u32_size data [pad u8 if size odd]
  *   'VERS': u16 major, u16 minor, u32 feature_flags
- *           (current 1.0/flags 0; major!=1 reject; minor newer loads
- *           known + preserves unknown; unknown flag bits reject)
+ *           (current 1.1/flags 0; major!=1 reject; minor newer loads
+ *           known + preserves unknown; unknown flag bits reject).
+ *           minor 0 files never carry BANK; minor 1 files carry PATT
+ *           only when nbanks == 0 (legacy shape).
  *   'SONG': u16 tempo (30..300), u16 ppq (24..960), u16 nsteps (1..64)
  *   'PATT': nsteps x { u8 note, u8 flags } (flags = RI_RBNG_* below;
- *           length must equal nsteps*2 exactly)
+ *           length must equal nsteps*2 exactly). Required when minor
+ *           is 0, optional when minor >= 1.
+ *   'BANK' (v1.1): u8 instance, u8 kind, u8 drum_class, u8 count
+ *           (1..32); then count x { u8 slot (0..31), u8 kind, u8 length
+ *           (1..16), u8 payload_ver (=1), 16 rows: 303 -> {u8 key,
+ *           u8 flags} (32 B); drum -> {LE16 on, LE16 high, LE16 flam,
+ *           u8 flags} (112 B) }. Slots ascend; missing slots load
+ *           cleared; per-pattern kind must equal the bank kind.
  *   'AUTO': u16 n (0..256); per: u32 tick, u16 ctl, u8 val, u8 pad0
  *   'MODR': u16 n (0..16); per: u8 namelen, name[namelen],
  *           u8 shalen(=64 hex), sha[64], u16 vers
@@ -33,9 +42,10 @@
 #ifndef RI_RBNG_H
 #define RI_RBNG_H
 #include <stdint.h>
+#include "engine/seq/pattern.h"
 
 #define RI_RBNG_MAJOR 1u
-#define RI_RBNG_MINOR 0u
+#define RI_RBNG_MINOR 1u
 
 #define RI_RBNG_MAX_STEPS 64u
 #define RI_RBNG_MAX_AUTO 256u
@@ -44,12 +54,15 @@
 #define RI_RBNG_MAX_UNK_BYTES 1024u
 #define RI_RBNG_MAX_MOD_NAME 63u
 #define RI_RBNG_MAX_CPRG 127u
+#define RI_RBNG_MAX_BANKS 8u /* bounded rack (D-l); Classic uses 4 */
 
 /* Step flag bits (== RI_STEP_* by contract, see t1_formats §16). */
 #define RI_RBNG_SLIDE 0x01u
 #define RI_RBNG_ACCENT 0x02u
 #define RI_RBNG_REST 0x04u
 #define RI_RBNG_FLAM 0x08u
+#define RI_RBNG_UP 0x10u
+#define RI_RBNG_DOWN 0x20u
 
 struct RBSongStep {
     uint8_t note;
@@ -86,6 +99,9 @@ struct RISong {
     char cprg[RI_RBNG_MAX_CPRG + 1u];
     uint16_t nunknown;
     struct RBUnknown unknown[RI_RBNG_MAX_UNK];
+    /* v1.1 pattern banks (empty when nbanks == 0: legacy shape). */
+    uint8_t nbanks;
+    struct RIPatternBank bank[RI_RBNG_MAX_BANKS];
 };
 
 void rbng_song_init(struct RISong *s);
@@ -113,9 +129,17 @@ int rbng_missing_warn(const struct RISong *s, const char *const *have,
  * on the built-in placeholder), 0 when full art present. */
 int rbng_art_fallback(const struct RISong *s);
 
+/* v1.0 PATT -> instance-0/303/slot-0 bank (Task 8.5). Warnings (fold,
+ * dropped step-0 slide / 303 flam, truncation) append to warn (may be
+ * NULL/0 = no warnings kept). Returns 0 ok, 2 bad arg. */
+int rbng_patt_to_bank(const struct RISong *s, struct RIPatternBank *b,
+    char *warn, uint32_t warncap);
+
 /* Test-only mutation helpers (tools/fuzz + corpus; never in engine/). */
 int rbng_test_inject_unknown(const char *src, const char *dst,
     const char id[4], const void *data, uint32_t len);
 int rbng_test_set_vers(const char *src, const char *dst, uint16_t major,
     uint16_t minor, uint32_t flags);
+int rbng_test_patch_bytes(const char *src, const char *dst, uint32_t off,
+    const void *bytes, uint32_t n);
 #endif

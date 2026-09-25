@@ -79,6 +79,7 @@ int ri_p303_octave(uint8_t flags);
 int ri_p303_semi(const struct RI303Row *r);
 uint8_t ri_p303_note(const struct RI303Row *r);
 int ri_p303_fold(int semi, int *folded);
+void ri_p303_encode(int semi, uint8_t *key, uint8_t *octflags);
 /* Task 4: ReBirth Edit menu ops (p. 51-54, spec §3). All return 0 ok,
  * 2 refused with no state change. */
 int ri_pattern_clear(struct RIPattern *p);
@@ -97,6 +98,7 @@ int ri_p303_transpose(struct RIPattern *p, int semis, uint32_t *nfolded);
 int ri_p303_random(struct RIPattern *p, uint32_t what, uint32_t seed);
 int ri_p303_alter(struct RIPattern *p, uint32_t what, uint32_t seed);
 int ri_pdrum_random_lane(struct RIPattern *p, uint32_t lane, uint32_t seed);
+int ri_pdrum_alter_lane(struct RIPattern *p, uint32_t lane, uint32_t seed);
 /* Pattern -> events (Tasks 6-7). 303 rows expand through the shared
  * timed-emit loop (cyclic seam via carry); drum rows emit per-lane
  * one-shots. Hosting contract (engine slice): NOTE_ON + ACCENT flag ->

@@ -24,7 +24,7 @@
 #include "engine/seq/sched.h"
 
 static struct RISong demo_song(void) {
-    struct RISong s;
+    static struct RISong s;
     uint32_t i;
     rbng_song_init(&s);
     s.tempo = 140;
