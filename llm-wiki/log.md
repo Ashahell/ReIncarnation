@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] lint | 0 issues (ingest sweep m58–m59 + e1000 lane)
+- m58/m59 raw+log+index verified present; no unindexed raws; all links resolve.
+- Sibling e1000 lane work logged by its author (ingest + deploy entries);
+  their untracked e1000 article left for their commit.
+- No contradictions; D-k/D-l adoption entry stands.
+
 ## [2026-09-25] m59 | §12.8c2: Appendix-D patterns extracted + wired
 - Disposition: New (E1 mechanical extraction + TDD wiring)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8c2-pcf-patterns.md
