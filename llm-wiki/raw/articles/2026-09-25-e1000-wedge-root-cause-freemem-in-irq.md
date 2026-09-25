@@ -93,3 +93,19 @@ e1000.device Function e1000func_IntHandler + 0x0000000000000139
 - Rollback (at the Dell): `copy DEVS:networks/e1000.device.pre-txpool DEVS:networks/e1000.device` + reboot.
 - `aros_v1j` (e1000, shared) not yet updated (busy with another session);
   riqemu1 uses rtl8139 (unaffected).
+
+## Follow-up (2026-09-25 12:32): aros_v1j not deployed; NIC choice for VMs
+- `aros_v1j` still runs QEMU `-device e1000,netdev=net0`. Not updated: at
+  12:31:58 another session was mid-run (`C:List RAM:w097.done` polled every
+  ~30 s, results 12:30:32 / 12:31:02 / 12:31:33, QEMU ~95% CPU). A reboot
+  would have killed that run.
+- **Recommendation: VM lanes use rtl8139, not e1000.** rtl8139 never wedged on
+  the identical stack (2026-08-14 matrix: 23.5 MB outbound clean; 20/20 scale-2
+  captures on riqemu1 2026-09-25), its driver does no allocation in the packet
+  path, and it is already the `vm_restart.sh` default. The fixed e1000 driver
+  has one day of evidence; keep ONE private e1000 lane as regression coverage
+  for the Dell's driver family.
+- Switching `aros_v1j` needs no driver install: `-device rtl8139` at its next
+  restart + `AROSTCP_IF` `DEV=DEVS:networks/rtl8139.device`. If it stays on
+  e1000, install `artifacts/e1000-txfix-20260925/e1000.device.v1-fixed` when
+  the lane is idle.

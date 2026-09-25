@@ -1,5 +1,9 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] update | aros_v1j left on old e1000 (busy); VM lanes should use rtl8139
+- Disposition: Update (follow-up section in the 2026-09-25 root-cause record)
+- aros_v1j mid-run for another session (w097 poll every ~30 s) → not rebooted; recommend `-device rtl8139` at its next restart, keep one private e1000 lane for Dell-driver regression coverage
+
 ## [2026-09-25] m62 | §12.8 routing matrix + pan + stereo return (engine home)
 - Disposition: New (bounded design, owner-approved; TDD t51/t52)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8-routing.md
