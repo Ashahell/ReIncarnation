@@ -22,6 +22,8 @@ int main(void) {
     ri_sui_init(&b, RI_SEC_808);
     RI_ASSERT(ri_sui_press(&b, RI_S808_STEP0) == 1 && ri_sui_led(&b, RI_S808_STEP0, 0) == 1, "808 route");
     RI_ASSERT(ri_sui_display(&b, RI_S808_STEP0) == 0, "808 has no numeric display");
-    RI_ASSERT(ri_sui_init(&b, RI_SEC_909) == 2 && ri_sui_press(&b, 0) == 0, "909 not laid out yet");
+    ri_sui_init(&b, RI_SEC_909);
+    RI_ASSERT(ri_sui_press(&b, RI_S909_STEP0) == 1 && ri_sui_led(&b, RI_S909_STEP0, 0) == RI_HIT_LOW, "909 route");
+    RI_ASSERT(ri_sui_init(&b, RI_SEC_MASTER) == 2 && ri_sui_press(&b, 0) == 0, "master not laid out yet");
     RI_RESULT("sectui");
 }

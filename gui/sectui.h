@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "gui/sect303.h"
 #include "gui/sect808.h"
+#include "gui/sect909.h"
 
 struct RISectUI {
     uint8_t section;  /* RI_SEC_* */
@@ -15,6 +16,7 @@ struct RISectUI {
     union {
         struct RISect303 s303;
         struct RISect808 s808;
+        struct RISect909 s909;
     } u;
 };
 

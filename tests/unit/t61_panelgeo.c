@@ -62,12 +62,19 @@ static void check_section(uint32_t sec) {
         RI_ASSERT((it->shape == RI_GEO_KNOB) == (d->kind == RI_CK_KNOB || d->kind == RI_CK_SELECTOR),
             "%s/%s: knob shape iff knob/selector kind", d->group, d->legend);
     }
+    /* a SELECTOR may have no value item when options reach every value
+     * (the 909 selects instruments by legend only, p. 151) */
+    for (i = 0; i < nsec; i++) {
+        const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((sec << 8) | i));
+        if (d && d->kind == RI_CK_SELECTOR && !value_item(s, d->reg_id))
+            nsec--;
+    }
     RI_ASSERT(nval == nsec, "%s value items %u, registry controls %u", ri_ctlreg_section_name(sec), nval, nsec);
     /* every selector value reachable by an option */
     for (i = 0; i < s->nitems; i++) {
         const struct RICtlDef *d = ri_ctlreg_find(s->items[i].reg_id);
         int v;
-        if (!d || d->kind != RI_CK_SELECTOR || !is_value(&s->items[i]))
+        if (!d || d->kind != RI_CK_SELECTOR || (!is_value(&s->items[i]) && s->items[i].shape != RI_GEO_OPTION))
             continue;
         for (v = d->min_v; v <= d->max_v; v++) {
             int found = 0;
@@ -177,6 +184,33 @@ int main(void) {
                 const struct RIGeoItem *l = value_item(s, ID(RI_SEC_808, par[i][1]));
                 RI_ASSERT(p && l && p->cx == l->cx && p->cy > l->cy, "808 control %d not under its Level",
                     par[i][0]);
+            }
+        }
+    }
+    /* ---- 909 (p. 151) ---- */
+    check_section(RI_SEC_909);
+    s = ri_geo_section(RI_SEC_909);
+    if (s) {
+        int prev = -1;
+        RI_ASSERT(s->w == 1460 && s->h == 468, "909 section = p. 151 figure");
+        for (i = 0; i < 16; i++) {
+            const struct RIGeoItem *it = value_item(s, ID(RI_SEC_909, 30 + i));
+            RI_ASSERT(it != 0, "909 step %u", i + 1);
+            if (!it)
+                continue;
+            if (prev >= 0)
+                RI_ASSERT(it->cx - prev == 84, "909 step pitch %d", it->cx - prev);
+            prev = it->cx;
+        }
+        /* TR-909 grouping: each instrument's knobs sit over its own steps */
+        {
+            static const int own[][2] = { { 1, 1 }, { 2, 0 }, { 5, 3 }, { 6, 2 }, { 9, 5 }, { 13, 6 },
+                { 15, 9 }, { 19, 10 }, { 20, 11 }, { 21, 12 }, { 18, 13 }, { 22, 13 }, { 23, 14 }, { 26, 15 } };
+            for (i = 0; i < sizeof(own) / sizeof(own[0]); i++) {
+                const struct RIGeoItem *k = value_item(s, ID(RI_SEC_909, own[i][0]));
+                const struct RIGeoItem *st = value_item(s, ID(RI_SEC_909, 30 + own[i][1]));
+                RI_ASSERT(k && st && k->cx == st->cx && k->cy < st->cy, "909 control %d not over step %d",
+                    own[i][0], own[i][1] + 1);
             }
         }
     }

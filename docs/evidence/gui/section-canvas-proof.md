@@ -1,7 +1,7 @@
 # Section canvas (RSection) — riqemu1 proof (§12.10 G4)
 
 **Date:** 2026-09-25. **Lane:** riqemu1 (QEMU, ABIv1 live ISO, private; Dell unavailable — stick backup).
-**Binary:** `RISECT` (`RISECT [303|808] [demo]`), built by `bash scripts/ri_build_aros.sh sections` → `/tmp/ri/aros/RISECT` (v1 recipe: v1 build-pc SDK, `startup.o`, `-nostartfiles -no-pie`, `-lmui -lamiga -lstdcio -lposixc -lintuition -lgraphics -lutility -ldos -lexec -lautoinit`; 0 unresolved, 0 `mov %rax,%r12`).
+**Binary:** `RISECT` (`RISECT [303|808|909] [demo]`), built by `bash scripts/ri_build_aros.sh sections` → `/tmp/ri/aros/RISECT` (v1 recipe: v1 build-pc SDK, `startup.o`, `-nostartfiles -no-pie`, `-lmui -lamiga -lstdcio -lposixc -lintuition -lgraphics -lutility -ldos -lexec -lautoinit`; 0 unresolved, 0 `mov %rax,%r12`).
 **Code:** `gui/widgets/rsection.mcc.c` (one canvas class for every laid-out section), `gui/sectui.c` (behaviour dispatch, host-tested t64), `app/sectproof.c` (proof window + readout). The first build was a 303-only class (`RSec303`); it was generalised the same day when the 808 landed.
 
 ## Proven
@@ -12,6 +12,7 @@
 - **Event plumbing up to IDCMP.** Handler installed in `MUIM_Setup` (lifecycle counters Setup 1 / Show 1); with `IDCMP_INTUITICKS` temporarily added it received ticks (46 → 482), so the handler path is live.
 
 - **808 section (p. 148 layout).** `RISECT 808 demo`: BD four-on-the-floor, CH off-beats, AC on steps 5 and 13, LT→LC switch, BD Level/Tone moved, CH left selected. Capture `img/2026-09-25-ri808-demo.png` shows twelve red LEVEL knobs, white parameter knobs in their instrument columns, the LT switch lever down (LC), CH lit in both the legend row and the selector ring, the selector pointer on CH, and the CH row lamps lit on steps 3, 7, 11, 15 over TR-808 colour groups (1–4 red, 5–8 orange, 9–12 yellow, 13–16 white). Readout `SEL 11 ROW ..X...X...X...X. BD 1 LC 1`.
+- **909 section (p. 151 layout).** `RISECT 909 demo`: BD on 1, 5, 9, 13 with 5 and 13 clicked again to high (off→low→high cycle, p. 30), SD flam on 5 and 13 via the Flam button, CH selected with low hits on the off-beats, BD Tune 90, Flam 30. Capture `img/2026-09-25-ri909-demo.png` shows the grey 909 panel with dark group bars and orange legends (AC BD SD LT MT HT RS CP CH OH CC RC), dark knobs with orange pointers grouped over their instruments' steps, the instrument legends under the knobs with CH lit, the Flam knob and button, and the CH row lamps (low = orange) on steps 3, 7, 11, 15 over numbered step keys. Readout `SEL 8 ROW ..L...L...L...L. FLAM 30`. Controls without an engine binding (CP Level, CH/OH Decay, CC Level) draw disabled, as on the other sections.
 - **303 regression through the generic canvas.** `RISECT 303 demo` reproduces the RSec303 capture (EDIT STEP 04, Pitch Mode lit, SQR).
 
 ## Not proven here (and why)

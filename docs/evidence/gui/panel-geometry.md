@@ -1,6 +1,6 @@
 # Panel geometry (E1 layout, measured) — §12.10 G2
 
-**Status:** 303 and 808 sections measured 2026-09-25. Other sections pending their slices.
+**Status:** 303, 808 and 909 sections measured 2026-09-25. Other sections pending their slices.
 **Source:** ReBirth RB-338 2.0.1 Owner's Manual, synth-section figure on p. 153
 (embedded image 366 × 115 px, extracted with `pdfimages`, viewed at 4× with a
 10-px grid). Layout is measured, never pixel-copied (spec §1): artwork stays
@@ -55,3 +55,15 @@ span 658 Q / 5 = 131.6 Q).
 | Instrument legends (options) | every column @ y 312 | 70 × 32 | click = select instrument |
 | Steps 1–16 | x = 92 … 1056, pitch 64.3 Q, @ y 400 | 50 × 76 | TR-808 colours in groups of four |
 | Instrument Selection knob | 1295, 205 | Ø 104 (hit 110) | ring labels AC→CH clockwise from 208°, 28.2° apart, radius 100, 44 × 24 |
+
+## 909 section (Q units, p. 151 figure 365 × 117 px = 1460 × 468 Q)
+
+| Element | Position | Size | Note |
+|---------|----------|------|------|
+| Steps 1–16 | x = 148 + 84·k, y 378 | pitch 84 Q | numbered keys; lamp: low orange, high red, flam green |
+| Knob rows | y 140 (LEVEL / TUNE) and y 238 (ATT / DEC / TONE / SNAP) | | every knob sits over its instrument's step(s), TR-909 grouping: BD 1–2, SD 3–4, LT 5–6, MT 7–8, HT 9–10, RS 11, CP 12, CH 13, OH 14, CC 15, RC 16 |
+| Instrument legends (options) | y 322, over each group | | click = select instrument; no selector knob on the 909 |
+| AC option / AC Level | option (60, 222); Level knob left column | | |
+| Flam knob | 60, 335 | | |
+| Flam button | 60, 405 | 40 × 40 | toggles the next step click to flam (p. 30) |
+| Group bars (drawing only) | y 24–60 | | legends AC … RC in orange on dark |

@@ -1,13 +1,15 @@
 /*
  * app/sectproof.c — section canvas on-device proof (§12.10 G4).
  *
- * AROS-ONLY. usage: RISECT [303|808] [demo]
+ * AROS-ONLY. usage: RISECT [303|808|909] [demo]
  * One window with the RSection canvas for the chosen section at 1x plus a
  * readout row, so state can be verified by number as well as by ui_capture.
  * "demo" drives the same behaviour calls a click makes (gui/sectui.h):
  *   303 — manual p. 42 "programming from scratch in Pitch Mode" + knobs;
  *   808 — BD four-on-the-floor, CH offbeats, AC on 5 and 13, LT->LC switch,
- *         CH left selected (steps show the CH row), BD Level/Tone moved.
+ *         CH left selected (steps show the CH row), BD Level/Tone moved;
+ *   909 — BD low/high alternating on 1,5,9,13, SD flam on 5 and 13, CH
+ *         selected with low hits on the off-beats, BD Tune / Flam moved.
  * Exit: close gadget or Ctrl-C. Return codes: 0 ok, 5+ build failures.
  * Must NEVER enter the host build (audit gates app/).
  */
@@ -51,7 +53,17 @@ static void put_str(char **p, const char *s) {
 
 static void format_readout(const struct RISectUI *ui, const struct RSectionDiag *dg, long changes) {
     char *p = s_readout;
-    if (ui->section == RI_SEC_808) {
+    if (ui->section == RI_SEC_909) {
+        const struct RISect909 *s = &ui->u.s909;
+        unsigned int st;
+        put_str(&p, "SEL ");
+        put_num(&p, s->val[RI_S909_SELECT]);
+        put_str(&p, " ROW ");
+        for (st = 0; st < 16; st++)
+            *p++ = ".LHF"[ri_sui_led(ui, RI_S909_STEP0 + st, 0) & 3];
+        put_str(&p, " FLAM ");
+        put_num(&p, s->val[RI_S909_FLAM]);
+    } else if (ui->section == RI_SEC_808) {
         const struct RISect808 *s = &ui->u.s808;
         unsigned int st;
         put_str(&p, "SEL ");
@@ -90,6 +102,25 @@ static void format_readout(const struct RISectUI *ui, const struct RSectionDiag 
 
 static void demo(Object *canvas, struct RISectUI *ui) {
     unsigned int i;
+    if (ui->section == RI_SEC_909) {
+        for (i = 0; i < 16; i += 4) {
+            ri_sui_press(ui, RI_S909_STEP0 + i);          /* BD low */
+            if (i == 4 || i == 12)
+                ri_sui_press(ui, RI_S909_STEP0 + i);      /* -> high */
+        }
+        ri_sui_set(ui, RI_S909_SELECT, 2);                /* SD */
+        ri_sui_press(ui, RI_S909_FLAMBTN);
+        ri_sui_press(ui, RI_S909_STEP0 + 4);
+        ri_sui_press(ui, RI_S909_STEP0 + 12);
+        ri_sui_press(ui, RI_S909_FLAMBTN);
+        ri_sui_set(ui, RI_S909_SELECT, 8);                /* CH */
+        for (i = 2; i < 16; i += 4)
+            ri_sui_press(ui, RI_S909_STEP0 + i);
+        ri_sui_set(ui, 2, 90);                            /* BD Tune */
+        ri_sui_set(ui, RI_S909_FLAM, 30);
+        ri_rsection_refresh(canvas);
+        return;
+    }
     if (ui->section == RI_SEC_808) {
         for (i = 0; i < 16; i += 4)
             ri_sui_press(ui, RI_S808_STEP0 + i);           /* BD */
@@ -128,6 +159,8 @@ int main(int argc, char **argv) {
     for (i = 1; i < argc; i++) {
         if (argv[i][0] == '8')
             section = RI_SEC_808;
+        else if (argv[i][0] == '9')
+            section = RI_SEC_909;
         else if (argv[i][0] == 'd')
             do_demo = 1;
     }
@@ -141,7 +174,7 @@ int main(int argc, char **argv) {
     if (!readout)
         return 6;
     win = (Object *)MUI_NewObject(MUIC_Window,
-        MUIA_Window_Title, section == RI_SEC_808 ? "RI-808" : "RI-303",
+        MUIA_Window_Title, section == RI_SEC_808 ? "RI-808" : section == RI_SEC_909 ? "RI-909" : "RI-303",
         MUIA_Window_LeftEdge, 0,
         MUIA_Window_TopEdge, 0,
         MUIA_Window_CloseGadget, TRUE,

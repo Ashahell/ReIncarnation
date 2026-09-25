@@ -53,16 +53,26 @@ enum { C_PANEL, C_PANEL_DK, C_BLACK, C_WHITEKEY, C_BTN, C_BTN_HI, C_BTN_LO,
        C_SEG_BG, C_SEG, C_DISABLED,
        C_808_PANEL, C_808_LINE, C_KNOB_RED, C_KNOB_WHITE, C_CREAM, C_CREAM_LIT,
        C_STEP_RED, C_STEP_ORANGE, C_STEP_YELLOW, C_STEP_WHITE, C_LAMP_OFF,
+       C_909_PANEL, C_909_BAR, C_909_ORANGE, C_909_KNOB, C_LAMP_LOW, C_LAMP_FLAM, C_909_STEP,
        C_NCOL };
 static const ULONG RI_RSECT_RGB[C_NCOL] = {
     0xD6D6CEu, 0x8C8C84u, 0x141414u, 0xF4F4F0u, 0xB4B4AEu, 0xF0F0EAu, 0x5A5A56u,
     0xFF2A1Au, 0x5A1410u, 0xC8C8C4u, 0x3C3C3Cu, 0x2A2A2Au, 0x1E1E1Eu, 0xF0F0F0u,
     0x280808u, 0xFF3020u, 0x9C9C96u,
     0x3A362Eu, 0x6A6458u, 0xC41E1Eu, 0xE6E6E0u, 0xE8E0C8u, 0xFFF6D0u,
-    0xC82020u, 0xE07418u, 0xE6D21Eu, 0xE4E4DCu, 0x2A2620u
+    0xC82020u, 0xE07418u, 0xE6D21Eu, 0xE4E4DCu, 0x2A2620u,
+    0xDCDCD4u, 0x2E2E2Cu, 0xE8761Eu, 0x4A4A48u, 0xE8901Eu, 0x30D040u, 0xC4C4BCu
 };
 static LONG s_pens[C_NCOL];
 
+/* 909 group headers (legend bar) and instrument-select box texts */
+static const struct { int x; const char *t; } RI_909_BAR[] = {
+    { 60, "AC" }, { 190, "BD" }, { 358, "SD" }, { 526, "LT" }, { 694, "MT" }, { 862, "HT" },
+    { 988, "RS" }, { 1072, "CP" }, { 1156, "CH" }, { 1240, "OH" }, { 1324, "CC" }, { 1408, "RC" }
+};
+static const char *const RI_909_OPT[12] = {
+    "AC", "BASS DRUM", "SNARE DRUM", "LOW TOM", "MID TOM", "HI TOM", "RIM", "CLAP", "CH", "OH", "CRSH", "RIDE"
+};
 static const char *const RI_808_OPT[12] = {
     "AC", "BD", "SD", "LT", "MT", "HT", "RS", "CP", "CB", "CY", "OH", "CH"
 };
@@ -216,12 +226,39 @@ static void bg_808(struct RastPort *rp, const struct RIGeoSection *g, int ox, in
 #undef PX
 }
 
+/* ---------------------------------------------------------------- 909 */
+static void bg_909(struct RastPort *rp, const struct RIGeoSection *g, int ox, int oy, int z) {
+    uint32_t i;
+    char n[3];
+#define PX(q) ri_geo_px((q), z)
+    fill_rect(rp, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_909_PANEL);
+    for (i = 0; i < sizeof(RI_909_BAR) / sizeof(RI_909_BAR[0]); i++) {
+        int x = RI_909_BAR[i].x, hw = (i >= 1 && i <= 5) ? 80 : 38;
+        fill_rect(rp, ox + PX(x - hw), oy + PX(24), ox + PX(x + hw), oy + PX(60), C_909_BAR);
+        text_c(rp, ox + PX(x), oy + PX(42), RI_909_BAR[i].t, C_909_ORANGE);
+    }
+    for (i = 0; i < 16; i++) {                 /* step numbers under the buttons */
+        n[0] = (char)(i >= 9 ? '1' : '0' + (i + 1));
+        n[1] = (char)(i >= 9 ? '0' + (i + 1 - 10) : 0);
+        n[2] = 0;
+        fill_rect(rp, ox + PX(148 + 84 * (int)i - 40), oy + PX(418), ox + PX(148 + 84 * (int)i + 40), oy + PX(446),
+            C_909_BAR);
+        text_c(rp, ox + PX(148 + 84 * (int)i), oy + PX(432), n, C_CREAM);
+    }
+#undef PX
+}
+
+static const char *legend_909(const char *leg) {
+    return !strcmp(leg, "Attack") ? "ATT" : !strcmp(leg, "Decay") ? "DEC" : !strcmp(leg, "Snappy") ? "SNAP" : leg;
+}
+
 /* ------------------------------------------------------------ generic */
 static void draw_section(Object *obj, struct RSectionData *dd) {
     struct RastPort *rp = _rp(obj);
     uint8_t sec = dd->ui.section;
     const struct RIGeoSection *g = ri_geo_section(sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec);
     int ox = _mleft(obj), oy = _mtop(obj), z = (int)dd->zoom, is808 = sec == RI_SEC_808;
+    int is909 = sec == RI_SEC_909;
     ULONG txt = is808 ? C_CREAM : C_TEXT;
     uint32_t i;
     char buf[4];
@@ -230,6 +267,8 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
         return;
     if (is808)
         bg_808(rp, g, ox, oy, z);
+    else if (is909)
+        bg_909(rp, g, ox, oy, z);
     else
         bg_303(rp, g, ox, oy, z);
     for (i = 0; i < g->nitems; i++) {
@@ -249,8 +288,9 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                     208.0f + 28.2f * (float)v);
             } else {
                 ULONG face = d->bind == RI_BIND_NONE ? C_DISABLED
+                    : is909 ? C_909_KNOB
                     : !is808 ? C_KNOB : !strcmp(d->legend, "Level") ? C_KNOB_RED : C_KNOB_WHITE;
-                draw_knob(rp, cx, cy, PX(it->w), PX(it->h), face, C_BLACK, !is808,
+                draw_knob(rp, cx, cy, PX(it->w), PX(it->h), face, is909 ? C_909_ORANGE : C_BLACK, !is808 && !is909,
                     (float)ri_knob_pointer_mdeg((int)to_n(d, v)) / 1000.0f);
             }
             break;
@@ -267,6 +307,14 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                 bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, step_colour_808(st));
                 fill_rect(rp, cx - hw / 3, cy - hh + 3, cx + hw / 3, cy - hh + 3 + PX(10),
                     ri_sui_led(&dd->ui, idx, 0) ? C_LED_ON : C_LAMP_OFF);
+            } else if (d->kind == RI_CK_STEP && is909) {
+                int st = ri_sui_led(&dd->ui, idx, 0);
+                ULONG lamp = st == 1 ? (ri_sui_value(&dd->ui, RI_S909_SELECT) == 0 ? C_LED_ON : C_LAMP_LOW)
+                    : st == 2 ? C_LED_ON : st == 3 ? C_LAMP_FLAM : C_LAMP_OFF;
+                bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_909_STEP);
+                fill_rect(rp, cx - hw / 3, cy - hh + PX(8), cx + hw / 3, cy - hh + PX(18), lamp);
+            } else if (d->kind == RI_CK_SWITCH && is909) {     /* Flam button */
+                bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_909_STEP);
             } else if (d->kind == RI_CK_SWITCH && is808) {     /* sound switch: slot + lever */
                 fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_BLACK);
                 if (v)
@@ -289,7 +337,14 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
             fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, lit ? C_CREAM_LIT : C_CREAM);
             if (lit)
                 line(rp, cx - hw, cy + hh, cx + hw, cy + hh, C_LED_ON);
-            text_c(rp, cx, cy, it->opt < 12 ? RI_808_OPT[it->opt] : "?", C_BLACK);
+            if (is909) {
+                const char *t = it->opt < 12 ? RI_909_OPT[it->opt] : "?";
+                int tw = TextLength(rp, (STRPTR)t, (ULONG)strlen(t));
+                fill_circle(rp, cx - tw / 2 - 1, cy, PX(5), lit ? C_LED_ON : C_LED_OFF);
+                text_c(rp, cx + PX(8), cy, t, C_BLACK);
+            } else {
+                text_c(rp, cx, cy, it->opt < 12 ? RI_808_OPT[it->opt] : "?", C_BLACK);
+            }
             break;
         }
         case RI_GEO_LED: {
@@ -307,6 +362,8 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                 s = "EDIT STEP";
             else if (is808 && d->kind == RI_CK_SWITCH) /* the alternate sound's legend */
                 s = idx == 9 ? "LC" : idx == 12 ? "MC" : idx == 15 ? "HC" : idx == 17 ? "CL" : "MA";
+            else if (is909)
+                s = legend_909(s);
             text_c(rp, cx, cy, s, col);
             break;
         }
