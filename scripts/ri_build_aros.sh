@@ -46,3 +46,20 @@ x86_64-aros-gcc $CFLAGS_AROS -nostartfiles -no-pie -Wa,-W -o "$OUT/probe_ahi" "$
 test -f "$OUT/probe_ahi" || { echo "FAIL: probe_ahi not linked"; exit 1; }
 x86_64-aros-readelf -h "$OUT/probe_ahi" | grep -q "Advanced Micro Devices X86-64" || { echo "FAIL: probe_ahi not X86-64 ELF"; exit 1; }
 echo "AROS PROBE BUILD OK"
+# Optional target (2026-09-25, §12.10 G4): `ri_build_aros.sh sect303` also links
+# the RI303 section-canvas proof for the ABIv1 lane (riqemu1). Evidence:
+# docs/evidence/gui/sect303-canvas-proof.md. Gates: 0 unresolved, 0 r12 moves.
+if [ "${1:-}" = sect303 ]; then
+  O3="$OUT/sect303"; mkdir -p "$O3"
+  CF3="$CFLAGS_AROS -Werror -fno-stack-protector -I$ROOT"
+  OBJS3=""
+  for f in app/sect303proof.c gui/widgets/rsec303.mcc.c gui/ctlreg.c gui/panelgeo.c gui/sect303.c gui/knob_logic.c engine/dsp/kernels.c engine/seq/pattern.c; do
+    x86_64-aros-gcc $CF3 -c "$ROOT/$f" -o "$O3/$(basename "$f" .c).o"
+    OBJS3="$OBJS3 $O3/$(basename "$f" .c).o"
+  done
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/RI303" $OBJS3 "${STARTUP[@]}" \
+    -L "$SHIM" -L "$SDK/../lib" -lmui -lamiga -lstdcio -lposixc -lintuition -lgraphics -lutility -ldos -lexec -lautoinit
+  test "$(x86_64-aros-readelf -s "$OUT/RI303" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: RI303 unresolved"; exit 1; }
+  test "$(objdump -d "$OUT/RI303" | grep -c 'mov    %rax,%r12')" = 0 || { echo "FAIL: RI303 r12 base moves (v1)"; exit 1; }
+  echo "AROS RI303 BUILD OK ($(stat -c%s "$OUT/RI303") bytes)"
+fi
