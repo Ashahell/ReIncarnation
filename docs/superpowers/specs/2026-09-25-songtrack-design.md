@@ -72,7 +72,8 @@
 * Freed/initialized bars fill with slot 0 = NEUTRAL SELECTION ("keep playing whatever the bank holds at slot 0"), NOT silence. Silence is user data (silent patterns / muted sections); the engine never invents it.
 
 ### Codec
-* STRK body is exactly 3996 bytes (999×4, row-major bar→instance). `≠3996` rejects; slot `>31` rejects. Minor-0 files never carry STRK (BANK precedent); v1.0 default = slot 0 everywhere (today's playback, bit-identical).
+* STRK body is exactly `RI_RBNG_STRK_BYTES` = 999×4 = 3996 bytes (row-major bar→instance, derived from the track constants so it cannot drift). `≠3996` rejects; slot `>31` rejects. Minor-0 files never carry STRK (BANK precedent); a missing STRK means slot 0 everywhere (today's playback, bit-identical).
+* Writer rule: the chunk is written only when the track is NOT all-zero (an empty track keeps the legacy byte-identical shape), and the file minor becomes 1 when banks OR a non-empty track are present — a track without banks written as minor 0 would be unreadable by its own reader.
 
 ### Proof discipline
 Every invariant has (1) one named enforcement point, (2) executable tests, (3) at least one boundary test, (4) at least one mutation test.
@@ -118,7 +119,7 @@ Every invariant has (1) one named enforcement point, (2) executable tests, (3) a
 
 ## 4. Codec (`STRK`, v1.1)
 
-- Body: exactly 999×4 = 3996 slot bytes, row-major (bar, then instance). Exact-length check (≠ 3996 rejects); any slot > 31 rejects. Minor-0 files never carry STRK (BANK rule precedent).
+- Body: exactly `RI_RBNG_STRK_BYTES` = 999×4 = 3996 slot bytes, row-major (bar, then instance), no trailing pad (3996 is even). Exact-length check (≠ 3996 rejects); any slot > 31 rejects. Minor-0 files never carry STRK (BANK rule precedent). Writer omits the chunk when the track is all-zero and raises the minor when banks or a non-empty track exist (§laws); `ri_track_is_empty` is the single enforcement point of "all-zero".
 - v1.0 files (no STRK): slot 0 everywhere — playback identical to today by construction.
 
 ## 5. Open items (ledger rows before they lock)
@@ -140,5 +141,5 @@ Every invariant has (1) one named enforcement point, (2) executable tests, (3) a
   range-start establishment) reproduces `selected()` at every bar.
 - View property: the run list re-expands to the dense grid exactly;
   adjacent runs always differ in at least one slot.
-- Mutation proofs (3, recorded with failure lines): (a) `≠3996` → `>=3996` must FAIL the reject case; (b) drop range-start establishment must FAIL the steady test; (c) `>= 999` → `> 999` in `selected` must FAIL the bar-999 case.
+- Mutation proofs (3, recorded with failure lines): (a) `≠3996` → `>=3996` must FAIL the reject case; (b) replace the wrap formula with `bar = loop->start_bar` must FAIL the phase test (count 8 → 10 events, buggy → 6); (c) `>= 999` → `> 999` in `selected` must FAIL the bar-999 case.
 - Existing suites green unmodified. Full `ri_audit.sh` 0/0 (t59 wired beside t58).
