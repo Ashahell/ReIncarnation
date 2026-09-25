@@ -7,6 +7,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "engine/seq/songtrack.h"
 #include "engine/seq/songtrack_emit.h"   /* emitter: RIEvent/RITempoMap users */
+#include "project/rbng.h"   /* STRK read/write + rbng_test_* helpers */
 
 /* Song geometry comes from transport.h; the track must not fork it. */
 typedef char ri_t59_bars_match[(RI_SONGTRACK_BARS == RI_SONG_BARS) ? 1 : -1];
@@ -479,6 +480,117 @@ int main(void) {
         clip.len = 0u;
         RI_ASSERT(ri_track_paste(&tr, 0u, &clip) == 0 && ri_track_paste_replace(&tr, 0u, &clip) == 0,
             "empty clip is a no-op");
+    }
+    /* ---- STRK codec: round-trip, three rejects, legacy shape, and the
+     * track-without-banks minor fix. ---- */
+    {
+        const char *FA = "/tmp/ri/run/t59-strk.rbng";
+        const char *FM = "/tmp/ri/run/t59-mut.rbng";
+        const char *FL = "/tmp/ri/run/t59-legacy.rbng";
+        struct RISong s, r;
+        char err[256];
+        unsigned char buf[16384];
+        size_t nn;
+        uint32_t k, soff = 0u;
+        int found = 0, has_strk;
+        FILE *f;
+
+        /* song_valid requires nsteps != 0: every writer test sets it. */
+        rbng_song_init(&s);
+        s.nsteps = 4u;
+        for (k = 0u; k < 4u; k++) {
+            s.steps[k].note = (uint8_t)(45u + k);
+            s.steps[k].flags = 0u;
+        }
+        RI_ASSERT(s.nbanks == 0u, "fresh banks");
+        RI_ASSERT(ri_track_capture(&s.track, 10u, 0u, 9u) == 0, "codec cap a");
+        RI_ASSERT(ri_track_capture(&s.track, 998u, 3u, 31u) == 0, "codec cap b");
+        RI_ASSERT(rbng_write_song(FA, &s, err, sizeof err) == 0, "strk write %s", err);
+
+        f = fopen(FA, "rb");
+        RI_ASSERT(f != 0, "strk open");
+        nn = f ? fread(buf, 1u, sizeof buf, f) : 0u;
+        if (f)
+            fclose(f);
+        RI_ASSERT(nn > 32u, "strk file size %u", (unsigned)nn);
+        /* A track without banks still forces the file minor to 1: writing it
+         * as minor 0 would make the file unreadable by its own reader. */
+        RI_ASSERT(buf[12] == 'V' && buf[13] == 'E' && buf[14] == 'R' && buf[15] == 'S',
+            "VERS id");
+        RI_ASSERT(buf[20] == 0u && buf[21] == 1u, "major");
+        RI_ASSERT(buf[22] == 0u && buf[23] == 1u, "minor forced to 1");
+        for (k = 0u; k + 8u <= (uint32_t)nn; k++) {
+            if (memcmp(buf + k, "STRK", 4) == 0) {
+                unsigned sz = (unsigned)(((unsigned)buf[k + 6] << 8) | (unsigned)buf[k + 7]);
+                RI_ASSERT(buf[k + 4] == 0u && buf[k + 5] == 0u && sz == 3996u,
+                    "STRK size %u", sz);
+                soff = k;
+                found = 1;
+                break;
+            }
+        }
+        RI_ASSERT(found, "no STRK chunk");
+        /* Body is row-major (bar, then instance): offset 8 + bar*4 + inst. */
+        RI_ASSERT(buf[soff + 8u + (10u * 4u) + 0u] == 9u, "strk body a");
+        RI_ASSERT(buf[soff + 8u + (998u * 4u) + 3u] == 31u, "strk body b");
+
+        /* Round-trip. */
+        memset(&r, 0xA5, sizeof r);
+        RI_ASSERT(rbng_read_song(FA, &r, err, sizeof err) == 0, "strk read %s", err);
+        RI_ASSERT(memcmp(&s.track, &r.track, sizeof s.track) == 0, "track roundtrip");
+        RI_ASSERT(r.nsteps == 4u && r.nbanks == 0u, "song fields kept");
+
+        /* Reject (a): body size - 1 (exact-length law). */
+        {
+            unsigned char one[4];
+            one[0] = 0u; one[1] = 0u; one[2] = 0x0Fu; one[3] = 0x9Bu;
+            RI_ASSERT(rbng_test_patch_bytes(FA, FM, soff + 4u, one, 4u) == 0, "patch size");
+            memset(&r, 0xA5, sizeof r);
+            RI_ASSERT(rbng_read_song(FM, &r, err, sizeof err) != 0, "badlen accepted");
+            RI_ASSERT(strstr(err, "STRK length mismatch") != 0, "badlen reason: %s", err);
+            RI_ASSERT(ri_track_is_empty(&r.track) == 1, "badlen stored a track");
+        }
+        /* Reject (b): the LAST body byte (bar 998, instance 3) out of range. */
+        {
+            unsigned char v = 32u;
+            RI_ASSERT(rbng_test_patch_bytes(FA, FM, soff + 8u + RI_RBNG_STRK_BYTES - 1u, &v, 1u) == 0,
+                "patch slot");
+            memset(&r, 0xA5, sizeof r);
+            RI_ASSERT(rbng_read_song(FM, &r, err, sizeof err) != 0, "slot32 accepted");
+            RI_ASSERT(strstr(err, "STRK slot out of range") != 0, "slot32 reason: %s", err);
+            RI_ASSERT(ri_track_is_empty(&r.track) == 1, "slot32 partially stored a track");
+        }
+        /* Reject (c): STRK at file minor 0 (BANK precedent). */
+        RI_ASSERT(rbng_test_set_vers(FA, FM, 1u, 0u, 0u) == 0, "setvers");
+        memset(&r, 0xA5, sizeof r);
+        RI_ASSERT(rbng_read_song(FM, &r, err, sizeof err) != 0, "minor0+STRK accepted");
+        RI_ASSERT(strstr(err, "STRK requires 1.1") != 0, "minor0 reason: %s", err);
+
+        /* Legacy shape: an empty track is omitted and the file stays minor 0. */
+        rbng_song_init(&s);
+        s.nsteps = 4u;
+        for (k = 0u; k < 4u; k++) {
+            s.steps[k].note = (uint8_t)(45u + k);
+            s.steps[k].flags = 0u;
+        }
+        RI_ASSERT(ri_track_is_empty(&s.track) == 1, "fresh track empty");
+        RI_ASSERT(rbng_write_song(FL, &s, err, sizeof err) == 0, "legacy write %s", err);
+        f = fopen(FL, "rb");
+        RI_ASSERT(f != 0, "legacy open");
+        nn = f ? fread(buf, 1u, sizeof buf, f) : 0u;
+        if (f)
+            fclose(f);
+        RI_ASSERT(buf[22] == 0u && buf[23] == 0u, "legacy minor 0");
+        has_strk = 0;
+        for (k = 0u; k + 4u <= (uint32_t)nn; k++)
+            if (memcmp(buf + k, "STRK", 4) == 0)
+                has_strk = 1;
+        RI_ASSERT(!has_strk, "legacy file carries STRK");
+        memset(&r, 0xA5, sizeof r);
+        RI_ASSERT(rbng_read_song(FL, &r, err, sizeof err) == 0, "legacy read %s", err);
+        RI_ASSERT(ri_track_is_empty(&r.track) == 1, "legacy track not empty");
+        for (k = 0u; k < 4u; k++)
+            RI_ASSERT(ri_track_selected(&r.track, 500u, k) == 0u, "v1.0 default slot 0");
     }
     RI_RESULT("songtrack");
 }

@@ -270,6 +270,15 @@ static int song_valid(const struct RISong *s, char *err, uint32_t errcap) {
             }
         }
     }
+    for (k = 0; k < (uint32_t)RI_SONGTRACK_BARS; k++) {
+        uint32_t i;
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++) {
+            if (s->track.slot[k][i] > RI_SONGTRACK_MAX_SLOT) {
+                put_err(err, errcap, "STRK slot out of range");
+                return 1;
+            }
+        }
+    }
     if (s->nmods > RI_RBNG_MAX_MODS) {
         put_err(err, errcap, "MODR count out of range");
         return 1;
@@ -307,7 +316,7 @@ static void chunk_head(FILE *f, const char *id, uint32_t len) {
 int rbng_write_song(const char *path, const struct RISong *s, char *err,
     uint32_t errcap) {
     FILE *f;
-    uint32_t total, k;
+    uint32_t total, k, tb, ti;
     uint32_t cprg_n, patt_n, auto_n, modr_n;
     if (song_valid(s, err, errcap) != 0)
         return 2;
@@ -330,6 +339,8 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     total += 8u + auto_n + (auto_n & 1u);
     total += 8u + modr_n + (modr_n & 1u);
     total += 8u + cprg_n + (cprg_n & 1u);
+    if (!ri_track_is_empty(&s->track))
+        total += 8u + RI_RBNG_STRK_BYTES; /* 3996 is even: never padded */
     for (k = 0; k < s->nunknown; k++)
         total += 8u + s->unknown[k].len + (s->unknown[k].len & 1u);
     f = fopen(path, "wb");
@@ -342,9 +353,9 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     fwrite("RBNG", 1, 4, f);
     chunk_head(f, "VERS", 8u);
     wr16be(f, RI_RBNG_MAJOR);
-    /* Legacy-shaped songs stay minor 0 (byte-identical v1.0 files);
-     * bank songs are minor 1 and never carry PATT. */
-    wr16be(f, s->nbanks > 0u ? 1u : 0u);
+    /* Legacy-shaped songs (no banks, empty track) stay minor 0 and remain
+     * byte-identical v1.0 files; banks OR a track make it 1.1. */
+    wr16be(f, (s->nbanks > 0u || !ri_track_is_empty(&s->track)) ? 1u : 0u);
     wr32be(f, 0u);
     chunk_head(f, "SONG", 6u);
     wr16be(f, s->tempo);
@@ -362,6 +373,12 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
         /* v1.1: BANK chunks carry the patterns; PATT is never written. */
         for (k = 0; k < s->nbanks; k++)
             write_bank(f, &s->bank[k]);
+    }
+    if (!ri_track_is_empty(&s->track)) {
+        chunk_head(f, "STRK", RI_RBNG_STRK_BYTES);
+        for (tb = 0u; tb < (uint32_t)RI_SONGTRACK_BARS; tb++)
+            for (ti = 0u; ti < RI_SONGTRACK_INSTANCES; ti++)
+                fputc((int)s->track.slot[tb][ti], f);
     }
     chunk_head(f, "AUTO", auto_n);
     wr16be(f, s->nauto);
@@ -534,11 +551,43 @@ static int parse_bank(const unsigned char *cid, uint32_t off,
     return 0;
 }
 
+/* v1.1 STRK chunk body: the whole track grid, row-major (bar, instance).
+ * saw_vers/file_minor come from the chunk loop (STRK needs VERS first,
+ * the BANK precedent). Returns 0 ok, 1 reject (err filled). */
+static int parse_strk(const unsigned char *cid, uint32_t off,
+    const unsigned char *img, uint32_t doff, uint32_t size,
+    struct RISong *s, int saw_vers, uint16_t file_minor,
+    char *err, uint32_t errcap) {
+    uint32_t k;
+    if (!saw_vers) {
+        ck_err(err, errcap, cid, off, "STRK before VERS");
+        return 1;
+    }
+    if (file_minor == 0u) {
+        ck_err(err, errcap, cid, off, "STRK requires 1.1");
+        return 1;
+    }
+    if (size != RI_RBNG_STRK_BYTES) {
+        ck_err(err, errcap, cid, off, "STRK length mismatch");
+        return 1;
+    }
+    /* Validate the whole body BEFORE storing anything (all-or-nothing). */
+    for (k = 0u; k < RI_RBNG_STRK_BYTES; k++) {
+        if (img[doff + k] > RI_SONGTRACK_MAX_SLOT) {
+            ck_err(err, errcap, cid, off, "STRK slot out of range");
+            return 1;
+        }
+    }
+    for (k = 0u; k < RI_RBNG_STRK_BYTES; k++)
+        s->track.slot[k / RI_SONGTRACK_INSTANCES][k % RI_SONGTRACK_INSTANCES] = img[doff + k];
+    return 0;
+}
+
 static int parse_image(const unsigned char *img, uint32_t n, struct RISong *s,
     char *err, uint32_t errcap) {
     uint32_t off, total;
     int saw_vers = 0, saw_song = 0, saw_patt = 0, saw_auto = 0, saw_modr = 0,
-        saw_cprg = 0;
+        saw_cprg = 0, saw_strk = 0;
     uint16_t file_minor = 0u;
     uint32_t patt_expect = 0;
     rbng_song_init(s);
@@ -763,6 +812,15 @@ static int parse_image(const unsigned char *img, uint32_t n, struct RISong *s,
         } else if (memcmp(cid, "BANK", 4) == 0) {
             if (parse_bank(cid, off, img, doff, size, s, saw_vers,
                 file_minor, err, errcap) != 0)
+                return 1;
+        } else if (memcmp(cid, "STRK", 4) == 0) {
+            if (saw_strk) {
+                ck_err(err, errcap, cid, off, "duplicate STRK");
+                return 1;
+            }
+            saw_strk = 1;
+            if (parse_strk(cid, off, img, doff, size, s, saw_vers, file_minor,
+                    err, errcap) != 0)
                 return 1;
         } else if (cid[0] >= 'A' && cid[0] <= 'Z') {
             /* Unknown optional chunk: preserve verbatim for the

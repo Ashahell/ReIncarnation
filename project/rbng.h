@@ -25,6 +25,10 @@
  *           u8 flags} (32 B); drum -> {LE16 on, LE16 high, LE16 flam,
  *           u8 flags} (112 B) }. Slots ascend; missing slots load
  *           cleared; per-pattern kind must equal the bank kind.
+ *   'STRK' (v1.1): RI_SONGTRACK_BARS x RI_SONGTRACK_INSTANCES = 3996 slot
+ *           bytes (u8 each), row-major (bar, then instance); even, no pad.
+ *           Written only when the track is not all-zero; minor 0 never
+ *           carries it; a missing STRK means slot 0 everywhere.
  *   'AUTO': u16 n (0..256); per: u32 tick, u16 ctl, u8 val, u8 pad0
  *   'MODR': u16 n (0..16); per: u8 namelen, name[namelen],
  *           u8 shalen(=64 hex), sha[64], u16 vers
@@ -43,6 +47,7 @@
 #define RI_RBNG_H
 #include <stdint.h>
 #include "engine/seq/pattern.h"
+#include "engine/seq/songtrack.h"   /* RI_SONGTRACK_*: the song owns a track */
 
 #define RI_RBNG_MAJOR 1u
 #define RI_RBNG_MINOR 1u
@@ -55,6 +60,9 @@
 #define RI_RBNG_MAX_MOD_NAME 63u
 #define RI_RBNG_MAX_CPRG 127u
 #define RI_RBNG_MAX_BANKS 8u /* bounded rack (D-l); Classic uses 4 */
+/* Derived, never a forked 999: the STRK body is the whole track grid. */
+#define RI_RBNG_STRK_BYTES \
+    ((uint32_t)RI_SONGTRACK_BARS * (uint32_t)RI_SONGTRACK_INSTANCES)
 
 /* Step flag bits (== RI_STEP_* by contract, see t1_formats §16). */
 #define RI_RBNG_SLIDE 0x01u
@@ -102,6 +110,8 @@ struct RISong {
     /* v1.1 pattern banks (empty when nbanks == 0: legacy shape). */
     uint8_t nbanks;
     struct RIPatternBank bank[RI_RBNG_MAX_BANKS];
+    /* v1.1 song track: pattern-selection grid; all-zero when absent. */
+    struct RISongTrack track;
 };
 
 void rbng_song_init(struct RISong *s);
