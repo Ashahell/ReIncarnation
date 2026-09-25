@@ -9,12 +9,14 @@ static const float RI_FX_BEATS[4] = { 0.5f, 0.75f, 1.0f, 1.5f };
 
 int ri_fxdelay_init(struct RiFXDelay *d, float *buf, uint32_t cap) {
     uint32_t i;
-    if (!d || !buf || cap < 64u || cap > RI_FXDELAY_MAX)
+    if (!d || !buf || cap < 64u)
         return 2;
     d->buf = buf;
     d->cap = cap;
     d->pos = 0;
     d->delay_smp = cap - 1u;
+    d->target_smp = cap - 1u;
+    d->beats = 0.75f;
     d->fb = 0.0f;
     d->mix = 0.0f;
     for (i = 0; i < cap; i++)
@@ -22,28 +24,60 @@ int ri_fxdelay_init(struct RiFXDelay *d, float *buf, uint32_t cap) {
     return 0;
 }
 
-uint32_t ri_fxdelay_sync(struct RiFXDelay *d, float bpm, float beats,
-    float sr) {
+/* Resolve beats/bpm/sr to whole samples (shared by sync/retarget). */
+static uint32_t delay_samples(float bpm, float beats, float sr, uint32_t cap) {
     float want;
     uint32_t s;
-    if (!d || !(sr > 0.0f))
-        return 0;
-    if (bpm < 30.0f)
-        bpm = 30.0f;
-    if (bpm > 300.0f)
-        bpm = 300.0f;
+    if (!(sr > 0.0f) || cap < 2u)
+        return 1u;
+    if (bpm < 20.0f)
+        bpm = 20.0f;
+    if (bpm > 500.0f)
+        bpm = 500.0f;
     if (beats < 0.0625f)
         beats = 0.0625f;
-    if (beats > 8.0f)
-        beats = 8.0f;
+    if (beats > 32.0f)
+        beats = 32.0f;
     want = beats * 60.0f * sr / bpm;
     /* Round-half-away without libm (want >= 0 by construction). */
     s = (uint32_t)(want + 0.5f);
     if (s < 1u)
         s = 1u;
-    if (s > d->cap - 1u)
-        s = d->cap - 1u;
+    if (s > cap - 1u)
+        s = cap - 1u;
+    return s;
+}
+
+uint32_t ri_fxdelay_sync(struct RiFXDelay *d, float bpm, float beats,
+    float sr) {
+    uint32_t s;
+    if (!d)
+        return 0;
+    if (beats < 0.0625f)
+        beats = 0.0625f;
+    if (beats > 32.0f)
+        beats = 32.0f;
+    d->beats = beats;
+    s = delay_samples(bpm, beats, sr, d->cap);
     d->delay_smp = s;
+    d->target_smp = s;
+    return s;
+}
+
+/* Retarget without jumping: the render slews delay_smp to the resolved
+ * target (no zipper clicks on tempo/beat changes). Returns the target. */
+uint32_t ri_fxdelay_retarget(struct RiFXDelay *d, float bpm, float beats,
+    float sr) {
+    uint32_t s;
+    if (!d)
+        return 0;
+    if (beats < 0.0625f)
+        beats = 0.0625f;
+    if (beats > 32.0f)
+        beats = 32.0f;
+    d->beats = beats;
+    s = delay_samples(bpm, beats, sr, d->cap);
+    d->target_smp = s;
     return s;
 }
 
@@ -69,10 +103,30 @@ void ri_fxdelay_render(struct RiFXDelay *d, const float *in, float *out,
     if (!d || !in || !out)
         return;
     for (i = 0; i < n; i++) {
-        uint32_t rp = (d->pos + d->cap - d->delay_smp) % d->cap;
-        float dl = d->buf[rp];
-        d->buf[d->pos] = in[i] + dl * d->fb;
-        out[i] = in[i] * (1.0f - d->mix) + dl * d->mix;
+        /* Slew the live tap toward a retarget (at most 1/64th of the
+         * remaining distance per sample: full traverse in <= 64 samples
+         * ≈ 1.3 ms — no zipper click, fast lock. Chunk-agnostic: the
+         * trajectory depends only on sample count, not chunking). */
+        if (d->delay_smp != d->target_smp) {
+            uint32_t diff = d->delay_smp > d->target_smp ?
+                d->delay_smp - d->target_smp : d->target_smp - d->delay_smp;
+            uint32_t step = diff / 64u + 1u;
+            if (d->delay_smp > d->target_smp) {
+                d->delay_smp -= step;
+                if (d->delay_smp < d->target_smp)
+                    d->delay_smp = d->target_smp;
+            } else {
+                d->delay_smp += step;
+                if (d->delay_smp > d->target_smp)
+                    d->delay_smp = d->target_smp;
+            }
+        }
+        {
+            uint32_t rp = (d->pos + d->cap - d->delay_smp) % d->cap;
+            float dl = d->buf[rp];
+            d->buf[d->pos] = in[i] + dl * d->fb;
+            out[i] = in[i] * (1.0f - d->mix) + dl * d->mix;
+        }
         d->pos++;
         if (d->pos >= d->cap)
             d->pos = 0;
@@ -125,13 +179,21 @@ static float ri_fxcomp_thresh_db(uint8_t t) {
     return -40.0f + (float)(t > 127u ? 127u : t) * (40.0f / 127.0f);
 }
 
+/* One-pole smoothers from the kernel (no libm): a = exp(-1/(tau*sr)).
+ * Re-derived per render call (cheap: 2 exps) so the follower tracks the
+ * live rate instead of the init-time 48 kHz. */
+static void ri_fxcomp_derive(struct RiFXComp *c, float sr) {
+    if (!(sr > 0.0f))
+        sr = 48000.0f;
+    c->atk_a = ri_exp(-1.0f / (RI_FXCOMP_ATTACK_S * sr));
+    c->rel_a = ri_exp(-1.0f / (RI_FXCOMP_RELEASE_S * sr));
+}
+
 int ri_fxcomp_init(struct RiFXComp *c, float sr) {
     if (!c || !(sr > 0.0f))
         return 2;
     c->env = 0.0f;
-    /* One-pole smoothers from the kernel (no libm): a = exp(-1/(tau*sr)). */
-    c->atk_a = ri_exp(-1.0f / (RI_FXCOMP_ATTACK_S * sr));
-    c->rel_a = ri_exp(-1.0f / (RI_FXCOMP_RELEASE_S * sr));
+    ri_fxcomp_derive(c, sr);
     c->thresh = 64;
     ri_fxcomp_set(c, (uint8_t)64);
     return 0;
@@ -185,10 +247,26 @@ void ri_fxcomp_render(struct RiFXComp *c, const float *in, float *out,
 
 #define RI_FX_POOL 8u
 static struct RIFX RI_FX_INST[RI_FX_POOL];
-static uint32_t RI_FX_USED = 0;
-/* Static line buffers for wrapper-owned delays (2 instances, 1 s each). */
-static float RI_FX_DBUF[2][48001];
-static uint32_t RI_FX_DBUF_USED = 0;
+static uint8_t RI_FX_BUSY[RI_FX_POOL];
+
+static struct RIFX *fx_alloc(void) {
+    uint32_t i;
+    for (i = 0; i < RI_FX_POOL; i++)
+        if (!RI_FX_BUSY[i]) {
+            RI_FX_BUSY[i] = 1u;
+            return &RI_FX_INST[i];
+        }
+    return 0;
+}
+
+static void fx_release(struct RIFX *x) {
+    uint32_t i;
+    if (!x)
+        return;
+    for (i = 0; i < RI_FX_POOL; i++)
+        if (x == &RI_FX_INST[i])
+            RI_FX_BUSY[i] = 0u;
+}
 
 /* Map wrapper PCF knob echoes onto the owned voice fields. Touches
  * parameters only — SVF state (low/band) and beat_pos are never reset
@@ -205,17 +283,13 @@ static void ri_fx_pcf_apply(struct RIFX *x) {
 
 struct RIFX *RiFXCreate(uint32_t fx_type) {
     struct RIFX *x;
-    float *db = 0;
-    if (fx_type > RI_FX_PCF || RI_FX_USED >= RI_FX_POOL)
+    if (fx_type > RI_FX_PCF)
         return 0;
-    if (fx_type == RI_FX_DELAY) {
-        /* Delay pool exhausted: fail closed (no handle), never hand out
-         * a bufferless delay that a later render could misroute. */
-        if (RI_FX_DBUF_USED >= 2u)
-            return 0;
-        db = RI_FX_DBUF[RI_FX_DBUF_USED++];
-    }
-    x = &RI_FX_INST[RI_FX_USED++];
+    if (fx_type == RI_FX_DELAY)
+        return 0; /* no caller-owned line: use RiFXCreateDelay (§12.8a) */
+    x = fx_alloc();
+    if (!x)
+        return 0;
     x->type = fx_type;
     x->busy = 1;
     x->pad[0] = 0;
@@ -231,23 +305,56 @@ struct RIFX *RiFXCreate(uint32_t fx_type) {
     x->pad2[0] = 0;
     x->pad2[1] = 0;
     x->pad2[2] = 0;
-    if (db) {
-        ri_fxdelay_init(&x->delay, db, 48001u);
-        ri_fxdelay_sync(&x->delay, 140.0f, 0.75f, 48000.0f);
-    } else {
-        x->delay.buf = 0;
-        x->delay.cap = 0;
-        x->delay.pos = 0;
-        x->delay.delay_smp = 0;
-        x->delay.fb = 0.0f;
-        x->delay.mix = 0.0f;
-    }
+    x->delay.buf = 0;
+    x->delay.cap = 0;
+    x->delay.pos = 0;
+    x->delay.delay_smp = 0;
+    x->delay.target_smp = 0;
+    x->delay.beats = 0.75f;
+    x->delay.fb = 0.0f;
+    x->delay.mix = 0.0f;
     /* Owned PCF voice: init once here, reused across renders (never
      * re-inited on the render path — block clicks otherwise). */
     pcf_init(&x->pcf);
     ri_fx_pcf_apply(x);
     pcf_set_tempo(&x->pcf, 140.0f);
     return x;
+}
+
+/* Delay with a caller-owned line (the ONLY delay constructor now).
+ * The caller sizes cap for the worst case and keeps the buffer alive
+ * for the handle's lifetime. */
+struct RIFX *RiFXCreateDelay(float *buf, uint32_t cap) {
+    struct RIFX *x;
+    if (!buf || cap < 64u)
+        return 0;
+    x = fx_alloc();
+    if (!x)
+        return 0;
+    x->type = RI_FX_DELAY;
+    x->busy = 1;
+    x->pad[0] = 0;
+    x->pad[1] = 0;
+    x->pad[2] = 0;
+    ri_fxdist_init(&x->dist);
+    ri_fxcomp_init(&x->comp, 48000.0f);
+    x->pcf_pattern = 0;
+    x->pcf_mode = 0;
+    x->pcf_base = 64;
+    x->pcf_q = 64;
+    x->pcf_amt = 64;
+    x->pad2[0] = 0;
+    x->pad2[1] = 0;
+    x->pad2[2] = 0;
+    ri_fxdelay_init(&x->delay, buf, cap);
+    pcf_init(&x->pcf);
+    ri_fx_pcf_apply(x);
+    pcf_set_tempo(&x->pcf, 140.0f);
+    return x;
+}
+
+void RiFXDestroy(struct RIFX *x) {
+    fx_release(x); /* NULL + double-destroy safe (no match = no-op) */
 }
 
 /* Render-ready check: 0 ok, 2 = DELAY handle without a line buffer
@@ -268,9 +375,10 @@ void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value) {
         value = 127u;
     switch (id) {
     case RI_FXID_DELAY_BEATS:
+        /* Store the musical length; resolved against the live tempo/rate
+         * at render (RiFXRender retargets — no zipper jumps). */
         b = value > 3u ? 3u : (uint32_t)value;
-        if (x->type == RI_FX_DELAY && x->delay.buf)
-            ri_fxdelay_sync(&x->delay, 140.0f, RI_FX_BEATS[b], 48000.0f);
+        x->delay.beats = RI_FX_BEATS[b];
         break;
     case RI_FXID_DELAY_FB:
         if (x->type == RI_FX_DELAY && x->delay.buf)
@@ -321,15 +429,16 @@ void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
     if (x->type == RI_FX_DELAY) {
         if (!x->delay.buf) {
             /* Fail-closed: bufferless delay renders silence, never a
-             * different effect (Create fails closed, so this is
-             * defensive; see RiFXValid). */
+             * different effect (CreateDelay always installs a line, so
+             * this is defensive; see RiFXValid). */
             for (i = 0; i < frames; i++)
                 out[i] = 0.0f;
             return;
         }
-        if (bpm >= 30.0f && bpm <= 300.0f) {
-            /* Re-resolve the musical delay against the live tempo. */
-            ri_fxdelay_sync(&x->delay, bpm, 0.75f, sr);
+        if (bpm >= 20.0f && bpm <= 500.0f) {
+            /* Re-resolve the STORED musical delay against the live tempo
+             * (retarget slews — the old code overwrote beats with 0.75). */
+            ri_fxdelay_retarget(&x->delay, bpm, x->delay.beats, sr);
         }
         ri_fxdelay_render(&x->delay, in, out, frames);
         return;
@@ -339,6 +448,8 @@ void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
         return;
     }
     if (x->type == RI_FX_COMP) {
+        /* Follower coeffs track the live rate (not the init-time 48 k). */
+        ri_fxcomp_derive(&x->comp, sr);
         ri_fxcomp_render(&x->comp, in, out, frames);
         return;
     }

@@ -38,8 +38,6 @@
 #define RI_FXID_PCF_AMT 0x0A08u /* 0..127 -> -4..+4 oct */
 #define RI_FXID_PCF_MODE 0x0A09u /* 0..2 low/band/high */
 #define RI_FXID_PCF_PATTERN 0x0A0Au /* 0..53 stored state */
-
-#define RI_FXDELAY_MAX 96000u /* 2 s at 48 kHz */
 #define RI_FXCOMP_RATIO 4.0f
 #define RI_FXCOMP_ATTACK_S 0.010f
 #define RI_FXCOMP_RELEASE_S 0.100f
@@ -48,7 +46,9 @@ struct RiFXDelay {
     float *buf; /* non-owning line, capacity cap */
     uint32_t cap;
     uint32_t pos;
-    uint32_t delay_smp;
+    uint32_t delay_smp; /* live tap (slews toward target_smp) */
+    uint32_t target_smp; /* retargeted tap (§12.8a; no zipper jumps) */
+    float beats; /* musical length, beats (wrapper-owned knob state) */
     float fb; /* 0..0.8 */
     float mix; /* 0..1 */
 };
@@ -70,9 +70,10 @@ struct RiFXComp {
 /* Generic handle (Appendix D RIFX sketch, executor-defined shape).
  * Fix round 1: the handle OWNS a persistent struct PCF (streaming-safe:
  * SVF state + beat_pos survive across RiFXRender block calls; the render
- * path never re-inits it). Wrapper delays come from a 2-slot static pool:
- * RiFXCreate fails closed (NULL) when the pool is exhausted, and a DELAY
- * handle without a line buffer renders silence (RiFXValid reports 2). */
+ * path never re-inits it). §12.8a: delay lines are CALLER-OWNED (no static
+ * pool — it leaked by never releasing): RiFXCreateDelay takes the buffer;
+ * plain RiFXCreate(RI_FX_DELAY) fails closed (NULL). RiFXDestroy releases
+ * the slot for reuse (double-destroy and NULL safe). */
 struct RIFX {
     uint32_t type;
     uint8_t busy;
@@ -89,9 +90,14 @@ struct RIFX {
     uint8_t pad2[3];
 };
 
-/* Delay. buf/cap caller-owned (cap >= 64). Returns 0 ok, 2 bad arg. */
+/* Delay. buf/cap caller-owned (cap >= 64, sized for the worst case:
+ * 32 triplet-8ths at 20 BPM = 32 s — the caller allocates at load time,
+ * never on the render path). Returns 0 ok, 2 bad arg. */
 int ri_fxdelay_init(struct RiFXDelay *d, float *buf, uint32_t cap);
 uint32_t ri_fxdelay_sync(struct RiFXDelay *d, float bpm, float beats,
+    float sr);
+/* Retarget without jumping (render slews to it); returns the target. */
+uint32_t ri_fxdelay_retarget(struct RiFXDelay *d, float bpm, float beats,
     float sr);
 void ri_fxdelay_set(struct RiFXDelay *d, uint8_t fb128, uint8_t mix128);
 void ri_fxdelay_reset(struct RiFXDelay *d);
@@ -112,10 +118,14 @@ void ri_fxcomp_render(struct RiFXComp *c, const float *in, float *out,
     uint32_t n);
 
 /* Generic wrapper (Appendix D names, executor-defined shape).
- * RiFXCreate returns 0 on bad type, full pool, or exhausted delay pool.
+ * RiFXCreate returns 0 on bad type or full pool. RI_FX_DELAY needs a
+ * caller-owned line: use RiFXCreateDelay (plain Create fails closed).
+ * RiFXDestroy releases the slot (reuse, double-destroy and NULL safe).
  * RiFXValid returns 0 when render-ready, 2 when a DELAY handle has no
  * line buffer (only reachable by construction, never by Create). */
 struct RIFX *RiFXCreate(uint32_t fx_type);
+struct RIFX *RiFXCreateDelay(float *buf, uint32_t cap);
+void RiFXDestroy(struct RIFX *x);
 int RiFXValid(const struct RIFX *x);
 void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value);
 void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,

@@ -285,12 +285,14 @@ int main(void) {
 
     /* --- 7. generic wrapper: create/set/render finite --- */
     {
-        struct RIFX *dl = RiFXCreate(RI_FX_DELAY);
+        static float dlline[262144];
+        struct RIFX *dl = RiFXCreateDelay(dlline, 262144u);
         struct RIFX *ds = RiFXCreate(RI_FX_DIST);
         struct RIFX *cp = RiFXCreate(RI_FX_COMP);
         struct RIFX *pf = RiFXCreate(RI_FX_PCF);
         RI_ASSERT(dl && ds && cp && pf, "wrapper create");
         RI_ASSERT(RiFXCreate(99) == 0, "wrapper bad type");
+        RI_ASSERT(RiFXCreate(RI_FX_DELAY) == 0, "Create(DELAY) not retired");
         RiFXSetParam(ds, RI_FXID_DIST_DRIVE, 64);
         RiFXSetParam(ds, RI_FXID_DIST_SHAPE, 32);
         RiFXSetParam(cp, RI_FXID_COMP_THRESH, 64);
@@ -323,17 +325,21 @@ int main(void) {
         RiFXRender(pf, IN + 2048u, OB + 2048u, 2048u, SR, 140.0f);
         for (i = 0; i < 4096u; i++)
             RI_ASSERT(OA[i] == OB[i], "wrap pcf split at %u", i);
-        /* delay pool fails closed (fix round 1): 2nd line ok, 3rd NULL */
+        /* destroy/reuse (§12.8a): freed slots recycle, pool stays full. */
         RI_ASSERT(RiFXValid(dl) == 0, "dl not valid");
         RI_ASSERT(RiFXValid(pf) == 0, "pf not valid");
         RI_ASSERT(RiFXValid(0) == 2, "null valid");
+        RiFXDestroy(dl);
+        RiFXDestroy(ds);
         {
-            struct RIFX *d2 = RiFXCreate(RI_FX_DELAY);
-            RI_ASSERT(d2 != 0, "2nd delay refused");
-            RI_ASSERT(RiFXValid(d2) == 0, "d2 not valid");
-            RI_ASSERT(RiFXCreate(RI_FX_DELAY) == 0,
-                "delay pool not fail-closed");
+            struct RIFX *d2 = RiFXCreateDelay(dlline, 262144u);
+            struct RIFX *c2 = RiFXCreate(RI_FX_COMP);
+            RI_ASSERT(d2 != 0 && c2 != 0, "slots not reused");
+            RiFXDestroy(d2);
+            RiFXDestroy(c2);
         }
+        RiFXDestroy(cp);
+        RiFXDestroy(pf);
     }
 
     /* --- 8. validator mutants (wrong magic, truncated) --- */
