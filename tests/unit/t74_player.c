@@ -244,8 +244,12 @@ int main(void) {
         n = ri_player_block(&pl, &tr, 0, &MAP, 96u, 5000u, 5000u + 192u, ev, 256u);
         RI_ASSERT(pl.phase_ticks[0] == 0u, "seek jumps tick, phase still wraps even");
         RI_ASSERT(pl.sounding_slot[0] == 0u, "seek moves no changeover");
-        /* Corrupt length: silent, no hang. */
-        BA.pat[0].length = 0u;
+        /* Corrupt length: silent, no hang. R-CORRUPT: the pre-check
+         * also freezes sounding (the trip-count alone would flip it
+         * to pending inside the len==0 spin). */
+        BA.pat[5].length = 0u;
+        ri_track_capture(&tr, 0u, 0u, 5u);
+        ri_track_capture(&tr, 1u, 0u, 7u);
         ri_player_init(&pl, c4, &tr, 0u);
         n = ri_player_block(&pl, &tr, 0, &MAP, 96u, 0u, 4u * bar, ev, 256u);
         {
@@ -255,7 +259,137 @@ int main(void) {
             RI_ASSERT(hits == 0u, "corrupt length silent (%u)", hits);
         }
         RI_ASSERT(pl.phase_ticks[0] == 0u, "corrupt length frozen");
+        RI_ASSERT(pl.sounding_slot[0] == 5u, "corrupt keeps sounding");
         banks_4(b4); /* restore: corruption/mutations must not leak into Task 3 */
+    }
+    /* ---- emission: merge, cap/heal, split-identity, loop, song end ---- */
+    {
+        struct RIPlayer pl, p2;
+        struct RIEvent ev[256], e2[256];
+        struct RISongTrack tr;
+        struct RILoop lp;
+        uint64_t bar = 4u * 96u;
+        uint32_t n, m, k;
+        banks_4(b4);
+        for (k = 0u; k < 4u; k++) c4[k] = b4[k];
+        /* Wrap-seam slide: makes split-identity load-bearing for R4 carry
+         * chaining (a broken chain misties the seam and diverges). */
+        ri_p303_set(&BA.pat[0], 15u, 6u, (uint8_t)RI_STEP_SLIDE);
+        ri_track_init(&tr);
+        ri_track_capture(&tr, 1u, 2u, 1u);   /* 808 flips at bar 1 */
+        ri_pdrum_set(&B808.pat[1], 0u, (uint32_t)RI_L808_SD, (uint32_t)RI_HIT_LOW);
+        ri_player_init(&pl, c4, &tr, 0u);
+        n = ri_player_block(&pl, &tr, 0, &MAP, 96u, 0u, 2u * bar, ev, 256u);
+        /* Merged + sorted by the §8 key; window-filtered to [s0, s1). */
+        {
+            uint64_t s0 = ri_map_tick(&MAP, 0u);
+            uint64_t s1 = ri_map_tick(&MAP, 2u * bar);
+            for (k = 1u; k < n; k++)
+                RI_ASSERT(!ri_event_less(&ev[k], &ev[k - 1u]), "unsorted %u", k);
+            for (k = 0u; k < n; k++)
+                RI_ASSERT(ev[k].sample >= s0 && ev[k].sample < s1, "window leak %u", k);
+        }
+        RI_ASSERT(pl.sounding_slot[2] == 1u, "808 flipped");
+        /* Determinism: same call twice on identical players, byte-identical. */
+        ri_player_init(&p2, c4, &tr, 0u);
+        m = ri_player_block(&p2, &tr, 0, &MAP, 96u, 0u, 2u * bar, e2, 256u);
+        RI_ASSERT(n == m, "determinism count");
+        RI_ASSERT(memcmp(ev, e2, n * sizeof ev[0]) == 0, "determinism bytes");
+        /* Cap: tiny cap drops the tail deterministically; pending stays
+         * current (R2: never from events); the dropped change is re-sent
+         * next block via the walker's own carry (late, never lost). */
+        {
+            struct RIPlayer p3, p4;
+            struct RIEvent e3[256], e4[2];
+            uint32_t n1;
+            ri_player_init(&p3, c4, &tr, 0u);
+            n1 = ri_player_block(&p3, &tr, 0, &MAP, 96u, 0u, 2u * bar, e3, 2u);
+            RI_ASSERT(n1 == 2u, "cap truncates");
+            RI_ASSERT(p3.pending_slot[2] == 1u, "pending current despite cap");
+            ri_player_init(&p4, c4, &tr, 0u);
+            RI_ASSERT(ri_player_block(&p4, &tr, 0, &MAP, 96u, 0u, 2u * bar, e4, 2u) == 2u,
+                "cap count");
+            RI_ASSERT(memcmp(e3, e4, 2 * sizeof e3[0]) == 0, "cap deterministic");
+            /* R-HEAL: a new selection arrives for the starved instance;
+             * the heal window visits exactly one downbeat (bar 3), where
+             * the walker's unset carry bit re-announces dev2 (late). */
+            ri_track_capture(&tr, 3u, 2u, 1u);
+            m = ri_player_block(&p3, &tr, 0, &MAP, 96u, 2u * bar, 4u * bar, e3, 256u);
+            {
+                uint32_t found = 0u;
+                for (k = 0u; k < m; k++)
+                    if (e3[k].type == RI_EV_PATTERN_CHANGE && e3[k].device == 2u &&
+                        e3[k].value == 1u) found++;
+                RI_ASSERT(found >= 1u, "dropped change re-sent, got %u", found);
+            }
+        }
+        /* Block-split identity (modulo seq): whole [0,2bar) vs 4 pieces
+         * with boundaries off the downbeats (R-SPLIT: strict interior
+         * orphans a boundary-aligned downbeat, so piece 2 owns bar 1).
+         * The step-15 slide above forces the tie seam across split points. */
+        {
+            struct RIPlayer pw, ps;
+            struct RIEvent ew[256], es[256];
+            static const uint64_t TS[5] = { 0u, 192u, 400u, 592u, 768u };
+            uint32_t nw, off = 0u, q, bad = 0u;
+            ri_player_init(&pw, c4, &tr, 0u);
+            nw = ri_player_block(&pw, &tr, 0, &MAP, 96u, 0u, 2u * bar, ew, 256u);
+            ri_player_init(&ps, c4, &tr, 0u);
+            for (q = 0u; q < 4u; q++) {
+                uint32_t nq;
+                nq = ri_player_block(&ps, &tr, 0, &MAP, 96u, TS[q], TS[q + 1u],
+                    es + off, (uint32_t)(256u - off));
+                off += nq;
+            }
+            RI_ASSERT(off == nw, "split count %u vs whole %u", off, nw);
+            for (k = 0u; k < nw && k < off; k++) {
+                if (es[k].sample != ew[k].sample || es[k].type != ew[k].type ||
+                    es[k].device != ew[k].device || es[k].voice != ew[k].voice ||
+                    es[k].value != ew[k].value || es[k].flags != ew[k].flags)
+                    bad++;
+            }
+            RI_ASSERT(bad == 0u, "split diverges in %u events", bad);
+        }
+        /* Loop wrap: loop [4,6); window bars 0..8. R-LOOPWIN: folded bar 5
+         * carries slot 3 (bar 8's downbeat opens the next block under
+         * strict interior, so the last sampled fold is 7->5). Pending
+         * follows folded bars; no walker event ever reaches 999. */
+        lp.on = 1u; lp.start_bar = 4u; lp.len_bars = 2u;
+        ri_track_capture(&tr, 4u, 0u, 3u);
+        ri_track_capture(&tr, 5u, 0u, 3u);
+        /* R-LOOPMUT: folded bars 4/5 must stay distinguishable, else a
+         * phase-losing fold (bar=ls) is invisible. Instance 1 selects
+         * 9 at bar 4, 10 at bar 5 — the last visit (bar 7->5) wins. */
+        ri_track_capture(&tr, 4u, 1u, 9u);
+        ri_track_capture(&tr, 5u, 1u, 10u);
+        ri_player_init(&pl, c4, &tr, 0u);
+        n = ri_player_block(&pl, &tr, &lp, &MAP, 96u, 0u, 8u * bar, ev, 256u);
+        RI_ASSERT(pl.pending_slot[0] == 3u, "loop folds pending");
+        RI_ASSERT(pl.pending_slot[1] == 10u, "loop fold preserves phase");
+        RI_ASSERT(pl.sounding_slot[0] == 3u, "loop folds sounding");
+        for (k = 0u; k < n; k++)
+            RI_ASSERT(ev[k].sample < ri_map_tick(&MAP, ri_seq_tick_of_bar(96u, 999u)),
+                "loop reached the end boundary");
+        /* Song end, no loop: window [998,1005) bars — bar 999 is skipped,
+         * content marches on, phase advances past the boundary. */
+        ri_player_init(&pl, c4, &tr, 0u);
+        n = ri_player_block(&pl, &tr, 0, &MAP, 96u, 998u * bar, 1005u * bar, ev, 256u);
+        {
+            uint32_t changes = 0u, content = 0u;
+            uint64_t end999 = ri_map_tick(&MAP, ri_seq_tick_of_bar(96u, 999u));
+            for (k = 0u; k < n; k++) {
+                if (ev[k].type == RI_EV_PATTERN_CHANGE) {
+                    changes++;
+                    RI_ASSERT(ev[k].sample < end999, "change at/past the end");
+                } else {
+                    content++;
+                }
+            }
+            RI_ASSERT(content > 0u, "content marches past the end");
+            RI_ASSERT(changes == 0u, "no walker events past the end (%u)", changes);
+        }
+        RI_ASSERT(n > 0u, "song-end block non-empty");
+        banks_4(b4); /* restore the slide flag for later slices */
     }
     RI_RESULT("player");
 }
