@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] lint | 0 issues (post-m65 sweep)
+- m65 (transport) verified present in raw + log + index.
+- No unindexed raws; all index/log links resolve.
+- No new commits or uncommitted work since the m65 record: nothing
+  to compile. Tree clean at b169425.
+
 ## [2026-09-25] m65 | §12.9a transport state machine (first song slice)
 - Disposition: New (reviewed plan, native execution, TDD t58)
 - Raw: llm-wiki/raw/articles/2026-09-25-transport.md
