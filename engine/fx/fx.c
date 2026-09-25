@@ -17,11 +17,31 @@ int ri_fxdelay_init(struct RiFXDelay *d, float *buf, uint32_t cap) {
     d->delay_smp = cap - 1u;
     d->target_smp = cap - 1u;
     d->beats = 0.75f;
+    d->steps = 3u;
+    d->triplet = 0u;
     d->fb = 0.0f;
     d->mix = 0.0f;
     for (i = 0; i < cap; i++)
         buf[i] = 0.0f;
     return 0;
+}
+
+/* Steps model (§12.8b1): steps straight 16ths (1/4 beat each) or 8th
+ * triplets (1/3 beat each). All knob paths funnel through these. */
+static float delay_beats(const struct RiFXDelay *d) {
+    float per = d->triplet ? (1.0f / 3.0f) : 0.25f;
+    return (float)d->steps * per;
+}
+
+static uint8_t delay_steps_for(float beats) {
+    /* Snap to the 16th grid (straight): the direct-sync entry point for
+     * arbitrary floats; all in-tree callers pass table values (exact). */
+    int s = (int)(beats * 4.0f + 0.5f);
+    if (s < 1)
+        s = 1;
+    if (s > 32)
+        s = 32;
+    return (uint8_t)s;
 }
 
 /* Resolve beats/bpm/sr to whole samples (shared by sync/retarget). */
@@ -58,7 +78,10 @@ uint32_t ri_fxdelay_sync(struct RiFXDelay *d, float bpm, float beats,
     if (beats > 32.0f)
         beats = 32.0f;
     d->beats = beats;
-    s = delay_samples(bpm, beats, sr, d->cap);
+    d->steps = delay_steps_for(beats);
+    d->triplet = 0u;
+    d->beats = delay_beats(d); /* field mirrors behavior (snapped grid) */
+    s = delay_samples(bpm, d->beats, sr, d->cap);
     d->delay_smp = s;
     d->target_smp = s;
     return s;
@@ -84,7 +107,9 @@ uint32_t ri_fxdelay_retarget(struct RiFXDelay *d, float bpm, float beats,
 void ri_fxdelay_set(struct RiFXDelay *d, uint8_t fb128, uint8_t mix128) {
     if (!d)
         return;
-    d->fb = ((float)(fb128 > 127u ? 127u : fb128) / 127.0f) * 0.8f;
+    /* Feedback 0..1.0 (knob/127; 127 = infinite sustain — §12.8b1 parity,
+     * was capped 0.8). Exact 1.0 recirculates bit-identically. */
+    d->fb = (float)(fb128 > 127u ? 127u : fb128) / 127.0f;
     d->mix = (float)(mix128 > 127u ? 127u : mix128) / 127.0f;
 }
 
@@ -379,6 +404,17 @@ void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value) {
          * at render (RiFXRender retargets — no zipper jumps). */
         b = value > 3u ? 3u : (uint32_t)value;
         x->delay.beats = RI_FX_BEATS[b];
+        x->delay.steps = delay_steps_for(RI_FX_BEATS[b]);
+        x->delay.triplet = 0u;
+        break;
+    case RI_FXID_DELAY_STEPS:
+        /* 1..32 steps; triplet flag untouched (independent knob). */
+        x->delay.steps = value < 1u ? 1u : (value > 32u ? 32u : value);
+        x->delay.beats = delay_beats(&x->delay);
+        break;
+    case RI_FXID_DELAY_TRIPLET:
+        x->delay.triplet = value ? 1u : 0u;
+        x->delay.beats = delay_beats(&x->delay);
         break;
     case RI_FXID_DELAY_FB:
         if (x->type == RI_FX_DELAY && x->delay.buf)
@@ -438,7 +474,7 @@ void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
         if (bpm >= 20.0f && bpm <= 500.0f) {
             /* Re-resolve the STORED musical delay against the live tempo
              * (retarget slews — the old code overwrote beats with 0.75). */
-            ri_fxdelay_retarget(&x->delay, bpm, x->delay.beats, sr);
+            ri_fxdelay_retarget(&x->delay, bpm, delay_beats(&x->delay), sr);
         }
         ri_fxdelay_render(&x->delay, in, out, frames);
         return;

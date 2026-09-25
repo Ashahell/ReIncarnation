@@ -27,7 +27,9 @@
 #define RI_FX_PCF 3u
 
 /* Control IDs (0x0Axx FX intent block, spec §13). */
-#define RI_FXID_DELAY_BEATS 0x0A00u /* 0..3 -> 0.5/0.75/1.0/1.5 beats */
+#define RI_FXID_DELAY_BEATS 0x0A00u /* 0..3 -> 0.5/0.75/1.0/1.5 beats (steps 2/3/4/6 straight) */
+#define RI_FXID_DELAY_STEPS 0x0A0Bu /* 1..32 delay steps (§12.8b1) */
+#define RI_FXID_DELAY_TRIPLET 0x0A0Cu /* 0 straight 16ths, nonzero 8th-triplets (§12.8b1) */
 #define RI_FXID_DELAY_FB 0x0A01u /* 0..127 -> 0..0.8 */
 #define RI_FXID_DELAY_MIX 0x0A02u /* 0..127 -> 0..1 */
 #define RI_FXID_DIST_DRIVE 0x0A03u /* 0..127 */
@@ -49,6 +51,8 @@ struct RiFXDelay {
     uint32_t delay_smp; /* live tap (slews toward target_smp) */
     uint32_t target_smp; /* retargeted tap (§12.8a; no zipper jumps) */
     float beats; /* musical length, beats (wrapper-owned knob state) */
+    uint8_t steps; /* 1..32 delay steps (§12.8b1; BEATS maps onto these) */
+    uint8_t triplet; /* nonzero = 8th-triplet steps (1/3 beat each) */
     float fb; /* 0..0.8 */
     float mix; /* 0..1 */
 };
