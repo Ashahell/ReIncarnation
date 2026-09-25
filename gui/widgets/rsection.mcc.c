@@ -65,13 +65,15 @@ static const ULONG RI_RSECT_RGB[C_NCOL] = {
 };
 static LONG s_pens[C_NCOL];
 
-/* 909 group headers (legend bar) and instrument-select box texts */
-static const struct { int x; const char *t; } RI_909_BAR[] = {
-    { 60, "AC" }, { 190, "BD" }, { 358, "SD" }, { 526, "LT" }, { 694, "MT" }, { 862, "HT" },
-    { 988, "RS" }, { 1072, "CP" }, { 1156, "CH" }, { 1240, "OH" }, { 1324, "CC" }, { 1408, "RC" }
+/* 909 header bars (TR-909 panel: dark bar, orange instrument name over its
+ * step group) and instrument-select legend texts (ReBirth p. 151 boxes) */
+static const struct { int x0, x1; const char *t; } RI_909_BAR[] = {
+    { 22, 98, "AC" }, { 108, 272, "BASS DRUM" }, { 276, 440, "SNARE DRUM" }, { 444, 608, "LOW TOM" },
+    { 612, 776, "MID TOM" }, { 780, 944, "HI TOM" }, { 948, 1028, "RIM" }, { 1032, 1112, "CLAP" },
+    { 1116, 1280, "HI HAT" }, { 1284, 1448, "CYMBAL" }
 };
 static const char *const RI_909_OPT[12] = {
-    "AC", "BASS DRUM", "SNARE DRUM", "LOW TOM", "MID TOM", "HI TOM", "RIM", "CLAP", "CH", "OH", "CRSH", "RIDE"
+    "AC", "BASS DRUM", "SNARE DRUM", "LOW TOM", "MID TOM", "HI TOM", "RS", "CP", "CH", "OH", "CC", "RC"
 };
 static const char *const RI_808_OPT[12] = {
     "AC", "BD", "SD", "LT", "MT", "HT", "RS", "CP", "CB", "CY", "OH", "CH"
@@ -233,11 +235,15 @@ static void bg_909(struct RastPort *rp, const struct RIGeoSection *g, int ox, in
 #define PX(q) ri_geo_px((q), z)
     fill_rect(rp, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_909_PANEL);
     for (i = 0; i < sizeof(RI_909_BAR) / sizeof(RI_909_BAR[0]); i++) {
-        int x = RI_909_BAR[i].x, hw = (i >= 1 && i <= 5) ? 80 : 38;
-        fill_rect(rp, ox + PX(x - hw), oy + PX(24), ox + PX(x + hw), oy + PX(60), C_909_BAR);
-        text_c(rp, ox + PX(x), oy + PX(42), RI_909_BAR[i].t, C_909_ORANGE);
+        int x0 = RI_909_BAR[i].x0, x1 = RI_909_BAR[i].x1;
+        fill_rect(rp, ox + PX(x0), oy + PX(26), ox + PX(x1), oy + PX(56), C_909_BAR);
+        text_c(rp, ox + PX((x0 + x1) / 2), oy + PX(41), RI_909_BAR[i].t, C_909_ORANGE);
     }
-    for (i = 0; i < 16; i++) {                 /* step numbers under the buttons */
+    for (i = 0; i <= 8; i++)                   /* group dividers, as on the TR-909 panel */
+        line(rp, ox + PX(106 + 168 * (int)i), oy + PX(56), ox + PX(106 + 168 * (int)i), oy + PX(296), C_909_BAR);
+    line(rp, ox + PX(1030), oy + PX(56), ox + PX(1030), oy + PX(296), C_909_BAR);
+    line(rp, ox + PX(20), oy + PX(296), ox + PX(1448), oy + PX(296), C_909_BAR);
+    for (i = 0; i < 16; i++) {                 /* step numbers under the keys (p. 151) */
         n[0] = (char)(i >= 9 ? '1' : '0' + (i + 1));
         n[1] = (char)(i >= 9 ? '0' + (i + 1 - 10) : 0);
         n[2] = 0;
@@ -246,6 +252,14 @@ static void bg_909(struct RastPort *rp, const struct RIGeoSection *g, int ox, in
         text_c(rp, ox + PX(148 + 84 * (int)i), oy + PX(432), n, C_CREAM);
     }
 #undef PX
+}
+
+/* TR-909 key: dark frame, off-white cap, lamp window at the top */
+static void key_909(struct RastPort *rp, int x0, int y0, int x1, int y1, int z, ULONG lamp) {
+    int f = ri_geo_px(6, z), lw = (x1 - x0) / 4;
+    fill_rect(rp, x0, y0, x1, y1, C_909_BAR);
+    bevel(rp, x0 + f, y0 + f, x1 - f, y1 - f, C_WHITEKEY);
+    fill_rect(rp, (x0 + x1) / 2 - lw, y0 + f + ri_geo_px(8, z), (x0 + x1) / 2 + lw, y0 + f + ri_geo_px(16, z), lamp);
 }
 
 static const char *legend_909(const char *leg) {
@@ -290,7 +304,7 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                 ULONG face = d->bind == RI_BIND_NONE ? C_DISABLED
                     : is909 ? C_909_KNOB
                     : !is808 ? C_KNOB : !strcmp(d->legend, "Level") ? C_KNOB_RED : C_KNOB_WHITE;
-                draw_knob(rp, cx, cy, PX(it->w), PX(it->h), face, is909 ? C_909_ORANGE : C_BLACK, !is808 && !is909,
+                draw_knob(rp, cx, cy, PX(it->w), PX(it->h), face, is909 ? C_909_ORANGE : C_BLACK, !is808,
                     (float)ri_knob_pointer_mdeg((int)to_n(d, v)) / 1000.0f);
             }
             break;
@@ -311,10 +325,9 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                 int st = ri_sui_led(&dd->ui, idx, 0);
                 ULONG lamp = st == 1 ? (ri_sui_value(&dd->ui, RI_S909_SELECT) == 0 ? C_LED_ON : C_LAMP_LOW)
                     : st == 2 ? C_LED_ON : st == 3 ? C_LAMP_FLAM : C_LAMP_OFF;
-                bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_909_STEP);
-                fill_rect(rp, cx - hw / 3, cy - hh + PX(8), cx + hw / 3, cy - hh + PX(18), lamp);
+                key_909(rp, cx - hw, cy - hh, cx + hw, cy + hh, z, lamp);
             } else if (d->kind == RI_CK_SWITCH && is909) {     /* Flam button */
-                bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_909_STEP);
+                key_909(rp, cx - hw, cy - hh, cx + hw, cy + hh, z, v ? C_LED_ON : C_LAMP_OFF);
             } else if (d->kind == RI_CK_SWITCH && is808) {     /* sound switch: slot + lever */
                 fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_BLACK);
                 if (v)
@@ -334,15 +347,20 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
             break;
         case RI_GEO_OPTION: {
             BOOL lit = v == it->opt;
+            if (is909) {                                  /* outlined legend box, LED left */
+                const char *t = it->opt < 12 ? RI_909_OPT[it->opt] : "?";
+                if (TextLength(rp, (STRPTR)t, (ULONG)strlen(t)) + PX(40) > 2 * hw)
+                    t = it->opt == 1 ? "BASS" : it->opt == 2 ? "SNARE" : t; /* bar above names the drum */
+                fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_909_BAR);
+                fill_rect(rp, cx - hw + 1, cy - hh + 1, cx + hw - 1, cy + hh - 1, C_909_PANEL);
+                fill_circle(rp, cx - hw + PX(12), cy, PX(5), lit ? C_LED_ON : C_LED_OFF);
+                text_c(rp, cx + PX(8), cy, t, C_BLACK);
+                break;
+            }
             fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, lit ? C_CREAM_LIT : C_CREAM);
             if (lit)
                 line(rp, cx - hw, cy + hh, cx + hw, cy + hh, C_LED_ON);
-            if (is909) {
-                const char *t = it->opt < 12 ? RI_909_OPT[it->opt] : "?";
-                int tw = TextLength(rp, (STRPTR)t, (ULONG)strlen(t));
-                fill_circle(rp, cx - tw / 2 - 1, cy, PX(5), lit ? C_LED_ON : C_LED_OFF);
-                text_c(rp, cx + PX(8), cy, t, C_BLACK);
-            } else {
+            {
                 text_c(rp, cx, cy, it->opt < 12 ? RI_808_OPT[it->opt] : "?", C_BLACK);
             }
             break;
