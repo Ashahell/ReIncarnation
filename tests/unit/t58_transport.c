@@ -172,6 +172,52 @@ int main(void) {
             RI_ASSERT(dp.bar == 100u, "panel clamps %u", dp.bar);
         }
     }
+    /* Loop clamp law. */
+    {
+        struct RILoop l = { 1, 90, 20 };
+        ri_loop_clamp(&l, 100u);
+        RI_ASSERT(l.start_bar == 90u && l.len_bars == 10u && l.on == 1u, "clamp len");
+        l.on = 1; l.start_bar = 150; l.len_bars = 5;
+        ri_loop_clamp(&l, 100u);
+        RI_ASSERT(l.start_bar == 99u && l.len_bars == 1u, "clamp start");
+        l.on = 1; l.start_bar = 0; l.len_bars = 0;
+        ri_loop_clamp(&l, 100u);
+        RI_ASSERT(l.on == 0u, "zero len kills loop");
+        l.on = 1; l.start_bar = 99; l.len_bars = 999;
+        ri_loop_clamp(&l, 100u);
+        RI_ASSERT(l.start_bar == 99u && l.len_bars == 1u, "tail clamp");
+        l.on = 1; l.start_bar = 0; l.len_bars = 1;
+        ri_loop_clamp(&l, 1u);
+        RI_ASSERT(l.on == 1u && l.start_bar == 0u && l.len_bars == 1u, "singleton");
+        l.on = 1; l.start_bar = 99; l.len_bars = 1;
+        ri_loop_clamp(&l, 99u);
+        RI_ASSERT(l.start_bar == 98u && l.len_bars == 1u, "past-end snap");
+        l.on = 1; l.start_bar = 5; l.len_bars = 3;
+        ri_loop_clamp(&l, 0u);
+        RI_ASSERT(l.on == 0u && l.start_bar == 0u && l.len_bars == 0u, "empty canon");
+        l.on = 1; l.start_bar = 0; l.len_bars = 1;
+        ri_loop_clamp(&l, 5000u);
+        RI_ASSERT(l.on == 1u && l.start_bar == 0u && l.len_bars == 1u, "ceiling norm");
+        ri_loop_clamp(0, 100u);
+    }
+    /* Staging swaps at the next bar line. */
+    {
+        struct RILoop live = { 1, 0, 4 }, nl = { 1, 8, 4 };
+        struct RILoopPending pend = { 0, 0, { 0, 0, 0 } };
+        ri_loop_stage(&pend, &nl, 3u, 100u);
+        RI_ASSERT(pend.valid == 1u && pend.apply_bar == 4u, "stage");
+        RI_ASSERT(ri_loop_poll(&pend, &live, 3u) == 0, "early poll");
+        RI_ASSERT(live.start_bar == 0u, "early applied?");
+        RI_ASSERT(ri_loop_poll(&pend, &live, 4u) == 1, "bar poll");
+        RI_ASSERT(live.start_bar == 8u && pend.valid == 0u, "applied");
+        RI_ASSERT(ri_loop_poll(&pend, &live, 99u) == 0, "empty poll");
+        ri_loop_stage(&pend, &nl, 999u, 100u);
+        RI_ASSERT(pend.valid == 1u && pend.apply_bar == 1000u, "ceiling stage");
+        RI_ASSERT(ri_loop_poll(&pend, &live, 999u) == 0, "ceiling never fires");
+        ri_loop_stage(0, &nl, 3u, 100u); ri_loop_stage(&pend, 0, 3u, 100u);
+        RI_ASSERT(ri_loop_poll(0, &live, 4u) == 0, "poll null p");
+        RI_ASSERT(ri_loop_poll(&pend, 0, 4u) == 0, "poll null live");
+    }
 #undef RI_T58_LAW
     RI_RESULT("transport");
 }

@@ -91,3 +91,44 @@ void ri_tr_seek_bars(struct RITransport *t, uint64_t *cursor_ticks, uint32_t ppq
     *cursor_ticks = ri_seq_tick_of_bar(ppq, target);
     t->clicks = 0u; /* cursor intent replaces the stop sequence */
 }
+void ri_loop_clamp(struct RILoop *loop, uint64_t song_bars) {
+    if (!loop)
+        return;
+    song_bars = song_bars > RI_SEQ_MAX_BARS ? RI_SEQ_MAX_BARS : song_bars;
+    if (song_bars == 0u) {
+        loop->on = 0u; loop->start_bar = 0u; loop->len_bars = 0u;
+        return;
+    }
+    if (loop->len_bars == 0u) {
+        loop->on = 0u; /* zero length = loop off, never an empty region */
+        return;
+    }
+    if ((uint64_t)loop->start_bar >= song_bars) {
+        loop->start_bar = (uint16_t)(song_bars - 1u);
+        loop->len_bars = 1u;
+        return;
+    }
+    if ((uint64_t)loop->start_bar + (uint64_t)loop->len_bars > song_bars)
+        loop->len_bars = (uint16_t)(song_bars - (uint64_t)loop->start_bar);
+}
+void ri_loop_stage(struct RILoopPending *p, const struct RILoop *loop, uint64_t bar_now,
+                   uint64_t song_bars) {
+    if (!p || !loop)
+        return;
+    song_bars = song_bars > RI_SEQ_MAX_BARS ? RI_SEQ_MAX_BARS : song_bars;
+    if (bar_now > RI_SEQ_MAX_BARS)
+        bar_now = RI_SEQ_MAX_BARS;
+    p->loop = *loop;
+    ri_loop_clamp(&p->loop, song_bars);
+    p->apply_bar = (bar_now >= RI_SEQ_MAX_BARS) ? (uint64_t)RI_SEQ_MAX_BARS + 1u : bar_now + 1u;
+    p->valid = 1u;
+}
+int ri_loop_poll(struct RILoopPending *p, struct RILoop *live, uint64_t bar_now) {
+    if (!p || !live || !p->valid)
+        return 0;
+    if (bar_now < p->apply_bar)
+        return 0;
+    *live = p->loop;
+    p->valid = 0u;
+    return 1;
+}

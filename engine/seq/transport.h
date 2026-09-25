@@ -27,4 +27,12 @@ uint64_t ri_seq_bar_at_tick(uint64_t tick, uint32_t ppq);
 /* Display projection (one-way; never engine input). Pure function of
  * (tick, ppq) — no clamp inside; the caller clamps the tick first. */
 struct RIBarPos ri_seq_bar_display(uint64_t tick, uint32_t ppq);
+/* Loop geometry (song bars, 0-based). Clamp law: normalize to the song
+ * (and the 999 ceiling) first; primitives stay total. */
+struct RILoop { uint8_t on; uint16_t start_bar; uint16_t len_bars; };
+struct RILoopPending { uint8_t valid; uint64_t apply_bar; struct RILoop loop; };
+void ri_loop_clamp(struct RILoop *loop, uint64_t song_bars);
+void ri_loop_stage(struct RILoopPending *p, const struct RILoop *loop, uint64_t bar_now,
+                   uint64_t song_bars);
+int ri_loop_poll(struct RILoopPending *p, struct RILoop *live, uint64_t bar_now);
 #endif
