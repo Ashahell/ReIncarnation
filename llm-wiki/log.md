@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m53 | §12.5c: BD 808 regime (paper-read, E1 numbers)
+- Disposition: New (TDD, t43 RED 7 → PASS)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-5c-808-bd.md
+- Updated: engine/dsp/rb808.h (62 Hz / 4 ms sigh), tests/unit/t43 (new),
+  t1_808 §1 + t23_808bd (re-based trajectories), t42 BD-tone meter (click band),
+  bd + storm goldens + sha (root-caused), docs/evidence/808/bd.md,
+  docs/2026-09-24-improvement-todo.md
+- SD verified structural (no code); recursion held. Full `ri_audit.sh` 0/0.
+
 ## [2026-09-25] m52 | §12.5b: metal fixed freqs + choke + per-sound params
 - Disposition: New (TDD, t42 RED → PASS with honest meters)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-5b-808-metal.md

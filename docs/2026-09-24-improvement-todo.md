@@ -50,7 +50,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 ## §12.5 808 rebuild (§4.2)
 - [x] 11 slots + 5 switches (last-wins) + MA + per-sound Level + accent-level law + LEVEL/ACCENT knob wiring (m51)
 - [x] Metal fixed oscillators + choke rules + per-sound Tune/Decay/Snappy/Tone wiring (m52)
-- [ ] BD bridged-T + SD two-resonator + recursive envelopes
+- [x] BD 808 regime (62 Hz / 4 ms sigh, paper-read) + SD structural verification + recursion held (m53)
 
 ## §12.6 909 completion (§4.3)
 - [ ] LT/MT/HT/RS/CP; analog-vs-ROM split; accent/flam decouple; per-voice decay/level; shared CH/OH level + rule; layer morph stays internal
