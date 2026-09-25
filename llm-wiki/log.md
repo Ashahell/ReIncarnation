@@ -1,5 +1,20 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m66 | §12.9b song track (dense grid + emission + STRK)
+- Disposition: New (reviewed plan, native execution, TDD t59)
+- Raw: llm-wiki/raw/articles/2026-09-25-songtrack.md
+- Updated: engine/seq/songtrack.{h,c} + songtrack_emit.h (new),
+  project/rbng.* (STRK + track field), tests/unit/t59 (new),
+  scripts/ri_audit.sh (Phase 7b loop + static-state grep + AROS line),
+  docs/autodoc/seq.doc, docs/2026-09-24-improvement-todo.md
+- Full `ri_audit.sh` 0/0. 8 mutants proven (incl. 1 hard fault).
+
+## [2026-09-25] ingest | G5 key precedence decided
+- Disposition: Update (decision record; supersedes the E0 precedence note in the G5 record)
+- Raw: llm-wiki/raw/articles/2026-09-25-g5-key-precedence-decision.md
+- Updated: llm-wiki/index.md (G5 entry: E0 → decided)
+Owner-delegated: programming keys of the focused section win overlapping keys (TB-303/TR-808/909 write-vs-play mode analog); options stay independent (ReBirth menu); mutual exclusion rejected.
+
 ## [2026-09-25] ingest | §12.10 G5 keyboard + focus bar
 - Disposition: New (slice record; cross-posted lane finding to Vulkan4AROS)
 - Raw: llm-wiki/raw/articles/2026-09-25-gui-keyboard-focus-g5.md

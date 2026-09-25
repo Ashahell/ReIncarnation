@@ -11,3 +11,24 @@ uint64_t ri_map_tick_floor(const struct RITempoMap *m, uint64_t tick)
 uint32_t ri_sched_emit_sorted(const struct RITempoMap *map, uint64_t start_tick, const struct RIEvent *ev, uint32_t nev, struct RIEvent *out, uint32_t cap)
 uint32_t ri_sched_emit_timed(const struct RITempoMap *map, uint64_t start_tick, const struct RIEvent *ev, uint32_t nev, struct RIEvent *out, uint32_t cap)
   Snapshot builder + timed walker (full signatures in sched.h).
+
+Song track (spec 2026-09-25 §1): songtrack.h.
+  struct RISongTrack { uint8_t slot[RI_SONGTRACK_BARS][RI_SONGTRACK_INSTANCES]; }
+  struct RITrackClip { uint16_t len; uint8_t slot[RI_SONGTRACK_BARS][RI_SONGTRACK_INSTANCES]; }
+  void ri_track_init(struct RISongTrack *t)
+  uint8_t ri_track_selected(const struct RISongTrack *t, uint64_t bar, uint32_t instance)
+  int ri_track_capture(struct RISongTrack *t, uint64_t bar, uint32_t instance, uint8_t slot)
+  int ri_track_is_empty(const struct RISongTrack *t)
+  int ri_track_init_song(struct RISongTrack *t, const uint8_t slots[4])
+  int ri_track_init_loop(struct RISongTrack *t, const uint8_t slots[4], uint64_t start_bar, uint64_t len_bars)
+  void ri_track_copy(const struct RISongTrack *t, uint64_t start, uint64_t len, struct RITrackClip *clip)
+  void ri_track_cut(struct RISongTrack *t, uint64_t start, uint64_t len, struct RITrackClip *clip)
+  int ri_track_paste(struct RISongTrack *t, uint64_t at, const struct RITrackClip *clip)
+  int ri_track_paste_replace(struct RISongTrack *t, uint64_t at, const struct RITrackClip *clip)
+  (int writers: 0 ok / no-op, 2 refused — NULL, slot > 31, clip len > 999; track untouched)
+Song track emission (spec 2026-09-25 §2): songtrack_emit.h (model + sched/clock).
+  struct RITrackCarry { uint8_t known; uint8_t prev[4]; }   (known bit i = prev[i] was emitted)
+  uint32_t ri_track_emit_measure(const struct RISongTrack *t, uint64_t bar, struct RITrackCarry *carry, const struct RITempoMap *map, uint32_t ppq, struct RIEvent *out, uint32_t *n, uint32_t cap, uint32_t *seq)
+  uint32_t ri_track_emit_range(const struct RISongTrack *t, uint64_t bar_first, uint64_t bar_count, const struct RILoop *loop, const struct RITempoMap *map, uint32_t ppq, struct RITrackCarry *carry, struct RIEvent *out, uint32_t cap)
+  int ri_song_ended(uint64_t bar_now)
+Song geometry reuses transport.h (RI_SONG_BARS, ri_bar_quantize_next, ri_loop_clamp); RBNG STRK carries the grid.

@@ -20,7 +20,7 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## GUI (§12.10)
 
-- [raw/articles/2026-09-25-gui-keyboard-focus-g5.md](raw/articles/2026-09-25-gui-keyboard-focus-g5.md) — **2026-09-25 — G5 keyboard + focus bar (`64a8a30`).** Appendix E map on positional raw keys (patterns, keypad transport, focus arrows, synth programming, drum tap, menu chords), one front panel owning the focus, orange focus bar, click-to-focus; t70/t71; first real-input proof on riqemu1 via QEMU `sendkey` (identical traces twice). E0: key precedence, arrows stop at ends, options default off. Taps → G6, menus → G8.
+- [raw/articles/2026-09-25-gui-keyboard-focus-g5.md](raw/articles/2026-09-25-gui-keyboard-focus-g5.md) — **2026-09-25 — G5 keyboard + focus bar (`64a8a30`).** Appendix E map on positional raw keys (patterns, keypad transport, focus arrows, synth programming, drum tap, menu chords), one front panel owning the focus, orange focus bar, click-to-focus; t70/t71; first real-input proof on riqemu1 via QEMU `sendkey` (identical traces twice). Key precedence DECIDED (focused-section programming wins overlaps, hardware write-mode rationale — [record](raw/articles/2026-09-25-g5-key-precedence-decision.md)); still E0: arrows stop at ends, options default off. Taps → G6, menus → G8.
 - [raw/articles/2026-09-25-gui-parity-sections-g1-g4.md](raw/articles/2026-09-25-gui-parity-sections-g1-g4.md) — **2026-09-25 — GUI parity G1–G4: every ReBirth panel section laid out, behaving, rendered (`f130142`…`31ed17b`).** 243-control registry (Appendix C CCs, automation exclusions, bindings); geometry measured from the manual figures (303 p. 153, 808 p. 148, 909 p. 151, mixer p. 157, Master p. 23, FX p. 159–164, Transport p. 144, Pattern p. 147) in Q units, zooms 1/1.5/2 + compact 0.75x; pure-C behaviour modules t60–t69 (mutation-checked); one Zune `RSection` canvas; riqemu1 demo captures for all sections. PCF sliders (not knobs); PCF/Comp radio routing; bank arms, pattern commits. Open: Dist exclusivity (manual contradicts itself, owner), engine Stop law vs p. 145 (§12.9 owner), human click test, t6x audit wiring.
 
 ## Lane infrastructure
@@ -104,6 +104,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 - [raw/articles/2026-09-25-engine-808-909-hosting.md](raw/articles/2026-09-25-engine-808-909-hosting.md) — **2026-09-25 — §12.7 m64.** Engine drum hosting + event consumption; zero golden fallout.
 
 - [raw/articles/2026-09-25-transport.md](raw/articles/2026-09-25-transport.md) — **2026-09-25 — §12.9a transport (m65).** State machine + bar mapping + loop model; 3 mutants proven.
+
+- [raw/articles/2026-09-25-songtrack.md](raw/articles/2026-09-25-songtrack.md) — **2026-09-25 — §12.9b song track (m66).** Dense grid + change emission + STRK; 8 mutants proven.
 
 - [raw/articles/2026-09-24-first-click-jump-qa.md](raw/articles/2026-09-24-first-click-jump-qa.md) — **2026-09-24 — First-click jump + Q&A.** Warp arms past 3px; buttons-gone by design; FLAMRES = documented placeholder slot.
 

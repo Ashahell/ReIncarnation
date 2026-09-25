@@ -150,6 +150,9 @@ bash "$ROOT/scripts/ri_build_host.sh" test t21_seqswap >/dev/null || { echo "FAI
 bash "$ROOT/scripts/ri_build_host.sh" test t21_storm >/dev/null || { echo "FAIL: t21_storm"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_swaprender >/dev/null || { echo "FAIL: t21_swaprender"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t58_transport >/dev/null || { echo "FAIL: t58_transport"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t59_songtrack >/dev/null || { echo "FAIL: t59_songtrack"; exit 1; }
+# law: no mutable static state in the song track (spec §Ownership) — one enforcement point
+if grep -nE "^static [^()]*[;=]" engine/seq/songtrack.c | grep -v ":static const"; then echo "FAIL: mutable static state in songtrack.c"; exit 1; fi
 echo "== Phase 7: sched shuffle/legato/flam (Task 7, gate G7) =="
 bash "$ROOT/scripts/ri_build_host.sh" test t1_sched >/dev/null || { echo "FAIL: t1_sched"; exit 1; }
 test -f "$ROOT/docs/evidence/sequencer/flam-default.md" || { echo "FAIL: missing P-05 ledger row"; exit 1; }
@@ -553,7 +556,7 @@ if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AR
 export PATH="$AROS_TOOLCHAIN:$PATH"
 SDK="$AROS_SDK_INCLUDE"
 CFLAGS_REL="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
-for tu in project/arexx_aros.c midi_io/camd_backend.c project/datatypes/rbng.datatype.c project/datatypes/rbnm.datatype.c gui/catalog.c project/arexx_dispatch.c; do
+for tu in project/arexx_aros.c midi_io/camd_backend.c project/datatypes/rbng.datatype.c project/datatypes/rbnm.datatype.c gui/catalog.c project/arexx_dispatch.c engine/seq/songtrack.c; do
   bn=$(basename "$tu" .c)
   x86_64-aros-gcc $CFLAGS_REL -c "$ROOT/$tu" -o "$OUT/aros/${bn}_rel_aros.o" || { echo "FAIL: $tu AROS compile"; exit 1; }
 done
