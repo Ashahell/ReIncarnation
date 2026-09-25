@@ -163,6 +163,7 @@ void ri_fxdist_init(struct RiFXDist *d) {
         return;
     d->drive = 0;
     d->shape = 0;
+    d->prev = 0.0f;
 }
 
 void ri_fxdist_set(struct RiFXDist *d, uint8_t drive, uint8_t shape) {
@@ -170,6 +171,12 @@ void ri_fxdist_set(struct RiFXDist *d, uint8_t drive, uint8_t shape) {
         return;
     d->drive = drive > 127u ? 127u : drive;
     d->shape = shape > 127u ? 127u : shape;
+}
+
+void ri_fxdist_reset(struct RiFXDist *d) {
+    if (!d)
+        return;
+    d->prev = 0.0f;
 }
 
 void ri_fxdist_render(struct RiFXDist *d, const float *in, float *out,
@@ -193,9 +200,19 @@ void ri_fxdist_render(struct RiFXDist *d, const float *in, float *out,
     if (!(norm > 1e-6f))
         norm = 1.0f;
     for (i = 0; i < n; i++) {
-        float x1 = in[i] * (1.0f + k);
-        float y = ri_tanh(x1 + a * x1 * x1);
-        out[i] = y / norm;
+        /* 2x oversample (§12.8): evaluate the curve at the linear-mid
+         * sample as well as the real one, then box-decimate. The mid
+         * carries the harmonic content a single-rate pass would fold;
+         * DC is untouched (mid == cur, average == curve). prev streams
+         * across block calls (no re-init on the render path). */
+        float cur = in[i];
+        float mid = (d->prev + cur) * 0.5f;
+        float x1m = mid * (1.0f + k);
+        float x1c = cur * (1.0f + k);
+        float ym = ri_tanh(x1m + a * x1m * x1m);
+        float yc = ri_tanh(x1c + a * x1c * x1c);
+        out[i] = (ym + yc) * (0.5f / norm);
+        d->prev = cur;
     }
 }
 
@@ -214,10 +231,23 @@ static void ri_fxcomp_derive(struct RiFXComp *c, float sr) {
     c->rel_a = ri_exp(-1.0f / (RI_FXCOMP_RELEASE_S * sr));
 }
 
+/* Auto make-up: MU_dB = -tdb*(1-1/R), premultiplied at set time
+ * (MU_lin = 2^(-thresh_dB*(1-1/R)*log2(10)/20) via ri_pow2).
+ * Re-derived on every knob set so threshold and ratio stay consistent
+ * no matter which order the caller sets them. */
+static void ri_fxcomp_makeup(struct RiFXComp *c) {
+    float tdb = ri_fxcomp_thresh_db(c->thresh);
+    float mu_db = -tdb * (1.0f - 1.0f / c->ratio);
+    c->mu_lin = ri_pow2(mu_db * 0.1660964f);
+}
+
 int ri_fxcomp_init(struct RiFXComp *c, float sr) {
     if (!c || !(sr > 0.0f))
         return 2;
     c->env = 0.0f;
+    c->ratio = RI_FXCOMP_RATIO;
+    c->ratio_knob = 20u; /* knob value nearest 4:1 on the 1..20 law */
+    c->gr_min_g = 1.0f;
     ri_fxcomp_derive(c, sr);
     c->thresh = 64;
     ri_fxcomp_set(c, (uint8_t)64);
@@ -225,7 +255,7 @@ int ri_fxcomp_init(struct RiFXComp *c, float sr) {
 }
 
 void ri_fxcomp_set(struct RiFXComp *c, uint8_t thresh) {
-    float tdb, mu_db;
+    float tdb;
     if (!c)
         return;
     if (thresh > 127u)
@@ -234,15 +264,45 @@ void ri_fxcomp_set(struct RiFXComp *c, uint8_t thresh) {
     tdb = ri_fxcomp_thresh_db(thresh);
     /* Linear threshold via the kernel: 10^(tdb/20) = 2^(tdb*log2(10)/20). */
     c->thresh_lin = ri_pow2(tdb * 0.1660964f);
-    /* Auto make-up: MU_dB = -tdb*(1-1/R), premultiplied once here. */
-    mu_db = -tdb * (1.0f - 1.0f / RI_FXCOMP_RATIO);
-    c->mu_lin = ri_pow2(mu_db * 0.1660964f);
+    ri_fxcomp_makeup(c);
+}
+
+/* Ratio knob 0..127 -> 1..20 (linear; starting law pending §8 ear-fit).
+ * Make-up re-derives so threshold and ratio stay consistent either order. */
+void ri_fxcomp_set_ratio(struct RiFXComp *c, uint8_t ratio128) {
+    if (!c)
+        return;
+    if (ratio128 > 127u)
+        ratio128 = 127u;
+    c->ratio_knob = ratio128;
+    c->ratio = 1.0f + (float)ratio128 * (19.0f / 127.0f);
+    ri_fxcomp_makeup(c);
 }
 
 void ri_fxcomp_reset(struct RiFXComp *c) {
     if (!c)
         return;
     c->env = 0.0f;
+    c->gr_min_g = 1.0f;
+}
+
+float ri_fxcomp_gr_db(const struct RiFXComp *c) {
+    float g;
+    if (!c)
+        return 0.0f;
+    g = c->gr_min_g;
+    if (g >= 1.0f)
+        return 0.0f;
+    if (!(g > 0.0f))
+        return -96.0f; /* floored: meter never prints -inf */
+    /* 20*log10(g) via the kernel: 20*log2(g)/log2(10). */
+    return 20.0f * ri_log2(g) * 0.3010300f;
+}
+
+void ri_fxcomp_gr_reset(struct RiFXComp *c) {
+    if (!c)
+        return;
+    c->gr_min_g = 1.0f;
 }
 
 void ri_fxcomp_render(struct RiFXComp *c, const float *in, float *out,
@@ -255,13 +315,18 @@ void ri_fxcomp_render(struct RiFXComp *c, const float *in, float *out,
         float a = ax > c->env ? c->atk_a : c->rel_a;
         float g;
         c->env = a * c->env + (1.0f - a) * ax;
-        if (c->env > c->thresh_lin && c->env > 1e-9f) {
+        if (c->ratio <= 1.0f) {
+            g = 1.0f; /* 1:1 is no compression by definition (also exact:
+                * thresh+(env-thresh) is not bit-exact env in fp). */
+        } else if (c->env > c->thresh_lin && c->env > 1e-9f) {
             float revised = c->thresh_lin +
-                (c->env - c->thresh_lin) / RI_FXCOMP_RATIO;
+                (c->env - c->thresh_lin) / c->ratio;
             g = revised / c->env;
         } else {
             g = 1.0f;
         }
+        if (g < c->gr_min_g)
+            c->gr_min_g = g; /* GR meter peak-hold (block read/reset) */
         out[i] = in[i] * g * c->mu_lin;
         if (!(out[i] == out[i]))
             out[i] = 0.0f; /* fail-closed: never emit NaN */
@@ -436,6 +501,9 @@ void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value) {
     case RI_FXID_COMP_THRESH:
         ri_fxcomp_set(&x->comp, value);
         break;
+    case RI_FXID_COMP_RATIO:
+        ri_fxcomp_set_ratio(&x->comp, value);
+        break;
     case RI_FXID_PCF_BASE:
         x->pcf_base = value;
         break;
@@ -449,7 +517,7 @@ void RiFXSetParam(struct RIFX *x, uint32_t id, uint8_t value) {
         x->pcf_mode = value > 2u ? 2u : value;
         break;
     case RI_FXID_PCF_PATTERN:
-        x->pcf_pattern = value > 53u ? 53u : value;
+        x->pcf_pattern = value > 54u ? 54u : value;
         break;
     case RI_FXID_PCF_DECAY:
         x->pcf_decay = value;
@@ -511,6 +579,8 @@ void RiFXReset(struct RIFX *x) {
         ri_fxdelay_reset(&x->delay);
     if (x->type == RI_FX_COMP)
         ri_fxcomp_reset(&x->comp);
+    if (x->type == RI_FX_DIST)
+        ri_fxdist_reset(&x->dist); /* oversample state only, knobs survive */
     if (x->type == RI_FX_PCF) {
         pcf_init(&x->pcf);
         ri_fx_pcf_apply(x);

@@ -404,6 +404,7 @@ int main(void) {
         p.base_fc = 3000.0f;
         ri_fxdelay_reset(&d);
         ri_fxcomp_reset(&c);
+        ri_fxdist_reset(&ds); /* 2x-oversample state (§12.8) */
         ri_fxdist_render(&ds, IN, OA, 8192u);
         pcf_render(&p, OA, OA, 8192u, SR);
         ri_fxdelay_render(&d, OA, OA, 8192u);
