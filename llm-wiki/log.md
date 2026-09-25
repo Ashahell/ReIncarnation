@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] ingest | §12.10 G6a live state
+- Disposition: New (slice record; lane notes cross-posted to Vulkan4AROS)
+- Raw: llm-wiki/raw/articles/2026-09-25-gui-live-state-g6a.md
+- Updated: llm-wiki/index.md (GUI (§12.10) entry)
+Sample-count playheads, running light, taps at the playhead with held delete, meter scales; proven with real keys on a labelled stand-in clock; G6b (render task + engine meter taps) open.
+
 ## [2026-09-25] lint | 0 issues (post-m66 sweep)
 - m66 (songtrack) verified present in raw + log + index.
 - No unindexed raws; all index/log links resolve.
