@@ -1,5 +1,15 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] ingest | Private e1000 A/B lane: recipe and gotchas
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-09-25-private-e1000-ab-lane-gotchas.md
+- Updated: llm-wiki/index.md (Lane infrastructure)
+- Also: `Version <ELF>` did not kill the agent this time (earlier landmine not reproduced); agent `g_send_broken` change built (v1 + v11) but NOT yet deployed to any lane
+
+## [2026-09-25] deploy | Patched e1000.device live on the Dell
+- Disposition: Update (deployment status in the 2026-09-25 root-cause record)
+- Backup `e1000.device.pre-txpool`; installed sha `b98be161…`; reboot 09:11 → agent back 09:13:26 (session 22); 10/10 scale-2 captures PASS
+
 ## [2026-09-25] m57 | §12.8b1: delay Steps/triplet/fb-infinite
 - Disposition: New (TDD, t47 RED 6 → PASS)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8b1-delay-parity.md

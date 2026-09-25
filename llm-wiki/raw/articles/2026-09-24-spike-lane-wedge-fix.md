@@ -5,6 +5,8 @@
 > Collected: 2026-09-24
 > Published: 2026-09-24
 
+> **Status: Outdated (2026-09-25)** — root cause found: e1000.device frees Tx buffers from its interrupt handler; see [2026-09-25-e1000-wedge-root-cause-freemem-in-irq.md](2026-09-25-e1000-wedge-root-cause-freemem-in-irq.md). The Send()-size theory below is superseded.
+
 ## Disposition
 New (cross-repo: fix lives in Vulkan4Aros). Three `ui-capture`
 wedges had one signature; evidence cornered it; fix deployed;
