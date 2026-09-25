@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m56 | §12.8a: delay beats + caller-owned lines + live comp
+- Disposition: New (TDD, t46 link-RED → PASS with revert-checks)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8a-fx-delay.md
+- Updated: engine/fx/fx.{h,c} (beats store, retarget/slew, CreateDelay,
+  Destroy, per-render comp derive, 20–500 clamps), tests/unit/t46 (new),
+  tests/unit/t1_fx §7 (destroy/reuse contract),
+  docs/2026-09-24-improvement-todo.md
+- Zero golden fallout (fixtures on direct API). Full `ri_audit.sh` 0/0.
+
 ## [2026-09-25] m55 | §12.6b: 909 flam decouple + OH-wins + linear mix
 - Disposition: New (TDD, t45 link-RED → PASS with revert-checks)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-6b-909-decouple.md

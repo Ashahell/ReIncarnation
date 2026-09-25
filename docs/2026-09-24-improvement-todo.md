@@ -56,11 +56,16 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 - [x] LT/MT/HT/RS/CP as sample-layer voices + per-voice Decay/Level (m54)
 - [x] Flam bit/width decouple (compat kept) + shared CH/OH level + OH-wins rule + 909 clip removal (m55)
 
-## §12.7 Scheduler + RBNG v2 (§5.2, §7.1)
+## §12.7 Scheduler + RBNG v2 (§5.2, §7.1) — DEFERRED after §12.8 (FX first:
+  self-contained, no format surgery; rack iteration builds on the §12.3
+  section mask meanwhile)
 - [ ] 4 sections, pattern banks/lengths/shuffle flags; streaming emission; song track; RBNG chunk plan
 
 ## §12.8 FX routing + parity + PCF envelope (§3.2, §4.4)
-- [ ] Routing matrix w/ exclusivity; delay steps/triplet/fb=1.0/pan/sustain; dist oversample + curve; comp ratio + GR meter; PCF envelope + Appendix-D patterns + transport lock; drop HP (→Power Mode)
+- [x] Delay beats-honoring + caller-owned lines + tap slew + live-rate comp + pool retired (m56)
+- [ ] Delay parity (steps/triplet/fb=1.0/pan/sustain) + routing matrix/exclusivity
+- [ ] PCF clock lock + envelope model + Appendix-D patterns + HP drop
+- [ ] Dist oversample + comp ratio/GR meter
 
 ## §12.9 Song mode + transport + pattern edits (§3.1)
 - [ ] Transport state machine; song track + automation; edit ops as pure functions
