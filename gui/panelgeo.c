@@ -291,6 +291,60 @@ static const struct RIGeoItem RI_GEO_MASTER[] = {
     { MX(RI_SEC_MASTER, 3), RI_GEO_LEGEND, 0, 125, 350, 0, 0 },
 };
 
+/* FX units: Owner's Manual figures p. 159 (PCF 83 x 106 px = 332 x 424 Q),
+ * p. 161 (Delay 83 x 94 px = 332 x 376 Q), p. 163 (Dist 84 x 66 px =
+ * 336 x 264 Q), p. 164 (Comp 83 x 94 px = 332 x 376 Q). Common header:
+ * on/off lamp left, title, input meter right. Value displays carry
+ * up/down arrow buttons to their right. */
+#define FX_HEAD(sec) \
+    { MX(sec, 0), RI_GEO_RECT, 0, 50, 45, 30, 30 }, \
+    { MX(sec, 1), RI_GEO_RECT, 0, 288, 45, 20, 45 }
+static const struct RIGeoItem RI_GEO_PCF[] = {
+    FX_HEAD(RI_SEC_PCF),
+    { MX(RI_SEC_PCF, 2), RI_GEO_RECT, 0, 79, 122, 78, 65 },
+    { MX(RI_SEC_PCF, 2), RI_GEO_STEPPER, 1, 141, 105, 38, 30 },
+    { MX(RI_SEC_PCF, 2), RI_GEO_STEPPER, 0, 141, 139, 38, 30 },
+    { MX(RI_SEC_PCF, 2), RI_GEO_LEGEND, 0, 100, 176, 0, 0 },
+    { MX(RI_SEC_PCF, 3), RI_GEO_RECT, 0, 219, 124, 28, 62 },
+    { MX(RI_SEC_PCF, 3), RI_GEO_LEGEND, 0, 255, 176, 0, 0 },
+    { MX(RI_SEC_PCF, 4), RI_GEO_RECT, 0, 50, 294, 58, 158 },
+    { MX(RI_SEC_PCF, 4), RI_GEO_LEGEND, 0, 50, 400, 0, 0 },
+    { MX(RI_SEC_PCF, 5), RI_GEO_RECT, 0, 126, 294, 58, 158 },
+    { MX(RI_SEC_PCF, 5), RI_GEO_LEGEND, 0, 126, 400, 0, 0 },
+    { MX(RI_SEC_PCF, 6), RI_GEO_RECT, 0, 202, 294, 58, 158 },
+    { MX(RI_SEC_PCF, 6), RI_GEO_LEGEND, 0, 202, 400, 0, 0 },
+    { MX(RI_SEC_PCF, 7), RI_GEO_RECT, 0, 278, 294, 58, 158 },
+    { MX(RI_SEC_PCF, 7), RI_GEO_LEGEND, 0, 278, 400, 0, 0 },
+};
+static const struct RIGeoItem RI_GEO_DELAY[] = {
+    FX_HEAD(RI_SEC_DELAY),
+    { MX(RI_SEC_DELAY, 2), RI_GEO_RECT, 0, 76, 122, 72, 65 },
+    { MX(RI_SEC_DELAY, 2), RI_GEO_STEPPER, 1, 141, 105, 38, 30 },
+    { MX(RI_SEC_DELAY, 2), RI_GEO_STEPPER, 0, 141, 139, 38, 30 },
+    { MX(RI_SEC_DELAY, 2), RI_GEO_LEGEND, 0, 82, 178, 0, 0 },
+    { MX(RI_SEC_DELAY, 3), RI_GEO_RECT, 0, 219, 122, 28, 65 },
+    { MX(RI_SEC_DELAY, 4), RI_GEO_KNOB, 0, 88, 270, 48, 80 },
+    { MX(RI_SEC_DELAY, 4), RI_GEO_LEGEND, 0, 88, 348, 0, 0 },
+    { MX(RI_SEC_DELAY, 5), RI_GEO_KNOB, 0, 248, 270, 48, 80 },
+    { MX(RI_SEC_DELAY, 5), RI_GEO_LEGEND, 0, 250, 348, 0, 0 },
+};
+static const struct RIGeoItem RI_GEO_DIST[] = {
+    { MX(RI_SEC_DIST, 0), RI_GEO_RECT, 0, 50, 42, 30, 30 },
+    { MX(RI_SEC_DIST, 1), RI_GEO_RECT, 0, 288, 42, 20, 45 },
+    { MX(RI_SEC_DIST, 2), RI_GEO_KNOB, 0, 88, 150, 48, 80 },
+    { MX(RI_SEC_DIST, 2), RI_GEO_LEGEND, 0, 88, 230, 0, 0 },
+    { MX(RI_SEC_DIST, 3), RI_GEO_KNOB, 0, 250, 150, 48, 80 },
+    { MX(RI_SEC_DIST, 3), RI_GEO_LEGEND, 0, 250, 230, 0, 0 },
+};
+static const struct RIGeoItem RI_GEO_COMP[] = {
+    FX_HEAD(RI_SEC_COMP),
+    { MX(RI_SEC_COMP, 4), RI_GEO_RECT, 0, 160, 119, 250, 20 },
+    { MX(RI_SEC_COMP, 2), RI_GEO_KNOB, 0, 88, 265, 48, 80 },
+    { MX(RI_SEC_COMP, 2), RI_GEO_LEGEND, 0, 88, 342, 0, 0 },
+    { MX(RI_SEC_COMP, 3), RI_GEO_KNOB, 0, 248, 265, 48, 80 },
+    { MX(RI_SEC_COMP, 3), RI_GEO_LEGEND, 0, 248, 342, 0, 0 },
+};
+
 static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_SYNTH1, 0, 1464, 460, RI_GEO_303,
       (uint32_t)(sizeof(RI_GEO_303) / sizeof(RI_GEO_303[0])) },
@@ -303,6 +357,10 @@ static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_MIX_808, 0, 284, 464, RI_GEO_MIX8, (uint32_t)(sizeof(RI_GEO_MIX8) / sizeof(RI_GEO_MIX8[0])) },
     { RI_SEC_MIX_909, 0, 284, 464, RI_GEO_MIX9, (uint32_t)(sizeof(RI_GEO_MIX9) / sizeof(RI_GEO_MIX9[0])) },
     { RI_SEC_MASTER, 0, 332, 392, RI_GEO_MASTER, (uint32_t)(sizeof(RI_GEO_MASTER) / sizeof(RI_GEO_MASTER[0])) },
+    { RI_SEC_PCF, 0, 332, 424, RI_GEO_PCF, (uint32_t)(sizeof(RI_GEO_PCF) / sizeof(RI_GEO_PCF[0])) },
+    { RI_SEC_DELAY, 0, 332, 376, RI_GEO_DELAY, (uint32_t)(sizeof(RI_GEO_DELAY) / sizeof(RI_GEO_DELAY[0])) },
+    { RI_SEC_DIST, 0, 336, 264, RI_GEO_DIST, (uint32_t)(sizeof(RI_GEO_DIST) / sizeof(RI_GEO_DIST[0])) },
+    { RI_SEC_COMP, 0, 332, 376, RI_GEO_COMP, (uint32_t)(sizeof(RI_GEO_COMP) / sizeof(RI_GEO_COMP[0])) },
 };
 
 const struct RIGeoSection *ri_geo_section(uint32_t section) {
@@ -339,11 +397,13 @@ uint16_t ri_geo_hit_opt(const struct RIGeoSection *s, int x, int y, int zoom, in
             long r = ri_geo_px(it->h, zoom) / 2, dx = x - cx, dy = y - cy;
             if (dx * dx + dy * dy <= r * r)
                 return it->reg_id;
-        } else if (it->shape == RI_GEO_RECT || it->shape == RI_GEO_OPTION) {
+        } else if (it->shape == RI_GEO_RECT || it->shape == RI_GEO_OPTION || it->shape == RI_GEO_STEPPER) {
             int hw = ri_geo_px(it->w, zoom) / 2, hh = ri_geo_px(it->h, zoom) / 2;
             if (x >= cx - hw && x <= cx + hw && y >= cy - hh && y <= cy + hh) {
                 if (opt && it->shape == RI_GEO_OPTION)
                     *opt = it->opt;
+                else if (opt && it->shape == RI_GEO_STEPPER)
+                    *opt = it->opt ? RI_GEO_HIT_UP : RI_GEO_HIT_DOWN;
                 return it->reg_id;
             }
         }

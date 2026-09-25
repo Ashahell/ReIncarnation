@@ -17,7 +17,17 @@ static int is_value(const struct RIGeoItem *it) {
     return it->shape == RI_GEO_KNOB || it->shape == RI_GEO_RECT;
 }
 static int is_hit(const struct RIGeoItem *it) {
-    return is_value(it) || it->shape == RI_GEO_OPTION;
+    return is_value(it) || it->shape == RI_GEO_OPTION || it->shape == RI_GEO_STEPPER;
+}
+
+static int has_steppers(const struct RIGeoSection *s, uint16_t id) {
+    uint32_t i, up = 0, dn = 0;
+    for (i = 0; i < s->nitems; i++)
+        if (s->items[i].reg_id == id && s->items[i].shape == RI_GEO_STEPPER) {
+            up += s->items[i].opt == 1;
+            dn += s->items[i].opt == 0;
+        }
+    return up == 1 && dn == 1;
 }
 
 static void box(const struct RIGeoItem *it, int *x0, int *y0, int *x1, int *y1) {
@@ -49,6 +59,8 @@ static void check_section(uint32_t sec) {
             ri_ctlreg_section_name(sec), i, it->reg_id);
         if (!d)
             continue;
+        if (it->shape == RI_GEO_STEPPER)
+            RI_ASSERT(d->kind == RI_CK_SELECTOR && it->opt <= 1, "stepper on non-selector %s", d->legend);
         if (it->shape == RI_GEO_OPTION) {
             RI_ASSERT(d->kind == RI_CK_SELECTOR, "option on non-selector %s", d->legend);
             RI_ASSERT(it->opt >= d->min_v && it->opt <= d->max_v, "option %u out of range", it->opt);
@@ -59,7 +71,9 @@ static void check_section(uint32_t sec) {
         for (j = i + 1; j < s->nitems; j++)
             if (is_value(&s->items[j]))
                 RI_ASSERT(s->items[j].reg_id != it->reg_id, "control %04x has two value items", it->reg_id);
-        RI_ASSERT((it->shape == RI_GEO_KNOB) == (d->kind == RI_CK_KNOB || d->kind == RI_CK_SELECTOR),
+        /* a selector is a rotary knob, or a value display with up/down arrows (p. 18) */
+        RI_ASSERT((it->shape == RI_GEO_KNOB) == (d->kind == RI_CK_KNOB ||
+            (d->kind == RI_CK_SELECTOR && !has_steppers(s, d->reg_id))),
             "%s/%s: knob shape iff knob/selector kind", d->group, d->legend);
     }
     /* a SELECTOR may have no value item when options reach every value
@@ -74,7 +88,8 @@ static void check_section(uint32_t sec) {
     for (i = 0; i < s->nitems; i++) {
         const struct RICtlDef *d = ri_ctlreg_find(s->items[i].reg_id);
         int v;
-        if (!d || d->kind != RI_CK_SELECTOR || (!is_value(&s->items[i]) && s->items[i].shape != RI_GEO_OPTION))
+        if (!d || d->kind != RI_CK_SELECTOR || (!is_value(&s->items[i]) && s->items[i].shape != RI_GEO_OPTION) ||
+            has_steppers(s, d->reg_id))
             continue;
         for (v = d->min_v; v <= d->max_v; v++) {
             int found = 0;
@@ -111,7 +126,9 @@ static void check_section(uint32_t sec) {
                 continue;
             h = ri_geo_hit_opt(s, ri_geo_px(it->cx, (int)z), ri_geo_px(it->cy, (int)z), (int)z, &opt);
             RI_ASSERT(h == it->reg_id, "hit(centre of %04x, zoom %u) = %04x", it->reg_id, z, h);
-            RI_ASSERT(it->shape == RI_GEO_OPTION ? opt == it->opt : opt == -1, "option value of %04x", it->reg_id);
+            RI_ASSERT(it->shape == RI_GEO_OPTION ? opt == it->opt
+                : it->shape == RI_GEO_STEPPER ? opt == (it->opt ? RI_GEO_HIT_UP : RI_GEO_HIT_DOWN) : opt == -1,
+                "option value of %04x", it->reg_id);
         }
     RI_ASSERT(ri_geo_hit(s, 1, 1, 0) == 0xFFFFu, "corner hits nothing");
 }
@@ -241,5 +258,35 @@ int main(void) {
         RI_ASSERT(s->w == 332 && s->h == 392, "master = p. 23 figure");
         RI_ASSERT(l && f && r && l->cx < f->cx && f->cx < r->cx && l->h == r->h, "meters either side of the fader");
     }
+    /* ---- FX units (p. 159, 161, 163, 164) ---- */
+    for (i = RI_SEC_PCF; i <= RI_SEC_COMP; i++) {
+        const struct RIGeoItem *on, *mt;
+        check_section(i);
+        s = ri_geo_section(i);
+        if (!s)
+            continue;
+        on = value_item(s, ID(i, 0));
+        mt = value_item(s, ID(i, 1));
+        RI_ASSERT(on && mt && on->cx < mt->cx && on->cy == mt->cy && on->cy < 50, "%s header: on/off left, meter right",
+            ri_ctlreg_section_name(i));
+    }
+    s = ri_geo_section(RI_SEC_PCF);
+    if (s) {
+        uint32_t k;
+        RI_ASSERT(s->w == 332 && s->h == 424 && has_steppers(s, ID(RI_SEC_PCF, 2)), "PCF = p. 159, pattern arrows");
+        for (k = 4; k < 8; k++) {       /* four sliders in one row, Freq Q Amt Dec */
+            const struct RIGeoItem *f = value_item(s, ID(RI_SEC_PCF, k));
+            const struct RIGeoItem *g0 = value_item(s, ID(RI_SEC_PCF, k - 1));
+            RI_ASSERT(f && f->shape == RI_GEO_RECT && f->h > 2 * f->w, "PCF slider %u", k);
+            if (k > 4 && f && g0)
+                RI_ASSERT(f->cx > g0->cx && f->cy == g0->cy, "PCF slider order %u", k);
+        }
+    }
+    s = ri_geo_section(RI_SEC_DELAY);
+    RI_ASSERT(s && s->w == 332 && s->h == 376 && has_steppers(s, ID(RI_SEC_DELAY, 2)), "Delay = p. 161, steps arrows");
+    s = ri_geo_section(RI_SEC_DIST);
+    RI_ASSERT(s && s->w == 336 && s->h == 264, "Dist = p. 163");
+    s = ri_geo_section(RI_SEC_COMP);
+    RI_ASSERT(s && s->w == 332 && s->h == 376, "Comp = p. 164");
     RI_RESULT("panelgeo");
 }

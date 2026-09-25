@@ -38,6 +38,10 @@ int main(void) {
     RI_ASSERT(ri_sui_bind_board(&b, a.u.mix.board) == 2, "only mixers take a board");
     ri_sui_init(&b, RI_SEC_MASTER);
     RI_ASSERT(ri_sui_press(&b, RI_SMST_COMP) == 1 && ri_sui_led(&b, RI_SMST_COMP, 0) == 1, "master comp");
-    RI_ASSERT(ri_sui_init(&b, RI_SEC_PCF) == 2 && ri_sui_press(&b, 0) == 0, "PCF not laid out yet");
+    ri_sui_init(&b, RI_SEC_DELAY);
+    RI_ASSERT(ri_sui_step(&b, RI_SFX_DLY_STEPS, 1) == 1 && ri_sui_value(&b, RI_SFX_DLY_STEPS) == 4, "fx arrow route");
+    RI_ASSERT(ri_sui_press(&b, RI_SFX_ONOFF) == 1 && ri_sui_led(&b, RI_SFX_ONOFF, 0) == 1, "fx on/off route");
+    RI_ASSERT(ri_sui_step(&a, RI_SMIX_PAN, 1) == 0, "arrows only on value displays");
+    RI_ASSERT(ri_sui_init(&b, RI_SEC_TRANSPORT) == 2 && ri_sui_press(&b, 0) == 0, "transport not laid out yet");
     RI_RESULT("sectui");
 }

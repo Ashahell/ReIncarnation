@@ -1,6 +1,6 @@
 # Panel geometry (E1 layout, measured) — §12.10 G2
 
-**Status:** 303, 808, 909, section mixers and Master measured 2026-09-25. Other sections pending their slices.
+**Status:** 303, 808, 909, section mixers, Master and the four FX units measured 2026-09-25. Other sections pending their slices.
 **Source:** ReBirth RB-338 2.0.1 Owner's Manual, synth-section figure on p. 153
 (embedded image 366 × 115 px, extracted with `pdfimages`, viewed at 4× with a
 10-px grid). Layout is measured, never pixel-copied (spec §1): artwork stays
@@ -90,3 +90,21 @@ span 658 Q / 5 = 131.6 Q).
 | Comp rocker | 202, 345 | 45 × 22 | LED x 245; legend at x 125 |
 
 **Insert routing (behaviour, `gui/sectmix.c`, t66).** The four mixers and the Master share one board. PCF: one section at a time, and switching it on elsewhere turns the old LED off (p. 62 step 16, p. 70). Comp: one section or the Master (p. 67). Dist follows the engine's one-owner routing (`engine/fx/route.h`). The manual contradicts itself on Dist: p. 59 says "four distortion units… all sections can use the distortion", but p. 157 says "One section at a time". This is left open for the owner; changing it touches only `unit_of()` plus the engine route.
+
+## FX units (Q units)
+
+Common header on all four: an on/off (bypass) lamp at (50, 45) 30 × 30, a navy title bar at y 17–70, and an input meter at (288, 45) 20 × 45 with 3 segments. Dist sits 3 Q higher (y 42).
+
+| Unit (figure) | Element | Centre (x, y) | Size | Note |
+|---------------|---------|---------------|------|------|
+| PCF (p. 159, 83 × 106 px = 332 × 424 Q) | Pattern LED display | 79, 122 | 78 × 65 | 0..53; arrows up (141, 105) / down (141, 139) 38 × 30 |
+| | Mode lever | 219, 124 | 28 × 62 | BP up, LP down |
+| | Freq / Q / Amt / Dec sliders | 50 / 126 / 202 / 278, 294 | 58 × 158 | sliders, not knobs (figure; p. 160 "the Amount slider") → registry kind FADER |
+| Delay (p. 161, 83 × 94 px = 332 × 376 Q) | Steps LED display | 76, 122 | 72 × 65 | 1..32; arrows as PCF |
+| | 16th / 8th-triplet lever | 219, 122 | 28 × 65 | triplet up, 16th down |
+| | Pan / F.Back knobs | 88 / 248, 270 | Ø 48, ticks 80 | L R / 0 10 marks |
+| Dist (p. 163, 84 × 66 px = 336 × 264 Q) | Amount / Shape knobs | 88 / 250, 150 | Ø 48, ticks 80 | 0 10 marks |
+| Comp (p. 164, 83 × 94 px = 332 × 376 Q) | Level Reduction LED row | 160, 119 | 250 × 20 | 9 LEDs, "0" in the middle; reduction lights leftward (p. 164) |
+| | Ratio / Thres knobs | 88 / 248, 265 | Ø 48, ticks 80 | 0 10 marks |
+
+Value displays use the new `RI_GEO_STEPPER` item (the owning SELECTOR's up/down arrows). One click steps by one and stops at the ends, and holding repeats after about 0.4 s (p. 18).

@@ -10,6 +10,7 @@
 #include "gui/sect808.h"
 #include "gui/sect909.h"
 #include "gui/sectmix.h"
+#include "gui/sectfx.h"
 
 struct RISectUI {
     uint8_t section;  /* RI_SEC_* */
@@ -18,6 +19,7 @@ struct RISectUI {
         struct RISect303 s303;
         struct RISect808 s808;
         struct RISect909 s909;
+        struct RISectFx fx;       /* RI_SEC_PCF..RI_SEC_COMP */
         struct {                  /* RI_SEC_MIX_* / RI_SEC_MASTER */
             struct RIMixBoard *board; /* shared board (own unless bound) */
             struct RIMixBoard own;
@@ -32,6 +34,8 @@ int ri_sui_bind_board(struct RISectUI *s, struct RIMixBoard *b);
 int ri_sui_press(struct RISectUI *s, uint32_t idx);
 int ri_sui_set(struct RISectUI *s, uint32_t idx, int v);
 int ri_sui_reset(struct RISectUI *s, uint32_t idx);
+/* Arrow button of a value display (dir > 0 up); 0 when not applicable. */
+int ri_sui_step(struct RISectUI *s, uint32_t idx, int dir);
 int ri_sui_value(const struct RISectUI *s, uint32_t idx);
 int ri_sui_led(const struct RISectUI *s, uint32_t idx, uint32_t which);
 /* numeric readout of a DISPLAY control (303 EDIT STEP 1..16); 0 otherwise */

@@ -11,6 +11,8 @@
  * - 808 SD "Tone" is the body pitch (p. 37) -> engine TUNE on the SD voice.
  * - Mixer On/Off IS the mute (p. 72, p. 157 figure) — not Song-automated.
  * - PCF Mode is LP/BP (p. 160); Appendix C's "LP/HP" is a manual typo.
+ * - PCF Freq/Q/Amt/Decay are vertical sliders (p. 159 figure; p. 160 "the
+ *   Amount slider"), not knobs.
  * - Instrument Selection has 12 positions: AC + 11 instruments (p. 203).
  * - Pattern-section Shuffle automation is not stated in the manual: kept
  *   non-automatable until ReBirth is checked (ledger: shuffle-scope.md).
@@ -219,10 +221,10 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(PCF, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(PCF, 2, SELECTOR, "", "Pattern", 0, 53, 0, 94, 1, FX, RI_FXID_PCF_PATTERN, 0),
     R(PCF, 3, SWITCH, "", "Mode", 0, 1, 0, 95, 1, FX, RI_FXID_PCF_MODE, 0),
-    R(PCF, 4, KNOB, "", "Freq", 0, 127, 64, 96, 1, FX, RI_FXID_PCF_BASE, 0),
-    R(PCF, 5, KNOB, "", "Q", 0, 127, 64, 97, 1, FX, RI_FXID_PCF_Q, 0),
-    R(PCF, 6, KNOB, "", "Amt", 0, 127, 0, 98, 1, FX, RI_FXID_PCF_AMT, 0),
-    R(PCF, 7, KNOB, "", "Decay", 0, 127, 64, 99, 1, FX, RI_FXID_PCF_DECAY, 0),
+    R(PCF, 4, FADER, "", "Freq", 0, 127, 64, 96, 1, FX, RI_FXID_PCF_BASE, 0),
+    R(PCF, 5, FADER, "", "Q", 0, 127, 64, 97, 1, FX, RI_FXID_PCF_Q, 0),
+    R(PCF, 6, FADER, "", "Amt", 0, 127, 0, 98, 1, FX, RI_FXID_PCF_AMT, 0),
+    R(PCF, 7, FADER, "", "Decay", 0, 127, 64, 99, 1, FX, RI_FXID_PCF_DECAY, 0),
     R(DELAY, 0, SWITCH, "", "On/Off", 0, 1, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
     R(DELAY, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(DELAY, 2, SELECTOR, "", "Steps", 1, 32, 3, 100, 1, FX, RI_FXID_DELAY_STEPS, 0),

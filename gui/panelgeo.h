@@ -19,6 +19,11 @@
 #define RI_GEO_DIVIDER 4u /* decoration: vertical rule; cx = x, cy = top, h = length */
 #define RI_GEO_OPTION 5u  /* hit rect that sets the owning SELECTOR to value `opt`
                            * (808/909 instrument legends and selector ring labels) */
+#define RI_GEO_STEPPER 6u /* hit rect: arrow button of the owning SELECTOR's value
+                           * display; opt 1 = up, 0 = down (p. 18) */
+/* ri_geo_hit_opt() *opt values for stepper hits */
+#define RI_GEO_HIT_DOWN (-2)
+#define RI_GEO_HIT_UP (-3)
 
 struct RIGeoItem {
     uint16_t reg_id; /* owning registry control */
@@ -46,8 +51,8 @@ const struct RIGeoSection *ri_geo_section(uint32_t section); /* NULL if not laid
 int ri_geo_px(int q, int zoom);
 /* Hit test: the control (reg_id) whose value or option item contains (x,y)
  * in window pixels at zoom; decorations never hit. Returns 0xFFFF when none.
- * *opt (may be NULL) receives the option value for RI_GEO_OPTION hits and
- * -1 otherwise. */
+ * *opt (may be NULL) receives the option value for RI_GEO_OPTION hits,
+ * RI_GEO_HIT_UP / RI_GEO_HIT_DOWN for RI_GEO_STEPPER hits and -1 otherwise. */
 uint16_t ri_geo_hit(const struct RIGeoSection *s, int x, int y, int zoom);
 uint16_t ri_geo_hit_opt(const struct RIGeoSection *s, int x, int y, int zoom, int *opt);
 #endif
