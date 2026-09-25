@@ -477,6 +477,13 @@ static const char *legend_fx(const char *leg) {
 }
 
 /* ------------------------------------------------------------ generic */
+/* Running light (G6a): the step lamp at the section's playhead burns
+ * white while playing — the TR-808/909 chase over the programmed steps. */
+static int chase_at(const struct RSectionData *dd, uint32_t step) {
+    int f = ri_panel_focus_of(dd->ui.section);
+    return dd->panel && f >= 0 && dd->panel->playhead[f] == (int8_t)step;
+}
+
 static void draw_focus_bar(struct RastPort *rp, const struct RSectionData *dd, int ox, int oy, int z) {
     struct RIGeoItem fb;
     int f = ri_panel_focus_of(dd->ui.section), cx, cy, hw, hh;
@@ -593,11 +600,13 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                 uint32_t st = idx - RI_S808_STEP0;
                 bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, step_colour_808(st));
                 fill_rect(rp, cx - hw / 3, cy - hh + 3, cx + hw / 3, cy - hh + 3 + PX(10),
-                    ri_sui_led(&dd->ui, idx, 0) ? C_LED_ON : C_LAMP_OFF);
+                    chase_at(dd, st) ? C_WHITEKEY : ri_sui_led(&dd->ui, idx, 0) ? C_LED_ON : C_LAMP_OFF);
             } else if (d->kind == RI_CK_STEP && is909) {
                 int st = ri_sui_led(&dd->ui, idx, 0);
                 ULONG lamp = st == 1 ? (ri_sui_value(&dd->ui, RI_S909_SELECT) == 0 ? C_LED_ON : C_LAMP_LOW)
                     : st == 2 ? C_LED_ON : st == 3 ? C_LAMP_FLAM : C_LAMP_OFF;
+                if (chase_at(dd, idx - RI_S909_STEP0))
+                    lamp = C_WHITEKEY;
                 key_909(rp, cx - hw, cy - hh, cx + hw, cy + hh, z, lamp);
             } else if (d->kind == RI_CK_SWITCH && is909) {     /* Flam button */
                 key_909(rp, cx - hw, cy - hh, cx + hw, cy + hh, z, v ? C_LED_ON : C_LAMP_OFF);

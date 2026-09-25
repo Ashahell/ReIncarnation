@@ -155,6 +155,23 @@ int ri_str_goto_loop(struct RISectTr *s, int end) {
     return s->cursor != before;
 }
 
+int ri_str_follow(struct RISectTr *s, uint64_t start_tick, uint64_t sixteenths) {
+    uint64_t q, bar, bar0, before;
+    if (!s || !s->song_mode || s->tr.state == RI_TR_STOPPED)
+        return 0;
+    q = (uint64_t)ri_ppq_or_default(s->ppq) / 4u;
+    bar0 = ri_seq_bar_at_tick(start_tick, s->ppq);
+    bar = ri_seq_bar_at_tick(start_tick + sixteenths * q, s->ppq);
+    if (s->loop.on && s->loop.len_bars > 0u && bar0 >= s->loop.start_bar &&
+        bar0 < (uint64_t)s->loop.start_bar + s->loop.len_bars && bar >= (uint64_t)s->loop.start_bar + s->loop.len_bars)
+        bar = s->loop.start_bar + (bar - s->loop.start_bar) % s->loop.len_bars;
+    if (bar > (uint64_t)s->song_bars - 1u)
+        bar = (uint64_t)s->song_bars - 1u;   /* E1: playback continues to 999 */
+    before = ri_seq_bar_at_tick(s->cursor, s->ppq);
+    s->cursor = ri_seq_tick_of_bar(s->ppq, bar);
+    return bar != before;
+}
+
 void ri_str_indicator_set(struct RISectTr *s, uint32_t idx, int v) {
     if (!s)
         return;

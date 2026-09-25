@@ -1,6 +1,8 @@
 /* gui/panelui.c — front panel focus + keyboard dispatch (§12.10 G5). */
 #include "gui/panelui.h"
 #include "gui/ctlreg.h"
+#include "gui/livestate.h"
+#include "engine/seq/sched.h"
 
 void ri_panel_init(struct RIPanelUI *p) {
     uint32_t i;
@@ -18,6 +20,54 @@ void ri_panel_init(struct RIPanelUI *p) {
     p->last.arg = 0;
     p->changes = 0;
     p->last_raw = p->last_qual = 0;
+    for (i = 0; i < RI_FOCUS_COUNT; i++)
+        p->playhead[i] = -1;
+    p->playing = 0;
+    p->del_held = p->del_focus = 0;
+    p->del_arg = 0;
+    p->play_start_ticks = 0;
+}
+
+/* Tap at the playhead of focus section f (p. 32, 44). Synth: the step
+ * becomes a Note (tapping only adds) or a Pause (delete). Drums: arg 0 =
+ * AC, 1..11 = lane arg-1 (tap order == lane order, pattern.h); a tap sets
+ * an off step to a single click's state (808 on, 909 low, E0), never
+ * lowers an existing hit; delete turns it off. */
+static int tap(struct RIPanelUI *p, uint32_t f, int arg, int del) {
+    int step = f < RI_FOCUS_COUNT ? p->playhead[f] : -1;
+    struct RIPattern *pat;
+    if (step < 0)
+        return 0;
+    if (f <= RI_FOCUS_SYNTH2) {
+        uint8_t *fl, nf;
+        if (!p->synth[f])
+            return 0;
+        fl = &p->synth[f]->u.s303.pat.row.r303[step].flags;
+        nf = (uint8_t)(del ? (*fl | RI_STEP_REST) : (*fl & ~RI_STEP_REST));
+        if (nf == *fl)
+            return 0;
+        *fl = nf;
+        return 1;
+    }
+    if (!p->drum[f - RI_FOCUS_808])
+        return 0;
+    pat = f == RI_FOCUS_808 ? &p->drum[0]->u.s808.pat : &p->drum[1]->u.s909.pat;
+    if (arg == 0) {
+        int on = (pat->row.drum[step].flags & RI_DRUM_AC) != 0;
+        if (on == !del)
+            return 0;
+        return ri_pdrum_set_ac(pat, (uint32_t)step, !del) == 0;
+    }
+    if (arg < 1 || arg > 11)
+        return 0;
+    if (del) {
+        if (ri_pdrum_get(pat, (uint32_t)step, (uint32_t)(arg - 1)) == RI_HIT_OFF)
+            return 0;
+        return ri_pdrum_set(pat, (uint32_t)step, (uint32_t)(arg - 1), RI_HIT_OFF) == 0;
+    }
+    if (ri_pdrum_get(pat, (uint32_t)step, (uint32_t)(arg - 1)) != RI_HIT_OFF)
+        return 0;
+    return ri_pdrum_set(pat, (uint32_t)step, (uint32_t)(arg - 1), RI_HIT_LOW) == 0;
 }
 
 int ri_panel_focus_of(uint32_t section) {
@@ -94,6 +144,18 @@ int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {
         if (p->synth[a.section])
             ch = ri_sui_press(p->synth[a.section], (uint32_t)a.arg);
         break;
+    case RI_KA_TAP:
+        ch = tap(p, a.section, a.arg, 0);
+        break;
+    case RI_KA_TAP_DELETE:   /* held: the live feed keeps deleting (p. 33, 44) */
+        p->del_held = 1;
+        p->del_focus = a.section;
+        p->del_arg = (int8_t)a.arg;
+        ch = tap(p, a.section, a.arg, 1);
+        break;
+    case RI_KA_TAP_END:
+        p->del_held = 0;
+        break;
     case RI_KA_MENU:
         if (a.arg == RI_KM_PROGRAM_SYNTH) {
             p->opts.program_synth = (uint8_t)!p->opts.program_synth;
@@ -106,6 +168,33 @@ int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {
     default:
         break;
     }
+    if (ch)
+        p->changes++;
+    return ch;
+}
+
+int ri_panel_live(struct RIPanelUI *p, int playing, uint64_t sixteenths) {
+    uint32_t f;
+    int ch = 0;
+    if (!p)
+        return 0;
+    if (playing && !p->playing && p->tr)
+        p->play_start_ticks = p->tr->u.tr.cursor;       /* playback edge */
+    if ((uint8_t)(playing != 0) != p->playing)
+        ch = 1;
+    p->playing = (uint8_t)(playing != 0);
+    for (f = 0; f < RI_FOCUS_COUNT; f++) {
+        uint32_t len = p->pat[f] ? (uint32_t)ri_sui_value(p->pat[f], RI_SPAT_LENGTH) : 16u;
+        int8_t st = (int8_t)(playing ? (int)ri_live_step(sixteenths, len) : -1);
+        if (st != p->playhead[f]) {
+            p->playhead[f] = st;
+            ch = 1;
+            if (st >= 0 && p->del_held && p->del_focus == f)
+                tap(p, f, p->del_arg, 1);
+        }
+    }
+    if (playing && p->tr && ri_str_follow(&p->tr->u.tr, p->play_start_ticks, sixteenths))
+        ch = 1;
     if (ch)
         p->changes++;
     return ch;

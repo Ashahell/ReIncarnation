@@ -1,7 +1,7 @@
 /*
  * app/sectproof.c — section canvas on-device proof (§12.10 G4).
  *
- * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr|keys] [demo]
+ * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr|keys|live] [demo]
  * One window with the RSection canvas for the chosen section at 1x plus a
  * readout row, so state can be verified by number as well as by ui_capture.
  * "demo" drives the same behaviour calls a click makes (gui/sectui.h):
@@ -27,7 +27,14 @@
  *         ONE front panel (gui/panelui.h): focus bar, click-to-focus and
  *         the Appendix E keyboard, driven by real key events (no demo:
  *         keys arrive through the QEMU monitor's sendkey). Every panel
- *         change appends the readout line to RAM:RISECT.LOG.
+ *         change appends the readout line to RAM:RISECT.LOG;
+ *   live — G6a proof: Transport, 808 + mixer, 909 + mixer, the four
+ *         Pattern sections on one panel; running light, taps at the
+ *         playhead, held delete, Song-mode bar follow, meters. CLOCK IS A
+ *         STAND-IN: the sample position comes from Intuition CurrentTime()
+ *         (wall time), not the render task — riqemu1 has no audio device
+ *         and binding the render task is G6b. Meter source is a stand-in
+ *         too: a hit at the playhead = 0 dBFS, 20 dB/s decay (P-16).
  * Exit: close gadget or Ctrl-C. Return codes: 0 ok, 5+ build failures.
  * Must NEVER enter the host build (audit gates app/).
  */
@@ -46,10 +53,12 @@
 #include "gui/ctlreg.h"
 #include "gui/sectui.h"
 #include "gui/panelgeo.h"
+#include "gui/livestate.h"
 #include "gui/widgets/rsection.h"
 
 static char s_readout[160];
-static Object *s_mix[6];
+static Object *s_mix[10];
+static int s_nall;
 static struct RIPanelUI s_panel;
 
 static void put_num(char **p, long v) {
@@ -67,6 +76,12 @@ static void put_num(char **p, long v) {
         *(*p)++ = t[--n];
 }
 
+static struct RIMixBoard *mix_board_of(Object *canvas) {
+    struct RISectUI *u = 0;
+    GetAttr(MUIA_RSection_State, canvas, (IPTR *)&u);
+    return u ? u->u.mix.board : 0;
+}
+
 static void put_str(char **p, const char *s) {
     while (*s)
         *(*p)++ = *s++;
@@ -74,6 +89,36 @@ static void put_str(char **p, const char *s) {
 
 static void format_readout(const struct RISectUI *ui, const struct RSectionDiag *dg, long changes) {
     char *p = s_readout;
+    if (s_panel.tr == ui && s_panel.drum[0]) {    /* live mode */
+        const struct RIPattern *p8 = &s_panel.drum[0]->u.s808.pat, *p9 = &s_panel.drum[1]->u.s909.pat;
+        unsigned int k;
+        put_str(&p, "FOCUS ");
+        put_num(&p, s_panel.focus);
+        put_str(&p, " PH ");
+        put_num(&p, s_panel.playhead[2]);
+        *p++ = '/';
+        put_num(&p, s_panel.playhead[3]);
+        put_str(&p, " BAR ");
+        put_num(&p, ri_sui_value(ui, RI_STR_BAR));
+        put_str(&p, " BPM ");
+        put_num(&p, ri_sui_value(ui, RI_STR_TEMPO));
+        put_str(&p, " ST ");
+        put_num(&p, ui->u.tr.tr.state);
+        put_str(&p, " BD8 ");
+        for (k = 0; k < 16; k++)
+            *p++ = ri_pdrum_get(p8, k, RI_L808_BD) ? 'x' : '.';
+        put_str(&p, " CH9 ");
+        for (k = 0; k < 16; k++)
+            *p++ = ri_pdrum_get(p9, k, RI_L909_CH) ? 'x' : '.';
+        put_str(&p, " N ");
+        put_num(&p, (long)s_panel.changes);
+        put_str(&p, " RAW ");
+        put_num(&p, s_panel.last_raw);
+        *p = 0;
+        (void)dg;
+        (void)changes;
+        return;
+    }
     if (s_panel.tr == ui && s_panel.synth[0]) {   /* keys mode */
         unsigned int k;
         put_str(&p, "FOCUS ");
@@ -345,7 +390,9 @@ int main(int argc, char **argv) {
     LONG ret;
     struct RISectUI *ui = 0;
     const struct RSectionDiag *dg = 0;
-    int i, do_demo = 0, mix = 0, fx = 0, trp = 0, keys = 0;
+    int i, do_demo = 0, mix = 0, fx = 0, trp = 0, keys = 0, live = 0;
+    ULONG t0s = 0, t0u = 0;
+    int meter_lvl[2] = { 0, 0 }, last_ph[2] = { -1, -1 };
     ULONG seen = 0;
     UBYTE seen_st = 0;
     UWORD seen_raw = 0;
@@ -365,10 +412,53 @@ int main(int argc, char **argv) {
             trp = 1;
         else if (argv[i][0] == 'k')
             keys = 1;
+        else if (argv[i][0] == 'l')
+            live = 1;
         else if (argv[i][0] == 'd')
             do_demo = 1;
     }
-    if (keys) {                        /* G5: one front panel across six canvases */
+    if (live) {                        /* G6a: live panel, stand-in clock */
+        static const ULONG sec[9] = { RI_SEC_TRANSPORT, RI_SEC_808, RI_SEC_MIX_808, RI_SEC_909, RI_SEC_MIX_909,
+            RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909 };
+        struct RISectUI *u = 0, *mix8 = 0;
+        Object *r8, *r9, *pats;
+        ri_panel_init(&s_panel);
+        for (i = 0; i < 9; i++) {
+            s_mix[i] = (Object *)ri_rsection_create(sec[i], 0);
+            if (!s_mix[i])
+                return 5;
+            GetAttr(MUIA_RSection_State, s_mix[i], (IPTR *)&u);
+            if (i == 0)
+                s_panel.tr = u;
+            else if (i == 1 || i == 3)
+                s_panel.drum[i == 3] = u;
+            else if (i == 2)
+                mix8 = u;
+            else if (i == 4)
+                ri_sui_bind_board(u, mix8->u.mix.board);
+            else
+                s_panel.pat[i - 5] = u;
+            SetAttrs(s_mix[i], MUIA_RSection_Panel, (IPTR)&s_panel, MUIA_RSection_KeyOwner, i == 0, TAG_DONE);
+        }
+        s_nall = 9;
+        ui = s_panel.tr;
+        canvas = s_mix[0];
+        r8 = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_mix[1], Child, (IPTR)s_mix[2], Child, (IPTR)MUI_NewObject(MUIC_Rectangle, TAG_DONE), TAG_DONE);
+        r9 = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_mix[3], Child, (IPTR)s_mix[4], Child, (IPTR)MUI_NewObject(MUIC_Rectangle, TAG_DONE), TAG_DONE);
+        pats = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_mix[5], Child, (IPTR)s_mix[6], Child, (IPTR)s_mix[7], Child, (IPTR)s_mix[8],
+            Child, (IPTR)MUI_NewObject(MUIC_Rectangle, TAG_DONE), TAG_DONE);
+        row = (r8 && r9 && pats) ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_mix[0], Child, (IPTR)r8, Child, (IPTR)r9, Child, (IPTR)pats, TAG_DONE) : 0;
+        if (!row)
+            return 5;
+        section = RI_SEC_TRANSPORT;
+        mix = 5;
+        keys = 1;                      /* same key/trace/refresh path as keys mode */
+        trace = Open((CONST_STRPTR)"RAM:RISECT.LOG", MODE_NEWFILE);
+    } else if (keys) {                 /* G5: one front panel across six canvases */
         Object *pats;
         struct RISectUI *u = 0;
         ri_panel_init(&s_panel);
@@ -402,6 +492,7 @@ int main(int argc, char **argv) {
             return 5;
         section = RI_SEC_TRANSPORT;
         mix = 4;
+        s_nall = 6;
         trace = Open((CONST_STRPTR)"RAM:RISECT.LOG", MODE_NEWFILE);
     } else if (trp) {                  /* transport (compact) over the four pattern sections */
         Object *pats;
@@ -468,7 +559,7 @@ int main(int argc, char **argv) {
     if (!readout)
         return 6;
     win = (Object *)MUI_NewObject(MUIC_Window,
-        MUIA_Window_Title, mix == 4 ? "RI-KEYS" : mix == 3 ? "RI-TRANSPORT" : mix == 2 ? "RI-FX" : mix ? "RI-MIX" : section == RI_SEC_808 ? "RI-808" : section == RI_SEC_909 ? "RI-909" : "RI-303",
+        MUIA_Window_Title, mix == 5 ? "RI-LIVE" : mix == 4 ? "RI-KEYS" : mix == 3 ? "RI-TRANSPORT" : mix == 2 ? "RI-FX" : mix ? "RI-MIX" : section == RI_SEC_808 ? "RI-808" : section == RI_SEC_909 ? "RI-909" : "RI-303",
         MUIA_Window_LeftEdge, 0,
         MUIA_Window_TopEdge, 0,
         MUIA_Window_CloseGadget, TRUE,
@@ -504,11 +595,38 @@ int main(int argc, char **argv) {
         if (ret == (LONG)MUIV_Application_ReturnID_Quit)
             break;
         GetAttr(MUIA_RSection_Changes, canvas, &ch);
+        if (live) {   /* STAND-IN clock: wall time -> samples (G6b: the render task) */
+            ULONG ns, nu;
+            int playing = ui->u.tr.tr.state != RI_TR_STOPPED, k;
+            uint64_t samples = 0;
+            CurrentTime(&ns, &nu);
+            if (playing && !s_panel.playing) {
+                t0s = ns;
+                t0u = nu;
+            }
+            if (playing)
+                samples = ((uint64_t)(ns - t0s) * 1000000u + nu - t0u) * 48u / 1000u;
+            ri_panel_live(&s_panel, playing, ri_live_16ths(samples, (uint32_t)ri_sui_value(ui, RI_STR_TEMPO), 48000u));
+            for (k = 0; k < 2; k++) {           /* stand-in meters: hit -> 0 dBFS, then -20 dB/s */
+                const struct RIPattern *pp = k ? &s_panel.drum[1]->u.s909.pat : &s_panel.drum[0]->u.s808.pat;
+                int ph = s_panel.playhead[2 + k], hit = 0;
+                uint32_t ln;
+                if (ph >= 0 && ph != last_ph[k])
+                    for (ln = 0; ln < 11u; ln++)
+                        hit |= ri_pdrum_get(pp, (uint32_t)ph, ln) != RI_HIT_OFF;
+                if (ph != last_ph[k])
+                    meter_lvl[k] = hit ? ri_live_meter_level(1.0f) : meter_lvl[k] - 9;   /* ~9 levels per 16th */
+                if (meter_lvl[k] < 0 || !playing)
+                    meter_lvl[k] = 0;
+                last_ph[k] = ph;
+                ri_smix_meter_set(mix_board_of(s_mix[2 + 2 * k]), RI_SEC_MIX_808 + (uint32_t)k, 0, meter_lvl[k]);
+            }
+        }
         if (keys && (s_panel.changes != seen || ui->u.tr.tr.state != seen_st || s_panel.last_raw != seen_raw)) {
             seen_st = ui->u.tr.tr.state;
             seen_raw = s_panel.last_raw;   /* focus/keys touch several canvases */
             seen = s_panel.changes;
-            for (i = 0; i < 6; i++)
+            for (i = 0; i < s_nall; i++)
                 ri_rsection_refresh(s_mix[i]);
             if (trace) {                          /* one line per change: key-proof evidence */
                 format_readout(ui, dg, 0);

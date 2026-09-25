@@ -22,6 +22,12 @@ struct RIPanelUI {
     struct RISectUI *tr;                        /* RI_SEC_TRANSPORT */
     struct RIKeyAction last;                    /* last decoded action (readout/proofs) */
     uint16_t last_raw, last_qual;               /* last raw key event seen (diagnostics) */
+    /* live state (G6a): playhead step per focus section, -1 = stopped */
+    int8_t playhead[RI_FOCUS_COUNT];
+    uint8_t playing;
+    uint8_t del_held, del_focus;                /* Shift+Tab / Shift+key held (p. 33, 44) */
+    int8_t del_arg;
+    uint64_t play_start_ticks;                  /* transport cursor when playback began */
     uint32_t changes;                           /* bumps on every applied change */
 };
 
@@ -40,4 +46,12 @@ int ri_panel_pattern_selected(struct RIPanelUI *p, uint32_t section);
  * commands are decoded only (p->last) — the menu system is G8. Taps are
  * decoded only (p->last): recording at the playhead belongs to G6. */
 int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual);
+/* Live feed (G6a): `sixteenths` = 16ths since playback started, from the
+ * render task's sample position (gui/livestate.h); playing = transport
+ * state. Updates every section's playhead (each loops its own pattern
+ * length, p. 147), lets the Song-mode bar display follow, and applies a
+ * held delete-tap to each step the playhead reaches (p. 33, 44). Taps
+ * (RI_KA_TAP) record at the current playhead and only while playing
+ * ("With playback activated"). Returns 1 when anything visible changed. */
+int ri_panel_live(struct RIPanelUI *p, int playing, uint64_t sixteenths);
 #endif

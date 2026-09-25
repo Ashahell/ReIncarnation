@@ -53,5 +53,10 @@ int ri_str_led(const struct RISectTr *s, uint32_t idx, uint32_t which);
  * bar after the last loop bar, clamped to the last valid start). Song
  * mode only, like the other position controls. Returns 1 when moved. */
 int ri_str_goto_loop(struct RISectTr *s, int end);
+/* Live feed (G6a): Song mode, playing: the Song Position follows the
+ * audio clock — start tick + 16ths played (ppq/4 ticks each); with the
+ * Loop on and the start inside it, the position wraps to the Loop Start
+ * (p. 73). One-way display projection; returns 1 when the bar changed. */
+int ri_str_follow(struct RISectTr *s, uint64_t start_tick, uint64_t sixteenths);
 void ri_str_indicator_set(struct RISectTr *s, uint32_t idx, int v); /* MIDI / Sync feed */
 #endif
