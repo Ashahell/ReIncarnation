@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m61 | §12.8: dist 2x oversample + comp ratio/GR meter
+- Disposition: New (TDD t50 RED-first)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-8-dist-comp.md
+- Updated: engine/fx/fx.{h,c} (OS state, ratio, GR meter, makeup helper,
+  dist reset, pattern-54 clamp), tests/unit/t50 (new), tests/unit/t1_fx
+  (restart protocol), tests/golden/pcf/fx-chain.wav (+sidecar, −38 dB
+  root-caused re-baseline), docs/2026-09-24-improvement-todo.md
+- Alias 13 kHz fold 2.5x down; GR −9.5 dB hot. Full `ri_audit.sh` 0/0.
+
 ## [2026-09-25] m60 | RI-STEPS exit path: canonical union loop (close + clicks live)
 - Fix: `app/stepproof.c` event loop is now NewInput-first + `Wait(app|timer|break)`
   (replaces pure manual-`Wait`; diag13 reason superseded — the seeded-bit failure

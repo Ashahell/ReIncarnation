@@ -67,7 +67,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 - [x] PCF envelope + integer clock + Decay knob + HP drop, patterns open (m58)
 - [ ] Delay pan + stereo return + routing matrix/exclusivity
 - [x] Appendix-D patterns (55 E1 rows + wrap + resolution wired) (m59)
-- [ ] Dist oversample + comp ratio/GR meter
+- [x] Dist 2x oversample + comp ratio/GR meter (m61)
 
 ## §12.9 Song mode + transport + pattern edits (§3.1)
 - [ ] Transport state machine; song track + automation; edit ops as pure functions
