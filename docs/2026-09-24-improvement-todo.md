@@ -53,7 +53,8 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 - [x] BD 808 regime (62 Hz / 4 ms sigh, paper-read) + SD structural verification + recursion held (m53)
 
 ## §12.6 909 completion (§4.3)
-- [ ] LT/MT/HT/RS/CP; analog-vs-ROM split; accent/flam decouple; per-voice decay/level; shared CH/OH level + rule; layer morph stays internal
+- [x] LT/MT/HT/RS/CP as sample-layer voices + per-voice Decay/Level (m54)
+- [ ] Analog-vs-ROM split; accent/flam decouple; shared CH/OH level + OH-wins rule; layer morph stays internal; 909 clip
 
 ## §12.7 Scheduler + RBNG v2 (§5.2, §7.1)
 - [ ] 4 sections, pattern banks/lengths/shuffle flags; streaming emission; song track; RBNG chunk plan

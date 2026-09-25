@@ -1,5 +1,15 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m54 | §12.6a: 909 eleven voices + Level/Decay knobs
+- Disposition: New (TDD, t44 RED → PASS with revert-checks)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-6a-909-voices.md
+- Updated: engine/dsp/rb909.{h,c} (IDs, fields, knob application),
+  engine/dsp/params.c (LEVEL/DECAY wired), tools/render.c (bake sweep/click,
+  maps, wants), tests/unit/t44 (new), tests/unit/t1_909 (bad-voice 11),
+  bd + 5 new goldens + sha, 5 ledgers, audit Phase 9 (11-voice loops),
+  docs/2026-09-24-improvement-todo.md
+- 5 old goldens byte-identical (bypass transparency). Full `ri_audit.sh` 0/0.
+
 ## [2026-09-25] m53 | §12.5c: BD 808 regime (paper-read, E1 numbers)
 - Disposition: New (TDD, t43 RED 7 → PASS)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-5c-808-bd.md
