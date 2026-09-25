@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] ingest | Pattern model: fidelity review, implementation plan, slide-direction finding
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-09-25-pattern-model-fidelity-review-and-plan.md
+- Updated: llm-wiki/index.md (Reviews)
+- Also: aros_v1j rtl8139 switch still pending — idle watcher running (lane busy with another session's w097 run)
+
 ## [2026-09-25] update | aros_v1j left on old e1000 (busy); VM lanes should use rtl8139
 - Disposition: Update (follow-up section in the 2026-09-25 root-cause record)
 - aros_v1j mid-run for another session (w097 poll every ~30 s) → not rebooted; recommend `-device rtl8139` at its next restart, keep one private e1000 lane for Dell-driver regression coverage

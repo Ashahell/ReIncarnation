@@ -109,3 +109,5 @@ e1000.device Function e1000func_IntHandler + 0x0000000000000139
   restart + `AROSTCP_IF` `DEV=DEVS:networks/rtl8139.device`. If it stays on
   e1000, install `artifacts/e1000-txfix-20260925/e1000.device.v1-fixed` when
   the lane is idle.
+
+- 2026-09-25 afternoon: an idle watcher waits for 15 quiet minutes on `/tmp/spike_spool_jug` (no queued jobs, no new results, QEMU CPU < 25 %) before switching `aros_v1j` to rtl8139; still busy at last check.
