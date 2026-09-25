@@ -38,7 +38,7 @@
 ### Capture
 * Downbeat law: only downbeats are writable. The MODEL writes exactly the bar it is told (`ri_track_capture` is total on `0..998`); QUANTIZATION (real-time flip → next bar) is caller-side (GUI/record path), never inside the model. Test the model and the quantizer separately.
 * Capture is per (bar, instance) — one slot per call. Multi-section passes are N calls, one per instance (E1 multi-pass workflow, p. 76).
-* RECORD-gating lives OUTSIDE the model: the record path calls capture only while `state == RECORD`; the model itself is gate-blind and testable without a transport. A test asserts the pattern-mode path never calls capture (caller discipline, not model magic).
+* RECORD-gating lives OUTSIDE the model: the record path calls capture only while `state == RECORD`; the model itself is gate-blind and testable without a transport. (Caller-discipline proof moves with the record path — §5.)
 * Instance ≥ 4 is fail-closed (read slot 0, write ignored). Bar ≥ 999 is fail-closed (read slot 0, write ignored) — never wrap, never clamp-up.
 
 ### Emission
@@ -48,11 +48,14 @@
 * Loop wrap: the loop `(on, start, len)` arrives as READ-ONLY inputs. Crossing the loop end wraps iteration to the loop start; change detection continues against the loop-end bar's slots. Loop ON means bar 999 is unreachable — end-of-song never fires mid-loop.
 * Cap pressure drops LATER bars first (existing emitter convention), deterministic.
 * The emitter is TWO layers, never one: `ri_track_emit_measure(t,
-  bar, prev[4], force, ev, n)` emits only the slots that differ from
-  `prev[]` (or all four when `force` is nonzero) — it knows no ranges,
-  no loops, no cursor. The range walker owns the previous-slot cache
-  and the loop arithmetic and calls it per bar. The hot path stays
-  tiny and testable in isolation.
+  bar, carry, map, ppq, out, n, cap, seq)` emits only the slots that
+  differ from the caller-owned `RITrackCarry` (cold carry establishes
+  all four) — it knows no ranges, no loops, no cursor, and never reads
+  banks (slot numbers only). The range walker owns the carry and the
+  loop arithmetic and calls it per bar; the loop is normalized with
+  `ri_loop_clamp` FIRST, and the carry mirrors EMITTED events (a
+  change the cap drops stays pending and is re-sent). The hot path
+  stays tiny and testable in isolation.
 * Emission never moves the cursor and never reads transport state
   (cursor ownership stays in transport, stated absolutely).
 * Emission ranges are left-closed and truncated before the end
@@ -64,10 +67,13 @@
   "emit nothing". Emission fires on a change to or from 0 exactly
   like any other change. No future optimization may treat 0 as a
   sentinel.
+* Slot > 31 is refused by EVERY writer (single slots, bulk fills,
+  clipboard pastes, codec) — all-or-nothing, track untouched on
+  refusal. No writer masks.
 
 ### Edits
 * Init-song fills all 999 from the four live selections AND stamps the song-open event set (E1 p. 75: knob/control settings travel with the slots — the automation slice owns the knob half; this slice owns the slot half and documents the seam).
-* Init-loop fills the loop bars, CLEARS the rest of the loop, leaves outside untouched (E1 pp. 83/176).
+* Init-loop fills EVERY bar inside the loop from the four live selections (E1 p. 176 *"all measures inside the Loop are filled"*) and touches nothing outside. There is no "rest of the loop" left unclear: every in-loop bar carries the selections.
 * Cut REMOVES (tail shifts left, freed end fills slot 0); copy leaves untouched; paste INSERTS (tail shifts right, overflow past 999 drops); paste-replace OVERWRITES in place. Nothing ever grows — always 999.
 * Freed/initialized bars fill with slot 0 = NEUTRAL SELECTION ("keep playing whatever the bank holds at slot 0"), NOT silence. Silence is user data (silent patterns / muted sections); the engine never invents it.
 
@@ -89,32 +95,31 @@ Every invariant has (1) one named enforcement point, (2) executable tests, (3) a
 ## 2. Emission (recorded truth, not sounding truth)
 
 - Measure emission (pure and dumb):
-  `ri_track_emit_measure(t, bar, prev[4], force, ev, n)` emits
-  PATTERN_CHANGE (device = instance, value = slot, sample =
+  `ri_track_emit_measure(t, bar, carry, map, ppq, out, n, cap, seq)`
+  emits PATTERN_CHANGE (device = instance, value = slot, sample =
   measure-start tick through `ri_map_tick`) only for slots that
-  differ from `prev[]`, or all four when `force` is nonzero. It knows
-  no ranges, no loops, no cursor.
+  differ from the caller-owned carry (cold carry establishes all
+  four). It knows no ranges, no loops, no cursor, and never reads
+  banks.
 - Range walker (owns the cache and the arithmetic): holds the
   previous-slot cache, calls the measure function per bar, performs
   loop wrap (continuing change detection against the loop-end bar's
   slots), and forces the range-start establishment. Loop ON never
   reaches 999, so end-of-song never fires mid-loop.
 - Authority is immediate (§0 p. 72: the song overrules manual selection at once); SOUNDING changeover at pattern end (p. 20) belongs to the streaming slice, which owns per-section loop phase. This emitter marks downbeat selections — never the sounding switch.
-- Pure function over (track, banks, bar range, map) → events; cap-guarded like existing emitters (later bars drop first).
+- Pure function over (track, bar range, map) → events (slot numbers
+  only — banks are never an input); cap-guarded like existing emitters
+  (later bars drop first).
 - Loop wrap (E1 p. 73: loop repeats infinitely): the emitter takes the loop `(on, start_bar, len_bars)` as read-only inputs. When a bar range crosses the loop end, iteration wraps to the loop start and change detection continues against the loop-end bar's slots (a wrap that lands on identical slots emits nothing extra). Loop OFF (or a range that never touches the loop) behaves exactly as the unwrapped path. Loop ON means bar 999 is unreachable, so end-of-song never fires mid-loop.
 - End of song: `ri_song_ended(bar_now)` (`bar_now >= 999`) tells the player to stop (E1: playback continues to 999 unless stopped). The engine never invents silence — silent tails are user data (§0).
 
 ## 3. Track edits (pure, E1 pp. 75–85, 176–177)
 
 - `ri_track_init_song(track, slots4)` — fill all 999 bars from the four current pattern-mode selections (clears everything first). Documents the seam: the automation slice stamps the knob/control half of the E1 p. 75 promise; this function owns the slot half.
-- Read-only run view (never stored; computed on demand for the GUI
-  and future phrase-level editing — the seam that keeps regions from
-  ever becoming a linked list): `RITrackRun {start_bar, len_bars,
-  slots[4]}` + `ri_track_runs(t, out[], cap)` run-length-encodes the
-  dense grid. All mutation stays on the dense array; the view is a
-  projection and cannot disagree with it (pinned by the replay
-  property in §6).
-- `ri_track_init_loop(track, slots4, start_bar, len_bars)` — fill the loop bars from selections, CLEAR the rest of the loop (E1 pp. 83/176: rest-of-loop cleared INCLUDING knob recordings — the automation slice clears its lane range in the same call path), leave bars outside the loop untouched.
+- Read-only run view: DEFERRED to the GUI song-editor slice (no
+  caller in this slice). The replay property (§6) stays because it
+  does not need the view.
+- `ri_track_init_loop(track, slots4, start_bar, len_bars)` — fill EVERY bar inside the loop from the selections (E1 p. 176), leave bars outside the loop untouched. (The automation slice clears its lane range in the same call path for the knob half.)
 - Measure clipboard (caller-owned `RITrackClip {len, slot[len][4]}`, len ≤ 999): `ri_track_cut/copy(track, start, len, clip)` — cut REMOVES the range (E1 p. 85 "Removing Measures"): the tail shifts left to close the gap and the freed end fills with slot 0 (neutral selection, NOT silence — §laws). Copy leaves the track untouched. `ri_track_paste(track, at, clip)` inserts (shifts the tail right, drops overflow past 999); `ri_track_paste_replace` overwrites in place. All clamp to the song; nothing ever grows — the song is always 999.
 
 ## 4. Codec (`STRK`, v1.1)
@@ -130,16 +135,15 @@ Every invariant has (1) one named enforcement point, (2) executable tests, (3) a
 | Init-loop knob clearing (E1 p. 176: clears knob recordings in-loop) | same seam, loop-scoped | Same slice, loop-scoped clear |
 | Sounding changeover at pattern end (p. 20) | needs per-section loop phase, not owned here | Streaming slice (§12.9c) owns it; this emitter marks selections only |
 | `RI_EV_TRANSPORT` emission on track transitions | §8 reserves the type; transport slice defers here | This slice emits PATTERN_CHANGE only; TRANSPORT decisions ride the streaming slice |
+| Pattern-mode capture gating (caller never calls capture off RECORD) | no record path exists in this slice to test | Record-path slice owns it; test moves there |
 
 ## 6. Testing
 
-- New `t59_songtrack`: selection (fail-closed reads: bar 999/5000 → slot 0, instance 4/255 → slot 0; writes ignored, neighboring bars untouched), capture writes-exactly + quantizer test (flip at bar 5 mid-measure → bar 6; flip exactly on the downbeat → that bar; flip at bar 998 → 998, never 999) + pattern-mode path never calls capture, emission at measure lines with exact samples + range-start establishment + steady silence, loop wrap (crossing the loop end re-emits only real changes vs the loop-end bar; loop ON never reaches 999), init song/loop (incl. rest-of-loop cleared, outside untouched, knob-seam documented), cut/copy/paste(-replace) incl. close-gap shift, slot-0 tail fill, and insert-overflow truncation, end-of-song (bar 999 stops, 998 plays), STRK round-trip + each reject + v1.0 default, 999 boundary everywhere.
+- New `t59_songtrack`: selection (fail-closed reads: bar 999/5000 → slot 0, instance 4/255 → slot 0; writes ignored, neighboring bars untouched), capture writes-exactly + quantizer composition (flip at bar 5 mid-measure → bar 6 via the transport helper; flip at bar 998 → 998, never 999), emission at measure lines with exact samples + range-start establishment + steady silence, loop wrap (crossing the loop end re-emits only real changes vs the loop-end bar; loop ON never reaches 999), init song/loop (every loop bar filled, outside untouched, knob-seam documented), cut/copy/paste(-replace) incl. close-gap shift, slot-0 tail fill, and insert-overflow truncation, end-of-song (bar 999 stops, 998 plays), STRK round-trip + each reject + v1.0 default, 999 boundary everywhere.
 - Property loops: all-999 round-trip (write slot `b % 32` per bar, read back); emission sweep (alternating slots every bar over 0..999 emits exactly the change bars + range start).
 - Replay property: for any sequence of captures and edits, the dense
   array is the only source of truth — replaying the emission events
   (apply each PATTERN_CHANGE to a 4-slot cursor starting from the
   range-start establishment) reproduces `selected()` at every bar.
-- View property: the run list re-expands to the dense grid exactly;
-  adjacent runs always differ in at least one slot.
 - Mutation proofs (3, recorded with failure lines): (a) `≠3996` → `>=3996` must FAIL the reject case; (b) replace the wrap formula with `bar = loop->start_bar` must FAIL the phase test (count 8 → 10 events, buggy → 6); (c) `>= 999` → `> 999` in `selected` must FAIL the bar-999 case.
 - Existing suites green unmodified. Full `ri_audit.sh` 0/0 (t59 wired beside t58).
