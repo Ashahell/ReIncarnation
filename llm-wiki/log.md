@@ -1,5 +1,9 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] deploy | New ATCPBIN (drops desynced sessions) live on the Dell
+- Disposition: Update (deployment status in the 2026-09-25 root-cause record)
+- `SYS:ATCPBIN` sha `a576a88f…` (backup `.pre-sendbroken`); reboot → agent back 10:13:37 (session 23); 5/5 captures PASS
+
 ## [2026-09-25] ingest | Private e1000 A/B lane: recipe and gotchas
 - Disposition: New
 - Raw: llm-wiki/raw/articles/2026-09-25-private-e1000-ab-lane-gotchas.md

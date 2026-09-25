@@ -85,6 +85,11 @@ e1000.device Function e1000func_IntHandler + 0x0000000000000139
   `C:Reboot` 09:11; ping back 09:13:05, agent back 09:13:26 (session 22);
   `RAM:e1000.log` shows the 82579LM (`device_id 0x1502`) online. 10/10 scale-2
   captures PASS; TCP 20 data packets retransmitted of 5811 sent.
+- **Agent on the Dell: DEPLOYED 2026-09-25.** New `SYS:ATCPBIN` 117952 B
+  (v11 build of commit `b78bd3a4`, sha256 `a576a88f3b76c0b4…`, read back);
+  previous kept as `SYS:ATCPBIN.pre-sendbroken` (117664 B), original
+  `SYS:ATCPBIN.BAK` untouched. Reboot → agent back 10:13:37 (session 23);
+  `Status` shows `SYS:ATCPBIN`; 5/5 scale-2 captures PASS.
 - Rollback (at the Dell): `copy DEVS:networks/e1000.device.pre-txpool DEVS:networks/e1000.device` + reboot.
 - `aros_v1j` (e1000, shared) not yet updated (busy with another session);
   riqemu1 uses rtl8139 (unaffected).
