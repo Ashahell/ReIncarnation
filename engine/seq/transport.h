@@ -6,6 +6,10 @@
 #include <stdint.h>
 enum RI_TRANSPORT { RI_TR_STOPPED = 0, RI_TR_PLAYING = 1, RI_TR_RECORD = 2 };
 #define RI_SEQ_MAX_BARS 999u
+/* Song geometry, single source: a song is ALWAYS RI_SONG_BARS bars
+ * (E1 always-999); valid bar starts are 0 .. RI_SONG_BARS-1, and the
+ * end boundary (== RI_SONG_BARS) is never a valid start. */
+#define RI_SONG_BARS RI_SEQ_MAX_BARS
 #define RI_PPQ_DEFAULT 96u
 #define RI_PPQ_MIN 4u
 struct RITransport { uint8_t state; uint8_t clicks; };
@@ -13,6 +17,20 @@ struct RITransport { uint8_t state; uint8_t clicks; };
 static inline uint32_t ri_ppq_or_default(uint32_t ppq) {
     if (ppq == 0u || ppq < RI_PPQ_MIN) return RI_PPQ_DEFAULT;
     return ppq;
+}
+/* Downbeat quantizer (pure geometry, no state, no cursor): a flip
+ * exactly on a downbeat keeps that bar; a mid-measure flip moves to
+ * the next bar; result clamps to the last valid start (never 999).
+ * Caller-side record path uses this; the track model stays gate-blind. */
+static inline uint64_t ri_bar_quantize_next(uint64_t cursor_ticks, uint32_t ppq) {
+    uint64_t p = (uint64_t)ri_ppq_or_default(ppq);
+    uint64_t bar_ticks = 4u * p;
+    uint64_t bar = cursor_ticks / bar_ticks;
+    if (cursor_ticks % bar_ticks != 0u)
+        bar++;
+    if (bar > RI_SONG_BARS - 1u)
+        bar = RI_SONG_BARS - 1u;
+    return bar;
 }
 void ri_tr_play(struct RITransport *t, uint64_t *cursor_ticks);
 void ri_tr_stop(struct RITransport *t, uint64_t *cursor_ticks,

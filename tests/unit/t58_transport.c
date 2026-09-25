@@ -250,6 +250,23 @@ int main(void) {
         ri_loop_stage(&a.loop_staged, &a.loop, ri_seq_bar_at_tick(a.cursor_ticks, 96u), 100u);
         RI_ASSERT(b.loop_staged.valid == 0u, "b staging clean");
     }
+    /* Song geometry alignment: single source, no forked 999. */
+    {
+        typedef char ri_song_bars_aligned[(RI_SONG_BARS == RI_SEQ_MAX_BARS) ? 1 : -1];
+        (void)sizeof(ri_song_bars_aligned);
+        RI_ASSERT(RI_SONG_BARS == 999u, "song bars %u", RI_SONG_BARS);
+    }
+    /* Downbeat quantizer: exact downbeat holds, mid-measure moves to the
+     * next bar, bar 998 clamps, never 999. */
+    RI_ASSERT(ri_bar_quantize_next(0u, 96u) == 0u, "q exact 0");
+    RI_ASSERT(ri_bar_quantize_next(384u, 96u) == 1u, "q exact 1");
+    RI_ASSERT(ri_bar_quantize_next(1u, 96u) == 1u, "q mid 0");
+    RI_ASSERT(ri_bar_quantize_next(383u, 96u) == 1u, "q late 0");
+    RI_ASSERT(ri_bar_quantize_next(5u * 384u + 200u, 96u) == 6u, "q mid 5");
+    RI_ASSERT(ri_bar_quantize_next(998u * 384u + 383u, 96u) == 998u, "q clamp 998");
+    RI_ASSERT(ri_bar_quantize_next(999u * 384u, 96u) == 998u, "q past end");
+    RI_ASSERT(ri_bar_quantize_next(96u, 0u) == 1u, "q ppq0");
+    RI_ASSERT(ri_bar_quantize_next(0u, 1u) == 0u, "q ppq1");
 #undef RI_T58_LAW
     RI_RESULT("transport");
 }
