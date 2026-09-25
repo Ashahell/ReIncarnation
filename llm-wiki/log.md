@@ -1,5 +1,15 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] m55 | §12.6b: 909 flam decouple + OH-wins + linear mix
+- Disposition: New (TDD, t45 link-RED → PASS with revert-checks)
+- Raw: llm-wiki/raw/articles/2026-09-25-imp-12-6b-909-decouple.md
+- Updated: engine/dsp/rb909.{h,c} (flam bit/width, hat rules, linear mix),
+  tests/unit/t45 (new), tests/unit/t1_909 §6 (OH-wins re-contract),
+  docs/evidence/909/ch.md + oh.md (steal rows),
+  docs/2026-09-24-improvement-todo.md
+- Zero golden fallout (fixtures under clip threshold). Full `ri_audit.sh` 0/0.
+- Held: velocity levels (§12.7), panel hat knob (§12.10).
+
 ## [2026-09-25] m54 | §12.6a: 909 eleven voices + Level/Decay knobs
 - Disposition: New (TDD, t44 RED → PASS with revert-checks)
 - Raw: llm-wiki/raw/articles/2026-09-25-imp-12-6a-909-voices.md
