@@ -17,11 +17,13 @@
 #define RI_GEO_LED 2u     /* decoration: status LED of the owning control */
 #define RI_GEO_LEGEND 3u  /* decoration: text legend centre of the owning control */
 #define RI_GEO_DIVIDER 4u /* decoration: vertical rule; cx = x, cy = top, h = length */
+#define RI_GEO_OPTION 5u  /* hit rect that sets the owning SELECTOR to value `opt`
+                           * (808/909 instrument legends and selector ring labels) */
 
 struct RIGeoItem {
     uint16_t reg_id; /* owning registry control */
     uint8_t shape;   /* RI_GEO_* */
-    uint8_t pad;
+    uint8_t opt;     /* RI_GEO_OPTION: selector value it selects; else 0 */
     int16_t cx, cy, w, h; /* Q units */
 };
 
@@ -42,7 +44,10 @@ const struct RIGeoSection *ri_geo_section(uint32_t section); /* NULL if not laid
 /* Q units -> window pixels at a zoom level (0 = 1x, 1 = 1.5x, 2 = 2x),
  * rounded half away from zero; unknown zoom -> 0. */
 int ri_geo_px(int q, int zoom);
-/* Hit test: the control (reg_id) whose value item contains (x,y) in window
- * pixels at zoom; decorations never hit. Returns 0xFFFF when none. */
+/* Hit test: the control (reg_id) whose value or option item contains (x,y)
+ * in window pixels at zoom; decorations never hit. Returns 0xFFFF when none.
+ * *opt (may be NULL) receives the option value for RI_GEO_OPTION hits and
+ * -1 otherwise. */
 uint16_t ri_geo_hit(const struct RIGeoSection *s, int x, int y, int zoom);
+uint16_t ri_geo_hit_opt(const struct RIGeoSection *s, int x, int y, int zoom, int *opt);
 #endif

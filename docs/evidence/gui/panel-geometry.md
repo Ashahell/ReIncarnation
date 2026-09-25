@@ -1,6 +1,6 @@
 # Panel geometry (E1 layout, measured) — §12.10 G2
 
-**Status:** 303 section measured 2026-09-25. Other sections pending their slices.
+**Status:** 303 and 808 sections measured 2026-09-25. Other sections pending their slices.
 **Source:** ReBirth RB-338 2.0.1 Owner's Manual, synth-section figure on p. 153
 (embedded image 366 × 115 px, extracted with `pdfimages`, viewed at 4× with a
 10-px grid). Layout is measured, never pixel-copied (spec §1): artwork stays
@@ -43,3 +43,15 @@ span 658 Q / 5 = 131.6 Q).
 - Value displays: two arrow buttons change one step; holding repeats.
 - Transport bar always at the top of the single Song window; sections scroll
   below it (p. 19).
+
+## 808 section (Q units, p. 148 figure 368 × 117 px = 1472 × 468 Q)
+
+| Element | Position | Size | Note |
+|---------|----------|------|------|
+| Columns AC BD SD LT MT HT RS CP CB CY OH CH | x = 92, 180, 267, 355, 442, 530, 617, 705, 793, 880, 968, 1056 | pitch 87.6 Q | panel order = TR-808 instrument order |
+| LEVEL knobs (red) | every column @ y 62 | body Ø 40, ring 56 | legend @ y 18 |
+| Parameter knobs (white) | BD/SD/LT/MT/HT/CY @ y 148; BD Decay, SD Snappy, CY Decay, OH Decay @ y 238 | body Ø 36 | always in their instrument's column |
+| Sound switches LT MT HT RS CP | @ y 258 | 38 × 40 | alternate legends LC MC HC CL MA @ y 205 |
+| Instrument legends (options) | every column @ y 312 | 70 × 32 | click = select instrument |
+| Steps 1–16 | x = 92 … 1056, pitch 64.3 Q, @ y 400 | 50 × 76 | TR-808 colours in groups of four |
+| Instrument Selection knob | 1295, 205 | Ø 104 (hit 110) | ring labels AC→CH clockwise from 208°, 28.2° apart, radius 100, 44 × 24 |

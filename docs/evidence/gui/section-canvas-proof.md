@@ -1,8 +1,8 @@
-# 303 section canvas — riqemu1 proof (§12.10 G4)
+# Section canvas (RSection) — riqemu1 proof (§12.10 G4)
 
 **Date:** 2026-09-25. **Lane:** riqemu1 (QEMU, ABIv1 live ISO, private; Dell unavailable — stick backup).
-**Binary:** `RI303`, built by `bash scripts/ri_build_aros.sh sect303` → `/tmp/ri/aros/RI303` (v1 recipe: v1 build-pc SDK, `startup.o`, `-nostartfiles -no-pie`, `-lmui -lamiga -lstdcio -lposixc -lintuition -lgraphics -lutility -ldos -lexec -lautoinit`; 0 unresolved, 0 `mov %rax,%r12`).
-**Code:** `gui/widgets/rsec303.mcc.c` (canvas), `app/sect303proof.c` (proof window + readout).
+**Binary:** `RISECT` (`RISECT [303|808] [demo]`), built by `bash scripts/ri_build_aros.sh sections` → `/tmp/ri/aros/RISECT` (v1 recipe: v1 build-pc SDK, `startup.o`, `-nostartfiles -no-pie`, `-lmui -lamiga -lstdcio -lposixc -lintuition -lgraphics -lutility -ldos -lexec -lautoinit`; 0 unresolved, 0 `mov %rax,%r12`).
+**Code:** `gui/widgets/rsection.mcc.c` (one canvas class for every laid-out section), `gui/sectui.c` (behaviour dispatch, host-tested t64), `app/sectproof.c` (proof window + readout). The first build was a 303-only class (`RSec303`); it was generalised the same day when the 808 landed.
 
 ## Proven
 
@@ -10,6 +10,9 @@
 - **Palette-independent drawing.** First build drew nothing (RGB-pen call ignored on the lane's screen); pens are now obtained per screen in `MUIM_Setup` (`ObtainBestPen`) and released in `MUIM_Cleanup`.
 - **State → pixels.** `RI303 demo` runs the manual's “programming from scratch in Pitch Mode” sequence (p. 42) through the same `ri_s303_press` calls a click makes, then Cutoff 30 / Reso 110 / Waveform: the capture shows EDIT STEP **04**, Pitch Mode LED lit, SQR selected, Cutoff and Reso pointers moved; readout `STEP 4 … PM 1 … CUT 30 WAVE 1`.
 - **Event plumbing up to IDCMP.** Handler installed in `MUIM_Setup` (lifecycle counters Setup 1 / Show 1); with `IDCMP_INTUITICKS` temporarily added it received ticks (46 → 482), so the handler path is live.
+
+- **808 section (p. 148 layout).** `RISECT 808 demo`: BD four-on-the-floor, CH off-beats, AC on steps 5 and 13, LT→LC switch, BD Level/Tone moved, CH left selected. Capture `img/2026-09-25-ri808-demo.png` shows twelve red LEVEL knobs, white parameter knobs in their instrument columns, the LT switch lever down (LC), CH lit in both the legend row and the selector ring, the selector pointer on CH, and the CH row lamps lit on steps 3, 7, 11, 15 over TR-808 colour groups (1–4 red, 5–8 orange, 9–12 yellow, 13–16 white). Readout `SEL 11 ROW ..X...X...X...X. BD 1 LC 1`.
+- **303 regression through the generic canvas.** `RISECT 303 demo` reproduces the RSec303 capture (EDIT STEP 04, Pitch Mode lit, SQR).
 
 ## Not proven here (and why)
 
