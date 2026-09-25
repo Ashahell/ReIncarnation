@@ -78,5 +78,23 @@ int ri_p303_octave(uint8_t flags);
 int ri_p303_semi(const struct RI303Row *r);
 uint8_t ri_p303_note(const struct RI303Row *r);
 int ri_p303_fold(int semi, int *folded);
-void ri_p303_encode(int semi, uint8_t *key, uint8_t *octflags);
+/* Task 4: ReBirth Edit menu ops (p. 51-54, spec §3). All return 0 ok,
+ * 2 refused with no state change. */
+int ri_pattern_clear(struct RIPattern *p);
+int ri_bank_copy(const struct RIPatternBank *src, uint32_t sslot,
+    struct RIPatternBank *dst, uint32_t dslot); /* same kind+class */
+int ri_bank_cut(struct RIPatternBank *b, uint32_t slot,
+    struct RIPattern *clip);
+int ri_bank_paste(struct RIPatternBank *b, uint32_t slot,
+    const struct RIPattern *clip);
+int ri_pattern_shift(struct RIPattern *p, int dir); /* -1 left, +1 right */
+int ri_pdrum_shift_lane(struct RIPattern *p, uint32_t lane, int dir);
+int ri_p303_transpose(struct RIPattern *p, int semis, uint32_t *nfolded);
+#define RI_RND_PATTERN  0u
+#define RI_RND_PITCHES  1u
+#define RI_RND_ACCENTS  2u  /* "Accents etc.": Note/Pause, Accent, Slide, Octave */
+int ri_p303_random(struct RIPattern *p, uint32_t what, uint32_t seed);
+int ri_p303_alter(struct RIPattern *p, uint32_t what, uint32_t seed);
+int ri_pdrum_random_lane(struct RIPattern *p, uint32_t lane, uint32_t seed);
+int ri_pdrum_alter_lane(struct RIPattern *p, uint32_t lane, uint32_t seed);
 #endif

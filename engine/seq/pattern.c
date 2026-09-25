@@ -256,3 +256,310 @@ void ri_p303_encode(int semi, uint8_t *key, uint8_t *octflags) {
     if (octflags)
         *octflags = o;
 }
+
+/* Task 4: ReBirth Edit menu (p. 51-54). */
+
+int ri_pattern_clear(struct RIPattern *p) {
+    uint8_t len;
+    if (!p)
+        return 2;
+    if (p->kind > RI_PATTERN_KIND_DRUM)
+        return 2;
+    len = p->length;
+    ri_pattern_init(p, p->kind,
+        p->kind == RI_PATTERN_KIND_DRUM ? p->drum_class : 0u);
+    p->length = len; /* length unchanged (p. 52) */
+    return 0;
+}
+
+int ri_bank_copy(const struct RIPatternBank *src, uint32_t sslot,
+    struct RIPatternBank *dst, uint32_t dslot) {
+    uint32_t i;
+    if (!src || !dst)
+        return 2;
+    if (sslot >= RI_PATTERN_BANK_PATTERNS ||
+        dslot >= RI_PATTERN_BANK_PATTERNS)
+        return 2;
+    if (src->kind != dst->kind || src->drum_class != dst->drum_class)
+        return 2;
+    for (i = 0; i < sizeof(struct RIPattern); i++)
+        ((unsigned char *)&dst->pat[dslot])[i] =
+            ((const unsigned char *)&src->pat[sslot])[i];
+    return 0;
+}
+
+int ri_bank_cut(struct RIPatternBank *b, uint32_t slot,
+    struct RIPattern *clip) {
+    uint32_t i;
+    if (!b || !clip || slot >= RI_PATTERN_BANK_PATTERNS)
+        return 2;
+    for (i = 0; i < sizeof(struct RIPattern); i++)
+        ((unsigned char *)clip)[i] =
+            ((const unsigned char *)&b->pat[slot])[i];
+    ri_pattern_clear(&b->pat[slot]); /* clear, not remove (p. 51) */
+    return 0;
+}
+
+int ri_bank_paste(struct RIPatternBank *b, uint32_t slot,
+    const struct RIPattern *clip) {
+    uint32_t i;
+    if (!b || !clip || slot >= RI_PATTERN_BANK_PATTERNS)
+        return 2;
+    if (clip->kind != b->kind || clip->drum_class != b->drum_class)
+        return 2;
+    for (i = 0; i < sizeof(struct RIPattern); i++)
+        ((unsigned char *)&b->pat[slot])[i] =
+            ((const unsigned char *)clip)[i];
+    return 0;
+}
+
+int ri_pattern_shift(struct RIPattern *p, int dir) {
+    uint32_t i;
+    if (!p)
+        return 2;
+    if (p->kind > RI_PATTERN_KIND_DRUM)
+        return 2;
+    if (dir != -1 && dir != 1)
+        return 2;
+    if (p->kind == RI_PATTERN_KIND_303) {
+        struct RI303Row tmp;
+        if (dir == 1) {
+            tmp = p->row.r303[RI_PATTERN_STEPS - 1u];
+            for (i = RI_PATTERN_STEPS - 1u; i > 0u; i--)
+                p->row.r303[i] = p->row.r303[i - 1u];
+            p->row.r303[0] = tmp;
+        } else {
+            tmp = p->row.r303[0];
+            for (i = 0; i < RI_PATTERN_STEPS - 1u; i++)
+                p->row.r303[i] = p->row.r303[i + 1u];
+            p->row.r303[RI_PATTERN_STEPS - 1u] = tmp;
+        }
+    } else {
+        struct RIDrumRow tmp;
+        if (dir == 1) {
+            tmp = p->row.drum[RI_PATTERN_STEPS - 1u];
+            for (i = RI_PATTERN_STEPS - 1u; i > 0u; i--)
+                p->row.drum[i] = p->row.drum[i - 1u];
+            p->row.drum[0] = tmp;
+        } else {
+            tmp = p->row.drum[0];
+            for (i = 0; i < RI_PATTERN_STEPS - 1u; i++)
+                p->row.drum[i] = p->row.drum[i + 1u];
+            p->row.drum[RI_PATTERN_STEPS - 1u] = tmp;
+        }
+    }
+    return 0;
+}
+
+int ri_pdrum_shift_lane(struct RIPattern *p, uint32_t lane, int dir) {
+    uint32_t i;
+    uint16_t bit;
+    uint8_t h0, f0;
+    if (!p || p->kind != RI_PATTERN_KIND_DRUM)
+        return 2;
+    if (lane >= RI_DRUM_CLASSIC_LANES)
+        return 2;
+    if (dir != -1 && dir != 1)
+        return 2;
+    bit = (uint16_t)(1u << lane);
+    if (dir == 1) {
+        /* Save row-15 lane state, shift down, restore at row 0. */
+        h0 = (p->row.drum[RI_PATTERN_STEPS - 1u].high & bit) != 0u;
+        f0 = (p->row.drum[RI_PATTERN_STEPS - 1u].flam & bit) != 0u;
+        for (i = RI_PATTERN_STEPS - 1u; i > 0u; i--) {
+            uint8_t h = (p->row.drum[i - 1u].high & bit) != 0u;
+            uint8_t f = (p->row.drum[i - 1u].flam & bit) != 0u;
+            uint8_t o = (p->row.drum[i - 1u].on & bit) != 0u;
+            p->row.drum[i].on =
+                (uint16_t)((p->row.drum[i].on & (uint16_t)~bit) |
+                (o ? bit : 0u));
+            p->row.drum[i].high =
+                (uint16_t)((p->row.drum[i].high & (uint16_t)~bit) |
+                (h ? bit : 0u));
+            p->row.drum[i].flam =
+                (uint16_t)((p->row.drum[i].flam & (uint16_t)~bit) |
+                (f ? bit : 0u));
+        }
+        {
+            uint8_t o =
+                (p->row.drum[RI_PATTERN_STEPS - 1u].on & bit) != 0u;
+            p->row.drum[0].on =
+                (uint16_t)((p->row.drum[0].on & (uint16_t)~bit) |
+                (o ? bit : 0u));
+            p->row.drum[0].high =
+                (uint16_t)((p->row.drum[0].high & (uint16_t)~bit) |
+                (h0 ? bit : 0u));
+            p->row.drum[0].flam =
+                (uint16_t)((p->row.drum[0].flam & (uint16_t)~bit) |
+                (f0 ? bit : 0u));
+        }
+    } else {
+        uint8_t h15, f15, o15;
+        h15 = (p->row.drum[0].high & bit) != 0u;
+        f15 = (p->row.drum[0].flam & bit) != 0u;
+        o15 = (p->row.drum[0].on & bit) != 0u;
+        for (i = 0; i < RI_PATTERN_STEPS - 1u; i++) {
+            uint8_t h = (p->row.drum[i + 1u].high & bit) != 0u;
+            uint8_t f = (p->row.drum[i + 1u].flam & bit) != 0u;
+            uint8_t o = (p->row.drum[i + 1u].on & bit) != 0u;
+            p->row.drum[i].on =
+                (uint16_t)((p->row.drum[i].on & (uint16_t)~bit) |
+                (o ? bit : 0u));
+            p->row.drum[i].high =
+                (uint16_t)((p->row.drum[i].high & (uint16_t)~bit) |
+                (h ? bit : 0u));
+            p->row.drum[i].flam =
+                (uint16_t)((p->row.drum[i].flam & (uint16_t)~bit) |
+                (f ? bit : 0u));
+        }
+        p->row.drum[RI_PATTERN_STEPS - 1u].on =
+            (uint16_t)((p->row.drum[RI_PATTERN_STEPS - 1u].on &
+                (uint16_t)~bit) | (o15 ? bit : 0u));
+        p->row.drum[RI_PATTERN_STEPS - 1u].high =
+            (uint16_t)((p->row.drum[RI_PATTERN_STEPS - 1u].high &
+                (uint16_t)~bit) | (h15 ? bit : 0u));
+        p->row.drum[RI_PATTERN_STEPS - 1u].flam =
+            (uint16_t)((p->row.drum[RI_PATTERN_STEPS - 1u].flam &
+                (uint16_t)~bit) | (f15 ? bit : 0u));
+    }
+    return 0;
+}
+
+int ri_p303_transpose(struct RIPattern *p, int semis, uint32_t *nfolded) {
+    uint32_t i, nf = 0u;
+    if (!p || p->kind != RI_PATTERN_KIND_303)
+        return 2;
+    if (semis > 12 || semis < -12)
+        return 2;
+    for (i = 0; i < RI_PATTERN_STEPS; i++) {
+        int s, folded = 0;
+        uint8_t k, o;
+        if (p->row.r303[i].flags & RI_STEP_REST)
+            continue; /* silent rows keep their key (p. 54: "notes") */
+        s = ri_p303_fold(ri_p303_semi(&p->row.r303[i]) + semis, &folded);
+        nf += (uint32_t)folded;
+        ri_p303_encode(s, &k, &o);
+        p->row.r303[i].key = k;
+        p->row.r303[i].flags = (uint8_t)((p->row.r303[i].flags &
+            (uint8_t)~(RI_STEP_UP | RI_STEP_DOWN)) | o);
+    }
+    if (nfolded)
+        *nfolded = nf;
+    return 0;
+}
+
+/* Numerical Recipes LCG; top 16 bits used. Never global. */
+static uint32_t ri_lcg(uint32_t *s) {
+    *s = *s * 1664525u + 1013904223u;
+    return *s >> 16;
+}
+
+static uint32_t ri_pick(uint32_t *s, uint32_t n) {
+    return ri_lcg(s) % n; /* n <= 65536 */
+}
+
+int ri_p303_random(struct RIPattern *p, uint32_t what, uint32_t seed) {
+    uint32_t i;
+    uint32_t s = seed;
+    if (!p || p->kind != RI_PATTERN_KIND_303)
+        return 2;
+    if (what != RI_RND_PATTERN && what != RI_RND_PITCHES &&
+        what != RI_RND_ACCENTS)
+        return 2;
+    if (what == RI_RND_PATTERN || what == RI_RND_PITCHES) {
+        for (i = 0; i < RI_PATTERN_STEPS; i++)
+            p->row.r303[i].key = (uint8_t)ri_pick(&s, 13u);
+    }
+    if (what == RI_RND_PATTERN || what == RI_RND_ACCENTS) {
+        for (i = 0; i < RI_PATTERN_STEPS; i++) {
+            uint8_t f = 0u, r;
+            if (ri_pick(&s, 16u) < 4u)
+                f |= RI_STEP_REST;
+            if (ri_pick(&s, 16u) < 4u)
+                f |= RI_STEP_ACCENT;
+            if (ri_pick(&s, 16u) < 3u)
+                f |= RI_STEP_SLIDE;
+            r = (uint8_t)ri_pick(&s, 16u);
+            if (r < 2u)
+                f |= RI_STEP_DOWN;
+            else if (r < 4u)
+                f |= RI_STEP_UP;
+            p->row.r303[i].flags = f;
+        }
+    }
+    return 0;
+}
+
+int ri_pdrum_random_lane(struct RIPattern *p, uint32_t lane, uint32_t seed) {
+    uint32_t i;
+    uint32_t s = seed;
+    if (!p || p->kind != RI_PATTERN_KIND_DRUM)
+        return 2;
+    if (lane >= RI_DRUM_CLASSIC_LANES)
+        return 2;
+    for (i = 0; i < RI_PATTERN_STEPS; i++) {
+        uint32_t r = ri_pick(&s, 16u);
+        uint32_t st;
+        if (p->drum_class == RI_DRUM_CLASS_808) {
+            st = r < 11u ? RI_HIT_OFF : RI_HIT_LOW;
+        } else {
+            if (r < 8u)
+                st = RI_HIT_OFF;
+            else if (r < 12u)
+                st = RI_HIT_LOW;
+            else if (r < 15u)
+                st = RI_HIT_HIGH;
+            else
+                st = RI_HIT_FLAM;
+        }
+        ri_pdrum_set(p, i, lane, st);
+    }
+    return 0;
+}
+
+int ri_p303_alter(struct RIPattern *p, uint32_t what, uint32_t seed) {
+    uint32_t i, s = seed;
+    if (!p || p->kind != RI_PATTERN_KIND_303)
+        return 2;
+    if (what != RI_RND_PATTERN && what != RI_RND_PITCHES &&
+        what != RI_RND_ACCENTS)
+        return 2;
+    /* Seeded Fisher-Yates over the 16 rows/columns. */
+    for (i = RI_PATTERN_STEPS - 1u; i > 0u; i--) {
+        uint32_t j = ri_pick(&s, i + 1u);
+        if (what == RI_RND_PATTERN) {
+            struct RI303Row t = p->row.r303[i];
+            p->row.r303[i] = p->row.r303[j];
+            p->row.r303[j] = t;
+        } else if (what == RI_RND_PITCHES) {
+            uint8_t t = p->row.r303[i].key;
+            p->row.r303[i].key = p->row.r303[j].key;
+            p->row.r303[j].key = t;
+        } else {
+            uint8_t t = p->row.r303[i].flags;
+            p->row.r303[i].flags = p->row.r303[j].flags;
+            p->row.r303[j].flags = t;
+        }
+    }
+    return 0;
+}
+
+int ri_pdrum_alter_lane(struct RIPattern *p, uint32_t lane, uint32_t seed) {
+    uint32_t i, s = seed;
+    uint32_t st[RI_PATTERN_STEPS];
+    if (!p || p->kind != RI_PATTERN_KIND_DRUM)
+        return 2;
+    if (lane >= RI_DRUM_CLASSIC_LANES)
+        return 2;
+    for (i = 0; i < RI_PATTERN_STEPS; i++)
+        st[i] = ri_pdrum_get(p, i, lane);
+    for (i = RI_PATTERN_STEPS - 1u; i > 0u; i--) {
+        uint32_t j = ri_pick(&s, i + 1u);
+        uint32_t t = st[i];
+        st[i] = st[j];
+        st[j] = t;
+    }
+    for (i = 0; i < RI_PATTERN_STEPS; i++)
+        ri_pdrum_set(p, i, lane, st[i]);
+    return 0;
+}
