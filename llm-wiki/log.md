@@ -1,5 +1,17 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] ingest | riqemu1 DH0 boot with visible agent; aros_v1j on rtl8139
+- Disposition: New (lane record; cross-posted to Vulkan4AROS)
+- Raw: llm-wiki/raw/articles/2026-09-25-riqemu1-dh0-boot-v1j-rtl8139.md
+- Updated: llm-wiki/index.md (Lane infrastructure entry)
+InstallAROS DH0 needs no extra assigns; User-Startup runs the agent in a CON: window (`Run QUIET` keeps the boot shell hidden; duplicate `route add` removed); fixed ATCPBIN.v1 installed; Live CD detached. aros_v1j: rtl8139 live, verified.
+
+## [2026-09-25] ingest | §12.10 GUI parity G1–G4 (all sections)
+- Disposition: New (rollup of 10 commits `f130142`…`31ed17b`)
+- Raw: llm-wiki/raw/articles/2026-09-25-gui-parity-sections-g1-g4.md
+- Updated: llm-wiki/index.md (new GUI (§12.10) section)
+Registry, measured geometry, behaviour t60–t69, one RSection canvas, riqemu1 demo proofs. Registry fix: PCF Freq/Q/Amt/Decay are faders (p. 159). Open for owners: Dist exclusivity (p. 59 vs p. 157), engine Stop law vs p. 145.
+
 ## [2026-09-25] lint | 0 issues (post-m65 sweep)
 - m65 (transport) verified present in raw + log + index.
 - No unindexed raws; all index/log links resolve.
