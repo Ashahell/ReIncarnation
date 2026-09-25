@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] owner-feedback | RI-STEPS close gadget dead (m43 tradeoff confirmed)
+- Owner tried to close the RI-STEPS window via gadget on the QEMU lane: nothing
+  happens (manual-`Wait` loop never serves NewInput — documented m43 tradeoff).
+  Killed from here via `Break <pid> C` (clean, lane tidy). Vehicle needs a real
+  exit path (input hook/subtask) before Dell hands/feel.
+
 ## [2026-09-25] lint | 0 issues (ingest sweep m58–m59 + e1000 lane)
 - m58/m59 raw+log+index verified present; no unindexed raws; all links resolve.
 - Sibling e1000 lane work logged by its author (ingest + deploy entries);
