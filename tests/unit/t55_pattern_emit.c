@@ -284,5 +284,159 @@ int main(void) {
         RI_ASSERT(offs_after == 1u, "case7 offs %u", offs_after);
     }
 
+    /* ---- Task 7: drum emit path ---- */
+
+    /* 808 BD on 0/4/8/12 + AC on 4: 4 NOTE_ONs + 1 total ACCENT,
+     * ACCENT sorted after the step-4 NOTE_ON (type 3 < 5). */
+    {
+        struct RIPattern p;
+        struct RIEvent e[64];
+        uint32_t n, k, ons = 0, acs = 0, ac_pos = 0, on4_pos = 0;
+        ri_pattern_init(&p, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_808);
+        ri_pattern_set_length(&p, 16);
+        ri_pdrum_set(&p, 0, RI_L808_BD, RI_HIT_LOW);
+        ri_pdrum_set(&p, 4, RI_L808_BD, RI_HIT_LOW);
+        ri_pdrum_set(&p, 8, RI_L808_BD, RI_HIT_LOW);
+        ri_pdrum_set(&p, 12, RI_L808_BD, RI_HIT_LOW);
+        ri_pdrum_set_ac(&p, 4, 1);
+        n = ri_sched_emit_pattern(&p, 2, &MAP, 0, 96, 0, 0, 0, e, 64);
+        RI_ASSERT(n == 5u, "d808 count %u", n);
+        for (k = 0; k < n; k++) {
+            if (e[k].type == RI_EV_NOTE_ON) {
+                ons++;
+                RI_ASSERT(e[k].voice == 0u && e[k].value == 0u,
+                    "d808 on voice");
+                RI_ASSERT(e[k].flags == 0u, "d808 on flags");
+                if (e[k].sample == e[1].sample)
+                    on4_pos = k;
+            }
+            if (e[k].type == RI_EV_ACCENT) {
+                acs++;
+                ac_pos = k;
+                RI_ASSERT(e[k].voice == RI_VOICE_ALL, "d808 ac voice");
+                RI_ASSERT(e[k].value == 1u, "d808 ac value");
+            }
+        }
+        RI_ASSERT(ons == 4u && acs == 1u, "d808 kinds");
+        RI_ASSERT(ac_pos > on4_pos, "d808 ac order");
+    }
+
+    /* 909 levels + flam: HIGH -> ACCENT flag; LOW -> none;
+     * FLAM -> NOTE_ON (no ACCENT) + FLAM at +1680. */
+    {
+        struct RIPattern p;
+        struct RIEvent e[64];
+        struct RISchedOpts fo = { 0, 0, RI_FLAM_MS_DEFAULT };
+        uint32_t n, k, hi_acc = 99, lo_acc = 99, fl_on = 0, fl_ev = 0;
+        uint64_t fl_s = 0, on_s = 0;
+        ri_pattern_init(&p, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_909);
+        ri_pattern_set_length(&p, 2);
+        ri_pdrum_set(&p, 0, RI_L909_CH, RI_HIT_HIGH);
+        ri_pdrum_set(&p, 1, RI_L909_CH, RI_HIT_LOW);
+        ri_pdrum_set(&p, 1, RI_L909_SD, RI_HIT_FLAM);
+        n = ri_sched_emit_pattern(&p, 3, &MAP, 0, 96, &fo, 0, 0, e, 64);
+        for (k = 0; k < n; k++) {
+            if (e[k].type == RI_EV_NOTE_ON && e[k].voice == 7u &&
+                e[k].sample == 0u)
+                hi_acc = e[k].flags;
+            if (e[k].type == RI_EV_NOTE_ON && e[k].voice == 7u &&
+                e[k].sample != 0u)
+                lo_acc = e[k].flags;
+            if (e[k].type == RI_EV_NOTE_ON && e[k].voice == 1u) {
+                fl_on = 1;
+                on_s = e[k].sample;
+                RI_ASSERT((e[k].flags & RI_EVFLAG_ACCENT) == 0u,
+                    "d909 flam accented");
+            }
+            if (e[k].type == RI_EV_FLAM && e[k].voice == 1u) {
+                fl_ev = 1;
+                fl_s = e[k].sample;
+                RI_ASSERT(e[k].flags == RI_EVFLAG_FLAM2, "d909 flam2");
+                RI_ASSERT(e[k].value == 1680u, "d909 flam val %u",
+                    e[k].value);
+            }
+        }
+        RI_ASSERT(hi_acc == RI_EVFLAG_ACCENT, "d909 high flags %u",
+            hi_acc);
+        RI_ASSERT(lo_acc == 0u, "d909 low flags %u", lo_acc);
+        RI_ASSERT(fl_on && fl_ev, "d909 flam pair");
+        RI_ASSERT(fl_s == on_s + 1680u, "d909 flam time");
+    }
+
+    /* OH + CH same step: both NOTE_ONs present (voice rules later). */
+    {
+        struct RIPattern p;
+        struct RIEvent e[64];
+        uint32_t n, k, oh = 0, ch = 0;
+        ri_pattern_init(&p, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_909);
+        ri_pattern_set_length(&p, 1);
+        ri_pdrum_set(&p, 0, RI_L909_OH, RI_HIT_LOW);
+        ri_pdrum_set(&p, 0, RI_L909_CH, RI_HIT_LOW);
+        n = ri_sched_emit_pattern(&p, 3, &MAP, 0, 96, 0, 0, 0, e, 64);
+        RI_ASSERT(n == 2u, "d909 ohch count %u", n);
+        for (k = 0; k < n; k++) {
+            if (e[k].type == RI_EV_NOTE_ON && e[k].voice == 8u)
+                oh = 1;
+            if (e[k].type == RI_EV_NOTE_ON && e[k].voice == 7u)
+                ch = 1;
+        }
+        RI_ASSERT(oh && ch, "d909 ohch voices");
+    }
+
+    /* Shuffle parity with the 303 walker (same length, shuffle 50). */
+    {
+        struct RIPattern dp;
+        struct RIStep s[4];
+        struct RIEvent e1[64], e2[64];
+        struct RISchedOpts o = { 50, 0, RI_FLAM_MS_DEFAULT };
+        uint32_t n1, n2;
+        ri_pattern_init(&dp, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_808);
+        ri_pattern_set_length(&dp, 4);
+        ri_pdrum_set(&dp, 1, RI_L808_BD, RI_HIT_LOW);
+        n1 = ri_sched_emit_pattern(&dp, 2, &MAP, 0, 96, &o, 0, 0, e1,
+            64);
+        s[0].note = 60; s[0].flags = RI_STEP_REST;
+        s[1].note = 60; s[1].flags = 0;
+        s[2].note = 60; s[2].flags = RI_STEP_REST;
+        s[3].note = 60; s[3].flags = RI_STEP_REST;
+        n2 = ri_sched_emit_timed(&MAP, 0, 96, s, 4, 0, &o, e2, 64);
+        RI_ASSERT(n1 == 1u && n2 >= 1u, "dshuffle counts");
+        {
+            uint32_t k2, found = 0;
+            for (k2 = 0; k2 < n2; k2++)
+                if (e2[k2].type == RI_EV_NOTE_ON) {
+                    found = 1;
+                    RI_ASSERT(e1[0].sample == e2[k2].sample,
+                        "dshuffle %llu vs %llu",
+                        (unsigned long long)e1[0].sample,
+                        (unsigned long long)e2[k2].sample);
+                }
+            RI_ASSERT(found, "dshuffle no 303 ON");
+        }
+    }
+
+    /* Length gate + cap determinism + corrupt fail-closed. */
+    {
+        struct RIPattern p;
+        struct RIEvent e1[64], e2[64];
+        uint32_t n1, n2, k;
+        ri_pattern_init(&p, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_808);
+        ri_pattern_set_length(&p, 7);
+        for (k = 0; k < 16u; k++)
+            ri_pdrum_set(&p, k, RI_L808_BD, RI_HIT_LOW);
+        n1 = ri_sched_emit_pattern(&p, 2, &MAP, 0, 96, 0, 0, 0, e1,
+            64);
+        RI_ASSERT(n1 == 7u, "dlen count %u", n1);
+        n1 = ri_sched_emit_pattern(&p, 2, &MAP, 0, 96, 0, 0, 0, e1, 5);
+        n2 = ri_sched_emit_pattern(&p, 2, &MAP, 0, 96, 0, 0, 0, e2, 5);
+        RI_ASSERT(n1 == n2, "dcap counts");
+        RI_ASSERT(memcmp(e1, e2, n1 * sizeof(struct RIEvent)) == 0,
+            "dcap determinism");
+        p.row.drum[0].high = 0x0001u; /* hand-corrupted 808 */
+        n1 = ri_sched_emit_pattern(&p, 2, &MAP, 0, 96, 0, 0, 0, e1,
+            64);
+        RI_ASSERT(n1 == 0u, "dcorrupt events %u", n1);
+    }
+
     RI_RESULT("pattern_emit");
 }
