@@ -97,6 +97,8 @@ static inline int ri_event_less(const struct RIEvent *a, const struct RIEvent *b
 #define RI_STEP_ACCENT 0x02u
 #define RI_STEP_REST 0x04u
 #define RI_STEP_FLAM 0x08u
+#define RI_STEP_UP 0x10u
+#define RI_STEP_DOWN 0x20u
 
 #define RI_EVFLAG_SLIDE 0x01u
 #define RI_EVFLAG_ACCENT 0x02u
