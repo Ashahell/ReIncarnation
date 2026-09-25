@@ -165,7 +165,7 @@ mkdir -p "$T7"
 "$OUT/render" --song "$SG/sched-check.rbng" --out "$T7/sched-check.wav" --dump-events "$T7/sched-check.events" || exit 1
 "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$T7/sched-check.events" --wav-a "$SG/sched-check.wav" --wav-b "$T7/sched-check.wav" | grep -q "COMPARE: IDENTICAL" || { echo "FAIL: sched-check re-render differs (not deterministic)"; exit 1; }
 echo "== Phase 7b: pattern model (§12.7a) =="
-for t in t53_pattern_model t54_pattern_edit t55_pattern_emit t56_rbng_bank; do
+for t in t53_pattern_model t54_pattern_edit t55_pattern_emit t56_rbng_bank t57_engine_drums; do
   bash "$ROOT/scripts/ri_build_host.sh" test $t >/dev/null || { echo "FAIL: $t"; exit 1; }
 done
 # no RNG/time/global state in the model

@@ -7,6 +7,7 @@
  * Kernels only via the voice code; no libm, no allocation, no IO.
  */
 #include "engine/engine.h"
+#include "engine/seq/pattern.h"
 
 void ri_engine_init(struct RIEngine *e) {
     uint32_t i;
@@ -14,6 +15,12 @@ void ri_engine_init(struct RIEngine *e) {
         return;
     rb303_init(&e->v303a);
     rb303_init(&e->v303b);
+    rb808_init_set(&e->s808);
+    rb909_init_set(&e->s909);
+    for (i = 0; i < RI_808_NSOUNDS; i++)
+        e->tag808[i] = ~(uint64_t)0u;
+    for (i = 0; i < RI_909_NVOICES; i++)
+        e->tag909[i] = ~(uint64_t)0u;
     e->ev = 0;
     e->nev = 0;
     e->evpos = 0;
@@ -242,6 +249,13 @@ float ri_engine_comp_gr(const struct RIEngine *e) {
     return ri_fxcomp_gr_db(&e->comp);
 }
 
+int ri_engine_909_bind(struct RIEngine *e, uint32_t voice,
+    const struct RISampleLayer *layers, uint32_t n) {
+    if (!e)
+        return 2;
+    return rb909_set_layers(&e->s909, voice, layers, n) == 0 ? 0 : 2;
+}
+
 void ri_engine_load(struct RIEngine *e, const struct RIEvent *ev,
     uint32_t nev, uint64_t total, uint32_t sections) {
     if (!e)
@@ -259,8 +273,55 @@ void ri_engine_load(struct RIEngine *e, const struct RIEvent *ev,
  * blocks are ignored — 808/909 arrive with their slices, never misrouted. */
 void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
     struct RB303Voice *v = 0;
+    uint32_t lane, sound, voice;
     if (!e || !ev)
         return;
+    /* Drum sections (§12.7a/m64): lane state arrives as NOTE_ON
+     * (voice = value = lane, ACCENT flag = 909 high level), flam as
+     * FLAM (value = width), total accent as ACCENT to voice ALL.
+     * The AC event sorts after same-sample hits, so it accents the
+     * voices stamped at this cursor (303-style retroactive accent). */
+    if (ev->device == 2u || ev->device == 3u) {
+        switch (ev->type) {
+        case RI_EV_NOTE_ON:
+            lane = ev->voice;
+            if (lane >= RI_DRUM_CLASSIC_LANES)
+                return; /* reserved rack lanes: later slice */
+            if (ev->device == 2u) {
+                sound = e->s808.slot[lane];
+                rb808_trigger(&e->s808, sound,
+                    (ev->flags & RI_EVFLAG_ACCENT) ? 1u : 0u, 0.0f);
+                e->tag808[sound] = e->cursor;
+            } else {
+                voice = RI_LANE_TO_RB909_VOICE[lane];
+                rb909_trigger(&e->s909, voice,
+                    (ev->flags & RI_EVFLAG_ACCENT) ? 1u : 0u, 64, 0);
+                e->tag909[voice] = e->cursor;
+            }
+            return;
+        case RI_EV_FLAM:
+            /* Emitter sets voice = lane; map to the engine voice id. */
+            if (ev->device == 3u && ev->voice < RI_DRUM_CLASSIC_LANES)
+                rb909_arm_flam(&e->s909,
+                    RI_LANE_TO_RB909_VOICE[ev->voice], ev->value);
+            return; /* 808 has no flam */
+        case RI_EV_ACCENT:
+            if (ev->voice != RI_VOICE_ALL)
+                return;
+            if (ev->device == 2u) {
+                for (sound = 0; sound < RI_808_NSOUNDS; sound++)
+                    if (e->tag808[sound] == e->cursor)
+                        e->s808.v[sound].accent = 1u;
+            } else {
+                for (voice = 0; voice < RI_909_NVOICES; voice++)
+                    if (e->tag909[voice] == e->cursor)
+                        e->s909.v[voice].accent = 1u;
+            }
+            return;
+        default:
+            return; /* one-shots: no gate to release */
+        }
+    }
     switch (ev->type) {
     case RI_EV_NOTE_ON:
     case RI_EV_NOTE_CONTINUE:
@@ -348,6 +409,14 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             if (e->sections & RI_ENGINE_S303B) {
                 rb303_render(&e->v303b, e->scratch, cc, sr);
                 engine_section(e, 1, ml, mr, sendbus, cc, sr);
+            }
+            if (e->sections & RI_ENGINE_S808) {
+                rb808_render_mix(&e->s808, e->scratch, cc, sr);
+                engine_section(e, 2, ml, mr, sendbus, cc, sr);
+            }
+            if (e->sections & RI_ENGINE_S909) {
+                rb909_render_mix(&e->s909, e->scratch, cc, sr);
+                engine_section(e, 3, ml, mr, sendbus, cc, sr);
             }
             /* Shared delay send: one line over the summed post-insert
              * sends; stereo return with its own pan (NULL = dry). */

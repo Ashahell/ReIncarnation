@@ -18,18 +18,25 @@
 #include <stdint.h>
 #include "engine/seq/sched.h"
 #include "engine/dsp/rb303.h"
+#include "engine/dsp/rb808.h"
+#include "engine/dsp/rb909.h"
 #include "engine/fx/fx.h"
 #include "engine/fx/route.h"
 
 #define RI_ENGINE_BLOCK 64u
 #define RI_ENGINE_S303A 0x01u
 #define RI_ENGINE_S303B 0x02u
-/* Reserved: RI_ENGINE_S808 0x04u, RI_ENGINE_S909 0x08u, inserts/mixer later. */
+#define RI_ENGINE_S808 0x04u
+#define RI_ENGINE_S909 0x08u
 #define RI_ENGINE_PAN_CENTER 64u /* detent: exact unity (gL = gR = 1) */
 #define RI_ENGINE_TEMPO_DEFAULT 140.0f /* delay clock until transport owns it */
 
 struct RIEngine {
     struct RB303Voice v303a, v303b;
+    struct RB808Set s808; /* §12.7a/m64: drum sections */
+    struct RB909Set s909;
+    uint64_t tag808[RI_808_NSOUNDS]; /* trigger sample per sound */
+    uint64_t tag909[RI_909_NVOICES]; /* trigger sample per voice */
     const struct RIEvent *ev; /* caller-owned, sample-sorted */
     uint32_t nev, evpos;
     uint64_t cursor, total;
@@ -79,4 +86,8 @@ void ri_engine_set_tempo(struct RIEngine *e, float bpm);
 int ri_engine_set_delay(struct RIEngine *e, float *buf, uint32_t cap);
 /* Master/section comp gain-reduction meter in dB (<= 0). */
 float ri_engine_comp_gr(const struct RIEngine *e);
+/* Bind 909 sample layers (non-owning, idle-swap; the pack loader owns
+ * the data). Unbound voices render silence. Returns 0 ok, 2 bad. */
+int ri_engine_909_bind(struct RIEngine *e, uint32_t voice,
+    const struct RISampleLayer *layers, uint32_t n);
 #endif
