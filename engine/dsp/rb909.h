@@ -80,7 +80,6 @@ struct RB909Voice {
     uint8_t active; /* nonzero from trigger until both playheads end */
     float pos; /* main playhead, layer-frame domain at 48 kHz ref */
     float pos2; /* flam second playhead, <0 when inactive */
-    float flam_delay; /* second-hit delay, layer-frame domain */
     float shelf_lp; /* accent shelf one-pole state */
     uint32_t age; /* samples since trigger (fade-in ramp) */
     const struct RISampleLayer *layers; /* non-owning, idle-swap only */
@@ -90,6 +89,9 @@ struct RB909Voice {
     uint8_t pad;
     float level; /* per-voice linear trim (default 1.0, §12.6a) */
     float decay_tau; /* per-voice extra decay, s; <= 0 = bypass (§12.6a) */
+    uint8_t flam; /* explicit second-hit request (§12.6b; accent==2 arms it) */
+    uint8_t flam_pad[3];
+    float flam_width; /* second-hit delay, layer-frame domain (§12.6b) */
 };
 
 struct RB909Set {
@@ -112,6 +114,14 @@ int rb909_set_layers(struct RB909Set *s, uint32_t voice,
  * scheduler did not emit one. */
 void rb909_trigger(struct RB909Set *s, uint32_t voice, uint32_t accent,
     uint8_t tune, int32_t flam_delay_smp);
+/* Arm an explicit flam second hit at width samples (layer-frame domain),
+ * independent of the accent value (§12.6b decouple; the future FLAM-event
+ * consumer calls this, then triggers). trigger() with accent==2 arms the
+ * same path (backward compat); trigger() with accent 0/1 disarms. */
+void rb909_arm_flam(struct RB909Set *s, uint32_t voice, uint32_t width_smp);
+/* Shared CH/OH level: one knob for the hat pair (§12.6b). Writes both
+ * voices' level trim (value/127); GUIs call this instead of two LEVELs. */
+void rb909_set_hat_level(struct RB909Set *s, uint8_t value);
 
 /* Split Tune model, three separate definitions (spec §11): */
 /* knob -> playback rate (sample clock): 2^((tune-64)/48). */

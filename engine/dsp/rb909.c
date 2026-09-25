@@ -146,7 +146,7 @@ void rb909_init_set(struct RB909Set *s) {
         s->v[i].active = 0;
         s->v[i].pos = 0.0f;
         s->v[i].pos2 = -1.0f;
-        s->v[i].flam_delay = (float)RI_909_FLAM_DEFAULT_SMP;
+        s->v[i].flam_width = (float)RI_909_FLAM_DEFAULT_SMP;
         s->v[i].shelf_lp = 0.0f;
         s->v[i].age = 0;
         s->v[i].layers = 0;
@@ -156,6 +156,9 @@ void rb909_init_set(struct RB909Set *s) {
         s->v[i].pad = 0;
         s->v[i].level = 1.0f;
         s->v[i].decay_tau = -1.0f; /* bypass until the DECAY knob writes */
+        s->v[i].flam = 0u;
+        s->v[i].flam_pad[0] = s->v[i].flam_pad[1] = s->v[i].flam_pad[2] = 0u;
+        s->v[i].flam_width = (float)RI_909_FLAM_DEFAULT_SMP;
     }
 }
 
@@ -180,17 +183,37 @@ int rb909_set_layers(struct RB909Set *s, uint32_t voice,
     return 0;
 }
 
+void rb909_arm_flam(struct RB909Set *s, uint32_t voice, uint32_t width_smp) {
+    if (!s || voice >= RI_909_NVOICES)
+        return;
+    s->v[voice].flam = 1u;
+    s->v[voice].flam_width = (float)(width_smp > 65535u ? 65535u : width_smp);
+}
+
+void rb909_set_hat_level(struct RB909Set *s, uint8_t value) {
+    float level;
+    if (!s)
+        return;
+    level = (float)value / 127.0f;
+    s->v[RB909_CH].level = level;
+    s->v[RB909_OH].level = level;
+}
+
 void rb909_trigger(struct RB909Set *s, uint32_t voice, uint32_t accent,
     uint8_t tune, int32_t flam_delay_smp) {
     struct RB909Voice *v;
     if (voice >= RI_909_NVOICES)
         return;
     v = &s->v[voice];
-    /* Shared-hat-ROM steal rule (register entry 14, E0+E2): CH and OH
-     * cannot sound together — triggering one kills the other. */
+    /* Hat rules (§12.6b, ReBirth manual p. 35): OH always wins ties, so an
+     * OH trigger unconditionally steals CH; a CH trigger cuts OH only when
+     * OH has been ringing past the same-step window (50 ms E0) — a CH
+     * landing in the same instant leaves the fresh OH alone. */
     if (voice == RB909_CH) {
-        s->v[RB909_OH].active = 0;
-        s->v[RB909_OH].pos2 = -1.0f;
+        if (s->v[RB909_OH].active && s->v[RB909_OH].age > 240u) {
+            s->v[RB909_OH].active = 0;
+            s->v[RB909_OH].pos2 = -1.0f;
+        }
     } else if (voice == RB909_OH) {
         s->v[RB909_CH].active = 0;
         s->v[RB909_CH].pos2 = -1.0f;
@@ -203,11 +226,14 @@ void rb909_trigger(struct RB909Set *s, uint32_t voice, uint32_t accent,
     v->pos2 = -1.0f;
     v->shelf_lp = 0.0f;
     v->age = 0;
+    /* Flam state: accent==2 arms the compat path; anything else disarms
+     * (an explicit arm_flam after trigger re-arms — the scheduler path). */
+    v->flam = (v->accent == 2u) ? 1u : 0u;
     if (flam_delay_smp < 0)
         flam_delay_smp = 0;
     if (flam_delay_smp > 65535)
         flam_delay_smp = 65535;
-    v->flam_delay = (float)flam_delay_smp;
+    v->flam_width = (float)flam_delay_smp;
 }
 
 /* Extra crash/ride decay envelope (tau 1.2 s at tune 64, scaled). */
@@ -227,13 +253,14 @@ float rb909_voice_render(struct RB909Voice *v, float sr) {
         return 0.0f;
     step = rb909_pitch_mult(v->tune);
     y = ri_layer_mix(v->layers, v->n_layers, v->tune, v->pos);
-    /* Flam second hit (acc2 on capable voices): fires once when the
-     * main playhead crosses flam_delay, at RI_909_FLAM_GAIN. */
+    /* Flam second hit (decoupled bit, §12.6b; accent==2 arms the compat
+     * path): fires once when the main playhead crosses the armed width,
+     * at RI_909_FLAM_GAIN. */
     has2 = 0;
-    if (v->accent == 2u && v->flam_capable) {
-        /* flam_delay arrives in output samples (RI_EV_FLAM domain);
+    if (v->flam && v->flam_capable) {
+        /* flam_width arrives in output samples (RI_EV_FLAM domain);
          * the playhead runs at step, so the crossing level scales. */
-        float fire = v->flam_delay * step;
+        float fire = v->flam_width * step;
         if (v->pos2 >= 0.0f) {
             y2 = ri_layer_mix(v->layers, v->n_layers, v->tune, v->pos2);
             has2 = 1;
@@ -294,9 +321,9 @@ void rb909_render_mix(struct RB909Set *s, float *out, uint32_t n, float sr) {
         for (k = 0; k < RI_909_NVOICES; k++)
             if (s->v[k].active)
                 acc += rb909_voice_render(&s->v[k], sr);
-        /* Soft-clip only above 1.0 (808 convention). */
-        if (acc > 1.0f || acc < -1.0f)
-            acc = ri_tanh(acc);
+        /* Linear section sum with float headroom (§2.4, same law as the
+         * 808: no clipping inside a section — ReBirth manual p. 23).
+         * Clipping happens only at the final integer conversion. */
         out[i] = acc;
     }
 }

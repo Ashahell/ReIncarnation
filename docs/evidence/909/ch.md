@@ -8,7 +8,7 @@
 | Layers | 2 (CH-A 0–63 / CH-B 64–127) | pack spans |
 | Crossfade | triangular, 8-position feather, equal-power norm | `t1_909` §1 green (shared mixer path) |
 | Accent | acc1 ×1.15 + shelf; acc2 = acc1 (not flam-capable) | `t1_909` §3 (CH acc2/acc1 ratio 1.00±0.02); `t24_909accent` green (same) |
-| Steal rule | triggering CH kills OH (shared ROM) and vice versa | `t1_909` §6 green |
+| Steal rule | OH wins ties; OH trigger always steals CH; CH trigger cuts OH only past the 50 ms same-step window (§12.6b, manual p. 35; was symmetric kill) | `t1_909` §6 + `t45_909_decouple` green |
 | Retrigger/swap | monophonic / idle-only | `t1_909` §4/§5 |
 
 Appendix C blocks: same skeleton as BD (see `bd.md`); 6-square

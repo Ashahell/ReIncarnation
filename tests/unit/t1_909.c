@@ -254,18 +254,26 @@ int main(void) {
             "idle-swap edge %.6g > -80 dBFS", (double)OUTA[0]);
     }
 
-    /* --- 6. shared-hat-ROM steal rule (CH <-> OH) --- */
+    /* --- 6. hat rules: OH wins ties, late CH cuts (§12.6b, manual p. 35) --- */
     {
         rb909_init_set(&s);
         RI_ASSERT(rb909_set_layers(&s, RB909_CH, PAIR2, 2) == 0, "steal ch");
         RI_ASSERT(rb909_set_layers(&s, RB909_OH, PAIR2, 2) == 0, "steal oh");
+        /* same-instant CH after OH: OH survives (OH-wins tie). */
         rb909_trigger(&s, RB909_OH, 0, 64, 0);
         RI_ASSERT(s.v[RB909_OH].active != 0, "oh not active");
         rb909_trigger(&s, RB909_CH, 0, 64, 0);
-        RI_ASSERT(s.v[RB909_OH].active == 0, "oh not stolen by ch");
+        RI_ASSERT(s.v[RB909_OH].active != 0, "tie OH killed by CH");
         RI_ASSERT(s.v[RB909_CH].active != 0, "ch not active");
+        /* OH trigger always steals CH. */
         rb909_trigger(&s, RB909_OH, 0, 64, 0);
         RI_ASSERT(s.v[RB909_CH].active == 0, "ch not stolen by oh");
+        /* late CH (OH ringing past the same-step window) cuts it. */
+        rb909_trigger(&s, RB909_OH, 0, 64, 0);
+        render_voice(&s, RB909_OH, 4800, OUTA);
+        RI_ASSERT(s.v[RB909_OH].active != 0, "oh died early");
+        rb909_trigger(&s, RB909_CH, 0, 64, 0);
+        RI_ASSERT(s.v[RB909_OH].active == 0, "ringing oh not cut by late ch");
     }
 
     /* --- 7. S909 render-diff: pack-style layers differ from default --- */
