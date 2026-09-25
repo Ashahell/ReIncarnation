@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-25] ingest | §12.10 G5 keyboard + focus bar
+- Disposition: New (slice record; cross-posted lane finding to Vulkan4AROS)
+- Raw: llm-wiki/raw/articles/2026-09-25-gui-keyboard-focus-g5.md
+- Updated: llm-wiki/index.md (GUI (§12.10) entry)
+Appendix E map + front-panel focus; real-key proof via QEMU sendkey; two self-found bugs fixed; audit 0/0 verified in a scratch worktree because the live tree held the song-track WIP.
+
 ## [2026-09-25] ingest | Song track plan review (§12.9b)
 - Disposition: New (review record; plan + spec committed `39d8de4`)
 - Raw: llm-wiki/raw/articles/2026-09-25-songtrack-plan-review.md
