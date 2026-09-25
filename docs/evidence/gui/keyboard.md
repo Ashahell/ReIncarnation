@@ -33,6 +33,7 @@ Keys are PHYSICAL positions (p. 224), so the map is keyed by Amiga raw key codes
   - **ReBirth:** it shows the two options as independent Options-menu checkmarks (p. 179, 224). So keys that do only one job keep it: the digit row still selects Synth 1 patterns while you program Synth 2.
   - **Alternative rejected:** making the two options mutually exclusive, like a mode switch. That is closer to the hardware, but it would change ReBirth's own menu behaviour, which ranks above the hardware in this project's fidelity order.
   - **Pinned in t70:** the `C` and `S` precedence cases.
+
 Still E0 (the owner may overrule these):
 
 - **Menu modifier:** `Ctrl` (ReBirth for Windows) and Right-Amiga (the AROS menu-shortcut key) both work.
