@@ -34,23 +34,39 @@ keeps consuming event lists).
   the first draft ("or track selection") was dead code dressed as
   design; pending is always current because the player samples the
   track at every crossed downbeat.
-- Advance per block from the transport tick cursor: `phase +=
-  block_ticks` per instance. All tick-domain, no samples, no
-  allocation.
-- Pending source (stated absolutely, no event round-trip): at each
-  crossed downbeat the player reads `selected(bar, instance)` into
-  `pending[instance]`. Pending never comes from the player's own
-  PATTERN_CHANGE events.
-- On phase reaching pattern length: `sounding_slot ← pending_slot`,
-  `phase -= length`, repeat while still over (a pattern shortened
-  below the live phase by an edit switches immediately, possibly
-  twice in one block — lengths are read per block from the live
-  banks, so edits take effect without restart).
+- Advance per block from the transport tick cursor, per instance
+  independently, in this exact order (order is load-bearing: a
+  downbeat coinciding with a pattern-end boundary must not race):
+  1. Sample pending from the track at every crossed downbeat (using
+     the transport bar of that tick).
+  2. Advance phase by the block's tick delta.
+  3. While phase >= current live length: `sounding_slot ←
+     pending_slot`, `phase -= length`.
+  All tick-domain, no samples, no allocation.
+- Banks held as non-owning pointers (`banks[instance]` set at player
+  init). Lengths are read per block from the live banks, so edits
+  take effect without restart. Optional pure refresh path for
+  pointer swaps (hot-swap/reallocated banks):
+  `ri_player_refresh_banks(p, banks)` updates only the four pointers
+  — never phase, never sounding. Callers who mutate banks call it;
+  everyone else never sees it. Zero cost on the normal path.
+- Slot 0 is a first-class pattern number, absolutely (song-track
+  law, restated here so no future reader invents a sentinel):
+  cold-start and changeover treat it exactly like any other slot.
+  There is no "silent" or "no-op" meaning inside the player.
+- The player's ONLY source of PATTERN_CHANGE events is the track
+  walker invocation per block; the player itself constructs none —
+  it consumes the walker's selections into pending and applies the
+  sounding deferral. Stated absolutely so the two truths can never
+  be re-collapsed by a future edit.
+- Pending source (stated once, absolutely, no event round-trip):
+  step 1 above is the ONLY writer of `pending`. Pending never comes
+  from the player's own PATTERN_CHANGE events.
 - Pattern phase is INDEPENDENT of song position: transport
   sample-wraps, seeks, and loop wraps never reset pattern phase —
-  only pattern ends wrap it. The song loop constrains which bars the
-  walker visits; it does not touch phase. (This is the point the
-  first draft left ambiguous, and ambiguity here is a desync bug.)
+  only pattern ends (step 3) wrap it. The song loop constrains which
+  bars the walker visits; it does not touch phase. (This is the point
+  the first draft left ambiguous, and ambiguity here is a desync bug.)
 
 ## 2. Emission per block
 
@@ -71,9 +87,11 @@ keeps consuming event lists).
 - New `t60_player`: cold-start establishment, phase advance with
   unequal pattern lengths across instances, changeover exactly at
   pattern end (not at the downbeat), pending overwrite chains (two
-  selections before one pattern end → latest wins), bank mutation
-  mid-stream (pattern shortened below live phase switches at once),
-  phase independence (transport seek/wrap mid-pattern neither resets
-  phase nor moves changeover), loop wrap + song end, block-split
-  renders identical to whole-run emission.
+  selections before one pattern end → latest wins), simultaneous
+  length edits on two unequal-length instances landing inside one
+  block (both changeovers at their own pattern ends, never at the
+  song bar line), bank mutation mid-stream, phase independence
+  (transport seek/wrap mid-pattern neither resets phase nor moves
+  changeover), loop wrap + song end, block-split renders identical
+  to whole-run emission.
 - Existing suites green unmodified. Full `ri_audit.sh` 0/0.
