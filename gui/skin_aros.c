@@ -15,38 +15,26 @@
 #endif
 
 #define __CYBERGRAPHICS_LIBBASE s_cyber
-#define __DATATYPES_LIBBASE s_dtypes
 #include <exec/types.h>
 #include <exec/memory.h>
 #include <dos/dos.h>
-#include <datatypes/datatypes.h>
-#include <datatypes/datatypesclass.h>
-#include <datatypes/pictureclass.h>
 #include <graphics/rastport.h>
 #include <clib/alib_protos.h>
 #include <inline/cybergraphics.h>
-#include <inline/datatypes.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <string.h>
 #include "gui/skin.h"
 #include "gui/skin_aros.h"
+#include "platform/pal/ri_pal_fs.h"
+#include "platform/pal/ri_pal_image.h"
 
 static struct Library *s_cyber;
-static struct Library *s_dtypes;
 static const struct RISkin *s_active;
 /* Loader-owned buffers, indexed by part slot of s_owner. */
 static const struct RISkin *s_owner;
 static uint32_t *s_master[RI_SKIN_MAX_PARTS];
 static uint32_t *s_scaled[RI_SKIN_MAX_PARTS];
-
-static int lazy_bases(void) {
-    if (!s_cyber)
-        s_cyber = (struct Library *)OpenLibrary((CONST_STRPTR)"cybergraphics.library", 0);
-    if (!s_dtypes)
-        s_dtypes = (struct Library *)OpenLibrary((CONST_STRPTR)"datatypes.library", 0);
-    return s_cyber && s_dtypes ? 1 : 0;
-}
 
 /* Forget every tracked buffer of skins other than `keep` (single-owner
  * table: only one skin's pixels are live at a time). The dropped owner's
@@ -57,7 +45,7 @@ static void drop_owner(const struct RISkin *keep) {
         return;
     for (i = 0u; i < RI_SKIN_MAX_PARTS; i++) {
         if (s_master[i]) {
-            FreeVec(s_master[i]);
+            ri_pal_image_free(s_master[i]); /* PAL-decoded (T7) */
             s_master[i] = 0;
         }
         if (s_scaled[i]) {
@@ -73,75 +61,60 @@ static void drop_owner(const struct RISkin *keep) {
     s_owner = keep;
 }
 
-/* Swizzle RGBA bytes (datatype order) to core ARGB words. The blit order
- * conversion (ARGB -> WritePixelArrayAlpha words) happens once per zoom
- * change via ri_skin_swizzle_blit, never per frame. */
-static void rgba_to_argb(const unsigned char *src, uint32_t *dst, uint32_t n) {
-    uint32_t i;
-    for (i = 0u; i < n; i++) {
-        uint32_t r = src[4u * i], g = src[4u * i + 1u];
-        uint32_t b = src[4u * i + 2u], a = src[4u * i + 3u];
-        dst[i] = (a << 24) | (r << 16) | (g << 8) | b;
-    }
-}
-
-static int decode_part(const char *path, uint32_t **out, uint32_t *w, uint32_t *h) {
-    Object *dto;
-    IPTR nw = 0u, nh = 0u, bmhp = 0u; /* GetDTAttrs stores IPTR: ULONG is 4 of 8 bytes */
-    ULONG ok = 0u;
-    uint32_t *px = 0, n;
-    unsigned char *raw = 0;
-    if (!lazy_bases())
+/* Read a whole file into an AllocVec buffer (bounded 8 MB).
+ * Decoding itself lives in platform/aros/image_dt.c (T7). */
+static int read_whole(const char *path, unsigned char **out, uint32_t *n) {
+    BPTR f;
+    struct FileInfoBlock *fib;
+    LONG size;
+    unsigned char *b;
+    LONG got = 0;
+    if (!path || !out || !n)
         return -1;
-    dto = (Object *)NewDTObject((APTR)path, DTA_SourceType, DTST_FILE,
-                                DTA_GroupID, GID_PICTURE, TAG_DONE);
-    if (!dto)
-        return -2;
-    /* Picture size from the BitMapHeader (every picture.class subclass
-     * sets it); DTA_Nominal* is only a fallback. The Dell's v11 png.datatype
-     * 42.5 leaves DTA_Nominal* at 0 (Dell 2026-09-26: every part fell back). */
-    GetDTAttrs(dto, PDTA_BitMapHeader, &bmhp, TAG_DONE);
-    if (bmhp) {
-        nw = ((struct BitMapHeader *)bmhp)->bmh_Width;
-        nh = ((struct BitMapHeader *)bmhp)->bmh_Height;
+    f = Open((CONST_STRPTR)path, MODE_OLDFILE);
+    if (!f)
+        return -1;
+    fib = (struct FileInfoBlock *)AllocVec(sizeof *fib, MEMF_CLEAR);
+    if (!fib) {
+        Close(f);
+        return -1;
     }
-    if (nw == 0u || nh == 0u)
-        GetDTAttrs(dto, DTA_NominalHoriz, &nw, DTA_NominalVert, &nh, TAG_DONE);
-    if (nw == 0u || nh == 0u || nw > 4096u || nh > 4096u) {
-        DisposeDTObject(dto);
-        return -3;
+    if (!ExamineFH(f, fib)) {
+        FreeVec(fib);
+        Close(f);
+        return -1;
     }
-    n = nw * nh;
-    px = (uint32_t *)AllocVec(n * 4u, MEMF_CLEAR);
-    raw = (unsigned char *)AllocVec(n * 4u, 0);
-    if (!px || !raw) {
-        if (px)
-            FreeVec(px);
-        if (raw)
-            FreeVec(raw);
-        DisposeDTObject(dto);
-        return -4;
+    size = fib->fib_Size;
+    FreeVec(fib);
+    if (size <= 0 || size > 8 * 1024 * 1024) {
+        Close(f);
+        return -1;
     }
-    ok = (ULONG)DoMethod(dto, PDTM_READPIXELARRAY, (IPTR)raw, (IPTR)PBPAFMT_RGBA,
-                         (IPTR)(nw * 4u), (IPTR)0, (IPTR)0, (IPTR)nw, (IPTR)nh);
-    DisposeDTObject(dto);
-    if (!ok) {
-        FreeVec(px);
-        FreeVec(raw);
-        return -5;
+    b = (unsigned char *)AllocVec((uint32_t)size + 1u, MEMF_CLEAR);
+    if (!b) {
+        Close(f);
+        return -1;
     }
-    rgba_to_argb(raw, px, n);
-    FreeVec(raw);
-    *out = px;
-    *w = nw;
-    *h = nh;
+    while (got < size) {
+        LONG r = Read(f, b + got, (uint32_t)size - (uint32_t)got);
+        if (r <= 0)
+            break;
+        got += r;
+    }
+    Close(f);
+    if (got != size) {
+        FreeVec(b);
+        return -1;
+    }
+    *out = b;
+    *n = (uint32_t)size;
     return 0;
 }
 
 int ri_skin_aros_load(const char *dir, struct RISkin *skin) {
-    BPTR fh;
-    char mpath[256], *text;
-    LONG got = 0, total = 0;
+    char mpath[256];
+    unsigned char *text = 0;
+    uint32_t ntext = 0u;
     int rc, bound = 0;
     uint16_t i;
     char *base;
@@ -153,54 +126,17 @@ int ri_skin_aros_load(const char *dir, struct RISkin *skin) {
         ri_skin_aros_free(skin);
     }
     drop_owner(skin);
-    /* manifest path: dir + "/Skin.manifest" (bounded join) */
-    {
-        uint32_t k = 0u;
-        while (dir[k] && k < 240u) {
-            mpath[k] = dir[k];
-            k++;
-        }
-        if (!k)
-            return -1;
-        if (mpath[k - 1u] != '/' && mpath[k - 1u] != ':') {
-            if (k >= 240u)
-                return -1;
-            mpath[k++] = '/';
-        }
-        {
-            static const char tail[] = "Skin.manifest";
-            uint32_t j = 0u;
-            while (tail[j] && k < 255u)
-                mpath[k++] = tail[j++];
-            if (tail[j])
-                return -1;
-        }
-        mpath[k] = '\0';
-    }
-    fh = Open((CONST_STRPTR)mpath, MODE_OLDFILE);
-    if (!fh)
+    /* manifest path via PAL join (T6); file via read_whole (bounded). */
+    if (ri_pal_path_join(mpath, sizeof mpath, dir, "Skin.manifest") != 0)
+        return -1;
+    if (read_whole(mpath, &text, &ntext) != 0 || !text || ntext == 0u)
         return -2;
-    text = (char *)AllocVec(16384u + 1u, MEMF_CLEAR);
-    if (!text) {
-        Close(fh);
-        return -2;
-    }
-    for (;;) {
-        LONG r = Read(fh, text + total, 16384u - (uint32_t)total);
-        if (r <= 0)
-            break;
-        total += r;
-        got = total;
-        if (total >= (LONG)16384)
-            break;
-    }
-    Close(fh);
-    if (got <= 0) {
+    if (ntext > 16384u) {
         FreeVec(text);
         return -2;
     }
-    text[total] = '\0';
-    rc = ri_skin_parse(text, skin);
+    text[ntext] = '\0'; /* read_whole has no NUL; manifest needs one */
+    rc = ri_skin_parse((char *)text, skin);
     FreeVec(text);
     if (rc != 0)
         return -3;
@@ -221,27 +157,25 @@ int ri_skin_aros_load(const char *dir, struct RISkin *skin) {
     }
     for (i = 0u; i < skin->nparts; i++) {
         char ppath[256];
-        uint32_t k = 0u, j = 0u;
+        unsigned char *file = 0;
+        uint32_t nfile = 0u;
         uint32_t *px = 0, w = 0u, h = 0u;
-        while (dir[k] && k < 128u) {
-            ppath[k] = dir[k];
-            k++;
-        }
-        if (k && ppath[k - 1u] != '/' && ppath[k - 1u] != ':')
-            ppath[k++] = '/';
-        while (skin->parts[i].file[j] && k < 255u)
-            ppath[k++] = skin->parts[i].file[j++];
-        if (skin->parts[i].file[j]) {
+        if (ri_pal_path_join(ppath, sizeof ppath, dir, skin->parts[i].file) != 0) {
             skin->parts[i].rgba = 0; /* overlong path: fallback, keep going */
             continue;
         }
-        ppath[k] = '\0';
-        if (decode_part(ppath, &px, &w, &h) != 0 || !px) {
+        if (read_whole(ppath, &file, &nfile) != 0 || !file) {
+            skin->parts[i].rgba = 0; /* unreadable: Classic fallback */
+            continue;
+        }
+        if (ri_pal_image_decode(file, nfile, &px, &w, &h) != 0 || !px) {
+            FreeVec(file);
             skin->parts[i].rgba = 0; /* undecodable: Classic fallback */
             continue;
         }
+        FreeVec(file);
         if (ri_skin_bind(skin, i, px, (uint16_t)w, (uint16_t)h) != 0) {
-            FreeVec(px); /* bad dims, or -2 stale size: counted in nstale */
+            ri_pal_image_free(px); /* bad dims, or -2 stale size: counted in nstale */
             skin->parts[i].rgba = 0;
             continue;
         }
@@ -349,7 +283,7 @@ void ri_skin_aros_free(struct RISkin *skin) {
     if (s_owner == skin) {
         for (i = 0u; i < RI_SKIN_MAX_PARTS; i++) {
             if (s_master[i]) {
-                FreeVec(s_master[i]);
+                ri_pal_image_free(s_master[i]); /* PAL-decoded (T7) */
                 s_master[i] = 0;
             }
             if (s_scaled[i]) {

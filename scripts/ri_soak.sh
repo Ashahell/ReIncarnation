@@ -37,8 +37,8 @@ echo "SOAK deadline: ${SECS}s out=$OUT date=$(date -u +%FT%TZ)"
 
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "SOAK FAIL: host build"; exit 1; }
 BOUT=/tmp/ri/build
-gcc $CFLAGS -o "$BOUT/bench" "$ROOT/tools/bench.c" "$BOUT"/*.o -lm || { echo "SOAK FAIL: bench build"; exit 1; }
-gcc $CFLAGS -o "$BOUT/render" "$ROOT/tools/render.c" "$BOUT"/*.o -lm || { echo "SOAK FAIL: render build"; exit 1; }
+gcc $CFLAGS -o "$BOUT/bench" "$ROOT/tools/bench.c" "$BOUT"/*.o -lm -lpng || { echo "SOAK FAIL: bench build"; exit 1; }
+gcc $CFLAGS -o "$BOUT/render" "$ROOT/tools/render.c" "$BOUT"/*.o -lm -lpng || { echo "SOAK FAIL: render build"; exit 1; }
 R="$BOUT/render"
 
 echo "-- bench worst-case (${RI_SOAK_BENCH_BLOCKS:-45000} blocks) --"

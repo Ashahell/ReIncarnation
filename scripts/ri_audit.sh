@@ -33,7 +33,7 @@ echo "-- re-render-compare --"
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 OUT=/tmp/ri/build
 CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT"
-gcc $CFLAGS -o "$OUT/render" "$ROOT/tools/render.c" "$OUT"/*.o || { echo "FAIL: render build"; exit 1; }
+gcc $CFLAGS -o "$OUT/render" "$ROOT/tools/render.c" "$OUT"/*.o -lpng || { echo "FAIL: render build"; exit 1; }
 A=/tmp/ri/run/audit
 mkdir -p "$A"
 "$OUT/render" --math dc --out "$A/math-dc.wav" || exit 1
@@ -164,6 +164,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t83_panelctl >/dev/null || { echo "FA
 bash "$ROOT/scripts/ri_build_host.sh" test t84_pal_thread >/dev/null || { echo "FAIL: t84_pal_thread (portability T1)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t85_pal_keys >/dev/null || { echo "FAIL: t85_pal_keys (portability T3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t86_pal_fslog >/dev/null || { echo "FAIL: t86_pal_fslog (portability T6)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t87_pal_image >/dev/null || { echo "FAIL: t87_pal_image (portability T7)"; exit 1; }
 # portability T1: PAL atomics header is include-clean (stdint/stddef only;
 # ri_pal_log.h additionally allows stdarg.h for the varargs decl)
 if grep -n "#include" "$ROOT/platform/pal/"*.h | grep -v "stdint.h\|stddef.h\|stdarg.h"; then echo "FAIL: pal header include leak"; exit 1; fi
@@ -268,7 +269,7 @@ done
 grep -q "P-13" "$ROOT/docs/evidence/909/bd.md" || { echo "FAIL: P-13 unrecorded"; exit 1; }
 grep -q "NO-OP" "$ROOT/docs/evidence/909/cr.md" || { echo "FAIL: crash quirk unrecorded"; exit 1; }
 grep -q "steal" "$ROOT/docs/evidence/909/ch.md" || { echo "FAIL: hat steal unrecorded"; exit 1; }
-gcc $CFLAGS -o "$OUT/inspect" "$ROOT/tools/inspect.c" "$OUT"/*.o || { echo "FAIL: inspect build"; exit 1; }
+gcc $CFLAGS -o "$OUT/inspect" "$ROOT/tools/inspect.c" "$OUT"/*.o -lpng || { echo "FAIL: inspect build"; exit 1; }
 PK="$ROOT/reference/packs/classic-01"
 test -f "$PK/pack.rbnm" || { echo "FAIL: missing clean pack"; exit 1; }
 test -f "$PK/MANIFEST.txt" || { echo "FAIL: missing pack manifest"; exit 1; }
@@ -457,7 +458,7 @@ test -f "$ROOT/tests/golden/formats/bank-v11.rbng" || { echo "FAIL: missing bank
 test -f "$ROOT/tests/golden/formats/bank-v11.rbng.sha256" || { echo "FAIL: missing bank-v11 sidecar"; exit 1; }
 (cd "$ROOT" && sha256sum -c tests/golden/formats/bank-v11.rbng.sha256) || { echo "FAIL: bank-v11 sha256 mismatch"; exit 1; }
 echo "-- corpus determinism (regenerate + cmp) --"
-gcc $CFLAGS -o "$OUT/mksong" "$ROOT/tools/mksong.c" "$OUT"/*.o || { echo "FAIL: mksong build"; exit 1; }
+gcc $CFLAGS -o "$OUT/mksong" "$ROOT/tools/mksong.c" "$OUT"/*.o -lpng || { echo "FAIL: mksong build"; exit 1; }
 "$OUT/mksong" "$T13/regen" >/dev/null || exit 1
 for k in 01 02 03 04 05 06 07 08 09 10; do
   test -f "$ROOT/tests/golden/songs/corpus/s$k.rbng" || { echo "FAIL: missing corpus s$k.rbng"; exit 1; }
@@ -526,7 +527,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t1_rel >"$T14/rel.log" 2>&1 || { echo
 grep -q "PASS rel" "$T14/rel.log" || { echo "FAIL: t1_rel no PASS"; exit 1; }
 grep -q "RENDERED-DE: Abspielen" "$T14/rel.log" || { echo "FAIL: DE proof string not rendered"; exit 1; }
 echo "-- bench worst-case (short: 4500 blocks = 6 s audio) --"
-gcc $CFLAGS -o "$OUT/bench" "$ROOT/tools/bench.c" "$OUT"/*.o -lm || { echo "FAIL: bench build"; exit 1; }
+gcc $CFLAGS -o "$OUT/bench" "$ROOT/tools/bench.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: bench build"; exit 1; }
 "$OUT/bench" 4500 >"$T14/bench.log" 2>&1 || { echo "FAIL: bench run"; exit 1; }
 grep -q "DETERMINISTIC" "$T14/bench.log" || { echo "FAIL: bench nondeterministic"; exit 1; }
 grep -q "BENCH OK" "$T14/bench.log" || { echo "FAIL: bench no OK"; exit 1; }

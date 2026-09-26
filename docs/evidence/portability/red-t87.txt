@@ -1,0 +1,12 @@
+T7 RED (host PNG backend before the fix):
+- first standalone run: `libpng error: dims` then `Segmentation fault (core dumped)`
+  (exit 139) — setjmp/longjmp clobbered non-volatile `rows`/`px` locals under -O2,
+  plus the 4096-px dims cap rejecting knob strips (45x4480).
+- after volatile fix, before test-cap fix:
+  FAIL tests/unit/t87_pal_image.c:94: dims knob_45x70.png
+  FAIL tests/unit/t87_pal_image.c:94: dims knob_48x80.png
+  FAIL tests/unit/t87_pal_image.c:94: dims knob_50x90.png
+  FAIL tests/unit/t87_pal_image.c:94: dims knob_84x120.png
+  FAIL 4
+GREEN lifts the host cap to 8192 (AROS keeps its 4096 device guard;
+divergence recorded in t7-image.md).

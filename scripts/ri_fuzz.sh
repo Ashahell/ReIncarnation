@@ -21,8 +21,8 @@ mkdir -p "$FUZZ"
 rm -f "$FUZZ"/f*.rbng "$FUZZ"/f*.rbnm
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null
 CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT"
-gcc $CFLAGS -o "$OUT/inspect" "$ROOT/tools/inspect.c" "$OUT"/*.o
-gcc $CFLAGS -o "$OUT/mksong" "$ROOT/tools/mksong.c" "$OUT"/*.o
+gcc $CFLAGS -o "$OUT/inspect" "$ROOT/tools/inspect.c" "$OUT"/*.o -lpng
+gcc $CFLAGS -o "$OUT/mksong" "$ROOT/tools/mksong.c" "$OUT"/*.o -lpng
 SEEDS=""
 for f in "$ROOT"/tests/golden/songs/corpus/s*.rbng; do
   SEEDS="$SEEDS rbng:$f"

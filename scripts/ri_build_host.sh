@@ -15,7 +15,7 @@ MOD_dsp909="engine/dsp/rb909.c project/rbnm.c"
 MOD_fx="engine/fx/fx.c engine/fx/route.c"
 MOD_mixer="engine/mixer/mixer.c engine/framework/ridevice.c"
 MOD_audio="audio_io/audio.c audio_io/backend_null.c"
-MOD_gui="gui/knob_logic.c gui/panels.c gui/catalog.c gui/knob_art.c gui/ctlreg.c gui/panelctl.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/midimap.c gui/skin.c project/sha256.c platform/host/key_tables.c platform/host/fs_host.c platform/host/log_host.c"
+MOD_gui="gui/knob_logic.c gui/panels.c gui/catalog.c gui/knob_art.c gui/ctlreg.c gui/panelctl.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/midimap.c gui/skin.c project/sha256.c platform/host/key_tables.c platform/host/fs_host.c platform/host/log_host.c platform/host/image_host.c"
 MOD_formats="project/sha256.c project/rbng.c project/arexx.c project/arexx_dispatch.c project/undo.c midi_io/midi.c"
 # Later tasks APPEND paths to MOD_dsp808, MOD_fx, ... and add matching case lines.
 compile_list() { for f in $1; do test -f "$ROOT/$f" || { echo "MISSING $f"; exit 1; }; gcc $CFLAGS -c "$ROOT/$f" -o "$OUT/$(basename $f .c).o"; done; }
@@ -38,8 +38,11 @@ case "${1:-all}" in
   pcf) build_pcf strict ;;
   all) for t in kernels engine clock sched formats dsp303 dsp808 dsp909 fx mixer audio gui; do "$0" $t; done; build_pcf skip ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
-    gcc $CFLAGS -pthread -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o -lm 2>/dev/null || \
-    gcc $CFLAGS -pthread -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o -lm
+    # -lpng: the T7 host image backend (platform/host/image_host.c); present
+    # on dev/CI Linux alongside the mkskin toolchain dep. All other tests
+    # link it harmlessly (no png symbols pulled unless referenced).
+    gcc $CFLAGS -pthread -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o -lm -lpng 2>/dev/null || \
+    gcc $CFLAGS -pthread -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o -lm -lpng
     "$OUT/$2" || exit 1 ;;  # propagate test failures (was masked by BUILD OK echo)
   clean) rm -rf /tmp/ri ;;
   *) echo "unknown target $1"; exit 1 ;;
