@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | Dell E6320 native 1366x768
+- Disposition: New (lane record; AROS facts cross-posted to Vulkan4AROS)
+- Raw: llm-wiki/raw/articles/2026-09-26-dell-native-1366x768.md
+- Updated: llm-wiki/index.md (Lane infrastructure entry)
+GRUB default now vesa=1366x768x32 (vesagfx single mode; IntelGMA lacks Sandy Bridge); verified after reboot.
+
 ## [2026-09-26] ingest | §12.9c record-path capture gating (m68)
 - Disposition: New (slice record)
 - Raw: llm-wiki/raw/articles/2026-09-26-record-capture-gating.md
