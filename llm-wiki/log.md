@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | §12.11 G9 live-app handoff to opencode
+- Disposition: New (handoff record)
+- Raw: llm-wiki/raw/articles/2026-09-26-g9-live-app-handoff-opencode.md
+- Updated: llm-wiki/index.md (GUI (§12.10) entry)
+Prompt `b8c00c2`.
+
 ## [2026-09-26] ingest | Automation Task 5b/5c lane keys + strip level
 - Disposition: New (slice record); Update (supersedes R-5B/R-5C BLOCKED in the Tasks 2-4 record)
 - Raw: llm-wiki/raw/articles/2026-09-26-automation-task-5b-5c-lane-keys.md
