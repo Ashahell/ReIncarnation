@@ -38,6 +38,7 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 ## Portability (§12.12)
 
 - [raw/articles/2026-09-26-portability-plan.md](raw/articles/2026-09-26-portability-plan.md) — **2026-09-26 — Portability plan (§12.12, `c05d49e`).** ~12.4k portable core vs ~3.9k AROS-only lines; platform layer (atomics first, display-list canvas + host rasterizer goldens, audio/input/MIDI/fs/image splits, headless core, mingw compile gate); Windows backends later; owner decisions (3rd-party libs, build system, denormals, audio API, data paths).
+- [raw/articles/2026-09-26-portability-t1-t8-implementation.md](raw/articles/2026-09-26-portability-t1-t8-implementation.md) — **2026-09-26 — Portability T1–T8 implementation (`0c14362`…`20d7c5b`).** PAL atomics/keys/events/audio/MIDI/fs/image + live driver + headless WAV proof, each RED→GREEN with mutants, audit 0/0; AROS links hold (0 UND, r12 gate). Open: T2 canvas, T8 remainder, T9 remainder, T10 gates, device proofs, §8 decisions.
 
 ## Live app (§12.11)
 

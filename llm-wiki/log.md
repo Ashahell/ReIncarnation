@@ -1,5 +1,12 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] record | Portability T1–T8 implementation (PAL + headless)
+- Disposition: New (implementation record for the plan's T1–T8 slice)
+- Raw: llm-wiki/raw/articles/2026-09-26-portability-t1-t8-implementation.md
+- Updated: llm-wiki/index.md (Portability (§12.12) entry)
+- Evidence: docs/evidence/portability/
+Commits `0c14362`…`20d7c5b`; audit 0/0 each. Open: T2 canvas, T8/T9 remainders, T10 gates, device proofs, §8 decisions.
+
 ## [2026-09-26] ingest | Planned device: Korg Electribe ESX-1
 - Disposition: New (owner requirement)
 - Raw: llm-wiki/raw/articles/2026-09-26-planned-device-korg-esx1.md
