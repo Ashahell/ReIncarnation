@@ -36,3 +36,14 @@ Full per-change trace: `2026-09-25-rilive-trace.txt`. Capture: `img/2026-09-25-r
 - **Render-task position:** feed `ri_panel_live` from the render task's sample position (`RiSeqMasterClock` / the AHI PlayerFunc count) instead of `CurrentTime()`.
 - **Engine meter taps:** per-section and per-FX-unit peak taps (engine/mixer), through `ri_live_meter_level`; the Master meter from the mixer's P-16 meter; comp GR from `ri_engine_comp_gr` through `ri_live_gr_level`.
 - **Ownership:** both need engine hooks (the song track / engine session's code) and an audio device on the lane (the Dell's HDA, or QEMU AC97/HDA with an AHI driver on riqemu1).
+
+## ReBirth-101 taps (2026-09-26)
+
+`RISECT live`: `ctrl-f`, `kp_enter`, focus down ×3 (909), `a`/`s`/`k`
+1.5 s apart, `kp_0`. Trace `2026-09-26-rb101-909-taps.txt`: all three
+applied at focus 3 while ST 1 (N29 BD, N42 SD, N55 CH at step 11 — the
+readout shows 808-BD + 909-CH only, so BD/SD are trace-proven, CH also
+readout-proven with the lamp in `img/2026-09-26-rb101-909-taps.png`).
+First attempt without `ctrl-f` recorded nothing (60 lines, all dots) —
+taps need the program option, as documented. Accent + flam LEVELS have
+no keyboard binding (double-click/selector only) — human rows.

@@ -52,3 +52,21 @@ Evidence: capture `img/2026-09-25-rikeys-sendkey.png`, and the per-change trace 
 Two findings from the proof runs:
 1. **Spurious TAP_END (fixed and pinned):** the key-up of Ctrl+F decoded as a drum TAP_END. A pin in t70 now covers it.
 2. **Stray transport changes (unresolved):** two earlier runs showed transport changes that no key accounted for — the change counter did not move. The click counter was not traced yet at that point. The CLK field was added to catch this if it recurs.
+
+## ReBirth-101 key runs (2026-09-26)
+
+22-key run (`ctrl-f`, 13 pitches, `ctrl-g`, `kp_enter`, `3`, `kp_0`):
+pitches decoded but EDIT STEP frozen — pitch keys advance only in pitch
+mode (mouse-only switch), a Step-mode rerun was needed. Trace
+`2026-09-26-rb101-keys-patswitch.txt` still proved row 5 (PAT A1→A3 at
+ST 1, N20→N22).
+33-key run (16× pitch + `ret` in Step mode, `[` slide on step 5, `p`
+accent on step 9): trace `2026-09-26-rb101-303-steps.txt` (EDIT STEP
+1→16) + capture `img/2026-09-26-rb101-303-steps.png` (EDIT STEP 16).
+
+Finding: **`sendkey comma` mis-delivers.** In the first 22-key run the
+`,` keystroke arrived as raw `0x37` (M) instead of `0x38` (comma position);
+`.` (0x39) and `/` (0x3A) in the same run arrived correctly, as did every
+letter. The 33-key rerun avoids `,` (12 distinct pitches + repeats).
+Uncharacterized whether the fault is QEMU's name table or the guest
+keymap — one deliberate probe would settle it, not done.

@@ -97,6 +97,13 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   single-source grep gates, AROS-only guard list + `ri_build_aros.sh
   sections` link gate; each gate mutant-proven (t76 factor in full audit,
   stray table file, broken TU)
+- G8.3 acceptance DONE 2026-09-26 (commit [§12.10 G8]): `acceptance.md`
+  rewritten for the section canvases (every tick → evidence, every gap →
+  reason); ReBirth-101 machine-driven on riqemu1 (1 full + 4 partial:
+  CC25/CC17 sweeps, 16-step 303 in Step mode, 909 low taps, pattern
+  switch while playing; hearing/drags/pitch-mode/accent-flam/mute stay
+  human; Solo is out of E1); dummy-panel row recorded (5 data
+  touch-points, zero logic; runtime registry → rack design)
 
 ## §12.11 Perf pass vs W1.1 budget (§6)
 - [ ] `tools/bench` per-section evidence; per-section budget; continuous gating before beta exit

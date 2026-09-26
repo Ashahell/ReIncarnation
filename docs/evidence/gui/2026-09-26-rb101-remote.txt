@@ -1,0 +1,14 @@
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 1 RAW 0 MIDI 1/0 LED 10 CAMD 1/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 2 RAW 0 MIDI 1/0 LED 00 CAMD 1/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 3 RAW 0 MIDI 2/0 LED 10 CAMD 2/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 4 RAW 0 MIDI 2/0 LED 00 CAMD 2/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 5 RAW 0 MIDI 3/0 LED 10 CAMD 3/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 6 RAW 0 MIDI 3/0 LED 00 CAMD 3/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 7 RAW 0 MIDI 4/0 LED 10 CAMD 4/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 8 RAW 0 MIDI 4/0 LED 00 CAMD 4/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 9 RAW 0 MIDI 5/0 LED 10 CAMD 5/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 10 RAW 0 MIDI 5/0 LED 00 CAMD 5/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 11 RAW 0 MIDI 6/0 LED 10 CAMD 6/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 12 RAW 0 MIDI 6/0 LED 00 CAMD 6/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 13 RAW 0 MIDI 7/0 LED 10 CAMD 7/176.0 SEL8 1 P909 0
+FOCUS 0 PH -1/-1 BAR 1 BPM 120 ST 0 BD8 ................ CH9 ................ N 14 RAW 0 MIDI 7/0 LED 00 CAMD 7/176.0 SEL8 1 P909 0

@@ -1,0 +1,6 @@
+# rb101 row 1 GUI half: 303 cutoff sweep via CC 25
+B0 19 00
+D 400
+B0 19 40
+D 400
+B0 19 7F

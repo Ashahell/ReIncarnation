@@ -60,3 +60,15 @@ The receiver listens on one channel only (p. 134) and never transmits (p. 127).
 - `DH0:Libs/camd.library` replaced (backup `.orig`).
 - `DEVS:Midi/debugdriver` parked at `SYS:debugdriver.parked`.
 - GRUB default pinned to "VESA 1280x1024-32bpp" (backup `DH0:boot/grub/grub.cfg.orig`), because an unpinned reset came back at 800x600.
+
+## ReBirth-101 CC sweeps (2026-09-26)
+
+`RISECT remote` + `MIDISEND ri.remote` scripts `2026-09-26-rb101-cc25.txt`
+(CC 25 0/64/127, 303 cutoff) and `2026-09-26-rb101-cc17.txt` (CC 17 0/127,
+808 bus fader). Trace `2026-09-26-rb101-remote.txt`: all 7 messages taken,
+0 ignored. Fader cap top (127) vs bottom (0) pixels in
+`img/2026-09-26-rb101-fader-hi-lo.png`. Value mapping is G7-proven CC38 on
+byte-identical code (midimap/sectmix/sectui/ctlreg untouched since `d576987`);
+the cutoff knob has no canvas in remote mode, so its pointer + the hearing
+stay open. Mute buttons are not automatable (p. 72); Solo is not a ReBirth
+control (mixer mute, p. 56).

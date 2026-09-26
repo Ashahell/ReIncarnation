@@ -1,0 +1,4 @@
+# rb101 row 4 GUI half: 808 bus fader via CC 17
+B0 11 00
+D 400
+B0 11 7F
