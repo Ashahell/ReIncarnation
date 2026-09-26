@@ -28,5 +28,26 @@ int ri_auto_touch(struct RIAutoLane *l, struct RIAutoPass *p,
                   uint8_t tr_state, uint32_t cursor, uint32_t ppq,
                   uint16_t ctl, uint8_t val); /* punch-in + write; 0/2 */
 int ri_auto_sweep(struct RIAutoLane *l, const struct RIAutoPass *p,
-                  uint32_t from, uint32_t to); /* erase span + pass writes */
+                  uint32_t from, uint32_t to, uint32_t ppq,
+                  const uint8_t *vals); /* erase span + re-anchor; 0/2 */
+void ri_auto_punch_out_all(struct RIAutoPass *p); /* loop wrap: keep touched */
+int ri_auto_clear_loop(struct RIAutoLane *l, uint32_t start_tick,
+                       uint32_t len_ticks); /* drop [start,start+len) */
+int ri_auto_stamp(struct RIAutoLane *l, uint32_t tick, uint16_t ctl,
+                  uint8_t val); /* exact-tick write, denied refused; 0/2 */
+int ri_auto_copy_touched(struct RIAutoLane *l, const struct RIAutoPass *p,
+                         uint32_t start, uint32_t end,
+                         const uint8_t *vals); /* range clear + start event; 0/2 */
+#define RI_AUTO_CLIP_EVENTS RI_AUTO_MAX_EVENTS
+/* Bar-edit clip: events relative to base_tick (ticks, not bars);
+ * span_ticks is the cut/copy width so paste shifts the tail exactly. */
+struct RIAutoClip { uint32_t base_tick, span_ticks, n; struct RIAutoEv ev[RI_AUTO_CLIP_EVENTS]; };
+int ri_auto_cut(struct RIAutoLane *l, struct RIAutoClip *clip,
+                uint64_t start_bar, uint64_t len_bars, uint32_t ppq);
+int ri_auto_copy(const struct RIAutoLane *l, struct RIAutoClip *clip,
+                 uint64_t start_bar, uint64_t len_bars, uint32_t ppq);
+int ri_auto_paste(struct RIAutoLane *l, const struct RIAutoClip *clip,
+                  uint64_t at_bar, uint32_t ppq);
+int ri_auto_paste_replace(struct RIAutoLane *l, const struct RIAutoClip *clip,
+                          uint64_t at_bar, uint32_t ppq);
 #endif

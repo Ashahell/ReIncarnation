@@ -11,6 +11,8 @@
 #define T77_CAP 256u
 static struct RIAutoEv T77_STO[T77_CAP];
 
+static struct RIAutoClip T77_CLIP;
+
 int main(void) {
     struct RIAutoLane lane;
     struct RIAutoPass pass;
@@ -300,6 +302,230 @@ int main(void) {
             }
             RI_ASSERT(mapped == 14u, "mapped count %u", mapped);
             RI_ASSERT(listed == 112u, "listed count %u", listed);
+        }
+    }
+    /* ---- Task 2: sweeps, steps, loops, edits, stamp, clear, copy, cut/paste ---- */
+    {
+        struct RIAutoLane lane;
+        struct RIAutoPass pass;
+        struct RIAutoEv sto[32];
+        uint8_t outv, vals[4];
+        memset(&lane, 0, sizeof lane);
+        lane.ev = sto;
+        lane.cap = 32u;
+        memset(&pass, 0, sizeof pass);
+        /* Sweep order: erase punched span, then re-anchor current value. */
+        RI_ASSERT(ri_auto_stamp(&lane, 100u, 0x0301u, 9u) == 0, "setup stamp rc");
+        RI_ASSERT(ri_auto_touch(&lane, &pass, 2u, 48u, 96u, 0x0300u, 5u) == 0,
+            "sweep touch rc");
+        vals[0] = 7u;
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, 96u, vals) == 0, "sweep rc");
+        RI_ASSERT(ri_auto_value(&lane, 48u, 0x0300u, &outv) == 1 && outv == 7u,
+            "re-anchored at span start");
+        RI_ASSERT(ri_auto_value(&lane, 200u, 0x0300u, &outv) == 1 && outv == 7u,
+            "anchor holds forward");
+        RI_ASSERT(ri_auto_value(&lane, 200u, 0x0301u, &outv) == 1 && outv == 9u,
+            "untouched keeps events");
+        RI_ASSERT(lane.n == 2u, "sweep count %u", lane.n);
+        /* Erase runs even with no new move (idempotent re-sweep). */
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, 96u, vals) == 0, "resweep rc");
+        RI_ASSERT(lane.n == 2u, "resweep count %u", lane.n);
+        RI_ASSERT(ri_auto_value(&lane, 200u, 0x0300u, &outv) == 1 && outv == 7u,
+            "resweep same value");
+        /* Record without playback: stopped + RECORD writes one event. */
+        {
+            struct RIAutoLane l2;
+            struct RIAutoEv s2[8];
+            struct RIAutoPass p2;
+            memset(&l2, 0, sizeof l2);
+            l2.ev = s2;
+            l2.cap = 8u;
+            memset(&p2, 0, sizeof p2);
+            RI_ASSERT(ri_auto_touch(&l2, &p2, 2u, 1000u, 96u, 0x0300u, 44u) == 0,
+                "stopped rec rc");
+            RI_ASSERT(l2.n == 1u, "stopped rec stored");
+        }
+        /* Stop ends the pass: punch-out-all keeps touched, frees punched. */
+        ri_auto_punch_out_all(&pass);
+        RI_ASSERT(pass.npunched == 0u && pass.ntouched == 1u, "punch-out keeps touched");
+        vals[0] = 8u;
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, 96u, vals) == 0, "postsweep rc");
+        RI_ASSERT(ri_auto_value(&lane, 200u, 0x0300u, &outv) == 1 && outv == 7u,
+            "freed control stands");
+        /* Retouch re-punches after Stop. */
+        RI_ASSERT(ri_auto_touch(&lane, &pass, 2u, 300u, 96u, 0x0300u, 8u) == 0,
+            "retouch rc");
+        RI_ASSERT(pass.npunched == 1u, "retouch punches");
+        /* Step record: advance-by-bar holds the whole previous measure. */
+        {
+            struct RIAutoLane l3;
+            struct RIAutoEv s3[8];
+            struct RIAutoPass p3;
+            uint8_t v3[1];
+            memset(&l3, 0, sizeof l3);
+            l3.ev = s3;
+            l3.cap = 8u;
+            memset(&p3, 0, sizeof p3);
+            RI_ASSERT(ri_auto_touch(&l3, &p3, 2u, 10u, 96u, 0x0300u, 50u) == 0,
+                "step touch rc");
+            v3[0] = 50u;
+            RI_ASSERT(ri_auto_sweep(&l3, &p3, 0u, 384u, 96u, v3) == 0, "step sweep rc");
+            RI_ASSERT(l3.n == 1u, "step one event %u", l3.n);
+            RI_ASSERT(ri_auto_value(&l3, 383u, 0x0300u, &outv) == 1 && outv == 50u,
+                "step holds measure");
+        }
+        /* Punch-out before advancing leaves just the single event. */
+        {
+            struct RIAutoLane l4;
+            struct RIAutoEv s4[8];
+            struct RIAutoPass p4;
+            memset(&l4, 0, sizeof l4);
+            l4.ev = s4;
+            l4.cap = 8u;
+            memset(&p4, 0, sizeof p4);
+            RI_ASSERT(ri_auto_touch(&l4, &p4, 2u, 390u, 96u, 0x0301u, 60u) == 0,
+                "short touch rc");
+            ri_auto_punch_out_all(&p4);
+            {
+                uint8_t v4[1] = { 60u };
+                RI_ASSERT(ri_auto_sweep(&l4, &p4, 384u, 768u, 96u, v4) == 0,
+                    "short sweep rc");
+            }
+            RI_ASSERT(l4.n == 1u, "short single event %u", l4.n);
+        }
+        /* Clear loop: start-in, end-out, outside kept, empty no-op. */
+        RI_ASSERT(ri_auto_stamp(&lane, 100u, 0x0302u, 11u) == 0, "clear setup rc");
+        RI_ASSERT(ri_auto_stamp(&lane, 300u, 0x0301u, 9u) == 0, "clear outside rc");
+        RI_ASSERT(ri_auto_clear_loop(&lane, 100u, 100u) == 0, "clear rc");
+        RI_ASSERT(ri_auto_value(&lane, 500u, 0x0302u, &outv) == 0, "cleared gone");
+        RI_ASSERT(ri_auto_value(&lane, 500u, 0x0301u, &outv) == 1 && outv == 9u,
+            "outside kept");
+        RI_ASSERT(ri_auto_clear_loop(&lane, 700u, 0u) == 0, "empty clear rc");
+        /* Stamp: exact tick (no quantize), denied refused. */
+        RI_ASSERT(ri_auto_stamp(&lane, 77u, 0x0303u, 21u) == 0, "stamp rc");
+        RI_ASSERT(ri_auto_value(&lane, 77u, 0x0303u, &outv) == 1 && outv == 21u,
+            "stamp exact");
+        RI_ASSERT(ri_auto_stamp(&lane, 77u, 0x0401u, 21u) == 2, "stamp denied");
+        /* Init-song composition: clear all + stamp per knob at tick 0. */
+        {
+            struct RIAutoLane l5;
+            struct RIAutoEv s5[8];
+            memset(&l5, 0, sizeof l5);
+            l5.ev = s5;
+            l5.cap = 8u;
+            RI_ASSERT(ri_auto_stamp(&l5, 0u, 0x0300u, 61u) == 0, "song stamp A");
+            RI_ASSERT(ri_auto_stamp(&l5, 0u, 0x0312u, 62u) == 0, "song stamp B");
+            RI_ASSERT(l5.n == 2u, "song two events");
+            RI_ASSERT(ri_auto_value(&l5, 999u * 384u, 0x0300u, &outv) == 1 && outv == 61u,
+                "song stamp holds");
+        }
+        /* Init-loop composition: clear range + stamp at loop start. */
+        {
+            struct RIAutoLane l6;
+            struct RIAutoEv s6[8];
+            memset(&l6, 0, sizeof l6);
+            l6.ev = s6;
+            l6.cap = 8u;
+            RI_ASSERT(ri_auto_stamp(&l6, 100u, 0x0300u, 5u) == 0, "loop pre rc");
+            RI_ASSERT(ri_auto_stamp(&l6, 500u, 0x0300u, 6u) == 0, "loop in rc");
+            RI_ASSERT(ri_auto_clear_loop(&l6, 384u, 384u) == 0, "loop clear rc");
+            RI_ASSERT(ri_auto_stamp(&l6, 384u, 0x0300u, 7u) == 0, "loop stamp rc");
+            RI_ASSERT(ri_auto_value(&l6, 1000u, 0x0300u, &outv) == 1 && outv == 7u,
+                "loop stamp wins");
+            RI_ASSERT(ri_auto_value(&l6, 100u, 0x0300u, &outv) == 1 && outv == 5u,
+                "pre-loop kept");
+        }
+        /* Copy touched: only touched controls, range clear + start event. */
+        {
+            struct RIAutoLane l7;
+            struct RIAutoEv s7[16];
+            struct RIAutoPass p7;
+            uint8_t v7[2];
+            memset(&l7, 0, sizeof l7);
+            l7.ev = s7;
+            l7.cap = 16u;
+            memset(&p7, 0, sizeof p7);
+            RI_ASSERT(ri_auto_touch(&l7, &p7, 2u, 48u, 96u, 0x0300u, 1u) == 0, "ct touch A");
+            RI_ASSERT(ri_auto_touch(&l7, &p7, 2u, 60u, 96u, 0x0301u, 2u) == 0, "ct touch B");
+            RI_ASSERT(ri_auto_stamp(&l7, 600u, 0x0302u, 3u) == 0, "ct other rc");
+            RI_ASSERT(ri_auto_stamp(&l7, 600u, 0x0300u, 4u) == 0, "ct old A rc");
+            v7[0] = 11u; v7[1] = 12u;
+            RI_ASSERT(ri_auto_copy_touched(&l7, &p7, 500u, 800u, v7) == 0, "ct copy rc");
+            RI_ASSERT(ri_auto_value(&l7, 799u, 0x0300u, &outv) == 1 && outv == 11u,
+                "ct A at start");
+            RI_ASSERT(ri_auto_value(&l7, 799u, 0x0301u, &outv) == 1 && outv == 12u,
+                "ct B at start");
+            RI_ASSERT(ri_auto_value(&l7, 799u, 0x0302u, &outv) == 1 && outv == 3u,
+                "ct other kept");
+        }
+        /* Cut/copy/paste mirror bar-for-bar (ppq 96: bar is 384 ticks). */
+        {
+            struct RIAutoLane l8;
+            struct RIAutoEv s8[16];
+            memset(&l8, 0, sizeof l8);
+            l8.ev = s8;
+            l8.cap = 16u;
+            memset(&T77_CLIP, 0, sizeof T77_CLIP);
+            RI_ASSERT(ri_auto_stamp(&l8, 100u, 0x0300u, 1u) == 0, "bar pre rc");
+            RI_ASSERT(ri_auto_stamp(&l8, 400u, 0x0300u, 2u) == 0, "bar in rc");
+            RI_ASSERT(ri_auto_stamp(&l8, 800u, 0x0300u, 3u) == 0, "bar post rc");
+            RI_ASSERT(ri_auto_copy(&l8, &T77_CLIP, 1u, 1u, 96u) == 0, "copy rc");
+            RI_ASSERT(T77_CLIP.n == 1u, "clip one event");
+            RI_ASSERT(T77_CLIP.base_tick == 384u, "clip base");
+            RI_ASSERT(l8.n == 3u, "copy keeps lane");
+            RI_ASSERT(ri_auto_cut(&l8, &T77_CLIP, 1u, 1u, 96u) == 0, "cut rc");
+            RI_ASSERT(l8.n == 2u, "cut removes %u", l8.n);
+            RI_ASSERT(ri_auto_value(&l8, 500u, 0x0300u, &outv) == 1 && outv == 3u,
+                "cut shifts left");
+            RI_ASSERT(ri_auto_paste(&l8, &T77_CLIP, 2u, 96u) == 0, "paste rc");
+            RI_ASSERT(ri_auto_value(&l8, 900u, 0x0300u, &outv) == 1 && outv == 2u,
+                "paste shifts right");
+            RI_ASSERT(ri_auto_paste_replace(&l8, &T77_CLIP, 0u, 96u) == 0,
+                "replace rc");
+            RI_ASSERT(ri_auto_value(&l8, 100u, 0x0300u, &outv) == 1 && outv == 2u,
+                "replace wins");
+        }
+        /* Paste past bar 999 drops (never wraps); NULL refuses. */
+        {
+            struct RIAutoLane l9;
+            struct RIAutoEv s9[8];
+            memset(&l9, 0, sizeof l9);
+            l9.ev = s9;
+            l9.cap = 8u;
+            memset(&T77_CLIP, 0, sizeof T77_CLIP);
+            T77_CLIP.base_tick = 0u;
+            T77_CLIP.n = 1u;
+            T77_CLIP.ev[0].tick = 400u;
+            T77_CLIP.ev[0].ctl = 0x0300u;
+            T77_CLIP.ev[0].val = 9u;
+            T77_CLIP.ev[0].pad = 0u;
+            RI_ASSERT(ri_auto_paste(&l9, &T77_CLIP, 998u, 96u) == 0, "past-end rc");
+            RI_ASSERT(l9.n == 0u, "past-end dropped %u", l9.n);
+            RI_ASSERT(ri_auto_cut(0, &T77_CLIP, 0u, 1u, 96u) == 2, "cut null lane");
+            RI_ASSERT(ri_auto_copy(&l9, 0, 0u, 1u, 96u) == 2, "copy null clip");
+            RI_ASSERT(ri_auto_paste(&l9, 0, 0u, 96u) == 2, "paste null clip");
+            RI_ASSERT(ri_auto_paste_replace(&l9, 0, 0u, 96u) == 2, "replace null clip");
+        }
+        /* Paste is all-or-nothing on capacity. */
+        {
+            struct RIAutoLane l10;
+            struct RIAutoEv s10[2];
+            memset(&l10, 0, sizeof l10);
+            l10.ev = s10;
+            l10.cap = 2u;
+            memset(&T77_CLIP, 0, sizeof T77_CLIP);
+            RI_ASSERT(ri_auto_stamp(&l10, 0u, 0x0300u, 1u) == 0, "cap pre 1");
+            RI_ASSERT(ri_auto_stamp(&l10, 384u, 0x0300u, 2u) == 0, "cap pre 2");
+            T77_CLIP.base_tick = 0u;
+            T77_CLIP.n = 1u;
+            T77_CLIP.ev[0].tick = 0u;
+            T77_CLIP.ev[0].ctl = 0x0301u;
+            T77_CLIP.ev[0].val = 3u;
+            T77_CLIP.ev[0].pad = 0u;
+            RI_ASSERT(ri_auto_paste(&l10, &T77_CLIP, 0u, 96u) == 2, "cap paste refuses");
+            RI_ASSERT(l10.n == 2u, "cap paste untouched %u", l10.n);
+            RI_ASSERT(ri_auto_value(&l10, 384u, 0x0300u, &outv) == 1 && outv == 2u,
+                "cap content kept");
         }
     }
     RI_RESULT("autolane");
