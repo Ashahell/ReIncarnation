@@ -24,8 +24,9 @@
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/camd.h>
+#include "platform/pal/ri_pal_midi.h"
 
-struct Library *CamdBase;
+extern struct Library *CamdBase; /* owned by platform/aros/midi_camd.c (T5) */
 
 
 static int hexv(char c) {
@@ -35,11 +36,51 @@ static int hexv(char c) {
 int main(int argc, char **argv) {
     struct MidiNode *node;
     struct MidiLink *link;
-    BPTR fh;
-    char line[128];
-    LONG sent = 0;
     if (argc < 3)
         return 5;
+    if (argv[2][0] != 'S') {
+        /* Script playback: PAL send only, no CAMD objects here (T5). */
+        BPTR sfh;
+        char sline[128];
+        LONG ssent = 0;
+        sfh = Open((CONST_STRPTR)argv[2], MODE_OLDFILE);
+        if (!sfh)
+            return 12;
+        while (FGets(sfh, (STRPTR)sline, sizeof sline)) {
+            uint8_t msg[3] = { 0, 0, 0 };
+            uint32_t nb = 0;
+            char *p = sline;
+            if (sline[0] == '#' || sline[0] == '\n')
+                continue;
+            if (sline[0] == 'D') {              /* D <ms> */
+                LONG ms = 0;
+                for (p = sline + 1; *p == ' '; p++)
+                    ;
+                while (*p >= '0' && *p <= '9')
+                    ms = ms * 10 + (*p++ - '0');
+                Delay(ms / 20 > 0 ? ms / 20 : 1);
+                continue;
+            }
+            while (*p && nb < 3) {
+                int h, l;
+                while (*p == ' ')
+                    p++;
+                h = hexv(p[0]);
+                l = h >= 0 ? hexv(p[1]) : -1;
+                if (h < 0 || l < 0)
+                    break;
+                msg[nb++] = (uint8_t)(h * 16 + l);
+                p += 2;
+            }
+            if (nb && ri_pal_midi_send(argv[1], msg, nb) == 0)
+                ssent++;
+        }
+        Close(sfh);
+        Printf((CONST_STRPTR)"MIDISEND: %ld messages to %s\n", ssent, (IPTR)argv[1]);
+        ri_pal_midi_close();
+        return 0;
+    }
+    /* SELFTEST stays on raw CAMD: it diagnoses the stack itself (T5). */
     CamdBase = OpenLibrary((CONST_STRPTR)"camd.library", 0);
     if (!CamdBase)
         return 10;
@@ -96,45 +137,5 @@ int main(int argc, char **argv) {
         CloseLibrary(CamdBase);
         return got ? 0 : 20;
     }
-    fh = Open((CONST_STRPTR)argv[2], MODE_OLDFILE);
-    if (!fh) {
-        DeleteMidi(node);
-        CloseLibrary(CamdBase);
-        return 12;
-    }
-    while (FGets(fh, (STRPTR)line, sizeof line)) {
-        ULONG b[3] = { 0, 0, 0 }, nb = 0;
-        char *p = line;
-        if (line[0] == '#' || line[0] == '\n')
-            continue;
-        if (line[0] == 'D') {                  /* D <ms> */
-            LONG ms = 0;
-            for (p = line + 1; *p == ' '; p++)
-                ;
-            while (*p >= '0' && *p <= '9')
-                ms = ms * 10 + (*p++ - '0');
-            Delay(ms / 20 > 0 ? ms / 20 : 1);  /* DOS ticks are 1/50 s */
-            continue;
-        }
-        while (*p && nb < 3) {
-            int h, l;
-            while (*p == ' ')
-                p++;
-            h = hexv(p[0]);
-            l = h >= 0 ? hexv(p[1]) : -1;
-            if (h < 0 || l < 0)
-                break;
-            b[nb++] = (ULONG)(h * 16 + l);
-            p += 2;
-        }
-        if (nb) {
-            PutMidi(link, (b[0] << 24) | (b[1] << 16) | (b[2] << 8));
-            sent++;
-        }
-    }
-    Close(fh);
-    Printf((CONST_STRPTR)"MIDISEND: %ld messages to %s\n", sent, (IPTR)argv[1]);
-    DeleteMidi(node);
-    CloseLibrary(CamdBase);
-    return 0;
+    return 5; /* unreachable: non-SELFTEST returns above */
 }

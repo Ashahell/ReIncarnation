@@ -63,20 +63,18 @@
 #include "gui/panelgeo.h"
 #include "gui/livestate.h"
 #include "gui/midimap.h"
-#include <midi/camd.h>
-#include <proto/camd.h>
 #include <dos/exall.h>
 #include "gui/widgets/rsection.h"
 #include "gui/skin.h"
 #include "gui/skin_aros.h"
 #include "platform/pal/ri_pal_fs.h"
+#include "platform/pal/ri_pal_midi.h"
 
 static char s_readout[160];
 static Object *s_mix[10];
 static int s_nall;
 static struct RIMidiIn s_midi;
 static ULONG s_camd_got, s_camd_last;   /* raw CAMD diagnostics: messages taken, last mm_Msg */
-struct Library *CamdBase;
 
 /* G8.1 mod selection: installed list scanned from the Mods dir, the loaded
  * skin, and the name the panel currently asks for (Ctrl+M cycles it). */
@@ -293,6 +291,17 @@ static void skin_scan(void) {
     s_installed[n] = 0;
 }
 static struct RIPanelUI s_panel;
+
+/* PAL MIDI callback (T5): Standard Mapping onto the panel. */
+static void sect_midi_in(void *u, const uint8_t *msg, uint32_t len, uint64_t t) {
+    (void)u;
+    (void)t;
+    if (!msg || len < 3u)
+        return;
+    s_camd_got++;
+    s_camd_last = ((ULONG)msg[0] << 24) | ((ULONG)msg[1] << 16) | ((ULONG)msg[2] << 8);
+    ri_midi_msg(&s_midi, &s_panel, msg[0], msg[1], msg[2]);
+}
 
 static void put_num(char **p, long v) {
     char t[12];
@@ -641,8 +650,7 @@ int main(int argc, char **argv) {
     struct RISectUI *ui = 0;
     const struct RSectionDiag *dg = 0;
     int i, do_demo = 0, mix = 0, fx = 0, trp = 0, keys = 0, live = 0, remote = 0;
-    struct MidiNode *mnode = 0;
-    BYTE msig = -1;
+    int have_midi = 0;
     ULONG lms = 0, lmu = 0;
     ULONG t0s = 0, t0u = 0;
     int meter_lvl[2] = { 0, 0 }, last_ph[2] = { -1, -1 };
@@ -740,13 +748,10 @@ int main(int argc, char **argv) {
             trace = tf ? Open((CONST_STRPTR)tf, MODE_NEWFILE) : 0;
         }
         ri_midi_init(&s_midi, 0);
-        if (remote) {                  /* CAMD receiver: cluster "ri.remote", channel 1 */
-            CamdBase = OpenLibrary((CONST_STRPTR)"camd.library", 0);
-            msig = AllocSignal(-1);
-            if (CamdBase && msig >= 0)
-                mnode = CreateMidi(MIDI_Name, (IPTR)"RISECT", MIDI_RecvSignal, (IPTR)msig, MIDI_MsgQueue, 512, TAG_END);
-            if (!mnode || !AddMidiLink(mnode, MLTYPE_Receiver, MLINK_Location, (IPTR)"ri.remote", TAG_END))
+        if (remote) {                  /* PAL receiver: cluster "ri.remote", channel 1 */
+            if (ri_pal_midi_open_in("ri.remote", sect_midi_in, 0) != 0)
                 return 9;
+            have_midi = 1;
         }
     } else if (keys) {                 /* G5: one front panel across six canvases */
         Object *pats;
@@ -891,14 +896,9 @@ int main(int argc, char **argv) {
         if (ret == (LONG)MUIV_Application_ReturnID_Quit)
             break;
         GetAttr(MUIA_RSection_Changes, canvas, &ch);
-        if (mnode) {                   /* drain CAMD: Standard Mapping onto the panel */
-            MidiMsg mm;
+        if (have_midi) {               /* drain PAL MIDI: Standard Mapping onto the panel */
             ULONG ns, nu, dms;
-            while (GetMidi(mnode, &mm)) {
-                s_camd_got++;
-                s_camd_last = mm.mm_Msg;
-                ri_midi_msg(&s_midi, &s_panel, mm.mm_Status, mm.mm_Data1, mm.mm_Data2);
-            }
+            ri_pal_midi_poll(); /* CAMD signal batch -> sect_midi_in (T5) */
             CurrentTime(&ns, &nu);
             dms = lms ? (ns - lms) * 1000u + nu / 1000u - lmu / 1000u : 0u;
             lms = ns;
@@ -953,19 +953,15 @@ int main(int argc, char **argv) {
             for (k = 0; k < s_nall; k++)                               /* no panel to cycle) */
                 ri_rsection_refresh(s_mix[k]);
         }
-        sigs |= SIGBREAKF_CTRL_C | (msig >= 0 ? 1UL << msig : 0UL);
+        sigs |= SIGBREAKF_CTRL_C;
         sigs = Wait(sigs);
         if (sigs & SIGBREAKF_CTRL_C)
             break;
     }
     if (trace)
         Close(trace);
-    if (mnode)
-        DeleteMidi(mnode);
-    if (msig >= 0)
-        FreeSignal(msig);
-    if (CamdBase)
-        CloseLibrary(CamdBase);
+    if (have_midi)
+        ri_pal_midi_close();
     SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
     MUI_DisposeObject(app);
     ri_rsection_dispose_class();

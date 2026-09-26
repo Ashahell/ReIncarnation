@@ -53,7 +53,7 @@ if [ "${1:-}" = sections ]; then
   O3="$OUT/sections"; mkdir -p "$O3"
   CF3="$CFLAGS_AROS -Werror -fno-stack-protector -I$ROOT"
   OBJS3=""
-  for f in app/sectproof.c platform/aros/fs_aros.c platform/aros/log_aros.c platform/aros/image_dt.c gui/widgets/rsection.mcc.c gui/ctlreg.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/midimap.c gui/knob_logic.c gui/skin.c gui/skin_aros.c project/sha256.c engine/dsp/kernels.c engine/seq/pattern.c engine/fx/route.c engine/seq/transport.c; do
+  for f in app/sectproof.c platform/aros/fs_aros.c platform/aros/log_aros.c platform/aros/image_dt.c platform/aros/midi_camd.c gui/widgets/rsection.mcc.c gui/ctlreg.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/midimap.c gui/knob_logic.c gui/skin.c gui/skin_aros.c project/sha256.c engine/dsp/kernels.c engine/seq/pattern.c engine/fx/route.c engine/seq/transport.c; do
     x86_64-aros-gcc $CF3 -c "$ROOT/$f" -o "$O3/$(basename "$f" .c).o"
     OBJS3="$OBJS3 $O3/$(basename "$f" .c).o"
   done
@@ -64,7 +64,8 @@ if [ "${1:-}" = sections ]; then
   echo "AROS RISECT BUILD OK ($(stat -c%s "$OUT/RISECT") bytes)"
   # MIDISEND: CAMD message-script sender for the G7 remote-MIDI proof
   x86_64-aros-gcc $CF3 -c "$ROOT/app/midisend.c" -o "$O3/midisend.o"
-  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/MIDISEND" "$O3/midisend.o" \
+  x86_64-aros-gcc $CF3 -c "$ROOT/platform/aros/midi_camd.c" -o "$O3/midi_camd.o"
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/MIDISEND" "$O3/midisend.o" "$O3/midi_camd.o" \
     "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" -lamiga -lstdcio -lposixc -ldos -lexec -lautoinit
   test "$(x86_64-aros-readelf -s "$OUT/MIDISEND" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: MIDISEND unresolved"; exit 1; }
   test "$(objdump -d "$OUT/MIDISEND" | grep -c 'mov    %rax,%r12')" = 0 || { echo "FAIL: MIDISEND r12 base moves (v1)"; exit 1; }

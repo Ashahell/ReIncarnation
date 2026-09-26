@@ -1,0 +1,4 @@
+T5 RED (host script MIDI before wiring):
+- tests/unit/t89_pal_midi.c includes platform/pal/ri_pal_midi.h: no such
+  file before the T5 scaffolding landed (link RED once stubbed).
+GREEN provides the script backend, the CAMD backend and the test.
