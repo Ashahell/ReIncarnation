@@ -4,7 +4,7 @@
 - Disposition: New (slice record)
 - Raw: llm-wiki/raw/articles/2026-09-26-automation-lanes-tasks-2-to-4.md
 - Updated: llm-wiki/index.md
-Commits `7753178`/`ceca27e`/`bd56eab`/`6a76c47`/`4d34176`/`fe96f72`/`2820334` (supersedes `db13c14` per R-REVIEWED-PLAN). Rulings R-WRITE-BOTH/R-ATRK-ORDER/R-READER-ATOMICITY; mutants 10/10 (6 + 8 needed new pins: tick-exact paste-tail, staged-request). Open: Task 5 delivery widening (FX/808/909/mixer).
+Commits `7753178`/`ceca27e`/`bd56eab`/`6a76c47`/`4d34176`/`fe96f72`/`2820334` (supersedes `db13c14` per R-REVIEWED-PLAN). Rulings R-WRITE-BOTH/R-ATRK-ORDER/R-READER-ATOMICITY; mutants 10/10 (6 + 8 needed new pins: tick-exact paste-tail, staged-request). Task 5: 5a FX shipped (`c6dd53f`, mapped 14→28); 5b BLOCKED (voice key, R-5B-BLOCKED); 5c BLOCKED (IDs, R-5C-BLOCKED); spec Status blocks (`ab54103`).
 
 ## [2026-09-26] Revision | songtrack plan/spec deferrals closed against r2 owners
 - Disposition: Update (no new raw — 9-line alignment edit)

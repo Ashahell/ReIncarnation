@@ -85,3 +85,24 @@ new `0x0Bxx` ID block with the GUI registry owner; possibly an engine
 level setter — owner call). The cross-check's expected-unbound list
 only ever shrinks. E1 p. 72 "level changes" makes 5c the most
 user-visible gap.
+
+## Task 5 outcome (2026-09-26)
+
+- **5a SHIPPED (`c6dd53f`):** `ri_engine_apply_event` routes
+  AUTOMATION + `0x0Axx` to `ri_engine_fx_set` (voiceless; unknown IDs
+  ignored inside); allow-list gains the 14 registry FX IDs
+  (`BEATS 0x0A00` has no engine effect, `MIX 0x0A02` is
+  topology-fixed — neither listed). RED: `t52_engine_fx.c:170` auto
+  dist drive 0. Delivery test = state + render-identical vs the knob
+  path + unknown-block ignore. Cross-check mapped 14→28, UNREC
+  112→98. t57/t1_fx/t50/t51 green. Full audit 0/0.
+- **5b BLOCKED (R-5B-BLOCKED):** no widening. No production knob path
+  consumes the drum binds (registry + t60 only — nothing to be
+  render-identical against), and per-voice params share one ID across
+  all voices, unaddressable by the `(tick, ctl)` lane key (needs a
+  voice key + ATRK field + recorder param — beyond this slice).
+- **5c BLOCKED (R-5C-BLOCKED):** mixer strips have no shared IDs;
+  `0x0Bxx` allocation needs the GUI registry owner (sibling lane),
+  plus a possible engine level setter (owner call). §5.2 dependency
+  stands.
+- Spec Status blocks added (OUT line, §2.2, §5.2 row — `ab54103`).
