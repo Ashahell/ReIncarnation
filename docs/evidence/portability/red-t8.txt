@@ -1,0 +1,4 @@
+T8 RED (headless before the frontend existed):
+- platform/host/main_headless.c: no such file; the core had no non-AROS
+  entry point (RIAPP/RISECT are AROS-only).
+GREEN provides the headless WAV proof (panel PNGs after the T2 canvas).
