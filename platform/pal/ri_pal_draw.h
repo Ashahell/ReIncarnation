@@ -26,6 +26,11 @@ struct ri_dcmd {
 struct ri_dlist {
     struct ri_dcmd *cmd;
     uint32_t n, cap;
+    /* Borrowed-string pool: TEXT commands copy their bytes here so the
+     * list is self-contained until the next clear (both backends replay
+     * synchronously, but art-stack buffers would be dead on return). */
+    char *spool;
+    uint32_t spn, spcap;
 };
 
 struct ri_text_metrics {

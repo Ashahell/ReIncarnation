@@ -1,17 +1,25 @@
 /* canvas.c — display-list bodies (portability plan T2). */
 #include "gui/draw/canvas.h"
 
-void ri_dlist_init(struct ri_dlist *dl, struct ri_dcmd *backing, uint32_t cap) {
+#include <string.h>
+
+void ri_dlist_init(struct ri_dlist *dl, struct ri_dcmd *backing, uint32_t cap,
+    char *spool, uint32_t spcap) {
     if (!dl)
         return;
     dl->cmd = backing;
     dl->n = 0u;
     dl->cap = (backing && cap) ? cap : 0u;
+    dl->spool = spool;
+    dl->spn = 0u;
+    dl->spcap = (spool && spcap) ? spcap : 0u;
 }
 
 void ri_dlist_clear(struct ri_dlist *dl) {
-    if (dl)
-        dl->n = 0u;
+    if (!dl)
+        return;
+    dl->n = 0u;
+    dl->spn = 0u;
 }
 
 int ri_dlist_push(struct ri_dlist *dl, const struct ri_dcmd *c) {
@@ -55,9 +63,20 @@ int ri_draw_circle(struct ri_dlist *dl, int cx, int cy, int r, uint32_t rgb) {
 }
 
 int ri_draw_text(struct ri_dlist *dl, int x, int y, uint8_t align, uint32_t rgb, const char *text) {
-    if (!text || !text[0])
+    uint32_t len = 0u;
+    const char *dst;
+    if (!dl || !text || !text[0])
         return 0;
-    return emit(dl, RI_D_TEXT, x, y, 0, 0, rgb, 0u, 0u, align, text);
+    while (text[len] && len < 64u)
+        len++;
+    if (!dl->spool || dl->spn + len + 1u > dl->spcap)
+        return 1; /* no pool room: caller sizes it (test pins sizes) */
+    dst = dl->spool + dl->spn;
+    memcpy(dl->spool + dl->spn, text, len + (text[len] ? 0u : 1u));
+    if (text[len])
+        dl->spool[dl->spn + len] = 0;
+    dl->spn += len + 1u;
+    return emit(dl, RI_D_TEXT, x, y, 0, 0, rgb, 0u, 0u, align, dst);
 }
 
 int ri_draw_image(struct ri_dlist *dl, int x, int y, uint16_t img, uint16_t frame) {

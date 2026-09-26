@@ -12,6 +12,11 @@
 #include "engine/seq/pattern.h"
 #include "engine/seq/songtrack.h"
 #include "platform/pal/ri_pal_audio.h"
+#include "gui/draw/art.h"
+#include "gui/ctlreg.h"
+#include "gui/sectui.h"
+#include "gui/sectmix.h"
+#include "platform/host/raster.h"
 
 #define SR 48000u
 #define CHUNK 256u
@@ -88,5 +93,37 @@ int main(int argc, char **argv) {
         rc = 0u;
     ri_pal_audio_stop();
     ri_pal_audio_close();
+    /* Panel PNG (T2 rasterizer): 303 section at 1x, procedural. */
+    {
+        struct RISectUI ui;
+        struct ri_dlist dl;
+        struct ri_raster r;
+        struct ri_text_metrics tm;
+        const struct RIGeoSection *g;
+        static struct ri_dcmd back[8192];
+        static char spool[32768];
+        static uint32_t px[2048u * 1024u];
+        uint32_t w, h;
+        ri_sui_init(&ui, RI_SEC_SYNTH1);
+        g = ri_geo_section(RI_SEC_SYNTH1);
+        if (g && (w = (uint32_t)ri_geo_px((int)g->w, 0)) > 0u &&
+            (h = (uint32_t)ri_geo_px((int)g->h, 0)) > 0u && (uint64_t)w * h <= 2048u * 1024u) {
+            ri_dlist_init(&dl, back, 8192u, spool, sizeof spool);
+            tm.width = ri_raster_text_width;
+            tm.height = 7;
+            tm.baseline = 5;
+            tm.ctx = 0;
+            ri_draw_section(&dl, &ui, RI_SEC_SYNTH1, 0, 0, 0, &tm, 0, 0);
+            ri_raster_init(&r, px, w, h);
+            ri_raster_clear(&r, 0x000000u);
+            ri_raster_replay(&r, &dl, 0);
+            if (ri_raster_write_png("/tmp/ri/panel.png", &r) != 0)
+                rc = 1u;
+            else
+                printf("headless: /tmp/ri/panel.png %ux%u hash=%08x\n", w, h, ri_raster_hash(&r));
+        } else {
+            rc = 1u;
+        }
+    }
     return (int)rc;
 }

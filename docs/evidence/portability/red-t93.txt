@@ -1,0 +1,147 @@
+RASTER sec=0 z=0 hash=30c59a04
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=0 z=0
+RASTER sec=0 z=1 hash=9760f422
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=0 z=1
+RASTER sec=0 z=2 hash=2861513c
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=0 z=2
+RASTER sec=0 z=3 hash=be597133
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=0 z=3
+RASTER sec=1 z=0 hash=30c59a04
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=1 z=0
+RASTER sec=1 z=1 hash=9760f422
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=1 z=1
+RASTER sec=1 z=2 hash=2861513c
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=1 z=2
+RASTER sec=1 z=3 hash=be597133
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=1 z=3
+RASTER sec=2 z=0 hash=b89a2b83
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=2 z=0
+RASTER sec=2 z=1 hash=2c062e4b
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=2 z=1
+RASTER sec=2 z=2 hash=e0d16e0e
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=2 z=2
+RASTER sec=2 z=3 hash=cf0a1b13
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=2 z=3
+RASTER sec=3 z=0 hash=0f1d57d8
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=3 z=0
+RASTER sec=3 z=1 hash=93fd9547
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=3 z=1
+RASTER sec=3 z=2 hash=0d12d1aa
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=3 z=2
+RASTER sec=3 z=3 hash=62a4f764
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=3 z=3
+RASTER sec=4 z=0 hash=036f32bb
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=4 z=0
+RASTER sec=4 z=1 hash=1f75fbbb
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=4 z=1
+RASTER sec=4 z=2 hash=d40220ad
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=4 z=2
+RASTER sec=4 z=3 hash=9855a21b
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=4 z=3
+RASTER sec=5 z=0 hash=036f32bb
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=5 z=0
+RASTER sec=5 z=1 hash=1f75fbbb
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=5 z=1
+RASTER sec=5 z=2 hash=d40220ad
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=5 z=2
+RASTER sec=5 z=3 hash=9855a21b
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=5 z=3
+RASTER sec=6 z=0 hash=036f32bb
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=6 z=0
+RASTER sec=6 z=1 hash=1f75fbbb
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=6 z=1
+RASTER sec=6 z=2 hash=d40220ad
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=6 z=2
+RASTER sec=6 z=3 hash=9855a21b
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=6 z=3
+RASTER sec=7 z=0 hash=036f32bb
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=7 z=0
+RASTER sec=7 z=1 hash=1f75fbbb
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=7 z=1
+RASTER sec=7 z=2 hash=d40220ad
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=7 z=2
+RASTER sec=7 z=3 hash=9855a21b
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=7 z=3
+RASTER sec=8 z=0 hash=9cc55879
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=8 z=0
+RASTER sec=8 z=1 hash=9ac125b5
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=8 z=1
+RASTER sec=8 z=2 hash=6d5ac1e9
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=8 z=2
+RASTER sec=8 z=3 hash=389ebded
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=8 z=3
+RASTER sec=9 z=0 hash=15199d6e
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=9 z=0
+RASTER sec=9 z=1 hash=9ee70ed6
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=9 z=1
+RASTER sec=9 z=2 hash=af94e8be
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=9 z=2
+RASTER sec=9 z=3 hash=5b64888d
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=9 z=3
+RASTER sec=10 z=0 hash=18a801e5
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=10 z=0
+RASTER sec=10 z=1 hash=6ee9f139
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=10 z=1
+RASTER sec=10 z=2 hash=40dfd8a1
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=10 z=2
+RASTER sec=10 z=3 hash=92c4a276
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=10 z=3
+RASTER sec=11 z=0 hash=6a43d9ef
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=11 z=0
+RASTER sec=11 z=1 hash=94e15e9f
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=11 z=1
+RASTER sec=11 z=2 hash=f2beb7c7
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=11 z=2
+RASTER sec=11 z=3 hash=d4512d13
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=11 z=3
+RASTER sec=12 z=0 hash=7780b3b7
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=12 z=0
+RASTER sec=12 z=1 hash=6e7a3d93
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=12 z=1
+RASTER sec=12 z=2 hash=8ccf260b
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=12 z=2
+RASTER sec=12 z=3 hash=46cf61e4
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=12 z=3
+RASTER sec=13 z=0 hash=5ff44cc8
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=13 z=0
+RASTER sec=13 z=1 hash=84d08956
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=13 z=1
+RASTER sec=13 z=2 hash=67b55970
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=13 z=2
+RASTER sec=13 z=3 hash=4f336e08
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=13 z=3
+RASTER sec=14 z=0 hash=0a5ee4d6
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=14 z=0
+RASTER sec=14 z=1 hash=bc91c79e
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=14 z=1
+RASTER sec=14 z=2 hash=c01690da
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=14 z=2
+RASTER sec=14 z=3 hash=92b79c22
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=14 z=3
+RASTER sec=15 z=0 hash=0a5ee4d6
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=15 z=0
+RASTER sec=15 z=1 hash=bc91c79e
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=15 z=1
+RASTER sec=15 z=2 hash=c01690da
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=15 z=2
+RASTER sec=15 z=3 hash=92b79c22
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=15 z=3
+RASTER sec=16 z=0 hash=0a5ee4d6
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=16 z=0
+RASTER sec=16 z=1 hash=bc91c79e
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=16 z=1
+RASTER sec=16 z=2 hash=c01690da
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=16 z=2
+RASTER sec=16 z=3 hash=92b79c22
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=16 z=3
+RASTER sec=17 z=0 hash=0a5ee4d6
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=17 z=0
+RASTER sec=17 z=1 hash=bc91c79e
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=17 z=1
+RASTER sec=17 z=2 hash=c01690da
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=17 z=2
+RASTER sec=17 z=3 hash=92b79c22
+FAIL tests/unit/t93_raster_goldens.c:161: pin sec=17 z=3
+RASTER skin808 z=0 hash=c0e692e5
+FAIL tests/unit/t93_raster_goldens.c:174: pin skin
+FAIL 73

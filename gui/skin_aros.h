@@ -37,6 +37,10 @@ int ri_skin_aros_zoom(struct RISkin *skin, int zoom);
 int ri_skin_aros_blit(struct RastPort *rp, const struct RISkin *skin,
                       uint8_t sec, uint8_t kind, const char *part,
                       uint32_t frame, int dx, int dy);
+/* Blit zoom-cache part by slot index (T2 display-list replay): same as
+ * blit() without the name lookup. Returns 1 drawn, 0 fallback, -1 bad arg. */
+int ri_skin_aros_blit_idx(struct RastPort *rp, const struct RISkin *skin,
+    int idx, uint32_t frame, int dx, int dy);
 /* Release every loader-owned pixel buffer of this skin and clear its
  * bindings (manifest/lookup survive). Deactivates it when active. */
 void ri_skin_aros_free(struct RISkin *skin);

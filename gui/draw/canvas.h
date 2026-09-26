@@ -9,7 +9,8 @@
 
 #include "platform/pal/ri_pal_draw.h"
 
-void ri_dlist_init(struct ri_dlist *dl, struct ri_dcmd *backing, uint32_t cap);
+void ri_dlist_init(struct ri_dlist *dl, struct ri_dcmd *backing, uint32_t cap,
+    char *spool, uint32_t spcap);
 void ri_dlist_clear(struct ri_dlist *dl);
 /* Push one command; returns 0 ok, 1 full (counts on the caller to size). */
 int ri_dlist_push(struct ri_dlist *dl, const struct ri_dcmd *c);

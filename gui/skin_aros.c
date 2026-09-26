@@ -242,9 +242,6 @@ int ri_skin_aros_blit(struct RastPort *rp, const struct RISkin *skin,
                       uint8_t sec, uint8_t kind, const char *part,
                       uint32_t frame, int dx, int dy) {
     int idx;
-    const uint32_t *px;
-    uint32_t w, h, fh;
-    ULONG rc;
     if (!rp || !skin || !part)
         return -1;
     if (!s_cyber && !(s_cyber = (struct Library *)OpenLibrary(
@@ -253,6 +250,19 @@ int ri_skin_aros_blit(struct RastPort *rp, const struct RISkin *skin,
     idx = ri_skin_find(skin, sec, kind, part);
     if (idx < 0)
         return 0;
+    return ri_skin_aros_blit_idx(rp, skin, idx, frame, dx, dy);
+}
+
+int ri_skin_aros_blit_idx(struct RastPort *rp, const struct RISkin *skin,
+    int idx, uint32_t frame, int dx, int dy) {
+    const uint32_t *px;
+    uint32_t w, h, fh;
+    ULONG rc;
+    if (!rp || !skin || idx < 0 || idx >= (int)RI_SKIN_MAX_PARTS)
+        return -1;
+    if (!s_cyber && !(s_cyber = (struct Library *)OpenLibrary(
+                         (CONST_STRPTR)"cybergraphics.library", 0)))
+        return -1;
     /* Blits read the zoom cache only (built at load, rebuilt per zoom
      * change): masters stay in core ARGB order for future re-zooms. */
     px = skin->parts[idx].zrgba;

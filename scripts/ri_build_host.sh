@@ -18,6 +18,7 @@ MOD_audio="audio_io/audio.c audio_io/backend_null.c platform/host/audio_null.c"
 MOD_gui="gui/knob_logic.c gui/panels.c gui/catalog.c gui/knob_art.c gui/ctlreg.c gui/panelctl.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/midimap.c gui/skin.c project/sha256.c platform/host/key_tables.c platform/host/fs_host.c platform/host/log_host.c platform/host/image_host.c"
 MOD_formats="project/sha256.c project/rbng.c project/arexx.c project/arexx_dispatch.c project/undo.c midi_io/midi.c platform/host/midi_host.c"
 MOD_core="app/core/live_driver.c app/core/canvas_events.c"
+MOD_draw="gui/draw/canvas.c gui/draw/art_shared.c gui/draw/art_303.c gui/draw/art_808.c gui/draw/art_909.c gui/draw/art_mix.c gui/draw/art_fx.c gui/draw/art_pat.c gui/draw/art_tr.c gui/draw/art_section.c platform/host/raster.c"
 # Later tasks APPEND paths to MOD_dsp808, MOD_fx, ... and add matching case lines.
 compile_list() { for f in $1; do test -f "$ROOT/$f" || { echo "MISSING $f"; exit 1; }; gcc $CFLAGS -c "$ROOT/$f" -o "$OUT/$(basename $f .c).o"; done; }
 # PCF ledger gate (Task 10, gate G10): the -D flag is issued ONLY when the
@@ -35,9 +36,9 @@ build_pcf() {
     echo "pcf: SKIP (table unverified)";
   fi }
 case "${1:-all}" in
-  kernels|engine|clock|sched|dsp303|dsp808|dsp909|fx|mixer|audio|gui|formats|core) compile_list "$(eval echo \$MOD_$1)" ;;
+  kernels|engine|clock|sched|dsp303|dsp808|dsp909|fx|mixer|audio|gui|formats|core|draw) compile_list "$(eval echo \$MOD_$1)" ;;
   pcf) build_pcf strict ;;
-  all) for t in kernels engine clock sched formats dsp303 dsp808 dsp909 fx mixer audio gui core; do "$0" $t; done; build_pcf skip ;;
+  all) for t in kernels engine clock sched formats dsp303 dsp808 dsp909 fx mixer audio gui core draw; do "$0" $t; done; build_pcf skip ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
     # -lpng: the T7 host image backend (platform/host/image_host.c); present
     # on dev/CI Linux alongside the mkskin toolchain dep. All other tests

@@ -169,14 +169,19 @@ bash "$ROOT/scripts/ri_build_host.sh" test t88_live_driver >/dev/null || { echo 
 bash "$ROOT/scripts/ri_build_host.sh" test t90_pal_audio_null >/dev/null || { echo "FAIL: t90_pal_audio_null (portability T4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t89_pal_midi >/dev/null || { echo "FAIL: t89_pal_midi (portability T5)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t91_canvas_events >/dev/null || { echo "FAIL: t91_canvas_events (portability T3)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t92_draw_hash >/dev/null || { echo "FAIL: t92_draw_hash (portability T2)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t93_raster_goldens >/dev/null || { echo "FAIL: t93_raster_goldens (portability T2)"; exit 1; }
 echo "-- portability T8: headless core runs without AROS (WAV; PNG after T2) --"
 gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I"$ROOT" -o "$OUT/headless" "$ROOT/platform/host/main_headless.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: headless build"; exit 1; }
 rm -f /tmp/ri/null.wav
 "$OUT/headless" >/tmp/ri/headless1.log 2>&1 || { echo "FAIL: headless run"; exit 1; }
 grep -q "xruns=0" /tmp/ri/headless1.log || { echo "FAIL: headless xruns"; exit 1; }
+test -f /tmp/ri/panel.png || { echo "FAIL: headless panel PNG"; exit 1; }
 cp /tmp/ri/null.wav /tmp/ri/null-a.wav
+cp /tmp/ri/panel.png /tmp/ri/panel-a.png
 "$OUT/headless" >/tmp/ri/headless2.log 2>&1 || { echo "FAIL: headless rerun"; exit 1; }
 cmp -s /tmp/ri/null-a.wav /tmp/ri/null.wav || { echo "FAIL: headless not deterministic"; exit 1; }
+cmp -s /tmp/ri/panel-a.png /tmp/ri/panel.png || { echo "FAIL: headless PNG not deterministic"; exit 1; }
 # portability T1: PAL atomics header is include-clean (stdint/stddef only;
 # ri_pal_log.h additionally allows stdarg.h for the varargs decl)
 if grep -n "#include" "$ROOT/platform/pal/"*.h | grep -v "stdint.h\|stddef.h\|stdarg.h"; then echo "FAIL: pal header include leak"; exit 1; fi
