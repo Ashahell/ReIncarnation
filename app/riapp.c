@@ -474,7 +474,7 @@ int main(int argc, char **argv) {
     DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, (IPTR)app, 2,
         MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
-    rlog("RIAPP panel: transport+patterns+303A+mix808 (Step 2: sound-from-panel UNPROVEN)\n",
+    rlog("RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)\n",
         0, 0, 0, 0, 0);
 
     /* 100 ms tick: meter chase + null-backend advance. */

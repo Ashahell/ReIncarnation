@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] record | G9b Step 2 panel in RIAPP, Dell-proofed
+- Disposition: New (slice record: bridge + seqlock + panel + bounded-open fix + owner proof + decisions)
+- Raw: llm-wiki/raw/articles/2026-09-26-step2-panel-dell-proof.md
+- Updated: llm-wiki/index.md (Live app (§12.11) entry)
+- Evidence: docs/evidence/gui/riapp-panel.md
+
 ## [2026-09-26] ingest | Portability plan (platform layer)
 - Disposition: New (plan record)
 - Raw: llm-wiki/raw/articles/2026-09-26-portability-plan.md

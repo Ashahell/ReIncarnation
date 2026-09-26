@@ -1,6 +1,6 @@
 # RIAPP panel (G9b Step 2) — evidence
 
-## Status: BUILT, NOT YET PROVEN ON HARDWARE (lane down)
+## Status: PROVEN on hardware 2026-09-26 (Dell owner pass below)
 
 - Host half (GREEN, t83, mutants 5/5): `gui/panelctl` bridge (one
   canvas change -> exactly one control-plane message, clamp 0..127,
@@ -37,12 +37,19 @@
   task is invisible there. HMP `screendump` gives full-res captures
   for reading requesters the agent downscales into mush.
 
-## Still OPEN (needs the Dell lane)
+## Dell proof: DONE 2026-09-26 (owner listening + watching)
 
-AHI play from the panel, knob->sound within one buffer, meters
-chasing, pattern select/length/off/step routes, startup burst, and the
-owner three-knob check. Null-backend panel proof rides riqemu1 once the
-bounded open lands there.
+- Two live sessions at 256 frames, ABIv11 panel binary:
+  session 1: 68826 buffers (~9.8 min), 0 xruns, render_max 916 us;
+  session 2: 18787 buffers (~100 s), 0 xruns, render_max 898 us.
+- Owner verdicts: 303 cutoff "heard clearly", 808 level "heard clearly",
+  808 pan first "unsure" (laptop speakers) then "both work" on retry
+  with wide drags; mixer meter "both work" (seen bouncing with the
+  drums). Transport Play/Stop from the panel (KP Enter key + buttons)
+  logged each time.
+- Playhead chase runs through the same snapshot (`ri_panel_live`) but
+  was not explicitly eyeballed; no position readout exists beyond the
+  section running lights.
 
 ## Lane lessons (paid during this slice)
 
