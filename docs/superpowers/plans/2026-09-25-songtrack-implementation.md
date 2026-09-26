@@ -27,7 +27,7 @@ Blunt summary: the model, edit and codec designs are sound and the tests are unu
 | R7 | MEDIUM | Codec reject tests passed on ANY error (no message check), and the out-of-range byte was the FIRST body byte, which hid partial stores. The note claiming "never partially stored" was only true for byte 0. | `parse_strk` validates the whole body before storing. Tests assert the specific `err` text and put the bad byte LAST (bar 998, instance 3). |
 | R8 | MEDIUM | Task 1 edited `scripts/ri_build_aros.sh` line 56 — the GUI's RISECT proof-app TU list, owned by the §12.10 session, which never calls songtrack. That is a coexistence clash, and it proves nothing for the audit (the audit builds the default target, not `sections`). | Dropped. Task 5 adds `engine/seq/songtrack.c` to the audit's AROS compile-only loop instead. |
 | R9 | MEDIUM | "No mutable static state in `songtrack.c`" had no enforcement point, against the plan's own Proof discipline. | Task 5 audit grep (Phase 7b style) fails on any non-const file-scope static object in `songtrack.c`. |
-| R10 | LOW | Spec/plan drift: the spec still says init-loop "CLEARS the rest of the loop" (contradicted by the E1 quote the plan uses); it still shows the `prev[4], force` signature and "(track, banks, …)" inputs; spec §6's "pattern-mode path never calls capture" has no code in this slice (there is no record path yet). | Task 0 Step 4 amends the spec. The capture-gating test is DEFERRED to the record-path slice, with a named ledger row. |
+| R10 | LOW | Spec/plan drift: the spec still says init-loop "CLEARS the rest of the loop" (contradicted by the E1 quote the plan uses); it still shows the `prev[4], force` signature and "(track, banks, …)" inputs; spec §6's "pattern-mode path never calls capture" has no code in this slice (there is no record path yet). | Task 0 Step 4 amends the spec. The capture-gating test is DEFERRED to the record-path slice, with a named ledger row. Post-r2 status (2026-09-26): the gating half is CLOSED by m68 record-gate (`ri_record_capture`, t59 scope); the run-view half stays deferred (GUI song-editor slice). |
 | R11 | LOW | Quantizer cases in spec §6 (mid-bar 5 → 6, downbeat stays) are already pinned by t58 (`q exact`/`q mid`), so the plan should cite that rather than leave the gap unexplained. Nits: a comment said "4-bar paste" for a 2-bar clip; `clip.len` passed to `%u` without the cast used elsewhere. | Cited in Task 1; nits fixed. |
 
 **Verified, not just argued:** the code in this revision was assembled verbatim from the plan's blocks into a scratch worktree at HEAD `879be9e` (Tasks 1–4, rbng edits as written), built under the repo `CFLAGS` with `-Werror`: `PASS songtrack`. Each of the eight mutants in Task 5 Step 4 was applied and FAILED as stated ((d) as a hard fault with rc 1 and no assert line). The run found one defect in this revision itself, since fixed: the emit header's comment named the codec header and tripped its own layer guard.
@@ -134,7 +134,7 @@ In `docs/superpowers/specs/2026-09-25-songtrack-design.md`:
 - §laws Emission and §2: replace the `ri_track_emit_measure(t, bar, prev[4], force, ev, n)` form with the carry form used here (`RITrackCarry`, establishment = cold carry), drop "banks" from the emitter's inputs (it reads slot numbers only), add "loop normalized with `ri_loop_clamp` first" and "carry mirrors emitted events, capped changes are re-sent".
 - §laws Edits: slot > 31 is refused by every writer, bulk writers are all-or-nothing (R6).
 - §3 run view: mark it DEFERRED to the GUI song-editor slice (no caller in this slice). The replay property stays in §6 because it does not need the view.
-- §6: the "pattern-mode path never calls capture" case moves to the record-path slice (row added to §5 Open items). No record path exists in this slice to test.
+- §6: the "pattern-mode path never calls capture" case moves to the record-path slice (row added to §5 Open items). No record path exists in this slice to test. Post-r2 status (2026-09-26): CLOSED by m68 record-gate.
 ```bash
 git add docs/superpowers/specs/2026-09-25-songtrack-design.md
 git commit -m "docs: songtrack spec aligned with the plan review (init-loop, carry, refusal) [§12.9b]
@@ -1457,7 +1457,7 @@ Expected: `AUDIT_RC=0`, tail `AUDIT 0/0 PASS`. Any FAIL names the culprit — fi
 
 - [ ] **Step 5: Records + tracker, commit, push**
 
-Tick the todo file (song track done; automation lanes, streaming changeover and the record-path capture gating stay open). Write the raw article covering:
+Tick the todo file (song track done; streaming changeover done m67; record-path capture gating done m68; automation lanes stay open). Write the raw article covering:
 - what landed;
 - the E1 timing split (selection vs sounding);
 - the loop-phase wrap rule, and why the old 4-bar test could not see it;

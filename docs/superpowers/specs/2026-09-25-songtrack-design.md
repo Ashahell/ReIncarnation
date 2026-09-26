@@ -131,11 +131,12 @@ Every invariant has (1) one named enforcement point, (2) executable tests, (3) a
 
 | Item | Why open | How it closes |
 |------|----------|---------------|
-| Init-song knob/control stamp (E1 p. 75 second half) | this slice owns slots; knobs belong to automation | Automation slice defines the control-event stamp; this doc records the seam (§3) |
-| Init-loop knob clearing (E1 p. 176: clears knob recordings in-loop) | same seam, loop-scoped | Same slice, loop-scoped clear |
-| Sounding changeover at pattern end (p. 20) | needs per-section loop phase, not owned here | Streaming slice (§12.9c) owns it; this emitter marks selections only |
-| `RI_EV_TRANSPORT` emission on track transitions | §8 reserves the type; transport slice defers here | This slice emits PATTERN_CHANGE only; TRANSPORT decisions ride the streaming slice |
-| Pattern-mode capture gating (caller never calls capture off RECORD) | no record path exists in this slice to test | Record-path slice owns it; test moves there |
+| Init-song knob/control stamp (E1 p. 75 second half) | this slice owns slots; knobs belong to automation | CLOSED by automation r2 §2.5 (control-event stamp); seam in §3 stands |
+| Init-loop knob clearing (E1 p. 176: clears knob recordings in-loop) | same seam, loop-scoped | CLOSED by automation r2 §2.5 (loop-scoped clear); seam in §3 stands |
+| Sounding changeover at pattern end (p. 20) | needs per-section loop phase, not owned here | CLOSED by streaming m67 (per-section loop phase); this emitter marks selections only |
+| `RI_EV_TRANSPORT` emission on track transitions | §8 reserves the type; transport slice defers here | OPEN: this slice emits PATTERN_CHANGE only; TRANSPORT decisions ride the streaming slice |
+| Pattern-mode capture gating (caller never calls capture off RECORD) | no record path exists in this slice to test | CLOSED by m68 record-gate (`ri_record_capture`: RECORD-state + cursor quantize; model stays gate-blind) |
+| Master-spec ppq/24 recorder + `rbng.h` tweak comment (E1 p. 84: 32nd = ppq/8) | automation r2 §6 requires Status blocks | OPEN, owned by automation Task 3c (not this slice) |
 
 ## 6. Testing
 
