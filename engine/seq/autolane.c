@@ -316,6 +316,8 @@ int ri_auto_cut(struct RIAutoLane *l, struct RIAutoClip *clip,
             return 2;
         w++;
     }
+    if (w > clip->cap || (!clip->ev && w > 0u))
+        return 2; /* clip storage too small: clip untouched */
     clip->base_tick = (uint32_t)t0;
     clip->span_ticks = (uint32_t)cutlen;
     clip->n = 0u;
@@ -379,6 +381,8 @@ int ri_auto_copy(const struct RIAutoLane *l, struct RIAutoClip *clip,
             return 2;
         w++;
     }
+    if (w > clip->cap || (!clip->ev && w > 0u))
+        return 2; /* clip storage too small: clip untouched */
     clip->base_tick = (uint32_t)t0;
     clip->span_ticks = (uint32_t)(t1 - t0);
     clip->n = 0u;
@@ -410,8 +414,9 @@ int ri_auto_paste(struct RIAutoLane *l, const struct RIAutoClip *clip,
     target = at_bar * bt;
     end_tick = (uint64_t)999u * bt;
     span = clip->span_ticks;
-    if (clip->n > RI_AUTO_CLIP_EVENTS)
-        return 2;
+    if (clip->n > RI_AUTO_CLIP_EVENTS || clip->n > clip->cap ||
+        (!clip->ev && clip->n > 0u))
+        return 2; /* corrupt clip: fail closed, lane untouched */
     /* Precompute (no mutation): surviving shifted + surviving inserts.
      * Ties resolve to replace inside lane_insert, which can only shrink
      * the total — so this bound is conservative and fail-closed. */
@@ -476,8 +481,9 @@ int ri_auto_paste_replace(struct RIAutoLane *l, const struct RIAutoClip *clip,
     target = at_bar * bt;
     end_tick = (uint64_t)999u * bt;
     span = clip->span_ticks;
-    if (clip->n > RI_AUTO_CLIP_EVENTS)
-        return 2;
+    if (clip->n > RI_AUTO_CLIP_EVENTS || clip->n > clip->cap ||
+        (!clip->ev && clip->n > 0u))
+        return 2; /* corrupt clip: fail closed, lane untouched */
     if (target > (uint64_t)0xFFFFFFFFu)
         return 2;
     for (q = 0u; q < clip->n; q++) { /* surviving inserts first */

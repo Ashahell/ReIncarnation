@@ -43,9 +43,14 @@ int ri_auto_copy_touched(struct RIAutoLane *l, const struct RIAutoPass *p,
                          uint32_t start, uint32_t end,
                          const uint8_t *vals); /* range clear + start event; 0/2 */
 #define RI_AUTO_CLIP_EVENTS RI_AUTO_MAX_EVENTS
-/* Bar-edit clip: events relative to base_tick (ticks, not bars);
- * span_ticks is the cut/copy width so paste shifts the tail exactly. */
-struct RIAutoClip { uint32_t base_tick, span_ticks, n; struct RIAutoEv ev[RI_AUTO_CLIP_EVENTS]; };
+/* Bar-edit clip: caller-owned storage (R10 — never inline 256 KB).
+ * Ticks relative to base_tick; span_ticks is the cut/copy width so
+ * paste shifts the tail exactly. */
+struct RIAutoClip {
+    uint32_t base_tick, span_ticks, n, cap;
+    struct RIAutoEv *ev;
+};
+typedef char ri_auto_clip_small[(sizeof(struct RIAutoClip) < 64u) ? 1 : -1];
 int ri_auto_cut(struct RIAutoLane *l, struct RIAutoClip *clip,
                 uint64_t start_bar, uint64_t len_bars, uint32_t ppq);
 int ri_auto_copy(const struct RIAutoLane *l, struct RIAutoClip *clip,

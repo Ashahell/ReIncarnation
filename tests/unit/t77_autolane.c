@@ -6,12 +6,14 @@
 #include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include "engine/seq/autolane.h"
+#include "engine/seq/songtrack.h" /* combined mirror test ONLY */
 #include "gui/ctlreg.h" /* cross-check ONLY (read-only; sibling-owned, never edited) */
 
 #define T77_CAP 256u
 static struct RIAutoEv T77_STO[T77_CAP];
 
 static struct RIAutoClip T77_CLIP;
+static struct RIAutoEv T77_CLIP_STO[256];
 
 int main(void) {
     struct RIAutoLane lane;
@@ -597,6 +599,9 @@ int main(void) {
             RI_ASSERT(ri_auto_stamp(0, 0u, 0x0300u, 1u) == 2, "stamp null refuses");
             RI_ASSERT(ri_auto_clear_loop(0, 0u, 10u) == 2, "clear null refuses");
         }
+        /* R10 guard: the clip stays a small handle (caller storage). */
+        RI_ASSERT(sizeof(struct RIAutoClip) < 64u, "clip handle %u",
+            (unsigned)sizeof(struct RIAutoClip));
         /* Cut/copy/paste mirror bar-for-bar (ppq 96: bar is 384 ticks). */
         {
             struct RIAutoLane l8;
@@ -605,6 +610,8 @@ int main(void) {
             l8.ev = s8;
             l8.cap = 16u;
             memset(&T77_CLIP, 0, sizeof T77_CLIP);
+            T77_CLIP.ev = T77_CLIP_STO;
+            T77_CLIP.cap = 256u;
             RI_ASSERT(ri_auto_stamp(&l8, 100u, 0x0300u, 1u) == 0, "bar pre rc");
             RI_ASSERT(ri_auto_stamp(&l8, 400u, 0x0300u, 2u) == 0, "bar in rc");
             RI_ASSERT(ri_auto_stamp(&l8, 800u, 0x0300u, 3u) == 0, "bar post rc");
@@ -632,6 +639,8 @@ int main(void) {
             l9.ev = s9;
             l9.cap = 8u;
             memset(&T77_CLIP, 0, sizeof T77_CLIP);
+            T77_CLIP.ev = T77_CLIP_STO;
+            T77_CLIP.cap = 256u;
             T77_CLIP.base_tick = 0u;
             T77_CLIP.n = 1u;
             T77_CLIP.ev[0].tick = 400u;
@@ -653,6 +662,8 @@ int main(void) {
             l10.ev = s10;
             l10.cap = 2u;
             memset(&T77_CLIP, 0, sizeof T77_CLIP);
+            T77_CLIP.ev = T77_CLIP_STO;
+            T77_CLIP.cap = 256u;
             RI_ASSERT(ri_auto_stamp(&l10, 0u, 0x0300u, 1u) == 0, "cap pre 1");
             RI_ASSERT(ri_auto_stamp(&l10, 384u, 0x0300u, 2u) == 0, "cap pre 2");
             T77_CLIP.base_tick = 0u;
@@ -665,6 +676,52 @@ int main(void) {
             RI_ASSERT(l10.n == 2u, "cap paste untouched %u", l10.n);
             RI_ASSERT(ri_auto_value(&l10, 384u, 0x0300u, &outv) == 1 && outv == 2u,
                 "cap content kept");
+        }
+        /* Clip storage too small: copy refuses, clip untouched. */
+        {
+            struct RIAutoLane lq;
+            struct RIAutoEv sq[4];
+            struct RIAutoClip cq;
+            memset(&lq, 0, sizeof lq);
+            lq.ev = sq;
+            lq.cap = 4u;
+            memset(&cq, 0, sizeof cq);
+            cq.ev = T77_CLIP_STO;
+            cq.cap = 0u;
+            RI_ASSERT(ri_auto_stamp(&lq, 400u, 0x0300u, 1u) == 0, "clip-cap pre rc");
+            RI_ASSERT(ri_auto_copy(&lq, &cq, 1u, 1u, 96u) == 2, "clip-cap refuses");
+            RI_ASSERT(cq.n == 0u, "clip untouched %u", cq.n);
+        }
+        /* Combined: song-track + lane cut with the same args stay
+         * bar-for-bar aligned (slots and events move together). */
+        {
+            struct RISongTrack tr;
+            struct RITrackClip tc;
+            struct RIAutoLane l11;
+            struct RIAutoEv s11[8];
+            struct RIAutoClip c11;
+            struct RIAutoEv c11sto[8];
+            uint32_t q11, inbar = 0u;
+            memset(&c11, 0, sizeof c11);
+            c11.ev = c11sto;
+            c11.cap = 8u;
+            ri_track_init(&tr);
+            RI_ASSERT(ri_track_capture(&tr, 1u, 0u, 5u) == 0, "mirror cap rc");
+            RI_ASSERT(ri_track_capture(&tr, 2u, 0u, 7u) == 0, "mirror cap2 rc");
+            memset(&l11, 0, sizeof l11);
+            l11.ev = s11;
+            l11.cap = 8u;
+            RI_ASSERT(ri_auto_stamp(&l11, 400u, 0x0300u, 2u) == 0, "mirror ev rc");
+            RI_ASSERT(ri_auto_stamp(&l11, 800u, 0x0300u, 3u) == 0, "mirror ev2 rc");
+            ri_track_cut(&tr, 1u, 1u, &tc);
+            RI_ASSERT(ri_auto_cut(&l11, &c11, 1u, 1u, 96u) == 0, "mirror cut rc");
+            RI_ASSERT(ri_track_selected(&tr, 1u, 0u) == 7u, "slot follows cut");
+            RI_ASSERT(ri_auto_value(&l11, 500u, 0x0300u, &outv) == 1 && outv == 3u,
+                "event follows cut");
+            for (q11 = 0u; q11 < l11.n; q11++)
+                if (l11.ev[q11].val == 2u)
+                    inbar = 1u;
+            RI_ASSERT(!inbar, "cut bar holds no removed events");
         }
     }
     RI_RESULT("autolane");
