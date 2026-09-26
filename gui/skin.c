@@ -75,9 +75,14 @@ static int is_sha64(const char *s) {
 }
 
 /* Split "SEC[.KIND[.PART]]=VALUE": returns pointers into a scratch copy.
- * key_no: 0 = BACKGROUND, 1 = PART, -2 = unknown prefix (caller ignores),
- * -1 = malformed known key (caller fails closed). */
+ * key_no: 0 = BACKGROUND, 1 = PART, 2 = header key (FORMAT/NAME/VERSION),
+ * -2 = unknown prefix (caller ignores), -1 = malformed known key. */
 static int split_key(char *key, char **a, char **b, char **c) {
+    if (!strcmp(key, "FORMAT") || !strcmp(key, "NAME") || !strcmp(key, "VERSION")) {
+        *a = key;
+        *b = *c = 0;
+        return 2;
+    }
     if (!strncmp(key, "BACKGROUND.", 11)) {
         *a = key + 11;
         *b = *c = 0;
@@ -103,19 +108,40 @@ static int split_key(char *key, char **a, char **b, char **c) {
     return -2;
 }
 
+static int is_name(const char *s) { /* part-name charset, 1..63 chars */
+    uint32_t n = 0u;
+    if (!s || !*s)
+        return 0;
+    for (; s[n]; n++) {
+        char c = s[n];
+        if (n >= RI_SKIN_NAME || !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-'))
+            return 0;
+    }
+    return 1;
+}
+
 int ri_skin_parse(const char *text, struct RISkin *s) {
+    static const char *const hdr_keys[3] = { "FORMAT", "NAME", "VERSION" };
     const char *p;
+    int nhdr = 0;
     if (!text || !s)
         return -1;
     memset(s, 0, sizeof *s);
+    s->stale_idx = -1;
+    for (p = text; *p; p++) { /* format 1 text is printable ASCII */
+        unsigned char ch = (unsigned char)*p;
+        if (!((ch >= 0x20u && ch <= 0x7Eu) || ch == '\t' || ch == '\r' || ch == '\n'))
+            goto fail8;
+    }
     p = text;
     for (;;) {
         const char *eol;
         uint32_t len, i;
         char line[RI_SKIN_LINE_MAX + 2u];
         char *key, *val, *a, *b, *c;
-        uint32_t sec, kind, frames;
-        int k;
+        uint32_t frames, num;
+        int k, sec, kind;
         struct RISkinPart *pt;
         eol = strchr(p, '\n');
         len = eol ? (uint32_t)(eol - p) : (uint32_t)strlen(p);
@@ -141,28 +167,52 @@ int ri_skin_parse(const char *text, struct RISkin *s) {
         *val = '\0';
         val++;
         k = split_key(key, &a, &b, &c);
+        if (nhdr < 3) { /* FORMAT, NAME, VERSION: first, in order */
+            if (k != 2 || strcmp(a, hdr_keys[nhdr]))
+                goto fail7;
+            if (nhdr == 0) {
+                if (!is_dec(val, &num) || num != RI_SKIN_FORMAT)
+                    goto fail7;
+            } else if (nhdr == 1) {
+                if (!is_name(val))
+                    goto fail5;
+                for (i = 0u; val[i]; i++)
+                    s->name[i] = val[i];
+            } else {
+                if (!is_dec(val, &num) || num == 0u || num > 65535u)
+                    goto fail5;
+                s->version = (uint16_t)num;
+            }
+            nhdr++;
+            goto next;
+        }
+        if (k == 2)
+            goto fail6; /* header key repeated */
         if (k == -2)
             goto next; /* unknown keys ignored */
         if (k < 0)
             goto fail3;
-        if (k == 0) { /* BACKGROUND.<sec>=file */
-            if (!is_dec(a, &sec) || sec >= RI_SEC_COUNT || !is_filename(val))
+        if (k == 0) { /* BACKGROUND.<section>=file */
+            if (!is_filename(val))
                 goto fail5;
             kind = RI_SKIN_KIND_ANY;
             frames = 1u;
             c = (char *)"background";
-        } else { /* PART.<sec>.<kind>.<part>=file,NFRAMES */
+        } else { /* PART.<section>.<kind>.<part>=file,NFRAMES */
             char *comma = strchr(val, ',');
             if (!comma || comma == val || comma[1] == '\0' ||
                 strchr(comma + 1, ','))
                 goto fail3;
             *comma = '\0';
-            if (!is_dec(a, &sec) || sec >= RI_SEC_COUNT ||
-                !is_dec(b, &kind) || kind >= 9u || !is_partname(c) ||
-                !is_filename(val) || !is_dec(comma + 1, &frames) ||
+            if (!is_partname(c) || !is_filename(val) ||
+                !is_dec(comma + 1, &frames) ||
                 frames == 0u || frames > RI_SKIN_MAX_FRAMES)
                 goto fail5;
+            kind = ri_ctlreg_kind_by_token(b);
         }
+        sec = ri_ctlreg_section_by_token(a);
+        if (sec < 0 || kind < 0)
+            goto next; /* a later build's device or kind: ignored, syntax checked */
         for (i = 0u; i < s->nparts; i++) {
             if (s->parts[i].section == (uint8_t)sec &&
                 s->parts[i].kind == (uint8_t)kind &&
@@ -185,9 +235,9 @@ next:
         if (!eol)
             break;
     }
-    if (s->nparts == 0u)
-        return 0; /* comment-only manifest: valid empty skin (Template) */
-    return 0;
+    if (nhdr < 3)
+        goto fail7;
+    return 0; /* header-only manifest: valid empty skin (Template) */
 fail2:
     memset(s, 0, sizeof *s);
     return -2;
@@ -203,6 +253,12 @@ fail5:
 fail6:
     memset(s, 0, sizeof *s);
     return -6;
+fail7:
+    memset(s, 0, sizeof *s);
+    return -7;
+fail8:
+    memset(s, 0, sizeof *s);
+    return -8;
 }
 
 int ri_skin_find(const struct RISkin *s, uint8_t section, uint8_t kind,
@@ -221,8 +277,18 @@ int ri_skin_find(const struct RISkin *s, uint8_t section, uint8_t kind,
 
 int ri_skin_bind(struct RISkin *s, uint32_t idx, const uint32_t *rgba,
                  uint16_t w, uint16_t h) {
+    uint32_t ew, eh;
     if (!s || idx >= s->nparts || !rgba || w == 0u || h == 0u)
         return -1;
+    if (ri_skin_expect(s->parts[idx].section, s->parts[idx].kind, s->parts[idx].part,
+                       s->parts[idx].frames, &ew, &eh) == 1 && (ew != w || eh != h)) {
+        s->parts[idx].rgba = 0; /* stale art: Classic fallback, reported */
+        s->parts[idx].w = s->parts[idx].h = 0u;
+        if (s->nstale == 0u || s->stale_idx < 0)
+            s->stale_idx = (int16_t)idx;
+        s->nstale++;
+        return -2;
+    }
     s->parts[idx].rgba = rgba;
     s->parts[idx].w = w;
     s->parts[idx].h = h;
@@ -407,53 +473,6 @@ uint32_t ri_skin_frame(uint32_t v, uint32_t vmax, uint32_t frames) {
     return (uint32_t)f;
 }
 
-int ri_skin_part_sized(const char *base, uint32_t w, uint32_t h,
-                       char *out, uint32_t cap) {    uint32_t i = 0u, n;
-    char num[24];
-    if (!base || !base[0] || !w || !h || !out || cap < 8u)
-        return -1;
-    while (base[i] && i < cap) {
-        out[i] = base[i];
-        i++;
-    }
-    if (base[i])
-        return -1;
-    if (i + 2u >= cap)
-        return -1;
-    out[i++] = '.';
-    n = 0u;
-    {
-        uint32_t v = w;
-        do {
-            num[n++] = (char)('0' + v % 10u);
-            v /= 10u;
-        } while (v && n < sizeof num);
-    }
-    while (n && i < cap) {
-        out[i++] = num[--n];
-    }
-    if (n || i + 2u >= cap)
-        return -1;
-    out[i++] = 'x';
-    n = 0u;
-    {
-        uint32_t v = h;
-        do {
-            num[n++] = (char)('0' + v % 10u);
-            v /= 10u;
-        } while (v && n < sizeof num);
-    }
-    while (n && i < cap) {
-        out[i++] = num[--n];
-    }
-    if (n || i >= cap)
-        return -1;
-    out[i] = '\0';
-    if (i > RI_SKIN_PART_NAME)
-        return -1;
-    return 0;
-}
-
 void ri_skin_swizzle_blit(const uint32_t *src, uint32_t *dst, uint32_t n) {
     uint32_t i;
     if (!src || !dst)
@@ -481,4 +500,126 @@ void ri_skin_unbind(struct RISkin *s) {
         s->parts[i].zrgba = 0;
         s->parts[i].zw = s->parts[i].zh = 0u;
     }
+}
+
+/* Distinct knob sizes (2x-master px) of a geometry section, largest area
+ * first; returns the count (0..2 kept). Knobs = KNOB shapes whose registry
+ * kind is RI_CK_KNOB (the instrument selector is drawn procedurally). */
+static uint32_t knob_sizes(uint8_t section, uint32_t w[2], uint32_t h[2]) {
+    const struct RIGeoSection *g = ri_geo_section(section == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : section);
+    uint32_t i, n = 0u;
+    if (!g)
+        return 0u;
+    for (i = 0u; i < g->nitems; i++) {
+        const struct RICtlDef *d = ri_ctlreg_find(g->items[i].reg_id);
+        uint32_t kw, kh, j, seen = 0u;
+        if (g->items[i].shape != RI_GEO_KNOB || !d || d->kind != RI_CK_KNOB)
+            continue;
+        kw = (uint32_t)ri_geo_px((int)g->items[i].w, 2);
+        kh = (uint32_t)ri_geo_px((int)g->items[i].h, 2);
+        for (j = 0u; j < n; j++)
+            seen |= w[j] == kw && h[j] == kh;
+        if (seen)
+            continue;
+        if (n < 2u) {
+            w[n] = kw;
+            h[n] = kh;
+            n++;
+        }
+    }
+    if (n == 2u && w[1] * h[1] > w[0] * h[0]) {
+        uint32_t t = w[0];
+        w[0] = w[1];
+        w[1] = t;
+        t = h[0];
+        h[0] = h[1];
+        h[1] = t;
+    }
+    return n;
+}
+
+int ri_skin_expect(uint8_t section, uint8_t kind, const char *part,
+                   uint32_t frames, uint32_t *w, uint32_t *h) {
+    const struct RIGeoSection *g;
+    uint32_t kw[2], kh[2], n;
+    if (!part || !w || !h || frames == 0u || section >= RI_SEC_COUNT)
+        return 0;
+    g = ri_geo_section(section == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : section);
+    if (!g)
+        return 0;
+    if (kind == RI_SKIN_KIND_ANY && !strcmp(part, "background")) {
+        *w = (uint32_t)ri_geo_px((int)g->w, 2);
+        *h = (uint32_t)ri_geo_px((int)g->h, 2) * frames;
+        return 1;
+    }
+    if (kind != RI_CK_KNOB)
+        return 0;
+    n = knob_sizes(section, kw, kh);
+    if (!strcmp(part, "knob.frame") && n >= 1u) {
+        *w = kw[0];
+        *h = kh[0] * frames;
+        return 1;
+    }
+    if (!strcmp(part, "knob.frame.small") && n == 2u) {
+        *w = kw[1];
+        *h = kh[1] * frames;
+        return 1;
+    }
+    return 0;
+}
+
+const char *ri_skin_knob_role(uint8_t section, uint32_t w, uint32_t h) {
+    uint32_t kw[2], kh[2], n = knob_sizes(section, kw, kh);
+    if (n >= 1u && kw[0] == w && kh[0] == h)
+        return "knob.frame";
+    if (n == 2u && kw[1] == w && kh[1] == h)
+        return "knob.frame.small";
+    return 0;
+}
+
+static uint32_t key_put(char *buf, uint32_t cap, uint32_t at, const char *t) {
+    while (t && *t && at < cap)
+        buf[at++] = *t++;
+    return (t && *t) ? cap : at;
+}
+
+int ri_skin_key(const struct RISkin *s, uint32_t idx, char *buf, uint32_t cap) {
+    const struct RISkinPart *pt;
+    uint32_t at;
+    if (!s || !buf || idx >= s->nparts || !cap)
+        return -1;
+    pt = &s->parts[idx];
+    if (pt->kind == RI_SKIN_KIND_ANY) {
+        at = key_put(buf, cap, 0u, "BACKGROUND.");
+        at = key_put(buf, cap, at, ri_ctlreg_section_token(pt->section));
+    } else {
+        at = key_put(buf, cap, 0u, "PART.");
+        at = key_put(buf, cap, at, ri_ctlreg_section_token(pt->section));
+        at = key_put(buf, cap, at, ".");
+        at = key_put(buf, cap, at, ri_ctlreg_kind_token(pt->kind));
+        at = key_put(buf, cap, at, ".");
+        at = key_put(buf, cap, at, pt->part);
+    }
+    if (at >= cap) {
+        buf[0] = '\0';
+        return -1;
+    }
+    buf[at] = '\0';
+    return 0;
+}
+
+int ri_skin_name_matches(const struct RISkin *s, const char *dirname) {
+    uint32_t i;
+    if (!s || !dirname || !s->name[0])
+        return 0;
+    for (i = 0u; s->name[i] || dirname[i]; i++) {
+        char a = s->name[i], b = dirname[i];
+        if (a >= 'A' && a <= 'Z')
+            a = (char)(a - 'A' + 'a');
+        if (b >= 'A' && b <= 'Z')
+            b = (char)(b - 'A' + 'a');
+        if (a != b)
+            return 0;
+    }
+    return 1;
 }

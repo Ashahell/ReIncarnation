@@ -85,6 +85,14 @@ const struct RICtlDef *ri_ctlreg_at(uint32_t i);           /* NULL out of range 
 const struct RICtlDef *ri_ctlreg_find(uint16_t reg_id);    /* NULL if unknown */
 const struct RICtlDef *ri_ctlreg_by_cc(uint8_t cc);        /* NULL if unmapped */
 const char *ri_ctlreg_section_name(uint32_t section);      /* "Synth 1", ... */
+/* Skin-file tokens (skins design, format 1): stable lowercase names so a
+ * skin never depends on the numeric RI_SEC_* / RI_CK_* order (the rack will
+ * add devices). SYNTH2 has no token: both synths share the "303" art.
+ * token: NULL when none. by_token: RI_SEC_* / RI_CK_*, or -1 unknown. */
+const char *ri_ctlreg_section_token(uint32_t section);
+int ri_ctlreg_section_by_token(const char *tok);
+const char *ri_ctlreg_kind_token(uint32_t kind);
+int ri_ctlreg_kind_by_token(const char *tok);
 /* Per-section totals: controls, and how many are engine-bound. */
 uint32_t ri_ctlreg_section_count(uint32_t section, uint32_t *bound);
 #endif

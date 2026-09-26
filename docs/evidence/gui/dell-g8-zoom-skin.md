@@ -29,7 +29,15 @@
   - The window size is identical at z0–z3 (mix 770x288, fx 700x268, tr 660x368, keys 870x626).
   - So the mix/fx/tr "z0+z2" rows in `zoom-g82.md` did not exercise 2x.
 - **Compact (0.75x) legend crowding** reproduces on hardware: the 303 z3 legends run together. This matches `zoom-g82.md` and is still flagged for the owner pass.
-- **Skin (808-RI)** renders at all four zooms on the Sandy Bridge VESA framebuffer.
+- ~~**Skin (808-RI)** renders at all four zooms on the Sandy Bridge VESA framebuffer.~~
+  **Status: Outdated (2026-09-26, later the same day).** Wrong: on the Dell
+  no skin part ever loaded. Every part failed decode with -3 because the
+  v11 `png.datatype` 42.5 leaves `DTA_NominalHoriz/Vert` at 0 (and the
+  loader stored those IPTR attributes into 32-bit `ULONG`s). Every section
+  drew Classic, which looks close to 808-RI on the dark 808 panel. The
+  loader fix (IPTR + `PDTA_BitMapHeader` size) makes parts decode, but the
+  first skinned run then took the Dell agent down; see "Skins on the Dell"
+  below for the cause and fix.
 
 ## Not covered
 - Mouse drag: no lane injects mouse drags.
@@ -57,3 +65,33 @@ Each section was left open for the owner, fixed where asked, and redeployed.
   - The agent dropped once during a screen capture (connection reset), and the owner rebooted the box.
   - Approved.
 - **FX, Transport:** approved as is.
+
+## Skins on the Dell: three bugs, fixed (same day)
+1. **Picture size never read.** The v11 `png.datatype` 42.5 leaves
+   `DTA_NominalHoriz/Vert` at 0, so every part failed decode with -3 and was
+   drawn Classic. The loader also stored those IPTR attributes into 32-bit
+   `ULONG`s. Fix: IPTR storage, with the size taken from `PDTA_BitMapHeader`
+   (`bmh_Width/Height`) and `DTA_Nominal*` only as a fallback.
+2. **Mods directory scan crashed (privilege violation).** `skin_scan`
+   stepped through `ExAll` records by `ed_Size`, which is the FILE size and
+   only valid with `ED_SIZE`. It also asked for `ED_NAME` but read
+   `ed_Type`, and treated ExAll's "more entries" return as "done". With
+   three entries in the Mods dir it walked into garbage. A disk-log probe
+   build narrowed it: `main` was logged, `scanned` never was.
+   Fix: `ED_TYPE`, walk `ed_Next`, loop while ExAll returns nonzero, and
+   call `ExAllEnd` on an early stop.
+3. **The flicker the owner saw during this hunt** came from a diagnostic
+   build (`RISECTD`) that deliberately bypassed the double buffer. The
+   shipped build keeps it, and skins blit into the off-screen bitmap
+   (WritePixelArrayAlpha rc nonzero on every part).
+
+Results (clean build, agent session 27):
+- `RISECT 808 mod=808-RI`: every part decodes and blits
+  (`img/2026-09-26-dell-808ri-skinned.png`, amber-rim knob strips).
+- `RISECT mix mod=Stale` (808-RI with the old 332x392 Master backdrop): the
+  mixers are skinned, the Master is drawn Classic, and the log says
+  `mod='Stale': part(s) wrong size for the panel, first BACKGROUND.master -
+  drawn Classic` (`img/2026-09-26-dell-skin-stale-master.png`).
+- Two Software Failure requesters from the crashed diagnostic tasks
+  (`RISECTD`/`RISECTE`) are still open on the Dell. They are harmless, and
+  the next reboot clears them.

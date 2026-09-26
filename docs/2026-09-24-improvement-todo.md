@@ -78,7 +78,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 
 ## §12.10 GUI parity + skins + MIDI (§9, §3.1)
 - [ ] Panel inventory; focus bar; meters; skins via MCC classes; knob modifiers; transport/playhead from audio clock (§2.9 last row); MIDI maps from manual
-- G8 CLOSED 2026-09-26 code-side (commits [§12.10 G8] c14486e/494b49c/9b537c8/0488f23/bb19ae7/2503557/a9528ad): skins, zoom, audit wiring, acceptance machine pass, Stop law, engine taps, camd patch preservation. REMAIN: G6b audio binding (no lane), ReBirth-101 human/audio pass (1/5 full + 4/5 partial), skins format owner review, upstream camd PR, debugdriver hang, runtime registry (rack design). Wiki ingest rides in the G8.4 commit.
+- G8 CLOSED 2026-09-26 code-side (commits [§12.10 G8] c14486e/494b49c/9b537c8/0488f23/bb19ae7/2503557/a9528ad): skins, zoom, audit wiring, acceptance machine pass, Stop law, engine taps, camd patch preservation. REMAIN: G6b audio binding (no lane), ReBirth-101 human/audio pass (1/5 full + 4/5 partial), skins format review (CLOSED 2026-09-26: format 1 approved — header, named keys, role parts, load-time size check), per-module skin choice (owner req 2026-09-26, design in skins-design.md), upstream camd PR, debugdriver hang, runtime registry (rack design). Wiki ingest rides in the G8.4 commit.
 - G8.1 skins DONE 2026-09-26 (commit [§12.10 G8]): design
   `docs/superpowers/specs/2026-09-26-skins-design.md`;
   **format (E0-6/E0-7) + dir layout AWAITING OWNER REVIEW — non-reversible**;

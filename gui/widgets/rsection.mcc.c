@@ -189,7 +189,7 @@ static int from_n(const struct RICtlDef *d, LONG n) {
 /* Skin hook (G8.1): background + knob frames render from the active skin
  * when it supplies the part, else 0 and the caller keeps the procedural
  * path (per-part fallback, design E0-2). Lookup uses the GEOMETRY section
- * (SYNTH2 shares SYNTH1 art, E0-10); knob parts are size-suffixed (E0-9). */
+ * (SYNTH2 shares SYNTH1 art, E0-10); knob parts are named by role (format 1). */
 static int skin_bg(struct RastPort *rp, uint8_t sec, int ox, int oy) {
     const struct RISkin *sk = ri_skin_aros_active();
     uint8_t gs = sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec;
@@ -202,13 +202,13 @@ static int skin_knob(struct RastPort *rp, uint8_t sec, const struct RICtlDef *d,
                      int v, int x, int y, int w2, int h2) {
     const struct RISkin *sk = ri_skin_aros_active();
     uint8_t gs = sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec;
-    char part[64];
+    const char *part;
     int idx;
     uint32_t fr;
     if (!sk || !d)
         return 0;
-    if (ri_skin_part_sized("knob.frame", (uint32_t)w2, (uint32_t)h2,
-                           part, sizeof part) != 0)
+    part = ri_skin_knob_role(gs, (uint32_t)w2, (uint32_t)h2);
+    if (!part)
         return 0;
     idx = ri_skin_find(sk, gs, RI_CK_KNOB, part);
     if (idx < 0 || sk->parts[idx].frames == 0u)
@@ -317,6 +317,20 @@ static const char *legend_909(const char *leg) {
 /* ReBirth mixer (p. 157) and master (p. 23): blue-grey panel, olive title
  * bar, green on/off lamp, segment meters, fader with scale, small rockers
  * with red LEDs. */
+/* Fader scale lines. Classic draws them in the panel text colour; over a
+ * dark skin backdrop they are redrawn lighter (owner, Dell 2026-09-26). */
+static void mix_scale(struct RastPort *rp, int ox, int oy, int z, int master, ULONG col) {
+    int k;
+#define PX(q) ri_geo_px((q), z)
+    if (master)
+        for (k = 0; k < 8; k++)
+            line(rp, ox + PX(128), oy + PX(120 + 25 * k), ox + PX(202), oy + PX(120 + 25 * k), col);
+    else
+        for (k = 0; k < 7; k++)
+            line(rp, ox + PX(32), oy + PX(262 + 28 * k), ox + PX(118), oy + PX(262 + 28 * k), col);
+#undef PX
+}
+
 static void bg_mix(struct RastPort *rp, const struct RIGeoSection *g, int ox, int oy, int z, int master) {
     static const char *const db[5] = { "CLIP", "-6", "-12", "-24", "-36" };
     static const int dby[5] = { 120, 158, 200, 240, 272 };
@@ -330,8 +344,6 @@ static void bg_mix(struct RastPort *rp, const struct RIGeoSection *g, int ox, in
             text_c(rp, ox + PX(42), oy + PX(dby[k]), db[k], C_MIX_TEXT);
             text_c(rp, ox + PX(292), oy + PX(dby[k]), db[k], C_MIX_TEXT);
         }
-        for (k = 0; k < 8; k++)                    /* fader scale */
-            line(rp, ox + PX(128), oy + PX(120 + 25 * k), ox + PX(202), oy + PX(120 + 25 * k), C_MIX_TEXT);
     } else {
         fill_rect(rp, ox + PX(10), oy + PX(10), ox + PX(274), oy + PX(82), C_MIX_HEAD);
         text_c(rp, ox + PX(142), oy + PX(45), "MIX", C_MIX_HEADTX);
@@ -339,10 +351,9 @@ static void bg_mix(struct RastPort *rp, const struct RIGeoSection *g, int ox, in
         text_c(rp, ox + PX(125), oy + PX(190), "R", C_MIX_TEXT);
         text_c(rp, ox + PX(160), oy + PX(407), "0", C_MIX_TEXT);
         text_c(rp, ox + PX(245), oy + PX(407), "10", C_MIX_TEXT);
-        for (k = 0; k < 7; k++)                    /* fader scale */
-            line(rp, ox + PX(32), oy + PX(262 + 28 * k), ox + PX(118), oy + PX(262 + 28 * k), C_MIX_TEXT);
     }
 #undef PX
+    mix_scale(rp, ox, oy, z, master, C_MIX_TEXT);
 }
 
 /* vertical segment meter, level 0..127; master: clip lamp on top */
@@ -359,11 +370,12 @@ static void meter(struct RastPort *rp, int x0, int y0, int x1, int y1, int level
     }
 }
 
-/* ReBirth fader: dark slot, black cap with a light index line */
-static void fader(struct RastPort *rp, int cx, int y0, int y1, int capw, int caph, int n) {
+/* ReBirth fader: dark slot, black cap with a light index line. On a dark
+ * skin backdrop the slot and cap are drawn lighter so they stay visible. */
+static void fader(struct RastPort *rp, int cx, int y0, int y1, int capw, int caph, int n, int lit) {
     int travel = (y1 - y0) - caph, cy = y0 + caph / 2 + (int)((long)travel * (127 - n) / 127);
-    fill_rect(rp, cx - 1, y0, cx + 1, y1, C_BLACK);
-    bevel(rp, cx - capw / 2, cy - caph / 2, cx + capw / 2, cy + caph / 2, C_MIX_SLOT);
+    fill_rect(rp, cx - 1, y0, cx + 1, y1, lit ? C_MIX_KNOB : C_BLACK);
+    bevel(rp, cx - capw / 2, cy - caph / 2, cx + capw / 2, cy + caph / 2, lit ? C_BTN_LO : C_MIX_SLOT);
     line(rp, cx - capw / 2 + 2, cy, cx + capw / 2 - 2, cy, C_MIX_TEXT);
 }
 
@@ -543,11 +555,15 @@ static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, i
     int ispat = sec >= RI_SEC_PAT_SYNTH1 && sec <= RI_SEC_PAT_909, istr = sec == RI_SEC_TRANSPORT;
     ULONG txt = is808 ? C_CREAM : ismix || isfx || ispat || istr ? C_MIX_TEXT : C_TEXT;
     uint32_t i;
+    int skinned;
     char buf[4];
 #define PX(q) ri_geo_px((q), z)
     if (!g)
         return;
-    if (skin_bg(rp, sec, ox, oy) <= 0) {
+    skinned = skin_bg(rp, sec, ox, oy) > 0;
+    if (skinned && ismix)
+        mix_scale(rp, ox, oy, z, sec == RI_SEC_MASTER, C_MIX_KNOB);
+    if (!skinned) {
     if (is808)
         bg_808(rp, g, ox, oy, z);
     else if (is909)
@@ -620,7 +636,7 @@ static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, i
                     meter(rp, cx - hw, cy - hh, cx + hw, cy + hh, v, sec == RI_SEC_MASTER ? 12 : isfx ? 3 : 4,
                         sec == RI_SEC_MASTER);
                 } else if (d->kind == RI_CK_FADER) {
-                    fader(rp, cx, cy - hh, cy + hh, 2 * hw, PX(it->w) * 3 / 5, (int)to_n(d, v));
+                    fader(rp, cx, cy - hh, cy + hh, 2 * hw, PX(it->w) * 3 / 5, (int)to_n(d, v), skinned);
                 } else if (idx == 0 && sec != RI_SEC_MASTER) {   /* mute / bypass lamp button */
                     bevel(rp, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
                     fill_rect(rp, cx - hw + 3, cy - hh + 3, cx + hw - 3, cy + hh - 3,

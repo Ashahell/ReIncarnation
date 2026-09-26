@@ -147,7 +147,7 @@ static void skin_apply(const char *name) {
             note[i++] = name[n++];
         }
         {
-            static const char post[] = "' not found (rc=";
+            static const char post[] = "' not loaded (rc=";
             int k = 0;
             while (post[k] && i < 150) {
                 note[i++] = post[k++];
@@ -196,6 +196,26 @@ static void skin_apply(const char *name) {
         note[i] = '\0';
         mod_log(note);
     }
+    if (s_skin.nstale && s_skin.stale_idx >= 0) {
+        /* format 1: art whose size no longer matches the panel is drawn
+         * Classic and SAID so, never cropped or stretched */
+        char key[96];
+        const char *seg[5];
+        int k;
+        if (ri_skin_key(&s_skin, (uint32_t)s_skin.stale_idx, key, sizeof key) != 0)
+            key[0] = '\0';
+        seg[0] = "mod='";
+        seg[1] = s_skin.name;
+        seg[2] = "': part(s) wrong size for the panel, first ";
+        seg[3] = key;
+        seg[4] = " - drawn Classic";
+        i = 0;
+        for (k = 0; k < 5; k++)
+            for (n = 0; seg[k][n] && i < 158; n++)
+                note[i++] = seg[k][n];
+        note[i] = '\0';
+        mod_log(note);
+    }
 }
 
 /* Scan the Mods dir for installed skins (Classic always first). */
@@ -217,39 +237,35 @@ static void skin_scan(void) {
         return;
     }
     eac->eac_LastKey = 0;
-    while (more && n < 16) {
-        LONG ok = ExAll(lock, (struct ExAllData *)s_exbuf, sizeof s_exbuf,
-                        ED_NAME, eac);
-        if (ok) {
-            more = 0;
-        } else if (IoErr() != ERROR_NO_MORE_ENTRIES) {
+    /* Walk records by ed_Next and ask for ED_TYPE: ed_Size is the FILE size
+     * (valid only with ED_SIZE) and ed_Type needs ED_TYPE. Stepping by
+     * ed_Size with ED_NAME read garbage and crashed on the Dell once the
+     * Mods dir held three entries (privilege violation, 2026-09-26).
+     * ExAll returns nonzero while more entries follow. */
+    do {
+        struct ExAllData *ead;
+        more = ExAll(lock, (struct ExAllData *)s_exbuf, sizeof s_exbuf, ED_TYPE, eac);
+        if (!more && IoErr() != ERROR_NO_MORE_ENTRIES)
             break;
-        } else {
-            more = 0;
-        }
-        if (eac->eac_Entries > 0) {
-            UBYTE *p = (UBYTE *)s_exbuf;
-            LONG k;
-            for (k = 0; k < (LONG)eac->eac_Entries && n < 16; k++) {
-                struct ExAllData *ead = (struct ExAllData *)p;
-                int j = 0;
-                if (ead->ed_Type <= 0) {
-                    p += ead->ed_Size;
-                    continue;
-                }
-                while (ead->ed_Name[j] && j < 63) {
-                    s_installed_buf[n][j] = ead->ed_Name[j];
-                    j++;
-                }
-                s_installed_buf[n][j] = '\0';
-                if (strcmp(s_installed_buf[n], "Classic") != 0) {
-                    s_installed[n] = s_installed_buf[n];
-                    n++;
-                }
-                p += ead->ed_Size;
+        if (eac->eac_Entries == 0)
+            continue;
+        for (ead = (struct ExAllData *)s_exbuf; ead && n < 16; ead = ead->ed_Next) {
+            int j = 0;
+            if (ead->ed_Type <= 0)
+                continue; /* files: mods are directories */
+            while (ead->ed_Name[j] && j < 63) {
+                s_installed_buf[n][j] = ead->ed_Name[j];
+                j++;
+            }
+            s_installed_buf[n][j] = '\0';
+            if (strcmp(s_installed_buf[n], "Classic") != 0) {
+                s_installed[n] = s_installed_buf[n];
+                n++;
             }
         }
-    }
+    } while (more && n < 16);
+    if (more)
+        ExAllEnd(lock, (struct ExAllData *)s_exbuf, sizeof s_exbuf, ED_TYPE, eac);
     FreeDosObject(DOS_EXALLCONTROL, eac);
     UnLock(lock);
     s_installed[n] = 0;

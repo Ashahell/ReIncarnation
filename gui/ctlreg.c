@@ -382,3 +382,41 @@ uint32_t ri_ctlreg_help(uint16_t reg_id, int opt, char *buf, uint32_t cap) {
         }
     return 0;
 }
+
+/* Skin-file tokens (format 1). Append-only like the table above: a token
+ * once shipped never changes meaning. */
+static const char *const RI_SEC_TOKENS[RI_SEC_COUNT] = {
+    "303", 0, "808", "909", "mix-303a", "mix-303b", "mix-808", "mix-909", "master",
+    "pcf", "delay", "dist", "comp", "transport", "pat-303a", "pat-303b", "pat-808", "pat-909"
+};
+static const char *const RI_CK_TOKENS[9] = {
+    "knob", "fader", "switch", "button", "led", "step", "selector", "display", "meter"
+};
+
+const char *ri_ctlreg_section_token(uint32_t section) {
+    return section < RI_SEC_COUNT ? RI_SEC_TOKENS[section] : 0;
+}
+
+int ri_ctlreg_section_by_token(const char *tok) {
+    uint32_t i;
+    if (!tok)
+        return -1;
+    for (i = 0; i < RI_SEC_COUNT; i++)
+        if (RI_SEC_TOKENS[i] && !strcmp(RI_SEC_TOKENS[i], tok))
+            return (int)i;
+    return -1;
+}
+
+const char *ri_ctlreg_kind_token(uint32_t kind) {
+    return kind < 9u ? RI_CK_TOKENS[kind] : 0;
+}
+
+int ri_ctlreg_kind_by_token(const char *tok) {
+    uint32_t i;
+    if (!tok)
+        return -1;
+    for (i = 0; i < 9u; i++)
+        if (!strcmp(RI_CK_TOKENS[i], tok))
+            return (int)i;
+    return -1;
+}

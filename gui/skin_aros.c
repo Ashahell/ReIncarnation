@@ -87,7 +87,8 @@ static void rgba_to_argb(const unsigned char *src, uint32_t *dst, uint32_t n) {
 
 static int decode_part(const char *path, uint32_t **out, uint32_t *w, uint32_t *h) {
     Object *dto;
-    ULONG nw = 0u, nh = 0u, ok = 0u;
+    IPTR nw = 0u, nh = 0u, bmhp = 0u; /* GetDTAttrs stores IPTR: ULONG is 4 of 8 bytes */
+    ULONG ok = 0u;
     uint32_t *px = 0, n;
     unsigned char *raw = 0;
     if (!lazy_bases())
@@ -96,7 +97,16 @@ static int decode_part(const char *path, uint32_t **out, uint32_t *w, uint32_t *
                                 DTA_GroupID, GID_PICTURE, TAG_DONE);
     if (!dto)
         return -2;
-    GetDTAttrs(dto, DTA_NominalHoriz, &nw, DTA_NominalVert, &nh, TAG_DONE);
+    /* Picture size from the BitMapHeader (every picture.class subclass
+     * sets it); DTA_Nominal* is only a fallback. The Dell's v11 png.datatype
+     * 42.5 leaves DTA_Nominal* at 0 (Dell 2026-09-26: every part fell back). */
+    GetDTAttrs(dto, PDTA_BitMapHeader, &bmhp, TAG_DONE);
+    if (bmhp) {
+        nw = ((struct BitMapHeader *)bmhp)->bmh_Width;
+        nh = ((struct BitMapHeader *)bmhp)->bmh_Height;
+    }
+    if (nw == 0u || nh == 0u)
+        GetDTAttrs(dto, DTA_NominalHoriz, &nw, DTA_NominalVert, &nh, TAG_DONE);
     if (nw == 0u || nh == 0u || nw > 4096u || nh > 4096u) {
         DisposeDTObject(dto);
         return -3;
@@ -194,7 +204,8 @@ int ri_skin_aros_load(const char *dir, struct RISkin *skin) {
     FreeVec(text);
     if (rc != 0)
         return -3;
-    /* mod name = last path component of dir */
+    /* NAME must equal the mod directory (format 1): a renamed or copied
+     * directory would otherwise store a wrong MODR name in songs. */
     base = (char *)dir;
     {
         const char *p = dir;
@@ -204,13 +215,9 @@ int ri_skin_aros_load(const char *dir, struct RISkin *skin) {
             p++;
         }
     }
-    {
-        uint32_t k = 0u;
-        while (base[k] && k < RI_SKIN_FILE_NAME) {
-            skin->name[k] = base[k];
-            k++;
-        }
-        skin->name[k] = '\0';
+    if (!ri_skin_name_matches(skin, base)) {
+        memset(skin, 0, sizeof *skin);
+        return -4;
     }
     for (i = 0u; i < skin->nparts; i++) {
         char ppath[256];
@@ -234,7 +241,7 @@ int ri_skin_aros_load(const char *dir, struct RISkin *skin) {
             continue;
         }
         if (ri_skin_bind(skin, i, px, (uint16_t)w, (uint16_t)h) != 0) {
-            FreeVec(px);
+            FreeVec(px); /* bad dims, or -2 stale size: counted in nstale */
             skin->parts[i].rgba = 0;
             continue;
         }

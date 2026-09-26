@@ -210,6 +210,31 @@ int main(void) {
         }
     }
 
+    { /* skin-file tokens: stable names, round-trip, SYNTH2 shares "303" */
+        static const char *const want[RI_SEC_COUNT] = {
+            "303", 0, "808", "909", "mix-303a", "mix-303b", "mix-808", "mix-909", "master",
+            "pcf", "delay", "dist", "comp", "transport", "pat-303a", "pat-303b", "pat-808", "pat-909" };
+        static const char *const kinds[9] = {
+            "knob", "fader", "switch", "button", "led", "step", "selector", "display", "meter" };
+        for (s = 0; s < RI_SEC_COUNT; s++) {
+            const char *t = ri_ctlreg_section_token(s);
+            RI_ASSERT(want[s] ? (t && !strcmp(t, want[s])) : !t, "section %u token '%s'", s, t ? t : "(null)");
+            if (t) {
+                RI_ASSERT(ri_ctlreg_section_by_token(t) == (int)s, "section %u round trip", s);
+                RI_ASSERT(!strchr(t, '.') && !strchr(t, '='), "token %s has no key separators", t);
+            }
+        }
+        RI_ASSERT(ri_ctlreg_section_token(RI_SEC_COUNT) == 0, "section token range");
+        RI_ASSERT(ri_ctlreg_section_by_token("tb-808") == -1 && ri_ctlreg_section_by_token("") == -1 &&
+                  ri_ctlreg_section_by_token(0) == -1 && ri_ctlreg_section_by_token("808x") == -1, "unknown section");
+        for (s = 0; s < 9u; s++) {
+            RI_ASSERT(ri_ctlreg_kind_token(s) && !strcmp(ri_ctlreg_kind_token(s), kinds[s]), "kind %u token", s);
+            RI_ASSERT(ri_ctlreg_kind_by_token(kinds[s]) == (int)s, "kind %u round trip", s);
+        }
+        RI_ASSERT(ri_ctlreg_kind_token(9u) == 0 && ri_ctlreg_kind_by_token("slider") == -1 &&
+                  ri_ctlreg_kind_by_token(0) == -1, "kind range");
+    }
+
     /* coverage record */
     for (s = 0; s < RI_SEC_COUNT; s++) {
         uint32_t b = 0, c = ri_ctlreg_section_count(s, &b);

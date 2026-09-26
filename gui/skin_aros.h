@@ -19,8 +19,10 @@
 #include "gui/skin.h"
 
 /* Load dir/Skin.manifest + every part image. Returns parts bound (>= 0),
- * or -1 bad arg, -2 manifest unreadable, -3 manifest rejected. A missing
- * or undecodable part image is NOT an error (Classic fallback per part).
+ * or -1 bad arg, -2 manifest unreadable, -3 manifest rejected, -4 manifest
+ * NAME differs from the directory name. A missing, undecodable or
+ * wrong-size part image is NOT an error (Classic fallback per part; wrong
+ * sizes are counted in skin->nstale / stale_idx for the caller to report).
  * The loaded skin is NOT made active (see set_active). A successful load
  * also builds the zoom-0 cache, so blits work without a zoom() call. */
 int ri_skin_aros_load(const char *dir, struct RISkin *skin);

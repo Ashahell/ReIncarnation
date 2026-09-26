@@ -1,5 +1,7 @@
 /* t75_skin — skin/mod appearance core (§12.10 G8.1).
- * Oracle: docs/superpowers/specs/2026-09-26-skins-design.md (E0-1..E0-8).
+ * Oracle: docs/superpowers/specs/2026-09-26-skins-design.md (format 1:
+ * FORMAT/NAME/VERSION header, named sections/kinds, role-named parts,
+ * load-time size check against panelgeo; E0-1..E0-11).
  * Manifest/lookup/fallback keys, fail-closed parse codes, premultiplied box
  * downscale exact pixels, sha identity determinism/sensitivity, MODR field
  * helpers (codec signatures untouched), installed-list cycle.
@@ -11,15 +13,20 @@
 #include "gui/ctlreg.h"
 #include "gui/panelui.h"
 #include "gui/keymap.h"
+#include "gui/panelgeo.h"
 
+#define HDR "FORMAT=1\nNAME=808-RI\nVERSION=3\n"
 static const char MANIFEST_OK[] =
     "# 808-RI appearance half\n"
-    "BACKGROUND.2=bg808.ilbm\n"
-    "BACKGROUND.3=bg909.ilbm\n"
-    "PART.2.0.knob.frame=knob808.strip,64\n"
-    "PART.7.1.fader.cap=cap.ilbm,1\n"
+    HDR
+    "BACKGROUND.808=bg808.ilbm\n"
+    "BACKGROUND.909=bg909.ilbm\n"
+    "PART.808.knob.knob.frame=knob808.strip,64\n"
+    "BACKGROUND.rack-device-9=future.png\n"   /* unknown section: later build, ignored */
+    "PART.mix-909.fader.fader.cap=cap.ilbm,1\n"
+    "PART.808.slider.thing=f.png,1\n"          /* unknown kind: ignored */
     "UNKNOWNKEY=ignored\n"
-    "PART.2.0.knob.frame.dup=other.ilbm,64\n";
+    "PART.808.knob.knob.frame.dup=other.ilbm,64\n";
 
 static int fake_read_ok(const char *name, unsigned char *buf, uint32_t cap) {
     if (!strcmp(name, "bg808.ilbm") || !strcmp(name, "bg909.ilbm")) {
@@ -44,6 +51,41 @@ static int fake_read_missing(const char *name, unsigned char *buf, uint32_t cap)
     return !strcmp(name, "bg808.ilbm") ? 8 : -1;
 }
 
+
+/* Shipped skins must stay loadable: repo root from this file's path. */
+static int root_path(const char *rel, char *out, size_t cap) {
+    const char *f = __FILE__, *cut = strstr(f, "tests/unit/");
+    size_t n = cut ? (size_t)(cut - f) : 0u;
+    if (n + strlen(rel) + 1u > cap)
+        return -1;
+    memcpy(out, f, n);
+    strcpy(out + n, rel);
+    return 0;
+}
+
+static long slurp(const char *rel, char *buf, size_t cap) {
+    char path[512];
+    FILE *fp;
+    size_t n;
+    if (root_path(rel, path, sizeof path) != 0 || !(fp = fopen(path, "rb")))
+        return -1;
+    n = fread(buf, 1u, cap - 1u, fp);
+    fclose(fp);
+    buf[n] = '\0';
+    return (long)n;
+}
+
+/* PNG IHDR width/height (bytes 16..23, big-endian). */
+static int png_dims(const char *rel, uint32_t *w, uint32_t *h) {
+    unsigned char b[32];
+    long n = slurp(rel, (char *)b, sizeof b);
+    if (n < 24 || memcmp(b + 12, "IHDR", 4))
+        return -1;
+    *w = ((uint32_t)b[16] << 24) | ((uint32_t)b[17] << 16) | ((uint32_t)b[18] << 8) | b[19];
+    *h = ((uint32_t)b[20] << 24) | ((uint32_t)b[21] << 16) | ((uint32_t)b[22] << 8) | b[23];
+    return 0;
+}
+
 int main(void) {
     struct RISkin s;
     int rc, i;
@@ -53,6 +95,8 @@ int main(void) {
     rc = ri_skin_parse(MANIFEST_OK, &s);
     RI_ASSERT(rc == 0, "parse ok rc=%d", rc);
     RI_ASSERT(s.nparts == 5u, "parse nparts=%u", s.nparts);
+    RI_ASSERT(!strcmp(s.name, "808-RI") && s.version == 3u, "header name/version");
+    RI_ASSERT(s.nstale == 0u && s.stale_idx == -1, "no stale parts yet");
     RI_ASSERT(s.parts[0].section == 2u && s.parts[0].kind == 0xFFu &&
               !strcmp(s.parts[0].part, "background") &&
               !strcmp(s.parts[0].file, "bg808.ilbm") &&
@@ -68,22 +112,52 @@ int main(void) {
     RI_ASSERT(ri_skin_parse(0, &s) == -1, "null text");
     RI_ASSERT(ri_skin_parse(MANIFEST_OK, 0) == -1, "null skin");
     memset(&s, 0xA5, sizeof s);
-    RI_ASSERT(ri_skin_parse("", &s) == 0, "empty manifest valid");
-    RI_ASSERT(s.nparts == 0u, "empty zero parts");
-    RI_ASSERT(ri_skin_parse("# only a comment\n", &s) == 0, "comment-only valid");
+    RI_ASSERT(ri_skin_parse(HDR, &s) == 0, "header-only manifest valid (Template)");
+    RI_ASSERT(s.nparts == 0u && s.version == 3u, "header-only zero parts");
+    RI_ASSERT(ri_skin_parse("# only a comment\n" HDR "# more\n", &s) == 0, "comments around header");
+    /* header: required, first, in order, format 1 only */
     memset(&s, 0xA5, sizeof s);
-    RI_ASSERT(ri_skin_parse("PART.2.0.knob.frame\n", &s) == -3, "malformed line");
+    RI_ASSERT(ri_skin_parse("", &s) == -7, "empty: no header");
+    RI_ASSERT(s.nparts == 0u && s.name[0] == 0, "no header zeroed");
+    RI_ASSERT(ri_skin_parse("# only a comment\n", &s) == -7, "comment-only: no header");
+    RI_ASSERT(ri_skin_parse("BACKGROUND.808=a.png\n" HDR, &s) == -7, "header not first");
+    RI_ASSERT(ri_skin_parse("NAME=x\nFORMAT=1\nVERSION=1\n", &s) == -7, "header order");
+    RI_ASSERT(ri_skin_parse("VERSION=1\nNAME=x\nFORMAT=1\n", &s) == -7, "header keys are checked by name, not position");
+    RI_ASSERT(ri_skin_parse("FORMAT=2\nNAME=x\nVERSION=1\n", &s) == -7, "future format refused");
+    RI_ASSERT(ri_skin_parse("FORMAT=1\nNAME=x\n", &s) == -7, "missing VERSION");
+    RI_ASSERT(ri_skin_parse("FORMAT=1\nNAME=x y\nVERSION=1\n", &s) == -5, "bad NAME chars");
+    RI_ASSERT(ri_skin_parse("FORMAT=1\nNAME=x\nVERSION=0\n", &s) == -5, "VERSION 0");
+    RI_ASSERT(ri_skin_parse("FORMAT=1\nNAME=x\nVERSION=65536\n", &s) == -5, "VERSION range");
+    RI_ASSERT(ri_skin_parse(HDR "NAME=again\n", &s) == -6, "header key repeated");
+    { /* NAME up to 63 chars (MODR field) */
+        char nm[160];
+        sprintf(nm, "FORMAT=1\nNAME=%s\nVERSION=1\n",
+                "a123456789b123456789c123456789d123456789e123456789f123456789abc");
+        RI_ASSERT(ri_skin_parse(nm, &s) == 0 && strlen(s.name) == 63u, "NAME 63");
+        sprintf(nm, "FORMAT=1\nNAME=%s\nVERSION=1\n",
+                "a123456789b123456789c123456789d123456789e123456789f123456789abcd");
+        RI_ASSERT(ri_skin_parse(nm, &s) == -5, "NAME 64 refused");
+    }
+    /* charset: printable ASCII + TAB/CR/LF only */
+    memset(&s, 0xA5, sizeof s);
+    RI_ASSERT(ri_skin_parse(HDR "# caf\xc3\xa9\n", &s) == -8, "non-ASCII byte");
+    RI_ASSERT(s.nparts == 0u, "non-ASCII zeroed");
+    RI_ASSERT(ri_skin_parse(HDR "\x01\n", &s) == -8, "control byte");
+    RI_ASSERT(ri_skin_parse(HDR "#\ttab ok\r\n", &s) == 0, "tab + CRLF ok");
+    memset(&s, 0xA5, sizeof s);
+    RI_ASSERT(ri_skin_parse(HDR "PART.808.knob.knob.frame\n", &s) == -3, "malformed line");
     RI_ASSERT(s.nparts == 0u, "malformed zeroed");
     memset(&s, 0xA5, sizeof s);
-    RI_ASSERT(ri_skin_parse("PART.2.0\n", &s) == -3, "truncated part key");
+    RI_ASSERT(ri_skin_parse(HDR "PART.808.knob\n", &s) == -3, "truncated part key");
+    RI_ASSERT(ri_skin_parse(HDR "PART.808.knob=f.png,1\n", &s) == -3, "part key without part");
     memset(&s, 0xA5, sizeof s);
-    RI_ASSERT(ri_skin_parse("PART.2.0.knob.frame=k.ilbm,64\nPART.2.0.knob.frame=j.ilbm,64\n", &s) == -6, "dup key");
+    RI_ASSERT(ri_skin_parse(HDR "PART.808.knob.knob.frame=k.ilbm,64\nPART.808.knob.knob.frame=j.ilbm,64\n", &s) == -6, "dup key");
     RI_ASSERT(s.nparts == 0u, "dup zeroed");
     memset(&s, 0xA5, sizeof s);
-    RI_ASSERT(ri_skin_parse("PART.18.0.k=f.ilbm,1\n", &s) == -5, "bad section");
-    RI_ASSERT(ri_skin_parse("PART.2.9.k=f.ilbm,1\n", &s) == -5, "bad kind");
-    RI_ASSERT(ri_skin_parse("PART.2.0.k=f.ilbm,0\n", &s) == -5, "frames 0");
-    RI_ASSERT(ri_skin_parse("PART.2.0.k=f.ilbm,257\n", &s) == -5, "frames 257");
+    RI_ASSERT(ri_skin_parse(HDR "PART.2.0.k=f.ilbm,1\n", &s) == 0 && s.nparts == 0u, "numeric ids are not tokens: ignored");
+    RI_ASSERT(ri_skin_parse(HDR "PART.808.knob.k=f.ilbm,0\n", &s) == -5, "frames 0");
+    RI_ASSERT(ri_skin_parse(HDR "PART.808.knob.k=f.ilbm,257\n", &s) == -5, "frames 257");
+    RI_ASSERT(ri_skin_parse(HDR "PART.future.knob.k=f.ilbm,0\n", &s) == -5, "ignored lines still checked for syntax");
     { /* line too long */
         char big[600];
         memset(big, 'A', sizeof big - 2);
@@ -93,10 +167,11 @@ int main(void) {
         RI_ASSERT(s.nparts == 0u, "long zeroed");
     }
     { /* table full: 65 distinct parts */
-        static char many[65 * 32];
+        static char many[64 + 65 * 32];
         char *p = many;
+        p += sprintf(p, "%s", HDR);
         for (i = 0; i < 65; i++)
-            p += sprintf(p, "PART.2.0.k%d=f%d.ilbm,1\n", i, i);
+            p += sprintf(p, "PART.808.knob.k%d=f%d.ilbm,1\n", i, i);
         memset(&s, 0xA5, sizeof s);
         RI_ASSERT(ri_skin_parse(many, &s) == -4, "table full");
         RI_ASSERT(s.nparts == 0u, "full zeroed");
@@ -112,11 +187,82 @@ int main(void) {
     RI_ASSERT(ri_skin_find(&s, 2u, 0u, 0) == -1, "null part");
     RI_ASSERT(ri_skin_find(0, 2u, 0u, "knob.frame") == -1, "null skin");
 
+    /* --- expected sizes come from the geometry (2x-master px == Q) --- */
+    { uint32_t w = 0u, h = 0u;
+      RI_ASSERT(ri_skin_expect(2u, 0xFFu, "background", 1u, &w, &h) == 1 && w == 1472u && h == 468u,
+                "808 backdrop = p. 148 figure %ux%u", w, h);
+      RI_ASSERT(ri_skin_expect(8u, 0xFFu, "background", 1u, &w, &h) == 1 && w == 332u && h == 464u,
+                "master backdrop = strip height %ux%u", w, h);
+      RI_ASSERT(ri_skin_expect(2u, 0u, "knob.frame", 64u, &w, &h) == 1 && w == 40u && h == 56u * 64u,
+                "808 large knob strip %ux%u", w, h);
+      RI_ASSERT(ri_skin_expect(2u, 0u, "knob.frame.small", 64u, &w, &h) == 1 && w == 36u && h == 44u * 64u,
+                "808 small knob strip %ux%u", w, h);
+      RI_ASSERT(ri_skin_expect(0u, 0u, "knob.frame", 1u, &w, &h) == 1 && w == 84u && h == 120u, "303 knob");
+      RI_ASSERT(ri_skin_expect(1u, 0xFFu, "background", 1u, &w, &h) == 1 && w == 1464u, "synth 2 = synth 1 art");
+      RI_ASSERT(ri_skin_expect(0u, 0u, "knob.frame.small", 64u, &w, &h) == 0, "303 has one knob size");
+      RI_ASSERT(ri_skin_expect(2u, 1u, "fader.cap", 1u, &w, &h) == 0, "unchecked part");
+      RI_ASSERT(ri_skin_expect(99u, 0xFFu, "background", 1u, &w, &h) == 0, "bad section");
+      RI_ASSERT(ri_skin_expect(2u, 0u, "knob.frame", 0u, &w, &h) == 0, "zero frames");
+    }
+    /* --- knob roles replace size-suffixed names --- */
+    RI_ASSERT(ri_skin_knob_role(2u, 40u, 56u) && !strcmp(ri_skin_knob_role(2u, 40u, 56u), "knob.frame"), "808 large role");
+    RI_ASSERT(ri_skin_knob_role(2u, 36u, 44u) && !strcmp(ri_skin_knob_role(2u, 36u, 44u), "knob.frame.small"), "808 small role");
+    RI_ASSERT(ri_skin_knob_role(1u, 84u, 120u) && !strcmp(ri_skin_knob_role(1u, 84u, 120u), "knob.frame"), "synth 2 role");
+    RI_ASSERT(ri_skin_knob_role(2u, 41u, 56u) == 0, "no knob of that size");
+    for (i = 0; i < (int)RI_SEC_COUNT; i++) { /* at most two knob sizes anywhere */
+        uint32_t w, h;
+        const char *r;
+        int k, nsz = 0;
+        const struct RIGeoSection *g = ri_geo_section((uint32_t)i);
+        uint32_t sw[8], sh[8];
+        if (!g)
+            continue;
+        for (k = 0; k < (int)g->nitems; k++) {
+            const struct RICtlDef *d = ri_ctlreg_find(g->items[k].reg_id);
+            int j, seen = 0;
+            if (g->items[k].shape != RI_GEO_KNOB || !d || d->kind != RI_CK_KNOB)
+                continue;
+            w = (uint32_t)ri_geo_px((int)g->items[k].w, 2);
+            h = (uint32_t)ri_geo_px((int)g->items[k].h, 2);
+            r = ri_skin_knob_role((uint8_t)i, w, h);
+            RI_ASSERT(r != 0, "sec %d knob %ux%u has a role", i, w, h);
+            for (j = 0; j < nsz; j++)
+                seen |= sw[j] == w && sh[j] == h;
+            if (!seen && nsz < 8) {
+                sw[nsz] = w; sh[nsz] = h; nsz++;
+            }
+        }
+        RI_ASSERT(nsz <= 2, "sec %d has %d knob sizes (roles cover two)", i, nsz);
+    }
+
+    /* --- bind refuses a part whose size no longer matches the geometry --- */
+    { static uint32_t big[40 * 56 * 2];
+      memset(&s, 0, sizeof s);
+      RI_ASSERT(ri_skin_parse(HDR "BACKGROUND.master=bg.png\nPART.808.knob.knob.frame=k.png,2\n", &s) == 0, "stale parse");
+      RI_ASSERT(ri_skin_bind(&s, 0u, big, 332u, 392u) == -2, "old 392-high master refused");
+      RI_ASSERT(s.parts[0].rgba == 0 && s.nstale == 1u && s.stale_idx == 0, "stale recorded, part unbound");
+      RI_ASSERT(ri_skin_bind(&s, 1u, big, 40u, 56u * 2u) == 0, "matching strip binds");
+      RI_ASSERT(ri_skin_bind(&s, 1u, big, 40u, 56u) == -2 && s.nstale == 2u && s.stale_idx == 0, "wrong frame count refused, first kept");
+      { char key[96];
+        RI_ASSERT(ri_skin_key(&s, 0u, key, sizeof key) == 0 && !strcmp(key, "BACKGROUND.master"), "key bg '%s'", key);
+        RI_ASSERT(ri_skin_key(&s, 1u, key, sizeof key) == 0 && !strcmp(key, "PART.808.knob.knob.frame"), "key part '%s'", key);
+        RI_ASSERT(ri_skin_key(&s, 2u, key, sizeof key) == -1 && ri_skin_key(&s, 0u, key, 8u) == -1, "key bad idx/cap");
+      }
+    }
+    /* --- NAME must match the mod directory (case-insensitive, AROS FS) --- */
+    memset(&s, 0, sizeof s);
+    RI_ASSERT(ri_skin_parse(MANIFEST_OK, &s) == 0, "name reparse");
+    RI_ASSERT(ri_skin_name_matches(&s, "808-RI") == 1 && ri_skin_name_matches(&s, "808-ri") == 1, "name match");
+    RI_ASSERT(ri_skin_name_matches(&s, "808-RI2") == 0 && ri_skin_name_matches(&s, "") == 0 &&
+              ri_skin_name_matches(&s, 0) == 0 && ri_skin_name_matches(0, "808-RI") == 0, "name mismatch");
+
     /* --- bind --- */
+    memset(&s, 0, sizeof s);
+    RI_ASSERT(ri_skin_parse(MANIFEST_OK, &s) == 0, "bind reparse");
     { static uint32_t px[4] = { 1u, 2u, 3u, 4u };
-        RI_ASSERT(ri_skin_bind(&s, 2u, px, 2u, 2u) == 0, "bind ok");
-        RI_ASSERT(s.parts[2].w == 2u && s.parts[2].h == 2u &&
-                  s.parts[2].rgba == px, "bind stored");
+        RI_ASSERT(ri_skin_bind(&s, 3u, px, 2u, 2u) == 0, "bind ok (unchecked part)");
+        RI_ASSERT(s.parts[3].w == 2u && s.parts[3].h == 2u &&
+                  s.parts[3].rgba == px, "bind stored");
         RI_ASSERT(ri_skin_bind(&s, 64u, px, 2u, 2u) == -1, "bind idx");
         RI_ASSERT(ri_skin_bind(&s, 2u, 0, 2u, 2u) == -1, "bind null px");
         RI_ASSERT(ri_skin_bind(&s, 2u, px, 0u, 2u) == -1, "bind zero dim");
@@ -261,24 +407,15 @@ int main(void) {
     RI_ASSERT(ri_skin_frame(999u, 127u, 64u) == 63u, "frame clamp");
     RI_ASSERT(ri_skin_frame(5u, 127u, 0u) == 0u, "frame noframes");
 
-    /* --- size-suffixed part names (E0-9) --- */
-    { char out[64];
-      RI_ASSERT(ri_skin_part_sized("knob.frame", 80u, 112u, out, sizeof out) == 0 &&
-                !strcmp(out, "knob.frame.80x112"), "sized ok");
-      RI_ASSERT(ri_skin_part_sized("knob.frame", 0u, 112u, out, sizeof out) == -1, "sized zero");
-      RI_ASSERT(ri_skin_part_sized(0, 80u, 112u, out, sizeof out) == -1, "sized null");
-      RI_ASSERT(ri_skin_part_sized("knob.frame", 80u, 112u, out, 10u) == -1, "sized small");
-    }
-
     /* --- unbind forgets every pixel pointer (review fix: no dangling) --- */
     { static uint32_t px[4] = { 1u, 2u, 3u, 4u };
       memset(&s, 0, sizeof s);
       RI_ASSERT(ri_skin_parse(MANIFEST_OK, &s) == 0, "unbind reparse");
-      RI_ASSERT(ri_skin_bind(&s, 2u, px, 2u, 2u) == 0, "unbind bind");
-      RI_ASSERT(ri_skin_bind_zoom(&s, 2u, px, 2u, 2u) == 0, "unbind bindz");
+      RI_ASSERT(ri_skin_bind(&s, 3u, px, 2u, 2u) == 0, "unbind bind");
+      RI_ASSERT(ri_skin_bind_zoom(&s, 3u, px, 2u, 2u) == 0, "unbind bindz");
       ri_skin_unbind(&s);
-      RI_ASSERT(s.parts[2].rgba == 0 && s.parts[2].zrgba == 0 &&
-                s.parts[2].w == 0u && s.parts[2].zw == 0u, "unbind cleared");
+      RI_ASSERT(s.parts[3].rgba == 0 && s.parts[3].zrgba == 0 &&
+                s.parts[3].w == 0u && s.parts[3].zw == 0u, "unbind cleared");
       RI_ASSERT(s.nparts == 5u, "unbind keeps manifest");
       ri_skin_unbind(0);
       RI_ASSERT(1, "unbind null safe");
@@ -295,6 +432,30 @@ int main(void) {
       out[0] = out[1] = out[2] = out[3] = 0u;   /* in-place safe */
       ri_skin_swizzle_blit(out, out, 0u);
       RI_ASSERT(out[0] == 0u, "swizzle n0");
+    }
+
+    /* --- shipped skins: parse as format 1, NAME == dir, every image the
+     *     size the panel expects (stale art fails here, not on a user) --- */
+    { static char text[16384];
+      static uint32_t dummy[1];
+      char rel[256];
+      uint32_t k, w = 0u, h = 0u;
+      RI_ASSERT(slurp("skins/808-RI/Skin.manifest", text, sizeof text) > 0, "read 808-RI manifest");
+      memset(&s, 0, sizeof s);
+      RI_ASSERT(ri_skin_parse(text, &s) == 0, "808-RI parses as format 1");
+      RI_ASSERT(ri_skin_name_matches(&s, "808-RI") && s.version >= 2u, "808-RI header");
+      RI_ASSERT(s.nparts >= 17u, "808-RI parts %u", s.nparts);
+      for (k = 0u; k < s.nparts; k++) {
+          sprintf(rel, "skins/808-RI/%s", s.parts[k].file);
+          RI_ASSERT(png_dims(rel, &w, &h) == 0, "png %s", rel);
+          RI_ASSERT(ri_skin_bind(&s, k, dummy, (uint16_t)w, (uint16_t)h) == 0,
+                    "808-RI %s is %ux%u: wrong size for the panel", s.parts[k].file, w, h);
+      }
+      RI_ASSERT(s.nstale == 0u, "808-RI no stale parts");
+      RI_ASSERT(slurp("skins/Template/Skin.manifest", text, sizeof text) > 0, "read Template");
+      memset(&s, 0, sizeof s);
+      RI_ASSERT(ri_skin_parse(text, &s) == 0 && s.nparts == 0u &&
+                ri_skin_name_matches(&s, "Template"), "Template header-only");
     }
 
     RI_RESULT("skin");

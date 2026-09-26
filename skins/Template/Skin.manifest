@@ -1,52 +1,56 @@
-# Template skin — appearance half (blank; exercises the per-part fallback)
+# Template skin - appearance half (blank; exercises the per-part fallback)
 #
-# Copy this directory to SYS:Classes/ReIncarnation/Mods/<Name>/, add image
-# files beside it, and uncomment the PART lines you supply art for. Every
-# part WITHOUT art renders through the procedural Classic path, so a
-# partial skin is legal (design E0-2).
+# Copy this directory to SYS:Classes/ReIncarnation/Mods/<Name>/, set NAME
+# below to the same <Name>, add image files beside it, and uncomment the
+# lines you supply art for. Every part WITHOUT art renders through the
+# procedural Classic path, so a partial skin is legal (design E0-2).
 #
-# Rules (gui/skin.h, fail-closed: one malformed line rejects the file):
+# Format 1 rules (gui/skin.h; fail-closed: one malformed line rejects the
+# whole file):
+# - Printable ASCII only (plus TAB/CR/LF); lines at most 255 bytes.
+# - FORMAT, NAME, VERSION are required and must be the first three keys,
+#   in this order. NAME = [A-Za-z0-9._-]{1,63} and must equal the directory
+#   name. VERSION = 1..65535; raise it whenever the art changes (songs
+#   store it with the mod's SHA-256).
 # - '#' starts a comment line; unknown keys are ignored.
-# - sec = section id 0..17 (gui/ctlreg.h RI_SEC_*; 1 shares 0's art).
-# - kind = control kind 0..8 (RI_CK_KNOB..RI_CK_METER).
-# - part = [A-Za-z0-9._-]{1,48}. Size-varying parts take a WxH suffix in
-#   2x-master pixels, e.g. knob.frame.40x56 (design E0-9).
+# - Sections and control kinds are NAMES, never numbers:
+#     sections: 303 808 909 mix-303a mix-303b mix-808 mix-909 master
+#               pcf delay dist comp transport pat-303a pat-303b pat-808
+#               pat-909   (both synths share the "303" art)
+#     kinds:    knob fader switch button led step selector display meter
+#   A section or kind this build does not know is ignored (it belongs to a
+#   later build's device); its line is still syntax-checked.
+# - part = [A-Za-z0-9._-]{1,48}, named by ROLE, never by pixel size.
 # - file = image path relative to this directory, PNG/RGBA recommended
 #   (per-pixel alpha survives picture.class; ILBM cannot carry alpha).
 # - NFRAMES = frames in a vertical strip, 1..256 (64 = classic look).
+# - Art is authored at 2x (2x-master px == panel Q units). Its size is
+#   checked against the panel when the mod loads: a part of the wrong size
+#   is drawn Classic and reported, never cropped or stretched.
+FORMAT=1
+NAME=Template
+VERSION=1
 #
-# Key inventory (uncomment + point at files as supplied):
+# Section backdrops (size = the section at 2x):
+# BACKGROUND.303=bg303.png          1464x460
+# BACKGROUND.808=bg808.png          1472x468
+# BACKGROUND.909=bg909.png
+# BACKGROUND.mix-303a=bgmix.png
+# BACKGROUND.master=bgmaster.png    332x464
+# ... one per section name above.
 #
-# Section backdrops (one per section; 2x-master px == Q units numerically):
-# BACKGROUND.0=bg00.png
-# BACKGROUND.2=bg02.png
-# BACKGROUND.3=bg03.png
-# BACKGROUND.4=bg04.png
-# BACKGROUND.5=bg05.png
-# BACKGROUND.6=bg06.png
-# BACKGROUND.7=bg07.png
-# BACKGROUND.8=bg08.png
-# BACKGROUND.9=bg09.png
-# BACKGROUND.10=bg10.png
-# BACKGROUND.11=bg11.png
-# BACKGROUND.12=bg12.png
-# BACKGROUND.13=bg13.png
-# BACKGROUND.14=bg14.png
-# BACKGROUND.15=bg15.png
-# BACKGROUND.16=bg16.png
-# BACKGROUND.17=bg17.png
+# Knob frame strips (value->frame is value*frames/128, see ri_skin_frame):
+#   knob.frame        = the section's largest knob (e.g. 808 Level, 40x56)
+#   knob.frame.small  = its other knob size (e.g. 808 Tone/Tune, 36x44)
+# PART.303.knob.knob.frame=knob303.png,64          84 x (120*64)
+# PART.808.knob.knob.frame=knob808.png,64          40 x (56*64)
+# PART.808.knob.knob.frame.small=knob808s.png,64   36 x (44*64)
+# PART.909.knob.knob.frame=knob909.png,64          44 x (52*64)
+# PART.mix-303a.knob.knob.frame=knobmix.png,64     45 x (70*64)
+# PART.delay.knob.knob.frame=knobfx.png,64         48 x (80*64)
+# PART.transport.knob.knob.frame=knobtr.png,64     50 x (90*64)
 #
-# Knob frame strips (one per section + knob size; value->frame is
-# value*frames/128, see ri_skin_frame):
-# PART.0.0.knob.frame.84x120=knob_84x120.png,64
-# PART.2.0.knob.frame.40x56=knob_40x56.png,64
-# PART.2.0.knob.frame.36x44=knob_36x44.png,64
-# PART.3.0.knob.frame.44x52=knob_44x52.png,64
-# PART.4.0.knob.frame.45x70=knob_45x70.png,64
-# PART.10.0.knob.frame.48x80=knob_48x80.png,64
-# PART.13.0.knob.frame.50x90=knob_50x90.png,64
-#
-# Future parts (no call sites yet — lookup helper exists):
-# PART.<sec>.<kind>.fader.cap=<file>,1
-# PART.<sec>.5.step.lit=<file>,1
-# PART.<sec>.7.digit.strip=<file>,10
+# Reserved role names (no call sites yet):
+# PART.<section>.fader.fader.cap=<file>,1
+# PART.<section>.step.step.lit=<file>,1
+# PART.<section>.display.digit.strip=<file>,10
