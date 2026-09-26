@@ -314,25 +314,44 @@ int main(void) {
         lane.ev = sto;
         lane.cap = 32u;
         memset(&pass, 0, sizeof pass);
-        /* Sweep order: erase punched span, then re-anchor current value. */
+        /* ---- Task 2a: sweep marker law + pass end + step/loop/seek ----
+         * Caller order per update is sweep-then-touch; a touch landing
+         * exactly on the sweep end meets its own re-anchor there, so the
+         * anchor replaces it in place (one event, latest value, marked). */
         RI_ASSERT(ri_auto_stamp(&lane, 100u, 0x0301u, 9u) == 0, "setup stamp rc");
-        RI_ASSERT(ri_auto_touch(&lane, &pass, 2u, 48u, 96u, 0x0300u, 5u) == 0,
+        RI_ASSERT(ri_auto_touch(&lane, &pass, 2u, 95u, 96u, 0x0300u, 5u) == 0,
             "sweep touch rc");
         vals[0] = 7u;
-        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, 96u, vals) == 0, "sweep rc");
-        RI_ASSERT(ri_auto_value(&lane, 48u, 0x0300u, &outv) == 1 && outv == 7u,
-            "re-anchored at span start");
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, vals) == 0, "sweep rc");
+        RI_ASSERT(lane.n == 2u, "touch replaced in place %u", lane.n);
         RI_ASSERT(ri_auto_value(&lane, 200u, 0x0300u, &outv) == 1 && outv == 7u,
-            "anchor holds forward");
+            "anchor holds latest");
         RI_ASSERT(ri_auto_value(&lane, 200u, 0x0301u, &outv) == 1 && outv == 9u,
             "untouched keeps events");
-        RI_ASSERT(lane.n == 2u, "sweep count %u", lane.n);
-        /* Erase runs even with no new move (idempotent re-sweep). */
-        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, 96u, vals) == 0, "resweep rc");
+        {
+            uint32_t q2;
+            int marked = 0;
+            for (q2 = 0u; q2 < lane.n; q2++)
+                if (lane.ev[q2].tick == 96u && lane.ev[q2].ctl == 0x0300u &&
+                    (lane.ev[q2].pad & RI_AUTO_EV_PASS) != 0u)
+                    marked = 1;
+            RI_ASSERT(marked, "re-anchor is marked");
+        }
+        /* Erase runs with no new move (idempotent re-sweep). */
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, vals) == 0, "resweep rc");
         RI_ASSERT(lane.n == 2u, "resweep count %u", lane.n);
+        /* Pass's own writes survive a later sweep (marker spares them). */
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 200u, vals) == 0, "later sweep rc");
+        RI_ASSERT(lane.n == 3u, "later count %u", lane.n);
+        RI_ASSERT(ri_auto_value(&lane, 150u, 0x0300u, &outv) == 1 && outv == 7u,
+            "touch survives later sweep");
         RI_ASSERT(ri_auto_value(&lane, 200u, 0x0300u, &outv) == 1 && outv == 7u,
-            "resweep same value");
-        /* Record without playback: stopped + RECORD writes one event. */
+            "later anchor present");
+        /* from>=to is a no-op (rc 0, lane identical). */
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 200u, 200u, vals) == 0, "empty sweep rc");
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 300u, 200u, vals) == 0, "backward sweep rc");
+        RI_ASSERT(lane.n == 3u, "noop count %u", lane.n);
+        /* Record without playback: stopped + RECORD writes + punches. */
         {
             struct RIAutoLane l2;
             struct RIAutoEv s2[8];
@@ -344,54 +363,111 @@ int main(void) {
             RI_ASSERT(ri_auto_touch(&l2, &p2, 2u, 1000u, 96u, 0x0300u, 44u) == 0,
                 "stopped rec rc");
             RI_ASSERT(l2.n == 1u, "stopped rec stored");
+            RI_ASSERT(p2.npunched == 1u, "stopped rec punches");
         }
-        /* Stop ends the pass: punch-out-all keeps touched, frees punched. */
+        /* Stop ends the pass: punch-out-all keeps touched, frees punched
+         * (loop wrap and backward moves punch out the same way). */
         ri_auto_punch_out_all(&pass);
         RI_ASSERT(pass.npunched == 0u && pass.ntouched == 1u, "punch-out keeps touched");
         vals[0] = 8u;
-        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, 96u, vals) == 0, "postsweep rc");
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, vals) == 0, "postsweep rc");
+        RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 96u, 0) == 0, "null vals rc");
         RI_ASSERT(ri_auto_value(&lane, 200u, 0x0300u, &outv) == 1 && outv == 7u,
             "freed control stands");
         /* Retouch re-punches after Stop. */
         RI_ASSERT(ri_auto_touch(&lane, &pass, 2u, 300u, 96u, 0x0300u, 8u) == 0,
             "retouch rc");
         RI_ASSERT(pass.npunched == 1u, "retouch punches");
-        /* Step record: advance-by-bar holds the whole previous measure. */
+        /* pass_end clears markers + both sets; formerly-marked events
+         * stand (nothing punched to erase them). */
+        {
+            uint32_t q2;
+            int marked = 0;
+            uint32_t n0 = lane.n;
+            ri_auto_pass_end(&lane, &pass);
+            RI_ASSERT(pass.npunched == 0u && pass.ntouched == 0u, "pass end clears sets");
+            for (q2 = 0u; q2 < lane.n; q2++)
+                if (lane.ev[q2].pad & RI_AUTO_EV_PASS)
+                    marked = 1;
+            RI_ASSERT(!marked, "pass end clears markers");
+            RI_ASSERT(ri_auto_sweep(&lane, &pass, 48u, 200u, vals) == 0, "post-end sweep rc");
+            RI_ASSERT(lane.n == n0, "post-end count %u", lane.n);
+        }
+        /* Step record: touch in bar, sweep the bar — old bar events go,
+         * touch stands, anchor lands at the bar end with the held value. */
         {
             struct RIAutoLane l3;
             struct RIAutoEv s3[8];
             struct RIAutoPass p3;
             uint8_t v3[1];
+            uint32_t q3, mid = 0u;
             memset(&l3, 0, sizeof l3);
             l3.ev = s3;
             l3.cap = 8u;
             memset(&p3, 0, sizeof p3);
+            RI_ASSERT(ri_auto_stamp(&l3, 100u, 0x0300u, 60u) == 0, "step old rc");
             RI_ASSERT(ri_auto_touch(&l3, &p3, 2u, 10u, 96u, 0x0300u, 50u) == 0,
                 "step touch rc");
             v3[0] = 50u;
-            RI_ASSERT(ri_auto_sweep(&l3, &p3, 0u, 384u, 96u, v3) == 0, "step sweep rc");
-            RI_ASSERT(l3.n == 1u, "step one event %u", l3.n);
+            RI_ASSERT(ri_auto_sweep(&l3, &p3, 0u, 384u, v3) == 0, "step sweep rc");
+            RI_ASSERT(l3.n == 2u, "step touch plus anchor %u", l3.n);
             RI_ASSERT(ri_auto_value(&l3, 383u, 0x0300u, &outv) == 1 && outv == 50u,
                 "step holds measure");
+            for (q3 = 0u; q3 < l3.n; q3++)
+                if (l3.ev[q3].tick > 12u && l3.ev[q3].tick < 384u)
+                    mid = 1u;
+            RI_ASSERT(!mid, "step bar interior clean");
         }
-        /* Punch-out before advancing leaves just the single event. */
+        /* Punch-out before advancing: touch stands, old bar events stand
+         * (nobody punched to erase them), and no anchor is added. */
         {
             struct RIAutoLane l4;
             struct RIAutoEv s4[8];
             struct RIAutoPass p4;
+            uint32_t q4, at768 = 0u;
             memset(&l4, 0, sizeof l4);
             l4.ev = s4;
             l4.cap = 8u;
             memset(&p4, 0, sizeof p4);
+            RI_ASSERT(ri_auto_stamp(&l4, 500u, 0x0301u, 61u) == 0, "short old rc");
             RI_ASSERT(ri_auto_touch(&l4, &p4, 2u, 390u, 96u, 0x0301u, 60u) == 0,
                 "short touch rc");
             ri_auto_punch_out_all(&p4);
             {
                 uint8_t v4[1] = { 60u };
-                RI_ASSERT(ri_auto_sweep(&l4, &p4, 384u, 768u, 96u, v4) == 0,
+                RI_ASSERT(ri_auto_sweep(&l4, &p4, 384u, 768u, v4) == 0,
                     "short sweep rc");
             }
-            RI_ASSERT(l4.n == 1u, "short single event %u", l4.n);
+            RI_ASSERT(l4.n == 2u, "short touch plus old %u", l4.n);
+            for (q4 = 0u; q4 < l4.n; q4++)
+                if (l4.ev[q4].tick == 768u)
+                    at768 = 1u;
+            RI_ASSERT(!at768, "no anchor without punch");
+        }
+        /* Touch after the wrap punches in again and erases this lap. */
+        {
+            struct RIAutoLane lw;
+            struct RIAutoEv sw[8];
+            struct RIAutoPass pw;
+            uint8_t vw[1];
+            uint32_t qw, midw = 0u;
+            memset(&lw, 0, sizeof lw);
+            lw.ev = sw;
+            lw.cap = 8u;
+            memset(&pw, 0, sizeof pw);
+            RI_ASSERT(ri_auto_stamp(&lw, 450u, 0x0300u, 70u) == 0, "wrap old rc");
+            RI_ASSERT(ri_auto_touch(&lw, &pw, 2u, 500u, 96u, 0x0300u, 71u) == 0,
+                "wrap touch rc");
+            vw[0] = 71u;
+            RI_ASSERT(ri_auto_sweep(&lw, &pw, 400u, 600u, vw) == 0, "wrap sweep rc");
+            RI_ASSERT(lw.n == 2u, "wrap touch plus anchor %u", lw.n);
+            for (qw = 0u; qw < lw.n; qw++)
+                if (lw.ev[qw].tick >= 400u && lw.ev[qw].tick < 600u &&
+                    lw.ev[qw].tick != 504u)
+                    midw = 1u;
+            RI_ASSERT(!midw, "wrap span holds only the touch");
+            RI_ASSERT(ri_auto_value(&lw, 700u, 0x0300u, &outv) == 1 && outv == 71u,
+                "wrap anchor holds");
         }
         /* Clear loop: start-in, end-out, outside kept, empty no-op. */
         RI_ASSERT(ri_auto_stamp(&lane, 100u, 0x0302u, 11u) == 0, "clear setup rc");

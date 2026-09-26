@@ -14,6 +14,9 @@ struct RIAutoEv { uint32_t tick; uint16_t ctl; uint8_t val; uint8_t pad; };
  * in the render path; flags carries RI_AUTO_FLAG_FULL (sticky). */
 struct RIAutoLane { uint32_t n, cap, flags; struct RIAutoEv *ev; };
 #define RI_AUTO_FLAG_FULL 1u
+/* Pass-write marker: RIAutoEv.pad bit set by touch on the event it
+ * writes or replaces. Sweep erases only unmarked events (R2). */
+#define RI_AUTO_EV_PASS 0x01u
 /* A recording pass: punched (play live + erase) and touched (copy-touched
  * source) control sets, both bounded; overflow refuses the new touch. */
 struct RIAutoPass {
@@ -28,9 +31,10 @@ int ri_auto_touch(struct RIAutoLane *l, struct RIAutoPass *p,
                   uint8_t tr_state, uint32_t cursor, uint32_t ppq,
                   uint16_t ctl, uint8_t val); /* punch-in + write; 0/2 */
 int ri_auto_sweep(struct RIAutoLane *l, const struct RIAutoPass *p,
-                  uint32_t from, uint32_t to, uint32_t ppq,
-                  const uint8_t *vals); /* erase span + re-anchor; 0/2 */
+                  uint32_t from, uint32_t to,
+                  const uint8_t *vals); /* erase unmarked span + re-anchor at `to`; 0/2 */
 void ri_auto_punch_out_all(struct RIAutoPass *p); /* loop wrap: keep touched */
+void ri_auto_pass_end(struct RIAutoLane *l, struct RIAutoPass *p); /* Stop: clear markers + both sets */
 int ri_auto_clear_loop(struct RIAutoLane *l, uint32_t start_tick,
                        uint32_t len_ticks); /* drop [start,start+len) */
 int ri_auto_stamp(struct RIAutoLane *l, uint32_t tick, uint16_t ctl,

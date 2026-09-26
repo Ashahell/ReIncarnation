@@ -54,6 +54,44 @@ static uint32_t lane_lower(const struct RIAutoLane *l, uint32_t n,
     return lo;
 }
 
+/* Erase this ctl's UNMARKED events in [from, to); marked pass writes
+ * survive (R2). Returns the removed count. */
+static uint32_t lane_erase_unmarked(struct RIAutoLane *l, uint16_t ctl,
+                                    uint64_t from, uint64_t to) {
+    uint32_t r = 0u, w = 0u, n;
+    if (!l || !l->ev)
+        return 0u;
+    n = lane_live_n(l);
+    for (r = 0u; r < n; r++) {
+        uint64_t t = l->ev[r].tick;
+        if (l->ev[r].ctl == ctl && t >= from && t < to &&
+            (l->ev[r].pad & RI_AUTO_EV_PASS) == 0u)
+            continue; /* erased */
+        if (w != r)
+            l->ev[w] = l->ev[r];
+        w++;
+    }
+    l->n = w;
+    return n - w;
+}
+
+/* Forward: marked insert below needs the plain insert. */
+static int lane_insert(struct RIAutoLane *l, uint32_t tick, uint16_t ctl,
+                       uint8_t val);
+
+/* Insert-or-replace at (tick, ctl) with the pass marker set. */
+static int lane_insert_marked(struct RIAutoLane *l, uint32_t tick,
+                              uint16_t ctl, uint8_t val) {
+    uint32_t n, at;
+    if (lane_insert(l, tick, ctl, val) != 0)
+        return 2;
+    n = lane_live_n(l);
+    at = lane_lower(l, n, tick, ctl);
+    if (at < n && l->ev[at].tick == tick && l->ev[at].ctl == ctl)
+        l->ev[at].pad |= RI_AUTO_EV_PASS;
+    return 0;
+}
+
 /* Insert-or-replace at (tick, ctl). 0 ok / 2 full-or-corrupt. */
 static int lane_insert(struct RIAutoLane *l, uint32_t tick, uint16_t ctl,
                        uint8_t val) {
@@ -100,18 +138,6 @@ static uint32_t lane_erase_ctl(struct RIAutoLane *l, uint16_t ctl,
     return n - w;
 }
 
-/* Forward-quantize tick to the 32nd grid (grid g ticks). 0 ok / 2 absurd. */
-static int lane_qfwd(uint32_t tick, uint32_t g, uint32_t *out) {
-    uint32_t q = tick / g, r = tick % g;
-    if (r != 0u) {
-        if (q + 1u > (uint32_t)0xFFFFFFFFu / g)
-            return 2;
-        q++;
-    }
-    *out = q * g;
-    return 0;
-}
-
 static uint64_t lane_bar_ticks(uint32_t ppq) {
     return 4u * (uint64_t)ri_ppq_or_default(ppq);
 }
@@ -126,10 +152,11 @@ void ri_auto_punch_out_all(struct RIAutoPass *p) {
     p->npunched = 0u; /* touched set kept for Copy Touched */
 }
 
+/* STUBS replaced (Task 2a): sweep body + pass_end below. */
 int ri_auto_sweep(struct RIAutoLane *l, const struct RIAutoPass *p,
-                  uint32_t from, uint32_t to, uint32_t ppq,
+                  uint32_t from, uint32_t to,
                   const uint8_t *vals) {
-    uint32_t pq, g, anchor, k, freed = 0u, exist = 0u, need;
+    uint32_t k, freed = 0u, exist = 0u, need;
     uint64_t n;
     if (!l || !l->ev || !p)
         return 2;
@@ -137,35 +164,32 @@ int ri_auto_sweep(struct RIAutoLane *l, const struct RIAutoPass *p,
         return 2;
     if (from >= to)
         return 0; /* empty sweep: no-op */
-    if (p->npunched > 0u && !vals)
-        return 2;
-    pq = ri_ppq_or_default(ppq);
-    if (pq % 8u != 0u)
-        return 2;
-    g = pq / 8u;
-    if (g == 0u || lane_qfwd(from, g, &anchor) != 0)
-        return 2;
+    /* Precompute (no mutation): erased unmarked span events per punched
+     * ctl, plus survivors already sitting at `to` (replace, no growth).
+     * NULL vals = erase only. */
     for (k = 0u; k < p->npunched; k++) { /* freed count first */
         uint32_t q2;
         for (q2 = 0u; q2 < l->n; q2++) {
             uint64_t t = l->ev[q2].tick;
-            if (l->ev[q2].ctl == p->punched[k] && t >= from && t < to)
+            if (l->ev[q2].ctl != p->punched[k])
+                continue;
+            if (t >= from && t < to &&
+                (l->ev[q2].pad & RI_AUTO_EV_PASS) == 0u)
                 freed++;
         }
     }
-    /* Survivors at the anchor (outside the erased span — keys unique). */
+    /* Survivors at `to` (any mark — re-anchor replaces them). Keys unique. */
     exist = 0u;
     for (k = 0u; k < p->npunched; k++) {
         uint32_t q2;
         for (q2 = 0u; q2 < l->n; q2++)
-            if (l->ev[q2].ctl == p->punched[k] && l->ev[q2].tick == anchor &&
-                (uint64_t)anchor >= to) {
+            if (l->ev[q2].ctl == p->punched[k] && l->ev[q2].tick == to) {
                 exist++;
                 break;
             }
     }
     n = (uint64_t)l->n;
-    need = (p->npunched > exist) ? (uint32_t)(p->npunched - exist) : 0u;
+    need = (vals && p->npunched > exist) ? (uint32_t)(p->npunched - exist) : 0u;
     if (n < freed)
         return 2;
     if (n - freed + need > l->cap) {
@@ -173,12 +197,25 @@ int ri_auto_sweep(struct RIAutoLane *l, const struct RIAutoPass *p,
         return 2;
     }
     for (k = 0u; k < p->npunched; k++) {
-        lane_erase_ctl(l, p->punched[k], from, to);
-        if (lane_insert(l, anchor, p->punched[k], vals[k]) != 0)
+        lane_erase_unmarked(l, p->punched[k], from, to);
+        if (vals && lane_insert_marked(l, to, p->punched[k], vals[k]) != 0)
             return 2; /* unreachable after precompute; fail-closed */
     }
     return 0;
 }
+
+void ri_auto_pass_end(struct RIAutoLane *l, struct RIAutoPass *p) {
+    uint32_t q, n;
+    if (!l || !l->ev || !p)
+        return;
+    n = lane_live_n(l);
+    for (q = 0u; q < n; q++)
+        l->ev[q].pad &= (uint8_t)~RI_AUTO_EV_PASS;
+    p->npunched = 0u;
+    p->ntouched = 0u;
+}
+
+/* (old sweep body removed with the ppq signature; 2a body lands below) */
 
 int ri_auto_clear_loop(struct RIAutoLane *l, uint32_t start_tick,
                        uint32_t len_ticks) {
@@ -239,7 +276,9 @@ int ri_auto_copy_touched(struct RIAutoLane *l, const struct RIAutoPass *p,
     }
     for (k = 0u; k < p->ntouched; k++) {
         lane_erase_ctl(l, p->touched[k], start, end);
-        if (lane_insert(l, start, p->touched[k], vals[k]) != 0)
+        /* Copy anchors are pass products: marked so a still-punched
+         * control's later sweep spares them (pass_end unmarks). */
+        if (lane_insert_marked(l, start, p->touched[k], vals[k]) != 0)
             return 2; /* unreachable after precompute; fail-closed */
     }
     return 0;
@@ -539,7 +578,7 @@ int ri_auto_touch(struct RIAutoLane *l, struct RIAutoPass *p,
         return 2;
     if (!pass_has(p->touched, p->ntouched, ctl) && p->ntouched >= RI_AUTO_MAX_TOUCH)
         return 2;
-    if (lane_insert(l, tick, ctl, val) != 0)
+    if (lane_insert_marked(l, tick, ctl, val) != 0)
         return 2;
     if (!pass_has(p->punched, p->npunched, ctl))
         p->punched[p->npunched++] = ctl;
