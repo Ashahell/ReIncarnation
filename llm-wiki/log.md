@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | Dell owner pass, skin format 1, Dell skin-loading fixes
+- Disposition: New (slice record); Disputed→corrected (earlier "808-RI renders on the Dell" claim, evidence doc Status: Outdated)
+- Raw: llm-wiki/raw/articles/2026-09-26-dell-owner-pass-and-skin-format-1.md
+- Updated: llm-wiki/index.md (GUI (§12.10) entry)
+Commits `3cc129c`, `1208e96`, `79e5424`; AROS lessons cross-posted to Vulkan4AROS.
+
 ## [2026-09-26] Tasks 2–4 | §12.9c automation lanes (sweep/edits/chase/publish/ATRK/audit + 10 mutants)
 - Disposition: New (slice record)
 - Raw: llm-wiki/raw/articles/2026-09-26-automation-lanes-tasks-2-to-4.md
