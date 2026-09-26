@@ -171,6 +171,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t89_pal_midi >/dev/null || { echo "FA
 bash "$ROOT/scripts/ri_build_host.sh" test t91_canvas_events >/dev/null || { echo "FAIL: t91_canvas_events (portability T3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t92_draw_hash >/dev/null || { echo "FAIL: t92_draw_hash (portability T2)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t93_raster_goldens >/dev/null || { echo "FAIL: t93_raster_goldens (portability T2)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t94_pal_fpu >/dev/null || { echo "FAIL: t94_pal_fpu (portability T9)"; exit 1; }
 echo "-- portability T8: headless core runs without AROS (WAV; PNG after T2) --"
 gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I"$ROOT" -o "$OUT/headless" "$ROOT/platform/host/main_headless.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: headless build"; exit 1; }
 rm -f /tmp/ri/null.wav

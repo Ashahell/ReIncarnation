@@ -24,9 +24,20 @@ No golden differs; no per-golden root-cause list needed.
 - mingw-w64 compile-only gate: `x86_64-w64-mingw32-gcc` not installed on
   this machine — gate pending (T10 owns the gate; record SKIP here).
 - MSVC `/fp:strict` proof: no Windows toolchain here — deferred to T11.
-- Denormal policy: no explicit FTZ/DAZ setup today (implicit per OS).
-  Proposal (owner decision §8.3): flush-to-zero ON at render-thread start
-  through `ri_pal_fpu_setup()`; needs owner sign-off before wiring.
+- Denormal policy: RESOLVED — see FTZ section below (was: proposal
+  awaiting owner sign-off).
+## FTZ locked ON (2026-09-26, owner resolution §9.3)
+
+- `platform/pal/ri_pal_fpu.h` (`ri_pal_fpu_setup()`, stdint-only) +
+  `platform/host/fpu_host.c` (x86 MXCSR FTZ+DAZ `0x8040`, AArch64 FPCR FZ,
+  no-op elsewhere) + `platform/aros/fpu_aros.c` (same SSE bits).
+- Wired at AROS render-task entry (`live_task`); the synchronous host null
+  backend deliberately does NOT call it (would flip its caller's state) —
+  host determinism stays on compiler flags. T11 WASAPI thread will call it.
+- `tests/unit/t94_pal_fpu.c`: MXCSR bits pinned, runtime subnormal
+  (`1e-38*0.5`) flushes to zero, CSR restored after. Mutant (DAZ off):
+  `FAIL ftz+daz bits` (killed).
+
 ## T9 remainder sweep (2026-09-26, recorded for the T10 round)
 
 - **VLAs:** clean — core, PAL, and all host backends compile with

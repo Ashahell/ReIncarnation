@@ -35,6 +35,7 @@
 #include <proto/timer.h>
 #include "audio_io/audio_ahi_live.h"
 #include "engine/live.h"
+#include "platform/pal/ri_pal_fpu.h"
 
 struct Library *AHIBase = NULL;
 struct Device *TimerBase = NULL; /* EClock for render timing (task side only) */
@@ -118,6 +119,7 @@ static void live_task(void) {
     ULONG mygen;
 
     s_render = FindTask(NULL);
+    ri_pal_fpu_setup(); /* T9 LOCKED: FTZ on this render thread */
     mygen = ri_atomic_load_acq(&s_open_gen); /* snapshot: a stale copy means the GUI timed out */
     hsig = AllocSignal(-1);
     if (hsig < 0) {

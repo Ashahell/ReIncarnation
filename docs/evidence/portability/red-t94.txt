@@ -1,0 +1,4 @@
+T9 RED (FTZ setter before it existed):
+- tests/unit/t94_pal_fpu.c includes platform/pal/ri_pal_fpu.h: no such file
+  (link RED once stubbed).
+GREEN provides the setter, both backends, the render-task wiring and t94.
