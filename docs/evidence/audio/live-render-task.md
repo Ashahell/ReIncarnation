@@ -31,3 +31,40 @@ Pending on the Dell E6320 (ABIv11, 1366x768, real HDA):
 Low-level (`AHI_AllocAudioA` + PlayerFunc `Signal()`) vs `ahi.device`
 `CMD_WRITE` (the `AuPlay` fallback, kept): measure which runs at 64/128
 frames without xruns; ship the winner, keep the other documented.
+
+## Dell first sound (2026-09-26, Claude session; owner listening)
+
+The G9.3 backend in `f1bfb7d` was a placeholder: no `AHI_AllocAudioA`, the
+hook was never registered, no render task existed, and RIAPP hard-coded the
+null backend. It is replaced by a real low-level stream
+(`audio_io/audio_ahi_live.c`):
+- **Render task:** a render Process (priority 10) owns every AHI object.
+  It opens `ahi.device` on `AHI_NO_UNIT` (base from `io_Device`) and picks
+  `AHI_BestAudioID` for stereo HiFi at 48 kHz.
+- **Stream:** one channel with two `AHIST_DYNAMICSAMPLE` `AHIST_S16S`
+  sounds as the double buffer. The `SoundFunc` hook only counts and
+  `Signal()`s (spec §4.2). The task renders the finished half through
+  `ri_live_render` and queues it (`AHI_SetSound … AHISF_NONE`).
+- **Under-runs:** a late buffer makes AHI loop the last half; it is counted
+  as an xrun, never a hang.
+- **Control:** the GUI posts transport requests (`au_live_request`) and
+  knob keys (control plane) only. The task is the only caller of
+  `ri_live_render/play/stop`.
+- **Fallback:** a failed open means the null backend plus the documented
+  message (with the failing step number).
+
+Results on the Dell E6320 (ABIv11 build, `RIAPP 1024`):
+- [x] Mode `0x003E0001`; AHI accepted a **48000 Hz** mix rate (the session
+      runs at the queried mix rate, G9.0 E0).
+- [x] Owner: "we hear both" (303 + 808), then after the demo-mix change
+      "balance is good now, pan works". Cutoff (C/V), 303 level (L/K) and
+      pan (P, now centre/left/right) are audible live.
+- [x] First session: **5447 buffers × 1024 frames ≈ 116 s, 0 xruns**,
+      clean close (`RIAPP closed: buffers=5447 xruns=0`).
+- Demo mix: the 303 strip starts at 72 (−9.9 dB) and the 808 downbeats
+  are accented (owner: the 808 should be louder). Host-measured RMS: 808
+  −19.8 dBFS, 303A at 90 −17.3 dBFS. The voice calibration is unchanged.
+- M only logs meters (no sound change, as designed). The first log's
+  meter line was garbled: RawDoFmt `%lu` consumes packed 32-bit LONGs,
+  not IPTRs. Fixed by building the args as ULONG.
+- [ ] 64/128-frame runs, a 5-minute soak, render time per buffer: next.

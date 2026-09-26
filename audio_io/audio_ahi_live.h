@@ -1,10 +1,13 @@
 /* audio_ahi_live.h — G9.3 live render task + low-level AHI backend.
- * AROS-only. Structure per spec §4.2: PlayerFunc hook only Signal()s,
- * a dedicated render Task Wait()s, renders exactly the device buffer
- * through ri_live_render into caller-owned double buffers, converts f32
- * stereo to negotiated 16-bit with deterministic rounding, hands it to
- * AHI. Under-runs counted (§17 #5), never a hang. Clean stop releases
- * everything (WBS 2.7 close-path lesson).
+ * AROS-only. Spec §4.2 (LOCKED): the AHI hook runs in driver context and
+ * only Signal()s; a dedicated render Task owns AHI and the session's render
+ * side, Wait()s on the hook signal, renders exactly one device buffer through
+ * ri_live_render into the free half of a double buffer (two AHI dynamic
+ * sounds), converts f32 stereo to 16-bit with deterministic rounding and
+ * queues it (AHI_SetSound, AHISF_NONE). Late buffers are counted as xruns
+ * (AHI repeats the last buffer: audible glitch, never a hang — §17 #5).
+ * The GUI never touches the session's render state: transport requests and
+ * knob moves travel as a volatile request word and the SPSC control plane.
  */
 #ifndef RI_AUDIO_AHI_LIVE_H
 #define RI_AUDIO_AHI_LIVE_H
@@ -17,25 +20,40 @@
 
 struct RILiveSession; /* engine/live.h (opaque here) */
 
-/* Caller-owned live backend. All buffers are caller storage (no alloc):
- * f32 stereo pair (frames each) + s16 interleaved (frames*2). frames is
- * the negotiated device buffer (64..4096, multiple of 64 where possible;
- * OPEN-09 measures 64/128 on the Dell). */
+#define AU_LIVE_MAXFRAMES 4096u
+#define AU_LIVE_CMD_NONE 0
+#define AU_LIVE_CMD_PLAY 1
+#define AU_LIVE_CMD_STOP 2
+
+/* One live backend (one per process). Fields marked (out) are written by
+ * the render task and read by the GUI (word-sized, read-only there). */
 struct AuLive {
-    struct RILiveSession *session;
-    float *f32_l;
-    float *f32_r;
-    WORD *s16;
-    ULONG frames;
-    ULONG xruns;
-    ULONG render_us_max;
-    volatile int stop;
-    volatile int running;
+    ULONG frames;              /* device buffer, 64..AU_LIVE_MAXFRAMES */
+    ULONG want_rate;           /* requested mix rate */
+    ULONG mix_freq;            /* (out) negotiated mix rate: run the session at this */
+    ULONG mode_id;             /* (out) AHI audio mode */
+    volatile ULONG xruns;      /* (out) late buffers (AHI repeated one) */
+    volatile ULONG buffers;    /* (out) buffers rendered */
+    volatile LONG cmd;         /* GUI -> task transport request (AU_LIVE_CMD_*) */
+    volatile LONG state;       /* 0 idle, 1 negotiated, 2 playing, -1 failed, 3 ended */
+    LONG err;                  /* failure step (1 port, 2 device, 3 mode, 4 alloc, 5 load, 6 task) */
+    struct RILiveSession *session; /* set by au_live_run */
 };
 
-int au_live_start(struct AuLive *lv);
-int au_live_stop(struct AuLive *lv);
-ULONG au_live_xruns(const struct AuLive *lv);
+/* Spawn the render task, open ahi.device (AHI_NO_UNIT, device-as-library),
+ * pick the best stereo HiFi mode for want_rate, allocate one channel with
+ * two dynamic sounds and a SoundFunc hook, read the actual mix rate back.
+ * Returns 0 ok (lv->mix_freq set, task waiting for au_live_run) or nonzero
+ * (nothing held; caller falls back to the null backend). */
+int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate);
+/* Hand the session (initialised at lv->mix_freq) to the task and start
+ * the stream. 0 ok. */
+int au_live_run(struct AuLive *lv, struct RILiveSession *s);
+/* Transport request, applied by the task at the next buffer start. */
+void au_live_request(struct AuLive *lv, LONG cmd);
+/* Stop the stream, free AHI, end the task; safe after a failed open. */
+void au_live_close(struct AuLive *lv);
+
 /* Deterministic f32 -> s16 twin of auf_f32_to_s16 (audio.c): clamp,
  * round-half-away, no libm. */
 static inline WORD au_live_f32_to_s16(float x) {
