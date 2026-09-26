@@ -6,6 +6,7 @@
  * byte-identical including forward-compat bytes.
  */
 #include "project/rbng.h"
+#include "engine/seq/autolane.h" /* allow-list (model header only, no scheduler types) */
 #include <stdio.h>
 #include <string.h>
 
@@ -148,6 +149,9 @@ void rbng_song_init(struct RISong *s) {
     memset(s, 0, sizeof *s);
     s->tempo = 140;
     s->ppq = 96;
+    s->atrk = 0;
+    s->natrk = 0u;
+    s->atrk_cap = 0u;
 }
 
 /* ---- writer ---- */
@@ -243,6 +247,58 @@ static int song_valid(const struct RISong *s, char *err, uint32_t errcap) {
             return 1;
         }
     }
+    if (s->natrk > 0u) {
+        uint64_t bar_ticks, end_tick, ptick = 0u;
+        uint16_t pctl = 0u;
+        int have_prev = 0;
+        if (s->nauto > 0u) {
+            put_err(err, errcap, "AUTO and ATRK together");
+            return 1;
+        }
+        if (s->atrk == 0 || s->natrk > s->atrk_cap) {
+            put_err(err, errcap, "ATRK without buffer");
+            return 1;
+        }
+        if (s->natrk > (0xFFFFFFFFu - 4u) / 8u) {
+            put_err(err, errcap, "ATRK count out of range");
+            return 1;
+        }
+        bar_ticks = 4u * (uint64_t)s->ppq;
+        end_tick = (uint64_t)999u * bar_ticks;
+        for (k = 0u; k < s->natrk; k++) {
+            uint64_t t = s->atrk[k].tick;
+            uint16_t c = s->atrk[k].ctl;
+            if (!ri_auto_allowed(c)) {
+                put_err(err, errcap, "ATRK ID not allowed");
+                return 1;
+            }
+            if (s->atrk[k].val > 127u) {
+                put_err(err, errcap, "ATRK value out of range");
+                return 1;
+            }
+            if (t >= end_tick) {
+                put_err(err, errcap, "ATRK tick past bar 999");
+                return 1;
+            }
+            if (have_prev && t < ptick) {
+                put_err(err, errcap, "ATRK unsorted");
+                return 1;
+            }
+            if (have_prev && t == ptick) {
+                if (c == pctl) {
+                    put_err(err, errcap, "ATRK duplicate");
+                    return 1;
+                }
+                if (c < pctl) {
+                    put_err(err, errcap, "ATRK unsorted");
+                    return 1;
+                }
+            }
+            ptick = t;
+            pctl = c;
+            have_prev = 1;
+        }
+    }
     if (s->nbanks > RI_RBNG_MAX_BANKS) {
         put_err(err, errcap, "BANK count out of range");
         return 1;
@@ -317,13 +373,14 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     uint32_t errcap) {
     FILE *f;
     uint32_t total, k, tb, ti;
-    uint32_t cprg_n, patt_n, auto_n, modr_n;
+    uint32_t cprg_n, patt_n, auto_n, modr_n, atrk_n;
     if (song_valid(s, err, errcap) != 0)
         return 2;
     cprg_n = 1u + (uint32_t)strlen(s->cprg);
     patt_n = (uint32_t)s->nsteps * 2u;
     auto_n = auto_len(s);
     modr_n = modr_len(s);
+    atrk_n = 4u + s->natrk * 8u;
     total = 4u; /* 'RBNG' */
     total += 8u + 8u; /* VERS (8 data bytes, even) */
     total += 8u + 6u; /* SONG */
@@ -336,7 +393,10 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
             total += 8u + bl + (bl & 1u);
         }
     }
-    total += 8u + auto_n + (auto_n & 1u);
+    if (s->natrk > 0u)
+        total += 8u + atrk_n + (atrk_n & 1u); /* ATRK replaces AUTO */
+    else
+        total += 8u + auto_n + (auto_n & 1u);
     total += 8u + modr_n + (modr_n & 1u);
     total += 8u + cprg_n + (cprg_n & 1u);
     if (!ri_track_is_empty(&s->track))
@@ -353,9 +413,11 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     fwrite("RBNG", 1, 4, f);
     chunk_head(f, "VERS", 8u);
     wr16be(f, RI_RBNG_MAJOR);
-    /* Legacy-shaped songs (no banks, empty track) stay minor 0 and remain
-     * byte-identical v1.0 files; banks OR a track make it 1.1. */
-    wr16be(f, (s->nbanks > 0u || !ri_track_is_empty(&s->track)) ? 1u : 0u);
+    /* Legacy-shaped songs (no banks, empty track, no ATRK) stay minor 0
+     * and remain byte-identical v1.0 files; banks OR a track make it 1.1,
+     * automation ATRK makes it 1.2. */
+    wr16be(f, (s->natrk > 0u) ? 2u :
+        ((s->nbanks > 0u || !ri_track_is_empty(&s->track)) ? 1u : 0u));
     wr32be(f, 0u);
     chunk_head(f, "SONG", 6u);
     wr16be(f, s->tempo);
@@ -380,16 +442,29 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
             for (ti = 0u; ti < RI_SONGTRACK_INSTANCES; ti++)
                 fputc((int)s->track.slot[tb][ti], f);
     }
-    chunk_head(f, "AUTO", auto_n);
-    wr16be(f, s->nauto);
-    for (k = 0; k < s->nauto; k++) {
-        wr32be(f, s->auto_ev[k].tick);
-        wr16be(f, s->auto_ev[k].ctl);
-        fputc((int)s->auto_ev[k].val, f);
-        fputc(0, f);
+    if (s->natrk > 0u) {
+        chunk_head(f, "ATRK", atrk_n);
+        wr32be(f, s->natrk);
+        for (k = 0; k < s->natrk; k++) {
+            wr32be(f, s->atrk[k].tick);
+            wr16be(f, s->atrk[k].ctl);
+            fputc((int)s->atrk[k].val, f);
+            fputc(0, f);
+        }
+        if (atrk_n & 1u)
+            fputc(0, f);
+    } else {
+        chunk_head(f, "AUTO", auto_n);
+        wr16be(f, s->nauto);
+        for (k = 0; k < s->nauto; k++) {
+            wr32be(f, s->auto_ev[k].tick);
+            wr16be(f, s->auto_ev[k].ctl);
+            fputc((int)s->auto_ev[k].val, f);
+            fputc(0, f);
+        }
+        if (auto_n & 1u)
+            fputc(0, f);
     }
-    if (auto_n & 1u)
-        fputc(0, f);
     chunk_head(f, "MODR", modr_n);
     wr16be(f, s->nmods);
     for (k = 0; k < s->nmods; k++) {
@@ -587,10 +662,20 @@ static int parse_image(const unsigned char *img, uint32_t n, struct RISong *s,
     char *err, uint32_t errcap) {
     uint32_t off, total;
     int saw_vers = 0, saw_song = 0, saw_patt = 0, saw_auto = 0, saw_modr = 0,
-        saw_cprg = 0, saw_strk = 0;
+        saw_cprg = 0, saw_strk = 0, saw_atrk = 0;
     uint16_t file_minor = 0u;
     uint32_t patt_expect = 0;
+    struct RBAutoEv *keep_atrk;
+    uint32_t keep_cap;
+    /* Caller-provided ATRK buffer survives init (init zeroes fresh
+     * structs; callers attach buffers AFTER rbng_song_init). The count
+     * stays init-zeroed: it is an OUT parameter, set only when an ATRK
+     * chunk parses fully. */
+    keep_atrk = s->atrk;
+    keep_cap = s->atrk_cap;
     rbng_song_init(s);
+    s->atrk = keep_atrk;
+    s->atrk_cap = keep_cap;
     if (n < 12u || memcmp(img, "FORM", 4) != 0) {
         put_err(err, errcap, "not FORM");
         return 1;
@@ -703,6 +788,10 @@ static int parse_image(const unsigned char *img, uint32_t n, struct RISong *s,
                 ck_err(err, errcap, cid, off, "duplicate AUTO");
                 return 1;
             }
+            if (saw_atrk) {
+                ck_err(err, errcap, cid, off, "AUTO and ATRK together");
+                return 1;
+            }
             saw_auto = 1;
             if (left < 2u) {
                 ck_err(err, errcap, cid, off, "AUTO too short");
@@ -726,6 +815,94 @@ static int parse_image(const unsigned char *img, uint32_t n, struct RISong *s,
                 q += 8;
             }
             s->nauto = (uint16_t)na;
+        } else if (memcmp(cid, "ATRK", 4) == 0) {
+            const unsigned char *q = img + doff;
+            uint64_t bar_ticks, end_tick, ptick = 0u;
+            uint16_t pctl = 0u;
+            int have_prev = 0;
+            uint32_t left = size, na, k;
+            if (!saw_song) {
+                ck_err(err, errcap, cid, off, "ATRK before SONG");
+                return 1;
+            }
+            if (file_minor < 2u) {
+                ck_err(err, errcap, cid, off, "ATRK requires 1.2");
+                return 1;
+            }
+            if (saw_atrk) {
+                ck_err(err, errcap, cid, off, "duplicate ATRK");
+                return 1;
+            }
+            if (saw_auto) {
+                ck_err(err, errcap, cid, off, "AUTO and ATRK together");
+                return 1;
+            }
+            saw_atrk = 1;
+            if (left < 4u) {
+                ck_err(err, errcap, cid, off, "ATRK too short");
+                return 1;
+            }
+            na = rd32be(q);
+            q += 4;
+            left -= 4u;
+            if (na == 0u ? left != 0u : (left / na != 8u || left % na != 0u)) {
+                ck_err(err, errcap, cid, off, "ATRK bad count/length");
+                return 1;
+            }
+            if (s->atrk == 0) {
+                ck_err(err, errcap, cid, off, "ATRK without buffer");
+                return 1;
+            }
+            if (na > s->atrk_cap) {
+                ck_err(err, errcap, cid, off, "ATRK buffer too small");
+                return 1;
+            }
+            bar_ticks = 4u * (uint64_t)s->ppq;
+            end_tick = (uint64_t)999u * bar_ticks;
+            /* Validate the whole body BEFORE storing anything
+             * (all-or-nothing, song-track R7 law). */
+            for (k = 0u; k < na; k++) {
+                uint64_t t = rd32be(q);
+                uint16_t c = rd16be(q + 4);
+                uint8_t v = q[6];
+                if (q[7] != 0u || v > 127u) {
+                    ck_err(err, errcap, cid, off, "ATRK bad value/pad");
+                    return 1;
+                }
+                if (!ri_auto_allowed(c)) {
+                    ck_err(err, errcap, cid, off, "ATRK ID not allowed");
+                    return 1;
+                }
+                if (t >= end_tick) {
+                    ck_err(err, errcap, cid, off, "ATRK tick past bar 999");
+                    return 1;
+                }
+                if (have_prev && t < ptick) {
+                    ck_err(err, errcap, cid, off, "ATRK unsorted");
+                    return 1;
+                }
+                if (have_prev && t == ptick) {
+                    if (c == pctl) {
+                        ck_err(err, errcap, cid, off, "ATRK duplicate");
+                        return 1;
+                    }
+                    if (c < pctl) {
+                        ck_err(err, errcap, cid, off, "ATRK unsorted");
+                        return 1;
+                    }
+                }
+                ptick = t;
+                pctl = c;
+                have_prev = 1;
+                q += 8;
+            }
+            for (k = 0u; k < na; k++) {
+                q = img + doff + 4u + (uint64_t)k * 8u;
+                s->atrk[k].tick = rd32be(q);
+                s->atrk[k].ctl = rd16be(q + 4);
+                s->atrk[k].val = q[6];
+            }
+            s->natrk = na;
         } else if (memcmp(cid, "MODR", 4) == 0) {
             const unsigned char *q = img + doff;
             uint32_t left = size, nm, k;
@@ -865,7 +1042,7 @@ static int parse_image(const unsigned char *img, uint32_t n, struct RISong *s,
         put_err(err, errcap, "missing PATT chunk");
         return 1;
     }
-    if (!saw_auto) {
+    if (!saw_auto && !saw_atrk) {
         put_err(err, errcap, "missing AUTO chunk");
         return 1;
     }

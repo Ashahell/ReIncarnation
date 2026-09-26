@@ -776,3 +776,59 @@ uint32_t ri_auto_emit_range(const struct RIAutoLane *l, const struct RIAutoPass 
     }
     return added;
 }
+
+/* Lane <-> triples transfer (codec/GUI bridge). Load validates all
+ * (sorted strictly by (tick,ctl), allow-listed, fits cap) then replaces
+ * with unmarked file data; store dumps (refuses when cap < n). */
+int ri_auto_load_triples(struct RIAutoLane *l, const uint32_t *ticks,
+                         const uint16_t *ctls, const uint8_t *vals,
+                         uint32_t n) {
+    uint32_t k;
+    if (!l || !l->ev)
+        return 2;
+    if (l->n > l->cap)
+        return 2;
+    if (n == 0u)
+        return 0; /* empty load: no-op, lane untouched */
+    if (!ticks || !ctls || !vals)
+        return 2;
+    if (n > l->cap)
+        return 2;
+    for (k = 0u; k < n; k++) {
+        if (!ri_auto_allowed(ctls[k]))
+            return 2;
+        if (k > 0u && (ticks[k] < ticks[k - 1u] ||
+                (ticks[k] == ticks[k - 1u] && ctls[k] <= ctls[k - 1u])))
+            return 2; /* unsorted or duplicate key */
+    }
+    for (k = 0u; k < n; k++) {
+        l->ev[k].tick = ticks[k];
+        l->ev[k].ctl = ctls[k];
+        l->ev[k].val = vals[k];
+        l->ev[k].pad = 0u;
+    }
+    l->n = n;
+    return 0;
+}
+
+int ri_auto_store_triples(const struct RIAutoLane *l, uint32_t *ticks,
+                          uint16_t *ctls, uint8_t *vals, uint32_t cap,
+                          uint32_t *n) {
+    uint32_t k, nn;
+    if (!l || !l->ev || !n)
+        return 2;
+    if (l->n > l->cap)
+        return 2;
+    nn = l->n;
+    if (nn > cap || (nn > 0u && (!ticks || !ctls || !vals))) {
+        *n = 0u;
+        return 2;
+    }
+    for (k = 0u; k < nn; k++) {
+        ticks[k] = l->ev[k].tick;
+        ctls[k] = l->ev[k].ctl;
+        vals[k] = l->ev[k].val;
+    }
+    *n = nn;
+    return 0;
+}

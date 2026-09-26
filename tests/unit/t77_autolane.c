@@ -946,5 +946,107 @@ int main(void) {
         ri_auto_carry_reindex(0, ri_auto_pub_front(&pub), 0u);
         ri_auto_carry_reindex(&cy, 0, 0u);
     }
+    /* ---- Task 3c: lane <-> triples transfer (codec/GUI bridge) ---- */
+    {
+        struct RIAutoLane lane;
+        struct RIAutoEv sto[8];
+        uint32_t ticks[8], nt = 0u;
+        uint16_t ctls[8];
+        uint8_t vals[8], outv;
+        memset(&lane, 0, sizeof lane);
+        lane.ev = sto;
+        lane.cap = 8u;
+        RI_ASSERT(ri_auto_stamp(&lane, 48u, 0x0300u, 10u) == 0, "tri setup A");
+        RI_ASSERT(ri_auto_stamp(&lane, 100u, 0x0312u, 20u) == 0, "tri setup B");
+        RI_ASSERT(ri_auto_stamp(&lane, 200u, 0x0300u, 11u) == 0, "tri setup C");
+        RI_ASSERT(ri_auto_store_triples(&lane, ticks, ctls, vals, 8u, &nt) == 0,
+            "store rc");
+        RI_ASSERT(nt == 3u, "store count %u", nt);
+        RI_ASSERT(ticks[0] == 48u && ctls[0] == 0x0300u && vals[0] == 10u,
+            "store triple 0");
+        RI_ASSERT(ticks[2] == 200u && ctls[2] == 0x0300u && vals[2] == 11u,
+            "store triple 2");
+        RI_ASSERT(ri_auto_store_triples(&lane, ticks, ctls, vals, 2u, &nt) == 2,
+            "store cap refuses");
+        RI_ASSERT(nt == 0u, "store refusal writes nothing %u", nt);
+        RI_ASSERT(ri_auto_store_triples(0, ticks, ctls, vals, 8u, &nt) == 2,
+            "store null lane");
+        RI_ASSERT(ri_auto_store_triples(&lane, 0, ctls, vals, 8u, &nt) == 2,
+            "store null ticks");
+        {
+            struct RIAutoLane l2;
+            struct RIAutoEv s2[8];
+            memset(&l2, 0, sizeof l2);
+            l2.ev = s2;
+            l2.cap = 8u;
+            RI_ASSERT(ri_auto_load_triples(&l2, ticks, ctls, vals, 3u) == 0,
+                "load rc");
+            RI_ASSERT(l2.n == lane.n, "load count %u", l2.n);
+            RI_ASSERT(memcmp(l2.ev, lane.ev, l2.n * sizeof s2[0]) == 0,
+                "load round-trip bytes");
+            RI_ASSERT(ri_auto_value(&l2, 500u, 0x0312u, &outv) == 1 && outv == 20u,
+                "loaded lane sounds");
+        }
+        {
+            /* unsorted input refused, lane untouched */
+            uint32_t bt[2] = { 200u, 48u };
+            uint16_t bc[2] = { 0x0300u, 0x0300u };
+            uint8_t bv[2] = { 1u, 2u };
+            struct RIAutoLane l3;
+            struct RIAutoEv s3[8];
+            memset(&l3, 0, sizeof l3);
+            l3.ev = s3;
+            l3.cap = 8u;
+            RI_ASSERT(ri_auto_load_triples(&l3, bt, bc, bv, 2u) == 2,
+                "load unsorted refuses");
+            RI_ASSERT(l3.n == 0u, "load unsorted untouched %u", l3.n);
+        }
+        {
+            /* duplicate (tick,ctl) refused */
+            uint32_t bt[2] = { 48u, 48u };
+            uint16_t bc[2] = { 0x0300u, 0x0300u };
+            uint8_t bv[2] = { 1u, 2u };
+            struct RIAutoLane l4;
+            struct RIAutoEv s4[8];
+            memset(&l4, 0, sizeof l4);
+            l4.ev = s4;
+            l4.cap = 8u;
+            RI_ASSERT(ri_auto_load_triples(&l4, bt, bc, bv, 2u) == 2,
+                "load duplicate refuses");
+            RI_ASSERT(l4.n == 0u, "load duplicate untouched %u", l4.n);
+        }
+        {
+            /* denied ID refused */
+            uint32_t bt[1] = { 48u };
+            uint16_t bc[1] = { 0x0401u };
+            uint8_t bv[1] = { 1u };
+            struct RIAutoLane l5;
+            struct RIAutoEv s5[8];
+            memset(&l5, 0, sizeof l5);
+            l5.ev = s5;
+            l5.cap = 8u;
+            RI_ASSERT(ri_auto_load_triples(&l5, bt, bc, bv, 1u) == 2,
+                "load denied refuses");
+            RI_ASSERT(l5.n == 0u, "load denied untouched %u", l5.n);
+        }
+        {
+            /* over-capacity refused */
+            uint32_t bt[3] = { 0u, 12u, 24u };
+            uint16_t bc[3] = { 0x0300u, 0x0301u, 0x0302u };
+            uint8_t bv[3] = { 1u, 2u, 3u };
+            struct RIAutoLane l6;
+            struct RIAutoEv s6[2];
+            memset(&l6, 0, sizeof l6);
+            l6.ev = s6;
+            l6.cap = 2u;
+            RI_ASSERT(ri_auto_load_triples(&l6, bt, bc, bv, 3u) == 2,
+                "load over-cap refuses");
+            RI_ASSERT(l6.n == 0u, "load over-cap untouched %u", l6.n);
+        }
+        RI_ASSERT(ri_auto_load_triples(&lane, 0, 0, 0, 1u) == 2,
+            "load null arrays");
+        RI_ASSERT(ri_auto_load_triples(&lane, ticks, ctls, vals, 0u) == 0,
+            "load empty ok");
+    }
     RI_RESULT("autolane");
 }

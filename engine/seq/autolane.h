@@ -42,6 +42,15 @@ int ri_auto_stamp(struct RIAutoLane *l, uint32_t tick, uint16_t ctl,
 int ri_auto_copy_touched(struct RIAutoLane *l, const struct RIAutoPass *p,
                          uint32_t start, uint32_t end,
                          const uint8_t *vals); /* range clear + start event; 0/2 */
+/* Lane <-> triples transfer (codec/GUI bridge; engine never sees
+ * RBAutoEv). Load validates all then replaces (unmarked file data);
+ * store dumps (refuses when cap < n, *n set 0). rc 0/2. */
+int ri_auto_load_triples(struct RIAutoLane *l, const uint32_t *ticks,
+                         const uint16_t *ctls, const uint8_t *vals,
+                         uint32_t n);
+int ri_auto_store_triples(const struct RIAutoLane *l, uint32_t *ticks,
+                          uint16_t *ctls, uint8_t *vals, uint32_t cap,
+                          uint32_t *n);
 #define RI_AUTO_CLIP_EVENTS RI_AUTO_MAX_EVENTS
 /* Bar-edit clip: caller-owned storage (R10 — never inline 256 KB).
  * Ticks relative to base_tick; span_ticks is the cut/copy width so

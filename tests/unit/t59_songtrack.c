@@ -592,6 +592,269 @@ int main(void) {
         for (k = 0u; k < 4u; k++)
             RI_ASSERT(ri_track_selected(&r.track, 500u, k) == 0u, "v1.0 default slot 0");
     }
+    /* ---- ATRK automation chunk (v1.2): 3000-event round-trip, minor
+     * iff present, legacy AUTO-only byte-identity. ---- */
+    {
+        const char *FB = "/tmp/ri/run/t59-atrk.rbng";
+        const char *FM2 = "/tmp/ri/run/t59-atrk-mut.rbng";
+        const char *FL2 = "/tmp/ri/run/t59-atrk-legacy.rbng";
+        const char *F1 = "/tmp/ri/run/t59-atrk-auto1.rbng";
+        const char *F2 = "/tmp/ri/run/t59-atrk-auto2.rbng";
+        struct RISong s, r;
+        static struct RBAutoEv big[3000], back[3000];
+        char err[256];
+        unsigned char buf[64], f1[65536], f2[65536];
+        size_t nn, n1, n2;
+        uint32_t k;
+        FILE *f;
+        rbng_song_init(&s);
+        s.nsteps = 4u;
+        for (k = 0u; k < 4u; k++) {
+            s.steps[k].note = (uint8_t)(45u + k);
+            s.steps[k].flags = 0u;
+        }
+        for (k = 0u; k < 3000u; k++) {
+            big[k].tick = k * 127u;
+            big[k].ctl = (uint16_t)(((k & 1u) != 0u) ? 0x0310u + (k % 8u) : 0x0300u + (k % 8u));
+            big[k].val = (uint8_t)(k % 128u);
+        }
+        s.atrk = big;
+        s.natrk = 3000u;
+        s.atrk_cap = 3000u;
+        RI_ASSERT(rbng_write_song(FB, &s, err, sizeof err) == 0, "atrk write %s", err);
+        f = fopen(FB, "rb");
+        RI_ASSERT(f != 0, "atrk open");
+        nn = f ? fread(buf, 1u, sizeof buf, f) : 0u;
+        if (f)
+            fclose(f);
+        RI_ASSERT(nn >= 24u, "atrk file size %u", (unsigned)nn);
+        RI_ASSERT(buf[20] == 0u && buf[21] == 1u, "atrk major");
+        RI_ASSERT(buf[22] == 0u && buf[23] == 2u, "minor is 2 with ATRK");
+        memset(&r, 0xA5, sizeof r);
+        r.atrk = back;
+        r.atrk_cap = 3000u;
+        r.natrk = 0u;
+        RI_ASSERT(rbng_read_song(FB, &r, err, sizeof err) == 0, "atrk read %s", err);
+        RI_ASSERT(r.natrk == 3000u, "atrk count %u", r.natrk);
+        RI_ASSERT(memcmp(back, big, 3000u * sizeof back[0]) == 0, "atrk round-trip bytes");
+        RI_ASSERT(r.nsteps == 4u, "atrk song fields kept");
+        /* Minor iff present: no ATRK leaves minor at/below 1. */
+        rbng_song_init(&s);
+        s.nsteps = 4u;
+        for (k = 0u; k < 4u; k++) {
+            s.steps[k].note = (uint8_t)(45u + k);
+            s.steps[k].flags = 0u;
+        }
+        RI_ASSERT(rbng_write_song(FL2, &s, err, sizeof err) == 0, "nominor write %s", err);
+        f = fopen(FL2, "rb");
+        RI_ASSERT(f != 0, "nominor open");
+        nn = f ? fread(buf, 1u, sizeof buf, f) : 0u;
+        if (f)
+            fclose(f);
+        RI_ASSERT(nn >= 24u, "nominor size %u", (unsigned)nn);
+        RI_ASSERT(buf[23] != 2u, "minor raised without ATRK: %u", buf[23]);
+        /* Legacy byte-identity: AUTO-only file rewrites byte-identical. */
+        rbng_song_init(&s);
+        s.nsteps = 4u;
+        for (k = 0u; k < 4u; k++) {
+            s.steps[k].note = (uint8_t)(45u + k);
+            s.steps[k].flags = 0u;
+        }
+        s.nauto = 3u;
+        s.auto_ev[0].tick = 0u; s.auto_ev[0].ctl = 0x0300u; s.auto_ev[0].val = 1u;
+        s.auto_ev[1].tick = 384u; s.auto_ev[1].ctl = 0x0312u; s.auto_ev[1].val = 2u;
+        s.auto_ev[2].tick = 768u; s.auto_ev[2].ctl = 0x0301u; s.auto_ev[2].val = 3u;
+        RI_ASSERT(rbng_write_song(F1, &s, err, sizeof err) == 0, "auto write %s", err);
+        memset(&r, 0xA5, sizeof r);
+        RI_ASSERT(rbng_read_song(F1, &r, err, sizeof err) == 0, "auto read %s", err);
+        RI_ASSERT(r.nauto == 3u, "auto count kept %u", r.nauto);
+        RI_ASSERT(rbng_write_song(F2, &r, err, sizeof err) == 0, "auto rewrite %s", err);
+        f = fopen(F1, "rb");
+        n1 = f ? fread(f1, 1u, sizeof f1, f) : 0u;
+        if (f)
+            fclose(f);
+        f = fopen(F2, "rb");
+        n2 = f ? fread(f2, 1u, sizeof f2, f) : 0u;
+        if (f)
+            fclose(f);
+        RI_ASSERT(n1 == n2 && n1 > 0u, "rewrite sizes %u/%u", (unsigned)n1, (unsigned)n2);
+        RI_ASSERT(n1 == n2 && memcmp(f1, f2, n1) == 0, "legacy byte-identity");
+        /* Rejects, each with its own err text and nothing stored. */
+        {
+            unsigned char mut[8];
+            uint32_t soff = 0u, q;
+            struct RISong r2;
+            f = fopen(FB, "rb");
+            n1 = f ? fread(f1, 1u, sizeof f1, f) : 0u;
+            if (f)
+                fclose(f);
+            for (q = 0u; q + 8u <= (uint32_t)n1; q++)
+                if (memcmp(f1 + q, "ATRK", 4) == 0) {
+                    soff = q;
+                    break;
+                }
+            RI_ASSERT(soff > 0u, "ATRK chunk found");
+            /* Minor 0 + ATRK. */
+            RI_ASSERT(rbng_test_set_vers(FB, FM2, 1u, 0u, 0u) == 0, "mut minor");
+            rbng_song_init(&r2);
+            r2.atrk = back;
+            r2.atrk_cap = 3000u;
+            RI_ASSERT(rbng_read_song(FM2, &r2, err, sizeof err) != 0,
+                "minor0+ATRK accepted");
+            RI_ASSERT(strstr(err, "ATRK requires 1.2") != 0, "minor0 reason: %s", err);
+            RI_ASSERT(r2.natrk == 0u, "minor0 stored %u", r2.natrk);
+            /* Bad value in the LAST record. */
+            mut[0] = 200u;
+            RI_ASSERT(rbng_test_patch_bytes(FB, FM2,
+                soff + 12u + 2999u * 8u + 6u, mut, 1u) == 0, "mut value");
+            rbng_song_init(&r2);
+            r2.atrk = back;
+            r2.atrk_cap = 3000u;
+            RI_ASSERT(rbng_read_song(FM2, &r2, err, sizeof err) != 0,
+                "badval accepted");
+            RI_ASSERT(strstr(err, "ATRK bad value") != 0, "badval reason: %s", err);
+            RI_ASSERT(r2.natrk == 0u, "badval stored %u", r2.natrk);
+            /* Unsorted: swap the last two tick words. */
+            {
+                unsigned char t_hi[4], t_lo[4];
+                uint32_t t1 = 2998u * 127u, t2 = 2999u * 127u, k;
+                for (k = 0u; k < 4u; k++) {
+                    t_hi[k] = (unsigned char)(t1 >> (8u * (3u - k)));
+                    t_lo[k] = (unsigned char)(t2 >> (8u * (3u - k)));
+                }
+                RI_ASSERT(rbng_test_patch_bytes(FB, FM2, soff + 12u + 2998u * 8u,
+                    t_lo, 4u) == 0, "mut unsort a");
+                {
+                    /* second patch chains file->file; reuse FM2 via F1 slot */
+                    unsigned char tmp[65536];
+                    size_t nnx;
+                    FILE *fx = fopen(FM2, "rb");
+                    nnx = fx ? fread(tmp, 1u, sizeof tmp, fx) : 0u;
+                    if (fx)
+                        fclose(fx);
+                    RI_ASSERT(nnx > soff + 12u + 2999u * 8u + 4u, "mut readback");
+                    for (k = 0u; k < 4u; k++)
+                        tmp[soff + 12u + 2999u * 8u + k] = t_hi[k];
+                    fx = fopen(FM2, "wb");
+                    RI_ASSERT(fx != 0, "mut rewrite");
+                    if (fx) {
+                        fwrite(tmp, 1u, nnx, fx);
+                        fclose(fx);
+                    }
+                }
+                rbng_song_init(&r2);
+                r2.atrk = back;
+                r2.atrk_cap = 3000u;
+                RI_ASSERT(rbng_read_song(FM2, &r2, err, sizeof err) != 0,
+                    "unsorted accepted");
+                RI_ASSERT(strstr(err, "ATRK unsorted") != 0, "unsorted reason: %s", err);
+                RI_ASSERT(r2.natrk == 0u, "unsorted stored %u", r2.natrk);
+            }
+            /* Duplicate: last record copies the previous tick+ctl. */
+            {
+                unsigned char dup[6];
+                uint32_t t1 = 2998u * 127u;
+                uint16_t c1 = (uint16_t)(0x0300u + (2998u % 8u));
+                dup[0] = (unsigned char)(t1 >> 24u);
+                dup[1] = (unsigned char)(t1 >> 16u);
+                dup[2] = (unsigned char)(t1 >> 8u);
+                dup[3] = (unsigned char)t1;
+                dup[4] = (unsigned char)(c1 >> 8u);
+                dup[5] = (unsigned char)c1;
+                RI_ASSERT(rbng_test_patch_bytes(FB, FM2, soff + 12u + 2999u * 8u,
+                    dup, 6u) == 0, "mut dup");
+                rbng_song_init(&r2);
+                r2.atrk = back;
+                r2.atrk_cap = 3000u;
+                RI_ASSERT(rbng_read_song(FM2, &r2, err, sizeof err) != 0,
+                    "duplicate accepted");
+                RI_ASSERT(strstr(err, "ATRK duplicate") != 0, "dup reason: %s", err);
+                RI_ASSERT(r2.natrk == 0u, "dup stored %u", r2.natrk);
+            }
+            /* Tick past bar 999. */
+            {
+                unsigned char te[4];
+                uint32_t t = 999u * 384u, k;
+                for (k = 0u; k < 4u; k++)
+                    te[k] = (unsigned char)(t >> (8u * (3u - k)));
+                RI_ASSERT(rbng_test_patch_bytes(FB, FM2, soff + 12u + 2999u * 8u,
+                    te, 4u) == 0, "mut tick");
+                rbng_song_init(&r2);
+                r2.atrk = back;
+                r2.atrk_cap = 3000u;
+                RI_ASSERT(rbng_read_song(FM2, &r2, err, sizeof err) != 0,
+                    "bigtick accepted");
+                RI_ASSERT(strstr(err, "ATRK tick past bar 999") != 0,
+                    "bigtick reason: %s", err);
+                RI_ASSERT(r2.natrk == 0u, "bigtick stored %u", r2.natrk);
+            }
+            /* ID not allowed. */
+            {
+                unsigned char id[2] = { 0x04u, 0x01u };
+                RI_ASSERT(rbng_test_patch_bytes(FB, FM2, soff + 12u + 2999u * 8u + 4u,
+                    id, 2u) == 0, "mut id");
+                rbng_song_init(&r2);
+                r2.atrk = back;
+                r2.atrk_cap = 3000u;
+                RI_ASSERT(rbng_read_song(FM2, &r2, err, sizeof err) != 0,
+                    "badid accepted");
+                RI_ASSERT(strstr(err, "ATRK ID not allowed") != 0, "badid reason: %s", err);
+                RI_ASSERT(r2.natrk == 0u, "badid stored %u", r2.natrk);
+            }
+            /* NULL buffer and over-capacity. */
+            rbng_song_init(&r2);
+            RI_ASSERT(rbng_read_song(FB, &r2, err, sizeof err) != 0,
+                "nullbuf accepted");
+            RI_ASSERT(strstr(err, "ATRK without buffer") != 0, "nullbuf reason: %s", err);
+            RI_ASSERT(r2.natrk == 0u, "nullbuf stored %u", r2.natrk);
+            rbng_song_init(&r2);
+            r2.atrk = back;
+            r2.atrk_cap = 2999u;
+            RI_ASSERT(rbng_read_song(FB, &r2, err, sizeof err) != 0,
+                "overcap accepted");
+            RI_ASSERT(strstr(err, "ATRK buffer too small") != 0, "overcap reason: %s", err);
+            RI_ASSERT(r2.natrk == 0u, "overcap stored %u", r2.natrk);
+            /* AUTO+ATRK together: splice a 10-byte empty AUTO chunk after
+             * ATRK and fix the FORM size. */
+            {
+                unsigned char fs[65536];
+                unsigned char au[10] = { 'A', 'U', 'T', 'O', 0, 0, 0, 2, 0, 0 };
+                uint32_t total, aend, k;
+                FILE *fx = fopen(FB, "rb");
+                size_t nnx = fx ? fread(fs, 1u, sizeof fs, fx) : 0u;
+                if (fx)
+                    fclose(fx);
+                RI_ASSERT(nnx > soff + 8u + 24004u, "splice readback %u", (unsigned)nnx);
+                total = ((uint32_t)fs[4] << 24) | ((uint32_t)fs[5] << 16) |
+                    ((uint32_t)fs[6] << 8) | (uint32_t)fs[7];
+                aend = soff + 8u + 24004u;
+                memmove(fs + aend + 10u, fs + aend, nnx - aend);
+                for (k = 0u; k < 10u; k++)
+                    fs[aend + k] = au[k];
+                nnx += 10u;
+                total += 10u;
+                fs[4] = (unsigned char)(total >> 24u);
+                fs[5] = (unsigned char)(total >> 16u);
+                fs[6] = (unsigned char)(total >> 8u);
+                fs[7] = (unsigned char)total;
+                fx = fopen(FM2, "wb");
+                RI_ASSERT(fx != 0, "splice write");
+                if (fx) {
+                    fwrite(fs, 1u, nnx, fx);
+                    fclose(fx);
+                }
+                rbng_song_init(&r2);
+                r2.atrk = back;
+                r2.atrk_cap = 3000u;
+                RI_ASSERT(rbng_read_song(FM2, &r2, err, sizeof err) != 0,
+                    "auto+atrk accepted");
+                RI_ASSERT(strstr(err, "AUTO and ATRK together") != 0,
+                    "together reason: %s", err);
+                /* No cross-chunk rollback in this reader (file
+                 * convention): the valid ATRK chunk stays stored. */
+            }
+        }
+    }
     /* ---- record-path capture gating (§12.9c; spec §5 open item) ----
      * Caller-side: the transport RECORD state + cursor quantize decide;
      * the model stays gate-blind. */

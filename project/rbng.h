@@ -5,7 +5,9 @@
  * lengths/ranges/references/nesting, never trust chunk sizes for
  * allocation. SHA-256 = content identity; song MODR stores name +
  * SHA-256 + vers. AUTO ticks are song-ppq ticks (recorder quantizes GUI
- * 30 Hz tweaks at ppq/24 per spec §8). CPRG = on-load copyright hook.
+ * 30 Hz tweaks at ppq/24 per spec §8 — outdated per E1 p. 84,
+ * see Status note there; lanes record at 32nd = ppq/8). CPRG = on-load
+ * copyright hook.
  *
  * Binary layout (all integers big-endian):
  *   FORM u32_tot 'RBNG' { chunk }          (u32_tot = bytes after it)
@@ -30,6 +32,12 @@
  *           Written only when the track is not all-zero; minor 0 never
  *           carries it; a missing STRK means slot 0 everywhere.
  *   'AUTO': u16 n (0..256); per: u32 tick, u16 ctl, u8 val, u8 pad0
+ *           (legacy form: kept exactly for old files; never written
+ *           alongside ATRK).
+ *   'ATRK' (v1.2): u32 n; per: u32 tick, u16 ctl, u8 val, u8 pad0.
+ *           Sorted by (tick, ctl), no duplicates, ticks below bar 999,
+ *           IDs on the automation allow-list. Written only when the
+ *           caller buffer holds events; raises minor to 2.
  *   'MODR': u16 n (0..16); per: u8 namelen, name[namelen],
  *           u8 shalen(=64 hex), sha[64], u16 vers
  *   'CPRG': u8 len, text[len] (UTF-8 copyright notice, 0..127)
@@ -112,6 +120,11 @@ struct RISong {
     struct RIPatternBank bank[RI_RBNG_MAX_BANKS];
     /* v1.1 song track: pattern-selection grid; all-zero when absent. */
     struct RISongTrack track;
+    /* v1.2 automation lane: caller-provided buffer (never inline 256 KB
+     * in this struct — some paths stack-allocate songs). NULL/0/0 when
+     * absent; the reader rejects an ATRK chunk it cannot store. */
+    struct RBAutoEv *atrk;
+    uint32_t natrk, atrk_cap;
 };
 
 void rbng_song_init(struct RISong *s);
