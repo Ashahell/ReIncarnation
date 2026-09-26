@@ -156,6 +156,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t77_autolane >/dev/null || { echo "FA
 bash "$ROOT/scripts/ri_build_host.sh" test t78_engine_taps >/dev/null || { echo "FAIL: t78_engine_taps"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t79_auto_delivery >/dev/null || { echo "FAIL: t79_auto_delivery"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t80_ctlplane >/dev/null || { echo "FAIL: t80_ctlplane"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t81_live >/dev/null || { echo "FAIL: t81_live"; exit 1; }
 # law: no mutable static state in the player (spec §Ownership) — one enforcement point
 if grep -nE "^static [^()]*[;=]" engine/seq/player.c | grep -v ":static const"; then echo "FAIL: mutable static state in player.c"; exit 1; fi
 # law: no mutable static state in the song track (spec §Ownership) — one enforcement point
@@ -166,6 +167,10 @@ if grep -nE "^static [^()]*[;=]" engine/seq/autolane.c | grep -v ":static const"
 if grep -nE "^static [^()]*[;=]" engine/seq/ctlplane.c | grep -v ":static const"; then echo "FAIL: mutable static state in ctlplane.c"; exit 1; fi
 # law: ctlplane.h names sched.h only (no transport/autolane/project/gui headers)
 if grep -nE "autolane\.h|transport\.h|clock\.h|project/|gui/" engine/seq/ctlplane.h; then echo "FAIL: ctlplane.h layer leak"; exit 1; fi
+# law: no mutable static state in the live session (G9.2) — one enforcement point
+if grep -nE "^static [^()]*[;=]" engine/live.c | grep -v ":static const"; then echo "FAIL: mutable static state in live.c"; exit 1; fi
+# law: live.h stays in engine/ (no project/gui headers)
+if grep -nE "project/|gui/" engine/live.h; then echo "FAIL: live.h layer leak"; exit 1; fi
 # law: autolane.h names transport.h only (no scheduler/clock/project/gui headers)
 if grep -nE "sched\.h|clock\.h|project/|gui/" engine/seq/autolane.h; then echo "FAIL: autolane.h layer leak"; exit 1; fi
 echo "== Phase 7: sched shuffle/legato/flam (Task 7, gate G7) =="

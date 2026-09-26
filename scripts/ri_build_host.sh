@@ -6,7 +6,7 @@ OUT=/tmp/ri/build
 CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT"
 mkdir -p "$OUT"
 MOD_kernels="engine/dsp/kernels.c"
-MOD_engine="engine/engine.c"
+MOD_engine="engine/engine.c engine/live.c"
 MOD_clock="engine/seq/clock.c"
 MOD_sched="engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c engine/seq/pattern.c engine/seq/pattern_emit.c engine/seq/transport.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c engine/seq/ctlplane.c"
 MOD_dsp303="engine/dsp/rb303.c engine/dsp/params.c"
