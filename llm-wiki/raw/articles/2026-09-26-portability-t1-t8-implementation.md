@@ -1,4 +1,4 @@
-# Portability T1–T8 implementation: PAL lands, core runs headless (§12.12)
+# Portability T1–T10 implementation: PAL lands, canvas moves, gates hold (§12.12)
 
 - Source: ReIncarnation session, 2026-09-26 (opencode implementation run)
 - Collected: 2026-09-26
@@ -31,7 +31,25 @@
 - **Remote MIDI Wait (T5):** the loop no longer waits on the CAMD signal bit (PAL exports no signal) — remote drains per event-loop iteration until T8 clock work.
 - **Research (subagent):** C11 atomics vs `__atomic` vs MSVC `_Interlocked*` (+`_acq`/`_rel` ARM-only suffixes); WASAPI event-shared init/pull sequence; WinMM `midiInOpen` callback rules; stb_image vs libpng vs clean-room tradeoffs; FTZ/DAZ (MXCSR/FPCR) + `/fp:strict` vs `-ffp-contract=off`; mingw C99 pitfalls (VLAs, `%llu`/UCRT, `long double`, struct packing, text-mode `fopen`).
 
+## Status 2026-09-26 (later): T2, T9 remainder, T10 landed
+
+- **T2 canvas** (`6345908`, t92/t93): `gui/draw/` art layer, AROS replayer
+  (pixel-identical by construction), host rasterizer + goldens; T8 PNG half
+  closed by the same rasterizer. Device pixel-identity still open.
+- **T9 remainder:** VLA-clean (`-Wvla -Werror`); `%llu` confined to host
+  dumps (mingw handling noted); `fwrite` field-by-field; GCC/Clang
+  bit-identical (see `t9-float.md`).
+- **T10:** confinement gates (AROS-include + drawing-call, portable set),
+  portable-build gate (`make -f build/portable.mk test headless`),
+  mingw-SKIP recorded. `scripts/` stays at 5 files.
+- Evidence: `t2-canvas.md`, `red-t92.txt`, `red-t93.txt`,
+  `docs/evidence/gui/host-raster/`.
+
 ## Open (not started or lane-bound)
+
+- **T8 remainder:** `app/core/riapp_core.c` session move — deferred to a
+  lane-available turn (touches Dell-proven RIAPP code; links prove nothing
+  about sound).
 
 - **T2 display list** (biggest remainder): `gui/draw/canvas.*` + `ri_pal_draw.h` drafted; `bg_*`/painters transliteration, AROS replayer, host rasterizer + goldens, device pixel-identity proof.
 - **T8 remainder:** `app/core/riapp_core.c` session move; headless panel PNGs.

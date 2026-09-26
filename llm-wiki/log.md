@@ -1,5 +1,12 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] record | Portability T2/T9/T10 (canvas, sweep, gates)
+- Disposition: Update (implementation record grows to T1–T10)
+- Raw: llm-wiki/raw/articles/2026-09-26-portability-t1-t8-implementation.md
+- Updated: llm-wiki/index.md (Portability (§12.12) entry)
+- Evidence: docs/evidence/portability/t2-canvas.md, docs/evidence/gui/host-raster/
+Commits `6345908`, `b1c0956`; audit 0/0. Open: T8 riapp_core, device proofs, §8 decisions.
+
 ## [2026-09-26] record | Portability T1–T8 implementation (PAL + headless)
 - Disposition: New (implementation record for the plan's T1–T8 slice)
 - Raw: llm-wiki/raw/articles/2026-09-26-portability-t1-t8-implementation.md
