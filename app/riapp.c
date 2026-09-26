@@ -294,6 +294,7 @@ int main(int argc, char **argv) {
     ULONG frames = riapp_arg_frames(argc, argv);
     float rate = 48000.0f;
     int i, rc;
+    ULONG hb = 0u; /* wedge-diagnostic heartbeat counter (see loop) */
     struct MsgPort *tport = 0;
     struct timerequest *treq = 0;
     int timer_ok = 0, timer_armed = 0;
@@ -474,6 +475,17 @@ int main(int argc, char **argv) {
         sync_303();
         sync_values();
         meter_round(s_live ? s_lv.mix_freq : 48000u);
+        /* Wedge diagnostic (2026-09-27 Dell freeze under interaction):
+         * ~30 s heartbeat while live (10 Hz timer ticks the loop).
+         * Last line dates the wedge; buffers/xruns say whether the
+         * render task was still producing. Remove after. */
+        if (s_live && ++hb >= 300u) {
+            hb = 0u;
+            rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us\n",
+                ri_atomic_load_acq(&s_lv.drv.buffers),
+                ri_atomic_load_acq(&s_lv.drv.xruns),
+                ri_atomic_load_acq(&s_lv.drv.render_us_max));
+        }
         sigs |= SIGBREAKF_CTRL_C | (timer_armed ? 1UL << tport->mp_SigBit : 0UL);
         sigs = Wait(sigs);
         if (sigs & SIGBREAKF_CTRL_C)
