@@ -1,6 +1,12 @@
 # ReIncarnation llm-wiki — log
 
-## [2026-09-26] record | Portability T2/T9/T10 (canvas, sweep, gates)
+## [2026-09-26] decisions | Portability §8–§9 resolved + FTZ locked (t94)
+- Disposition: Update (owner answered all six questions)
+- Raw: llm-wiki/raw/articles/2026-09-26-portability-t1-t8-implementation.md
+- Updated: docs/superpowers/plans/2026-09-26-portability-plan.md (§9 resolutions)
+- Evidence: docs/evidence/portability/t9-float.md (FTZ section), red-t94.txt
+Resolutions: system-APIs-only, Makefile kept, FTZ ON (wired), WASAPI
+shared→exclusive, %APPDATA%. Next: device proof round (owner lanes).
 - Disposition: Update (implementation record grows to T1–T10)
 - Raw: llm-wiki/raw/articles/2026-09-26-portability-t1-t8-implementation.md
 - Updated: llm-wiki/index.md (Portability (§12.12) entry)

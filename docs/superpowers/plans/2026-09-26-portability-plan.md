@@ -280,3 +280,15 @@ After T1–T10, a Windows port is essentially T11. The rough estimate for T11 is
 3. Denormal policy (flush-to-zero on/off) as a locked D1 rule.
 4. The Windows audio API order: WASAPI shared → exclusive → ASIO (ASIO SDK licensing).
 5. Windows data locations (`%APPDATA%` vs portable-folder mode).
+
+## 9. Resolutions (2026-09-26, owner)
+
+1. **System APIs only.** Windows uses OS-builtin WIC (images) and
+   WASAPI/WinMM (audio/MIDI); host keeps libpng (already the mkskin
+   toolchain dep). No vendored third-party code.
+2. **Keep the Makefile.** `build/portable.mk` stays (zero deps, audit-gated).
+3. **Flush-to-zero ON**, locked: set at each render-thread start through
+   `ri_pal_fpu_setup()` (landed as `platform/pal/ri_pal_fpu.h` + per-backend
+   `.c`; AROS render task + future WASAPI thread call it).
+4. **WASAPI shared → exclusive**, ASIO last (SDK licensing).
+5. **`%APPDATA%` tree** (`%APPDATA%\ReIncarnation\…`, songs in Documents).

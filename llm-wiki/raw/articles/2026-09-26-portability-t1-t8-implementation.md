@@ -58,3 +58,9 @@
 - **Device proofs (owner lanes):** Dell by-ear T4 (0 xruns), riqemu1 G7 remote re-proof, AROS pixel-identity T2, Dell click/drag feel T3b.
 - **Owner decisions (§8, undecided):** third-party policy (libpng-host vs stb vs clean-room for Windows), CMake vs Makefile, denormals, WASAPI order, Windows data locations.
 - **Cross-post candidates (Vulkan4AROS wiki):** setjmp/volatile rule, stale-object trap, `-lpng` link tax, CAMD `CamdBase`/`mm_Data` notes.
+
+## Resolutions 2026-09-26 (owner, plan §9)
+
+System APIs only; Makefile kept; FTZ ON via `ri_pal_fpu_setup` (t94,
+wired at render-task entry); WASAPI shared→exclusive; `%APPDATA%`.
+Next priority: device proof round (owner lanes).
