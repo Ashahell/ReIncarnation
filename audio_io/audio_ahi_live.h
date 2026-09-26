@@ -39,7 +39,7 @@ struct AuLive {
     ULONG period_us;           /* (out) device period frames/mix_freq, microseconds */
     volatile LONG cmd;         /* GUI -> task transport request (AU_LIVE_CMD_*) */
     volatile LONG state;       /* 0 idle, 1 negotiated, 2 playing, -1 failed, 3 ended */
-    LONG err;                  /* failure step (1 port, 2 device, 3 mode, 4 alloc, 5 load, 6 task) */
+    LONG err;                  /* failure step (1 port, 2 device, 3 mode, 4 alloc, 5 load, 6 task, 7 open timeout) */
     struct RILiveSession *session; /* set by au_live_run */
     /* Capture (RIAPP 'W'): the task copies each rendered s16 half here
      * while cap_on; the GUI owns the buffer and writes the WAV after
@@ -53,6 +53,10 @@ struct AuLive {
 /* Spawn the render task, open ahi.device (AHI_NO_UNIT, device-as-library),
  * pick the best stereo HiFi mode for want_rate, allocate one channel with
  * two dynamic sounds and a SoundFunc hook, read the actual mix rate back.
+ * The handshake is bounded (10 s): a missing or misbehaving driver (fault
+ * or hang inside the mode scan) returns nonzero and the caller falls back
+ * to the null backend; the abandoned task unwinds quietly on its open
+ * generation and never touches lv or signals again.
  * Returns 0 ok (lv->mix_freq set, task waiting for au_live_run) or nonzero
  * (nothing held; caller falls back to the null backend). */
 int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate);

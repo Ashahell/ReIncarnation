@@ -34,7 +34,7 @@ Keys are PHYSICAL positions (p. 224), so the map is keyed by Amiga raw key codes
   - **Alternative rejected:** making the two options mutually exclusive, like a mode switch. That is closer to the hardware, but it would change ReBirth's own menu behaviour, which ranks above the hardware in this project's fidelity order.
   - **Pinned in t70:** the `C` and `S` precedence cases.
 
-Still E0 (the owner may overrule these):
+Owner-confirmed 2026-09-26 (was E0):
 
 - **Menu modifier:** `Ctrl` (ReBirth for Windows) and Right-Amiga (the AROS menu-shortcut key) both work.
 - **Focus arrows stop at the first/last section** (no wrap-around); the manual only says "up and down arrow keys".

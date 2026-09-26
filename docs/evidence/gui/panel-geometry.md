@@ -89,7 +89,7 @@ span 658 Q / 5 = 131.6 Q).
 | Level fader | 165, 208 | 58 × 200 | not automated (p. 24) |
 | Comp rocker | 202, 345 | 45 × 22 | LED x 245; legend at x 125 |
 
-**Insert routing (behaviour, `gui/sectmix.c`, t66).** The four mixers and the Master share one board. PCF: one section at a time, and switching it on elsewhere turns the old LED off (p. 62 step 16, p. 70). Comp: one section or the Master (p. 67). Dist follows the engine's one-owner routing (`engine/fx/route.h`). The manual contradicts itself on Dist: p. 59 says "four distortion units… all sections can use the distortion", but p. 157 says "One section at a time". This is left open for the owner; changing it touches only `unit_of()` plus the engine route.
+**Insert routing (behaviour, `gui/sectmix.c`, t66).** The four mixers and the Master share one board. PCF: one section at a time, and switching it on elsewhere turns the old LED off (p. 62 step 16, p. 70). Comp: one section or the Master (p. 67). Dist follows the engine's one-owner routing (`engine/fx/route.h`). The manual contradicts itself on Dist: p. 59 says "four distortion units… all sections can use the distortion", but p. 157 says "One section at a time". DECIDED 2026-09-26 (owner): one-owner radio stands.
 
 ## FX units (Q units)
 

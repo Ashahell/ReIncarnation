@@ -30,7 +30,7 @@ Open gates (machine-readable — tools extract rows starting with `| OPEN-`):
 | OPEN-07 | API/ABI freeze (Appendix D checklist) | Freeze review, post-Classic |
 | OPEN-08 | D-001 follow-ups | None — closed ("808-RI"); row kept so tools see zero open naming gates |
 | OPEN-09 | Achievable device buffer / latency on AROS AHI (low-level vs `ahi.device` path) | MEASURED 2026-09-22 — low-level 64 frames; device dev_min=0 (abort-bounded metric); PlayerFreq accepted-but-not-honored at fixed ~11 Hz; evidence docs/evidence/formats/m1-1-report.md App. B + ABIv1 session-9 full green |
-| OPEN-10 | ReBirth `.rbs` import (clean-room, user-owned files) | Legal review first, then importer (adopted 2026-09-24, review D-i) |
+| OPEN-10 | Song import, several formats (ReBirth `.rbs` + Amiga MOD incl. Milkytracker) | Planned future work (owner 2026-09-26); clean-room + sample-provenance rules apply; legal review first for `.rbs` (adopted 2026-09-24, review D-i) |
 
 Progress is declared ONLY via the parity matrix (§14) and the evidence ledger (`docs/evidence/`). Binary "M2.x done" language is banned — milestones name gate sets, never declare parity.
 

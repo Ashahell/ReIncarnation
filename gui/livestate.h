@@ -9,8 +9,10 @@
  * independently (manual p. 147: "Each one loops independently"); Song
  * mode: the bar display follows 16 sixteenths per bar (4/4).
  * Meters: linear peak -> 0..127 on a dB scale from -36 dBFS (the lowest
- * mark on the Master meter, p. 23) to 0 dBFS (CLIP). Comp level
- * reduction: 0 dB -> 0, 20 dB of reduction -> 127 (E0 full scale: the
+ * mark on the Master meter, p. 23; owner-confirmed 2026-09-26) to 0 dBFS
+ * (CLIP). Comp level
+ * reduction: 0 dB -> 0, 20 dB of reduction -> 127 (owner-confirmed
+ * 2026-09-26 full scale: the
  * p. 164 meter carries no numbers besides the centre 0).
  */
 #ifndef RI_LIVESTATE_H

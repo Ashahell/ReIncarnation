@@ -39,3 +39,10 @@ Stored subset: 303 z0+z2, 808 z0+z2, mix z2, tr z0, 808skin z2+z3
 pins it value-for-value AND against `ri_geo_px` (`px*8 == q*num` on
 multiples of 8). The loader scales masters by it — geometry and skins
 cannot drift apart without a test failing first (mutant 4→5 killed).
+
+## Zoom policy on small screens (DECIDED 2026-09-26, owner)
+
+Cap the zoom at the largest factor whose width fits the screen (1x on
+the Dell's 1366 px: 303/808/909 clip ~75-80 px per side at 2x); a
+vertical window scrollbar is acceptable when the panel is taller than
+the screen.

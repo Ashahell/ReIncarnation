@@ -43,6 +43,15 @@ static struct AuLive *s_lv;
 static struct Task *s_parent;
 static BYTE s_parent_sig = -1;
 static struct Task *s_render;
+/* Open generation (bounded handshake): the GUI bumps s_open_gen around
+ * every au_live_open; the task snapshots it at entry and exits quietly
+ * (no lv writes, no signals) once its copy goes stale. A broken audio
+ * driver must surface as err 7, never wedge the app: riqemu1's sb128
+ * DriverInit faults inside the mode scan, and a slow scan must not block
+ * past AU_LIVE_OPEN_TIMEOUT_S either. The GUI task owns the counter; the
+ * render task only reads it. */
+static volatile ULONG s_open_gen;
+#define AU_LIVE_OPEN_TIMEOUT_S 10u
 static volatile ULONG s_hook_count;
 static unsigned long long s_render_us_acc;
 static ULONG s_hook_mask;
@@ -133,8 +142,10 @@ static void live_task(void) {
     BYTE hsig = -1;
     ULONG processed = 0u, queued = 1u;
     int started = 0, dev_open = 0;
+    ULONG mygen;
 
     s_render = FindTask(NULL);
+    mygen = s_open_gen; /* snapshot: a stale copy means the GUI timed out */
     hsig = AllocSignal(-1);
     if (hsig < 0) {
         lv->err = 6;
@@ -159,6 +170,8 @@ static void live_task(void) {
         goto fail;
     }
     dev_open = 1;
+    if (mygen != s_open_gen)
+        goto fail; /* abandoned during the scan: unwind quiet (tail skips lv) */
     AHIBase = (struct Library *)req->ahir_Std.io_Device;
     {
         struct TagItem best[] = {
@@ -223,6 +236,8 @@ static void live_task(void) {
     }
     /* Negotiated: the GUI initialises the session at mix_freq and calls
      * au_live_run, which sets lv->session and signals us again. */
+    if (mygen != s_open_gen)
+        goto fail; /* abandoned: unwind quiet (tail skips lv and the tell) */
     lv->state = 1;
     tell_parent();
     {
@@ -277,14 +292,14 @@ fail:
         AHI_FreeAudio(actl);
     if (dev_open)
         CloseDevice((struct IORequest *)req);
-    AHIBase = NULL;
     if (req)
         DeleteIORequest((struct IORequest *)req);
     if (port)
         DeleteMsgPort(port);
     if (TimerBase) {
         CloseDevice((struct IORequest *)treq);
-        TimerBase = NULL;
+        if (mygen == s_open_gen)
+            TimerBase = NULL;
     }
     if (treq)
         DeleteIORequest((struct IORequest *)treq);
@@ -292,7 +307,14 @@ fail:
         DeleteMsgPort(tport);
     if (hsig >= 0)
         FreeSignal(hsig);
-    s_render = NULL;
+    /* Shared globals only when current: a late abandoned task must not
+     * clobber a newer stream's base, render pointer, state or signals. */
+    if (mygen == s_open_gen) {
+        s_render = NULL;
+        AHIBase = NULL;
+    }
+    if (mygen != s_open_gen)
+        return; /* abandoned: the GUI already failed over; touch nothing shared */
     /* Forbid so the parent cannot unload our code before we return; the
      * task's exit breaks it (exit path only, never the render path). */
     Forbid();
@@ -307,6 +329,9 @@ static void wait_state(struct AuLive *lv, LONG not_state) {
 
 int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
     struct Process *p;
+    struct MsgPort *tport = NULL;
+    struct timerequest *treq = NULL;
+    int timer_ok = 0;
     if (!lv || frames < 64u || frames > AU_LIVE_MAXFRAMES || s_lv)
         return 2;
     lv->frames = frames;
@@ -331,18 +356,64 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
     s_parent_sig = AllocSignal(-1);
     if (s_parent_sig < 0)
         return 6;
+    /* Handshake timer first: a broken audio driver must surface as err 7
+     * (null fallback), never wedge the app in wait_state. */
+    tport = CreateMsgPort();
+    if (tport)
+        treq = (struct timerequest *)CreateIORequest(tport, sizeof(struct timerequest));
+    if (treq && OpenDevice((STRPTR)"timer.device", UNIT_MICROHZ,
+        (struct IORequest *)treq, 0) == 0)
+        timer_ok = 1;
+    if (!timer_ok) {
+        if (treq)
+            DeleteIORequest((struct IORequest *)treq);
+        if (tport)
+            DeleteMsgPort(tport);
+        FreeSignal(s_parent_sig);
+        s_parent_sig = -1;
+        lv->err = 6;
+        return 6;
+    }
+    s_open_gen++;
     s_lv = lv;
     s_hook_count = 0u;
     p = CreateNewProcTags(NP_Entry, (IPTR)live_task, NP_Name, (IPTR)"RIAPP render",
         NP_Priority, 10, NP_StackSize, 32768, TAG_DONE);
     if (!p) {
         lv->err = 6;
+        CloseDevice((struct IORequest *)treq);
+        DeleteIORequest((struct IORequest *)treq);
+        DeleteMsgPort(tport);
         FreeSignal(s_parent_sig);
         s_parent_sig = -1;
         s_lv = NULL;
         return 6;
     }
-    wait_state(lv, 0);
+    treq->tr_node.io_Command = TR_ADDREQUEST;
+    treq->tr_time.tv_secs = AU_LIVE_OPEN_TIMEOUT_S;
+    treq->tr_time.tv_micro = 0;
+    SendIO((struct IORequest *)treq);
+    while (lv->state == 0) {
+        ULONG sigs = Wait((1UL << s_parent_sig) | (1UL << tport->mp_SigBit));
+        if (sigs & (1UL << tport->mp_SigBit))
+            break;
+    }
+    if (!CheckIO((struct IORequest *)treq))
+        AbortIO((struct IORequest *)treq);
+    WaitIO((struct IORequest *)treq);
+    CloseDevice((struct IORequest *)treq);
+    DeleteIORequest((struct IORequest *)treq);
+    DeleteMsgPort(tport);
+    if (lv->state == 0) {
+        /* Timed out: abandon (the task unwinds quietly on its generation)
+         * and fail over to the null backend. */
+        s_open_gen++;
+        FreeSignal(s_parent_sig);
+        s_parent_sig = -1;
+        s_lv = NULL;
+        lv->err = 7;
+        return 7;
+    }
     if (lv->state != 1) {
         wait_state(lv, -2); /* already ended (-1) */
         FreeSignal(s_parent_sig);

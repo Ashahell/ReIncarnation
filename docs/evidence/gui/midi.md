@@ -17,7 +17,7 @@
 
 The receiver listens on one channel only (p. 134) and never transmits (p. 127).
 
-## Decisions (E0 — owner may overrule)
+## Decisions (owner-confirmed 2026-09-26; was E0)
 
 - **CC value laws:**
   - a knob or fader maps 0..127 linearly onto its range;

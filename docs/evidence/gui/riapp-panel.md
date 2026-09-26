@@ -16,10 +16,33 @@
   clipped at the bottom -> relaid out side-by-side (303A | MIX808);
   relayout binary built (both ABIs) but its layout is unverified on
   screen.
-- NOT proven (Dell lane agent down since the double-instance alloc
-  failure): AHI play from the panel, knob->sound within one buffer,
-  meters chasing, pattern select/length/off/step routes, startup burst.
-  The owner three-knob check is OPEN.
+## Failure found + fixed: unbounded open vs broken drivers (riqemu1)
+
+- Symptom (riqemu1, no audio hardware): every AHI open hung or crashed
+  inside `OpenDevice("ahi.device")`; the GUI stuck in `wait_state`
+  forever, so the null fallback never engaged and RIAPP never opened.
+  The stock M1.1 `probe_ahi` hung identically (device-level, not app
+  code): HMP full-res requester reads `Task: RIAPP render`,
+  `Error 0x80000008 privilege violation`, `Module sb128.audio`,
+  `Function DriverInit +0x135` — the known codec-less-guest driver
+  fault (same +0x135 as the 2026-09-21 sb128 movaps finding), hit
+  during AHI's mode scan.
+- Fix (`audio_ahi_live.c`, in-repo): the open handshake is bounded
+  (10 s timer): timeout abandons via an open-generation counter (the
+  task unwinds quietly: frees its AHI objects, touches no shared
+  state, never signals) and returns err 7; the caller falls back to
+  the null backend. Late-task shared-global clobber (AHIBase,
+  s_render, TimerBase) is generation-guarded.
+- Lesson: `Status FULL` lists processes, not tasks — a hung render
+  task is invisible there. HMP `screendump` gives full-res captures
+  for reading requesters the agent downscales into mush.
+
+## Still OPEN (needs the Dell lane)
+
+AHI play from the panel, knob->sound within one buffer, meters
+chasing, pattern select/length/off/step routes, startup burst, and the
+owner three-knob check. Null-backend panel proof rides riqemu1 once the
+bounded open lands there.
 
 ## Lane lessons (paid during this slice)
 
