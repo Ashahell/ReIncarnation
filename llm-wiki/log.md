@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] Tasks 2–4 | §12.9c automation lanes (sweep/edits/chase/publish/ATRK/audit + 10 mutants)
+- Disposition: New (slice record)
+- Raw: llm-wiki/raw/articles/2026-09-26-automation-lanes-tasks-2-to-4.md
+- Updated: llm-wiki/index.md
+Commits `7753178`/`ceca27e`/`bd56eab`/`6a76c47`/`4d34176`/`fe96f72`/`2820334` (supersedes `db13c14` per R-REVIEWED-PLAN). Rulings R-WRITE-BOTH/R-ATRK-ORDER/R-READER-ATOMICITY; mutants 10/10 (6 + 8 needed new pins: tick-exact paste-tail, staged-request). Open: Task 5 delivery widening (FX/808/909/mixer).
+
 ## [2026-09-26] Revision | songtrack plan/spec deferrals closed against r2 owners
 - Disposition: Update (no new raw — 9-line alignment edit)
 - Updated: songtrack plan R10 + Step 4/5 notes, songtrack spec §5 table (+1 row)
