@@ -162,6 +162,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t81_live >/dev/null || { echo "FAIL: 
 bash "$ROOT/scripts/ri_build_host.sh" test t82_live_record >/dev/null || { echo "FAIL: t82_live_record"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t83_panelctl >/dev/null || { echo "FAIL: t83_panelctl"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t84_pal_thread >/dev/null || { echo "FAIL: t84_pal_thread (portability T1)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t85_pal_keys >/dev/null || { echo "FAIL: t85_pal_keys (portability T3)"; exit 1; }
 # portability T1: PAL atomics header is include-clean (stdint/stddef only;
 # ri_pal_log.h additionally allows stdarg.h for the varargs decl)
 if grep -n "#include" "$ROOT/platform/pal/"*.h | grep -v "stdint.h\|stddef.h\|stdarg.h"; then echo "FAIL: pal header include leak"; exit 1; fi
