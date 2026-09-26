@@ -10,7 +10,11 @@ CC ?= gcc
 CFLAGS ?= -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$(ROOT)
 
 CORE_TU := \
-  app/core/live_driver.c \
+  app/core/live_driver.c app/core/canvas_events.c \
+  gui/draw/canvas.c gui/draw/art_shared.c gui/draw/art_303.c \
+  gui/draw/art_808.c gui/draw/art_909.c gui/draw/art_mix.c \
+  gui/draw/art_fx.c gui/draw/art_pat.c gui/draw/art_tr.c \
+  gui/draw/art_section.c platform/host/raster.c \
   engine/dsp/kernels.c engine/engine.c engine/live.c \
   engine/seq/clock.c engine/seq/sched.c engine/seq/riseq.c \
   engine/seq/songsteps.c engine/seq/snapbuild.c engine/seq/pattern.c \
@@ -37,7 +41,7 @@ all: $(CORE_OBJS)
 	@echo "PORTABLE BUILD OK $(OUT)"
 
 test: all
-	$(CC) $(CFLAGS) -pthread -o $(OUT)/t84_pal_thread $(ROOT)/tests/unit/t84_pal_thread.c $(CORE_OBJS) -lm
+	$(CC) $(CFLAGS) -pthread -o $(OUT)/t84_pal_thread $(ROOT)/tests/unit/t84_pal_thread.c $(CORE_OBJS) -lm -lpng
 	$(OUT)/t84_pal_thread
 
 # T8 headless frontend: renders the demo fixture to WAV via the driver.

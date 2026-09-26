@@ -27,5 +27,12 @@ No golden differs; no per-golden root-cause list needed.
 - Denormal policy: no explicit FTZ/DAZ setup today (implicit per OS).
   Proposal (owner decision §8.3): flush-to-zero ON at render-thread start
   through `ri_pal_fpu_setup()`; needs owner sign-off before wiring.
-- VLA / `%llu` / struct-`fwrite` sweep: pending (T10 grep gate + mingw gate
-  will enforce; `rbng.c`/`rbnm.c` must be verified to never `fwrite` a struct).
+## T9 remainder sweep (2026-09-26, recorded for the T10 round)
+
+- **VLAs:** clean — core, PAL, and all host backends compile with
+  `-Wvla -Werror` (pcf needs its usual `-DPCF_TABLE_VERIFIED=1`).
+- **`%llu`:** host-side event dumps only (`audio_io/audio.c:699`,
+  `tools/render.c` ×4) — needs `__USE_MINGW_ANSI_STDIO`/PRIu64 handling at
+  the mingw gate. No `long double` anywhere.
+- **`fwrite`:** field-by-field everywhere (`rbng.c`, `rbnm.c`) — no struct
+  dumps. (Plus `fopen` text-mode: writers use `"wb"` already — spot-held.)

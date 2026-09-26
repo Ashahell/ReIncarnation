@@ -645,4 +645,29 @@ done
 test "$(ls "$ROOT/scripts" | wc -l)" = "5" || { echo "FAIL: scripts/ holds non-shared files"; exit 1; }
 if git -C "$ROOT" status --porcelain | grep -E "\.o$|\.library$"; then echo "FAIL: build artifacts in tree"; exit 1; fi
 if grep -rnw "TODO\|TBD\|FIXME" "$ROOT/docs/ReIncarnation.guide" "$ROOT/docs/autodoc" "$ROOT/locale" "$ROOT/Install" 2>/dev/null; then echo "FAIL: placeholder in REL docs"; exit 1; fi
+echo "-- portability T10: confinement gates (PAL draws the line) --"
+# AROS system includes live only in AROS shells (explicit list) — never in
+# the portable core, the PAL, the host backends, the draw layer, app/core,
+# tools, or the shared formats (arexx_aros + datatypes are AROS-only by design).
+if grep -rn "#include <exec/\|#include <dos/\|#include <proto/\|#include <intuition/\|#include <graphics/\|#include <libraries/\|#include <devices/\|#include <datatypes/\|#include <midi/\|#include <utility/\|#include <clib/" \
+  "$ROOT/engine" "$ROOT/platform/pal" "$ROOT/platform/host" "$ROOT/gui/draw" "$ROOT/app/core" "$ROOT/tools" \
+  --include="*.c" --include="*.h" --include="*.inc" 2>/dev/null; then echo "FAIL: AROS include in portable code"; exit 1; fi
+if grep -rn "#include <exec/\|#include <dos/\|#include <proto/\|#include <intuition/\|#include <graphics/\|#include <libraries/\|#include <devices/\|#include <datatypes/\|#include <midi/\|#include <utility/\|#include <clib/" \
+  "$ROOT/project" "$ROOT/midi_io" --include="*.c" --include="*.h" 2>/dev/null \
+  | grep -v "project/arexx_aros.c\|project/datatypes/\|midi_io/camd_backend.c"; then echo "FAIL: AROS include outside AROS shells"; exit 1; fi
+# Drawing calls live only in AROS shells (backend replay + legacy widgets) —
+# never in portable code. (audio.h's dual-target ifdef + host TagItem shim
+# is the documented pattern, not a violation: it carries no drawing calls.)
+if grep -rn "RectFill\|BltBitMapRastPort\|WritePixelArrayAlpha\|ObtainBestPen\|AllocBitMap\|MUIM_Draw\|MUI_CreateCustomClass" \
+  "$ROOT/engine" "$ROOT/platform" "$ROOT/gui/draw" "$ROOT/app/core" "$ROOT/tools" "$ROOT/project" "$ROOT/midi_io" \
+  --include="*.c" --include="*.h" --include="*.inc" 2>/dev/null; then echo "FAIL: drawing call in portable code"; exit 1; fi
+# Portable build (T10, owner build-system call §8.2 pending — Makefile keeps
+# zero deps): core + host PAL + t84 + headless, all green.
+make -f "$ROOT/build/portable.mk" test headless >/tmp/ri/portable.log 2>&1 || { echo "FAIL: portable build"; exit 1; }
+# mingw-w64 compile-only gate: SKIP — toolchain absent on this machine (say so).
+if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+  echo "FAIL: mingw gate not implemented (toolchain present but gate missing)";
+else
+  echo "-- mingw gate SKIP (no x86_64-w64-mingw32-gcc here; T11 lane owns it) --"
+fi
 echo "AUDIT 0/0 PASS"
