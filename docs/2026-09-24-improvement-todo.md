@@ -123,5 +123,15 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 ## §12.11 Perf pass vs W1.1 budget (§6)
 - [ ] `tools/bench` per-section evidence; per-section budget; continuous gating before beta exit
 
+## G9 live app (G9 plan §12.11; opencode 2026-09-26, commits 48b552d…ee05365, audit 0/0)
+- [x] G9.0 design note (`docs/superpowers/specs/2026-09-26-live-app-design.md`)
+- [x] G9.1 control plane SPSC ring + t80 (FIFO/coalesce/wrap/refused/render-identical, mutants)
+- [x] G9.2 live session core + t81 (chunk-agnostic bit-exact 64/128/256/137, automation, ctl@256, meters, mutants)
+- [x] G9.3 AHI render-task structure + `audio_ahi_live` (ABIv1 compile; Dell 64/128 measurement open)
+- [x] G9.4 RIAPP shell (ABIv1 link 172792 B; supersedes bare main.c, kept; panel wiring after Dell proof)
+- [x] G9.5 record host half + t82 (touch/record/stop/publish/chase identical, FULL shown; mutant)
+- [ ] Dell first sound + knob-within-a-buffer + owner words + 5-min soak (`docs/evidence/audio/live-render-task.md`)
+- [ ] Full RISECT panel integration into RIAPP; G10 carry-overs (skin chunk, zoom cap, minors)
+
 ## Done
 - (none yet)

@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] slice | §12.11 G9 live app (opencode implementation)
+- Disposition: New (completion record)
+- Raw: llm-wiki/raw/articles/2026-09-26-g9-live-app-opencode.md
+- Updated: llm-wiki/index.md (new Live app (§12.11) section)
+Commits `48b552d`…`ee05365`; audit 0/0. Dell sound/soak still owner-lane.
+
 ## [2026-09-26] ingest | §12.11 G9 live-app handoff to opencode
 - Disposition: New (handoff record)
 - Raw: llm-wiki/raw/articles/2026-09-26-g9-live-app-handoff-opencode.md
