@@ -1,7 +1,7 @@
 /*
  * app/sectproof.c — section canvas on-device proof (§12.10 G4).
  *
- * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr|keys|live|remote] [demo] [mod=<name>]
+ * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr|keys|live|remote] [demo] [mod=<name>] [zoom=0..3]
  * One window with the RSection canvas for the chosen section at 1x plus a
  * readout row, so state can be verified by number as well as by ui_capture.
  * mod=<name> loads SYS:Classes/ReIncarnation/Mods/<name>/ (G8.1 skins);
@@ -86,6 +86,7 @@ static char s_installed_buf[16][64];
 static int s_installed_n;
 static char s_mod_arg[64];
 static int s_mod_pending; /* mod= arg seen but not applied yet */
+static int s_zoom; /* zoom= index 0..3 for the proof canvases (G8.2) */
 
 /* One MOD-log line per selection event (evidence for the G8.1 proof). */
 static void mod_log(const char *line) {
@@ -165,7 +166,7 @@ static void skin_apply(const char *name) {
         s_loaded[i] = '\0';
         return;
     }
-    ri_skin_aros_zoom(&s_skin, 0);
+    ri_skin_aros_zoom(&s_skin, s_zoom);
     ri_skin_aros_set_active(&s_skin);
     for (i = 0; name[i] && i < 63; i++)
         s_loaded[i] = name[i];
@@ -618,6 +619,9 @@ int main(int argc, char **argv) {
             }
             s_mod_arg[k] = '\0';
             s_mod_pending = 1;
+        } else if (!strncmp(argv[i], "zoom=", 5)) {
+            if (argv[i][5] >= '0' && argv[i][5] <= '3' && argv[i][6] == '\0')
+                s_zoom = argv[i][5] - '0';
         } else if (argv[i][0] == '8')
             section = RI_SEC_808;
         else if (argv[i][0] == '9')
@@ -790,7 +794,7 @@ int main(int argc, char **argv) {
             return 5;
         section = RI_SEC_MIX_SYNTH1;
     } else {
-        canvas = (Object *)ri_rsection_create(section, 0);
+        canvas = (Object *)ri_rsection_create(section, s_zoom);
         if (!canvas)
             return 5;
         row = canvas;

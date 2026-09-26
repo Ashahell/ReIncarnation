@@ -86,6 +86,12 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   `skins/808-RI/` (17 bg + 7 strips, PNG/RGBA), `skins/Template/` (blank,
   fallback-proven); lane proof `docs/evidence/gui/skins-g81.md` (Classic vs
   808-RI vs Template vs missing + live cycling, audit 0/0)
+- G8.2 zoom DONE 2026-09-26 (commit [§12.10 G8]): `RISECT zoom=0..3`,
+  `ri_skin_zoom_num()` + t76 (factor table vs panelgeo, sizes/pixels per
+  zoom, P-18 drag-law zoom-independence), loader scales by the helper;
+  lane matrix `docs/evidence/gui/zoom-g82.md` (303/808 x4, mix/fx/tr,
+  808-RI x4 — crisp everywhere; compact legend crowding noted for owner;
+  true drags need a human hand)
 
 ## §12.11 Perf pass vs W1.1 budget (§6)
 - [ ] `tools/bench` per-section evidence; per-section budget; continuous gating before beta exit

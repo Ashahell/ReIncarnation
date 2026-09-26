@@ -93,4 +93,7 @@ int ri_skin_part_sized(const char *base, uint32_t w, uint32_t h,
  * ((b<<24)|(g<<16)|(r<<8)|a — the proven knob_blit packing; ARGB paints
  * ghost-blue). Pure, in-place-safe (dst may equal src). */
 void ri_skin_swizzle_blit(const uint32_t *src, uint32_t *dst, uint32_t n);
+/* Zoom factor numerator over 8 for zoom index 0..3 (mirrors the panelgeo
+ * 4/6/8/3 series; 0 for anything else). The loader scales masters by it. */
+uint32_t ri_skin_zoom_num(int zoom);
 #endif

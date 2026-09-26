@@ -239,8 +239,7 @@ int ri_skin_aros_zoom(struct RISkin *skin, int zoom) {
     uint32_t num, i;
     if (!skin)
         return -1;
-    num = zoom == 0 ? 4u : zoom == 1 ? 6u : zoom == 2 ? 8u :
-          zoom == 3 ? 3u : 0u;
+    num = ri_skin_zoom_num(zoom);
     if (!num)
         return -2;
     drop_owner(skin);

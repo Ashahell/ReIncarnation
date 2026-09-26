@@ -5,6 +5,7 @@
 #include "gui/skin.h"
 #include <string.h>
 #include "gui/ctlreg.h"
+#include "gui/panelgeo.h"
 #include "project/sha256.h"
 
 #define RI_SKIN_LINE_MAX 255u
@@ -463,4 +464,9 @@ void ri_skin_swizzle_blit(const uint32_t *src, uint32_t *dst, uint32_t n) {
         uint32_t g = (p >> 8) & 0xFFu, b = p & 0xFFu;
         dst[i] = (b << 24) | (g << 16) | (r << 8) | a;
     }
+}
+
+uint32_t ri_skin_zoom_num(int zoom) {
+    return zoom == 0 ? 4u : zoom == 1 ? 6u : zoom == 2 ? 8u :
+           zoom == RI_GEO_ZOOM_COMPACT ? 3u : 0u;
 }
