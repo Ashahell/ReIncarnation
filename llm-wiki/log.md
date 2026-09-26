@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | Portability plan (platform layer)
+- Disposition: New (plan record)
+- Raw: llm-wiki/raw/articles/2026-09-26-portability-plan.md
+- Updated: llm-wiki/index.md (new section "Portability (§12.12)")
+Plan `c05d49e`.
+
 ## [2026-09-26] ingest | Live AHI first sound on the Dell + buffer ladder + W capture
 - Disposition: New (slice record); Update (corrects opencode's G9.3 "backend structure" claim: it was a placeholder)
 - Raw: llm-wiki/raw/articles/2026-09-26-live-ahi-first-sound-dell.md
