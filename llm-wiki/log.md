@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] Revision | songtrack plan/spec deferrals closed against r2 owners
+- Disposition: Update (no new raw — 9-line alignment edit)
+- Updated: songtrack plan R10 + Step 4/5 notes, songtrack spec §5 table (+1 row)
+- Commit: `29f9e35` [§12.9b]
+Closed: capture gating (m68), knob halves (automation r2 §2.5), changeover (streaming m67). Still open: TRANSPORT emission, run view (GUI editor), master ppq/24 + rbng.h comment (automation Task 3c). Web corroboration of E1 automation claims: 3 queries, zero indexed sources — basis stays the in-repo manual greps.
+
 ## [2026-09-26] Task 3 | §12.9c streaming emission (merge/cap/split/loop/end + R4 carry)
 - Disposition: New (slice record; supersedes the m67 mutant tally)
 - Raw: llm-wiki/raw/articles/2026-09-26-streaming-emission-task3.md
