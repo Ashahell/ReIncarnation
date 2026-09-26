@@ -140,3 +140,6 @@ Headroom (max/period): 13 % @1024, 14 % @512, 14 % @256, 15 % @128,
   and halves latency again (2.67 ms). 64 is marginal (1–2 xruns per ~10k
   buffers). `RIAPP_DEV_FRAMES` stays 1024 until the owner listens at
   256/128 — nobody has listened below 1024 yet.
+- **Owner verdict 2026-09-26: 256 "sounds fine", approved.** Listening
+  session at 256 (agent started, owner at the Dell): 2152 buffers, 0
+  xruns, render_max 755 us. `RIAPP_DEV_FRAMES` is now 256.

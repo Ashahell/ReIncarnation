@@ -7,7 +7,7 @@
  * The full panel reuses the RISECT keys/live layouts — that wiring lands
  * after the Dell first-sound proof; this shell already drives the same
  * session, control plane and meter snapshot the panel will use.
- * Usage: RIAPP [frames] (device buffer, default 1024; 64..4096).
+ * Usage: RIAPP [frames] (device buffer, default 256; 64..4096).
  * Controls: Space = Play, S = Stop (E1 p. 145 C4 law via ri_live_stop),
  * C / V = 303 cutoff down / up, P = 303 pan centre/left/right, L / K = 303 strip level down / up,
  * M = log meters (RAM:RIAPP.LOG; no sound change), W = start / stop
@@ -46,7 +46,7 @@
 extern struct DosLibrary *DOSBase;
 
 #define RIAPP_FRAMES 64u /* null-backend render chunk */
-#define RIAPP_DEV_FRAMES 1024u /* default device buffer (first sound; M1.1 accepted 64) */
+#define RIAPP_DEV_FRAMES 256u /* default device buffer (owner-approved 2026-09-26: 0 xruns, sounds fine; M1.1 accepted 64) */
 /* Demo mix (owner, Dell 2026-09-26: "the 808 volume is a bit low", then
  * "808 should still be louder"): the 303 strip starts at 72 (-9.9 dB,
  * P-17) and the 808 downbeats are accented, so the 808 sits ~1.5 dB above
