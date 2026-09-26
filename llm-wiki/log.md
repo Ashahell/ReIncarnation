@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | Automation spec r2 + implementation plan review
+- Disposition: New (review record)
+- Raw: llm-wiki/raw/articles/2026-09-26-automation-spec-and-plan-review.md
+- Updated: llm-wiki/index.md (Reviews entry)
+Spec r2 approved by owner; plan R1–R10 applied and aligned with opencode's Task 2 stubs (`6ee2892`).
+
 ## [2026-09-26] ingest | Dell E6320 native 1366x768
 - Disposition: New (lane record; AROS facts cross-posted to Vulkan4AROS)
 - Raw: llm-wiki/raw/articles/2026-09-26-dell-native-1366x768.md
