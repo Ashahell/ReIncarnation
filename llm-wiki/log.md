@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | Live AHI first sound on the Dell + buffer ladder + W capture
+- Disposition: New (slice record); Update (corrects opencode's G9.3 "backend structure" claim: it was a placeholder)
+- Raw: llm-wiki/raw/articles/2026-09-26-live-ahi-first-sound-dell.md
+- Updated: llm-wiki/index.md (Live app (§12.11) entry)
+Commits `dd93ae7`, `e884439`, `8953cf6`.
+
 ## [2026-09-26] slice | §12.11 G9 live app (opencode implementation)
 - Disposition: New (completion record)
 - Raw: llm-wiki/raw/articles/2026-09-26-g9-live-app-opencode.md

@@ -36,6 +36,7 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Live app (§12.11)
 
+- [raw/articles/2026-09-26-live-ahi-first-sound-dell.md](raw/articles/2026-09-26-live-ahi-first-sound-dell.md) — **2026-09-26 — Live AHI stream: first sound on the Dell (`dd93ae7`, `e884439`).** Render task + SoundFunc double buffer (DYNAMICSAMPLE), 48 kHz, 0 xruns at 1024 (~8 % load); owner heard 303+808, balance/pan OK; PlayerFreq enables 64–256 (not yet listened; 'worse' at 1024); W capture to WAV; stuck-key trap (rawkey release = CODE|0x80); G9b handoff `8953cf6`.
 - [raw/articles/2026-09-26-g9-live-app-opencode.md](raw/articles/2026-09-26-g9-live-app-opencode.md) — **2026-09-26 — §12.11 G9 live app (opencode `48b552d`…`ee05365`).** Control plane (t80) + live core chunk-agnostic bit-exact (t81) + record host half (t82), AHI render-task structure + RIAPP shell (ABIv1 link), design note + live-render evidence; audit 0/0. Open: Dell first sound, 64/128-frame choice, 5-min soak, panel integration.
 
 ## Lane infrastructure
