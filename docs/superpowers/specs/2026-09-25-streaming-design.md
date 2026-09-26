@@ -42,6 +42,18 @@ keeps consuming event lists).
   2. Advance phase by the block's tick delta.
   3. While phase >= current live length: `sounding_slot ←
      pending_slot`, `phase -= length`.
+- Edge ownership (amended 2026-09-27, Dell finding): windows are
+  half-open `[tick_start, tick_end)` — a downbeat exactly at
+  `tick_start` belongs to this block (the previous window skipped it
+  via the `tick_end` rule). Split rule: pending sampling is
+  edge-inclusive (audio must track), while change ANNOUNCEMENTS fire
+  only for strictly interior downbeats (cold/teleport left edges stay
+  silent per the t74 record; nothing consumes these events). The old
+  `<=` dropped edge-exact downbeats on both sides; with integer ticks
+  and common buffer sizes EVERY downbeat aligned and pattern selection
+  never sounded. Live (pattern mode) selection additionally needs the
+  panel's sticky re-capture — one-shot grid writes only sound their own
+  bar (see `ri_core_capture_sel`).
   All tick-domain, no samples, no allocation.
 - Banks held as non-owning pointers (`banks[instance]` set at player
   init). Lengths are read per block from the live banks, so edits

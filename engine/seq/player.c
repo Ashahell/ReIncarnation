@@ -210,17 +210,28 @@ uint32_t ri_player_block(struct RIPlayer *p, const struct RISongTrack *t,
             llen = (uint64_t)l.len_bars;
         }
     }
-    /* STEP 1: pending + walker — downbeats strictly inside
-     * (tick_start, tick_end), folded. A downbeat exactly at tick_end
-     * opens the next block; sampling it here would preview a selection
-     * whose content lies outside this block (Task 2 Ruling R-STEP1). */
+    /* STEP 1: pending + walker — downbeats in [tick_start, tick_end),
+     * folded. A downbeat exactly at tick_end opens the next block;
+     * sampling it here would preview a selection whose content lies
+     * outside this block (Task 2 Ruling R-STEP1). A downbeat exactly at
+     * tick_start belongs to THIS block: the previous window skipped it
+     * via the tick_end rule, so excluding it here would drop it forever
+     * (2026-09-27 Dell finding: pattern edits inaudible — single-tick
+     * windows tile the integers, and every bar boundary fell through
+     * the crack). Split rule: pending sampling is edge-inclusive
+     * (audio must track), while change ANNOUNCEMENTS fire only for
+     * strictly interior downbeats (t74 R-DEFERRAL record: cold/teleport
+     * left edges stay silent; nothing consumes these events, and the
+     * carry still dedups everything else exactly once). */
     b0 = ri_seq_bar_at_tick(tick_start, pq);
     b1 = ri_seq_bar_at_tick(tick_end, pq);
     for (b = b0; b <= b1; b++) {
         uint64_t db = ri_seq_tick_of_bar(pq, b);
         uint64_t fb;
-        if (db <= tick_start || db >= tick_end)
+        int edge;
+        if (db < tick_start || db >= tick_end)
             continue;
+        edge = (db == tick_start);
         fb = b;
         if (looping && fb >= ls + llen)
             fb = ls + ((fb - ls) % llen); /* fold PRESERVES PHASE */
@@ -228,8 +239,9 @@ uint32_t ri_player_block(struct RIPlayer *p, const struct RISongTrack *t,
             continue; /* past the end with no loop: nothing to say */
         for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
             p->pending_slot[i] = ri_track_selected(t, fb, i); /* ONLY writer */
-        ri_track_emit_measure(t, fb, &p->track_carry, map, pq,
-            out, &n, cap, &seq);
+        if (!edge)
+            ri_track_emit_measure(t, fb, &p->track_carry, map, pq,
+                out, &n, cap, &seq);
     }
     /* STEPS 2+3: per-instance advance (order across instances irrelevant —
      * instances share only n/cap/seq, appended in 0..3 order). */

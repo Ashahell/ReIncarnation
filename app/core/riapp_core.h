@@ -37,6 +37,12 @@ const struct RIPatternBank *ri_core_bank_ro(const struct RIAppCore *c, uint32_t 
  * routes through the render task when the AHI backend is up). */
 void ri_core_play(struct RIAppCore *c);
 void ri_core_stop(struct RIAppCore *c);
+/* Sticky live selection: store sel at (bar, inst) when the grid differs.
+ * Returns 1 when stored, 0 when already there (or on bad args). The panel
+ * calls this every round so the selection persists as bars advance
+ * (E1 pattern mode); arrangement-per-bar programming is a song-mode
+ * feature and stays out (OPEN). */
+int ri_core_capture_sel(struct RIAppCore *c, uint64_t bar, uint32_t inst, uint8_t sel);
 /* Meter snapshot -> levels + song position. Returns 1 when a read landed
  * (shell refreshes on 1), 0 when busy/skipped. Pure computation; the shell
  * pushes the levels into the mixer board + panel. */

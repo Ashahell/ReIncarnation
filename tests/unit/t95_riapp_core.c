@@ -73,5 +73,13 @@ int main(void) {
         }
         RI_ASSERT(silent, "stop silent");
     }
+    /* Sticky selection: a captured slot persists across bars (live pattern
+     * mode). One-shot grid writes can't — the playhead leaves the bar. */
+    RI_ASSERT(ri_track_capture(&c.track, 0u, 0u, 5u) == 0, "seed");
+    RI_ASSERT(ri_core_capture_sel(&c, 0u, 0u, 5u) == 0, "already stored");
+    RI_ASSERT(ri_core_capture_sel(&c, 1u, 0u, 5u) == 1, "re-capture next bar");
+    RI_ASSERT(ri_track_selected(&c.track, 1u, 0u) == 5u, "sticky");
+    RI_ASSERT(ri_core_capture_sel(0, 0u, 0u, 5u) == 0, "sel null");
+    RI_ASSERT(ri_core_capture_sel(&c, 0u, 9u, 5u) == 0, "sel bad inst");
     RI_RESULT("riapp_core");
 }

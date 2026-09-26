@@ -1,0 +1,4 @@
+FAIL tests/unit/t96_pattern_change.c:54: edge-exact flip, got 0
+FAIL tests/unit/t96_pattern_change.c:84: post-flip differs
+FAIL tests/unit/t96_pattern_change.c:86: sounding 0
+FAIL 3

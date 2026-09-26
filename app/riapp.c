@@ -296,7 +296,7 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
     if (u->u.pat.bank != s_pat_bank[c] || u->u.pat.pattern != s_pat_pat[c]) {
         s_pat_bank[c] = u->u.pat.bank;
         s_pat_pat[c] = u->u.pat.pattern;
-        ri_track_capture(&s_core.track, bar, inst, (uint8_t)sel);
+        ri_core_capture_sel(&s_core, bar, inst, (uint8_t)sel);
         evlog("PAT", "c=%d inst=%d sel=%d", c, inst, sel);
         if (c == C_P0) {
             /* 303A shows the selected slot: refresh its steps from the bank. */
@@ -310,6 +310,9 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
             ri_rsection_refresh(s_canvas[C_303]);
         }
     }
+    /* Sticky live selection (E1 pattern mode): re-assert the panel selection
+     * at the snapshot bar every round (no-op when stored, silent). */
+    ri_core_capture_sel(&s_core, bar, inst, (uint8_t)sel);
     if (u->u.pat.length[sel] != s_pat_len[c][sel]) {
         s_pat_len[c][sel] = u->u.pat.length[sel];
         evlog("PATLEN", "c=%d sel=%d len=%d", c, sel, u->u.pat.length[sel]);

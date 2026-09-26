@@ -78,6 +78,17 @@ void ri_core_play(struct RIAppCore *c) {
         ri_live_play(&c->session);
 }
 
+int ri_core_capture_sel(struct RIAppCore *c, uint64_t bar, uint32_t inst, uint8_t sel) {
+    if (!c || inst >= 4u || sel > 31u)
+        return 0;
+    if (bar >= (uint64_t)RI_SONG_BARS)
+        bar = (uint64_t)RI_SONG_BARS - 1u;
+    if (ri_track_selected(&c->track, bar, inst) == sel)
+        return 0;
+    ri_track_capture(&c->track, bar, inst, sel);
+    return 1;
+}
+
 void ri_core_stop(struct RIAppCore *c) {
     if (c)
         ri_live_stop(&c->session);
