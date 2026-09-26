@@ -1,0 +1,7 @@
+FAIL scripts/../tests/unit/t84_pal_thread.c:94: atomic zero
+FAIL scripts/../tests/unit/t84_pal_thread.c:96: atomic word
+FAIL scripts/../tests/unit/t84_pal_thread.c:98: ptr null
+FAIL scripts/../tests/unit/t84_pal_thread.c:100: ptr word
+FAIL torn message: flag=4294967295 payload=199999
+FAIL scripts/../tests/unit/t84_pal_thread.c:109: pings delivered
+FAIL 6

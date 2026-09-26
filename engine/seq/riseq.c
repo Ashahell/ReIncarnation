@@ -15,8 +15,9 @@ void RiSeqInit(struct RISeq *s, struct AudioObject *ao, uint32_t ppq) {
     s->ao = ao;
     s->ppq = ppq ? ppq : 96u;
     s->samples = 0ULL;
-    s->snap = 0;
-    s->pending = 0;
+    s->snap.v = 0;
+    s->pending.v = 0;
+    /* Init before sharing; plain stores safe here. */
     s->seg.start_tick = 0ULL;
     s->seg.ns_per_quarter = RISEQ_DEFAULT_BPM_NS;
     s->map.segs = &s->seg;
@@ -44,40 +45,44 @@ uint64_t RiSeqMasterClock(const struct RISeq *s) {
 
 void RiSeqLoadSnapshot(struct RISeq *s, const struct RISeqSnapshot *snap) {
     if (s)
-        s->snap = snap;
+        ri_atomic_ptr_store_rel(&s->snap, snap);
 }
 
 void RiSeqRequestSnapshot(struct RISeq *s, const struct RISeqSnapshot *snap) {
     if (s)
-        s->pending = snap;
+        ri_atomic_ptr_store_rel(&s->pending, snap);
 }
 
 const struct RISeqSnapshot *RiSeqBeginBuffer(struct RISeq *s) {
+    const void *staged;
     if (!s)
         return 0;
-    if (s->pending) {
-        s->snap = s->pending;
-        s->pending = 0;
+    staged = ri_atomic_ptr_load_acq(&s->pending);
+    if (staged) {
+        ri_atomic_ptr_store_rel(&s->snap, staged);
+        ri_atomic_ptr_store_rel(&s->pending, 0);
     }
-    return s->snap;
+    return (const struct RISeqSnapshot *)ri_atomic_ptr_load_acq(&s->snap);
 }
 
 uint64_t RiSeqLoopPos(const struct RISeq *s, uint64_t *iteration) {
     uint64_t samples, len, off;
+    const struct RISeqSnapshot *snap;
     if (iteration)
         *iteration = 0ULL;
     if (!s)
         return 0ULL;
     samples = s->samples;
-    if (!s->snap || s->snap->loop_end <= s->snap->loop_start)
+    snap = (const struct RISeqSnapshot *)ri_atomic_ptr_load_acq(&s->snap);
+    if (!snap || snap->loop_end <= snap->loop_start)
         return samples;
-    if (samples < s->snap->loop_start)
+    if (samples < snap->loop_start)
         return samples;
-    len = s->snap->loop_end - s->snap->loop_start;
-    off = samples - s->snap->loop_start;
+    len = snap->loop_end - snap->loop_start;
+    off = samples - snap->loop_start;
     if (iteration)
         *iteration = off / len;
-    return s->snap->loop_start + (off % len);
+    return snap->loop_start + (off % len);
 }
 
 uint32_t ri_events_in_window(const struct RIEvent *ev, uint32_t n,

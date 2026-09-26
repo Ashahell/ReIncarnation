@@ -74,47 +74,55 @@ void ri_auto_pub_init(struct RIAutoPub *p,
     p->lanes[1].cap = cap1;
     p->lanes[1].flags = 0u;
     p->lanes[1].ev = ev1;
-    p->front = 0u;
-    p->staged = RI_AUTO_PUB_NONE;
+    p->front.v = 0u;
+    p->staged.v = RI_AUTO_PUB_NONE;
+    /* Init before sharing; plain stores safe here. */
 }
 
 struct RIAutoLane *ri_auto_pub_back(struct RIAutoPub *p) {
+    uint32_t f;
     if (!p)
         return 0;
-    return &p->lanes[p->front ^ 1u];
+    f = ri_atomic_load_acq(&p->front);
+    return &p->lanes[f ^ 1u];
 }
 
 const struct RIAutoLane *ri_auto_pub_front(const struct RIAutoPub *p) {
+    uint32_t f;
     if (!p)
         return 0;
-    return &p->lanes[p->front & 1u];
+    f = ri_atomic_load_acq(&p->front);
+    return &p->lanes[f & 1u];
 }
 
 void ri_auto_pub_request(struct RIAutoPub *p) {
+    uint32_t f;
     if (!p)
         return;
-    p->staged = p->front ^ 1u; /* stage the back; overwrite is fail-soft */
+    f = ri_atomic_load_acq(&p->front);
+    ri_atomic_store_rel(&p->staged, f ^ 1u); /* stage the back; overwrite is fail-soft */
 }
 
 void ri_auto_pub_apply(struct RIAutoPub *p) {
     uint32_t s;
     if (!p)
         return;
-    s = p->staged;
+    s = ri_atomic_load_acq(&p->staged);
     if (s > 1u)
         return; /* nothing staged: no-op */
-    p->front = s;
-    p->staged = RI_AUTO_PUB_NONE;
+    ri_atomic_store_rel(&p->front, s);
+    ri_atomic_store_rel(&p->staged, RI_AUTO_PUB_NONE);
 }
 
 void ri_auto_pub_resync(struct RIAutoPub *p) {
     const struct RIAutoLane *fr;
     struct RIAutoLane *bk;
-    uint32_t n, i;
+    uint32_t n, i, f;
     if (!p)
         return;
-    fr = &p->lanes[p->front & 1u];
-    bk = &p->lanes[(p->front ^ 1u) & 1u];
+    f = ri_atomic_load_acq(&p->front);
+    fr = &p->lanes[f & 1u];
+    bk = &p->lanes[(f ^ 1u) & 1u];
     if (!fr->ev || !bk->ev)
         return;
     n = (fr->n < fr->cap) ? fr->n : fr->cap;

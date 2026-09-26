@@ -17,6 +17,7 @@
 #endif
 
 #include <exec/types.h>
+#include "platform/pal/ri_pal_thread.h"
 
 struct RILiveSession; /* engine/live.h (opaque here) */
 
@@ -32,13 +33,13 @@ struct AuLive {
     ULONG want_rate;           /* requested mix rate */
     ULONG mix_freq;            /* (out) negotiated mix rate: run the session at this */
     ULONG mode_id;             /* (out) AHI audio mode */
-    volatile ULONG xruns;      /* (out) late buffers (AHI repeated one) */
-    volatile ULONG buffers;    /* (out) buffers rendered */
-    volatile ULONG render_us_max; /* (out) slowest buffer render, microseconds (EClock) */
-    volatile ULONG render_us_sum_ms; /* (out) total render time, milliseconds */
+    ri_atomic_u32 xruns;      /* (out) late buffers (AHI repeated one) */
+    ri_atomic_u32 buffers;    /* (out) buffers rendered */
+    ri_atomic_u32 render_us_max; /* (out) slowest buffer render, microseconds (EClock) */
+    ri_atomic_u32 render_us_sum_ms; /* (out) total render time, milliseconds */
     ULONG period_us;           /* (out) device period frames/mix_freq, microseconds */
-    volatile LONG cmd;         /* GUI -> task transport request (AU_LIVE_CMD_*) */
-    volatile LONG state;       /* 0 idle, 1 negotiated, 2 playing, -1 failed, 3 ended */
+    ri_atomic_u32 cmd;         /* GUI -> task transport request (AU_LIVE_CMD_*) */
+    ri_atomic_u32 state;       /* 0 idle, 1 negotiated, 2 playing, -1 failed, 3 ended */
     LONG err;                  /* failure step (1 port, 2 device, 3 mode, 4 alloc, 5 load, 6 task, 7 open timeout) */
     struct RILiveSession *session; /* set by au_live_run */
     /* Capture (RIAPP 'W'): the task copies each rendered s16 half here
@@ -46,8 +47,8 @@ struct AuLive {
      * turning cap_on off (no file IO in the render task). */
     WORD *cap_buf;             /* interleaved stereo s16, GUI-allocated */
     ULONG cap_max;             /* capacity, frames */
-    volatile ULONG cap_pos;    /* frames captured */
-    volatile LONG cap_on;
+    ri_atomic_u32 cap_pos;    /* frames captured */
+    ri_atomic_u32 cap_on;
 };
 
 /* Spawn the render task, open ahi.device (AHI_NO_UNIT, device-as-library),

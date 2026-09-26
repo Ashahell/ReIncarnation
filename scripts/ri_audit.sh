@@ -161,6 +161,12 @@ bash "$ROOT/scripts/ri_build_host.sh" test t80_ctlplane >/dev/null || { echo "FA
 bash "$ROOT/scripts/ri_build_host.sh" test t81_live >/dev/null || { echo "FAIL: t81_live"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t82_live_record >/dev/null || { echo "FAIL: t82_live_record"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t83_panelctl >/dev/null || { echo "FAIL: t83_panelctl"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t84_pal_thread >/dev/null || { echo "FAIL: t84_pal_thread (portability T1)"; exit 1; }
+# portability T1: PAL atomics header is include-clean (stdint/stddef only;
+# ri_pal_log.h additionally allows stdarg.h for the varargs decl)
+if grep -n "#include" "$ROOT/platform/pal/"*.h | grep -v "stdint.h\|stddef.h\|stdarg.h"; then echo "FAIL: pal header include leak"; exit 1; fi
+# portability T1: no volatile cross-thread words left in engine/ (atomics own them)
+if grep -rn "volatile" "$ROOT/engine/" 2>/dev/null | grep -v "platform/pal"; then echo "FAIL: volatile left in engine/"; exit 1; fi
 # law: no mutable static state in the player (spec §Ownership) — one enforcement point
 if grep -nE "^static [^()]*[;=]" engine/seq/player.c | grep -v ":static const"; then echo "FAIL: mutable static state in player.c"; exit 1; fi
 # law: no mutable static state in the song track (spec §Ownership) — one enforcement point

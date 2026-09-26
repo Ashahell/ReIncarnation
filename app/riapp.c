@@ -539,7 +539,7 @@ int main(int argc, char **argv) {
         au_live_close(&s_lv);
         if (DOSBase)
             rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us\n",
-                s_lv.buffers, s_lv.xruns, s_lv.render_us_max, s_lv.render_us_sum_ms, s_lv.period_us);
+                ri_atomic_load_acq(&s_lv.buffers), ri_atomic_load_acq(&s_lv.xruns), ri_atomic_load_acq(&s_lv.render_us_max), ri_atomic_load_acq(&s_lv.render_us_sum_ms), s_lv.period_us);
     }
     SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
     MUI_DisposeObject(app);

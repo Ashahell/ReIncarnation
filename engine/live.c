@@ -58,7 +58,8 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     s->sample_cursor = 0u;
     s->seq_next = 0u;
     s->xruns = 0u;
-    s->meters_seq = 0u;
+    s->meters_seq.v = 0u;
+    /* Init before sharing; plain store safe here. */
     s->tick_rem = 0u;
     for (i = 0u; i < 4u; i++) {
         s->meters.sec_peak[i] = 0.0f;
@@ -339,23 +340,23 @@ const struct RILiveMeters *ri_live_meters(const struct RILiveSession *s) {
  * Single writer / single reader; word-sized accesses only. */
 void ri_live_meters_begin(struct RILiveSession *s) {
     if (s)
-        s->meters_seq++;
+        ri_atomic_fetch_add_rel(&s->meters_seq, 1u);
 }
 
 void ri_live_meters_end(struct RILiveSession *s) {
     if (s)
-        s->meters_seq++;
+        ri_atomic_fetch_add_rel(&s->meters_seq, 1u);
 }
 
 int ri_live_meters_read(const struct RILiveSession *s, struct RILiveMeters *out) {
     uint32_t a, b;
     if (!s || !out)
         return 2;
-    a = s->meters_seq;
+    a = ri_atomic_load_acq(&s->meters_seq);
     if (a & 1u)
         return 1;
     *out = s->meters;
-    b = s->meters_seq;
+    b = ri_atomic_load_acq(&s->meters_seq);
     if (a != b)
         return 1;
     return 0;

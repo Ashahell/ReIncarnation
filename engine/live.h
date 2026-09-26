@@ -14,6 +14,7 @@
 #include "engine/seq/autolane_emit.h"
 #include "engine/seq/ctlplane.h"
 #include "engine/seq/clock.h"
+#include "platform/pal/ri_pal_thread.h"
 
 #define RI_LIVE_QUEUE 256u /* pending future-event queue (one block max) */
 
@@ -54,7 +55,7 @@ struct RILiveSession {
     uint64_t sample_cursor;
     uint32_t seq_next;
     uint32_t xruns;
-    volatile uint32_t meters_seq; /* seqlock around meters (see above) */
+    ri_atomic_u32 meters_seq; /* seqlock around meters (see above) */
     uint64_t tick_rem;
     struct RILiveMeters meters;
 };

@@ -8,6 +8,7 @@
 #define RI_CTLPLANE_H
 #include <stdint.h>
 #include "engine/seq/sched.h"
+#include "platform/pal/ri_pal_thread.h"
 
 #define RI_CTL_CAP 256u /* power of two; mask indexing */
 
@@ -15,8 +16,8 @@ struct RIControlMsg { uint16_t key; uint8_t val; uint8_t flags; };
 
 struct RIControlPlane {
     struct RIControlMsg buf[RI_CTL_CAP];
-    uint32_t head;    /* writer count (monotonic) */
-    uint32_t tail;    /* reader count (monotonic) */
+    ri_atomic_u32 head;    /* writer count (monotonic; acquire/release) */
+    ri_atomic_u32 tail;    /* reader count (monotonic; acquire/release) */
     uint32_t dropped; /* overflow coalesce/drop count (writer side) */
     uint32_t refused; /* refused-key count (writer side) */
 };

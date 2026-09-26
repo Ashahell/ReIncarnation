@@ -25,29 +25,32 @@ void ri_ctl_init(struct RIControlPlane *p) {
         p->buf[i].val = 0u;
         p->buf[i].flags = 0u;
     }
-    p->head = 0u;
-    p->tail = 0u;
+    p->head.v = 0u;
+    p->tail.v = 0u;
+    /* Init on the owning task before sharing; plain stores safe here. */
     p->dropped = 0u;
     p->refused = 0u;
 }
 
 int ri_ctl_send(struct RIControlPlane *p, uint16_t key, uint8_t val) {
-    uint32_t pending, i;
+    uint32_t pending, i, h, t;
     if (!p)
         return 2;
     if (!ri_auto_allowed(key)) {
         p->refused++;
         return 2;
     }
-    pending = p->head - p->tail;
+    h = ri_atomic_load_acq(&p->head);
+    t = ri_atomic_load_acq(&p->tail);
+    pending = h - t;
     if (pending < RI_CTL_CAP) {
-        p->buf[p->head & RI_CTL_MASK].key = key;
-        p->buf[p->head & RI_CTL_MASK].val = val;
-        p->buf[p->head & RI_CTL_MASK].flags = 0u;
-        p->head++;
+        p->buf[h & RI_CTL_MASK].key = key;
+        p->buf[h & RI_CTL_MASK].val = val;
+        p->buf[h & RI_CTL_MASK].flags = 0u;
+        ri_atomic_store_rel(&p->head, h + 1u);
         return 0;
     }
-    for (i = p->head; i > p->tail; i--) {
+    for (i = h; i > t; i--) {
         uint32_t at = (i - 1u) & RI_CTL_MASK;
         if (p->buf[at].key == key) {
             p->buf[at].val = val;
@@ -56,32 +59,37 @@ int ri_ctl_send(struct RIControlPlane *p, uint16_t key, uint8_t val) {
             return 0;
         }
     }
-    p->tail++;
-    p->buf[p->head & RI_CTL_MASK].key = key;
-    p->buf[p->head & RI_CTL_MASK].val = val;
-    p->buf[p->head & RI_CTL_MASK].flags = 0u;
-    p->head++;
+    ri_atomic_store_rel(&p->tail, t + 1u);
+    p->buf[h & RI_CTL_MASK].key = key;
+    p->buf[h & RI_CTL_MASK].val = val;
+    p->buf[h & RI_CTL_MASK].flags = 0u;
+    ri_atomic_store_rel(&p->head, h + 1u);
     p->dropped++;
     return 0;
 }
 
 uint32_t ri_ctl_pending(const struct RIControlPlane *p) {
+    uint32_t h, t;
     if (!p)
         return 0u;
-    if (p->head < p->tail)
+    h = ri_atomic_load_acq(&p->head);
+    t = ri_atomic_load_acq(&p->tail);
+    if (h < t)
         return 0u;
-    return p->head - p->tail;
+    return h - t;
 }
 
 uint32_t ri_ctl_drain(struct RIControlPlane *p, struct RIEvent *out,
     uint32_t cap, uint64_t sample, uint32_t *seq) {
-    uint32_t n = 0u;
+    uint32_t n = 0u, h, t;
     if (!p || !out || cap == 0u || !seq)
         return 0u;
-    if (p->head < p->tail)
+    h = ri_atomic_load_acq(&p->head);
+    t = ri_atomic_load_acq(&p->tail);
+    if (h < t)
         return 0u;
-    while (p->tail < p->head && n < cap) {
-        struct RIControlMsg m = p->buf[p->tail & RI_CTL_MASK];
+    while (t < h && n < cap) {
+        struct RIControlMsg m = p->buf[t & RI_CTL_MASK];
         out[n].sample = sample;
         out[n].type = RI_EV_AUTOMATION;
         out[n].device = ctl_device(m.key);
@@ -89,8 +97,9 @@ uint32_t ri_ctl_drain(struct RIControlPlane *p, struct RIEvent *out,
         out[n].value = m.key;
         out[n].flags = (uint16_t)(m.val & 127u);
         out[n].seq = (*seq)++;
-        p->tail++;
+        t++;
         n++;
     }
+    ri_atomic_store_rel(&p->tail, t);
     return n;
 }

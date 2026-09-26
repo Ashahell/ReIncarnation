@@ -6,6 +6,7 @@
 #include "engine/seq/autolane.h"
 #include "engine/seq/sched.h"  /* RIEvent, RI_EV_* */
 #include "engine/seq/clock.h"  /* RITempoMap */
+#include "platform/pal/ri_pal_thread.h"
 
 /* Emission carry: lane index of the first event not yet emitted
  * (songtrack R1 lesson — a cap-dropped event is re-sent, never lost).
@@ -26,8 +27,8 @@ struct RIAutoCarry { uint32_t next; };
  * render writes front+apply-clear. Host-testable as pure calls. */
 struct RIAutoPub {
     struct RIAutoLane lanes[2];
-    volatile uint32_t front;  /* 0/1: render side reads lanes[front] */
-    volatile uint32_t staged; /* 0/1 staged back, or RI_AUTO_PUB_NONE */
+    ri_atomic_u32 front;  /* 0/1: render side reads lanes[front] */
+    ri_atomic_u32 staged; /* 0/1 staged back, or RI_AUTO_PUB_NONE */
 };
 #define RI_AUTO_PUB_NONE 2u
 void ri_auto_pub_init(struct RIAutoPub *p,

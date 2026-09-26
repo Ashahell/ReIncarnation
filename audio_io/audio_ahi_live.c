@@ -50,9 +50,9 @@ static struct Task *s_render;
  * DriverInit faults inside the mode scan, and a slow scan must not block
  * past AU_LIVE_OPEN_TIMEOUT_S either. The GUI task owns the counter; the
  * render task only reads it. */
-static volatile ULONG s_open_gen;
+static ri_atomic_u32 s_open_gen;
 #define AU_LIVE_OPEN_TIMEOUT_S 10u
-static volatile ULONG s_hook_count;
+static ri_atomic_u32 s_hook_count;
 static unsigned long long s_render_us_acc;
 static ULONG s_hook_mask;
 static struct Hook s_sound_hook;
@@ -64,7 +64,7 @@ static ULONG sound_entry(struct Hook *h, APTR actrl, APTR msg) {
     (void)h;
     (void)actrl;
     (void)msg;
-    ++s_hook_count;
+    ri_atomic_fetch_add_rel(&s_hook_count, 1u);
     if (s_render != NULL)
         Signal(s_render, s_hook_mask);
     return 0;
@@ -90,9 +90,9 @@ static void tell_parent(void) {
  * boundary), then one device buffer through the session, then s16. */
 static void render_half(struct AuLive *lv, ULONG half) {
     ULONG i, got;
-    LONG cmd = lv->cmd;
+    LONG cmd = (LONG)ri_atomic_load_acq(&lv->cmd);
     if (cmd != AU_LIVE_CMD_NONE) {
-        lv->cmd = AU_LIVE_CMD_NONE;
+        ri_atomic_store_rel(&lv->cmd, (uint32_t)AU_LIVE_CMD_NONE);
         if (cmd == AU_LIVE_CMD_PLAY)
             ri_live_play(lv->session);
         else if (cmd == AU_LIVE_CMD_STOP)
@@ -109,27 +109,27 @@ static void render_half(struct AuLive *lv, ULONG half) {
         s_pcm[half][i * 2u] = au_live_f32_to_s16(s_fl[i]);
         s_pcm[half][i * 2u + 1u] = au_live_f32_to_s16(s_fr[i]);
     }
-    if (lv->cap_on && lv->cap_buf) { /* bounded copy, no IO */
-        ULONG n = lv->frames, pos = lv->cap_pos, k;
+    if (ri_atomic_load_acq(&lv->cap_on) && lv->cap_buf) { /* bounded copy, no IO */
+        ULONG n = lv->frames, pos = ri_atomic_load_acq(&lv->cap_pos), k;
         if (n > lv->cap_max - pos)
             n = lv->cap_max - pos;
         for (k = 0u; k < n * 2u; k++)
             lv->cap_buf[pos * 2u + k] = s_pcm[half][k];
-        lv->cap_pos = pos + n;
-        if (lv->cap_pos >= lv->cap_max)
-            lv->cap_on = 0;
+        ri_atomic_store_rel(&lv->cap_pos, pos + n);
+        if (ri_atomic_load_acq(&lv->cap_pos) >= lv->cap_max)
+            ri_atomic_store_rel(&lv->cap_on, 0u);
     }
     if (TimerBase && efreq) {
         unsigned long long a = ((unsigned long long)t0.ev_hi << 32) | t0.ev_lo, b, us;
         ReadEClock(&t1);
         b = ((unsigned long long)t1.ev_hi << 32) | t1.ev_lo;
         us = (b - a) * 1000000ULL / efreq;
-        if (us > lv->render_us_max)
-            lv->render_us_max = (ULONG)us;
+        if (us > ri_atomic_load_acq(&lv->render_us_max))
+            ri_atomic_store_rel(&lv->render_us_max, (uint32_t)us);
         s_render_us_acc += us;
-        lv->render_us_sum_ms = (ULONG)(s_render_us_acc / 1000ULL);
+        ri_atomic_store_rel(&lv->render_us_sum_ms, (uint32_t)(s_render_us_acc / 1000ULL));
     }
-    lv->buffers++;
+    ri_atomic_fetch_add_rel(&lv->buffers, 1u);
 }
 
 static void live_task(void) {
@@ -145,7 +145,7 @@ static void live_task(void) {
     ULONG mygen;
 
     s_render = FindTask(NULL);
-    mygen = s_open_gen; /* snapshot: a stale copy means the GUI timed out */
+    mygen = ri_atomic_load_acq(&s_open_gen); /* snapshot: a stale copy means the GUI timed out */
     hsig = AllocSignal(-1);
     if (hsig < 0) {
         lv->err = 6;
@@ -170,7 +170,7 @@ static void live_task(void) {
         goto fail;
     }
     dev_open = 1;
-    if (mygen != s_open_gen)
+    if (mygen != ri_atomic_load_acq(&s_open_gen))
         goto fail; /* abandoned during the scan: unwind quiet (tail skips lv) */
     AHIBase = (struct Library *)req->ahir_Std.io_Device;
     {
@@ -236,9 +236,9 @@ static void live_task(void) {
     }
     /* Negotiated: the GUI initialises the session at mix_freq and calls
      * au_live_run, which sets lv->session and signals us again. */
-    if (mygen != s_open_gen)
+    if (mygen != ri_atomic_load_acq(&s_open_gen))
         goto fail; /* abandoned: unwind quiet (tail skips lv and the tell) */
-    lv->state = 1;
+    ri_atomic_store_rel(&lv->state, 1u);
     tell_parent();
     {
         ULONG sigs = Wait(s_hook_mask | SIGBREAKF_CTRL_C | SIGBREAKF_CTRL_E);
@@ -255,14 +255,14 @@ static void live_task(void) {
     AHI_SetVol(0, 0x10000, 0x8000, actl, AHISF_IMM);
     AHI_SetSound(0, 0, 0, 0, actl, AHISF_IMM);
     AHI_SetSound(0, 1, 0, 0, actl, AHISF_NONE); /* half 1 follows half 0 */
-    lv->state = 2;
+    ri_atomic_store_rel(&lv->state, 2u);
     tell_parent();
     for (;;) {
         ULONG sigs = Wait(s_hook_mask | SIGBREAKF_CTRL_C);
         ULONG n, free_half;
         if (sigs & SIGBREAKF_CTRL_C)
             break;
-        n = s_hook_count;
+        n = ri_atomic_load_acq(&s_hook_count);
         if (n == processed)
             continue;
         if (!started) {        /* the first start is half 0 (IMM); half 1 is */
@@ -274,7 +274,7 @@ static void live_task(void) {
             processed = 1u;
         }
         if (n - processed > 1u)
-            lv->xruns += n - processed - 1u; /* AHI looped a half: late */
+            ri_atomic_fetch_add_rel(&lv->xruns, n - processed - 1u); /* AHI looped a half: late */
         processed = n;
         /* the most recently queued half is the one now playing */
         free_half = queued ^ 1u;
@@ -298,7 +298,7 @@ fail:
         DeleteMsgPort(port);
     if (TimerBase) {
         CloseDevice((struct IORequest *)treq);
-        if (mygen == s_open_gen)
+        if (mygen == ri_atomic_load_acq(&s_open_gen))
             TimerBase = NULL;
     }
     if (treq)
@@ -309,21 +309,24 @@ fail:
         FreeSignal(hsig);
     /* Shared globals only when current: a late abandoned task must not
      * clobber a newer stream's base, render pointer, state or signals. */
-    if (mygen == s_open_gen) {
+    if (mygen == ri_atomic_load_acq(&s_open_gen)) {
         s_render = NULL;
         AHIBase = NULL;
     }
-    if (mygen != s_open_gen)
+    if (mygen != ri_atomic_load_acq(&s_open_gen))
         return; /* abandoned: the GUI already failed over; touch nothing shared */
     /* Forbid so the parent cannot unload our code before we return; the
      * task's exit breaks it (exit path only, never the render path). */
     Forbid();
-    lv->state = (lv->state == 0 || lv->state == 1) && lv->err ? -1 : 3;
+    {
+        LONG st = (LONG)ri_atomic_load_acq(&lv->state);
+        ri_atomic_store_rel(&lv->state, (uint32_t)((st == 0 || st == 1) && lv->err ? -1 : 3));
+    }
     tell_parent();
 }
 
 static void wait_state(struct AuLive *lv, LONG not_state) {
-    while (lv->state == not_state)
+    while ((LONG)ri_atomic_load_acq(&lv->state) == not_state)
         Wait(1UL << s_parent_sig);
 }
 
@@ -338,18 +341,22 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
     lv->want_rate = want_rate;
     lv->mix_freq = 0u;
     lv->mode_id = 0u;
-    lv->xruns = 0u;
-    lv->buffers = 0u;
-    lv->render_us_max = 0u;
-    lv->render_us_sum_ms = 0u;
+    lv->xruns.v = 0u;
+    lv->buffers.v = 0u;
+    lv->render_us_max.v = 0u;
+    lv->render_us_sum_ms.v = 0u;
     lv->period_us = 0u;
     s_render_us_acc = 0u;
-    lv->cmd = AU_LIVE_CMD_NONE;
+    lv->cmd.v = (uint32_t)AU_LIVE_CMD_NONE;
     lv->cap_buf = NULL;
     lv->cap_max = 0u;
-    lv->cap_pos = 0u;
-    lv->cap_on = 0;
-    lv->state = 0;
+    lv->cap_pos.v = 0u;
+    lv->cap_on.v = 0u;
+    lv->state.v = 0u;
+    /* Init happens on the GUI task before the render task exists;
+     * plain stores are safe here (no concurrent reader yet). Shared
+     * updates after spawn go through acquire/release (see render_half,
+     * live_task, au_live_request/close). */
     lv->err = 0;
     lv->session = NULL;
     s_parent = FindTask(NULL);
@@ -374,9 +381,9 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
         lv->err = 6;
         return 6;
     }
-    s_open_gen++;
+    ri_atomic_fetch_add_rel(&s_open_gen, 1u);
     s_lv = lv;
-    s_hook_count = 0u;
+    ri_atomic_store_rel(&s_hook_count, 0u);
     p = CreateNewProcTags(NP_Entry, (IPTR)live_task, NP_Name, (IPTR)"RIAPP render",
         NP_Priority, 10, NP_StackSize, 32768, TAG_DONE);
     if (!p) {
@@ -393,7 +400,7 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
     treq->tr_time.tv_secs = AU_LIVE_OPEN_TIMEOUT_S;
     treq->tr_time.tv_micro = 0;
     SendIO((struct IORequest *)treq);
-    while (lv->state == 0) {
+    while ((LONG)ri_atomic_load_acq(&lv->state) == 0) {
         ULONG sigs = Wait((1UL << s_parent_sig) | (1UL << tport->mp_SigBit));
         if (sigs & (1UL << tport->mp_SigBit))
             break;
@@ -404,17 +411,17 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
     CloseDevice((struct IORequest *)treq);
     DeleteIORequest((struct IORequest *)treq);
     DeleteMsgPort(tport);
-    if (lv->state == 0) {
+    if ((LONG)ri_atomic_load_acq(&lv->state) == 0) {
         /* Timed out: abandon (the task unwinds quietly on its generation)
          * and fail over to the null backend. */
-        s_open_gen++;
+        ri_atomic_fetch_add_rel(&s_open_gen, 1u);
         FreeSignal(s_parent_sig);
         s_parent_sig = -1;
         s_lv = NULL;
         lv->err = 7;
         return 7;
     }
-    if (lv->state != 1) {
+    if ((LONG)ri_atomic_load_acq(&lv->state) != 1) {
         wait_state(lv, -2); /* already ended (-1) */
         FreeSignal(s_parent_sig);
         s_parent_sig = -1;
@@ -425,28 +432,30 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
 }
 
 int au_live_run(struct AuLive *lv, struct RILiveSession *s) {
-    if (!lv || lv != s_lv || lv->state != 1 || !s || !s_render)
+    if (!lv || lv != s_lv || (LONG)ri_atomic_load_acq(&lv->state) != 1 || !s || !s_render)
         return 2;
     lv->session = s;
     Signal(s_render, SIGBREAKF_CTRL_E);
     wait_state(lv, 1);
-    return lv->state == 2 ? 0 : 3;
+    return (LONG)ri_atomic_load_acq(&lv->state) == 2 ? 0 : 3;
 }
 
 void au_live_request(struct AuLive *lv, LONG cmd) {
     if (lv)
-        lv->cmd = cmd;
+        ri_atomic_store_rel(&lv->cmd, (uint32_t)cmd);
 }
 
 void au_live_close(struct AuLive *lv) {
+    LONG st;
     if (!lv || lv != s_lv)
         return;
-    if (lv->state == 1 || lv->state == 2) {
+    st = (LONG)ri_atomic_load_acq(&lv->state);
+    if (st == 1 || st == 2) {
         Forbid();
         if (s_render)
             Signal(s_render, SIGBREAKF_CTRL_C);
         Permit();
-        while (lv->state != 3 && lv->state != -1)
+        while ((st = (LONG)ri_atomic_load_acq(&lv->state)) != 3 && st != -1)
             Wait(1UL << s_parent_sig);
     }
     FreeSignal(s_parent_sig);
