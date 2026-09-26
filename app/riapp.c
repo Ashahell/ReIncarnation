@@ -123,6 +123,114 @@ static int s_meter_shown[2];
  * Status lines also go to the TEMP log, opened, appended and closed per
  * line so it can be read while RIAPP runs (the Run redirect stays empty).
  * Formatted with vsnprintf (T6: no RawDoFmt packing) and sunk preformatted. */
+/* Event log (owner, 2026-09-27): every user-driven event (control sends,
+ * transport edges, pattern/step edits) goes to RIAPP-EV.LOG, fresh per run
+ * (MODE_NEWFILE at startup), on a USB stick when one is present, RAM:
+ * otherwise. Open once, Flush per line (a wedge keeps all but the last
+ * line); best effort after that (a pulled stick just stops landing). */
+static BPTR s_evfh;
+static ULONG s_evseq;
+static char s_evvol[48]; /* USB volume or the TEMP base (never a literal) */
+
+static void evlog_vol(void) {
+    /* Owner 2026-09-27: the Dell's stick is Vk4aros: (USB icon in Wanderer).
+     * Probed first; the generic names cover other sticks/machines. */
+    static const char *const vols[] = { "Vk4aros:", "USB0:", "USB1:", "UMSD0:", "UMSD1:", "USBDISK0:" };
+    uint32_t i;
+    s_evvol[0] = 0;
+    if (!DOSBase)
+        return;
+    for (i = 0u; i < sizeof(vols) / sizeof(vols[0]); i++) {
+        BPTR lock = Lock((CONST_STRPTR)vols[i], ACCESS_READ);
+        if (lock) {
+            UnLock(lock);
+            {
+                uint32_t k = 0u;
+                while (vols[i][k] && k < sizeof(s_evvol) - 1u) {
+                    s_evvol[k] = vols[i][k];
+                    k++;
+                }
+                s_evvol[k] = 0;
+            }
+            return;
+        }
+    }
+    /* No stick: TEMP base through PAL (T6 — no literals outside platform/). */
+    if (ri_pal_path(RI_PATH_TEMP, s_evvol, sizeof(s_evvol)) != 0)
+        s_evvol[0] = 0;
+}
+
+static void evlog_open(void) {
+    char fn[64];
+    uint32_t k = 0u, j = 0u;
+    static const char leaf[] = "RIAPP-EV.LOG";
+    const char *base;
+    if (!DOSBase || s_evfh)
+        return;
+    evlog_vol();
+    if (!s_evvol[0])
+        return; /* nowhere to log: evlog() stays a no-op */
+    base = s_evvol;
+    while (base[k] && k < sizeof(fn) - 1u) {
+        fn[k] = base[k];
+        k++;
+    }
+    while (leaf[j] && k < sizeof(fn) - 1u)
+        fn[k++] = leaf[j++];
+    fn[k] = 0;
+    s_evfh = Open((STRPTR)fn, MODE_NEWFILE);
+    s_evseq = 0u;
+}
+
+static void evlog_putu(char *buf, uint32_t *n, ULONG v) {
+    char t[10];
+    int i = 0;
+    if (v == 0u)
+        t[i++] = '0';
+    else
+        while (v > 0u && i < 10) {
+            t[i++] = (char)('0' + v % 10u);
+            v /= 10u;
+        }
+    while (i > 0 && *n < 190u)
+        buf[(*n)++] = t[--i];
+}
+
+static void evlog(const char *kind, const char *fmt, ...) {
+    char buf[192];
+    va_list ap;
+    ULONG bufs;
+    uint32_t n = 0u, k;
+    if (!DOSBase || !s_evfh || !kind || !fmt)
+        return;
+    bufs = s_live ? ri_atomic_load_acq(&s_lv.drv.buffers) : 0u;
+    buf[n++] = 'e';
+    buf[n++] = 'v';
+    buf[n++] = ' ';
+    evlog_putu(buf, &n, ++s_evseq);
+    buf[n++] = ' ';
+    evlog_putu(buf, &n, bufs);
+    buf[n++] = ' ';
+    for (k = 0u; kind[k] && n < 60u; k++)
+        buf[n++] = kind[k];
+    buf[n++] = ' ';
+    buf[n] = 0;
+    va_start(ap, fmt);
+    ri_log_format(buf + n, sizeof(buf) - n, fmt, ap);
+    va_end(ap);
+    {
+        uint32_t m = 0u;
+        while (buf[m] && m < sizeof(buf) - 1u)
+            m++;
+        if (m + 1u < sizeof(buf)) {
+            buf[m++] = '\n';
+            buf[m] = 0;
+        }
+    }
+    FPuts(s_evfh, (STRPTR)buf);
+    Flush(s_evfh);
+}
+
 static void rlog(const char *fmt, ...) {
     char buf[512], base[48], fn[96];
     va_list ap;
@@ -158,12 +266,14 @@ static void sync_transport(void) {
         else
             ri_core_play(&s_core);
         rlog("RIAPP play\n");
+        evlog("TR", "PLAY");
     } else {
         if (s_live)
             au_live_request(&s_lv, AU_LIVE_CMD_STOP);
         else
             ri_core_stop(&s_core);
         rlog("RIAPP stop\n");
+        evlog("TR", "STOP");
     }
 }
 
@@ -187,6 +297,7 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
         s_pat_bank[c] = u->u.pat.bank;
         s_pat_pat[c] = u->u.pat.pattern;
         ri_track_capture(&s_core.track, bar, inst, (uint8_t)sel);
+        evlog("PAT", "c=%d inst=%d sel=%d", c, inst, sel);
         if (c == C_P0) {
             /* 303A shows the selected slot: refresh its steps from the bank. */
             struct RISectUI *u303 = s_ui[C_303];
@@ -201,11 +312,13 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
     }
     if (u->u.pat.length[sel] != s_pat_len[c][sel]) {
         s_pat_len[c][sel] = u->u.pat.length[sel];
+        evlog("PATLEN", "c=%d sel=%d len=%d", c, sel, u->u.pat.length[sel]);
         if (!u->u.pat.off)
             ri_pattern_set_length(&b->pat[sel], u->u.pat.length[sel]);
     }
     if (u->u.pat.off != s_pat_off[c]) {
         s_pat_off[c] = u->u.pat.off;
+        evlog("PATOFF", "c=%d off=%d", c, u->u.pat.off ? 1 : 0);
         if (u->u.pat.off)
             b->pat[sel].length = 0u; /* single-byte park: player reads 0 as silent */
         else
@@ -224,6 +337,8 @@ static void sync_303(void) {
             u->u.s303.pat.row.r303[k].flags != s_303_row[k].flags) {
             s_303_row[k] = u->u.s303.pat.row.r303[k];
             ri_p303_set(&b->pat[s_303_slot], k, s_303_row[k].key, s_303_row[k].flags);
+            evlog("STEP", "slot=%d step=%d key=%d flags=%d", s_303_slot, k,
+                s_303_row[k].key, s_303_row[k].flags);
         }
     }
 }
@@ -245,7 +360,9 @@ static void sync_values(void) {
         if (s_dg[c] && s_dg[c]->last_hit != 0xFFFFu) {
             uint16_t reg = s_dg[c]->last_hit;
             struct RISectUI *u = s_ui[c];
-            ri_panel_ctl_send(&s_core.ctl, reg, ri_sui_value(u, reg & 0xFFu));
+            int val = ri_sui_value(u, reg & 0xFFu);
+            ri_panel_ctl_send(&s_core.ctl, reg, val);
+            evlog("CTL", "%04x=%d", reg, val);
         }
     }
 }
@@ -301,6 +418,8 @@ int main(int argc, char **argv) {
     static const char *installed[1] = { "Classic" };
 
     ri_core_demo(&s_core);
+    evlog_open();
+    evlog("RUN", "frames=%lu vol=%s", frames, s_evvol);
     rc = au_live_open(&s_lv, frames, 48000u);
     if (rc == 0) {
         s_live = 1;
@@ -331,6 +450,10 @@ int main(int argc, char **argv) {
         if (!s_canvas[i]) {
             if (s_live)
                 au_live_close(&s_lv);
+            if (s_evfh) {
+                Close(s_evfh);
+                s_evfh = 0;
+            }
             return 5;
         }
         GetAttr(MUIA_RSection_State, s_canvas[i], (IPTR *)&u);
@@ -401,6 +524,10 @@ int main(int argc, char **argv) {
     if (!row) {
         if (s_live)
             au_live_close(&s_lv);
+        if (s_evfh) {
+            Close(s_evfh);
+            s_evfh = 0;
+        }
         return 5;
     }
     win = (Object *)MUI_NewObject(MUIC_Window,
@@ -511,5 +638,9 @@ int main(int argc, char **argv) {
     SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
     MUI_DisposeObject(app);
     ri_rsection_dispose_class();
+    if (s_evfh) {
+        Close(s_evfh);
+        s_evfh = 0;
+    }
     return 0;
 }
