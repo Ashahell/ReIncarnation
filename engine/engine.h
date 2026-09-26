@@ -22,6 +22,7 @@
 #include "engine/dsp/rb909.h"
 #include "engine/fx/fx.h"
 #include "engine/fx/route.h"
+#include "engine/mixer/mixer.h"
 
 #define RI_ENGINE_BLOCK 64u
 #define RI_ENGINE_S303A 0x01u
@@ -30,6 +31,14 @@
 #define RI_ENGINE_S909 0x08u
 #define RI_ENGINE_PAN_CENTER 64u /* detent: exact unity (gL = gR = 1) */
 #define RI_ENGINE_TEMPO_DEFAULT 140.0f /* delay clock until transport owns it */
+/* Live-tap units for ri_engine_fx_peak (C2): DIST/PCF render per-section
+ * when inserted, DELAY renders when a line is attached, COMP per-section
+ * or on the master. */
+#define RI_ENGINE_FX_DIST 0u
+#define RI_ENGINE_FX_PCF 1u
+#define RI_ENGINE_FX_DELAY 2u
+#define RI_ENGINE_FX_COMP 3u
+#define RI_ENGINE_FX_COUNT 4u
 
 struct RIEngine {
     struct RB303Voice v303a, v303b;
@@ -57,6 +66,11 @@ struct RIEngine {
     uint32_t dcap;
     struct RiFXDelay delay;
     uint8_t dret_pan; /* stereo return pan */
+    /* Live taps (C2): post-insert section peaks + per-FX-unit peaks.
+     * Fed during render only; never affect audio. Decay follows the
+     * P-16 20 dB/s ballistics at the init rate (48 kHz default). */
+    struct RiMeter sec_meter[RI_ROUTE_NSECTIONS];
+    struct RiMeter fx_meter[RI_ENGINE_FX_COUNT];
 };
 
 void ri_engine_init(struct RIEngine *e);
@@ -86,6 +100,11 @@ void ri_engine_set_tempo(struct RIEngine *e, float bpm);
 int ri_engine_set_delay(struct RIEngine *e, float *buf, uint32_t cap);
 /* Master/section comp gain-reduction meter in dB (<= 0). */
 float ri_engine_comp_gr(const struct RIEngine *e);
+/* Live taps (C2): held linear peak of a section bus (0..3 =
+ * 303A/303B/808/909) or an FX unit (RI_ENGINE_FX_*). 0 before any
+ * render, 0 on bad index/NULL. Render-contract safe (read-only). */
+float ri_engine_section_peak(const struct RIEngine *e, uint32_t section);
+float ri_engine_fx_peak(const struct RIEngine *e, uint32_t unit);
 /* Bind 909 sample layers (non-owning, idle-swap; the pack loader owns
  * the data). Unbound voices render silence. Returns 0 ok, 2 bad. */
 int ri_engine_909_bind(struct RIEngine *e, uint32_t voice,

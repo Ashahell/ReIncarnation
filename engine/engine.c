@@ -27,6 +27,10 @@ void ri_engine_init(struct RIEngine *e) {
     e->cursor = 0;
     e->total = 0;
     e->sections = 0;
+    for (i = 0; i < RI_ROUTE_NSECTIONS; i++)
+        ri_meter_init(&e->sec_meter[i], 48000.0f); /* display ballistics rate */
+    for (i = 0; i < RI_ENGINE_FX_COUNT; i++)
+        ri_meter_init(&e->fx_meter[i], 48000.0f);
     for (i = 0; i < RI_ENGINE_BLOCK; i++)
         e->scratch[i] = 0.0f;
     /* Routing neutral: no owners, sends 0, pans centre, delay dry. */
@@ -109,12 +113,20 @@ static void engine_section(struct RIEngine *e, uint32_t section,
     uint32_t i, mask;
     double gl, gr, t, sg;
     mask = ri_route_section_mask(&e->route, section);
-    if (mask & (1u << RI_ROUTE_DIST))
+    if (mask & (1u << RI_ROUTE_DIST)) {
         ri_fxdist_render(&e->dist, e->scratch, e->scratch, cc);
-    if (mask & (1u << RI_ROUTE_PCF))
+        ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_DIST], e->scratch, cc);
+    }
+    if (mask & (1u << RI_ROUTE_PCF)) {
         pcf_render(&e->pcf, e->scratch, e->scratch, cc, sr);
-    if (mask & (1u << RI_ROUTE_COMP))
+        ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_PCF], e->scratch, cc);
+    }
+    if (mask & (1u << RI_ROUTE_COMP)) {
         ri_fxcomp_render(&e->comp, e->scratch, e->scratch, cc);
+        ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_COMP], e->scratch, cc);
+    }
+    if (section < RI_ROUTE_NSECTIONS)
+        ri_meter_feed(&e->sec_meter[section], e->scratch, cc);
     t = (double)e->send[section] / 127.0;
     sg = t * t; /* square law (E0 P-17), 0 -> exactly 0 */
     engine_pan_gains(e->pan[section], &gl, &gr);
@@ -247,6 +259,18 @@ float ri_engine_comp_gr(const struct RIEngine *e) {
     if (!e)
         return 0.0f;
     return ri_fxcomp_gr_db(&e->comp);
+}
+
+float ri_engine_section_peak(const struct RIEngine *e, uint32_t section) {
+    if (!e || section >= RI_ROUTE_NSECTIONS)
+        return 0.0f;
+    return ri_meter_peak(&e->sec_meter[section]);
+}
+
+float ri_engine_fx_peak(const struct RIEngine *e, uint32_t unit) {
+    if (!e || unit >= RI_ENGINE_FX_COUNT)
+        return 0.0f;
+    return ri_meter_peak(&e->fx_meter[unit]);
 }
 
 int ri_engine_909_bind(struct RIEngine *e, uint32_t voice,
@@ -423,6 +447,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             if (e->dline) {
                 ri_fxdelay_resync(&e->delay, e->tempo, sr);
                 ri_fxdelay_render(&e->delay, sendbus, retbus, cc);
+                ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_DELAY], retbus, cc);
                 engine_pan_gains(e->dret_pan, &rgl, &rgr);
                 for (i = 0; i < cc; i++) {
                     ml[i] += (double)retbus[i] * rgl;
@@ -439,6 +464,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                     tr[i] = (float)mr[i];
                 }
                 ri_fxcomp_render_linked(&e->comp, tl, tr, cc);
+                ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_COMP], tl, cc);
                 for (i = 0; i < cc; i++) {
                     ml[i] = (double)tl[i];
                     mr[i] = (double)tr[i];
