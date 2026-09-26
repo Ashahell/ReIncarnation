@@ -534,6 +534,69 @@ int main(void) {
             RI_ASSERT(ri_auto_value(&l7, 799u, 0x0302u, &outv) == 1 && outv == 3u,
                 "ct other kept");
         }
+        /* 2b gaps: init-song clears all first; clear end-exclusion;
+         * copy capacity byte-identical; copy denied/NULL refuses. */
+        {
+            struct RIAutoLane lq;
+            struct RIAutoEv sq[8];
+            struct RIAutoPass pq;
+            uint8_t vq[1];
+            memset(&lq, 0, sizeof lq);
+            lq.ev = sq;
+            lq.cap = 8u;
+            memset(&pq, 0, sizeof pq);
+            RI_ASSERT(ri_auto_stamp(&lq, 500u, 0x0300u, 9u) == 0, "song junk rc");
+            RI_ASSERT(ri_auto_clear_loop(&lq, 0u, 999u * 384u) == 0, "song clear rc");
+            RI_ASSERT(lq.n == 0u, "song cleared %u", lq.n);
+            RI_ASSERT(ri_auto_stamp(&lq, 0u, 0x0300u, 61u) == 0, "song stamp rc");
+            RI_ASSERT(ri_auto_value(&lq, 999u * 384u - 1u, 0x0300u, &outv) == 1 &&
+                outv == 61u, "song stamp holds to the end");
+            RI_ASSERT(ri_auto_stamp(&lq, 200u, 0x0301u, 8u) == 0, "edge setup rc");
+            RI_ASSERT(ri_auto_clear_loop(&lq, 100u, 100u) == 0, "edge clear rc");
+            RI_ASSERT(ri_auto_value(&lq, 500u, 0x0301u, &outv) == 1 && outv == 8u,
+                "clear end excluded");
+            RI_ASSERT(ri_auto_touch(&lq, &pq, 2u, 48u, 96u, 0x0300u, 1u) == 0,
+                "ct-gap touch rc");
+            vq[0] = 11u;
+            RI_ASSERT(ri_auto_copy_touched(&lq, &pq, 0u, 0u, vq) == 2,
+                "ct empty range refuses");
+            {
+                struct RIAutoPass px;
+                uint8_t vx[1] = { 5u };
+                memset(&px, 0, sizeof px);
+                px.touched[0] = 0x0401u; /* caller-filled denied ID */
+                px.ntouched = 1u;
+                RI_ASSERT(ri_auto_copy_touched(&lq, &px, 500u, 800u, vx) == 2,
+                    "ct denied refuses");
+                RI_ASSERT(lq.n == 3u, "ct denied untouched %u", lq.n);
+            }
+            {
+                struct RIAutoLane lc;
+                struct RIAutoEv sc[2];
+                struct RIAutoPass pc;
+                uint8_t vc[1];
+                memset(&lc, 0, sizeof lc);
+                lc.ev = sc;
+                lc.cap = 2u;
+                memset(&pc, 0, sizeof pc);
+                RI_ASSERT(ri_auto_touch(&lc, &pc, 2u, 0u, 96u, 0x0300u, 1u) == 0,
+                    "ct-cap touch rc");
+                RI_ASSERT(ri_auto_stamp(&lc, 600u, 0x0301u, 2u) == 0,
+                    "ct-cap other rc");
+                vc[0] = 11u;
+                RI_ASSERT(ri_auto_copy_touched(&lc, &pc, 500u, 800u, vc) == 2,
+                    "ct-cap refuses");
+                RI_ASSERT(lc.n == 2u, "ct-cap untouched %u", lc.n);
+                RI_ASSERT(ri_auto_value(&lc, 799u, 0x0300u, &outv) == 1 && outv == 1u,
+                    "ct-cap content kept");
+            }
+            RI_ASSERT(ri_auto_copy_touched(&lq, &pq, 500u, 800u, 0) == 2,
+                "ct null vals refuses");
+            RI_ASSERT(ri_auto_copy_touched(0, &pq, 500u, 800u, vq) == 2,
+                "ct null lane refuses");
+            RI_ASSERT(ri_auto_stamp(0, 0u, 0x0300u, 1u) == 2, "stamp null refuses");
+            RI_ASSERT(ri_auto_clear_loop(0, 0u, 10u) == 2, "clear null refuses");
+        }
         /* Cut/copy/paste mirror bar-for-bar (ppq 96: bar is 384 ticks). */
         {
             struct RIAutoLane l8;

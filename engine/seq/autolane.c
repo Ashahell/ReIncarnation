@@ -264,6 +264,9 @@ int ri_auto_copy_touched(struct RIAutoLane *l, const struct RIAutoPass *p,
     if (p->ntouched > 0u && !vals)
         return 2;
     for (k = 0u; k < p->ntouched; k++)
+        if (!ri_auto_allowed(p->touched[k]))
+            return 2; /* denied ID in a hand-filled set: fail closed */
+    for (k = 0u; k < p->ntouched; k++)
         for (q = 0u; q < l->n; q++) {
             uint64_t t = l->ev[q].tick;
             if (l->ev[q].ctl == p->touched[k] && t >= start && t < end)
