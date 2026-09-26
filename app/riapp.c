@@ -1,27 +1,44 @@
-/* app/riapp.c — RIAPP live application shell (G9.4).
- * AROS-only. Supersedes the bare app/main.c window (main.c stays until
- * the full RISECT panel integration lands; this shell proves the live
- * path end to end).
+/* app/riapp.c — RIAPP live application with the ReBirth panel (G9b Step 2).
+ * AROS-only. Supersedes the bare app/main.c window (kept) and the Step-1
+ * text window: one MUI window with Transport + the four Pattern sections
+ * + 303A + the 808 mixer strip (the sectproof keys/live layouts, 1x),
+ * driving the same live session / control plane / meter snapshot the
+ * text shell proved on the Dell.
  *
- * Layout: one Intuition window (transport + demo status + meter line).
- * The full panel reuses the RISECT keys/live layouts — that wiring lands
- * after the Dell first-sound proof; this shell already drives the same
- * session, control plane and meter snapshot the panel will use.
  * Usage: RIAPP [frames] (device buffer, default 256; 64..4096).
- * Controls: Space = Play, S = Stop (E1 p. 145 C4 law via ri_live_stop),
- * C / V = 303 cutoff down / up, P = 303 pan centre/left/right, L / K = 303 strip level down / up,
- * M = log meters (RAM:RIAPP.LOG; no sound change), W = start / stop
- * recording the live output to RAM:RIAPP.wav (16-bit stereo, up to 5 min;
- * Q while recording also saves), R = 5 s soak (null backend only), Q or CloseWindow =
- * quit. With AHI the render task owns the session: the GUI only posts
- * transport requests (au_live_request) and knob keys (control plane). Every knob key sends its lane key
- * through the control plane (one path, G9.1); pattern edits stay in the
- * pure edit functions + snapshot request (next slice).
- * Meters: live snapshot (section peaks, FX peaks, comp GR, position) —
- * closes G6b on the app side; the stand-in clock is gone here.
+ * Quit: window close gadget, or Shell `Break <cli> C` (Ctrl-C raises the
+ * loop break; plain Q is not a quit key under MUI).
+ *
+ * One path to the engine (no second setter route):
+ * - every sounding value change on a canvas goes through
+ *   gui/panelctl.h ri_panel_ctl_send (reg_id -> lane key -> ri_ctl_send),
+ *   t83-pinned host-side; the render task drains the plane at buffer start;
+ * - transport Play/Stop go through au_live_request (Record plays: the
+ *   record lane lands in Step 4);
+ * - pattern selection goes through ri_track_capture on the GUI-side track
+ *   at the snapshot bar (the player changes over at the pattern end);
+ *   pattern length/off go through ri_pattern_set_length on the GUI-side
+ *   banks (off = length 0, which the player reads as silent); 303A steps
+ *   go through ri_p303_set on the GUI-side bank slot. Banks and the track
+ *   are live-read by the player at the next buffer, so no snapshot
+ *   handshake is needed on this path (the RISeq snapshot API covers the
+ *   old event-list model, which the live session does not use);
+ * - startup pushes every sounding canvas default through the bridge, so
+ *   the engine adopts the panel (no pre-task setter calls);
+ * - meters and position come from the render-published snapshot only
+ *   (ri_live_meters_read; livestate scales it; a busy read is dropped for
+ *   that tick, never blocked on). This closes G6b on the device.
+ *
+ * Placeholders (canvas responds visually; no engine route yet — see the
+ * evidence file, never silent-by-design): transport tempo/shuffle/loop/
+ * rewind/FF/song-mode, record lamp, pattern shuffle switches, mixer
+ * on/off switches, 303 programming buttons (pending state: they shape the
+ * next stepped note, which does reach the engine), drum taps (need the
+ * instrument canvases of a later slice), skins (Classic procedural),
+ * capture keys (recording UX is Step 5).
  * Startup: built-in demo song (the G9.2 t81 fixture); AHI missing ->
- * null backend + RI_AUDIO_NULL_MSG; unbound 909 pack -> 909 silence +
- * notice (§17, never silent).
+ * null backend + RI_AUDIO_NULL_MSG (panel chases on the null render);
+ * unbound 909 pack -> 909 renders silence + notice (§17, never silent).
  */
 #ifndef __AROS__
 #error "app/riapp.c is AROS-only"
@@ -29,32 +46,55 @@
 
 #include <exec/types.h>
 #include <exec/memory.h>
+#include <exec/io.h>
 #include <string.h>
-#include <exec/ports.h>
-#include <utility/tagitem.h>
+#include <libraries/mui.h>
+#include <devices/timer.h>
 #include <intuition/intuition.h>
 #include <proto/exec.h>
 #include <proto/intuition.h>
 #include <proto/dos.h>
+#include <proto/muimaster.h>
+#include <proto/timer.h>
 #include "engine/live.h"
 #include "engine/seq/ctlplane.h"
 #include "engine/seq/autolane.h"
 #include "engine/seq/pattern.h"
 #include "engine/seq/songtrack.h"
+#include "engine/seq/transport.h"
+#include "gui/ctlreg.h"
+#include "gui/sectui.h"
+#include "gui/sect303.h"
+#include "gui/sectpat.h"
+#include "gui/secttr.h"
+#include "gui/sectmix.h"
+#include "gui/panelui.h"
+#include "gui/panelctl.h"
+#include "gui/panelgeo.h"
+#include "gui/livestate.h"
+#include "gui/widgets/rsection.h"
 #include "audio_io/audio_ahi_live.h"
 
 extern struct DosLibrary *DOSBase;
 
 #define RIAPP_FRAMES 64u /* null-backend render chunk */
-#define RIAPP_DEV_FRAMES 256u /* default device buffer (owner-approved 2026-09-26: 0 xruns, sounds fine; M1.1 accepted 64) */
-/* Demo mix (owner, Dell 2026-09-26: "the 808 volume is a bit low", then
- * "808 should still be louder"): the 303 strip starts at 72 (-9.9 dB,
- * P-17) and the 808 downbeats are accented, so the 808 sits ~1.5 dB above
- * the 303 (host-measured RMS: 808 -19.8 dBFS; 303A at 90 was -17.3). The
- * 808/303 voice calibration itself is unchanged (engine goldens). */
+#define RIAPP_DEV_FRAMES 256u /* default device buffer (owner-approved 2026-09-26) */
+/* Demo mix (owner, Dell 2026-09-26): the 303 strip starts at 72 (-9.9 dB,
+ * P-17) and the 808 downbeats are accented. Set on the board at startup
+ * and sent through the bridge like any other fader (one path). */
 #define RIAPP_303_LEVEL 72u
-#define RIAPP_REC_SECONDS 300u /* capture cap: 5 min = ~55 MB at 48 kHz stereo s16 */
-#define RIAPP_SOAK_BUFS 3750u /* 5 s at 64 frames/48 kHz, null backend */
+#define RIAPP_PPQ 96u
+#define RIAPP_TICKS_BAR (4u * RIAPP_PPQ)
+
+/* Panel canvases: transport + 4 pattern sections + 303A + 808 mixer. */
+enum { C_TR, C_P0, C_P1, C_P2, C_P3, C_303, C_MIX, C_N };
+static const ULONG c_sections[C_N] = {
+    RI_SEC_TRANSPORT,
+    RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909,
+    RI_SEC_SYNTH1, RI_SEC_MIX_808
+};
+/* Pattern instance (bank + track slot) behind each PAT canvas. */
+static const uint32_t c_pat_instance[C_N] = { 0u, 0u, 1u, 2u, 3u, 0u, 2u };
 
 static struct RIPatternBank s_ba, s_bb, s_b808, s_b909;
 static struct RISongTrack s_tr;
@@ -63,6 +103,21 @@ static struct RIControlPlane s_ctl;
 static float s_fl[RIAPP_FRAMES], s_fr[RIAPP_FRAMES];
 static struct RILiveSession s_sess;
 static struct AuLive s_lv;
+static int s_live; /* AHI backend up (render task owns the session) */
+
+static struct RIPanelUI s_panel;
+static Object *s_canvas[C_N];
+static struct RISectUI *s_ui[C_N];
+static const struct RSectionDiag *s_dg[C_N];
+
+/* Sync shadows (state-compare: the panel is the truth, the session follows). */
+static int s_tr_state;
+static uint8_t s_pat_bank[C_N], s_pat_pat[C_N], s_pat_off[C_N], s_pat_shuf[C_N];
+static uint8_t s_pat_len[C_N][32];
+static struct RI303Row s_303_row[16];
+static uint8_t s_303_slot;
+static IPTR s_changes[C_N];
+static int s_meter_shown[2];
 
 /* Demo: a 16-step 303 line (accents + slides) over an 808 beat. */
 static void riapp_demo_song(void) {
@@ -115,41 +170,148 @@ static void rlog(const char *fmt, IPTR a, IPTR b, IPTR c, IPTR d, IPTR e) {
     Close(f);
 }
 
-/* Write the captured frames as a canonical 44-byte-header PCM WAV
- * (little-endian, like auf_wav_header; AROS x86-64 is little-endian so the
- * s16 samples go out as they are). Returns 0 ok. */
-static void le32(UBYTE *p, ULONG v) {
-    p[0] = (UBYTE)v; p[1] = (UBYTE)(v >> 8); p[2] = (UBYTE)(v >> 16); p[3] = (UBYTE)(v >> 24);
-}
-static int riapp_write_wav(const char *path, const WORD *pcm, ULONG frames, ULONG rate) {
-    UBYTE h[44];
-    ULONG data = frames * 4u;
-    BPTR f;
-    LONG w;
-    memcpy(h, "RIFF", 4); le32(h + 4, 36u + data); memcpy(h + 8, "WAVEfmt ", 8);
-    le32(h + 16, 16u); h[20] = 1; h[21] = 0; h[22] = 2; h[23] = 0; /* PCM, stereo */
-    le32(h + 24, rate); le32(h + 28, rate * 4u); h[32] = 4; h[33] = 0; h[34] = 16; h[35] = 0;
-    memcpy(h + 36, "data", 4); le32(h + 40, data);
-    f = Open((STRPTR)path, MODE_NEWFILE);
-    if (!f)
-        return 2;
-    w = Write(f, h, 44);
-    if (w == 44 && data)
-        w = Write(f, (APTR)pcm, (LONG)data);
-    Close(f);
-    return (w == 44 || w == (LONG)data) ? 0 : 3;
+static struct RIPatternBank *pat_bank(uint32_t inst) {
+    static struct RIPatternBank *b[4];
+    b[0] = &s_ba;
+    b[1] = &s_bb;
+    b[2] = &s_b808;
+    b[3] = &s_b909;
+    return inst < 4u ? b[inst] : &s_ba;
 }
 
-static void riapp_print_meters(const struct RILiveSession *s, int live) {
-    const struct RILiveMeters *m = ri_live_meters(s);
-    if (!m || !DOSBase)
+/* Transport state edge -> the render task (or the null session). */
+static void sync_transport(void) {
+    int st = s_ui[C_TR]->u.tr.tr.state;
+    if (st == s_tr_state)
         return;
-    /* With AHI the render task writes these words; a torn read only
-     * misprints one status line (display-only, never fed back). */
-    rlog("RIAPP pos tick=%lu xruns=%lu bufs=%lu 303A=%ld%% 808=%ld%%\n",
-        (IPTR)(ULONG)m->cursor_ticks, (IPTR)(live ? s_lv.xruns : (ULONG)m->xruns),
-        (IPTR)(live ? s_lv.buffers : 0UL),
-        (IPTR)(LONG)(m->sec_peak[0] * 100.0f), (IPTR)(LONG)(m->sec_peak[2] * 100.0f));
+    s_tr_state = st;
+    if (st == RI_TR_PLAYING || st == RI_TR_RECORD) {
+        /* RECORD plays: the record lane lands in Step 4. */
+        if (s_live)
+            au_live_request(&s_lv, AU_LIVE_CMD_PLAY);
+        else
+            ri_live_play(&s_sess);
+        rlog("RIAPP play\n", 0, 0, 0, 0, 0);
+    } else {
+        if (s_live)
+            au_live_request(&s_lv, AU_LIVE_CMD_STOP);
+        else
+            ri_live_stop(&s_sess);
+        rlog("RIAPP stop\n", 0, 0, 0, 0, 0);
+    }
+}
+
+/* One PAT canvas -> banks/track. Selection captures at the snapshot bar
+ * (changeover at the pattern end); length writes the bank slot; off parks
+ * the bank length at 0 (silent) and restores the canvas length on on. */
+static void sync_pat(int c, uint64_t cursor_ticks) {
+    struct RISectUI *u = s_ui[c];
+    uint32_t inst = c_pat_instance[c];
+    struct RIPatternBank *b = pat_bank(inst);
+    int sel = ri_spat_selected(&u->u.pat);
+    uint64_t bar;
+    if (sel < 0)
+        sel = 0;
+    if (sel > 31)
+        sel = 31;
+    bar = cursor_ticks / RIAPP_TICKS_BAR;
+    if (bar >= (uint64_t)RI_SONG_BARS)
+        bar = (uint64_t)RI_SONG_BARS - 1u;
+    if (u->u.pat.bank != s_pat_bank[c] || u->u.pat.pattern != s_pat_pat[c]) {
+        s_pat_bank[c] = u->u.pat.bank;
+        s_pat_pat[c] = u->u.pat.pattern;
+        ri_track_capture(&s_tr, bar, inst, (uint8_t)sel);
+        if (c == C_P0) {
+            /* 303A shows the selected slot: refresh its steps from the bank. */
+            struct RISectUI *u303 = s_ui[C_303];
+            uint32_t k;
+            s_303_slot = (uint8_t)sel;
+            for (k = 0u; k < 16u; k++) {
+                s_303_row[k] = b->pat[sel].row.r303[k];
+                u303->u.s303.pat.row.r303[k] = b->pat[sel].row.r303[k];
+            }
+            ri_rsection_refresh(s_canvas[C_303]);
+        }
+    }
+    if (u->u.pat.length[sel] != s_pat_len[c][sel]) {
+        s_pat_len[c][sel] = u->u.pat.length[sel];
+        if (!u->u.pat.off)
+            ri_pattern_set_length(&b->pat[sel], u->u.pat.length[sel]);
+    }
+    if (u->u.pat.off != s_pat_off[c]) {
+        s_pat_off[c] = u->u.pat.off;
+        if (u->u.pat.off)
+            b->pat[sel].length = 0u; /* single-byte park: player reads 0 as silent */
+        else
+            ri_pattern_set_length(&b->pat[sel], u->u.pat.length[sel]);
+    }
+    s_pat_shuf[c] = u->u.pat.shuffle; /* placeholder: shuffle flags are OPEN */
+}
+
+/* 303A steps -> the GUI-side bank slot (pure edit functions, one path). */
+static void sync_303(void) {
+    struct RISectUI *u = s_ui[C_303];
+    struct RIPatternBank *b = pat_bank(0u);
+    uint32_t k;
+    for (k = 0u; k < 16u; k++) {
+        if (u->u.s303.pat.row.r303[k].key != s_303_row[k].key ||
+            u->u.s303.pat.row.r303[k].flags != s_303_row[k].flags) {
+            s_303_row[k] = u->u.s303.pat.row.r303[k];
+            ri_p303_set(&b->pat[s_303_slot], k, s_303_row[k].key, s_303_row[k].flags);
+        }
+    }
+}
+
+/* Sounding value controls (mouse incl. drags and arrow repeats report the
+ * hit control): exactly one control-plane message when the lane key is
+ * nonzero (the bridge owns that law, t83). Transport and PAT canvases
+ * travel their state paths above. */
+static void sync_values(void) {
+    static const int val_canvas[2] = { C_303, C_MIX };
+    int i;
+    for (i = 0; i < 2; i++) {
+        int c = val_canvas[i];
+        IPTR ch = 0;
+        GetAttr(MUIA_RSection_Changes, s_canvas[c], &ch);
+        if (ch == s_changes[c])
+            continue;
+        s_changes[c] = ch;
+        if (s_dg[c] && s_dg[c]->last_hit != 0xFFFFu) {
+            uint16_t reg = s_dg[c]->last_hit;
+            struct RISectUI *u = s_ui[c];
+            ri_panel_ctl_send(&s_ctl, reg, ri_sui_value(u, reg & 0xFFu));
+        }
+    }
+}
+
+/* Meters + position from the published snapshot only (G6b). Levels feed
+ * the 808 board strips; the playhead chases the transport cursor. */
+static void meter_round(ULONG mix_freq) {
+    struct RILiveMeters m;
+    int lvl303, lvl808;
+    uint64_t sixteenths;
+    int playing;
+    if (ri_live_meters_read(&s_sess, &m) != 0)
+        return;
+    lvl303 = ri_live_meter_level(m.sec_peak[0]);
+    lvl808 = ri_live_meter_level(m.sec_peak[2]);
+    if (lvl303 != s_meter_shown[0] || lvl808 != s_meter_shown[1]) {
+        struct RISectUI *u = s_ui[C_MIX];
+        s_meter_shown[0] = lvl303;
+        s_meter_shown[1] = lvl808;
+        if (u && u->u.mix.board) {
+            ri_smix_meter_set(u->u.mix.board, RI_SEC_MIX_SYNTH1, 0, lvl303);
+            ri_smix_meter_set(u->u.mix.board, RI_SEC_MIX_808, 0, lvl808);
+            ri_rsection_refresh(s_canvas[C_MIX]);
+        }
+    }
+    playing = (s_tr_state != RI_TR_STOPPED);
+    sixteenths = ri_live_16ths(m.samples, 120u, mix_freq ? mix_freq : 48000u);
+    if (ri_panel_live(&s_panel, playing, sixteenths)) {
+        int k;
+        for (k = 0; k < C_N; k++)
+            ri_rsection_refresh(s_canvas[k]);
+    }
 }
 
 static ULONG riapp_arg_frames(int argc, char **argv) {
@@ -163,16 +325,17 @@ static ULONG riapp_arg_frames(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-    struct Window *win = 0;
-    struct IntuiMessage *msg;
-    struct MsgPort *port;
-    static TEXT title[] = "RIAPP live (Space=Play S=Stop C/V cutoff L/K level P pan M meters Q quit)";
-    static struct TagItem wi_tags[8];
+    Object *app, *win, *row, *pats;
+    LONG ret;
+    ULONG sigs = 0;
     const struct RIPatternBank *b4[4];
     ULONG frames = riapp_arg_frames(argc, argv);
     float rate = 48000.0f;
-    int done = 0, live = 0, rc;
-    uint8_t cutoff = 64u, level = RIAPP_303_LEVEL, pan = 64u;
+    int i, rc;
+    struct MsgPort *tport = 0;
+    struct timerequest *treq = 0;
+    int timer_ok = 0, timer_armed = 0;
+    static const char *installed[1] = { "Classic" };
 
     riapp_demo_song();
     b4[0] = &s_ba;
@@ -182,19 +345,18 @@ int main(int argc, char **argv) {
     ri_ctl_init(&s_ctl);
     rc = au_live_open(&s_lv, frames, 48000u);
     if (rc == 0) {
-        live = 1;
+        s_live = 1;
         rate = (float)s_lv.mix_freq; /* E0 (G9.0): the session runs at the device rate */
     }
-    ri_live_init(&s_sess, 96u, rate, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808, s_scratch, 512u);
+    ri_live_init(&s_sess, RIAPP_PPQ, rate, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808, s_scratch, 512u);
     ri_live_set_banks(&s_sess, b4, &s_tr, 0);
     ri_live_set_ctl(&s_sess, &s_ctl);
-    ri_engine_set_level(&s_sess.eng, 0u, RIAPP_303_LEVEL); /* before the task owns it */
-    if (live && au_live_run(&s_lv, &s_sess) != 0) {
+    if (s_live && au_live_run(&s_lv, &s_sess) != 0) {
         au_live_close(&s_lv);
-        live = 0;
+        s_live = 0;
     }
     if (DOSBase) {
-        if (live)
+        if (s_live)
             rlog("audio: AHI low-level mode=0x%08lx mix=%lu Hz buffer=%lu frames period=%lu us\n",
                 s_lv.mode_id, s_lv.mix_freq, s_lv.frames, s_lv.period_us, 0);
         else
@@ -203,151 +365,184 @@ int main(int argc, char **argv) {
         rlog("RIAPP 909 pack: unbound - 909 renders silence (load a pack for drums)\n", 0, 0, 0, 0, 0);
     }
 
-    wi_tags[0].ti_Tag = WA_Title;
-    wi_tags[0].ti_Data = (IPTR)title;
-    wi_tags[1].ti_Tag = WA_Width;
-    wi_tags[1].ti_Data = 640;
-    wi_tags[2].ti_Tag = WA_Height;
-    wi_tags[2].ti_Data = 120;
-    wi_tags[3].ti_Tag = WA_CloseGadget;
-    wi_tags[3].ti_Data = TRUE;
-    wi_tags[4].ti_Tag = WA_DragBar;
-    wi_tags[4].ti_Data = TRUE;
-    wi_tags[5].ti_Tag = WA_DepthGadget;
-    wi_tags[5].ti_Data = TRUE;
-    wi_tags[6].ti_Tag = WA_IDCMP;
-    wi_tags[6].ti_Data = IDCMP_CLOSEWINDOW | IDCMP_VANILLAKEY;
-    wi_tags[7].ti_Tag = TAG_DONE;
-    wi_tags[7].ti_Data = 0;
-    win = (struct Window *)OpenWindowTagList(NULL, wi_tags);
-    if (!win) {
-        if (live)
+    /* Panel: transport (compact) + 4 pattern sections + 303A + 808 mixer. */
+    ri_panel_init(&s_panel);
+    ri_panel_skins(&s_panel, installed, 0u, "Classic"); /* skins ride later work */
+    for (i = 0; i < C_N; i++) {
+        LONG zoom = (i == C_TR) ? RI_GEO_ZOOM_COMPACT : 0;
+        struct RISectUI *u = 0;
+        s_canvas[i] = (Object *)ri_rsection_create(c_sections[i], zoom);
+        if (!s_canvas[i]) {
+            if (s_live)
+                au_live_close(&s_lv);
+            return 5;
+        }
+        GetAttr(MUIA_RSection_State, s_canvas[i], (IPTR *)&u);
+        s_ui[i] = u;
+        GetAttr(MUIA_RSection_Diag, s_canvas[i], (IPTR *)&s_dg[i]);
+        if (i == C_TR)
+            s_panel.tr = u;
+        else if (i >= C_P0 && i <= C_P3)
+            s_panel.pat[i - C_P0] = u;
+        else if (i == C_303)
+            s_panel.synth[0] = u;
+        else if (i == C_MIX)
+            s_panel.mix[2] = u;
+        SetAttrs(s_canvas[i], MUIA_RSection_Panel, (IPTR)&s_panel,
+            MUIA_RSection_KeyOwner, i == C_TR, TAG_DONE);
+    }
+    /* The panel shows the demo: 303A steps mirror bank slot 0. */
+    for (i = 0; i < 16; i++) {
+        s_ui[C_303]->u.s303.pat.row.r303[i] = s_ba.pat[0].row.r303[i];
+        s_303_row[i] = s_ba.pat[0].row.r303[i];
+    }
+    s_303_slot = 0u;
+    for (i = C_P0; i <= C_P3; i++) {
+        int k;
+        s_pat_bank[i] = s_pat_pat[i] = s_pat_off[i] = s_pat_shuf[i] = 0u;
+        for (k = 0; k < 32; k++)
+            s_pat_len[i][k] = 16u;
+    }
+    /* Demo mix on the board (display = engine truth, set before publish). */
+    ri_smix_set_value(s_ui[C_MIX]->u.mix.board, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL, RIAPP_303_LEVEL);
+    /* Startup burst: every sounding canvas default through the bridge, so
+     * the engine adopts the panel at the first drained buffers (the whole
+     * board, not just the 808 strip: the demo 303A level 72 lives on
+     * strip 0). */
+    for (i = 0; i <= 6; i++)
+        ri_panel_ctl_send(&s_ctl, (uint16_t)c_sections[C_303] << 8 | (uint16_t)i,
+            ri_sui_value(s_ui[C_303], (uint32_t)i));
+    for (i = 0; i < 4; i++) {
+        int k;
+        struct RISectUI *mu = s_ui[C_MIX];
+        for (k = 2; k <= 7; k++)
+            ri_panel_ctl_send(&s_ctl,
+                (uint16_t)(RI_SEC_MIX_SYNTH1 + i) << 8 | (uint16_t)k,
+                ri_smix_value(mu->u.mix.board, (uint32_t)(RI_SEC_MIX_SYNTH1 + i),
+                    (uint32_t)k));
+    }
+    s_tr_state = s_ui[C_TR]->u.tr.tr.state;
+    for (i = 0; i < C_N; i++) {
+        IPTR ch = 0;
+        GetAttr(MUIA_RSection_Changes, s_canvas[i], &ch);
+        s_changes[i] = ch;
+    }
+    s_meter_shown[0] = s_meter_shown[1] = -1;
+    if (!s_live)
+        ri_live_render(&s_sess, s_fl, s_fr, RIAPP_FRAMES); /* drain the burst */
+
+    pats = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
+        Child, (IPTR)s_canvas[C_P0], Child, (IPTR)s_canvas[C_P1],
+        Child, (IPTR)s_canvas[C_P2], Child, (IPTR)s_canvas[C_P3], TAG_DONE);
+    {
+        Object *lower;
+        lower = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_canvas[C_303], Child, (IPTR)s_canvas[C_MIX], TAG_DONE);
+        row = (pats && lower) ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_canvas[C_TR], Child, (IPTR)pats,
+            Child, (IPTR)lower, TAG_DONE) : 0;
+    }
+    if (!row) {
+        if (s_live)
             au_live_close(&s_lv);
-        return 10;
+        return 5;
     }
-    port = win->UserPort;
-    if (DOSBase)
-        rlog("RIAPP ready: Space plays the demo\n", 0, 0, 0, 0, 0);
-    while (!done) {
-        Wait(1UL << port->mp_SigBit);
-        while ((msg = (struct IntuiMessage *)GetMsg(port)) != NULL) {
-            ULONG cls = msg->Class;
-            UWORD code = msg->Code;
-            ReplyMsg((struct Message *)msg);
-            if (cls == IDCMP_CLOSEWINDOW) {
-                done = 1;
-                break;
-            }
-            if (cls != IDCMP_VANILLAKEY)
-                continue;
-            switch (code) {
-            case ' ':
-                if (live)
-                    au_live_request(&s_lv, AU_LIVE_CMD_PLAY);
-                else {
-                    ri_live_play(&s_sess);
-                    ri_live_render(&s_sess, s_fl, s_fr, RIAPP_FRAMES);
-                }
-                if (DOSBase)
-                    rlog("RIAPP play\n", 0, 0, 0, 0, 0);
-                break;
-            case 's': case 'S':
-                if (live)
-                    au_live_request(&s_lv, AU_LIVE_CMD_STOP);
-                else
-                    ri_live_stop(&s_sess);
-                if (DOSBase)
-                    rlog("RIAPP stop\n", 0, 0, 0, 0, 0);
-                break;
-            case 'c': case 'C': case 'v': case 'V':
-                cutoff = (code == 'c' || code == 'C') ? (cutoff >= 16u ? cutoff - 16u : 0u)
-                                                      : (cutoff <= 111u ? cutoff + 16u : 127u);
-                ri_ctl_send(&s_ctl, RI_CTL_303A_CUTOFF, cutoff);
-                if (!live)
-                    ri_live_render(&s_sess, s_fl, s_fr, RIAPP_FRAMES);
-                if (DOSBase)
-                    rlog("RIAPP 303 cutoff -> %lu\n", cutoff, 0, 0, 0, 0);
-                break;
-            case 'l': case 'L': case 'k': case 'K':
-                level = (code == 'l' || code == 'L') ? (level >= 16u ? level - 16u : 0u)
-                                                     : (level <= 111u ? level + 16u : 127u);
-                ri_ctl_send(&s_ctl, RI_AUTO_ID_MIX(0u, RI_AUTO_MIX_LEVEL), level);
-                if (!live)
-                    ri_live_render(&s_sess, s_fl, s_fr, RIAPP_FRAMES);
-                if (DOSBase)
-                    rlog("RIAPP 303A level -> %lu\n", level, 0, 0, 0, 0);
-                break;
-            case 'p': case 'P': /* centre -> hard left -> hard right -> centre */
-                pan = pan == 64u ? 0u : pan == 0u ? 127u : 64u;
-                ri_ctl_send(&s_ctl, RI_AUTO_ID_MIX(0u, RI_AUTO_MIX_PAN), pan);
-                if (!live)
-                    ri_live_render(&s_sess, s_fl, s_fr, RIAPP_FRAMES);
-                if (DOSBase)
-                    rlog("RIAPP 303A pan -> %lu (0 left, 64 centre, 127 right)\n", pan, 0, 0, 0, 0);
-                break;
-            case 'w': case 'W':
-                if (!live) {
-                    rlog("RIAPP record: needs the AHI backend\n", 0, 0, 0, 0, 0);
-                } else if (!s_lv.cap_on && s_lv.cap_pos == 0u) {
-                    if (!s_lv.cap_buf) {
-                        s_lv.cap_max = s_lv.mix_freq * RIAPP_REC_SECONDS;
-                        s_lv.cap_buf = (WORD *)AllocVec(s_lv.cap_max * 4u, MEMF_ANY);
-                    }
-                    if (s_lv.cap_buf) {
-                        s_lv.cap_on = 1;
-                        rlog("RIAPP recording to RAM:RIAPP.wav (W again to stop, max %lu s)\n",
-                            RIAPP_REC_SECONDS, 0, 0, 0, 0);
-                    } else {
-                        rlog("RIAPP record: no memory for %lu s\n", RIAPP_REC_SECONDS, 0, 0, 0, 0);
-                    }
-                } else {
-                    ULONG frames;
-                    s_lv.cap_on = 0;
-                    Delay(5); /* let the task finish a half in flight */
-                    frames = s_lv.cap_pos;
-                    rc = riapp_write_wav("RAM:RIAPP.wav", s_lv.cap_buf, frames, s_lv.mix_freq);
-                    rlog("RIAPP wrote RAM:RIAPP.wav: %lu frames at %lu Hz (rc %ld)\n",
-                        frames, s_lv.mix_freq, (IPTR)rc, 0, 0);
-                    s_lv.cap_pos = 0u;
-                }
-                break;
-            case 'm': case 'M':
-                riapp_print_meters(&s_sess, live);
-                break;
-            case 'r': case 'R':
-                if (!live) {
-                    ULONG b;
-                    if (DOSBase)
-                        rlog("RIAPP null soak 5 s...\n", 0, 0, 0, 0, 0);
-                    for (b = 0u; b < RIAPP_SOAK_BUFS; b++)
-                        ri_live_render(&s_sess, s_fl, s_fr, RIAPP_FRAMES);
-                    riapp_print_meters(&s_sess, live);
-                }
-                break;
-            case 'q': case 'Q':
-                done = 1;
-                break;
-            default:
-                break;
-            }
-            if (done)
-                break;
+    win = (Object *)MUI_NewObject(MUIC_Window,
+        MUIA_Window_Title, (IPTR)"RIAPP live panel",
+        MUIA_Window_LeftEdge, 0,
+        MUIA_Window_TopEdge, 0,
+        MUIA_Window_CloseGadget, TRUE,
+        MUIA_Window_DepthGadget, TRUE,
+        MUIA_Window_DragBar, TRUE,
+        MUIA_Window_RootObject, (IPTR)row,
+        TAG_DONE);
+    if (!win) {
+        if (s_live)
+            au_live_close(&s_lv);
+        return 7;
+    }
+    app = (Object *)MUI_NewObject(MUIC_Application,
+        MUIA_Application_Title, (IPTR)"RIAPP",
+        MUIA_Application_Base, (IPTR)"RIAPP",
+        SubWindow, (IPTR)win,
+        TAG_DONE);
+    if (!app) {
+        if (s_live)
+            au_live_close(&s_lv);
+        return 8;
+    }
+    DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, (IPTR)app, 2,
+        MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
+    SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
+    rlog("RIAPP panel: transport+patterns+303A+mix808 (Step 2: sound-from-panel UNPROVEN)\n",
+        0, 0, 0, 0, 0);
+
+    /* 100 ms tick: meter chase + null-backend advance. */
+    tport = CreateMsgPort();
+    if (tport)
+        treq = (struct timerequest *)CreateIORequest(tport, sizeof(struct timerequest));
+    if (treq && OpenDevice((STRPTR)"timer.device", UNIT_MICROHZ,
+        (struct IORequest *)treq, 0) == 0)
+        timer_ok = 1;
+    if (timer_ok) {
+        treq->tr_node.io_Command = TR_ADDREQUEST;
+        treq->tr_time.tv_secs = 0;
+        treq->tr_time.tv_micro = 100000;
+        SendIO((struct IORequest *)treq);
+        timer_armed = 1;
+    }
+
+    /* Canonical union loop (m60): input, sync, meters, wait. */
+    for (;;) {
+        struct RILiveMeters m;
+        uint64_t cursor = 0u;
+        int have_cursor = 0;
+        ret = (LONG)DoMethod(app, MUIM_Application_NewInput, &sigs);
+        if (ret == (LONG)MUIV_Application_ReturnID_Quit)
+            break;
+        if (timer_armed && CheckIO((struct IORequest *)treq)) {
+            WaitIO((struct IORequest *)treq);
+            treq->tr_node.io_Command = TR_ADDREQUEST;
+            treq->tr_time.tv_secs = 0;
+            treq->tr_time.tv_micro = 100000;
+            SendIO((struct IORequest *)treq);
+            if (!s_live && s_tr_state != RI_TR_STOPPED)
+                ri_live_render(&s_sess, s_fl, s_fr, RIAPP_FRAMES);
         }
+        if (ri_live_meters_read(&s_sess, &m) == 0) {
+            cursor = m.cursor_ticks;
+            have_cursor = 1;
+        }
+        sync_transport();
+        for (i = C_P0; i <= C_P3; i++)
+            sync_pat(i, have_cursor ? cursor : 0u);
+        sync_303();
+        sync_values();
+        meter_round(s_live ? s_lv.mix_freq : 48000u);
+        sigs |= SIGBREAKF_CTRL_C | (timer_armed ? 1UL << tport->mp_SigBit : 0UL);
+        sigs = Wait(sigs);
+        if (sigs & SIGBREAKF_CTRL_C)
+            break;
     }
-    if (live) {
-        s_lv.cap_on = 0; /* quitting while recording saves the take */
+    if (timer_armed) {
+        if (!CheckIO((struct IORequest *)treq))
+            AbortIO((struct IORequest *)treq);
+        WaitIO((struct IORequest *)treq);
+    }
+    if (timer_ok)
+        CloseDevice((struct IORequest *)treq);
+    if (treq)
+        DeleteIORequest((struct IORequest *)treq);
+    if (tport)
+        DeleteMsgPort(tport);
+    if (s_live) {
         au_live_close(&s_lv);
-        if (s_lv.cap_buf && s_lv.cap_pos) {
-            rc = riapp_write_wav("RAM:RIAPP.wav", s_lv.cap_buf, s_lv.cap_pos, s_lv.mix_freq);
-            rlog("RIAPP wrote RAM:RIAPP.wav on quit: %lu frames at %lu Hz (rc %ld)\n",
-                s_lv.cap_pos, s_lv.mix_freq, (IPTR)rc, 0, 0);
-        }
-        if (s_lv.cap_buf)
-            FreeVec(s_lv.cap_buf);
         if (DOSBase)
             rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us\n",
                 s_lv.buffers, s_lv.xruns, s_lv.render_us_max, s_lv.render_us_sum_ms, s_lv.period_us);
     }
-    CloseWindow(win);
+    SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
+    MUI_DisposeObject(app);
+    ri_rsection_dispose_class();
     return 0;
 }

@@ -77,12 +77,12 @@ if [ "${1:-}" = riapp ]; then
   O9="$OUT/riapp"; mkdir -p "$O9"
   CF9="$CFLAGS_AROS -Werror -fno-stack-protector -I$ROOT -DPCF_TABLE_VERIFIED=1"
   OBJS9=""
-  for f in app/riapp.c audio_io/audio_ahi_live.c engine/engine.c engine/live.c engine/seq/clock.c engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c engine/seq/pattern.c engine/seq/pattern_emit.c engine/seq/transport.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c engine/seq/ctlplane.c engine/dsp/kernels.c engine/dsp/rb303.c engine/dsp/params.c engine/dsp/rb808.c engine/dsp/rb909.c engine/fx/fx.c engine/fx/route.c engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c project/sha256.c; do
+  for f in app/riapp.c audio_io/audio_ahi_live.c engine/engine.c engine/live.c engine/seq/clock.c engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c engine/seq/pattern.c engine/seq/pattern_emit.c engine/seq/transport.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c engine/seq/ctlplane.c engine/dsp/kernels.c engine/dsp/rb303.c engine/dsp/params.c engine/dsp/rb808.c engine/dsp/rb909.c engine/fx/fx.c engine/fx/route.c engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c project/sha256.c gui/panelctl.c gui/ctlreg.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/knob_logic.c gui/knob_art.c gui/panels.c gui/catalog.c gui/skin.c gui/skin_aros.c gui/widgets/rsection.mcc.c; do
     x86_64-aros-gcc $CF9 -c "$ROOT/$f" -o "$O9/$(basename "$f" .c).o"
     OBJS9="$OBJS9 $O9/$(basename "$f" .c).o"
   done
   x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/RIAPP" $OBJS9 "${STARTUP[@]}" \
-    -L "$SHIM" -L "$SDK/../lib" -lamiga -lposixc -lstdcio -lintuition -lgraphics -lutility -ldos -lexec -lautoinit
+    -L "$SHIM" -L "$SDK/../lib" -lamiga -lposixc -lstdcio -lmui -lintuition -lgraphics -lutility -ldos -lexec -lautoinit
   test "$(x86_64-aros-readelf -s "$OUT/RIAPP" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: RIAPP unresolved"; exit 1; }
   test "$(objdump -d "$OUT/RIAPP" | grep -c 'mov    %rax,%r12')" = 0 || { echo "FAIL: RIAPP r12 base moves (v1)"; exit 1; }
   echo "AROS RIAPP BUILD OK ($(stat -c%s "$OUT/RIAPP") bytes)"
