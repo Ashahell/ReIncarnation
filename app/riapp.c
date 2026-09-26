@@ -48,6 +48,7 @@
 #include <exec/memory.h>
 #include <exec/io.h>
 #include <string.h>
+#include <stdarg.h>
 #include <libraries/mui.h>
 #include <devices/timer.h>
 #include <intuition/intuition.h>
@@ -74,6 +75,8 @@
 #include "gui/livestate.h"
 #include "gui/widgets/rsection.h"
 #include "audio_io/audio_ahi_live.h"
+#include "platform/pal/ri_pal_fs.h"
+#include "platform/pal/ri_pal_log.h"
 
 extern struct DosLibrary *DOSBase;
 
@@ -149,24 +152,28 @@ static void riapp_demo_song(void) {
     ri_track_init(&s_tr);
 }
 
-/* Status lines also go to RAM:RIAPP.LOG, opened, appended and closed per
- * line so it can be read while RIAPP runs (the Run redirect stays empty). */
-static void rlog(const char *fmt, IPTR a, IPTR b, IPTR c, IPTR d, IPTR e) {
+/* Status lines also go to the TEMP log, opened, appended and closed per
+ * line so it can be read while RIAPP runs (the Run redirect stays empty).
+ * Formatted with vsnprintf (T6: no RawDoFmt packing) and sunk preformatted. */
+static void rlog(const char *fmt, ...) {
+    char buf[512], base[48], fn[96];
+    va_list ap;
     BPTR f;
-    ULONG args[5]; /* RawDoFmt %ld/%lu/%lx consume 32-bit LONGs, packed */
-    args[0] = (ULONG)a;
-    args[1] = (ULONG)b;
-    args[2] = (ULONG)c;
-    args[3] = (ULONG)d;
-    args[4] = (ULONG)e;
     if (!DOSBase)
         return;
-    VPrintf((STRPTR)fmt, (RAWARG)args);
-    f = Open((STRPTR)"RAM:RIAPP.LOG", MODE_READWRITE);
+    va_start(ap, fmt);
+    ri_log_format(buf, sizeof buf, fmt, ap);
+    va_end(ap);
+    ri_pal_log_sink(buf);
+    if (ri_pal_path(RI_PATH_TEMP, base, sizeof base) != 0)
+        return;
+    if (ri_pal_path_join(fn, sizeof fn, base, "RIAPP.LOG") != 0)
+        return;
+    f = Open((STRPTR)fn, MODE_READWRITE);
     if (!f)
         return;
     Seek(f, 0, OFFSET_END);
-    VFPrintf(f, (STRPTR)fmt, (RAWARG)args);
+    FPuts(f, (STRPTR)buf);
     Close(f);
 }
 

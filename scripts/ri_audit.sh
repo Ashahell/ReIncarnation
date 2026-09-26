@@ -163,9 +163,24 @@ bash "$ROOT/scripts/ri_build_host.sh" test t82_live_record >/dev/null || { echo 
 bash "$ROOT/scripts/ri_build_host.sh" test t83_panelctl >/dev/null || { echo "FAIL: t83_panelctl"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t84_pal_thread >/dev/null || { echo "FAIL: t84_pal_thread (portability T1)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t85_pal_keys >/dev/null || { echo "FAIL: t85_pal_keys (portability T3)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t86_pal_fslog >/dev/null || { echo "FAIL: t86_pal_fslog (portability T6)"; exit 1; }
 # portability T1: PAL atomics header is include-clean (stdint/stddef only;
 # ri_pal_log.h additionally allows stdarg.h for the varargs decl)
 if grep -n "#include" "$ROOT/platform/pal/"*.h | grep -v "stdint.h\|stddef.h\|stdarg.h"; then echo "FAIL: pal header include leak"; exit 1; fi
+# portability T6: no hard-coded SYS:/RAM:/ENV: literals outside platform/aros/
+if grep -rn '"SYS:\|"RAM:\|"ENV:' "$ROOT/app" "$ROOT/audio_io" "$ROOT/gui" "$ROOT/project" "$ROOT/midi_io" "$ROOT/engine" "$ROOT/tools" --include="*.c" --include="*.h" | grep -v "platform/aros/"; then echo "FAIL: hard-coded Amiga path outside platform/aros/"; exit 1; fi
+echo "-- portability T6: AROS compile of fs/log backends (compile-only) --"
+if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found (T6)"; exit 1; fi
+. ../Vulkan4Aros/scripts/aros_build_env.sh
+export PATH="$AROS_TOOLCHAIN:$PATH"
+V1SDK_T6="$(cd "$ROOT/../Vulkan4Aros/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include" && pwd)"
+if [ -d "$V1SDK_T6" ]; then SDK_T6="$V1SDK_T6"; else echo "FAIL: v1 build-pc SDK absent (T6)"; exit 1; fi
+CFLAGS_T6="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK_T6 -I$SDK_T6/aros/posixc -I$SDK_T6/aros/stdc"
+mkdir -p "$OUT/aros"
+for tu in platform/aros/fs_aros.c platform/aros/log_aros.c; do
+  bn=$(echo "$tu" | tr '/' '_');
+  x86_64-aros-gcc $CFLAGS_T6 -c "$ROOT/$tu" -o "$OUT/aros/${bn}.o" || { echo "FAIL: $tu AROS compile (T6)"; exit 1; }
+done
 # portability T1: no volatile cross-thread words left in engine/ (atomics own them)
 if grep -rn "volatile" "$ROOT/engine/" 2>/dev/null | grep -v "platform/pal"; then echo "FAIL: volatile left in engine/"; exit 1; fi
 # law: no mutable static state in the player (spec §Ownership) — one enforcement point

@@ -1,0 +1,8 @@
+app/sectproof.c:94:    BPTR f = Open((CONST_STRPTR)"RAM:RISECT.MOD", MODE_READWRITE);
+app/sectproof.c:96:        f = Open((CONST_STRPTR)"RAM:RISECT.MOD", MODE_NEWFILE);
+app/sectproof.c:111:        static const char pre[] = "SYS:Classes/ReIncarnation/Mods/";
+app/sectproof.c:228:    lock = Lock((CONST_STRPTR)"SYS:Classes/ReIncarnation/Mods/", ACCESS_READ);
+app/sectproof.c:716:        trace = Open((CONST_STRPTR)"RAM:RISECT.LOG", MODE_NEWFILE);
+app/sectproof.c:764:        trace = Open((CONST_STRPTR)"RAM:RISECT.LOG", MODE_NEWFILE);
+app/riapp.c:165:    f = Open((STRPTR)"RAM:RIAPP.LOG", MODE_READWRITE);
+audio_io/audio_ahi_play.c:32:#define AUPLAY_TMP "RAM:auplay.wav"

@@ -20,6 +20,7 @@
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include "audio_io/audio_ahi.h"
+#include "platform/pal/ri_pal_fs.h"
 
 extern struct DosLibrary *DOSBase;
 
@@ -29,8 +30,17 @@ extern struct DosLibrary *DOSBase;
 extern int AuRenderToFile(struct AudioObject *ao, const char *path,
                           uint32_t ms);
 
-#define AUPLAY_TMP "RAM:auplay.wav"
 #define AUPLAY_CHUNK 16384u
+
+/* Temp WAV path via PAL (T6). Returns 0 on success. */
+static int auplay_tmp(char *out, uint32_t cap) {
+    char base[48];
+    if (!out || cap == 0u)
+        return 1;
+    if (ri_pal_path(RI_PATH_TEMP, base, sizeof base) != 0)
+        return 1;
+    return ri_pal_path_join(out, cap, base, "auplay.wav");
+}
 
 int AuPlayEx(struct AudioObject *ao, const volatile int *stop) {
     struct MsgPort *port;
@@ -40,11 +50,17 @@ int AuPlayEx(struct AudioObject *ao, const volatile int *stop) {
     LONG rd;
     ULONG total = 0u;
     int stopped = 0;
+    char tmp[96];
     if (!ao)
         return 2;
+    if (auplay_tmp(tmp, sizeof tmp) != 0) {
+        if (DOSBase)
+            Printf((STRPTR)"RI_AUPLAY temp path FAILED\n");
+        return 10;
+    }
     if (DOSBase)
         Printf((STRPTR)"RI_AUPLAY render...\n");
-    if (AuRenderToFile(ao, AUPLAY_TMP, 0u) != 0) {
+    if (AuRenderToFile(ao, tmp, 0u) != 0) {
         if (DOSBase)
             Printf((STRPTR)"RI_AUPLAY render FAILED\n");
         return 10;
@@ -68,7 +84,7 @@ int AuPlayEx(struct AudioObject *ao, const volatile int *stop) {
         DeleteMsgPort(port);
         return 5;
     }
-    fh = Open((STRPTR)AUPLAY_TMP, MODE_OLDFILE);
+    fh = Open((STRPTR)tmp, MODE_OLDFILE);
     if (!fh) {
         CloseDevice((struct IORequest *)req);
         DeleteIORequest((struct IORequest *)req);
@@ -110,7 +126,7 @@ int AuPlayEx(struct AudioObject *ao, const volatile int *stop) {
     CloseDevice((struct IORequest *)req);
     DeleteIORequest((struct IORequest *)req);
     DeleteMsgPort(port);
-    DeleteFile((STRPTR)AUPLAY_TMP);
+    DeleteFile((STRPTR)tmp);
     if (stopped) {
         if (DOSBase)
             Printf((STRPTR)"RI_AUPLAY stopped %lu bytes rc=1\n", total);

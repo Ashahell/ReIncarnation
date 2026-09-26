@@ -69,6 +69,7 @@
 #include "gui/widgets/rsection.h"
 #include "gui/skin.h"
 #include "gui/skin_aros.h"
+#include "platform/pal/ri_pal_fs.h"
 
 static char s_readout[160];
 static Object *s_mix[10];
@@ -90,10 +91,25 @@ static int s_zoom; /* zoom= index 0..3 for the proof canvases (G8.2) */
 
 /* One MOD-log line per selection event (evidence for the G8.1 proof):
  * appends (seek to end), creating the file on first use. */
+static const char *pal_temp_file(const char *leaf) {
+    static char fn[80];
+    char base[48];
+    if (!leaf)
+        return 0;
+    if (ri_pal_path(RI_PATH_TEMP, base, sizeof base) != 0)
+        return 0;
+    if (ri_pal_path_join(fn, sizeof fn, base, leaf) != 0)
+        return 0;
+    return fn;
+}
 static void mod_log(const char *line) {
-    BPTR f = Open((CONST_STRPTR)"RAM:RISECT.MOD", MODE_READWRITE);
+    const char *fn = pal_temp_file("RISECT.MOD");
+    BPTR f;
+    if (!fn)
+        return;
+    f = Open((CONST_STRPTR)fn, MODE_READWRITE);
     if (!f)
-        f = Open((CONST_STRPTR)"RAM:RISECT.MOD", MODE_NEWFILE);
+        f = Open((CONST_STRPTR)fn, MODE_NEWFILE);
     if (f) {
         Seek(f, 0, OFFSET_END);
         FPuts(f, (CONST_STRPTR)line);
@@ -104,13 +120,13 @@ static void mod_log(const char *line) {
 
 static void skin_apply(const char *name) {
     char dir[192], note[160];
+    char mbase[96];
     int i, n;
     dir[0] = '\0';
     i = 0;
-    {
-        static const char pre[] = "SYS:Classes/ReIncarnation/Mods/";
-        while (pre[i] && i < 160) {
-            dir[i] = pre[i];
+    if (ri_pal_path(RI_PATH_MODS, mbase, sizeof mbase) == 0) {
+        while (mbase[i] && i < 160) {
+            dir[i] = mbase[i];
             i++;
         }
     }
@@ -225,7 +241,13 @@ static void skin_scan(void) {
     static ULONG s_exbuf[1024]; /* 4 KB ExAll buffer, ULONG-aligned */
     int n = 1, more = 1;
     s_installed[0] = "Classic";
-    lock = Lock((CONST_STRPTR)"SYS:Classes/ReIncarnation/Mods/", ACCESS_READ);
+    /* s_installed_buf[15] as scratch: Lock copies nothing out of it, and the
+     * scan loop below overwrites entries from index 1 upward anyway. */
+    if (ri_pal_path(RI_PATH_MODS, s_installed_buf[15], sizeof s_installed_buf[15]) != 0) {
+        s_installed[1] = 0;
+        return;
+    }
+    lock = Lock((CONST_STRPTR)s_installed_buf[15], ACCESS_READ);
     if (!lock) {
         s_installed[1] = 0;
         return;
@@ -713,7 +735,10 @@ int main(int argc, char **argv) {
         section = RI_SEC_TRANSPORT;
         mix = 5;
         keys = 1;                      /* same key/trace/refresh path as keys mode */
-        trace = Open((CONST_STRPTR)"RAM:RISECT.LOG", MODE_NEWFILE);
+        { /* trace path via PAL (T6); missing path = no trace, never a crash */
+            const char *tf = pal_temp_file("RISECT.LOG");
+            trace = tf ? Open((CONST_STRPTR)tf, MODE_NEWFILE) : 0;
+        }
         ri_midi_init(&s_midi, 0);
         if (remote) {                  /* CAMD receiver: cluster "ri.remote", channel 1 */
             CamdBase = OpenLibrary((CONST_STRPTR)"camd.library", 0);
@@ -761,7 +786,10 @@ int main(int argc, char **argv) {
         section = RI_SEC_TRANSPORT;
         mix = 4;
         s_nall = 6;
-        trace = Open((CONST_STRPTR)"RAM:RISECT.LOG", MODE_NEWFILE);
+        { /* trace path via PAL (T6); missing path = no trace, never a crash */
+            const char *tf = pal_temp_file("RISECT.LOG");
+            trace = tf ? Open((CONST_STRPTR)tf, MODE_NEWFILE) : 0;
+        }
     } else if (trp) {                  /* transport (compact) over the four pattern sections */
         Object *pats;
         s_mix[0] = (Object *)ri_rsection_create(RI_SEC_TRANSPORT, RI_GEO_ZOOM_COMPACT);
