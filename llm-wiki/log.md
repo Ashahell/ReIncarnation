@@ -1,5 +1,10 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | Planned device: Korg Electribe ESX-1
+- Disposition: New (owner requirement)
+- Raw: llm-wiki/raw/articles/2026-09-26-planned-device-korg-esx1.md
+- Updated: llm-wiki/index.md (Reviews, beside the device-rack requirement)
+
 ## [2026-09-26] record | Step 1 buffer default + riqemu1 sb128 open hang
 - Disposition: New (two slice records closing Step-1 and lane-diagnostic gaps)
 - Raw: llm-wiki/raw/articles/2026-09-26-buffer-default-256-dell.md, llm-wiki/raw/articles/2026-09-26-riqemu1-sb128-open-hang.md
