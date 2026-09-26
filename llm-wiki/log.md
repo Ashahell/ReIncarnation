@@ -1,6 +1,13 @@
 # ReIncarnation llm-wiki — log
 
-## [2026-09-26] decisions | Portability §8–§9 resolved + FTZ locked (t94)
+## [2026-09-26] proofs | Lane round: G7 re-proof MATCH, T2 pixel-identity, Dell 0 xruns
+- Disposition: New (device-proof record)
+- Raw: llm-wiki/raw/articles/2026-09-26-lane-proof-round-t2-g7-t4.md
+- Updated: llm-wiki/index.md (Lane infrastructure entry)
+- Evidence: docs/evidence/portability/t2-lane-proofs.md + captures/traces
+riqemu1: G7 final state equals committed trace; T2 byte-identical
+(new-vs-old2, first-old-run outlier documented). Dell: RIAPP 2885 bufs
+0 xruns on hardware. Open: owner listening, skinned/zoom proof, soak.
 - Disposition: Update (owner answered all six questions)
 - Raw: llm-wiki/raw/articles/2026-09-26-portability-t1-t8-implementation.md
 - Updated: docs/superpowers/plans/2026-09-26-portability-plan.md (§9 resolutions)

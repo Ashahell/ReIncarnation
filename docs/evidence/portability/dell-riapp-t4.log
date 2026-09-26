@@ -1,0 +1,10 @@
+audio: AHI low-level mode=0x003E0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP 909 pack: unbound - 909 renders silence (load a pack for drums)
+RIAPP panel: transport+patterns+303A+mix808 (Step 2: sound-from-panel UNPROVEN)
+RIAPP play
+RIAPP closed: buffers=18787 xruns=0 render_max=898 us render_total=11992 ms period=5333 us
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP 909 pack: unbound - 909 renders silence (load a pack for drums)
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP play
+RIAPP closed: buffers=2885 xruns=0 render_max=1748 us render_total=786 ms period=5333 us
