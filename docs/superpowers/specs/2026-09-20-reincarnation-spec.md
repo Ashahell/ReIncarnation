@@ -385,7 +385,7 @@ Every row: ID, value, status, locked-by gate. Nothing here is normative until it
 | P-18 | Knob/fader travel | 150 px / 100 px full, fine ×0.1 | E0 LOCKED design | TC-2.9.2 (design, not measurement) |
 | P-19 | MIDI flood cap | events-per-buffer shed cap | OPEN value | TC-2.8 soak (§17 failure 4) |
 | P-20 | PPQ | 96 | HYPOTHESIS | Scheduler freeze review |
-| P-21 | Render task priority / device buffer floor | task pri TBD; device buffer ≥ engine block | OPEN-09 | M1.1 AHI measurement |
+| P-21 | Render task priority / device buffer floor | task pri 10 (above GUI, below input.device); device buffer floor 128 clean, 64 marginal (1–2 xruns/~10k bufs); default 1024 until owner listens at 256/128 (recommended 256) | OPEN-09 | Dell E6320 2026-09-26: 0 xruns @1024/512/256/128 scripted takes, 5-min soak 59038 bufs 0 xruns @256; evidence docs/evidence/audio/live-render-task.md |
 
 PCF pattern contents (54×16) are NOT rows here — each pattern gets its own ledger row under `docs/evidence/pcf/` per §12.
 

@@ -95,3 +95,48 @@ Results on the Dell E6320 (ABIv11 build, `RIAPP 1024`):
   recording also saves. The first owner take held 99328 frames (W was
   pressed just before Q); the file was verified as RIFF PCM 16-bit stereo
   48000 Hz.
+
+## Buffer ladder, scripted takes + soak (2026-09-26, opencode G9b Step 1)
+
+Same agent-driven script at every size (ABIv11 `RIAPP <frames>`: click
+(100,60), Space, W, three C presses, Q; adjacent press/release pairs, no
+holds — a 1 s hold auto-repeats, proven by a 12x "RIAPP play" storm on a
+separated-pair run). Each take verified from `RAM:RIAPP.LOG` (one play,
+one record-start, cutoffs 64→48→32→16, wrote-on-quit). WAVs fetched and
+compared on the host (all RIFF PCM 16-bit stereo 48000 Hz):
+
+| frames | buffers | xruns | render max | render mean | WAV frames | peak | RMS    | adj-repeat blocks |
+|-------:|--------:|------:|-----------:|------------:|-----------:|-----:|--------|-------------------|
+|   1024 |     612 |     0 |    2830 us | ~1878 us    |     416768 | 17286 | −17.9 dBFS | 0 |
+|    512 |    1212 |     0 |    1455 us | ~960 us     |     413184 | 17286 | −17.9 dBFS | 0 |
+|    256 |    2441 |     0 |     766 us | ~501 us     |     416256 | 17286 | −17.9 dBFS | 0 |
+|    128 |    4879 |     0 |     410 us | ~269 us     |     416256 | 17286 | −17.9 dBFS | 0 |
+|     64 |    9767 |     2 |     251 us | ~154 us     |     416256 | 17286 | −17.9 dBFS | 0 |
+
+Headroom (max/period): 13 % @1024, 14 % @512, 14 % @256, 15 % @128,
+19 % @64. Mean load ~9–12 % at every size.
+
+- **Render is identical at every size**: peak 17286 and RMS −17.9 dBFS in
+  all five takes, zero adjacent repeated half-blocks. (Honesty note: the W
+  capture is task-side, pre-device — it proves the render, not what AHI
+  delivered. Device loops are counted as xruns, not visible in the WAV.
+  True live==offline bit-exactness per take needs buffer-index logging of
+  each control drain; the task does not log it yet. Host t81 already proves
+  live==offline bit-exact for the same control history.)
+- **"Worse at 1024 with PlayerFreq" hypothesis** (not yet proven): with the
+  pass length equal to the half length, the `AHI_SetSound(…, AHISF_NONE)`
+  queue races the pass start — a pass-start race replays with an offset or
+  clicks without tripping the xrun counter (the hook counts starts, and 0
+  xruns were logged on the "worse" build). Proposed test: a build forcing
+  PlayerFreq on at 1024 for an owner A/B; keep the `<1024` gate until then.
+- **5-minute soak at 256**: 59038 buffers (~315 s incl. stopped head),
+  **0 xruns**, render_max 773 us, mean ~662 us (12.4 % of the 5333 us
+  period). Caveat: 9 unexplained 303-level moves (up to 127, back to 79)
+  appear mid-log with no matching agent job in the spool — the take was not
+  input-clean (possibly the owner at the keyboard, or a stuck-key echo).
+  The stability numbers stand; re-run input-clean before closing Step 1.
+- **Recommendation (owner confirms by ear)**: ship **256 frames**
+  (5.33 ms latency, 0 xruns, 14 % worst-case load). 128 is equally clean
+  and halves latency again (2.67 ms). 64 is marginal (1–2 xruns per ~10k
+  buffers). `RIAPP_DEV_FRAMES` stays 1024 until the owner listens at
+  256/128 — nobody has listened below 1024 yet.
