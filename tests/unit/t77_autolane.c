@@ -6,8 +6,13 @@
 #include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include "engine/seq/autolane.h"
+#include "engine/seq/autolane_emit.h"
 #include "engine/seq/songtrack.h" /* combined mirror test ONLY */
 #include "gui/ctlreg.h" /* cross-check ONLY (read-only; sibling-owned, never edited) */
+
+#define T77_SR 48000u
+static const struct RISegment T77_SEG0[] = { { 0, 428571428ULL } }; /* 140 BPM */
+static const struct RITempoMap T77_MAP = { T77_SEG0, 1, 96, T77_SR };
 
 #define T77_CAP 256u
 static struct RIAutoEv T77_STO[T77_CAP];
@@ -722,6 +727,113 @@ int main(void) {
                 if (l11.ev[q11].val == 2u)
                     inbar = 1u;
             RI_ASSERT(!inbar, "cut bar holds no removed events");
+        }
+    }
+    /* ---- Task 3a: chase + windowed emission with carry ---- */
+    {
+        struct RIAutoLane lane;
+        struct RIAutoPass pass;
+        struct RIAutoEv sto[16];
+        struct RIAutoCarry cy;
+        struct RIEvent ev[16];
+        uint8_t outv;
+        uint32_t n = 0u, seq = 0u, got = 0u;
+        memset(&lane, 0, sizeof lane);
+        lane.ev = sto;
+        lane.cap = 16u;
+        memset(&pass, 0, sizeof pass);
+        memset(&cy, 0, sizeof cy);
+        RI_ASSERT(ri_auto_stamp(&lane, 48u, 0x0300u, 10u) == 0, "ch setup A1");
+        RI_ASSERT(ri_auto_stamp(&lane, 200u, 0x0300u, 11u) == 0, "ch setup A2");
+        RI_ASSERT(ri_auto_stamp(&lane, 100u, 0x0312u, 20u) == 0, "ch setup B");
+        /* Chase from an arbitrary tick: latest value per control, none
+         * for never-automated controls. */
+        n = 0u; seq = 0u;
+        got = ri_auto_chase(&lane, &pass, 150u, &T77_MAP, 96u, ev, 16u, &seq);
+        RI_ASSERT(got == 2u, "chase count %u", got);
+        RI_ASSERT(ev[0].type == RI_EV_AUTOMATION && ev[0].device == 0u &&
+            ev[0].value == 0x0300u && ev[0].flags == 10u, "chase A fields");
+        RI_ASSERT(ev[1].type == RI_EV_AUTOMATION && ev[1].device == 1u &&
+            ev[1].value == 0x0312u && ev[1].flags == 20u, "chase B fields");
+        RI_ASSERT(ev[0].sample == ri_map_tick(&T77_MAP, 150u) &&
+            ev[1].sample == ri_map_tick(&T77_MAP, 150u), "chase at tick");
+        RI_ASSERT(ri_auto_value(&lane, 150u, 0x0301u, &outv) == 0,
+            "never-automated stays none");
+        /* Loop wrap order: punch out first, then chase at the loop start
+         * (isolated lane: the touch must not pollute the counts below). */
+        {
+            struct RIAutoLane lw;
+            struct RIAutoEv sw[8];
+            struct RIAutoPass pw;
+            memset(&lw, 0, sizeof lw);
+            lw.ev = sw;
+            lw.cap = 8u;
+            memset(&pw, 0, sizeof pw);
+            RI_ASSERT(ri_auto_touch(&lw, &pw, 2u, 150u, 96u, 0x0300u, 30u) == 0,
+                "chase punch rc");
+            ri_auto_punch_out_all(&pw);
+            RI_ASSERT(pw.npunched == 0u, "wrap punched out");
+            got = ri_auto_chase(&lw, &pw, 900u, &T77_MAP, 96u, ev, 16u, &seq);
+            RI_ASSERT(got == 1u, "wrap chase count %u", got);
+            RI_ASSERT(ev[0].value == 0x0300u && ev[0].flags == 30u &&
+                ev[0].sample == ri_map_tick(&T77_MAP, 900u), "wrap chase fields");
+        }
+        /* Window edges: [100,100) keeps the tick-100 event, drops the rest. */
+        n = 0u; seq = 0u;
+        memset(&cy, 0, sizeof cy);
+        got = ri_auto_emit_range(&lane, &pass, &cy, 100u, 100u,
+            &T77_MAP, 96u, ev, &n, 16u, &seq);
+        RI_ASSERT(got == 1u, "window count %u", got);
+        RI_ASSERT(n == 1u && ev[0].value == 0x0312u, "window edges");
+        /* Cap 1 across a 3-event window: carry resumes, each event once. */
+        {
+            struct RIEvent w1[1], w2[1], w3[1], w4[1];
+            uint32_t n1 = 0u, n2 = 0u, n3 = 0u, n4 = 0u;
+            uint32_t s1 = 0u, s2 = 0u, s3 = 0u, s4 = 0u;
+            uint32_t c1, c2, c3, c4, seen = 0u;
+            memset(&cy, 0, sizeof cy);
+            c1 = ri_auto_emit_range(&lane, &pass, &cy, 0u, 1000u,
+                &T77_MAP, 96u, w1, &n1, 1u, &s1);
+            c2 = ri_auto_emit_range(&lane, &pass, &cy, 0u, 1000u,
+                &T77_MAP, 96u, w2, &n2, 1u, &s2);
+            c3 = ri_auto_emit_range(&lane, &pass, &cy, 0u, 1000u,
+                &T77_MAP, 96u, w3, &n3, 1u, &s3);
+            c4 = ri_auto_emit_range(&lane, &pass, &cy, 0u, 1000u,
+                &T77_MAP, 96u, w4, &n4, 1u, &s4);
+            RI_ASSERT(c1 == 1u && c2 == 1u && c3 == 1u && c4 == 0u,
+                "carry steps %u/%u/%u/%u", c1, c2, c3, c4);
+            RI_ASSERT(n1 == 1u && n2 == 1u && n3 == 1u && n4 == 0u,
+                "carry counts");
+            seen |= (uint32_t)(1u << (w1[0].value & 31u));
+            seen |= (uint32_t)(1u << (w2[0].value & 31u));
+            seen |= (uint32_t)(1u << (w3[0].value & 31u));
+            RI_ASSERT(seen == ((uint32_t)(1u << (0x0300u & 31u)) |
+                    (uint32_t)(1u << (0x0312u & 31u))),
+                "carry covers all %u", seen);
+            RI_ASSERT(cy.next == 3u, "carry drained %u", cy.next);
+        }
+        /* Punched controls suppressed in chase and emission. */
+        {
+            struct RIAutoPass p2;
+            uint32_t g2;
+            memset(&p2, 0, sizeof p2);
+            RI_ASSERT(ri_auto_touch(&lane, &p2, 2u, 150u, 96u, 0x0300u, 31u) == 0,
+                "suppress punch rc");
+            g2 = ri_auto_chase(&lane, &p2, 900u, &T77_MAP, 96u, ev, 16u, &seq);
+            RI_ASSERT(g2 == 1u && ev[0].value == 0x0312u, "chase suppresses %u", g2);
+            n = 0u;
+            memset(&cy, 0, sizeof cy);
+            got = ri_auto_emit_range(&lane, &p2, &cy, 0u, 1000u,
+                &T77_MAP, 96u, ev, &n, 16u, &seq);
+            RI_ASSERT(got == 1u && ev[0].value == 0x0312u, "emit suppresses %u", got);
+        }
+        /* NULL fail-closed. */
+        RI_ASSERT(ri_auto_chase(0, &pass, 0u, &T77_MAP, 96u, ev, 16u, &seq) == 0u,
+            "chase null lane");
+        {
+            uint32_t nn = 0u;
+            RI_ASSERT(ri_auto_emit_range(0, &pass, &cy, 0u, 10u,
+                &T77_MAP, 96u, ev, &nn, 16u, &seq) == 0u, "emit null lane");
         }
     }
     RI_RESULT("autolane");

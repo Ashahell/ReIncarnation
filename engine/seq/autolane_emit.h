@@ -7,10 +7,14 @@
 #include "engine/seq/sched.h"  /* RIEvent, RI_EV_* */
 #include "engine/seq/clock.h"  /* RITempoMap */
 
-uint32_t ri_auto_chase(const struct RIAutoLane *l, uint32_t tick,
-    struct RIEvent *out, uint32_t cap);
-uint32_t ri_auto_emit_range(const struct RIAutoLane *l,
-    const struct RIAutoPass *p, uint32_t first, uint32_t count,
-    const struct RITempoMap *map, uint32_t ppq,
-    struct RIEvent *out, uint32_t *n, uint32_t cap, uint32_t *seq);
+/* Emission carry: lane index of the first event not yet emitted
+ * (songtrack R1 lesson — a cap-dropped event is re-sent, never lost).
+ * Reset to 0 after any lane mutation (edits shift indices). */
+struct RIAutoCarry { uint32_t next; };
+
+uint32_t ri_auto_chase(const struct RIAutoLane *l, const struct RIAutoPass *p, uint32_t tick,
+                       const struct RITempoMap *map, uint32_t ppq, struct RIEvent *out, uint32_t cap, uint32_t *seq);
+uint32_t ri_auto_emit_range(const struct RIAutoLane *l, const struct RIAutoPass *p, struct RIAutoCarry *c,
+                            uint32_t first, uint32_t count, const struct RITempoMap *map, uint32_t ppq,
+                            struct RIEvent *out, uint32_t *n, uint32_t cap, uint32_t *seq);
 #endif

@@ -2,6 +2,7 @@
  * Gate-blind model + caller-side record path (transport state in).
  * No alloc, no IO, no mutable static state. */
 #include "engine/seq/autolane.h"
+#include "engine/seq/autolane_emit.h" /* emitter bodies (model stays sched-free) */
 #include "engine/dsp/rb303.h" /* allow-list IDs (engine side, no GUI) */
 #include <string.h> /* memmove for sorted insert */
 
@@ -594,4 +595,102 @@ int ri_auto_touch(struct RIAutoLane *l, struct RIAutoPass *p,
     if (!pass_has(p->touched, p->ntouched, ctl))
         p->touched[p->ntouched++] = ctl;
     return 0;
+}
+
+/* STUBS replaced (Task 3a) — bodies below. */
+/* Device from the ID block: 0x031x -> 303B (1), else section 0.
+ * Wider blocks arrive with Task 5 delivery; the allow-list keeps this
+ * total over every ID the lane can hold. */
+static uint16_t auto_device(uint16_t ctl) {
+    if (((uint32_t)ctl & 0xFF00u) != 0x0300u)
+        return 0u;
+    return (uint16_t)(((uint32_t)ctl >> 4u) & 1u);
+}
+
+uint32_t ri_auto_chase(const struct RIAutoLane *l, const struct RIAutoPass *p, uint32_t tick,
+                       const struct RITempoMap *map, uint32_t ppq, struct RIEvent *out, uint32_t cap, uint32_t *seq) {
+    uint32_t w = 0u, i, d = 0u;
+    uint16_t dctl[RI_SCHED_MAX_EVENTS];
+    uint8_t dval[RI_SCHED_MAX_EVENTS];
+    uint64_t sample;
+    (void)ppq; /* ticks are absolute; no grid math on emit */
+    if (!l || !l->ev || !out || !map || !seq)
+        return 0u;
+    if (l->n > l->cap)
+        return 0u;
+    sample = ri_map_tick(map, tick);
+    for (i = 0u; i < l->n; i++) { /* latest value <= tick per control */
+        uint32_t q;
+        uint16_t c;
+        if (l->ev[i].tick > tick)
+            break; /* lane sorted by tick */
+        c = l->ev[i].ctl;
+        if (p && pass_has(p->punched, p->npunched, c))
+            continue; /* punched plays live, never chased */
+        for (q = 0u; q < d; q++)
+            if (dctl[q] == c)
+                break;
+        if (q < d) {
+            dval[q] = l->ev[i].val;
+        } else if (d < RI_SCHED_MAX_EVENTS) {
+            dctl[d] = c;
+            dval[d] = l->ev[i].val;
+            d++;
+        }
+        /* Beyond 256 distinct controls the oldest wins (unreachable:
+         * the allow-list holds 16 IDs, so d stays small). */
+    }
+    for (i = 0u; i < d && w < cap; i++, w++) {
+        out[w].sample = sample;
+        out[w].type = RI_EV_AUTOMATION;
+        out[w].device = auto_device(dctl[i]);
+        out[w].voice = 0u;
+        out[w].value = dctl[i];
+        out[w].flags = dval[i];
+        out[w].seq = (*seq)++;
+    }
+    return w;
+}
+
+uint32_t ri_auto_emit_range(const struct RIAutoLane *l, const struct RIAutoPass *p, struct RIAutoCarry *c,
+                            uint32_t first, uint32_t count, const struct RITempoMap *map, uint32_t ppq,
+                            struct RIEvent *out, uint32_t *n, uint32_t cap, uint32_t *seq) {
+    uint64_t end = (uint64_t)first + (uint64_t)count;
+    uint32_t i, added = 0u;
+    (void)ppq; /* ticks are absolute; no grid math on emit */
+    if (!l || !l->ev || !out || !n || !map || !seq)
+        return 0u;
+    if (l->n > l->cap)
+        return 0u;
+    i = (c != 0) ? c->next : 0u;
+    for (; i < l->n; i++) {
+        uint64_t t = l->ev[i].tick;
+        uint16_t ctl = l->ev[i].ctl;
+        if (t < first) {
+            if (c != 0)
+                c->next = i + 1u; /* behind the window: consumed */
+            continue;
+        }
+        if (t >= end)
+            break; /* carry stays: this event belongs to a later window */
+        if (p && pass_has(p->punched, p->npunched, ctl)) {
+            if (c != 0)
+                c->next = i + 1u; /* suppressed = consumed (panel is live) */
+            continue;
+        }
+        if (*n >= cap)
+            break; /* cap-dropped: carry stays (late, never lost) */
+        out[*n].sample = ri_map_tick(map, l->ev[i].tick);
+        out[*n].type = RI_EV_AUTOMATION;
+        out[*n].device = auto_device(ctl);
+        out[*n].voice = 0u;
+        out[*n].value = ctl;
+        out[*n].flags = l->ev[i].val;
+        out[*n].seq = (*seq)++;
+        (*n)++;
+        added++;
+        if (c != 0)
+            c->next = i + 1u;
+    }
+    return added;
 }
