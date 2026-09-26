@@ -1,0 +1,5 @@
+T3b RED: the MCC owned drag/repeat state inline; there was no callable
+pure unit (a host test could not drive `MUIM_HandleEvent`).
+GREEN moves the branch-for-branch logic to app/core/canvas_events.c;
+the MCC maps IDCMP onto it. First wired run passed (port, not new logic);
+the mutant below is the behavioural proof.

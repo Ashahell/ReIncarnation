@@ -46,6 +46,7 @@
 #include "gui/skin_aros.h"
 #include "engine/dsp/kernels.h"
 #include "gui/widgets/rsection.h"
+#include "app/core/canvas_events.h"
 
 #define TAG_SECTION (TAG_USER + 0x52534381u)
 #define TAG_ZOOM (TAG_USER + 0x52534382u)
@@ -89,14 +90,8 @@ struct RSectionData {
     struct RISectUI ui;
     LONG zoom;
     LONG changes;
-    uint16_t drag_id;
-    LONG drag_n0;
-    double acc_dx, acc_dy;
-    WORD last_x, last_y;
+    struct RICevState cev;   /* drag + arrow-repeat (T3b: owned by canvas_events) */
     BOOL shown;
-    uint16_t rep_idx;      /* held value-display arrow, 0xFFFF none */
-    int8_t rep_dir;
-    uint8_t rep_ticks;
     struct MUI_EventHandlerNode ehn;
     struct RSectionDiag diag;
     struct RIPanelUI *panel;   /* shared front panel (focus, keys), may be NULL */
@@ -180,10 +175,6 @@ static void bevel(struct RastPort *rp, int x0, int y0, int x1, int y1, ULONG fac
 static LONG to_n(const struct RICtlDef *d, int v) {
     int span = d->max_v - d->min_v;
     return span > 0 ? (LONG)(((long)(v - d->min_v) * 127 + span / 2) / span) : 0;
-}
-static int from_n(const struct RICtlDef *d, LONG n) {
-    int span = d->max_v - d->min_v;
-    return d->min_v + (int)(((long)n * span + 63) / 127);
 }
 
 /* Skin hook (G8.1): background + knob frames render from the active skin
@@ -820,8 +811,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
         }
         d->zoom = (LONG)GetTagData(TAG_ZOOM, 0, s->ops_AttrList);
         d->changes = 0;
-        d->drag_id = 0xFFFFu;
-        d->rep_idx = 0xFFFFu;
+        ri_cev_init(&d->cev);
         d->shown = FALSE;
         d->panel = (struct RIPanelUI *)GetTagData(MUIA_RSection_Panel, 0, s->ops_AttrList);
         d->key_owner = (BOOL)GetTagData(MUIA_RSection_KeyOwner, FALSE, s->ops_AttrList);
@@ -898,8 +888,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
     case MUIM_Hide:
         d = (struct RSectionData *)INST_DATA(cl, obj);
         d->shown = FALSE;
-        d->drag_id = 0xFFFFu;
-        d->rep_idx = 0xFFFFu;
+        ri_cev_init(&d->cev);
         return DoSuperMethodA(cl, obj, msg);
     case MUIM_CreateShortHelp: { /* per-control bubble (Zune re-asks after each move) */
         struct MUIP_CreateShortHelp *m = (struct MUIP_CreateShortHelp *)msg;
@@ -924,85 +913,41 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
         if (!im || !d->shown)
             return (IPTR)0;
         if (im->Class == IDCMP_INTUITICKS) {   /* held arrow repeats (p. 18) */
-            if (d->rep_idx != 0xFFFFu && ++d->rep_ticks >= 4 && ri_sui_step(&d->ui, d->rep_idx, d->rep_dir))
+            if (ri_cev_tick(&d->cev, &d->ui) & RI_CEV_CHANGED)
                 changed(obj, d);
             return (IPTR)0;
         }
         d->diag.events++;
         if (im->Class == IDCMP_RAWKEY) {   /* Appendix E: one owner per window */
-            if (!d->key_owner || !d->panel)
-                return (IPTR)0;
-            if (ri_key_decode(im->Code, im->Qualifier, &d->panel->opts, d->panel->focus).kind == RI_KA_NONE)
-                return (IPTR)0;   /* not ours: leave it to MUI (window cycling etc.) */
-            if (ri_panel_key(d->panel, im->Code, im->Qualifier))
+            uint32_t r = ri_cev_key(&d->cev, &d->ui, d->panel,
+                d->key_owner ? 1 : 0, im->Code, im->Qualifier);
+            if (r & RI_CEV_CHANGED)
                 changed(obj, d);
-            return (IPTR)MUI_EventHandlerRC_Eat;
+            return (r & RI_CEV_EAT) ? (IPTR)MUI_EventHandlerRC_Eat : (IPTR)0;
         }
         if (im->Class == IDCMP_MOUSEBUTTONS) {
             int lx = im->MouseX - _mleft(obj), ly = im->MouseY - _mtop(obj), opt = -1;
-            uint16_t id = ri_geo_hit_opt(geo(d), lx, ly, (int)d->zoom, &opt);
-            uint32_t idx = id & 0xFFu;
-            const struct RICtlDef *cd;
+            int kind = (im->Code == SELECTDOWN) ? 0 : (im->Code == SELECTUP) ? 1 :
+                (im->Code == MENUDOWN) ? 2 : -1;
+            uint32_t r;
             d->diag.buttons++;
             d->diag.last_x = lx;
             d->diag.last_y = ly;
-            d->diag.last_hit = id;
-            if (im->Code == SELECTDOWN && d->panel && lx >= 0 && ly >= 0 && lx < _mwidth(obj) &&
-                ly < _mheight(obj) && ri_panel_click(d->panel, d->ui.section))
-                changed(obj, d);   /* p. 22: clicking in a section gives it the focus */
-            if (im->Code == SELECTUP) {
-                d->rep_idx = 0xFFFFu;
-                if (d->drag_id == 0xFFFFu)
-                    return (IPTR)0;
-                d->drag_id = 0xFFFFu;
-                return (IPTR)MUI_EventHandlerRC_Eat;
-            }
-            if (id == 0xFFFFu)
+            d->diag.last_hit = ri_geo_hit_opt(geo(d), lx, ly, (int)d->zoom, &opt);
+            if (kind < 0)
                 return (IPTR)0;
-            cd = ri_ctlreg_find((uint16_t)((d->ui.section << 8) | idx));
-            if (!cd)
-                return (IPTR)0;
-            if (im->Code == MENUDOWN) {
-                if (ri_sui_reset(&d->ui, idx))
-                    changed(obj, d);
-                return (IPTR)MUI_EventHandlerRC_Eat;
-            }
-            if (im->Code != SELECTDOWN)
-                return (IPTR)0;
-            if (opt == RI_GEO_HIT_UP || opt == RI_GEO_HIT_DOWN) {   /* value-display arrow */
-                d->rep_idx = (uint16_t)idx;
-                d->rep_dir = (int8_t)(opt == RI_GEO_HIT_UP ? 1 : -1);
-                d->rep_ticks = 0;
-                if (ri_sui_step(&d->ui, idx, d->rep_dir))
-                    changed(obj, d);
-            } else if (opt >= 0) {                            /* instrument legend */
-                if (ri_sui_set(&d->ui, idx, opt))
-                    changed(obj, d);
-            } else if (cd->kind == RI_CK_KNOB || cd->kind == RI_CK_SELECTOR || cd->kind == RI_CK_FADER) {
-                d->drag_id = id;
-                d->drag_n0 = to_n(cd, ri_sui_value(&d->ui, idx));
-                d->acc_dx = d->acc_dy = 0.0;
-                d->last_x = im->MouseX;
-                d->last_y = im->MouseY;
-            } else if (ri_sui_press(&d->ui, idx)) {
+            r = ri_cev_button(&d->cev, &d->ui, d->panel, geo(d), (int)d->zoom,
+                lx, ly, _mwidth(obj), _mheight(obj), kind);
+            if (r & RI_CEV_CHANGED)
                 changed(obj, d);
-            }
-            return (IPTR)MUI_EventHandlerRC_Eat;
+            return (r & RI_CEV_EAT) ? (IPTR)MUI_EventHandlerRC_Eat : (IPTR)0;
         }
-        if (im->Class == IDCMP_MOUSEMOVE && d->drag_id != 0xFFFFu) {
-            uint32_t idx = d->drag_id & 0xFFu;
-            const struct RICtlDef *cd = ri_ctlreg_find((uint16_t)((d->ui.section << 8) | idx));
+        if (im->Class == IDCMP_MOUSEMOVE && d->cev.drag_id != RI_CEV_NODRAG) {
             int fine = (im->Qualifier & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) != 0;
-            double n;
-            d->acc_dx += (double)(im->MouseX - d->last_x);
-            d->acc_dy += (double)(d->last_y - im->MouseY);
-            d->last_x = im->MouseX;
-            d->last_y = im->MouseY;
-            ri_knob_clamp_acc((double)d->drag_n0, &d->acc_dx, &d->acc_dy, fine);
-            n = ri_knob_drag_to_value((double)d->drag_n0, d->acc_dx, d->acc_dy, fine);
-            if (cd && ri_sui_set(&d->ui, idx, from_n(cd, (LONG)ri_ctl_quantize(n))))
+            uint32_t r = ri_cev_move(&d->cev, &d->ui, im->MouseX, im->MouseY, fine);
+            if (r & RI_CEV_CHANGED)
                 changed(obj, d);
-            return (IPTR)MUI_EventHandlerRC_Eat;
+            return (r & RI_CEV_EAT) ? (IPTR)MUI_EventHandlerRC_Eat : (IPTR)0;
         }
         return (IPTR)0;
     }
