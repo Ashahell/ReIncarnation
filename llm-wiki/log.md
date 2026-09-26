@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | §12.9c record-path capture gating (m68)
+- Disposition: New (slice record)
+- Raw: llm-wiki/raw/articles/2026-09-26-record-capture-gating.md
+- Updated: llm-wiki/index.md (§12.9 entry), docs/2026-09-24-improvement-todo.md (gating ticked, m68)
+Record gate shipped (feat b7e4896): RECORD-state + cursor-quantize capture, t59 PASS, 2 mutants killed, audit 0/0. Open: automation lanes (§12.9c remainder).
+
 ## [2026-09-26] ingest | Bare `Assign NAME:` removes the assign (lane rule from Vulkan4Aros)
 - Disposition: New (lane rule; absent from this wiki — full-text search for EXISTS/insert-volume came back empty)
 - Raw: llm-wiki/raw/articles/2026-09-24-assign-probe-removes-assign-lane-rule.md

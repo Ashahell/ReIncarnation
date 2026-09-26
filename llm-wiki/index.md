@@ -111,6 +111,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 - [raw/articles/2026-09-25-songtrack.md](raw/articles/2026-09-25-songtrack.md) — **2026-09-25 — §12.9b song track (m66).** Dense grid + change emission + STRK; 8 mutants proven.
 
+- [raw/articles/2026-09-26-record-capture-gating.md](raw/articles/2026-09-26-record-capture-gating.md) — **2026-09-26 — §12.9c record-path capture gating (m68).** RECORD-state gate + cursor quantize; 2 mutants killed.
+
 - [raw/articles/2026-09-26-streaming-player.md](raw/articles/2026-09-26-streaming-player.md) — **2026-09-26 — §12.9c streaming player (m67).** Per-section phase + pattern-end changeover + per-block emission; 8/9 mutants killed (1 documented survivor).
 
 - [raw/articles/2026-09-24-first-click-jump-qa.md](raw/articles/2026-09-24-first-click-jump-qa.md) — **2026-09-24 — First-click jump + Q&A.** Warp arms past 3px; buttons-gone by design; FLAMRES = documented placeholder slot.
