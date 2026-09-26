@@ -75,6 +75,7 @@
 #include "gui/livestate.h"
 #include "gui/widgets/rsection.h"
 #include "audio_io/audio_ahi_live.h"
+#include "app/core/riapp_core.h"
 #include "platform/pal/ri_pal_fs.h"
 #include "platform/pal/ri_pal_log.h"
 
@@ -99,12 +100,8 @@ static const ULONG c_sections[C_N] = {
 /* Pattern instance (bank + track slot) behind each PAT canvas. */
 static const uint32_t c_pat_instance[C_N] = { 0u, 0u, 1u, 2u, 3u, 0u, 2u };
 
-static struct RIPatternBank s_ba, s_bb, s_b808, s_b909;
-static struct RISongTrack s_tr;
-static struct RIEvent s_scratch[512];
-static struct RIControlPlane s_ctl;
+static struct RIAppCore s_core; /* portable session wiring (T8) */
 static float s_fl[RIAPP_FRAMES], s_fr[RIAPP_FRAMES];
-static struct RILiveSession s_sess;
 static struct AuLive s_lv;
 static int s_live; /* AHI backend up (render task owns the session) */
 
@@ -122,37 +119,8 @@ static uint8_t s_303_slot;
 static IPTR s_changes[C_N];
 static int s_meter_shown[2];
 
-/* Demo: a 16-step 303 line (accents + slides) over an 808 beat. */
-static void riapp_demo_song(void) {
-    static const uint8_t keys[16] = { 0, 0, 12, 0, 3, 0, 5, 7, 0, 0, 12, 10, 7, 5, 3, 0 };
-    static const uint8_t fl[16] = { RI_STEP_ACCENT, 0, RI_STEP_SLIDE, 0, 0, RI_STEP_REST, RI_STEP_ACCENT, 0,
-        0, RI_STEP_SLIDE, RI_STEP_ACCENT, 0, 0, RI_STEP_REST, 0, RI_STEP_SLIDE };
-    uint32_t i;
-    ri_bank_init(&s_ba, 0u, RI_PATTERN_KIND_303, 0u);
-    ri_bank_init(&s_bb, 1u, RI_PATTERN_KIND_303, 0u);
-    ri_bank_init(&s_b808, 2u, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_808);
-    ri_bank_init(&s_b909, 3u, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_909);
-    for (i = 0u; i < 32u; i++) {
-        ri_pattern_set_length(&s_ba.pat[i], 16u);
-        ri_pattern_set_length(&s_bb.pat[i], 16u);
-        ri_pattern_set_length(&s_b808.pat[i], 16u);
-        ri_pattern_set_length(&s_b909.pat[i], 16u);
-    }
-    for (i = 0u; i < 16u; i++) {
-        ri_p303_set(&s_ba.pat[0], i, keys[i], fl[i]);
-        if ((i & 3u) == 0u)
-            ri_pdrum_set(&s_b808.pat[0], i, RI_L808_BD, RI_HIT_LOW);
-        if ((i & 3u) == 2u)
-            ri_pdrum_set(&s_b808.pat[0], i, RI_L808_CH, RI_HIT_LOW);
-        if (i == 4u || i == 12u)
-            ri_pdrum_set(&s_b808.pat[0], i, RI_L808_SD, RI_HIT_LOW);
-        if (i == 0u || i == 8u)
-            ri_pdrum_set_ac(&s_b808.pat[0], i, 1); /* accented downbeats */
-    }
-    ri_track_init(&s_tr);
-}
-
-/* Status lines also go to the TEMP log, opened, appended and closed per
+/* Demo song, bank table, transport and meters live in app/core (T8).
+ * Status lines also go to the TEMP log, opened, appended and closed per
  * line so it can be read while RIAPP runs (the Run redirect stays empty).
  * Formatted with vsnprintf (T6: no RawDoFmt packing) and sunk preformatted. */
 static void rlog(const char *fmt, ...) {
@@ -177,15 +145,6 @@ static void rlog(const char *fmt, ...) {
     Close(f);
 }
 
-static struct RIPatternBank *pat_bank(uint32_t inst) {
-    static struct RIPatternBank *b[4];
-    b[0] = &s_ba;
-    b[1] = &s_bb;
-    b[2] = &s_b808;
-    b[3] = &s_b909;
-    return inst < 4u ? b[inst] : &s_ba;
-}
-
 /* Transport state edge -> the render task (or the null session). */
 static void sync_transport(void) {
     int st = s_ui[C_TR]->u.tr.tr.state;
@@ -197,14 +156,14 @@ static void sync_transport(void) {
         if (s_live)
             au_live_request(&s_lv, AU_LIVE_CMD_PLAY);
         else
-            ri_live_play(&s_sess);
-        rlog("RIAPP play\n", 0, 0, 0, 0, 0);
+            ri_core_play(&s_core);
+        rlog("RIAPP play\n");
     } else {
         if (s_live)
             au_live_request(&s_lv, AU_LIVE_CMD_STOP);
         else
-            ri_live_stop(&s_sess);
-        rlog("RIAPP stop\n", 0, 0, 0, 0, 0);
+            ri_core_stop(&s_core);
+        rlog("RIAPP stop\n");
     }
 }
 
@@ -214,7 +173,7 @@ static void sync_transport(void) {
 static void sync_pat(int c, uint64_t cursor_ticks) {
     struct RISectUI *u = s_ui[c];
     uint32_t inst = c_pat_instance[c];
-    struct RIPatternBank *b = pat_bank(inst);
+    struct RIPatternBank *b = ri_core_bank(&s_core, inst);
     int sel = ri_spat_selected(&u->u.pat);
     uint64_t bar;
     if (sel < 0)
@@ -227,7 +186,7 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
     if (u->u.pat.bank != s_pat_bank[c] || u->u.pat.pattern != s_pat_pat[c]) {
         s_pat_bank[c] = u->u.pat.bank;
         s_pat_pat[c] = u->u.pat.pattern;
-        ri_track_capture(&s_tr, bar, inst, (uint8_t)sel);
+        ri_track_capture(&s_core.track, bar, inst, (uint8_t)sel);
         if (c == C_P0) {
             /* 303A shows the selected slot: refresh its steps from the bank. */
             struct RISectUI *u303 = s_ui[C_303];
@@ -258,7 +217,7 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
 /* 303A steps -> the GUI-side bank slot (pure edit functions, one path). */
 static void sync_303(void) {
     struct RISectUI *u = s_ui[C_303];
-    struct RIPatternBank *b = pat_bank(0u);
+    struct RIPatternBank *b = ri_core_bank(&s_core, 0u);
     uint32_t k;
     for (k = 0u; k < 16u; k++) {
         if (u->u.s303.pat.row.r303[k].key != s_303_row[k].key ||
@@ -286,7 +245,7 @@ static void sync_values(void) {
         if (s_dg[c] && s_dg[c]->last_hit != 0xFFFFu) {
             uint16_t reg = s_dg[c]->last_hit;
             struct RISectUI *u = s_ui[c];
-            ri_panel_ctl_send(&s_ctl, reg, ri_sui_value(u, reg & 0xFFu));
+            ri_panel_ctl_send(&s_core.ctl, reg, ri_sui_value(u, reg & 0xFFu));
         }
     }
 }
@@ -294,14 +253,12 @@ static void sync_values(void) {
 /* Meters + position from the published snapshot only (G6b). Levels feed
  * the 808 board strips; the playhead chases the transport cursor. */
 static void meter_round(ULONG mix_freq) {
-    struct RILiveMeters m;
     int lvl303, lvl808;
     uint64_t sixteenths;
     int playing;
-    if (ri_live_meters_read(&s_sess, &m) != 0)
+    if (!ri_core_meters(&s_core, &lvl303, &lvl808, &sixteenths, mix_freq ? mix_freq : 48000u,
+        s_tr_state != RI_TR_STOPPED))
         return;
-    lvl303 = ri_live_meter_level(m.sec_peak[0]);
-    lvl808 = ri_live_meter_level(m.sec_peak[2]);
     if (lvl303 != s_meter_shown[0] || lvl808 != s_meter_shown[1]) {
         struct RISectUI *u = s_ui[C_MIX];
         s_meter_shown[0] = lvl303;
@@ -313,7 +270,6 @@ static void meter_round(ULONG mix_freq) {
         }
     }
     playing = (s_tr_state != RI_TR_STOPPED);
-    sixteenths = ri_live_16ths(m.samples, 120u, mix_freq ? mix_freq : 48000u);
     if (ri_panel_live(&s_panel, playing, sixteenths)) {
         int k;
         for (k = 0; k < C_N; k++)
@@ -335,7 +291,6 @@ int main(int argc, char **argv) {
     Object *app, *win, *row, *pats;
     LONG ret;
     ULONG sigs = 0;
-    const struct RIPatternBank *b4[4];
     ULONG frames = riapp_arg_frames(argc, argv);
     float rate = 48000.0f;
     int i, rc;
@@ -344,21 +299,14 @@ int main(int argc, char **argv) {
     int timer_ok = 0, timer_armed = 0;
     static const char *installed[1] = { "Classic" };
 
-    riapp_demo_song();
-    b4[0] = &s_ba;
-    b4[1] = &s_bb;
-    b4[2] = &s_b808;
-    b4[3] = &s_b909;
-    ri_ctl_init(&s_ctl);
+    ri_core_demo(&s_core);
     rc = au_live_open(&s_lv, frames, 48000u);
     if (rc == 0) {
         s_live = 1;
         rate = (float)s_lv.mix_freq; /* E0 (G9.0): the session runs at the device rate */
     }
-    ri_live_init(&s_sess, RIAPP_PPQ, rate, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808, s_scratch, 512u);
-    ri_live_set_banks(&s_sess, b4, &s_tr, 0);
-    ri_live_set_ctl(&s_sess, &s_ctl);
-    if (s_live && au_live_run(&s_lv, &s_sess) != 0) {
+    ri_core_init(&s_core, RIAPP_PPQ, rate, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+    if (s_live && au_live_run(&s_lv, &s_core.session) != 0) {
         au_live_close(&s_lv);
         s_live = 0;
     }
@@ -400,8 +348,8 @@ int main(int argc, char **argv) {
     }
     /* The panel shows the demo: 303A steps mirror bank slot 0. */
     for (i = 0; i < 16; i++) {
-        s_ui[C_303]->u.s303.pat.row.r303[i] = s_ba.pat[0].row.r303[i];
-        s_303_row[i] = s_ba.pat[0].row.r303[i];
+        s_ui[C_303]->u.s303.pat.row.r303[i] = s_core.banks[0].pat[0].row.r303[i];
+        s_303_row[i] = s_core.banks[0].pat[0].row.r303[i];
     }
     s_303_slot = 0u;
     for (i = C_P0; i <= C_P3; i++) {
@@ -417,13 +365,13 @@ int main(int argc, char **argv) {
      * board, not just the 808 strip: the demo 303A level 72 lives on
      * strip 0). */
     for (i = 0; i <= 6; i++)
-        ri_panel_ctl_send(&s_ctl, (uint16_t)c_sections[C_303] << 8 | (uint16_t)i,
+        ri_panel_ctl_send(&s_core.ctl, (uint16_t)c_sections[C_303] << 8 | (uint16_t)i,
             ri_sui_value(s_ui[C_303], (uint32_t)i));
     for (i = 0; i < 4; i++) {
         int k;
         struct RISectUI *mu = s_ui[C_MIX];
         for (k = 2; k <= 7; k++)
-            ri_panel_ctl_send(&s_ctl,
+            ri_panel_ctl_send(&s_core.ctl,
                 (uint16_t)(RI_SEC_MIX_SYNTH1 + i) << 8 | (uint16_t)k,
                 ri_smix_value(mu->u.mix.board, (uint32_t)(RI_SEC_MIX_SYNTH1 + i),
                     (uint32_t)k));
@@ -436,7 +384,7 @@ int main(int argc, char **argv) {
     }
     s_meter_shown[0] = s_meter_shown[1] = -1;
     if (!s_live)
-        ri_live_render(&s_sess, s_fl, s_fr, RIAPP_FRAMES); /* drain the burst */
+        ri_live_render(&s_core.session, s_fl, s_fr, RIAPP_FRAMES); /* drain the burst */
 
     pats = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
         Child, (IPTR)s_canvas[C_P0], Child, (IPTR)s_canvas[C_P1],
@@ -514,9 +462,9 @@ int main(int argc, char **argv) {
             treq->tr_time.tv_micro = 100000;
             SendIO((struct IORequest *)treq);
             if (!s_live && s_tr_state != RI_TR_STOPPED)
-                ri_live_render(&s_sess, s_fl, s_fr, RIAPP_FRAMES);
+                ri_live_render(&s_core.session, s_fl, s_fr, RIAPP_FRAMES);
         }
-        if (ri_live_meters_read(&s_sess, &m) == 0) {
+        if (ri_live_meters_read(&s_core.session, &m) == 0) {
             cursor = m.cursor_ticks;
             have_cursor = 1;
         }

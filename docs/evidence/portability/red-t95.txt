@@ -1,0 +1,5 @@
+T8 core RED (before the move):
+- tests/unit/t95_riapp_core.c includes app/core/riapp_core.h: no such file
+  (session wiring lived in app/riapp.c statics only).
+GREEN moves the portable part to app/core; the MUI/AHI shell keeps its
+shadows and backend choice.
