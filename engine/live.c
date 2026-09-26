@@ -116,6 +116,13 @@ void ri_live_play(struct RILiveSession *s) {
     s->need_chase = 1;
 }
 
+void ri_live_record(struct RILiveSession *s) {
+    if (!s)
+        return;
+    ri_tr_record(&s->tr, &s->cursor_ticks);
+    s->need_chase = 1;
+}
+
 void ri_live_stop(struct RILiveSession *s) {
     uint64_t loop_start = 0u;
     int was_record;

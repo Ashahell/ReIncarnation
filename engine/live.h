@@ -67,6 +67,7 @@ void ri_live_set_auto(struct RILiveSession *s, struct RIAutoPub *pub,
     struct RIAutoCarry *carry, struct RIAutoPass *pass);
 void ri_live_set_ctl(struct RILiveSession *s, struct RIControlPlane *ctl);
 void ri_live_play(struct RILiveSession *s);
+void ri_live_record(struct RILiveSession *s);
 void ri_live_stop(struct RILiveSession *s);
 /* RECORD-state knob record (G9.5 host half): control-plane send for
  * immediate sound plus ri_auto_touch on the back lane. 0 ok / 2 refused. */
