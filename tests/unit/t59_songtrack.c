@@ -592,5 +592,34 @@ int main(void) {
         for (k = 0u; k < 4u; k++)
             RI_ASSERT(ri_track_selected(&r.track, 500u, k) == 0u, "v1.0 default slot 0");
     }
+    /* ---- record-path capture gating (§12.9c; spec §5 open item) ----
+     * Caller-side: the transport RECORD state + cursor quantize decide;
+     * the model stays gate-blind. */
+    {
+        struct RISongTrack tr;
+        struct RITransport tp;
+        uint64_t bar = 4u * 96u; /* ticks per bar at ppq 96 */
+        ri_track_init(&tr);
+        memset(&tp, 0, sizeof tp);
+        /* Off-record (STOPPED, PLAYING): refused at any cursor, untouched. */
+        RI_ASSERT(ri_record_capture(&tr, tp.state, 0u, 96u, 0u, 5u) == 2, "stopped refuses");
+        tp.state = RI_TR_PLAYING;
+        RI_ASSERT(ri_record_capture(&tr, tp.state, bar + 200u, 96u, 0u, 5u) == 2, "playing refuses");
+        RI_ASSERT(ri_track_is_empty(&tr) == 1, "off-record untouched");
+        /* RECORD at a downbeat writes that bar. */
+        tp.state = RI_TR_RECORD;
+        RI_ASSERT(ri_record_capture(&tr, tp.state, bar, 96u, 0u, 5u) == 0, "rec downbeat rc");
+        RI_ASSERT(ri_track_selected(&tr, 1u, 0u) == 5u, "rec downbeat stored");
+        /* RECORD mid-measure quantizes forward (composition with t58 law). */
+        RI_ASSERT(ri_record_capture(&tr, tp.state, bar + 200u, 96u, 1u, 7u) == 0, "rec mid rc");
+        RI_ASSERT(ri_track_selected(&tr, 2u, 1u) == 7u, "rec mid stored next");
+        /* RECORD near the end clamps to 998, never 999. */
+        RI_ASSERT(ri_record_capture(&tr, tp.state, 998u * bar + 200u, 96u, 2u, 9u) == 0, "rec end rc");
+        RI_ASSERT(ri_track_selected(&tr, 998u, 2u) == 9u, "rec end stored");
+        /* Refusals delegate: NULL track, slot > 31 — prior content kept. */
+        RI_ASSERT(ri_record_capture(0, tp.state, bar, 96u, 0u, 5u) == 2, "rec null refuses");
+        RI_ASSERT(ri_record_capture(&tr, tp.state, bar, 96u, 0u, 32u) == 2, "rec slot32 refuses");
+        RI_ASSERT(ri_track_selected(&tr, 1u, 0u) == 5u, "refusal keeps prior");
+    }
     RI_RESULT("songtrack");
 }

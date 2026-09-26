@@ -28,4 +28,13 @@ void ri_track_cut(struct RISongTrack *t, uint64_t start, uint64_t len,
                   struct RITrackClip *clip);
 int  ri_track_paste(struct RISongTrack *t, uint64_t at, const struct RITrackClip *clip);
 int  ri_track_paste_replace(struct RISongTrack *t, uint64_t at, const struct RITrackClip *clip);
+/* Record-path capture gate (§12.9c; spec §5 open item): the caller-side
+ * record path quantizes the cursor to a downbeat and writes only while
+ * the transport state byte is RI_TR_RECORD. rec_state carries tr->state
+ * as a byte so this header never names transport struct types (layer
+ * guard). rc 0 captured / 2 refused (off-record, NULL, slot > 31) with
+ * the track untouched on refusal. */
+int  ri_record_capture(struct RISongTrack *t, uint8_t rec_state,
+                       uint64_t cursor_ticks, uint32_t ppq,
+                       uint32_t instance, uint8_t slot);
 #endif

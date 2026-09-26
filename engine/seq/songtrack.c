@@ -109,6 +109,19 @@ int ri_track_capture(struct RISongTrack *t, uint64_t bar, uint32_t instance, uin
     return 0;
 }
 
+/* Record-path gate: refuse-first (off-record writes nothing, not even
+ * quantized); on RECORD quantize the cursor forward and delegate (the
+ * delegate owns NULL/slot laws and its rc). */
+int ri_record_capture(struct RISongTrack *t, uint8_t rec_state,
+                      uint64_t cursor_ticks, uint32_t ppq,
+                      uint32_t instance, uint8_t slot) {
+    uint64_t bar;
+    if (rec_state != (uint8_t)RI_TR_RECORD)
+        return 2;
+    bar = ri_bar_quantize_next(cursor_ticks, ppq);
+    return ri_track_capture(t, bar, instance, slot);
+}
+
 int ri_track_is_empty(const struct RISongTrack *t) {
     uint32_t b, i;
     if (!t)
