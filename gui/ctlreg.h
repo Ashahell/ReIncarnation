@@ -56,6 +56,7 @@
 #define RI_BIND_SEND 8u    /* ri_engine_set_send(voice = route section) */
 #define RI_BIND_INSERT 9u  /* ri_engine_assign_insert(engine_id = unit, voice = owner) */
 #define RI_BIND_TEMPO 10u  /* ri_engine_set_tempo */
+#define RI_BIND_LEVEL 11u  /* ri_engine_set_level(voice = route section) */
 
 #define RI_MIDI_CC_NONE 0xFFu
 
@@ -89,6 +90,10 @@ const char *ri_ctlreg_section_name(uint32_t section);      /* "Synth 1", ... */
  * skin never depends on the numeric RI_SEC_* / RI_CK_* order (the rack will
  * add devices). SYNTH2 has no token: both synths share the "303" art.
  * token: NULL when none. by_token: RI_SEC_* / RI_CK_*, or -1 unknown. */
+/* Automation lane key of a control (engine/seq/autolane.h blocks): the
+ * engine ID for 303/FX, the per-voice drum key, the mixer key; 0 when the
+ * control has no engine delivery (bind NONE/TEMPO). */
+uint16_t ri_ctlreg_auto_id(const struct RICtlDef *d);
 const char *ri_ctlreg_section_token(uint32_t section);
 int ri_ctlreg_section_by_token(const char *tok);
 const char *ri_ctlreg_kind_token(uint32_t kind);

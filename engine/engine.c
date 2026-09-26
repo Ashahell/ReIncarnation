@@ -7,6 +7,7 @@
  * Kernels only via the voice code; no libm, no allocation, no IO.
  */
 #include "engine/engine.h"
+#include "engine/seq/autolane.h" /* lane key blocks (macros only) */
 #include "engine/seq/pattern.h"
 
 void ri_engine_init(struct RIEngine *e) {
@@ -48,6 +49,8 @@ void ri_engine_init(struct RIEngine *e) {
     for (i = 0; i < RI_ROUTE_NSECTIONS; i++) {
         e->pan[i] = RI_ENGINE_PAN_CENTER;
         e->send[i] = 0;
+        e->level[i] = 127u; /* unity: the pre-fader engine, bit-identical */
+        e->lvl_applied[i] = 1.0f;
     }
     e->tempo = RI_ENGINE_TEMPO_DEFAULT;
     e->dline = 0;
@@ -87,6 +90,8 @@ void ri_engine_defaults(struct RIEngine *e) {
     }
 }
 
+static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val);
+
 /* Pan law (starting point, pending §8 ear-fit): linear wings with an
  * exact centre detent. v = 64 -> (1, 1) exactly (neutral bit-identical);
  * v < 64 -> (1, v/64); v > 64 -> ((127-v)/63, 1). Continuous at 64. */
@@ -124,6 +129,24 @@ static void engine_section(struct RIEngine *e, uint32_t section,
     if (mask & (1u << RI_ROUTE_COMP)) {
         ri_fxcomp_render(&e->comp, e->scratch, e->scratch, cc);
         ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_COMP], e->scratch, cc);
+    }
+    /* Strip level (Task 5c): post-insert, pre-meter/send/pan, P-17 law
+     * with the mixer's zipless slew. Unity at rest skips the multiply so
+     * the neutral path stays bit-identical. */
+    {
+        float target = ri_fader_gain(e->level[section]);
+        float a = e->lvl_applied[section];
+        if (a != target || a != 1.0f) {
+            float step = 1.0f / (float)RI_MIX_RAMP_SMP;
+            for (i = 0; i < cc; i++) {
+                if (a < target)
+                    a = (target - a > step) ? a + step : target;
+                else if (a > target)
+                    a = (a - target > step) ? a - step : target;
+                e->scratch[i] *= a;
+            }
+            e->lvl_applied[section] = a;
+        }
     }
     if (section < RI_ROUTE_NSECTIONS)
         ri_meter_feed(&e->sec_meter[section], e->scratch, cc);
@@ -300,6 +323,10 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
     uint32_t lane, sound, voice;
     if (!e || !ev)
         return;
+    if (ev->type == RI_EV_AUTOMATION) { /* keyed by lane key, any device */
+        engine_automation(e, ev->value, (uint8_t)(ev->flags & 127u));
+        return;
+    }
     /* Drum sections (§12.7a/m64): lane state arrives as NOTE_ON
      * (voice = value = lane, ACCENT flag = 909 high level), flam as
      * FLAM (value = width), total accent as ACCENT to voice ALL.
@@ -358,21 +385,6 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
         else
             return;
         break;
-    case RI_EV_AUTOMATION:
-        if (((ev->value & 0xFF00u) == 0x0A00u)) {
-            /* Task 5a: FX block is voiceless — straight to the knob
-             * setter (unknown IDs are ignored inside, MIX stays put
-             * by topology). */
-            ri_engine_fx_set(e, ev->value, (uint8_t)(ev->flags & 127u));
-            return;
-        }
-        if ((ev->value & 0xfff0u) == 0x0300u)
-            v = &e->v303a;
-        else if ((ev->value & 0xfff0u) == 0x0310u)
-            v = &e->v303b;
-        else
-            return;
-        break;
     default:
         return; /* FLAM and friends: voice-side later slices */
     }
@@ -389,9 +401,6 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
         break;
     case RI_EV_ACCENT:
         rb303_accent(v);
-        break;
-    case RI_EV_AUTOMATION:
-        rb303_set_param(v, ev->value, (uint8_t)(ev->flags & 127u));
         break;
     default:
         break;
@@ -515,4 +524,67 @@ uint32_t ri_engine_render_mono(struct RIEngine *e, float *out, uint32_t n,
             break;
     }
     return done;
+}
+
+int ri_engine_set_level(struct RIEngine *e, uint32_t section, uint8_t v) {
+    if (!e || section >= RI_ROUTE_NSECTIONS)
+        return 2;
+    e->level[section] = v > 127u ? 127u : v;
+    return 0;
+}
+
+/* Automation lane keys (engine/seq/autolane.h blocks) -> the same setters
+ * the knobs use. Unknown keys are ignored, never misrouted. */
+static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
+    uint32_t blk = key & 0xFF00u, hi = (key >> 4) & 0xFu, lo = key & 0xFu, v;
+    if (blk == 0x0300u) {
+        if (hi == 0u)
+            rb303_set_param(&e->v303a, key, val);
+        else if (hi == 1u)
+            rb303_set_param(&e->v303b, key, val);
+        return;
+    }
+    if (blk == 0x0A00u) { /* FX block is voiceless (Task 5a) */
+        ri_engine_fx_set(e, key, val);
+        return;
+    }
+    if (blk == RI_AUTO_BLK_808) {
+        if (hi == (RI_CTL_808_ACCENT & 0xFu)) { /* section-wide, v = 0 only */
+            if (lo == 0u)
+                for (v = 0; v < RI_808_NSOUNDS; v++)
+                    rb808_set_param(&e->s808.v[v], RI_CTL_808_ACCENT, val);
+        } else if (hi < (RI_CTL_808_ACCENT & 0xFu) && lo < RI_808_NSOUNDS) {
+            rb808_set_param(&e->s808.v[lo], RI_CTL_808_LEVEL + hi, val);
+        }
+        return;
+    }
+    if (blk == RI_AUTO_BLK_909) {
+        if (lo == RI_AUTO_909_HATPAIR && hi == (RI_CTL_909_LEVEL & 0xFu))
+            rb909_set_hat_level(&e->s909, val);
+        else if (hi <= (RI_CTL_909_DECAY & 0xFu) && lo < RI_909_NVOICES)
+            rb909_set_param(&e->s909.v[lo], RI_CTL_909_TUNE + hi, val);
+        return;
+    }
+    if (blk == RI_AUTO_BLK_MIX && hi >= 1u && hi <= RI_AUTO_STRIP_MASTER + 1u) {
+        uint32_t strip = hi - 1u;
+        int owner = strip == RI_AUTO_STRIP_MASTER ? RI_ROUTE_MASTER : (int)strip;
+        if (lo >= RI_AUTO_MIX_DIST && lo < RI_AUTO_MIX_DIST + RI_ROUTE_NUNITS) {
+            uint32_t unit = lo - RI_AUTO_MIX_DIST;
+            if (strip == RI_AUTO_STRIP_MASTER && unit != RI_ROUTE_COMP)
+                return;
+            if (val)
+                ri_route_assign(&e->route, unit, owner);
+            else if (ri_route_owner(&e->route, unit) == owner)
+                ri_route_assign(&e->route, unit, RI_ROUTE_NONE);
+            return;
+        }
+        if (strip == RI_AUTO_STRIP_MASTER)
+            return; /* master level: not automatable (p. 72) */
+        if (lo == RI_AUTO_MIX_LEVEL)
+            ri_engine_set_level(e, strip, val);
+        else if (lo == RI_AUTO_MIX_PAN)
+            ri_engine_set_pan(e, strip, val);
+        else if (lo == RI_AUTO_MIX_SEND)
+            ri_engine_set_send(e, strip, val);
+    }
 }

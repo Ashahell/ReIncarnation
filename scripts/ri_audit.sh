@@ -153,6 +153,8 @@ bash "$ROOT/scripts/ri_build_host.sh" test t58_transport >/dev/null || { echo "F
 bash "$ROOT/scripts/ri_build_host.sh" test t59_songtrack >/dev/null || { echo "FAIL: t59_songtrack"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t74_player >/dev/null || { echo "FAIL: t74_player"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t77_autolane >/dev/null || { echo "FAIL: t77_autolane"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t78_engine_taps >/dev/null || { echo "FAIL: t78_engine_taps"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t79_auto_delivery >/dev/null || { echo "FAIL: t79_auto_delivery"; exit 1; }
 # law: no mutable static state in the player (spec §Ownership) — one enforcement point
 if grep -nE "^static [^()]*[;=]" engine/seq/player.c | grep -v ":static const"; then echo "FAIL: mutable static state in player.c"; exit 1; fi
 # law: no mutable static state in the song track (spec §Ownership) — one enforcement point

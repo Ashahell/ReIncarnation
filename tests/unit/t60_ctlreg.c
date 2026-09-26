@@ -10,9 +10,11 @@
 #include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include "gui/ctlreg.h"
+#include "engine/dsp/rb303.h"
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
 #include "engine/fx/route.h"
+#include "engine/seq/autolane.h"
 
 struct CCRow { uint8_t cc; uint8_t section; const char *group; const char *legend; };
 
@@ -161,7 +163,7 @@ int main(void) {
         case RI_BIND_FX:
             RI_ASSERT(d->engine_id >= 0x0A00u && d->engine_id <= 0x0A0Fu, "fx id %04x", d->engine_id);
             break;
-        case RI_BIND_PAN: case RI_BIND_SEND:
+        case RI_BIND_PAN: case RI_BIND_SEND: case RI_BIND_LEVEL:
             RI_ASSERT(d->voice < RI_ROUTE_NSECTIONS, "route section %u", d->voice);
             break;
         case RI_BIND_INSERT:
@@ -233,6 +235,34 @@ int main(void) {
         }
         RI_ASSERT(ri_ctlreg_kind_token(9u) == 0 && ri_ctlreg_kind_by_token("slider") == -1 &&
                   ri_ctlreg_kind_by_token(0) == -1, "kind range");
+    }
+
+    { /* automation lane keys (Task 5b/5c): per voice, per strip, unique */
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_SYNTH1, "", "Cutoff")) == RI_CTL_303A_CUTOFF, "303 key = engine id");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_808, "BD", "Level")) == 0x0C00u, "808 BD level key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_808, "SD", "Level")) == 0x0C01u, "808 SD level key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_808, "SD", "Tone")) == 0x0C11u, "808 SD tone(=tune) key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_808, "AC", "Level")) == 0x0C50u, "808 accent key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_909, "CC", "Tune")) == RI_AUTO_ID_909(0u, RB909_CR), "909 CC tune key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_909, "HH", "Level")) == 0x0D1Fu, "909 hat pair key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_909, "BD", "Attack")) == 0u, "unbound: no key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_808, "", "Level")) == 0x0B30u, "808 strip level key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_SYNTH2, "", "Pan")) == 0x0B21u, "303B pan key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_909, "", "Delay")) == 0x0B42u, "909 send key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_SYNTH1, "", "PCF")) == 0x0B14u, "303A pcf insert key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MASTER, "", "Comp")) == 0x0B55u, "master comp key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_SYNTH1, "", "On/Off")) == 0u, "mute: no key");
+        RI_ASSERT(ri_ctlreg_auto_id(0) == 0u, "null");
+        RI_ASSERT(find_leg(RI_SEC_MIX_909, "", "Level")->bind == RI_BIND_LEVEL &&
+                  find_leg(RI_SEC_MIX_909, "", "Level")->voice == 3u, "strip level bound");
+        for (i = 0; i < n; i++) { /* keys never collide across controls */
+            uint16_t ki = ri_ctlreg_auto_id(ri_ctlreg_at(i));
+            if (!ki)
+                continue;
+            RI_ASSERT(ki < 0x0B00u || ki > 0x0B0Fu, "key %04x in the legacy panel range", ki);
+            for (j = i + 1; j < n; j++)
+                RI_ASSERT(ri_ctlreg_auto_id(ri_ctlreg_at(j)) != ki, "key %04x shared by rows %u and %u", ki, i, j);
+        }
     }
 
     /* coverage record */

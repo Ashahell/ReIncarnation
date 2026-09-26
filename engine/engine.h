@@ -61,6 +61,8 @@ struct RIEngine {
     struct RiFXComp comp;
     uint8_t pan[RI_ROUTE_NSECTIONS]; /* 0..127 per section */
     uint8_t send[RI_ROUTE_NSECTIONS]; /* 0..127 post-insert mono send */
+    uint8_t level[RI_ROUTE_NSECTIONS]; /* strip fader 0..127, 127 = unity */
+    float lvl_applied[RI_ROUTE_NSECTIONS]; /* zipless slew state */
     float tempo; /* delay clock, 20..500 BPM */
     float *dline; /* caller-owned delay line, NULL = dry */
     uint32_t dcap;
@@ -94,6 +96,11 @@ int ri_engine_assign_insert(struct RIEngine *e, uint32_t unit, int owner);
 void ri_engine_fx_set(struct RIEngine *e, uint32_t id, uint8_t value);
 int ri_engine_set_pan(struct RIEngine *e, uint32_t section, uint8_t v);
 int ri_engine_set_send(struct RIEngine *e, uint32_t section, uint8_t v);
+/* Section level fader (mixer strip Level, E0 P-17 law (v/127)^2, 127 =
+ * unity = the pre-fader engine, so the neutral path stays bit-identical).
+ * Post-insert, pre-meter/send/pan; zipless slew over RI_MIX_RAMP_SMP.
+ * Returns 0 ok, 2 bad arg. */
+int ri_engine_set_level(struct RIEngine *e, uint32_t section, uint8_t v);
 void ri_engine_set_tempo(struct RIEngine *e, float bpm);
 /* Delay line (caller-owned, cap >= 64; NULL buf detaches = dry).
  * Returns 0 ok, 2 bad arg. Attaching syncs time + forces wet. */

@@ -19,6 +19,7 @@
  * Append-only: never reorder rows inside a section (reg_id is the index).
  */
 #include "gui/ctlreg.h"
+#include "engine/seq/autolane.h"
 #include <string.h>
 #include "engine/dsp/rb303.h"
 #include "engine/dsp/rb808.h"
@@ -184,7 +185,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(909, 45, STEP, "Steps", "Step 16", 0, 3, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_SYNTH1, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_SYNTH1, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
-    R(MIX_SYNTH1, 2, FADER, "", "Level", 0, 127, 100, 11, 1, NONE, 0, 0),
+    R(MIX_SYNTH1, 2, FADER, "", "Level", 0, 127, 100, 11, 1, LEVEL, 0, 0),
     R(MIX_SYNTH1, 3, KNOB, "", "Pan", 0, 127, 64, 12, 1, PAN, 0, 0),
     R(MIX_SYNTH1, 4, KNOB, "", "Delay", 0, 127, 0, 13, 1, SEND, 0, 0),
     R(MIX_SYNTH1, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 0),
@@ -192,7 +193,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MIX_SYNTH1, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 0),
     R(MIX_SYNTH2, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_SYNTH2, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
-    R(MIX_SYNTH2, 2, FADER, "", "Level", 0, 127, 100, 14, 1, NONE, 0, 0),
+    R(MIX_SYNTH2, 2, FADER, "", "Level", 0, 127, 100, 14, 1, LEVEL, 0, 1),
     R(MIX_SYNTH2, 3, KNOB, "", "Pan", 0, 127, 64, 15, 1, PAN, 0, 1),
     R(MIX_SYNTH2, 4, KNOB, "", "Delay", 0, 127, 0, 16, 1, SEND, 0, 1),
     R(MIX_SYNTH2, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 1),
@@ -200,7 +201,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MIX_SYNTH2, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 1),
     R(MIX_808, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_808, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
-    R(MIX_808, 2, FADER, "", "Level", 0, 127, 100, 17, 1, NONE, 0, 0),
+    R(MIX_808, 2, FADER, "", "Level", 0, 127, 100, 17, 1, LEVEL, 0, 2),
     R(MIX_808, 3, KNOB, "", "Pan", 0, 127, 64, 18, 1, PAN, 0, 2),
     R(MIX_808, 4, KNOB, "", "Delay", 0, 127, 0, 19, 1, SEND, 0, 2),
     R(MIX_808, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 2),
@@ -208,7 +209,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MIX_808, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 2),
     R(MIX_909, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_909, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
-    R(MIX_909, 2, FADER, "", "Level", 0, 127, 100, 20, 1, NONE, 0, 0),
+    R(MIX_909, 2, FADER, "", "Level", 0, 127, 100, 20, 1, LEVEL, 0, 3),
     R(MIX_909, 3, KNOB, "", "Pan", 0, 127, 64, 21, 1, PAN, 0, 3),
     R(MIX_909, 4, KNOB, "", "Delay", 0, 127, 0, 22, 1, SEND, 0, 3),
     R(MIX_909, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 3),
@@ -419,4 +420,34 @@ int ri_ctlreg_kind_by_token(const char *tok) {
         if (!strcmp(RI_CK_TOKENS[i], tok))
             return (int)i;
     return -1;
+}
+
+/* Lane key per bind (engine/seq/autolane.h blocks). */
+uint16_t ri_ctlreg_auto_id(const struct RICtlDef *d) {
+    if (!d)
+        return 0u;
+    switch (d->bind) {
+    case RI_BIND_303:
+    case RI_BIND_FX:
+        return d->engine_id;
+    case RI_BIND_808V:
+        return RI_AUTO_ID_808(d->engine_id, d->voice);
+    case RI_BIND_808ALL:
+        return RI_AUTO_ID_808(d->engine_id, 0u);
+    case RI_BIND_909V:
+        return RI_AUTO_ID_909(d->engine_id, d->voice);
+    case RI_BIND_909HAT:
+        return RI_AUTO_ID_909(RI_CTL_909_LEVEL, RI_AUTO_909_HATPAIR);
+    case RI_BIND_LEVEL:
+        return RI_AUTO_ID_MIX(d->voice, RI_AUTO_MIX_LEVEL);
+    case RI_BIND_PAN:
+        return RI_AUTO_ID_MIX(d->voice, RI_AUTO_MIX_PAN);
+    case RI_BIND_SEND:
+        return RI_AUTO_ID_MIX(d->voice, RI_AUTO_MIX_SEND);
+    case RI_BIND_INSERT:
+        return RI_AUTO_ID_MIX(d->voice == (uint16_t)RI_ROUTE_MASTER ? RI_AUTO_STRIP_MASTER : d->voice,
+                              RI_AUTO_MIX_DIST + d->engine_id);
+    default:
+        return 0u;
+    }
 }

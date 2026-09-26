@@ -24,6 +24,35 @@ struct RIAutoPass {
     uint16_t punched[RI_AUTO_MAX_TOUCH], touched[RI_AUTO_MAX_TOUCH];
 };
 
+/* Lane keys beyond the 303/FX engine IDs (Task 5b/5c, E0 2026-09-26,
+ * owner "go"). The engine's drum param IDs (0x040p/0x090p) are shared by
+ * every voice, so a (tick, ctl) lane cannot tell BD Level from SD Level;
+ * drums get their own key blocks with the voice in the low nibble, and the
+ * channel strips get the spec §13 0x0Bxx block above the legacy panel IDs
+ * (0x0B00..0x0B0F stay the Task-12 panel table's):
+ *   0x0Bsp  strips: s = strip + 1 (1..4 = 303A 303B 808 909, 5 = master),
+ *           p = RI_AUTO_MIX_* (level, pan, delay send, dist/pcf/comp insert)
+ *   0x0Cpv  808:   p = RI_CTL_808_* & 0xF, v = RB808_* voice; ACCENT is
+ *           section-wide and only ever keyed with v = 0
+ *   0x0Dpv  909:   p = RI_CTL_909_* & 0xF, v = RB909_* voice; v = 0xF with
+ *           LEVEL = the shared CH/OH level knob (909 has 11 voices)
+ * Values stay 0..127 (switch rows: 0 off, nonzero on). */
+#define RI_AUTO_BLK_MIX 0x0B00u
+#define RI_AUTO_BLK_808 0x0C00u
+#define RI_AUTO_BLK_909 0x0D00u
+#define RI_AUTO_MIX_LEVEL 0u
+#define RI_AUTO_MIX_PAN 1u
+#define RI_AUTO_MIX_SEND 2u
+#define RI_AUTO_MIX_DIST 3u /* + RI_ROUTE_* unit: 3 dist, 4 pcf, 5 comp */
+#define RI_AUTO_STRIP_MASTER 4u
+#define RI_AUTO_909_HATPAIR 0xFu
+#define RI_AUTO_ID_MIX(strip, p) \
+    ((uint16_t)(RI_AUTO_BLK_MIX | ((((uint32_t)(strip) + 1u) & 0xFu) << 4) | ((uint32_t)(p) & 0xFu)))
+#define RI_AUTO_ID_808(p, v) \
+    ((uint16_t)(RI_AUTO_BLK_808 | (((uint32_t)(p) & 0xFu) << 4) | ((uint32_t)(v) & 0xFu)))
+#define RI_AUTO_ID_909(p, v) \
+    ((uint16_t)(RI_AUTO_BLK_909 | (((uint32_t)(p) & 0xFu) << 4) | ((uint32_t)(v) & 0xFu)))
+
 int ri_auto_allowed(uint16_t ctl); /* 1 on the allow-list, else 0 */
 int ri_auto_value(const struct RIAutoLane *l, uint32_t tick, uint16_t ctl,
                   uint8_t *out); /* 1 found (latest <= tick), 0 none */

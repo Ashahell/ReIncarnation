@@ -25,7 +25,23 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     RI_FXID_COMP_THRESH, RI_FXID_PCF_BASE, RI_FXID_PCF_Q,
     RI_FXID_PCF_AMT, RI_FXID_PCF_MODE, RI_FXID_PCF_PATTERN,
     RI_FXID_DELAY_STEPS, RI_FXID_DELAY_TRIPLET, RI_FXID_PCF_DECAY,
-    RI_FXID_COMP_RATIO, RI_FXID_DELAY_RETPAN
+    RI_FXID_COMP_RATIO, RI_FXID_DELAY_RETPAN,
+    /* Task 5c: channel strips 0x0Bsp (level, pan, delay send, dist/pcf/comp
+     * inserts per 303A/303B/808/909; master comp). Master level is not
+     * automatable (p. 72), on/off is the mute (never recorded). */
+    0x0B10u, 0x0B11u, 0x0B12u, 0x0B13u, 0x0B14u, 0x0B15u,
+    0x0B20u, 0x0B21u, 0x0B22u, 0x0B23u, 0x0B24u, 0x0B25u,
+    0x0B30u, 0x0B31u, 0x0B32u, 0x0B33u, 0x0B34u, 0x0B35u,
+    0x0B40u, 0x0B41u, 0x0B42u, 0x0B43u, 0x0B44u, 0x0B45u,
+    0x0B55u,
+    /* Task 5b: 808 per-voice keys 0x0Cpv (exactly the registry's knobs) */
+    0x0C00u, 0x0C01u, 0x0C02u, 0x0C03u, 0x0C04u, 0x0C08u, 0x0C0Au, 0x0C0Bu,
+    0x0C0Cu, 0x0C0Du, 0x0C0Eu, 0x0C11u, 0x0C12u, 0x0C13u, 0x0C14u, 0x0C20u,
+    0x0C2Cu, 0x0C2Du, 0x0C31u, 0x0C40u, 0x0C4Du, 0x0C50u,
+    /* Task 5b: 909 per-voice keys 0x0Dpv (0x0D1F = shared CH/OH level) */
+    0x0D00u, 0x0D01u, 0x0D04u, 0x0D05u, 0x0D06u, 0x0D07u, 0x0D08u, 0x0D10u,
+    0x0D11u, 0x0D14u, 0x0D15u, 0x0D16u, 0x0D17u, 0x0D18u, 0x0D19u, 0x0D1Au,
+    0x0D1Fu, 0x0D20u, 0x0D22u, 0x0D23u, 0x0D26u, 0x0D27u, 0x0D28u
 };
 
 int ri_auto_allowed(uint16_t ctl) {
@@ -690,11 +706,16 @@ int ri_auto_touch(struct RIAutoLane *l, struct RIAutoPass *p,
 }
 
 /* STUBS replaced (Task 3a) — bodies below. */
-/* Device from the ID block: 0x031x -> 303B (1), else section 0.
- * Wider blocks arrive with Task 5 delivery; the allow-list keeps this
- * total over every ID the lane can hold. */
+/* Device from the key block: 0x031x -> 303B (1), 808 keys (0x0Cxx) -> 2,
+ * 909 keys (0x0Dxx) -> 3, FX and strips -> 0 (the engine routes every
+ * AUTOMATION event by its key, the device only orders the §8 sort). */
 static uint16_t auto_device(uint16_t ctl) {
-    if (((uint32_t)ctl & 0xFF00u) != 0x0300u)
+    uint32_t blk = (uint32_t)ctl & 0xFF00u;
+    if (blk == RI_AUTO_BLK_808)
+        return 2u;
+    if (blk == RI_AUTO_BLK_909)
+        return 3u;
+    if (blk != 0x0300u)
         return 0u;
     return (uint16_t)(((uint32_t)ctl >> 4u) & 1u);
 }

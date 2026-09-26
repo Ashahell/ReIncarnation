@@ -74,7 +74,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 ## §12.9 Song mode + transport + pattern edits (§3.1)
 - [x] Transport state machine (states, bar mapping, loop model, record/display) (m65)
 - [x] Song track (dense grid, downbeat capture, change emission, edits, STRK) (m66)
-- [x] Automation lanes core (§12.9c — Tasks 2–4 + 5a FX + 5b/5c blocked-recorded 2026-09-26); [x] record-path capture gating (m68); [x] streaming player/changeover (m67)
+- [x] Automation lanes core (§12.9c — Tasks 2–4 + 5a FX + 5b drum per-voice keys + 5c strip keys/level 2026-09-26; 98 controls recordable); [x] record-path capture gating (m68); [x] streaming player/changeover (m67)
 
 ## §12.10 GUI parity + skins + MIDI (§9, §3.1)
 - [ ] Panel inventory; focus bar; meters; skins via MCC classes; knob modifiers; transport/playhead from audio clock (§2.9 last row); MIDI maps from manual

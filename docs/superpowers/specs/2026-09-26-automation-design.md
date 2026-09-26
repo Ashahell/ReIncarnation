@@ -38,6 +38,18 @@
 - The engine side keeps its own static sorted table of automatable **control IDs** (the shared control-ID space of the AUTO chunk, spec §13 `0x030x/04xx/08xx/09xx/0Axx/0Bxx`); unknown or excluded IDs are refused (fail-closed). A test cross-checks the engine table against the registry's automatable set through the registry's control-ID mapping (engine never includes `gui/`). A deny-list is rejected: it is fail-open for every ID nobody thought of.
 > **Status update (2026-09-26, Task 5a `c6dd53f`):** the table is now 16 303 IDs + 14 FX IDs (all `0x0Axx` with engine delivery; BEATS `0x0A00` has none and MIX `0x0A02` is topology-fixed — neither is listed). Still excluded: per-voice drum params (5b BLOCKED — one ID shared across all voices, unaddressable by the `(tick, ctl)` lane key, and no production knob path consumes the `808V/808ALL/909V/909HAT` binds yet) and ID-less mixer strips (5c — owner dependency, §5.2).
 
+> **Status update (2026-09-26, Task 5b/5c, owner "go"):** the 5b/5c blocks are lifted by **lane keys**, distinct from the engine's shared param IDs (`engine/seq/autolane.h`):
+> - `0x0Bsp` — channel strips: s = strip + 1 (1..4 = 303A/303B/808/909, 5 = master); p = level/pan/send/dist/pcf/comp. This sits above the legacy panel IDs `0x0B00..0x0B0F`.
+> - `0x0Cpv` — 808: p = param, v = voice; the accent key is section-wide, `0x0C50` only.
+> - `0x0Dpv` — 909: `0x0D1F` = the shared CH/OH level.
+>
+> The registry maps every control to its key with `ri_ctlreg_auto_id`. The allow-list now holds the 98 registry keys plus 303 VOLUME ×2 (legacy data). `t77` checks both directions and pins the emitted device per block. The engine routes every AUTOMATION event by key to the knob setters, and adds `ri_engine_set_level`:
+> - P-17 law `(v/127)^2`, 127 = unity; the neutral path stays bit-identical;
+> - post-insert, pre-meter/send/pan;
+> - 64-sample zipless slew.
+>
+> Insert keys: on = assign; off = release, only when that strip owns the unit. Evidence: `t79_auto_delivery` (5 mutants killed). Unrecordable, 28 rows (listed in t77): 808 sound switches and Instrument Selection; 909 AC Level/Attack/Tone/Snappy/Flam/Instrument Selection (no engine param); FX on/off; Pattern-section selectors. E0: an 808 knob is keyed to its registry voice (LT/MT/HT/RS/CP), independent of the slot's LC/MC/HC/CL/MA switch position.
+
 ### 2.3 Recording model (E1 p. 81–84)
 - **Pass.** A recording pass runs from Record-on to Record-off/Stop. Caller-owned `RIAutoPass` holds the *punched* set and the *touched* set (both ≤ `RI_AUTO_MAX_TOUCH` controls, E0 64; overflow refuses the new touch, counted).
 - **Touch = punch-in.** The first write to a control in a pass adds it to both sets. Only allowed IDs, only in Song mode with transport state RECORD.
@@ -97,7 +109,7 @@ uint32_t ri_auto_emit_range(const struct RIAutoLane *, const struct RIAutoPass *
 | # | Item | Why open | How it closes |
 |---|------|----------|---------------|
 | 5.1 | Chase on loop wrap | E1 silent (E0 above) | **DECIDED 2026-09-26 (owner): chase on every wrap.** Pinned by t77; revisit if usage shows otherwise |
-| 5.2 | Control IDs for automatable registry controls that have none | AUTO stores the shared ID; only bound controls have one today | **Accepted (owner 2026-09-26) as a dependency:** §2.2 remainder allocates IDs; until then those controls cannot be recorded, and a test lists them (never silently dropped). **Update 2026-09-26:** 5a FX done (14 IDs delivered, `c6dd53f`); 5b drum per-voice BLOCKED (shared IDs across voices + no knob path — needs a lane-model voice key, beyond this slice); 5c mixer still waits on the `0x0Bxx` block + GUI-registry owner (plus a possible engine level setter — owner call) |
+| 5.2 | Control IDs for automatable registry controls that have none | AUTO stores the shared ID; only bound controls have one today | **Accepted (owner 2026-09-26) as a dependency:** §2.2 remainder allocates IDs; until then those controls cannot be recorded, and a test lists them (never silently dropped). **Update 2026-09-26:** 5a FX done (14 IDs delivered, `c6dd53f`); 5b drum per-voice BLOCKED (shared IDs across voices + no knob path — needs a lane-model voice key, beyond this slice); 5c mixer still waits on the `0x0Bxx` block + GUI-registry owner (plus a possible engine level setter — owner call). **Update 2 (Task 5b/5c):** DONE — lane keys `0x0Bsp`/`0x0Cpv`/`0x0Dpv`, strip level setter, 98 controls recordable, 28 listed unrecordable (see §2.2 status) |
 | 5.3 | `RI_AUTO_MAX_EVENTS`, `RI_AUTO_MAX_TOUCH` | sizing | **DECIDED 2026-09-26 (owner): 32768 events / 64 touched controls.** Named constants, one place; soak with a dense 999-bar song; adjust from real use |
 | 5.4 | ATRK chunk | format extension | **DECIDED 2026-09-26 (owner): approved as RBNG v1.2.** Codec tests incl. legacy byte-identity |
 

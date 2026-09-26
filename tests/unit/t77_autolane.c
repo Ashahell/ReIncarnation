@@ -8,6 +8,7 @@
 #include "engine/seq/autolane.h"
 #include "engine/seq/autolane_emit.h"
 #include "engine/seq/songtrack.h" /* combined mirror test ONLY */
+#include "engine/dsp/rb303.h" /* VOLUME exemption ONLY */
 #include "gui/ctlreg.h" /* cross-check ONLY (read-only; sibling-owned, never edited) */
 
 #define T77_SR 48000u
@@ -111,6 +112,11 @@ int main(void) {
         RI_ASSERT(ri_auto_allowed(0x0312u) == 1, "303B allowed");
         RI_ASSERT(ri_auto_allowed(0x0401u) == 0, "808 refused");
         RI_ASSERT(ri_auto_allowed(0x1234u) == 0, "unknown refused");
+        RI_ASSERT(ri_auto_allowed(0x0C00u) == 1 && ri_auto_allowed(0x0C01u) == 1, "808 BD/SD level keys");
+        RI_ASSERT(ri_auto_allowed(0x0C51u) == 0, "808 accent is section-wide only");
+        RI_ASSERT(ri_auto_allowed(0x0D1Fu) == 1 && ri_auto_allowed(0x0D1Eu) == 0, "909 hat pair key");
+        RI_ASSERT(ri_auto_allowed(0x0B30u) == 1 && ri_auto_allowed(0x0B00u) == 0, "mixer key; legacy panel ids refused");
+        RI_ASSERT(ri_auto_allowed(0x0B50u) == 0, "master level not automatable (p. 72)");
         RI_ASSERT(ri_auto_touch(&lane, &pass, 2u, 72u, 96u, 0x0401u, 64u) == 2,
             "excluded refused");
         /* Replace at same (tick, ctl): no duplicate growth. */
@@ -167,88 +173,18 @@ int main(void) {
      * silently dropped). Any registry drift fails loudly here first. */
     {
         static const uint16_t UNREC[][2] = {
-    {RI_SEC_808,0}, /* Level [808ALL RI_CTL_808_ACCENT] */
-    {RI_SEC_808,1}, /* Level [808V RI_CTL_808_LEVEL] */
-    {RI_SEC_808,2}, /* Tone [808V RI_CTL_808_TONE] */
-    {RI_SEC_808,3}, /* Decay [808V RI_CTL_808_DECAY] */
-    {RI_SEC_808,4}, /* Level [808V RI_CTL_808_LEVEL] */
-    {RI_SEC_808,5}, /* Tone [808V RI_CTL_808_TUNE] */
-    {RI_SEC_808,6}, /* Snappy [808V RI_CTL_808_SNAPPY] */
-    {RI_SEC_808,7}, /* Level [808V RI_CTL_808_LEVEL] */
-    {RI_SEC_808,8}, /* Tune [808V RI_CTL_808_TUNE] */
     {RI_SEC_808,9}, /* Switch [NONE 0] */
-    {RI_SEC_808,10}, /* Level [808V RI_CTL_808_LEVEL] */
-    {RI_SEC_808,11}, /* Tune [808V RI_CTL_808_TUNE] */
     {RI_SEC_808,12}, /* Switch [NONE 0] */
-    {RI_SEC_808,13}, /* Level [808V RI_CTL_808_LEVEL] */
-    {RI_SEC_808,14}, /* Tune [808V RI_CTL_808_TUNE] */
     {RI_SEC_808,15}, /* Switch [NONE 0] */
-    {RI_SEC_808,16}, /* Level [808V RI_CTL_808_LEVEL] */
     {RI_SEC_808,17}, /* Switch [NONE 0] */
-    {RI_SEC_808,18}, /* Level [808V RI_CTL_808_LEVEL] */
     {RI_SEC_808,19}, /* Switch [NONE 0] */
-    {RI_SEC_808,20}, /* Level [808V RI_CTL_808_LEVEL] */
-    {RI_SEC_808,21}, /* Level [808V RI_CTL_808_LEVEL] */
-    {RI_SEC_808,22}, /* Tone [808V RI_CTL_808_TONE] */
-    {RI_SEC_808,23}, /* Decay [808V RI_CTL_808_DECAY] */
-    {RI_SEC_808,24}, /* Level [808V RI_CTL_808_LEVEL] */
-    {RI_SEC_808,25}, /* Decay [808V RI_CTL_808_DECAY] */
-    {RI_SEC_808,26}, /* Level [808V RI_CTL_808_LEVEL] */
     {RI_SEC_808,27}, /* Instrument Selection [NONE 0] */
     {RI_SEC_909,0}, /* Level [NONE 0] */
-    {RI_SEC_909,1}, /* Level [909V RI_CTL_909_LEVEL] */
-    {RI_SEC_909,2}, /* Tune [909V RI_CTL_909_TUNE] */
     {RI_SEC_909,3}, /* Attack [NONE 0] */
-    {RI_SEC_909,4}, /* Decay [909V RI_CTL_909_DECAY] */
-    {RI_SEC_909,5}, /* Level [909V RI_CTL_909_LEVEL] */
-    {RI_SEC_909,6}, /* Tune [909V RI_CTL_909_TUNE] */
     {RI_SEC_909,7}, /* Tone [NONE 0] */
     {RI_SEC_909,8}, /* Snappy [NONE 0] */
-    {RI_SEC_909,9}, /* Level [909V RI_CTL_909_LEVEL] */
-    {RI_SEC_909,10}, /* Tune [909V RI_CTL_909_TUNE] */
-    {RI_SEC_909,11}, /* Decay [909V RI_CTL_909_DECAY] */
-    {RI_SEC_909,12}, /* Level [909V RI_CTL_909_LEVEL] */
-    {RI_SEC_909,13}, /* Tune [909V RI_CTL_909_TUNE] */
-    {RI_SEC_909,14}, /* Decay [909V RI_CTL_909_DECAY] */
-    {RI_SEC_909,15}, /* Level [909V RI_CTL_909_LEVEL] */
-    {RI_SEC_909,16}, /* Tune [909V RI_CTL_909_TUNE] */
-    {RI_SEC_909,17}, /* Decay [909V RI_CTL_909_DECAY] */
-    {RI_SEC_909,18}, /* Level [909HAT 0] */
-    {RI_SEC_909,19}, /* Level [909V RI_CTL_909_LEVEL] */
-    {RI_SEC_909,20}, /* Level [909V RI_CTL_909_LEVEL] */
-    {RI_SEC_909,21}, /* Decay [909V RI_CTL_909_DECAY] */
-    {RI_SEC_909,22}, /* Decay [909V RI_CTL_909_DECAY] */
-    {RI_SEC_909,23}, /* Level [909V RI_CTL_909_LEVEL] */
-    {RI_SEC_909,24}, /* Tune [909V RI_CTL_909_TUNE] */
-    {RI_SEC_909,25}, /* Level [909V RI_CTL_909_LEVEL] */
-    {RI_SEC_909,26}, /* Tune [909V RI_CTL_909_TUNE] */
     {RI_SEC_909,27}, /* Flam [NONE 0] */
     {RI_SEC_909,28}, /* Instrument Selection [NONE 0] */
-    {RI_SEC_MIX_SYNTH1,2}, /* Level [NONE 0] */
-    {RI_SEC_MIX_SYNTH1,3}, /* Pan [PAN 0] */
-    {RI_SEC_MIX_SYNTH1,4}, /* Delay [SEND 0] */
-    {RI_SEC_MIX_SYNTH1,5}, /* Dist [INSERT RI_ROUTE_DIST] */
-    {RI_SEC_MIX_SYNTH1,6}, /* PCF [INSERT RI_ROUTE_PCF] */
-    {RI_SEC_MIX_SYNTH1,7}, /* Comp [INSERT RI_ROUTE_COMP] */
-    {RI_SEC_MIX_SYNTH2,2}, /* Level [NONE 0] */
-    {RI_SEC_MIX_SYNTH2,3}, /* Pan [PAN 0] */
-    {RI_SEC_MIX_SYNTH2,4}, /* Delay [SEND 0] */
-    {RI_SEC_MIX_SYNTH2,5}, /* Dist [INSERT RI_ROUTE_DIST] */
-    {RI_SEC_MIX_SYNTH2,6}, /* PCF [INSERT RI_ROUTE_PCF] */
-    {RI_SEC_MIX_SYNTH2,7}, /* Comp [INSERT RI_ROUTE_COMP] */
-    {RI_SEC_MIX_808,2}, /* Level [NONE 0] */
-    {RI_SEC_MIX_808,3}, /* Pan [PAN 0] */
-    {RI_SEC_MIX_808,4}, /* Delay [SEND 0] */
-    {RI_SEC_MIX_808,5}, /* Dist [INSERT RI_ROUTE_DIST] */
-    {RI_SEC_MIX_808,6}, /* PCF [INSERT RI_ROUTE_PCF] */
-    {RI_SEC_MIX_808,7}, /* Comp [INSERT RI_ROUTE_COMP] */
-    {RI_SEC_MIX_909,2}, /* Level [NONE 0] */
-    {RI_SEC_MIX_909,3}, /* Pan [PAN 0] */
-    {RI_SEC_MIX_909,4}, /* Delay [SEND 0] */
-    {RI_SEC_MIX_909,5}, /* Dist [INSERT RI_ROUTE_DIST] */
-    {RI_SEC_MIX_909,6}, /* PCF [INSERT RI_ROUTE_PCF] */
-    {RI_SEC_MIX_909,7}, /* Comp [INSERT RI_ROUTE_COMP] */
-    {RI_SEC_MASTER,3}, /* Comp [INSERT RI_ROUTE_COMP] */
     {RI_SEC_PCF,0}, /* On/Off [NONE 0] */
     {RI_SEC_DELAY,0}, /* On/Off [NONE 0] */
     {RI_SEC_DIST,0}, /* On/Off [NONE 0] */
@@ -270,17 +206,16 @@ int main(void) {
             uint32_t nc = ri_ctlreg_count();
             uint32_t nq = (uint32_t)(sizeof UNREC / sizeof UNREC[0]);
             uint32_t k, q, mapped = 0u, listed = 0u;
-            RI_ASSERT(nq == 98u, "unrecordable census size %u", nq);
+            RI_ASSERT(nq == 28u, "unrecordable census size %u", nq);
             for (k = 0u; k < nc; k++) {
                 const struct RICtlDef *d = ri_ctlreg_at(k);
                 int found;
                 RI_ASSERT(d != 0, "registry null row %u", k);
                 if (!d || !d->automatable)
                     continue;
-                if (((uint32_t)d->engine_id & 0xFF00u) == 0x0300u ||
-                    ((uint32_t)d->engine_id & 0xFF00u) == 0x0A00u) {
-                    RI_ASSERT(ri_auto_allowed(d->engine_id) == 1,
-                        "mapped not allowed");
+                if (ri_ctlreg_auto_id(d) != 0u) { /* Task 5b/5c: lane key per control */
+                    RI_ASSERT(ri_auto_allowed(ri_ctlreg_auto_id(d)) == 1,
+                        "mapped key %04x not allowed", ri_ctlreg_auto_id(d));
                     mapped++;
                     continue;
                 }
@@ -294,8 +229,28 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 28u, "mapped count %u", mapped);
-            RI_ASSERT(listed == 98u, "listed count %u", listed);
+            RI_ASSERT(mapped == 98u, "mapped count %u", mapped);
+            RI_ASSERT(listed == 28u, "listed count %u", listed);
+            { /* reverse: every allowed key belongs to an automatable control */
+                uint32_t key, nallow = 0u;
+                for (key = 0u; key < 0x10000u; key++) {
+                    int owned = 0;
+                    if (!ri_auto_allowed((uint16_t)key))
+                        continue;
+                    nallow++;
+                    for (k = 0u; k < nc && !owned; k++) {
+                        const struct RICtlDef *d = ri_ctlreg_at(k);
+                        owned = d && d->automatable && ri_ctlreg_auto_id(d) == (uint16_t)key;
+                    }
+                    /* 303 VOLUME (0x0306/0x0316) is an engine param with no
+                     * panel control (the TB-303 has no volume knob; the strip
+                     * Level is the volume); kept allowed for legacy AUTO data. */
+                    if (key == RI_CTL_303A_VOLUME || key == RI_CTL_303B_VOLUME)
+                        owned = 1;
+                    RI_ASSERT(owned, "allowed key %04x has no control", key);
+                }
+                RI_ASSERT(nallow == 100u, "allow-list size %u (98 controls + 2 VOLUME)", nallow);
+            }
         }
     }
     /* ---- Task 2: sweeps, steps, loops, edits, stamp, clear, copy, cut/paste ---- */
@@ -774,6 +729,22 @@ int main(void) {
             ev[1].sample == ri_map_tick(&T77_MAP, 150u), "chase at tick");
         RI_ASSERT(ri_auto_value(&lane, 150u, 0x0301u, &outv) == 0,
             "never-automated stays none");
+        { /* Task 5b/5c device per block: drums carry their section */
+            struct RIAutoLane ld;
+            struct RIAutoEv sd[4];
+            struct RIEvent ed[4];
+            uint32_t sq = 0u, g;
+            memset(&ld, 0, sizeof ld);
+            ld.ev = sd;
+            ld.cap = 4u;
+            RI_ASSERT(ri_auto_stamp(&ld, 0u, 0x0C01u, 5u) == 0 && ri_auto_stamp(&ld, 0u, 0x0D1Fu, 6u) == 0 &&
+                      ri_auto_stamp(&ld, 0u, 0x0B30u, 7u) == 0, "device setup");
+            g = ri_auto_chase(&ld, &pass, 0u, &T77_MAP, 96u, ed, 4u, &sq);
+            RI_ASSERT(g == 3u, "device chase %u", g);
+            RI_ASSERT(ed[0].value == 0x0B30u && ed[0].device == 0u, "strip key device 0");
+            RI_ASSERT(ed[1].value == 0x0C01u && ed[1].device == 2u, "808 key device 2");
+            RI_ASSERT(ed[2].value == 0x0D1Fu && ed[2].device == 3u, "909 key device 3");
+        }
         /* Loop wrap order: punch out first, then chase at the loop start
          * (isolated lane: the touch must not pollute the counts below). */
         {
