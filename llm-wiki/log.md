@@ -1,6 +1,10 @@
 # ReIncarnation llm-wiki — log
 
-## [2026-09-26] ingest | Automation spec r2 + implementation plan review
+## [2026-09-26] ingest | §12.10 G8 complete code-side (skins, zoom, acceptance, C1–C4)
+- Disposition: New (completion record)
+- Raw: llm-wiki/raw/articles/2026-09-26-g81-g84-skins-zoom-acceptance-carryovers.md
+- Updated: llm-wiki/index.md (GUI (§12.10) entry)
+G8.1 skins + G8.2 zoom + C1 audit wiring + G8.3 acceptance machine pass (ReBirth-101 1/5 + 4/5 partial) + C4 Stop law + C2 engine taps + C3 camd patch preservation; rulings R-G8.1-1..5; lane lessons (detached runs, Break, locked-file fetch, trace semantics, comma anomaly, full-res verdicts).
 - Disposition: New (review record)
 - Raw: llm-wiki/raw/articles/2026-09-26-automation-spec-and-plan-review.md
 - Updated: llm-wiki/index.md (Reviews entry)
