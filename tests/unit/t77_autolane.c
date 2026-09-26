@@ -836,5 +836,115 @@ int main(void) {
                 &T77_MAP, 96u, ev, &nn, 16u, &seq) == 0u, "emit null lane");
         }
     }
+    /* ---- Task 3b: render-safe publish (deterministic interleaving) ---- */
+    {
+        struct RIAutoPub pub;
+        struct RIAutoEv sto0[16], sto1[16], oldsto[16];
+        struct RIAutoLane oldlane;
+        struct RIAutoCarry cy;
+        struct RIEvent b1[16], b2[16];
+        struct RIAutoLane *bk;
+        uint32_t n1 = 0u, n2 = 0u, s1 = 0u, s2 = 0u;
+        uint32_t seenA = 0u, seenB = 0u, seenC = 0u;
+        memset(&oldlane, 0, sizeof oldlane);
+        oldlane.ev = oldsto;
+        oldlane.cap = 16u;
+        RI_ASSERT(ri_auto_stamp(&oldlane, 100u, 0x0300u, 10u) == 0, "pub old A");
+        RI_ASSERT(ri_auto_stamp(&oldlane, 200u, 0x0312u, 20u) == 0, "pub old B");
+        memset(&pub, 0, sizeof pub);
+        ri_auto_pub_init(&pub, sto0, 16u, sto1, 16u);
+        RI_ASSERT(ri_auto_pub_front(&pub) != 0, "front readable");
+        bk = ri_auto_pub_back(&pub);
+        RI_ASSERT(bk == &pub.lanes[1], "back is lane 1");
+        memcpy(bk->ev, oldsto, oldlane.n * sizeof oldsto[0]);
+        bk->n = oldlane.n;
+        bk->cap = 16u;
+        bk->flags = 0u;
+        ri_auto_pub_request(&pub);
+        ri_auto_pub_apply(&pub);
+        RI_ASSERT(ri_auto_pub_front(&pub) == &pub.lanes[1], "front swapped");
+        RI_ASSERT(ri_auto_pub_back(&pub) == &pub.lanes[0], "back rotated");
+        /* Resync before mutating (protocol): back starts as front. */
+        ri_auto_pub_resync(&pub);
+        bk = ri_auto_pub_back(&pub);
+        RI_ASSERT(bk->n == 2u, "resync primed %u", bk->n);
+        /* GUI mutates the back; render has not applied yet. */
+        RI_ASSERT(ri_auto_stamp(bk, 300u, 0x0300u, 30u) == 0, "pub GUI add C");
+        /* Render block 1 on the old front: sees old lane only, never
+         * the back's unapplied C (byte-identical to a fresh emit on
+         * the pristine copy). */
+        memset(&cy, 0, sizeof cy);
+        {
+            const struct RIAutoLane *fr = ri_auto_pub_front(&pub);
+            n1 = 0u; s1 = 0u;
+            RI_ASSERT(ri_auto_emit_range(fr, 0, &cy, 0u, 250u,
+                &T77_MAP, 96u, b1, &n1, 16u, &s1) == 2u, "block1 count");
+        }
+        {
+            uint32_t nx = 0u, sx = 0u, i, bad = 0u;
+            struct RIEvent ex[16];
+            struct RIAutoCarry cx;
+            memset(&cx, 0, sizeof cx);
+            RI_ASSERT(ri_auto_emit_range(&oldlane, 0, &cx, 0u, 250u,
+                &T77_MAP, 96u, ex, &nx, 16u, &sx) == 2u, "expected count");
+            RI_ASSERT(nx == n1, "block1 count matches %u", nx);
+            for (i = 0u; i < nx && i < n1; i++)
+                if (ex[i].sample != b1[i].sample || ex[i].type != b1[i].type ||
+                    ex[i].device != b1[i].device || ex[i].voice != b1[i].voice ||
+                    ex[i].value != b1[i].value || ex[i].flags != b1[i].flags ||
+                    ex[i].seq != b1[i].seq)
+                    bad = 1u;
+            RI_ASSERT(!bad && nx == 2u, "block1 equals pristine old");
+            for (i = 0u; i < n1; i++)
+                if (b1[i].flags == 30u)
+                    bad = 1u;
+            RI_ASSERT(!bad, "block1 has no C");
+        }
+        /* Apply at the next block boundary, re-index the carry by the
+         * window tick, resume: C appears exactly once, nothing repeats. */
+        ri_auto_pub_request(&pub);
+        ri_auto_pub_apply(&pub);
+        RI_ASSERT(ri_auto_pub_front(&pub) == &pub.lanes[0], "front swapped back");
+        ri_auto_carry_reindex(&cy, ri_auto_pub_front(&pub), 250u);
+        {
+            const struct RIAutoLane *fr = ri_auto_pub_front(&pub);
+            uint32_t i;
+            n2 = 0u; s2 = 0u;
+            RI_ASSERT(ri_auto_emit_range(fr, 0, &cy, 250u, 750u,
+                &T77_MAP, 96u, b2, &n2, 16u, &s2) == 1u, "block2 count");
+            RI_ASSERT(n2 == 1u && b2[0].value == 0x0300u && b2[0].flags == 30u,
+                "block2 is C");
+            seenA = 0u; seenB = 0u; seenC = 0u;
+            for (i = 0u; i < n1; i++) {
+                if (b1[i].flags == 10u) seenA++;
+                if (b1[i].flags == 20u) seenB++;
+                if (b1[i].flags == 30u) seenC++;
+            }
+            for (i = 0u; i < n2; i++) {
+                if (b2[i].flags == 10u) seenA++;
+                if (b2[i].flags == 20u) seenB++;
+                if (b2[i].flags == 30u) seenC++;
+            }
+            RI_ASSERT(seenA == 1u && seenB == 1u && seenC == 1u,
+                "each event once %u/%u/%u", seenA, seenB, seenC);
+        }
+        /* Resync copies the front over the back; empty apply is a no-op. */
+        ri_auto_pub_resync(&pub);
+        bk = ri_auto_pub_back(&pub);
+        RI_ASSERT(bk->n == 3u, "resync count %u", bk->n);
+        RI_ASSERT(memcmp(bk->ev, ri_auto_pub_front(&pub)->ev,
+            3u * sizeof bk->ev[0]) == 0, "resync bytes");
+        ri_auto_pub_apply(&pub);
+        RI_ASSERT(ri_auto_pub_front(&pub) == &pub.lanes[0], "empty apply kept");
+        /* NULL fail-closed. */
+        RI_ASSERT(ri_auto_pub_back(0) == 0, "back null");
+        RI_ASSERT(ri_auto_pub_front(0) == 0, "front null");
+        ri_auto_pub_request(0);
+        ri_auto_pub_apply(0);
+        ri_auto_pub_resync(0);
+        ri_auto_pub_init(0, sto0, 16u, sto1, 16u);
+        ri_auto_carry_reindex(0, ri_auto_pub_front(&pub), 0u);
+        ri_auto_carry_reindex(&cy, 0, 0u);
+    }
     RI_RESULT("autolane");
 }

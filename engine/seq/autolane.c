@@ -34,6 +34,88 @@ int ri_auto_allowed(uint16_t ctl) {
 
 /* STUBS (Task 3): chase/emission/chunk map land with their tests. */
 
+/* STUBS (Task 3b): publish bodies land with their tests. */
+void ri_auto_pub_init(struct RIAutoPub *p,
+    struct RIAutoEv *ev0, uint32_t cap0,
+    struct RIAutoEv *ev1, uint32_t cap1) {
+    if (!p)
+        return;
+    p->lanes[0].n = 0u;
+    p->lanes[0].cap = cap0;
+    p->lanes[0].flags = 0u;
+    p->lanes[0].ev = ev0;
+    p->lanes[1].n = 0u;
+    p->lanes[1].cap = cap1;
+    p->lanes[1].flags = 0u;
+    p->lanes[1].ev = ev1;
+    p->front = 0u;
+    p->staged = RI_AUTO_PUB_NONE;
+}
+
+struct RIAutoLane *ri_auto_pub_back(struct RIAutoPub *p) {
+    if (!p)
+        return 0;
+    return &p->lanes[p->front ^ 1u];
+}
+
+const struct RIAutoLane *ri_auto_pub_front(const struct RIAutoPub *p) {
+    if (!p)
+        return 0;
+    return &p->lanes[p->front & 1u];
+}
+
+void ri_auto_pub_request(struct RIAutoPub *p) {
+    if (!p)
+        return;
+    p->staged = p->front ^ 1u; /* stage the back; overwrite is fail-soft */
+}
+
+void ri_auto_pub_apply(struct RIAutoPub *p) {
+    uint32_t s;
+    if (!p)
+        return;
+    s = p->staged;
+    if (s > 1u)
+        return; /* nothing staged: no-op */
+    p->front = s;
+    p->staged = RI_AUTO_PUB_NONE;
+}
+
+void ri_auto_pub_resync(struct RIAutoPub *p) {
+    const struct RIAutoLane *fr;
+    struct RIAutoLane *bk;
+    uint32_t n, i;
+    if (!p)
+        return;
+    fr = &p->lanes[p->front & 1u];
+    bk = &p->lanes[(p->front ^ 1u) & 1u];
+    if (!fr->ev || !bk->ev)
+        return;
+    n = (fr->n < fr->cap) ? fr->n : fr->cap;
+    if (n > bk->cap)
+        return; /* back too small: fail closed, back untouched */
+    for (i = 0u; i < n; i++)
+        bk->ev[i] = fr->ev[i];
+    bk->n = n;
+    bk->flags = fr->flags;
+}
+
+void ri_auto_carry_reindex(struct RIAutoCarry *c,
+    const struct RIAutoLane *lane, uint32_t from_tick) {
+    uint32_t lo = 0u, hi;
+    if (!c || !lane || !lane->ev)
+        return;
+    hi = (lane->n < lane->cap) ? lane->n : lane->cap;
+    while (lo < hi) { /* lower bound on tick */
+        uint32_t mid = lo + ((hi - lo) >> 1u);
+        if (lane->ev[mid].tick < from_tick)
+            lo = mid + 1u;
+        else
+            hi = mid;
+    }
+    c->next = lo;
+}
+
 /* ---- shared sorted-array core (all mutation precomputed: fail-closed) ---- */
 
 static uint32_t lane_live_n(const struct RIAutoLane *l) {
