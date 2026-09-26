@@ -13,6 +13,7 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Reviews
 
+- [raw/articles/2026-09-26-automation-task-5b-5c-lane-keys.md](raw/articles/2026-09-26-automation-task-5b-5c-lane-keys.md) — **2026-09-26 — Automation Task 5b/5c (`91d07b4`): lane keys 0x0Bsp strips / 0x0Cpv 808 / 0x0Dpv 909, strip level fader (P-17, bit-identical at unity, zipless).** 98 controls recordable (28 listed unrecordable); t79 delivery test, 5 mutants; t78 wired; opencode automation report verified.
 - [raw/articles/2026-09-26-automation-lanes-tasks-2-to-4.md](raw/articles/2026-09-26-automation-lanes-tasks-2-to-4.md) — **2026-09-26 — Automation lanes Tasks 2–4 (§12.9c, `7753178`…`2820334`).** Sweep/pass marker, range + measure edits (R10 clip), chase/emission + carry, render-safe publish, ATRK v1.2 codec, audit wiring; rulings R-WRITE-BOTH/R-ATRK-ORDER/R-READER-ATOMICITY; mutants 10/10 (staged-request + paste-tail pins). Open: Task 5 delivery widening (FX/808/909/mixer).
 
 - [raw/articles/2026-09-26-automation-spec-and-plan-review.md](raw/articles/2026-09-26-automation-spec-and-plan-review.md) — **2026-09-26 — Automation lanes (§12.9c): spec r2 approved + plan review R1–R10 (`6ee2892`).** Task 1 landed `2834f7d` (303-only allow-list). Findings: allow-list widening task (FX/808/909/mixer), pass-write marker so sweeps keep own writes, double-buffered render-safe publish, emission carry, seek/wrap laws, caller-owned ATRK + clip buffers (no 256 KB stack structs), task split.

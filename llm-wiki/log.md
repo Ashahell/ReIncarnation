@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | Automation Task 5b/5c lane keys + strip level
+- Disposition: New (slice record); Update (supersedes R-5B/R-5C BLOCKED in the Tasks 2-4 record)
+- Raw: llm-wiki/raw/articles/2026-09-26-automation-task-5b-5c-lane-keys.md
+- Updated: llm-wiki/index.md (Reviews entry)
+Commit `91d07b4`; audit 0/0.
+
 ## [2026-09-26] ingest | Dell owner pass, skin format 1, Dell skin-loading fixes
 - Disposition: New (slice record); Disputed→corrected (earlier "808-RI renders on the Dell" claim, evidence doc Status: Outdated)
 - Raw: llm-wiki/raw/articles/2026-09-26-dell-owner-pass-and-skin-format-1.md
