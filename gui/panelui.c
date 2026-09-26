@@ -2,6 +2,7 @@
 #include "gui/panelui.h"
 #include "gui/ctlreg.h"
 #include "gui/livestate.h"
+#include "gui/skin.h"
 #include "engine/seq/sched.h"
 
 void ri_panel_init(struct RIPanelUI *p) {
@@ -28,8 +29,26 @@ void ri_panel_init(struct RIPanelUI *p) {
         p->playhead[i] = -1;
     p->playing = 0;
     p->del_held = p->del_focus = 0;
+    p->skin_installed = 0;
+    p->skin_n = 0;
+    p->skin_current[0] = '\0';
     p->del_arg = 0;
     p->play_start_ticks = 0;
+}
+
+void ri_panel_skins(struct RIPanelUI *p, const char *const *installed,
+                    uint32_t n, const char *current) {
+    uint32_t k;
+    if (!p)
+        return;
+    p->skin_installed = installed;
+    p->skin_n = (installed && n) ? n : 0u;
+    p->skin_current[0] = '\0';
+    if (current) {
+        for (k = 0u; k < 63u && current[k]; k++)
+            p->skin_current[k] = current[k];
+        p->skin_current[k] = '\0';
+    }
 }
 
 /* Tap at the playhead of focus section f (p. 32, 44). Synth: the step
@@ -122,8 +141,7 @@ static int transport(struct RIPanelUI *p, int cmd) {
     }
 }
 
-int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {
-    struct RIKeyAction a;
+int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {    struct RIKeyAction a;
     int ch = 0;
     if (!p)
         return 0;
@@ -167,6 +185,16 @@ int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {
         } else if (a.arg == RI_KM_SELECT_PATTERNS) {
             p->opts.select_patterns = (uint8_t)!p->opts.select_patterns;
             ch = 1;
+        } else if (a.arg == RI_KM_SELECT_MOD) {   /* Ctrl+M: cycle mods (G8.1) */
+            char next[64];
+            if (ri_skin_cycle(p->skin_current, p->skin_installed,
+                              p->skin_n, next) == 0) {
+                uint32_t k;
+                for (k = 0u; k < 63u && next[k]; k++)
+                    p->skin_current[k] = next[k];
+                p->skin_current[k] = '\0';
+                ch = 1;
+            }
         }
         break;
     default:

@@ -31,6 +31,9 @@ struct RIPanelUI {
     int8_t del_arg;
     uint64_t play_start_ticks;                  /* transport cursor when playback began */
     uint32_t changes;                           /* bumps on every applied change */
+    const char *const *skin_installed;          /* app-owned installed mod names */
+    uint32_t skin_n;
+    char skin_current[64];                      /* selected mod name */
 };
 
 void ri_panel_init(struct RIPanelUI *p);
@@ -44,10 +47,15 @@ int ri_panel_click(struct RIPanelUI *p, uint32_t section);
  * too (p. 22); call after the section handled the click. */
 int ri_panel_pattern_selected(struct RIPanelUI *p, uint32_t section);
 /* Decode + apply one raw key event. Returns 1 when state changed.
- * Menu actions toggle the two keyboard options here; the other menu
- * commands are decoded only (p->last) — the menu system is G8. Taps are
- * decoded only (p->last): recording at the playhead belongs to G6. */
+ * Menu actions toggle the two keyboard options here; RI_KM_SELECT_MOD cycles
+ * the installed skin list (ri_panel_skins); the other menu commands are
+ * decoded only (p->last). Taps are decoded only (p->last): recording at the
+ * playhead belongs to G6. */
 int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual);
+/* Installed skin list for Ctrl+M cycling (app-owned pointers, copied only
+ * the current name). Empty list (n == 0) disables cycling. */
+void ri_panel_skins(struct RIPanelUI *p, const char *const *installed,
+                    uint32_t n, const char *current);
 /* Live feed (G6a): `sixteenths` = 16ths since playback started, from the
  * render task's sample position (gui/livestate.h); playing = transport
  * state. Updates every section's playhead (each loops its own pattern

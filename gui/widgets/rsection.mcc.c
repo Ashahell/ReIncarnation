@@ -42,6 +42,8 @@
 #include "gui/panelgeo.h"
 #include "gui/sectui.h"
 #include "gui/knob_logic.h"
+#include "gui/skin.h"
+#include "gui/skin_aros.h"
 #include "engine/dsp/kernels.h"
 #include "gui/widgets/rsection.h"
 
@@ -178,6 +180,37 @@ static LONG to_n(const struct RICtlDef *d, int v) {
 static int from_n(const struct RICtlDef *d, LONG n) {
     int span = d->max_v - d->min_v;
     return d->min_v + (int)(((long)n * span + 63) / 127);
+}
+
+/* Skin hook (G8.1): background + knob frames render from the active skin
+ * when it supplies the part, else 0 and the caller keeps the procedural
+ * path (per-part fallback, design E0-2). Lookup uses the GEOMETRY section
+ * (SYNTH2 shares SYNTH1 art, E0-10); knob parts are size-suffixed (E0-9). */
+static int skin_bg(struct RastPort *rp, uint8_t sec, int ox, int oy) {
+    const struct RISkin *sk = ri_skin_aros_active();
+    uint8_t gs = sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec;
+    if (!sk)
+        return 0;
+    return ri_skin_aros_blit(rp, sk, gs, RI_CK_KNOB, "background", 0, ox, oy);
+}
+
+static int skin_knob(struct RastPort *rp, uint8_t sec, const struct RICtlDef *d,
+                     int v, int x, int y, int w2, int h2) {
+    const struct RISkin *sk = ri_skin_aros_active();
+    uint8_t gs = sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec;
+    char part[64];
+    int idx;
+    uint32_t fr;
+    if (!sk || !d)
+        return 0;
+    if (ri_skin_part_sized("knob.frame", (uint32_t)w2, (uint32_t)h2,
+                           part, sizeof part) != 0)
+        return 0;
+    idx = ri_skin_find(sk, gs, RI_CK_KNOB, part);
+    if (idx < 0 || sk->parts[idx].frames == 0u)
+        return 0;
+    fr = ri_skin_frame((uint32_t)to_n(d, v), 127u, sk->parts[idx].frames);
+    return ri_skin_aros_blit(rp, sk, gs, RI_CK_KNOB, part, fr, x, y);
 }
 
 static void polar(int cx, int cy, float deg, float r, int *x, int *y) {
@@ -510,6 +543,7 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
 #define PX(q) ri_geo_px((q), z)
     if (!g)
         return;
+    if (skin_bg(rp, sec, ox, oy) <= 0) {
     if (is808)
         bg_808(rp, g, ox, oy, z);
     else if (is909)
@@ -524,6 +558,7 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
         bg_tr(rp, g, ox, oy, z);
     else
         bg_303(rp, g, ox, oy, z);
+    }
     if (ispat)
         draw_focus_bar(rp, dd, ox, oy, z);
     for (i = 0; i < g->nitems; i++) {
@@ -545,6 +580,8 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
                 ULONG face = d->bind == RI_BIND_NONE ? C_DISABLED
                     : is909 ? C_909_KNOB : ismix || isfx || istr ? C_MIX_KNOB
                     : !is808 ? C_KNOB : !strcmp(d->legend, "Level") ? C_KNOB_RED : C_KNOB_WHITE;
+                if (skin_knob(rp, sec, d, v, cx - hw, cy - hh,
+                              ri_geo_px(it->w, 2), ri_geo_px(it->h, 2)) <= 0)
                 draw_knob(rp, cx, cy, PX(it->w), PX(it->h), face, is909 ? C_909_ORANGE : C_BLACK, !is808,
                     (float)ri_knob_pointer_mdeg((int)to_n(d, v)) / 1000.0f);
             }

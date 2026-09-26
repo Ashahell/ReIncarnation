@@ -78,6 +78,14 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 
 ## §12.10 GUI parity + skins + MIDI (§9, §3.1)
 - [ ] Panel inventory; focus bar; meters; skins via MCC classes; knob modifiers; transport/playhead from audio clock (§2.9 last row); MIDI maps from manual
+- G8.1 skins DONE 2026-09-26 (commit [§12.10 G8]): design
+  `docs/superpowers/specs/2026-09-26-skins-design.md`;
+  **format (E0-6/E0-7) + dir layout AWAITING OWNER REVIEW — non-reversible**;
+  core `gui/skin.c` + t75 (9 killing mutants), AROS loader `gui/skin_aros.c`,
+  RSection bg/knob hooks, `RISECT mod=` + Ctrl+M cycling, `tools/mkskin.c` →
+  `skins/808-RI/` (17 bg + 7 strips, PNG/RGBA), `skins/Template/` (blank,
+  fallback-proven); lane proof `docs/evidence/gui/skins-g81.md` (Classic vs
+  808-RI vs Template vs missing + live cycling, audit 0/0)
 
 ## §12.11 Perf pass vs W1.1 budget (§6)
 - [ ] `tools/bench` per-section evidence; per-section budget; continuous gating before beta exit

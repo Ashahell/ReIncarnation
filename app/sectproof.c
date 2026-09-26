@@ -1,9 +1,12 @@
 /*
  * app/sectproof.c — section canvas on-device proof (§12.10 G4).
  *
- * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr|keys|live|remote] [demo]
+ * AROS-ONLY. usage: RISECT [303|808|909|mix|fx|tr|keys|live|remote] [demo] [mod=<name>]
  * One window with the RSection canvas for the chosen section at 1x plus a
  * readout row, so state can be verified by number as well as by ui_capture.
+ * mod=<name> loads SYS:Classes/ReIncarnation/Mods/<name>/ (G8.1 skins);
+ * Ctrl+M cycles the installed mods live; selection events append to
+ * RAM:RISECT.MOD. A missing mod falls back to Classic with a note.
  * "demo" drives the same behaviour calls a click makes (gui/sectui.h):
  *   303 — manual p. 42 "programming from scratch in Pitch Mode" + knobs;
  *   808 — BD four-on-the-floor, CH offbeats, AC on 5 and 13, LT->LC switch,
@@ -50,6 +53,7 @@
 #include <exec/types.h>
 #include <libraries/mui.h>
 #include <clib/alib_protos.h>
+#include <string.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/intuition.h>
@@ -61,7 +65,10 @@
 #include "gui/midimap.h"
 #include <midi/camd.h>
 #include <proto/camd.h>
+#include <dos/exall.h>
 #include "gui/widgets/rsection.h"
+#include "gui/skin.h"
+#include "gui/skin_aros.h"
 
 static char s_readout[160];
 static Object *s_mix[10];
@@ -69,6 +76,179 @@ static int s_nall;
 static struct RIMidiIn s_midi;
 static ULONG s_camd_got, s_camd_last;   /* raw CAMD diagnostics: messages taken, last mm_Msg */
 struct Library *CamdBase;
+
+/* G8.1 mod selection: installed list scanned from the Mods dir, the loaded
+ * skin, and the name the panel currently asks for (Ctrl+M cycles it). */
+static struct RISkin s_skin;
+static char s_loaded[64];
+static const char *s_installed[17];
+static char s_installed_buf[16][64];
+static int s_installed_n;
+static char s_mod_arg[64];
+static int s_mod_pending; /* mod= arg seen but not applied yet */
+
+/* One MOD-log line per selection event (evidence for the G8.1 proof). */
+static void mod_log(const char *line) {
+    BPTR f = Open((CONST_STRPTR)"RAM:RISECT.MOD", MODE_NEWFILE);
+    if (f) {
+        FPuts(f, (CONST_STRPTR)line);
+        FPuts(f, (CONST_STRPTR)"\n");
+        Close(f);
+    }
+}
+
+static void skin_apply(const char *name) {
+    char dir[192], note[160];
+    int i, n;
+    dir[0] = '\0';
+    i = 0;
+    {
+        static const char pre[] = "SYS:Classes/ReIncarnation/Mods/";
+        while (pre[i] && i < 160) {
+            dir[i] = pre[i];
+            i++;
+        }
+    }
+    n = 0;
+    while (name[n] && i < 190) {
+        dir[i++] = name[n++];
+    }
+    dir[i] = '\0';
+    ri_skin_aros_free(&s_skin);
+    memset(&s_skin, 0, sizeof s_skin);
+    s_loaded[0] = '\0';
+    ri_skin_aros_set_active(0);
+    if (!strcmp(name, "Classic") || name[0] == '\0') {
+        for (i = 0; name[i] && i < 63; i++)
+            s_loaded[i] = name[i];
+        s_loaded[i] = '\0';
+        mod_log("mod=Classic: procedural (no files)");
+        return;
+    }
+    n = ri_skin_aros_load(dir, &s_skin);
+    if (n < 0) {
+        /* §17 row 3: warn, default mod, never substitute silently. */
+        int rc = n;
+        i = 0;
+        {
+            static const char pre[] = "mod='";
+            while (pre[i] && i < 150) {
+                note[i] = pre[i];
+                i++;
+            }
+        }
+        n = 0;
+        while (name[n] && i < 120) {
+            note[i++] = name[n++];
+        }
+        {
+            static const char post[] = "' not found (rc=";
+            int k = 0;
+            while (post[k] && i < 150) {
+                note[i++] = post[k++];
+            }
+            if (i < 156) {
+                note[i++] = (char)('0' - rc);
+            }
+            {
+                static const char post2[] = ") — Classic, song dirty";
+                k = 0;
+                while (post2[k] && i < 158) {
+                    note[i++] = post2[k++];
+                }
+            }
+        }
+        note[i] = '\0';
+        mod_log(note);
+        for (i = 0; name[i] && i < 63; i++)
+            s_loaded[i] = name[i];
+        s_loaded[i] = '\0';
+        return;
+    }
+    ri_skin_aros_zoom(&s_skin, 0);
+    ri_skin_aros_set_active(&s_skin);
+    for (i = 0; name[i] && i < 63; i++)
+        s_loaded[i] = name[i];
+    s_loaded[i] = '\0';
+    {
+        static const char pre[] = "mod='";
+        i = 0;
+        while (pre[i] && i < 150) {
+            note[i] = pre[i];
+            i++;
+        }
+        n = 0;
+        while (name[n] && i < 120) {
+            note[i++] = name[n++];
+        }
+        {
+            static const char post[] = "' active";
+            int k = 0;
+            while (post[k] && i < 158) {
+                note[i++] = post[k++];
+            }
+        }
+        note[i] = '\0';
+        mod_log(note);
+    }
+}
+
+/* Scan the Mods dir for installed skins (Classic always first). */
+static void skin_scan(void) {
+    BPTR lock;
+    struct ExAllControl *eac;
+    static ULONG s_exbuf[1024]; /* 4 KB ExAll buffer, ULONG-aligned */
+    int n = 1, more = 1;
+    s_installed[0] = "Classic";
+    lock = Lock((CONST_STRPTR)"SYS:Classes/ReIncarnation/Mods/", ACCESS_READ);
+    if (!lock) {
+        s_installed[1] = 0;
+        return;
+    }
+    eac = (struct ExAllControl *)AllocDosObject(DOS_EXALLCONTROL, 0);
+    if (!eac) {
+        UnLock(lock);
+        s_installed[1] = 0;
+        return;
+    }
+    eac->eac_LastKey = 0;
+    while (more && n < 16) {
+        LONG ok = ExAll(lock, (struct ExAllData *)s_exbuf, sizeof s_exbuf,
+                        ED_NAME, eac);
+        if (ok) {
+            more = 0;
+        } else if (IoErr() != ERROR_NO_MORE_ENTRIES) {
+            break;
+        } else {
+            more = 0;
+        }
+        if (eac->eac_Entries > 0) {
+            UBYTE *p = (UBYTE *)s_exbuf;
+            LONG k;
+            for (k = 0; k < (LONG)eac->eac_Entries && n < 16; k++) {
+                struct ExAllData *ead = (struct ExAllData *)p;
+                int j = 0;
+                if (ead->ed_Type <= 0) {
+                    p += ead->ed_Size;
+                    continue;
+                }
+                while (ead->ed_Name[j] && j < 63) {
+                    s_installed_buf[n][j] = ead->ed_Name[j];
+                    j++;
+                }
+                s_installed_buf[n][j] = '\0';
+                if (strcmp(s_installed_buf[n], "Classic") != 0) {
+                    s_installed[n] = s_installed_buf[n];
+                    n++;
+                }
+                p += ead->ed_Size;
+            }
+        }
+    }
+    FreeDosObject(DOS_EXALLCONTROL, eac);
+    UnLock(lock);
+    s_installed[n] = 0;
+}
 static struct RIPanelUI s_panel;
 
 static void put_num(char **p, long v) {
@@ -430,7 +610,15 @@ int main(int argc, char **argv) {
     Object *row = 0;
 
     for (i = 1; i < argc; i++) {
-        if (argv[i][0] == '8')
+        if (!strncmp(argv[i], "mod=", 4)) {
+            int k = 0;
+            while (argv[i][4 + k] && k < 63) {
+                s_mod_arg[k] = argv[i][4 + k];
+                k++;
+            }
+            s_mod_arg[k] = '\0';
+            s_mod_pending = 1;
+        } else if (argv[i][0] == '8')
             section = RI_SEC_808;
         else if (argv[i][0] == '9')
             section = RI_SEC_909;
@@ -449,12 +637,22 @@ int main(int argc, char **argv) {
         else if (argv[i][0] == 'd')
             do_demo = 1;
     }
+    skin_scan();
+    for (s_installed_n = 0; s_installed[s_installed_n]; s_installed_n++)
+        ;
+    if (s_mod_arg[0]) {   /* mod= applies in every mode (single sections have no panel) */
+        skin_apply(s_mod_arg);
+        s_mod_pending = 0;
+    }
     if (live) {                        /* G6a: live panel, stand-in clock */
         static const ULONG sec[9] = { RI_SEC_TRANSPORT, RI_SEC_808, RI_SEC_MIX_808, RI_SEC_909, RI_SEC_MIX_909,
             RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909 };
         struct RISectUI *u = 0, *mix8 = 0;
         Object *r8, *r9, *pats;
         ri_panel_init(&s_panel);
+        ri_panel_skins(&s_panel, s_installed, (uint32_t)s_installed_n,
+                           s_mod_arg[0] ? s_mod_arg : "Classic");
+        skin_apply(s_panel.skin_current);
         for (i = 0; i < 9; i++) {
             s_mix[i] = (Object *)ri_rsection_create(sec[i], 0);
             if (!s_mix[i])
@@ -505,6 +703,9 @@ int main(int argc, char **argv) {
         Object *pats;
         struct RISectUI *u = 0;
         ri_panel_init(&s_panel);
+        ri_panel_skins(&s_panel, s_installed, (uint32_t)s_installed_n,
+                           s_mod_arg[0] ? s_mod_arg : "Classic");
+        skin_apply(s_panel.skin_current);
         s_mix[0] = (Object *)ri_rsection_create(RI_SEC_TRANSPORT, 0);
         for (i = 0; i < 4; i++)
             s_mix[i + 1] = (Object *)ri_rsection_create(RI_SEC_PAT_SYNTH1 + (ULONG)i, 0);
@@ -694,6 +895,12 @@ int main(int argc, char **argv) {
         }
         format_readout(ui, dg, (long)ch);
         SetAttrs(readout, MUIA_Text_Contents, (IPTR)s_readout, TAG_DONE);
+        if (keys && strcmp(s_panel.skin_current, s_loaded) != 0) {  /* Ctrl+M cycled */
+            int k;                                                     /* (panel modes only: */
+            skin_apply(s_panel.skin_current);                          /* single sections have */
+            for (k = 0; k < s_nall; k++)                               /* no panel to cycle) */
+                ri_rsection_refresh(s_mix[k]);
+        }
         sigs |= SIGBREAKF_CTRL_C | (msig >= 0 ? 1UL << msig : 0UL);
         sigs = Wait(sigs);
         if (sigs & SIGBREAKF_CTRL_C)
