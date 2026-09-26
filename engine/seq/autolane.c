@@ -4,6 +4,7 @@
 #include "engine/seq/autolane.h"
 #include "engine/seq/autolane_emit.h" /* emitter bodies (model stays sched-free) */
 #include "engine/dsp/rb303.h" /* allow-list IDs (engine side, no GUI) */
+#include "engine/fx/fx.h" /* FX-block IDs (Task 5a delivery, no GUI) */
 #include <string.h> /* memmove for sorted insert */
 
 /* Allow-list (R-ALLOW, ledger): exactly the 16 303 control IDs — the
@@ -15,7 +16,16 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     RI_CTL_303A_VOLUME, RI_CTL_303A_TUNE,
     RI_CTL_303B_CUTOFF, RI_CTL_303B_RESO, RI_CTL_303B_ENVMOD,
     RI_CTL_303B_DECAY, RI_CTL_303B_ACCENT, RI_CTL_303B_WAVE,
-    RI_CTL_303B_VOLUME, RI_CTL_303B_TUNE
+    RI_CTL_303B_VOLUME, RI_CTL_303B_TUNE,
+    /* Task 5a: FX block with engine delivery (BEATS 0x0A00 has none —
+     * wrapper-owned knob state — and MIX 0x0A02 is topology-fixed;
+     * neither is in the registry, neither is listed). Sorted: the
+     * lookup below is a binary search. */
+    RI_FXID_DELAY_FB, RI_FXID_DIST_DRIVE, RI_FXID_DIST_SHAPE,
+    RI_FXID_COMP_THRESH, RI_FXID_PCF_BASE, RI_FXID_PCF_Q,
+    RI_FXID_PCF_AMT, RI_FXID_PCF_MODE, RI_FXID_PCF_PATTERN,
+    RI_FXID_DELAY_STEPS, RI_FXID_DELAY_TRIPLET, RI_FXID_PCF_DECAY,
+    RI_FXID_COMP_RATIO, RI_FXID_DELAY_RETPAN
 };
 
 int ri_auto_allowed(uint16_t ctl) {

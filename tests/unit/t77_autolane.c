@@ -250,23 +250,9 @@ int main(void) {
     {RI_SEC_MIX_909,7}, /* Comp [INSERT RI_ROUTE_COMP] */
     {RI_SEC_MASTER,3}, /* Comp [INSERT RI_ROUTE_COMP] */
     {RI_SEC_PCF,0}, /* On/Off [NONE 0] */
-    {RI_SEC_PCF,2}, /* Pattern [FX RI_FXID_PCF_PATTERN] */
-    {RI_SEC_PCF,3}, /* Mode [FX RI_FXID_PCF_MODE] */
-    {RI_SEC_PCF,4}, /* Freq [FX RI_FXID_PCF_BASE] */
-    {RI_SEC_PCF,5}, /* Q [FX RI_FXID_PCF_Q] */
-    {RI_SEC_PCF,6}, /* Amt [FX RI_FXID_PCF_AMT] */
-    {RI_SEC_PCF,7}, /* Decay [FX RI_FXID_PCF_DECAY] */
     {RI_SEC_DELAY,0}, /* On/Off [NONE 0] */
-    {RI_SEC_DELAY,2}, /* Steps [FX RI_FXID_DELAY_STEPS] */
-    {RI_SEC_DELAY,3}, /* Triplet [FX RI_FXID_DELAY_TRIPLET] */
-    {RI_SEC_DELAY,4}, /* Pan [FX RI_FXID_DELAY_RETPAN] */
-    {RI_SEC_DELAY,5}, /* F.Back [FX RI_FXID_DELAY_FB] */
     {RI_SEC_DIST,0}, /* On/Off [NONE 0] */
-    {RI_SEC_DIST,2}, /* Amount [FX RI_FXID_DIST_DRIVE] */
-    {RI_SEC_DIST,3}, /* Shape [FX RI_FXID_DIST_SHAPE] */
     {RI_SEC_COMP,0}, /* On/Off [NONE 0] */
-    {RI_SEC_COMP,2}, /* Ratio [FX RI_FXID_COMP_RATIO] */
-    {RI_SEC_COMP,3}, /* Threshold [FX RI_FXID_COMP_THRESH] */
     {RI_SEC_PAT_SYNTH1,0}, /* Section Off [NONE 0] */
     {RI_SEC_PAT_SYNTH1,1}, /* Bank [NONE 0] */
     {RI_SEC_PAT_SYNTH1,2}, /* Pattern [NONE 0] */
@@ -284,14 +270,15 @@ int main(void) {
             uint32_t nc = ri_ctlreg_count();
             uint32_t nq = (uint32_t)(sizeof UNREC / sizeof UNREC[0]);
             uint32_t k, q, mapped = 0u, listed = 0u;
-            RI_ASSERT(nq == 112u, "unrecordable census size %u", nq);
+            RI_ASSERT(nq == 98u, "unrecordable census size %u", nq);
             for (k = 0u; k < nc; k++) {
                 const struct RICtlDef *d = ri_ctlreg_at(k);
                 int found;
                 RI_ASSERT(d != 0, "registry null row %u", k);
                 if (!d || !d->automatable)
                     continue;
-                if (((uint32_t)d->engine_id & 0xFF00u) == 0x0300u) {
+                if (((uint32_t)d->engine_id & 0xFF00u) == 0x0300u ||
+                    ((uint32_t)d->engine_id & 0xFF00u) == 0x0A00u) {
                     RI_ASSERT(ri_auto_allowed(d->engine_id) == 1,
                         "mapped not allowed");
                     mapped++;
@@ -307,8 +294,8 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 14u, "mapped count %u", mapped);
-            RI_ASSERT(listed == 112u, "listed count %u", listed);
+            RI_ASSERT(mapped == 28u, "mapped count %u", mapped);
+            RI_ASSERT(listed == 98u, "listed count %u", listed);
         }
     }
     /* ---- Task 2: sweeps, steps, loops, edits, stamp, clear, copy, cut/paste ---- */

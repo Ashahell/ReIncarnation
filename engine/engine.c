@@ -359,6 +359,13 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
             return;
         break;
     case RI_EV_AUTOMATION:
+        if (((ev->value & 0xFF00u) == 0x0A00u)) {
+            /* Task 5a: FX block is voiceless — straight to the knob
+             * setter (unknown IDs are ignored inside, MIX stays put
+             * by topology). */
+            ri_engine_fx_set(e, ev->value, (uint8_t)(ev->flags & 127u));
+            return;
+        }
         if ((ev->value & 0xfff0u) == 0x0300u)
             v = &e->v303a;
         else if ((ev->value & 0xfff0u) == 0x0310u)

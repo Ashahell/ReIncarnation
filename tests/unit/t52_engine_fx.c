@@ -153,5 +153,39 @@ int main(void) {
         RI_ASSERT(!differ(RA, RB, N), "chunk R differs");
     }
 
+    /* (g) FX automation delivery (§12.9c Task 5a): an RI_EV_AUTOMATION
+     * event with an FX-block value drives ri_engine_fx_set exactly the
+     * way the knob path does (state + render-identical); unknown
+     * blocks are ignored. */
+    {
+        struct RIEvent auto_ev;
+        duet(&e, RI_ENGINE_S303A);
+        RI_ASSERT(ri_engine_assign_insert(&e, RI_ROUTE_DIST, 0) == -1,
+            "auto dist assign prev");
+        auto_ev.sample = 0; auto_ev.type = RI_EV_AUTOMATION;
+        auto_ev.device = 0; auto_ev.voice = 0;
+        auto_ev.value = RI_FXID_DIST_DRIVE; auto_ev.flags = 100;
+        auto_ev.seq = 4;
+        ri_engine_apply_event(&e, &auto_ev);
+        RI_ASSERT(e.dist.drive == 100u, "auto dist drive %u", e.dist.drive);
+        RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "auto short");
+        duet(&e, RI_ENGINE_S303A);
+        RI_ASSERT(ri_engine_assign_insert(&e, RI_ROUTE_DIST, 0) == -1,
+            "knob dist assign prev");
+        ri_engine_fx_set(&e, RI_FXID_DIST_DRIVE, 100);
+        RI_ASSERT(ri_engine_render(&e, LA, RA, N, SR) == N, "knob short");
+        RI_ASSERT(!differ(LA, LB, N), "auto L differs from knob");
+        RI_ASSERT(!differ(RA, RB, N), "auto R differs from knob");
+        /* Unknown block: ignored, render stays neutral. */
+        duet(&e, secs);
+        RI_ASSERT(ri_engine_render(&e, LA, RA, N, SR) == N, "neutral ref");
+        duet(&e, secs);
+        auto_ev.value = 0x0B00u; auto_ev.flags = 100;
+        ri_engine_apply_event(&e, &auto_ev);
+        RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "unknown short");
+        RI_ASSERT(!differ(LA, LB, N), "unknown block moved L");
+        RI_ASSERT(!differ(RA, RB, N), "unknown block moved R");
+    }
+
     RI_RESULT("engine_fx");
 }
