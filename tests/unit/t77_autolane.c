@@ -682,6 +682,34 @@ int main(void) {
             RI_ASSERT(ri_auto_value(&l10, 384u, 0x0300u, &outv) == 1 && outv == 2u,
                 "cap content kept");
         }
+        /* Paste shifts the tail right (tick-exact pin: value lookups
+         * cannot see a missing shift). */
+        {
+            struct RIAutoLane lp;
+            struct RIAutoEv sp[8];
+            struct RIAutoClip cp;
+            struct RIAutoEv cs[8];
+            uint32_t qp, at1184 = 0u, at800 = 0u;
+            memset(&lp, 0, sizeof lp);
+            lp.ev = sp;
+            lp.cap = 8u;
+            memset(&cp, 0, sizeof cp);
+            cp.ev = cs;
+            cp.cap = 8u;
+            RI_ASSERT(ri_auto_stamp(&lp, 100u, 0x0300u, 1u) == 0, "shift pre rc");
+            RI_ASSERT(ri_auto_stamp(&lp, 400u, 0x0300u, 2u) == 0, "shift in rc");
+            RI_ASSERT(ri_auto_stamp(&lp, 800u, 0x0300u, 3u) == 0, "shift post rc");
+            RI_ASSERT(ri_auto_copy(&lp, &cp, 1u, 1u, 96u) == 0, "shift copy rc");
+            RI_ASSERT(ri_auto_paste(&lp, &cp, 2u, 96u) == 0, "shift paste rc");
+            for (qp = 0u; qp < lp.n; qp++) {
+                if (lp.ev[qp].tick == 1184u)
+                    at1184 = 1u;
+                if (lp.ev[qp].tick == 800u)
+                    at800 = 1u;
+            }
+            RI_ASSERT(at1184 && !at800, "paste moved the tail");
+            RI_ASSERT(lp.n == 4u, "paste kept all %u", lp.n);
+        }
         /* Clip storage too small: copy refuses, clip untouched. */
         {
             struct RIAutoLane lq;
@@ -870,6 +898,22 @@ int main(void) {
         RI_ASSERT(bk->n == 2u, "resync primed %u", bk->n);
         /* GUI mutates the back; render has not applied yet. */
         RI_ASSERT(ri_auto_stamp(bk, 300u, 0x0300u, 30u) == 0, "pub GUI add C");
+        /* Staged request alone swaps nothing: a render block between
+         * request and apply still sees the old front (mid-block swap
+         * would leak C early). */
+        {
+            const struct RIAutoLane *pre = ri_auto_pub_front(&pub);
+            struct RIEvent rb[16];
+            struct RIAutoCarry cb;
+            uint32_t nb = 0u, sb = 0u;
+            memset(&cb, 0, sizeof cb);
+            ri_auto_pub_request(&pub);
+            RI_ASSERT(ri_auto_pub_front(&pub) == pre, "request stages only");
+            RI_ASSERT(ri_auto_emit_range(ri_auto_pub_front(&pub), 0, &cb, 0u, 250u,
+                &T77_MAP, 96u, rb, &nb, 16u, &sb) == 2u, "staged block old");
+            RI_ASSERT(nb == 2u && rb[0].flags == 10u && rb[1].flags == 20u,
+                "staged block has no C");
+        }
         /* Render block 1 on the old front: sees old lane only, never
          * the back's unapplied C (byte-identical to a fresh emit on
          * the pristine copy). */
