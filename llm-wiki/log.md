@@ -1,5 +1,10 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] record | Step 1 buffer default + riqemu1 sb128 open hang
+- Disposition: New (two slice records closing Step-1 and lane-diagnostic gaps)
+- Raw: llm-wiki/raw/articles/2026-09-26-buffer-default-256-dell.md, llm-wiki/raw/articles/2026-09-26-riqemu1-sb128-open-hang.md
+- Updated: llm-wiki/index.md (Live app (§12.11) entries)
+
 ## [2026-09-26] record | G9b Step 2 panel in RIAPP, Dell-proofed
 - Disposition: New (slice record: bridge + seqlock + panel + bounded-open fix + owner proof + decisions)
 - Raw: llm-wiki/raw/articles/2026-09-26-step2-panel-dell-proof.md

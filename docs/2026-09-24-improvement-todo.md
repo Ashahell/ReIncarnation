@@ -130,8 +130,9 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 - [x] G9.3 AHI render-task structure + `audio_ahi_live` (ABIv1 compile; Dell 64/128 measurement open)
 - [x] G9.4 RIAPP shell (ABIv1 link 172792 B; supersedes bare main.c, kept; panel wiring after Dell proof)
 - [x] G9.5 record host half + t82 (touch/record/stop/publish/chase identical, FULL shown; mutant)
-- [ ] Dell first sound + knob-within-a-buffer + owner words + 5-min soak (`docs/evidence/audio/live-render-task.md`)
-- [ ] Full RISECT panel integration into RIAPP; G10 carry-overs (skin chunk, zoom cap, minors)
+- [x] Dell first sound + knob-within-a-buffer + owner words + 5-min soak (`docs/evidence/audio/live-render-task.md`; G9b Step 1: 256 default owner-approved, P-21 measured)
+- [x] Full panel integration into RIAPP (G9b Step 2, Dell-proofed: knobs sound, meters chase; `docs/evidence/gui/riapp-panel.md`)
+- [ ] G10 carry-overs (skin chunk, zoom cap, minors)
 
 ## Done
 - (none yet)
