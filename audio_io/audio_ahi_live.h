@@ -34,10 +34,20 @@ struct AuLive {
     ULONG mode_id;             /* (out) AHI audio mode */
     volatile ULONG xruns;      /* (out) late buffers (AHI repeated one) */
     volatile ULONG buffers;    /* (out) buffers rendered */
+    volatile ULONG render_us_max; /* (out) slowest buffer render, microseconds (EClock) */
+    volatile ULONG render_us_sum_ms; /* (out) total render time, milliseconds */
+    ULONG period_us;           /* (out) device period frames/mix_freq, microseconds */
     volatile LONG cmd;         /* GUI -> task transport request (AU_LIVE_CMD_*) */
     volatile LONG state;       /* 0 idle, 1 negotiated, 2 playing, -1 failed, 3 ended */
     LONG err;                  /* failure step (1 port, 2 device, 3 mode, 4 alloc, 5 load, 6 task) */
     struct RILiveSession *session; /* set by au_live_run */
+    /* Capture (RIAPP 'W'): the task copies each rendered s16 half here
+     * while cap_on; the GUI owns the buffer and writes the WAV after
+     * turning cap_on off (no file IO in the render task). */
+    WORD *cap_buf;             /* interleaved stereo s16, GUI-allocated */
+    ULONG cap_max;             /* capacity, frames */
+    volatile ULONG cap_pos;    /* frames captured */
+    volatile LONG cap_on;
 };
 
 /* Spawn the render task, open ahi.device (AHI_NO_UNIT, device-as-library),

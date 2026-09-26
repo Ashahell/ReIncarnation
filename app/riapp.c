@@ -10,7 +10,9 @@
  * Usage: RIAPP [frames] (device buffer, default 1024; 64..4096).
  * Controls: Space = Play, S = Stop (E1 p. 145 C4 law via ri_live_stop),
  * C / V = 303 cutoff down / up, P = 303 pan centre/left/right, L / K = 303 strip level down / up,
- * M = log meters (RAM:RIAPP.LOG; no sound change), R = 5 s soak (null backend only), Q or CloseWindow =
+ * M = log meters (RAM:RIAPP.LOG; no sound change), W = start / stop
+ * recording the live output to RAM:RIAPP.wav (16-bit stereo, up to 5 min;
+ * Q while recording also saves), R = 5 s soak (null backend only), Q or CloseWindow =
  * quit. With AHI the render task owns the session: the GUI only posts
  * transport requests (au_live_request) and knob keys (control plane). Every knob key sends its lane key
  * through the control plane (one path, G9.1); pattern edits stay in the
@@ -26,6 +28,8 @@
 #endif
 
 #include <exec/types.h>
+#include <exec/memory.h>
+#include <string.h>
 #include <exec/ports.h>
 #include <utility/tagitem.h>
 #include <intuition/intuition.h>
@@ -49,6 +53,7 @@ extern struct DosLibrary *DOSBase;
  * the 303 (host-measured RMS: 808 -19.8 dBFS; 303A at 90 was -17.3). The
  * 808/303 voice calibration itself is unchanged (engine goldens). */
 #define RIAPP_303_LEVEL 72u
+#define RIAPP_REC_SECONDS 300u /* capture cap: 5 min = ~55 MB at 48 kHz stereo s16 */
 #define RIAPP_SOAK_BUFS 3750u /* 5 s at 64 frames/48 kHz, null backend */
 
 static struct RIPatternBank s_ba, s_bb, s_b808, s_b909;
@@ -110,6 +115,31 @@ static void rlog(const char *fmt, IPTR a, IPTR b, IPTR c, IPTR d, IPTR e) {
     Close(f);
 }
 
+/* Write the captured frames as a canonical 44-byte-header PCM WAV
+ * (little-endian, like auf_wav_header; AROS x86-64 is little-endian so the
+ * s16 samples go out as they are). Returns 0 ok. */
+static void le32(UBYTE *p, ULONG v) {
+    p[0] = (UBYTE)v; p[1] = (UBYTE)(v >> 8); p[2] = (UBYTE)(v >> 16); p[3] = (UBYTE)(v >> 24);
+}
+static int riapp_write_wav(const char *path, const WORD *pcm, ULONG frames, ULONG rate) {
+    UBYTE h[44];
+    ULONG data = frames * 4u;
+    BPTR f;
+    LONG w;
+    memcpy(h, "RIFF", 4); le32(h + 4, 36u + data); memcpy(h + 8, "WAVEfmt ", 8);
+    le32(h + 16, 16u); h[20] = 1; h[21] = 0; h[22] = 2; h[23] = 0; /* PCM, stereo */
+    le32(h + 24, rate); le32(h + 28, rate * 4u); h[32] = 4; h[33] = 0; h[34] = 16; h[35] = 0;
+    memcpy(h + 36, "data", 4); le32(h + 40, data);
+    f = Open((STRPTR)path, MODE_NEWFILE);
+    if (!f)
+        return 2;
+    w = Write(f, h, 44);
+    if (w == 44 && data)
+        w = Write(f, (APTR)pcm, (LONG)data);
+    Close(f);
+    return (w == 44 || w == (LONG)data) ? 0 : 3;
+}
+
 static void riapp_print_meters(const struct RILiveSession *s, int live) {
     const struct RILiveMeters *m = ri_live_meters(s);
     if (!m || !DOSBase)
@@ -165,8 +195,8 @@ int main(int argc, char **argv) {
     }
     if (DOSBase) {
         if (live)
-            rlog("audio: AHI low-level mode=0x%08lx mix=%lu Hz buffer=%lu frames\n",
-                s_lv.mode_id, s_lv.mix_freq, s_lv.frames, 0, 0);
+            rlog("audio: AHI low-level mode=0x%08lx mix=%lu Hz buffer=%lu frames period=%lu us\n",
+                s_lv.mode_id, s_lv.mix_freq, s_lv.frames, s_lv.period_us, 0);
         else
             rlog("audio: AHI unavailable - null backend active (offline render only) [err %ld]\n",
                 (IPTR)s_lv.err, 0, 0, 0, 0);
@@ -255,6 +285,32 @@ int main(int argc, char **argv) {
                 if (DOSBase)
                     rlog("RIAPP 303A pan -> %lu (0 left, 64 centre, 127 right)\n", pan, 0, 0, 0, 0);
                 break;
+            case 'w': case 'W':
+                if (!live) {
+                    rlog("RIAPP record: needs the AHI backend\n", 0, 0, 0, 0, 0);
+                } else if (!s_lv.cap_on && s_lv.cap_pos == 0u) {
+                    if (!s_lv.cap_buf) {
+                        s_lv.cap_max = s_lv.mix_freq * RIAPP_REC_SECONDS;
+                        s_lv.cap_buf = (WORD *)AllocVec(s_lv.cap_max * 4u, MEMF_ANY);
+                    }
+                    if (s_lv.cap_buf) {
+                        s_lv.cap_on = 1;
+                        rlog("RIAPP recording to RAM:RIAPP.wav (W again to stop, max %lu s)\n",
+                            RIAPP_REC_SECONDS, 0, 0, 0, 0);
+                    } else {
+                        rlog("RIAPP record: no memory for %lu s\n", RIAPP_REC_SECONDS, 0, 0, 0, 0);
+                    }
+                } else {
+                    ULONG frames;
+                    s_lv.cap_on = 0;
+                    Delay(5); /* let the task finish a half in flight */
+                    frames = s_lv.cap_pos;
+                    rc = riapp_write_wav("RAM:RIAPP.wav", s_lv.cap_buf, frames, s_lv.mix_freq);
+                    rlog("RIAPP wrote RAM:RIAPP.wav: %lu frames at %lu Hz (rc %ld)\n",
+                        frames, s_lv.mix_freq, (IPTR)rc, 0, 0);
+                    s_lv.cap_pos = 0u;
+                }
+                break;
             case 'm': case 'M':
                 riapp_print_meters(&s_sess, live);
                 break;
@@ -279,9 +335,18 @@ int main(int argc, char **argv) {
         }
     }
     if (live) {
+        s_lv.cap_on = 0; /* quitting while recording saves the take */
         au_live_close(&s_lv);
+        if (s_lv.cap_buf && s_lv.cap_pos) {
+            rc = riapp_write_wav("RAM:RIAPP.wav", s_lv.cap_buf, s_lv.cap_pos, s_lv.mix_freq);
+            rlog("RIAPP wrote RAM:RIAPP.wav on quit: %lu frames at %lu Hz (rc %ld)\n",
+                s_lv.cap_pos, s_lv.mix_freq, (IPTR)rc, 0, 0);
+        }
+        if (s_lv.cap_buf)
+            FreeVec(s_lv.cap_buf);
         if (DOSBase)
-            rlog("RIAPP closed: buffers=%lu xruns=%lu\n", s_lv.buffers, s_lv.xruns, 0, 0, 0);
+            rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us\n",
+                s_lv.buffers, s_lv.xruns, s_lv.render_us_max, s_lv.render_us_sum_ms, s_lv.period_us);
     }
     CloseWindow(win);
     return 0;

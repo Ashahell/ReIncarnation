@@ -28,19 +28,23 @@
 #include <dos/dostags.h>
 #include <utility/hooks.h>
 #include <devices/ahi.h>
+#include <devices/timer.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/ahi.h>
+#include <proto/timer.h>
 #include "audio_io/audio_ahi_live.h"
 #include "engine/live.h"
 
 struct Library *AHIBase = NULL;
+struct Device *TimerBase = NULL; /* EClock for render timing (task side only) */
 
 static struct AuLive *s_lv;
 static struct Task *s_parent;
 static BYTE s_parent_sig = -1;
 static struct Task *s_render;
 static volatile ULONG s_hook_count;
+static unsigned long long s_render_us_acc;
 static ULONG s_hook_mask;
 static struct Hook s_sound_hook;
 static WORD s_pcm[2][AU_LIVE_MAXFRAMES * 2u];
@@ -56,6 +60,17 @@ static ULONG sound_entry(struct Hook *h, APTR actrl, APTR msg) {
         Signal(s_render, s_hook_mask);
     return 0;
 }
+
+/* PlayerFunc: present only so AHI accepts AHIA_PlayerFreq, which sets its
+ * mixing pass to one device buffer (default ~50 passes/s = ~960 frames:
+ * shorter halves would loop inside one pass). Does nothing (spec §4.2). */
+static ULONG player_entry(struct Hook *h, APTR actrl, APTR msg) {
+    (void)h;
+    (void)actrl;
+    (void)msg;
+    return 0;
+}
+static struct Hook s_player_hook;
 
 static void tell_parent(void) {
     if (s_parent != NULL && s_parent_sig >= 0)
@@ -74,12 +89,36 @@ static void render_half(struct AuLive *lv, ULONG half) {
         else if (cmd == AU_LIVE_CMD_STOP)
             ri_live_stop(lv->session);
     }
+    struct EClockVal t0, t1;
+    ULONG efreq = 0u;
+    if (TimerBase)
+        efreq = ReadEClock(&t0);
     got = ri_live_render(lv->session, s_fl, s_fr, lv->frames);
     for (i = got; i < lv->frames; i++)
         s_fl[i] = s_fr[i] = 0.0f;
     for (i = 0u; i < lv->frames; i++) {
         s_pcm[half][i * 2u] = au_live_f32_to_s16(s_fl[i]);
         s_pcm[half][i * 2u + 1u] = au_live_f32_to_s16(s_fr[i]);
+    }
+    if (lv->cap_on && lv->cap_buf) { /* bounded copy, no IO */
+        ULONG n = lv->frames, pos = lv->cap_pos, k;
+        if (n > lv->cap_max - pos)
+            n = lv->cap_max - pos;
+        for (k = 0u; k < n * 2u; k++)
+            lv->cap_buf[pos * 2u + k] = s_pcm[half][k];
+        lv->cap_pos = pos + n;
+        if (lv->cap_pos >= lv->cap_max)
+            lv->cap_on = 0;
+    }
+    if (TimerBase && efreq) {
+        unsigned long long a = ((unsigned long long)t0.ev_hi << 32) | t0.ev_lo, b, us;
+        ReadEClock(&t1);
+        b = ((unsigned long long)t1.ev_hi << 32) | t1.ev_lo;
+        us = (b - a) * 1000000ULL / efreq;
+        if (us > lv->render_us_max)
+            lv->render_us_max = (ULONG)us;
+        s_render_us_acc += us;
+        lv->render_us_sum_ms = (ULONG)(s_render_us_acc / 1000ULL);
     }
     lv->buffers++;
 }
@@ -89,6 +128,8 @@ static void live_task(void) {
     struct MsgPort *port = NULL;
     struct AHIRequest *req = NULL;
     struct AHIAudioCtrl *actl = NULL;
+    struct timerequest *treq = NULL;
+    struct MsgPort *tport = NULL;
     BYTE hsig = -1;
     ULONG processed = 0u, queued = 1u;
     int started = 0, dev_open = 0;
@@ -100,6 +141,11 @@ static void live_task(void) {
         goto fail;
     }
     s_hook_mask = 1UL << hsig;
+    tport = CreateMsgPort(); /* EClock only; timing is optional */
+    if (tport)
+        treq = (struct timerequest *)CreateIORequest(tport, sizeof(struct timerequest));
+    if (treq && OpenDevice((STRPTR)"timer.device", UNIT_ECLOCK, (struct IORequest *)treq, 0) == 0)
+        TimerBase = treq->tr_node.io_Device;
     port = CreateMsgPort();
     if (port)
         req = (struct AHIRequest *)CreateIORequest(port, sizeof(struct AHIRequest));
@@ -124,14 +170,30 @@ static void live_task(void) {
             lv->mode_id = AHI_DEFAULT_ID;
     }
     s_sound_hook.h_Entry = (ULONG (*)())sound_entry;
+    s_player_hook.h_Entry = (ULONG (*)())player_entry;
     {
+        /* PlayerFreq (Fixed 16.16) = rate / frames: one mixing pass per
+         * device buffer (M1.1: the Dell accepted down to 64 frames). */
+        ULONG pf = (ULONG)(((unsigned long long)lv->want_rate << 16) / lv->frames);
         struct TagItem at[] = {
             { AHIA_AudioID, 0 }, { AHIA_MixFreq, 0 }, { AHIA_Channels, 1 },
-            { AHIA_Sounds, 2 }, { AHIA_SoundFunc, 0 }, { TAG_DONE, 0 }
+            { AHIA_Sounds, 2 }, { AHIA_SoundFunc, 0 }, { AHIA_PlayerFunc, 0 },
+            { AHIA_PlayerFreq, 0 }, { AHIA_MinPlayerFreq, 0 }, { AHIA_MaxPlayerFreq, 0 },
+            { TAG_DONE, 0 }
         };
         at[0].ti_Data = lv->mode_id;
         at[1].ti_Data = lv->want_rate;
         at[4].ti_Data = (IPTR)&s_sound_hook;
+        at[5].ti_Data = (IPTR)&s_player_hook;
+        at[6].ti_Data = pf;
+        at[7].ti_Data = pf;
+        at[8].ti_Data = pf;
+        /* Owner (Dell 2026-09-26): at 1024 frames the PlayerFreq build
+         * "sounds worse" than the plain one (0 xruns logged either way), so
+         * the pass override is used only where it is required: halves
+         * shorter than AHI's default ~960-frame pass. */
+        if (lv->frames >= 1024u)
+            at[5].ti_Tag = TAG_DONE;
         actl = AHI_AllocAudioA(at);
     }
     if (!actl) {
@@ -144,6 +206,7 @@ static void live_task(void) {
         q[0].ti_Data = (IPTR)&freq;
         AHI_ControlAudioA(actl, q);
         lv->mix_freq = freq ? (ULONG)freq : lv->want_rate;
+        lv->period_us = (ULONG)((unsigned long long)lv->frames * 1000000ULL / lv->mix_freq);
     }
     {
         struct AHISampleInfo si;
@@ -219,6 +282,14 @@ fail:
         DeleteIORequest((struct IORequest *)req);
     if (port)
         DeleteMsgPort(port);
+    if (TimerBase) {
+        CloseDevice((struct IORequest *)treq);
+        TimerBase = NULL;
+    }
+    if (treq)
+        DeleteIORequest((struct IORequest *)treq);
+    if (tport)
+        DeleteMsgPort(tport);
     if (hsig >= 0)
         FreeSignal(hsig);
     s_render = NULL;
@@ -244,7 +315,15 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
     lv->mode_id = 0u;
     lv->xruns = 0u;
     lv->buffers = 0u;
+    lv->render_us_max = 0u;
+    lv->render_us_sum_ms = 0u;
+    lv->period_us = 0u;
+    s_render_us_acc = 0u;
     lv->cmd = AU_LIVE_CMD_NONE;
+    lv->cap_buf = NULL;
+    lv->cap_max = 0u;
+    lv->cap_pos = 0u;
+    lv->cap_on = 0;
     lv->state = 0;
     lv->err = 0;
     lv->session = NULL;

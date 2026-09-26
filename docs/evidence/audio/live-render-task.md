@@ -68,3 +68,30 @@ Results on the Dell E6320 (ABIv11 build, `RIAPP 1024`):
   meter line was garbled: RawDoFmt `%lu` consumes packed 32-bit LONGs,
   not IPTRs. Fixed by building the args as ULONG.
 - [ ] 64/128-frame runs, a 5-minute soak, render time per buffer: next.
+
+## Buffer ladder, timing, capture (2026-09-26, later)
+
+- **EClock render timing** (render task). At 1024 frames: max 2.86 ms,
+  mean about 1.8 ms per 21.33 ms period (~8 %). Owner-played sessions: 0
+  xruns over 2573–2994 buffers.
+- **Without `AHIA_PlayerFreq`, halves under ~960 frames loop inside AHI's
+  default mixing pass** (about 50 passes/s). 256/128/64 gave hundreds of
+  xruns and only ~5 renders/s.
+- **With `AHIA_PlayerFunc` + `AHIA_PlayerFreq` = rate/frames (Fixed
+  16.16),** the no-input runs gave 256 → 0 xruns, 128 → 0 xruns, 64 → 1
+  xrun. The owner has not listened at those sizes yet.
+- **At 1024 frames the PlayerFreq build "sounds worse"** (owner), with 0
+  xruns logged. The override is now used only below 1024 frames.
+  **Open:** explain it — a listening test plus a WAV comparison at each
+  size.
+- **"The window disappears on click" was NOT an audio bug.** Agent
+  `--ui-rawkey CODE,up` does not release the key, so a stuck Q key
+  auto-repeated 'q' into whichever window became active. Release a key by
+  injecting `CODE|0x80` (e.g. `0x90` for Q). IDCMP logging proved it:
+  `class=0x00200000 code=0x71` on the click.
+- **W records the live output** to `RAM:RIAPP.wav` (s16 stereo at the mix
+  rate, up to 5 min). The task copies each half into a GUI-allocated
+  buffer; the GUI writes the file (no IO in the render task). Q while
+  recording also saves. The first owner take held 99328 frames (W was
+  pressed just before Q); the file was verified as RIFF PCM 16-bit stereo
+  48000 Hz.
