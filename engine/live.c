@@ -58,6 +58,7 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     s->sample_cursor = 0u;
     s->seq_next = 0u;
     s->xruns = 0u;
+    s->meters_seq = 0u;
     s->tick_rem = 0u;
     for (i = 0u; i < 4u; i++) {
         s->meters.sec_peak[i] = 0.0f;
@@ -195,6 +196,7 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
             for (q = 0u; q < m; q++)
                 ri_engine_apply_event(&s->eng, &tmp[q]);
         }
+        ri_live_meters_begin(s);
         for (k = 0u; k < 4u; k++) {
             s->meters.sec_peak[k] = 0.0f;
             s->meters.fx_peak[k] = 0.0f;
@@ -203,6 +205,7 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         s->meters.samples = s->sample_cursor;
         s->meters.cursor_ticks = s->cursor_ticks;
         s->meters.xruns = s->xruns;
+        ri_live_meters_end(s);
         return frames;
     }
     if (s->pub)
@@ -318,7 +321,9 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
             ri_auto_carry_reindex(s->carry, ri_auto_pub_front(s->pub),
                 (uint32_t)ls);
     }
+    ri_live_meters_begin(s);
     live_meters_update(s);
+    ri_live_meters_end(s);
     return frames;
 }
 
@@ -326,4 +331,32 @@ const struct RILiveMeters *ri_live_meters(const struct RILiveSession *s) {
     if (!s)
         return 0;
     return &s->meters;
+}
+
+/* G9b Step 2 meter snapshot protocol: seqlock around the published
+ * meters. Render side opens (odd) before writing fields and closes
+ * (even) after; the GUI side copies only across a stable even pair.
+ * Single writer / single reader; word-sized accesses only. */
+void ri_live_meters_begin(struct RILiveSession *s) {
+    if (s)
+        s->meters_seq++;
+}
+
+void ri_live_meters_end(struct RILiveSession *s) {
+    if (s)
+        s->meters_seq++;
+}
+
+int ri_live_meters_read(const struct RILiveSession *s, struct RILiveMeters *out) {
+    uint32_t a, b;
+    if (!s || !out)
+        return 2;
+    a = s->meters_seq;
+    if (a & 1u)
+        return 1;
+    *out = s->meters;
+    b = s->meters_seq;
+    if (a != b)
+        return 1;
+    return 0;
 }

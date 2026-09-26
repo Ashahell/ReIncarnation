@@ -54,6 +54,7 @@ struct RILiveSession {
     uint64_t sample_cursor;
     uint32_t seq_next;
     uint32_t xruns;
+    volatile uint32_t meters_seq; /* seqlock around meters (see above) */
     uint64_t tick_rem;
     struct RILiveMeters meters;
 };
@@ -78,4 +79,16 @@ int ri_live_record_touch(struct RILiveSession *s, uint16_t key, uint8_t val);
 uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
     uint32_t frames);
 const struct RILiveMeters *ri_live_meters(const struct RILiveSession *s);
+/* Render-published meter snapshot protocol (G9b Step 2, closes G6b): the
+ * render task owns s->meters and bumps meters_seq around every update
+ * (odd = update in flight, even = copy coherent). The GUI never reads
+ * s->meters directly; it copies through ri_live_meters_read and retries
+ * on 1. Single writer (render task) / single reader (GUI) by contract;
+ * plain word-sized accesses, no locks. */
+void ri_live_meters_begin(struct RILiveSession *s);
+void ri_live_meters_end(struct RILiveSession *s);
+/* Copy the published meters (livestate scales them for display). Returns
+ * 0 ok, 1 busy/torn (sequence moved: drop this frame, retry next), 2 bad
+ * args. A 1 is never an error: the next buffer publishes again. */
+int ri_live_meters_read(const struct RILiveSession *s, struct RILiveMeters *out);
 #endif
