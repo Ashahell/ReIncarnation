@@ -88,10 +88,14 @@ static char s_mod_arg[64];
 static int s_mod_pending; /* mod= arg seen but not applied yet */
 static int s_zoom; /* zoom= index 0..3 for the proof canvases (G8.2) */
 
-/* One MOD-log line per selection event (evidence for the G8.1 proof). */
+/* One MOD-log line per selection event (evidence for the G8.1 proof):
+ * appends (seek to end), creating the file on first use. */
 static void mod_log(const char *line) {
-    BPTR f = Open((CONST_STRPTR)"RAM:RISECT.MOD", MODE_NEWFILE);
+    BPTR f = Open((CONST_STRPTR)"RAM:RISECT.MOD", MODE_READWRITE);
+    if (!f)
+        f = Open((CONST_STRPTR)"RAM:RISECT.MOD", MODE_NEWFILE);
     if (f) {
+        Seek(f, 0, OFFSET_END);
         FPuts(f, (CONST_STRPTR)line);
         FPuts(f, (CONST_STRPTR)"\n");
         Close(f);

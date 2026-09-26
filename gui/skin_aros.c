@@ -49,7 +49,8 @@ static int lazy_bases(void) {
 }
 
 /* Forget every tracked buffer of skins other than `keep` (single-owner
- * table: only one skin's pixels are live at a time). */
+ * table: only one skin's pixels are live at a time). The dropped owner's
+ * struct is unbound (no dangling pointers) and deactivated when active. */
 static void drop_owner(const struct RISkin *keep) {
     uint32_t i;
     if (s_owner == keep)
@@ -63,6 +64,11 @@ static void drop_owner(const struct RISkin *keep) {
             FreeVec(s_scaled[i]);
             s_scaled[i] = 0;
         }
+    }
+    if (s_owner) {
+        ri_skin_unbind((struct RISkin *)s_owner);
+        if (s_active == s_owner)
+            s_active = 0;
     }
     s_owner = keep;
 }
@@ -131,6 +137,11 @@ int ri_skin_aros_load(const char *dir, struct RISkin *skin) {
     char *base;
     if (!dir || !skin || dir[0] == '\0')
         return -1;
+    if (s_owner == skin) {
+        /* Reload into the active skin: release its buffers first so the
+         * decode loop below never orphans them. */
+        ri_skin_aros_free(skin);
+    }
     drop_owner(skin);
     /* manifest path: dir + "/Skin.manifest" (bounded join) */
     {
@@ -315,8 +326,9 @@ int ri_skin_aros_blit(struct RastPort *rp, const struct RISkin *skin,
         frame = skin->parts[idx].frames - 1u;
     if (dx < 0 || dy < 0)
         return 0; /* canvases blit in-window; negatives are caller bugs */
-    if (w > 32767u || fh > 32767u)
-        return 0;
+    if (dx > 32767 || dy > 32767 || w > 16383u || fh > 32767u)
+        return 0; /* WORD/UWORD casts below must not wrap; corrupt or
+                   * oversize decodes fall back to Classic instead */
     rc = WritePixelArrayAlpha((APTR)(px + frame * fh * w), 0, 0, (UWORD)(w * 4u),
                               rp, (WORD)dx, (WORD)dy, (UWORD)w, (UWORD)fh,
                               0xffffffffUL);
@@ -340,12 +352,7 @@ void ri_skin_aros_free(struct RISkin *skin) {
         }
         s_owner = 0;
     }
-    for (i = 0u; i < skin->nparts; i++) {
-        skin->parts[i].rgba = 0;
-        skin->parts[i].w = skin->parts[i].h = 0u;
-        skin->parts[i].zrgba = 0;
-        skin->parts[i].zw = skin->parts[i].zh = 0u;
-    }
+    ri_skin_unbind(skin);
     if (s_active == skin)
         s_active = 0;
 }

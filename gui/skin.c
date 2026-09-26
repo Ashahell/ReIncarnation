@@ -470,3 +470,15 @@ uint32_t ri_skin_zoom_num(int zoom) {
     return zoom == 0 ? 4u : zoom == 1 ? 6u : zoom == 2 ? 8u :
            zoom == RI_GEO_ZOOM_COMPACT ? 3u : 0u;
 }
+
+void ri_skin_unbind(struct RISkin *s) {
+    uint32_t i;
+    if (!s)
+        return;
+    for (i = 0u; i < s->nparts; i++) {
+        s->parts[i].rgba = 0;
+        s->parts[i].w = s->parts[i].h = 0u;
+        s->parts[i].zrgba = 0;
+        s->parts[i].zw = s->parts[i].zh = 0u;
+    }
+}

@@ -57,6 +57,10 @@ int ri_skin_bind(struct RISkin *s, uint32_t idx, const uint32_t *rgba,
  * never per frame): 0 ok, -1 bad arg/idx/dims. */
 int ri_skin_bind_zoom(struct RISkin *s, uint32_t idx, const uint32_t *rgba,
                       uint16_t w, uint16_t h);
+/* Clear every pixel binding (masters + zoom copies stay caller-owned: this
+ * only forgets the pointers, never frees). The loader calls it when it
+ * releases a skin's buffers so no struct is left dangling. */
+void ri_skin_unbind(struct RISkin *s);
 /* Box downscale, premultiplied alpha, no libm. dw/dh must be <= sw/sh and
  * nonzero; anything else is a no-op (downscale-only by design E0-3). */
 void ri_skin_downscale(const uint32_t *src, uint32_t sw, uint32_t sh,

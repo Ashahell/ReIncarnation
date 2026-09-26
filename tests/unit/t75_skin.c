@@ -270,6 +270,20 @@ int main(void) {
       RI_ASSERT(ri_skin_part_sized("knob.frame", 80u, 112u, out, 10u) == -1, "sized small");
     }
 
+    /* --- unbind forgets every pixel pointer (review fix: no dangling) --- */
+    { static uint32_t px[4] = { 1u, 2u, 3u, 4u };
+      memset(&s, 0, sizeof s);
+      RI_ASSERT(ri_skin_parse(MANIFEST_OK, &s) == 0, "unbind reparse");
+      RI_ASSERT(ri_skin_bind(&s, 2u, px, 2u, 2u) == 0, "unbind bind");
+      RI_ASSERT(ri_skin_bind_zoom(&s, 2u, px, 2u, 2u) == 0, "unbind bindz");
+      ri_skin_unbind(&s);
+      RI_ASSERT(s.parts[2].rgba == 0 && s.parts[2].zrgba == 0 &&
+                s.parts[2].w == 0u && s.parts[2].zw == 0u, "unbind cleared");
+      RI_ASSERT(s.nparts == 5u, "unbind keeps manifest");
+      ri_skin_unbind(0);
+      RI_ASSERT(1, "unbind null safe");
+    }
+
     /* --- ARGB -> blit order (R-G8.1-5: ARGB paints ghost-blue) --- */
     { static const uint32_t argb[4] = { 0xFF171410u, 0xFFE8A33Du, 0x00000000u, 0x80FF0000u };
       uint32_t out[4] = { 0 };
