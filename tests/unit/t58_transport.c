@@ -27,25 +27,26 @@ int main(void) {
     ri_tr_play(&t, &cur);
     RI_ASSERT(t.state == RI_TR_PLAYING && cur == 12345ULL, "play idempotent");
     RI_T58_LAW(t);
-    /* RECORD + Stop: STOPPED click 1, cursor held. */
+    /* RECORD + Stop: STOPPED, cursor held, clicks 0. */
     t.state = RI_TR_RECORD; t.clicks = 0; cur = 999ULL;
     ri_tr_stop(&t, &cur, 0ULL, 0ULL);
-    RI_ASSERT(t.state == RI_TR_STOPPED && t.clicks == 1u && cur == 999ULL, "rec stop");
-    /* Stop law (ReBirth-inspired + deliberate extension — E1 ends at
-    * the 3rd click; the 4th restarting as click 1 keeps every Stop press
-    * meaningful and the machine total). The FIRST stop while STOPPED
-    * (clicks==0) moves nothing — it only arms the next jump. */
-    t.state = RI_TR_STOPPED; t.clicks = 1u; cur = 5000ULL;
+    RI_ASSERT(t.state == RI_TR_STOPPED && t.clicks == 0u && cur == 999ULL, "rec stop");
+    /* Stop law (E1 p. 145, C4: the arm-only first press is retired — the
+     * first stop while STOPPED moves to the Loop Start; before the Left
+     * Locator (= loop start here) it goes to the song start instead). */
+    t.state = RI_TR_STOPPED; t.clicks = 0u; cur = 5000ULL;
     ri_tr_stop(&t, &cur, 777ULL, 0ULL);
-    RI_ASSERT(cur == 777ULL && t.clicks == 2u, "stop2");
+    RI_ASSERT(cur == 777ULL && t.clicks == 1u, "stop1 loop");
     ri_tr_stop(&t, &cur, 777ULL, 0ULL);
-    RI_ASSERT(cur == 0ULL && t.clicks == 0u, "stop3");
+    RI_ASSERT(cur == 0ULL && t.clicks == 0u, "stop2 song");
+    /* Exception: strictly before the locator -> song start at once. */
+    t.state = RI_TR_STOPPED; t.clicks = 0u; cur = 100ULL;
     ri_tr_stop(&t, &cur, 777ULL, 0ULL);
-    RI_ASSERT(cur == 0ULL && t.clicks == 1u, "stop4 restarts");
-    /* First stop while STOPPED with clicks==0: arms only. */
-    t.state = RI_TR_STOPPED; t.clicks = 0u; cur = 4242ULL;
+    RI_ASSERT(cur == 0ULL && t.clicks == 1u, "stop1 exception");
+    /* Exactly at the locator: loop start (not before). */
+    t.state = RI_TR_STOPPED; t.clicks = 0u; cur = 777ULL;
     ri_tr_stop(&t, &cur, 777ULL, 0ULL);
-    RI_ASSERT(cur == 4242ULL && t.clicks == 1u, "stop1 arms");
+    RI_ASSERT(cur == 777ULL && t.clicks == 1u, "stop1 edge");
     /* Record button matrix. */
     t.state = RI_TR_STOPPED; t.clicks = 2u; cur = 11ULL;
     ri_tr_record(&t, &cur);
@@ -235,7 +236,7 @@ int main(void) {
         sq.cursor_ticks = ri_seq_tick_of_bar(sq.ppq, 30u);
         ri_tr_stop(&sq.transport, &sq.cursor_ticks, 0ULL, 0ULL);
         ri_tr_stop(&sq.transport, &sq.cursor_ticks, 0ULL, 0ULL);
-        RI_ASSERT(sq.transport.clicks == 2u && sq.cursor_ticks == 0ULL, "struct cycle");
+        RI_ASSERT(sq.transport.clicks == 1u && sq.cursor_ticks == 0ULL, "struct cycle");
     }
     /* Reentrancy: two instances step independently (no static state). */
     {

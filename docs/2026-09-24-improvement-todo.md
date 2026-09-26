@@ -104,6 +104,20 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   switch while playing; hearing/drags/pitch-mode/accent-flam/mute stay
   human; Solo is out of E1); dummy-panel row recorded (5 data
   touch-points, zero logic; runtime registry → rack design)
+- C4 Stop law DONE 2026-09-26 (commit [§12.10 G8]): E1 p. 145 adopted —
+  first stopped Stop → Loop Start (before the locator → song start);
+  arm-only press retired (t58 repinned + edge mutant-proven, t69
+  observables unchanged, geometry note closed)
+- C2 live binding PARTIAL 2026-09-26 (commit [§12.10 G8]): engine
+  per-section + per-FX peak taps + accessors (t78, mutant-proven, audio
+  untouched); APP BINDING BLOCKED on an audio lane (Dell unavailable;
+  riqemu1 has no sound device; QEMU AC97/HDA + AROS AHI driver surgery
+  not attempted) — stand-in stays, G6b open
+- C3 camd PARTIAL 2026-09-26 (commit [§12.10 G8]): series-format patch
+  `0023-camd-mysprintf-varargs.diff` preserved + placement note (verify
+  clean-apply; tree matches evidence); series commit BLOCKED on the
+  t8-workgroup-size owner; upstream PR BLOCKED (no prs.py tool);
+  debugdriver hang root cause open (needs lane debug + v1 rebuild)
 
 ## §12.11 Perf pass vs W1.1 budget (§6)
 - [ ] `tools/bench` per-section evidence; per-section budget; continuous gating before beta exit

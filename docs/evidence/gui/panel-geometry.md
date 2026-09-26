@@ -134,6 +134,4 @@ Value displays use the new `RI_GEO_STEPPER` item (the owning SELECTOR's up/down 
 
 At 1× the Transport is 842 px wide, which doesn't fit an 800-px screen. For those screens there is a compact zoom (`RI_GEO_ZOOM_COMPACT` = 0.75×, 632 px). Transport legends next to the mode lever are anchored to the lever's sides so they stay clear at any font width.
 
-**Transport laws are the engine's** (`engine/seq/transport.h`, opencode §12.9a). The panel only routes clicks. Two points differ from the manual, and both are recorded here for the §12.9 owner rather than changed from the GUI side:
-1. With the song stopped, the engine's first Stop click only arms the stop sequence. The manual (p. 145) says it moves the position to the Loop Start.
-2. The manual's exception is not modelled. It says that when the position is already before the Left Locator, Stop goes to the song start.
+**Transport laws are the engine's** (`engine/seq/transport.h`, opencode §12.9a). The panel only routes clicks. CLOSED 2026-09-26 (C4): the engine now follows E1 p. 145 — first stop while stopped moves to the Loop Start, strictly before the Left Locator (= loop start) it goes to the song start instead. The arm-only first press is retired (t58 repinned, t69 observables unchanged).

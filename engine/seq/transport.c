@@ -15,16 +15,16 @@ void ri_tr_stop(struct RITransport *t, uint64_t *cursor_ticks,
         return;
     if (t->state != RI_TR_STOPPED) {
         t->state = RI_TR_STOPPED;
-        t->clicks = 1u;
-        return; /* cursor held (click 1) */
+        t->clicks = 0u;
+        return; /* cursor held (first press only stops) */
     }
     if (t->clicks == 0u) {
-        /* First stop while already STOPPED: arm only (clicks 0->1),
-        * cursor held. The visible jump comes on the 2nd press. */
+        /* E1 p. 145 (C4): first stop while STOPPED moves to the Loop
+        * Start; strictly before the Left Locator (= loop start here) it
+        * goes to the song start instead. */
+        *cursor_ticks = *cursor_ticks < loop_start_tick ? song_start_tick
+                                                        : loop_start_tick;
         t->clicks = 1u;
-    } else if (t->clicks == 1u) {
-        *cursor_ticks = loop_start_tick;
-        t->clicks = 2u;
     } else {
         *cursor_ticks = song_start_tick;
         t->clicks = 0u;
