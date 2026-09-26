@@ -1,6 +1,6 @@
 # §12.9c streaming player (m67) — per-section phase, pattern-end changeover, per-block emission
 
-**Date:** 2026-09-26. **Status:** shipped (feat `2a9d111` Task 2 + `49e362f` Task 3).
+**Date:** 2026-09-26. **Status:** shipped (feat `18d4835` Task 1 + `2a9d111` Task 2 + `49e362f` Task 3).
 **Scope:** third §12.9 slice (after m65 transport, m66 songtrack). New
 `engine/seq/player.c` (`RIPlayer`, `ri_player_block`); tests
 `tests/unit/t74_player.c`; audit wiring in `scripts/ri_audit.sh`.
@@ -51,7 +51,7 @@ deferral); spec `docs/superpowers/specs/2026-09-25-streaming-design.md`
 
 ## Gates
 
-- `t74_player` PASS (Task 2 RED-first: 11 lines failed on the stub).
+- `t74_player` PASS (Task 1 RED-first: stub init seeded nothing — first failure `t74_player.c:51` cold phase, as the plan predicted; Task 2 RED-first: 11 lines failed on the stub).
 - 9 mutants: 8 killed (a pending-sample, b/i cap-pending, c loop-phase,
   d split, f unsorted, g deferral+slot4, h corrupt), e documented above.
 - Full `ri_audit.sh` 0/0 at every slice gate (incl. AROS compile of

@@ -1,5 +1,17 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] ingest | Bare `Assign NAME:` removes the assign (lane rule from Vulkan4Aros)
+- Disposition: New (lane rule; absent from this wiki — full-text search for EXISTS/insert-volume came back empty)
+- Raw: llm-wiki/raw/articles/2026-09-24-assign-probe-removes-assign-lane-rule.md
+- Updated: llm-wiki/raw/articles/2026-09-26-streaming-player.md (Task-1 `18d4835` provenance was unnamed); llm-wiki/index.md (Lane infrastructure entry)
+Triaged the 2026-09-24/25 Vulkan4Aros lane findings against this wiki: e1000 Tx-pool fix + Dell ATCPBIN deploy, 32 KB send cap, session-13 wedge correction, DH0/Run QUIET/routes, aros_v1j rtl8139 switch — all already recorded here (No material). Lavapipe/CTS/juggler items are a different domain (No material).
+
+## [2026-09-26] ingest | §12.10 G8 handoff to opencode
+- Disposition: New (handoff record)
+- Raw: llm-wiki/raw/articles/2026-09-26-g8-handoff-opencode.md
+- Updated: llm-wiki/index.md (GUI (§12.10) entry)
+G8 scope + carry-overs C1–C4 + open owner decisions, as handed to opencode.
+
 ## [2026-09-26] ingest | §12.9c streaming player (m67)
 - Disposition: New (slice record)
 - Raw: llm-wiki/raw/articles/2026-09-26-streaming-player.md
