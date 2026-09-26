@@ -128,6 +128,8 @@ x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/audio.c" -o "$OUT/aros/audio_aros.
 x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/backend_null.c" -o "$OUT/aros/backend_null_aros.o" || { echo "FAIL: backend_null.c AROS compile"; exit 1; }
 x86_64-aros-gcc $CFLAGS_AU -fasm -c "$ROOT/audio_io/audio_ahi.c" -o "$OUT/aros/audio_ahi_aros.o" || { echo "FAIL: audio_ahi.c AROS compile"; exit 1; }
 x86_64-aros-gcc $CFLAGS_AU -fasm -c "$ROOT/audio_io/audio_ahi_play.c" -o "$OUT/aros/audio_ahi_play_aros.o" || { echo "FAIL: audio_ahi_play.c AROS compile"; exit 1; }
+x86_64-aros-gcc $CFLAGS_AU -fasm -c "$ROOT/audio_io/audio_ahi_live.c" -o "$OUT/aros/audio_ahi_live_aros.o" || { echo "FAIL: audio_ahi_live.c AROS compile"; exit 1; }
+x86_64-aros-gcc $CFLAGS_AU -fasm -c "$ROOT/app/riapp.c" -o "$OUT/aros/riapp_aros.o" || { echo "FAIL: app/riapp.c AROS compile"; exit 1; }
 for adecl in "int AuPlay(struct AudioObject \*ao);" \
   "int AuPlayEx(struct AudioObject \*ao, const volatile int \*stop);"; do
   grep -q "$adecl" "$ROOT/audio_io/audio_ahi.h" || { echo "FAIL: audio_ahi.h lacks: $adecl"; exit 1; }
@@ -385,12 +387,12 @@ grep -q "Tester:" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: accep
 test -f "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
 grep -q "FAIL" "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: RED evidence has no FAIL lines"; exit 1; }
 echo "-- AROS-only shells guarded + out of host build --"
-for f in gui/widgets/rknb.mcc.c gui/widgets/rknb.h gui/widgets/rlbl.mcc.c gui/widgets/rlbl.h gui/widgets/rstp.mcc.c gui/widgets/rstp.h gui/widgets/rfdr.mcc.c gui/widgets/rlvl.mcc.c gui/knob_blit.c app/main.c app/panel909.c app/knobproof.c app/stepproof.c gui/widgets/rsection.mcc.c gui/skin_aros.c gui/skin_aros.h app/sectproof.c app/midisend.c; do
+for f in gui/widgets/rknb.mcc.c gui/widgets/rknb.h gui/widgets/rlbl.mcc.c gui/widgets/rlbl.h gui/widgets/rstp.mcc.c gui/widgets/rstp.h gui/widgets/rfdr.mcc.c gui/widgets/rlvl.mcc.c gui/knob_blit.c app/main.c app/panel909.c app/knobproof.c app/stepproof.c gui/widgets/rsection.mcc.c gui/skin_aros.c gui/skin_aros.h app/sectproof.c app/midisend.c audio_io/audio_ahi_live.c audio_io/audio_ahi_live.h app/riapp.c; do
   test -f "$ROOT/$f" || { echo "FAIL: missing $f"; exit 1; }
   grep -q "#ifndef __AROS__" "$ROOT/$f" || { echo "FAIL: $f lacks __AROS__ guard"; exit 1; }
   grep -q '#error ".*AROS-only' "$ROOT/$f" || { echo "FAIL: $f lacks AROS-only #error"; exit 1; }
 done
-if grep -rn "widgets\|app/main\|app/panel909\|knob_blit\|app/knobproof" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS shells leak into host build"; exit 1; fi
+if grep -rn "widgets\|app/main\|app/panel909\|knob_blit\|app/knobproof\|app/riapp\|audio_ahi_live" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS shells leak into host build"; exit 1; fi
 grep -q "Numeric → Knob" "$ROOT/gui/widgets/rknb.mcc.c" || { echo "FAIL: rknb lacks reuse note"; exit 1; }
 echo "-- AROS compile of GUI TUs (compile-only, no link) --"
 if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
@@ -413,6 +415,8 @@ x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/knob_blit.c" -o "$OUT/aros/knob_blit_a
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/knobproof.c" -o "$OUT/aros/app_knobproof_aros.o" || { echo "FAIL: app/knobproof.c AROS compile"; exit 1; }
 echo "-- AROS RISECT/MIDISEND link (all GUI TUs incl. G8 skins, C1) --"
 bash "$ROOT/scripts/ri_build_aros.sh" sections >/dev/null || { echo "FAIL: AROS sections link (GUI TUs)"; exit 1; }
+echo "-- AROS RIAPP link (G9 live shell: session + control + AHI task) --"
+bash "$ROOT/scripts/ri_build_aros.sh" riapp >/dev/null || { echo "FAIL: AROS RIAPP link"; exit 1; }
 echo "== Phase 13: formats full + MIDI + automation + ARexx + datatypes + fuzz (Task 13, gate G13) =="
 T13=/tmp/ri/run/audit13
 mkdir -p "$T13/c1" "$T13/c2" "$T13/rs" "$T13/regen"

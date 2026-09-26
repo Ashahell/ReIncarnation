@@ -70,3 +70,20 @@ if [ "${1:-}" = sections ]; then
   test "$(objdump -d "$OUT/MIDISEND" | grep -c 'mov    %rax,%r12')" = 0 || { echo "FAIL: MIDISEND r12 base moves (v1)"; exit 1; }
   echo "AROS MIDISEND BUILD OK ($(stat -c%s "$OUT/MIDISEND") bytes)"
 fi
+# G9.3/G9.4 (2026-09-26, §12.11 G9): `ri_build_aros.sh riapp` links RIAPP,
+# the live-application shell (live session + control plane + low-level AHI
+# backend structure). Gates: 0 unresolved, 0 r12 moves (v1).
+if [ "${1:-}" = riapp ]; then
+  O9="$OUT/riapp"; mkdir -p "$O9"
+  CF9="$CFLAGS_AROS -Werror -fno-stack-protector -I$ROOT -DPCF_TABLE_VERIFIED=1"
+  OBJS9=""
+  for f in app/riapp.c audio_io/audio_ahi_live.c engine/engine.c engine/live.c engine/seq/clock.c engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c engine/seq/pattern.c engine/seq/pattern_emit.c engine/seq/transport.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c engine/seq/ctlplane.c engine/dsp/kernels.c engine/dsp/rb303.c engine/dsp/params.c engine/dsp/rb808.c engine/dsp/rb909.c engine/fx/fx.c engine/fx/route.c engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c project/sha256.c; do
+    x86_64-aros-gcc $CF9 -c "$ROOT/$f" -o "$O9/$(basename "$f" .c).o"
+    OBJS9="$OBJS9 $O9/$(basename "$f" .c).o"
+  done
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/RIAPP" $OBJS9 "${STARTUP[@]}" \
+    -L "$SHIM" -L "$SDK/../lib" -lamiga -lposixc -lstdcio -lintuition -lgraphics -lutility -ldos -lexec -lautoinit
+  test "$(x86_64-aros-readelf -s "$OUT/RIAPP" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: RIAPP unresolved"; exit 1; }
+  test "$(objdump -d "$OUT/RIAPP" | grep -c 'mov    %rax,%r12')" = 0 || { echo "FAIL: RIAPP r12 base moves (v1)"; exit 1; }
+  echo "AROS RIAPP BUILD OK ($(stat -c%s "$OUT/RIAPP") bytes)"
+fi
