@@ -92,6 +92,11 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   lane matrix `docs/evidence/gui/zoom-g82.md` (303/808 x4, mix/fx/tr,
   808-RI x4 — crisp everywhere; compact legend crowding noted for owner;
   true drags need a human hand)
+- C1 audit wiring DONE 2026-09-26 (commit [§12.10 G8]): Phase 12 runs
+  t60-t73 + t75-t76 (t74 stays in its engine phase), RICtlDef/RI_SEC_NAMES
+  single-source grep gates, AROS-only guard list + `ri_build_aros.sh
+  sections` link gate; each gate mutant-proven (t76 factor in full audit,
+  stray table file, broken TU)
 
 ## §12.11 Perf pass vs W1.1 budget (§6)
 - [ ] `tools/bench` per-section evidence; per-section budget; continuous gating before beta exit

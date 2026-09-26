@@ -351,6 +351,13 @@ bash "$ROOT/scripts/ri_build_host.sh" test t29_paneldefault >/dev/null || { echo
 bash "$ROOT/scripts/ri_build_host.sh" test t29_chase >/dev/null || { echo "FAIL: t29_chase (TC-2.9.3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t29_layout >/dev/null || { echo "FAIL: t29_layout (TC-2.9.1)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t29_knobart >/dev/null || { echo "FAIL: t29_knobart (TC-2.9.2)"; exit 1; }
+echo "-- GUI phases G1-G8 host tests (C1 audit wiring: t60-t73 + t75-t76) --"
+for t in t60_ctlreg t61_panelgeo t62_sect303 t63_sect808 t64_sectui t65_sect909 t66_sectmix t67_sectfx t68_sectpat t69_secttr t70_keymap t71_panelui t72_livestate t73_midimap t75_skin t76_zoom; do
+  bash "$ROOT/scripts/ri_build_host.sh" test $t >/dev/null || { echo "FAIL: $t (GUI phase)"; exit 1; }
+done
+echo "-- GUI registry single-source: legends live in ctlreg.c only (C1) --"
+if grep -rn "struct RICtlDef [A-Za-z_][A-Za-z0-9_]*\[" "$ROOT/gui" "$ROOT/app" 2>/dev/null | grep -v "gui/ctlreg.c"; then echo "FAIL: RICtlDef table outside ctlreg.c"; exit 1; fi
+if grep -rln "RI_SEC_NAMES" "$ROOT/gui" "$ROOT/app" "$ROOT/tests" 2>/dev/null | grep -v "gui/ctlreg.c"; then echo "FAIL: section names outside ctlreg.c"; exit 1; fi
 test -f "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: missing gui acceptance"; exit 1; }
 grep -q -- "- \[ \]" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance has no checkable boxes"; exit 1; }
 grep -q "P-18" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks P-18"; exit 1; }
@@ -361,7 +368,7 @@ grep -q "Tester:" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: accep
 test -f "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
 grep -q "FAIL" "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: RED evidence has no FAIL lines"; exit 1; }
 echo "-- AROS-only shells guarded + out of host build --"
-for f in gui/widgets/rknb.mcc.c gui/widgets/rknb.h gui/widgets/rlbl.mcc.c gui/widgets/rlbl.h gui/widgets/rstp.mcc.c gui/widgets/rstp.h gui/widgets/rfdr.mcc.c gui/widgets/rlvl.mcc.c gui/knob_blit.c app/main.c app/panel909.c app/knobproof.c app/stepproof.c; do
+for f in gui/widgets/rknb.mcc.c gui/widgets/rknb.h gui/widgets/rlbl.mcc.c gui/widgets/rlbl.h gui/widgets/rstp.mcc.c gui/widgets/rstp.h gui/widgets/rfdr.mcc.c gui/widgets/rlvl.mcc.c gui/knob_blit.c app/main.c app/panel909.c app/knobproof.c app/stepproof.c gui/widgets/rsection.mcc.c gui/skin_aros.c gui/skin_aros.h app/sectproof.c app/midisend.c; do
   test -f "$ROOT/$f" || { echo "FAIL: missing $f"; exit 1; }
   grep -q "#ifndef __AROS__" "$ROOT/$f" || { echo "FAIL: $f lacks __AROS__ guard"; exit 1; }
   grep -q '#error ".*AROS-only' "$ROOT/$f" || { echo "FAIL: $f lacks AROS-only #error"; exit 1; }
@@ -387,6 +394,8 @@ x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/main.c" -o "$OUT/aros/app_main_aros.o"
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/panel909.c" -o "$OUT/aros/app_panel909_aros.o" || { echo "FAIL: app/panel909.c AROS compile"; exit 1; }
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/knob_blit.c" -o "$OUT/aros/knob_blit_aros.o" || { echo "FAIL: gui/knob_blit.c AROS compile"; exit 1; }
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/knobproof.c" -o "$OUT/aros/app_knobproof_aros.o" || { echo "FAIL: app/knobproof.c AROS compile"; exit 1; }
+echo "-- AROS RISECT/MIDISEND link (all GUI TUs incl. G8 skins, C1) --"
+bash "$ROOT/scripts/ri_build_aros.sh" sections >/dev/null || { echo "FAIL: AROS sections link (GUI TUs)"; exit 1; }
 echo "== Phase 13: formats full + MIDI + automation + ARexx + datatypes + fuzz (Task 13, gate G13) =="
 T13=/tmp/ri/run/audit13
 mkdir -p "$T13/c1" "$T13/c2" "$T13/rs" "$T13/regen"
