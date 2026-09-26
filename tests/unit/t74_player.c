@@ -350,6 +350,41 @@ int main(void) {
             }
             RI_ASSERT(bad == 0u, "split diverges in %u events", bad);
         }
+        /* R4 START-carry: a flip to a different slot zeroes the carry;
+         * persisting END-carry misties the seam. New occurrence [384,768)
+         * ends tied (slide at step 15 with the gate held); piece A ends
+         * mid-occurrence at 400, so writeback persists cin (zero) vs
+         * last_cout (held) — piece B must resume untied. */
+        {
+            struct RIPlayer pw, ps;
+            struct RIEvent ew[256], es[256];
+            struct RISongTrack trc;
+            static const uint64_t TS2[3] = { 0u, 400u, 768u };
+            uint32_t nw, off = 0u, q, bad = 0u;
+            ri_p303_set(&BB.pat[1], 0u, 8u, 0u);
+            ri_p303_set(&BB.pat[1], 2u, 4u, 0u);
+            ri_p303_set(&BB.pat[1], 14u, 8u, 0u);
+            ri_p303_set(&BB.pat[1], 15u, 8u, (uint8_t)RI_STEP_SLIDE);
+            ri_track_init(&trc);
+            ri_track_capture(&trc, 1u, 1u, 1u); /* dev1 flips 0->1 at bar 1 */
+            ri_player_init(&pw, c4, &trc, 0u);
+            nw = ri_player_block(&pw, &trc, 0, &MAP, 96u, 0u, 2u * bar, ew, 256u);
+            ri_player_init(&ps, c4, &trc, 0u);
+            for (q = 0u; q < 2u; q++) {
+                uint32_t nq;
+                nq = ri_player_block(&ps, &trc, 0, &MAP, 96u, TS2[q], TS2[q + 1u],
+                    es + off, (uint32_t)(256u - off));
+                off += nq;
+            }
+            RI_ASSERT(off == nw, "carry split count %u vs whole %u", off, nw);
+            for (k = 0u; k < nw && k < off; k++) {
+                if (es[k].sample != ew[k].sample || es[k].type != ew[k].type ||
+                    es[k].device != ew[k].device || es[k].voice != ew[k].voice ||
+                    es[k].value != ew[k].value || es[k].flags != ew[k].flags)
+                    bad++;
+            }
+            RI_ASSERT(bad == 0u, "carry split diverges in %u events", bad);
+        }
         /* Loop wrap: loop [4,6); window bars 0..8. R-LOOPWIN: folded bar 5
          * carries slot 3 (bar 8's downbeat opens the next block under
          * strict interior, so the last sampled fold is 7->5). Pending
