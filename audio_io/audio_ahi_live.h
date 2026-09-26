@@ -7,7 +7,7 @@
  * queues it (AHI_SetSound, AHISF_NONE). Late buffers are counted as xruns
  * (AHI repeats the last buffer: audible glitch, never a hang — §17 #5).
  * The GUI never touches the session's render state: transport requests and
- * knob moves travel as a volatile request word and the SPSC control plane.
+ * knob moves travel as the driver request word and the SPSC control plane.
  */
 #ifndef RI_AUDIO_AHI_LIVE_H
 #define RI_AUDIO_AHI_LIVE_H
@@ -18,6 +18,7 @@
 
 #include <exec/types.h>
 #include "platform/pal/ri_pal_thread.h"
+#include "app/core/live_driver.h"
 
 struct RILiveSession; /* engine/live.h (opaque here) */
 
@@ -26,29 +27,27 @@ struct RILiveSession; /* engine/live.h (opaque here) */
 #define AU_LIVE_CMD_PLAY 1
 #define AU_LIVE_CMD_STOP 2
 
-/* One live backend (one per process). Fields marked (out) are written by
- * the render task and read by the GUI (word-sized, read-only there). */
+/* One live backend (one per process). Render policy (double buffer,
+ * conversion, xruns, transport word, capture) lives in drv (T4: the
+ * portable live driver); this struct keeps AHI/config/handoff state.
+ * Fields marked (out) are written by the render task and read by the GUI
+ * (word-sized, read-only there). */
 struct AuLive {
     ULONG frames;              /* device buffer, 64..AU_LIVE_MAXFRAMES */
     ULONG want_rate;           /* requested mix rate */
     ULONG mix_freq;            /* (out) negotiated mix rate: run the session at this */
     ULONG mode_id;             /* (out) AHI audio mode */
-    ri_atomic_u32 xruns;      /* (out) late buffers (AHI repeated one) */
-    ri_atomic_u32 buffers;    /* (out) buffers rendered */
-    ri_atomic_u32 render_us_max; /* (out) slowest buffer render, microseconds (EClock) */
-    ri_atomic_u32 render_us_sum_ms; /* (out) total render time, milliseconds */
+    struct RILiveDriver drv;   /* (out) portable render policy + counters */
     ULONG period_us;           /* (out) device period frames/mix_freq, microseconds */
-    ri_atomic_u32 cmd;         /* GUI -> task transport request (AU_LIVE_CMD_*) */
     ri_atomic_u32 state;       /* 0 idle, 1 negotiated, 2 playing, -1 failed, 3 ended */
     LONG err;                  /* failure step (1 port, 2 device, 3 mode, 4 alloc, 5 load, 6 task, 7 open timeout) */
     struct RILiveSession *session; /* set by au_live_run */
-    /* Capture (RIAPP 'W'): the task copies each rendered s16 half here
-     * while cap_on; the GUI owns the buffer and writes the WAV after
-     * turning cap_on off (no file IO in the render task). */
+    /* Capture (RIAPP 'W'): drv.cap_buf points here once the GUI allocates
+     * it; the task copies each rendered s16 half while cap_on. The GUI owns
+     * the buffer and writes the WAV after turning cap_on off (no file IO
+     * in the render task). */
     WORD *cap_buf;             /* interleaved stereo s16, GUI-allocated */
     ULONG cap_max;             /* capacity, frames */
-    ri_atomic_u32 cap_pos;    /* frames captured */
-    ri_atomic_u32 cap_on;
 };
 
 /* Spawn the render task, open ahi.device (AHI_NO_UNIT, device-as-library),
@@ -68,15 +67,5 @@ int au_live_run(struct AuLive *lv, struct RILiveSession *s);
 void au_live_request(struct AuLive *lv, LONG cmd);
 /* Stop the stream, free AHI, end the task; safe after a failed open. */
 void au_live_close(struct AuLive *lv);
-
-/* Deterministic f32 -> s16 twin of auf_f32_to_s16 (audio.c): clamp,
- * round-half-away, no libm. */
-static inline WORD au_live_f32_to_s16(float x) {
-    float c = (x > 1.0f) ? 1.0f : ((x < -1.0f) ? -1.0f : x);
-    float s = c * 32767.0f;
-    if (s >= 0.0f)
-        return (WORD)(s + 0.5f);
-    return (WORD)(s - 0.5f);
-}
 
 #endif

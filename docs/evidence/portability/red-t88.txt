@@ -1,0 +1,7 @@
+T4 RED (portable live driver before wiring):
+- tests/unit/t88_live_driver.c includes app/core/live_driver.h: no such file
+  (link RED once stubbed: `undefined reference to ri_livedrv_render`
+  before MOD_core existed in ri_build_host.sh).
+- tests/unit/t90_pal_audio_null.c includes platform/pal/ri_pal_audio.h: no
+  such file before the T4 scaffolding landed.
+GREEN provides the driver, the null backend and both tests.

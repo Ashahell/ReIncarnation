@@ -8,8 +8,8 @@
  * (AHI_SetSound ... AHISF_NONE: plays when the current one ends). A late
  * task means AHI loops the last queued half: counted as an xrun, never a
  * hang. The task owns every AHI object from open to free (one owner, one
- * thread), and it is the only caller of ri_live_render / ri_live_play /
- * ri_live_stop — the GUI talks to it through lv->cmd and the SPSC control
+ * thread), and it is the only renderer through the portable driver — the
+ * GUI talks to it through the driver request word and the SPSC control
  * plane only.
  *
  * Storage: static (one backend per process), sized once; nothing is
@@ -53,7 +53,6 @@ static struct Task *s_render;
 static ri_atomic_u32 s_open_gen;
 #define AU_LIVE_OPEN_TIMEOUT_S 10u
 static ri_atomic_u32 s_hook_count;
-static unsigned long long s_render_us_acc;
 static ULONG s_hook_mask;
 static struct Hook s_sound_hook;
 static WORD s_pcm[2][AU_LIVE_MAXFRAMES * 2u];
@@ -86,50 +85,24 @@ static void tell_parent(void) {
         Signal(s_parent, 1UL << s_parent_sig);
 }
 
-/* Render one half: apply the GUI's transport request first (buffer
- * boundary), then one device buffer through the session, then s16. */
+static ULONG s_efreq; /* EClock ticks/sec (task side, cached at entry) */
+
+/* Backend clock for the portable driver (T4): EClock microseconds. */
+static uint64_t aros_now_us(void) {
+    struct EClockVal t;
+    if (!TimerBase || !s_efreq)
+        return 0u;
+    ReadEClock(&t);
+    return ((uint64_t)t.ev_hi << 32 | (uint64_t)t.ev_lo) * 1000000ULL / s_efreq;
+}
+
+/* Render one half through the portable driver (T4): transport at the
+ * buffer boundary, one device buffer through the session, s16 halves,
+ * capture and timing inside the driver. */
 static void render_half(struct AuLive *lv, ULONG half) {
-    ULONG i, got;
-    LONG cmd = (LONG)ri_atomic_load_acq(&lv->cmd);
-    if (cmd != AU_LIVE_CMD_NONE) {
-        ri_atomic_store_rel(&lv->cmd, (uint32_t)AU_LIVE_CMD_NONE);
-        if (cmd == AU_LIVE_CMD_PLAY)
-            ri_live_play(lv->session);
-        else if (cmd == AU_LIVE_CMD_STOP)
-            ri_live_stop(lv->session);
-    }
-    struct EClockVal t0, t1;
-    ULONG efreq = 0u;
-    if (TimerBase)
-        efreq = ReadEClock(&t0);
-    got = ri_live_render(lv->session, s_fl, s_fr, lv->frames);
-    for (i = got; i < lv->frames; i++)
-        s_fl[i] = s_fr[i] = 0.0f;
-    for (i = 0u; i < lv->frames; i++) {
-        s_pcm[half][i * 2u] = au_live_f32_to_s16(s_fl[i]);
-        s_pcm[half][i * 2u + 1u] = au_live_f32_to_s16(s_fr[i]);
-    }
-    if (ri_atomic_load_acq(&lv->cap_on) && lv->cap_buf) { /* bounded copy, no IO */
-        ULONG n = lv->frames, pos = ri_atomic_load_acq(&lv->cap_pos), k;
-        if (n > lv->cap_max - pos)
-            n = lv->cap_max - pos;
-        for (k = 0u; k < n * 2u; k++)
-            lv->cap_buf[pos * 2u + k] = s_pcm[half][k];
-        ri_atomic_store_rel(&lv->cap_pos, pos + n);
-        if (ri_atomic_load_acq(&lv->cap_pos) >= lv->cap_max)
-            ri_atomic_store_rel(&lv->cap_on, 0u);
-    }
-    if (TimerBase && efreq) {
-        unsigned long long a = ((unsigned long long)t0.ev_hi << 32) | t0.ev_lo, b, us;
-        ReadEClock(&t1);
-        b = ((unsigned long long)t1.ev_hi << 32) | t1.ev_lo;
-        us = (b - a) * 1000000ULL / efreq;
-        if (us > ri_atomic_load_acq(&lv->render_us_max))
-            ri_atomic_store_rel(&lv->render_us_max, (uint32_t)us);
-        s_render_us_acc += us;
-        ri_atomic_store_rel(&lv->render_us_sum_ms, (uint32_t)(s_render_us_acc / 1000ULL));
-    }
-    ri_atomic_fetch_add_rel(&lv->buffers, 1u);
+    if (!lv || half > 1u)
+        return;
+    ri_livedrv_render(&lv->drv, (int16_t *)s_pcm[half], s_fl, s_fr, lv->frames);
 }
 
 static void live_task(void) {
@@ -155,8 +128,11 @@ static void live_task(void) {
     tport = CreateMsgPort(); /* EClock only; timing is optional */
     if (tport)
         treq = (struct timerequest *)CreateIORequest(tport, sizeof(struct timerequest));
-    if (treq && OpenDevice((STRPTR)"timer.device", UNIT_ECLOCK, (struct IORequest *)treq, 0) == 0)
+    if (treq && OpenDevice((STRPTR)"timer.device", UNIT_ECLOCK, (struct IORequest *)treq, 0) == 0) {
+        struct EClockVal t0;
         TimerBase = treq->tr_node.io_Device;
+        s_efreq = ReadEClock(&t0); /* cached for aros_now_us (T4) */
+    }
     port = CreateMsgPort();
     if (port)
         req = (struct AHIRequest *)CreateIORequest(port, sizeof(struct AHIRequest));
@@ -274,7 +250,7 @@ static void live_task(void) {
             processed = 1u;
         }
         if (n - processed > 1u)
-            ri_atomic_fetch_add_rel(&lv->xruns, n - processed - 1u); /* AHI looped a half: late */
+            ri_livedrv_report_late(&lv->drv, n - processed - 1u); /* AHI looped a half: late */
         processed = n;
         /* the most recently queued half is the one now playing */
         free_half = queued ^ 1u;
@@ -341,22 +317,15 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
     lv->want_rate = want_rate;
     lv->mix_freq = 0u;
     lv->mode_id = 0u;
-    lv->xruns.v = 0u;
-    lv->buffers.v = 0u;
-    lv->render_us_max.v = 0u;
-    lv->render_us_sum_ms.v = 0u;
+    ri_livedrv_init(&lv->drv, NULL, frames, aros_now_us);
     lv->period_us = 0u;
-    s_render_us_acc = 0u;
-    lv->cmd.v = (uint32_t)AU_LIVE_CMD_NONE;
     lv->cap_buf = NULL;
     lv->cap_max = 0u;
-    lv->cap_pos.v = 0u;
-    lv->cap_on.v = 0u;
     lv->state.v = 0u;
     /* Init happens on the GUI task before the render task exists;
      * plain stores are safe here (no concurrent reader yet). Shared
-     * updates after spawn go through acquire/release (see render_half,
-     * live_task, au_live_request/close). */
+     * updates after spawn go through acquire/release (see the portable
+     * driver, live_task, au_live_request/close). */
     lv->err = 0;
     lv->session = NULL;
     s_parent = FindTask(NULL);
@@ -435,6 +404,9 @@ int au_live_run(struct AuLive *lv, struct RILiveSession *s) {
     if (!lv || lv != s_lv || (LONG)ri_atomic_load_acq(&lv->state) != 1 || !s || !s_render)
         return 2;
     lv->session = s;
+    lv->drv.session = s;
+    lv->drv.cap_buf = lv->cap_buf;
+    lv->drv.cap_max = lv->cap_max;
     Signal(s_render, SIGBREAKF_CTRL_E);
     wait_state(lv, 1);
     return (LONG)ri_atomic_load_acq(&lv->state) == 2 ? 0 : 3;
@@ -442,7 +414,7 @@ int au_live_run(struct AuLive *lv, struct RILiveSession *s) {
 
 void au_live_request(struct AuLive *lv, LONG cmd) {
     if (lv)
-        ri_atomic_store_rel(&lv->cmd, (uint32_t)cmd);
+        ri_livedrv_request(&lv->drv, (int)cmd);
 }
 
 void au_live_close(struct AuLive *lv) {
