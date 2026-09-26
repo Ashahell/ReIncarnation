@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-26] Task 3 | §12.9c streaming emission (merge/cap/split/loop/end + R4 carry)
+- Disposition: New (slice record; supersedes the m67 mutant tally)
+- Raw: llm-wiki/raw/articles/2026-09-26-streaming-emission-task3.md
+- Updated: llm-wiki/index.md (mutant tally 9/9)
+Tests-only commit `07cc95b` (production complete in Task 2); mutant (e) killed via dedicated START-carry scope (R-CARRY-SCOPE); full audit 0/0.
+
 ## [2026-09-26] ingest | §12.10 G8 complete code-side (skins, zoom, acceptance, C1–C4)
 - Disposition: New (completion record)
 - Raw: llm-wiki/raw/articles/2026-09-26-g81-g84-skins-zoom-acceptance-carryovers.md

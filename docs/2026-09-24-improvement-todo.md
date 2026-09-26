@@ -61,7 +61,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   section mask meanwhile)
 - [x] Pattern banks/lengths (per-instance model + Edit ops + emit) + RBNG chunk plan (v1.1 BANK) (m63)
 - [x] 4 sections (engine 808/909 hosting: sets, event consumption, AC stamp, 909 bind) (m64)
-- [ ] Shuffle flags (OPEN); streaming emission (m67 §12.9c); song track (m66)
+- [ ] Shuffle flags (OPEN); [x] streaming emission (m67 §12.9c); [x] song track (m66)
 
 ## §12.8 FX routing + parity + PCF envelope (§3.2, §4.4)
 - [x] Delay beats-honoring + caller-owned lines + tap slew + live-rate comp + pool retired (m56)
