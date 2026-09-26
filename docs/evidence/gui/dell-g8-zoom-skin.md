@@ -34,3 +34,26 @@
 ## Not covered
 - Mouse drag: no lane injects mouse drags.
 - Pixel-exact crispness: agent captures are 1/2 scale only, because full scale is refused at 1366x768.
+
+## Owner pass, one section at a time (Dell, 1x, same day)
+Each section was left open for the owner, fixed where asked, and redeployed.
+
+- **303:**
+  - The keyboard block's left rim was hidden under the first white key. The block is now 176..858 Q, so every side has the same 8 Q rim.
+  - Pitch Mode and Clear (buttons, LED, legends) moved 20 Q left, so the device-font legend clears the rim.
+  - Everything right of the keys (Down/Up/Accent/Slide, their label strip, Note/Pause and its LEDs) moved 20 Q right.
+  - Approved.
+- **808:**
+  - Knob drags flickered, because every change repainted the whole panel straight into the window. The canvas now paints into an off-screen friend bitmap and blits it once; it falls back to direct painting if the bitmap cannot be allocated. The owner confirmed the flicker is gone. This applies to every section.
+  - New bubble help: `ri_ctlreg_help()` (pure, t60) plus a Zune `MUIM_CreateShortHelp`. Instrument buttons show "Bass Drum (BD)"; grouped knobs show "Bass Drum: Tone" (manual p. 148/151 names).
+  - Tone vs Tune, and knobs present only on some instruments, match p. 37/148.
+  - Approved.
+- **909:**
+  - The CP Level, CH/OH Decay and CC Level legends drew white: the 303 Down..Slide inverse-legend rule matched the same indices in every non-808 section. It is now scoped to the 303, as is the EDIT STEP legend rule.
+  - The bottom rule now starts at the AC divider, so it no longer crosses FLAM.
+  - Approved.
+- **Mixers:**
+  - The Master block is raised to the strips' 464 Q height (t61), with content top-aligned.
+  - The agent dropped once during a screen capture (connection reset), and the owner rebooted the box.
+  - Approved.
+- **FX, Transport:** approved as is.

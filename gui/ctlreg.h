@@ -75,6 +75,12 @@ struct RICtlDef {
 };
 
 uint32_t ri_ctlreg_count(void);
+/* Bubble help (owner, Dell 2026-09-26): full instrument names for the 808 /
+ * 909 abbreviations (Owner's Manual p. 148 / p. 151 tables). Instrument
+ * Selection options give "Bass Drum (BD)"; a grouped control gives
+ * "Bass Drum: Tone". Writes a NUL-terminated string into buf; returns its
+ * length, 0 when the control has no help (buf then holds ""). */
+uint32_t ri_ctlreg_help(uint16_t reg_id, int opt, char *buf, uint32_t cap);
 const struct RICtlDef *ri_ctlreg_at(uint32_t i);           /* NULL out of range */
 const struct RICtlDef *ri_ctlreg_find(uint16_t reg_id);    /* NULL if unknown */
 const struct RICtlDef *ri_ctlreg_by_cc(uint8_t cc);        /* NULL if unmapped */

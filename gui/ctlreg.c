@@ -19,6 +19,7 @@
  * Append-only: never reorder rows inside a section (reg_id is the index).
  */
 #include "gui/ctlreg.h"
+#include <string.h>
 #include "engine/dsp/rb303.h"
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
@@ -327,4 +328,57 @@ uint32_t ri_ctlreg_section_count(uint32_t section, uint32_t *bound) {
     if (bound)
         *bound = b;
     return n;
+}
+
+/* Instrument names, Owner's Manual p. 148 (808) and p. 151 (909), in
+ * Instrument Selection order. Shared 808 slots name both sounds (p. 149). */
+struct RICtlName { const char *abbr, *name; };
+static const struct RICtlName RI_NAMES_808[12] = {
+    { "AC", "Accent" }, { "BD", "Bass Drum" }, { "SD", "Snare Drum" },
+    { "LT", "Low Tom / Low Conga" }, { "MT", "Middle Tom / Middle Conga" },
+    { "HT", "High Tom / High Conga" }, { "RS", "Rim Shot / Claves" },
+    { "CP", "Hand Claps / Maracas" }, { "CB", "Cowbell" }, { "CY", "Cymbal" },
+    { "OH", "Open Hi-hat" }, { "CH", "Closed Hi-hat" }
+};
+static const struct RICtlName RI_NAMES_909[13] = {
+    { "AC", "Accent" }, { "BD", "Bass Drum" }, { "SD", "Snare Drum" },
+    { "LT", "Low Tom" }, { "MT", "Middle Tom" }, { "HT", "High Tom" },
+    { "RS", "Rim Shot" }, { "CP", "Hand Claps" }, { "CH", "Closed Hi-hat" },
+    { "OH", "Open Hi-hat" }, { "CC", "Crash Cymbal" }, { "RC", "Ride Cymbal" },
+    { "HH", "Hi-hats (CH + OH)" } /* shared Level knob (p. 151), not selectable */
+};
+
+static uint32_t help_put(char *buf, uint32_t cap, uint32_t at, const char *t) {
+    while (*t && at + 1u < cap)
+        buf[at++] = *t++;
+    buf[at] = 0;
+    return at;
+}
+
+uint32_t ri_ctlreg_help(uint16_t reg_id, int opt, char *buf, uint32_t cap) {
+    const struct RICtlDef *d = ri_ctlreg_find(reg_id);
+    const struct RICtlName *t;
+    uint32_t n, k, at;
+    if (!buf || !cap)
+        return 0;
+    buf[0] = 0;
+    if (!d || (d->section != RI_SEC_808 && d->section != RI_SEC_909))
+        return 0;
+    t = d->section == RI_SEC_808 ? RI_NAMES_808 : RI_NAMES_909;
+    n = d->section == RI_SEC_808 ? 12u : 13u;
+    if (d->kind == RI_CK_SELECTOR && !d->group[0]) { /* Instrument Selection */
+        if (opt < 0 || opt > 11)
+            return 0;
+        at = help_put(buf, cap, 0, t[opt].name);
+        at = help_put(buf, cap, at, " (");
+        at = help_put(buf, cap, at, t[opt].abbr);
+        return help_put(buf, cap, at, ")");
+    }
+    for (k = 0; k < n; k++)
+        if (!strcmp(d->group, t[k].abbr)) {
+            at = help_put(buf, cap, 0, t[k].name);
+            at = help_put(buf, cap, at, ": ");
+            return help_put(buf, cap, at, d->legend);
+        }
+    return 0;
 }

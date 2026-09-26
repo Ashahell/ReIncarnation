@@ -179,6 +179,36 @@ int main(void) {
     RI_ASSERT(find_leg(RI_SEC_909, "CC", "Tune")->voice == RB909_CR, "909 CC -> RB909_CR");
     RI_ASSERT(find_leg(RI_SEC_909, "CH", "Decay")->voice == RB909_CH, "909 CH decay voice");
     RI_ASSERT(find_leg(RI_SEC_808, "SD", "Tone")->engine_id == RI_CTL_808_TUNE, "808 SD Tone = body pitch");
+    { /* bubble help: p. 148 / p. 151 names */
+        char b[64];
+        const struct RICtlDef *sel8 = find_leg(RI_SEC_808, "", "Instrument Selection");
+        const struct RICtlDef *sel9 = find_leg(RI_SEC_909, "", "Instrument Selection");
+        RI_ASSERT(ri_ctlreg_help(sel8->reg_id, 1, b, sizeof b) > 0 && !strcmp(b, "Bass Drum (BD)"), "808 BD help '%s'", b);
+        ri_ctlreg_help(sel8->reg_id, 0, b, sizeof b);
+        RI_ASSERT(!strcmp(b, "Accent (AC)"), "808 AC help '%s'", b);
+        ri_ctlreg_help(sel8->reg_id, 3, b, sizeof b);
+        RI_ASSERT(!strcmp(b, "Low Tom / Low Conga (LT)"), "808 LT help '%s'", b);
+        ri_ctlreg_help(sel8->reg_id, 11, b, sizeof b);
+        RI_ASSERT(!strcmp(b, "Closed Hi-hat (CH)"), "808 CH help '%s'", b);
+        ri_ctlreg_help(sel9->reg_id, 10, b, sizeof b);
+        RI_ASSERT(!strcmp(b, "Crash Cymbal (CC)"), "909 CC help '%s'", b);
+        ri_ctlreg_help(sel9->reg_id, 11, b, sizeof b);
+        RI_ASSERT(!strcmp(b, "Ride Cymbal (RC)"), "909 RC help '%s'", b);
+        RI_ASSERT(ri_ctlreg_help(sel8->reg_id, 12, b, sizeof b) == 0 && b[0] == 0, "808 option 12 has no help");
+        ri_ctlreg_help(find_leg(RI_SEC_808, "BD", "Tone")->reg_id, -1, b, sizeof b);
+        RI_ASSERT(!strcmp(b, "Bass Drum: Tone"), "808 BD Tone help '%s'", b);
+        ri_ctlreg_help(find_leg(RI_SEC_909, "HH", "Level")->reg_id, -1, b, sizeof b);
+        RI_ASSERT(!strcmp(b, "Hi-hats (CH + OH): Level"), "909 HH help '%s'", b);
+        RI_ASSERT(ri_ctlreg_help(find_leg(RI_SEC_909, "", "Flam")->reg_id, -1, b, sizeof b) == 0, "ungrouped: no help");
+        RI_ASSERT(ri_ctlreg_help(0x0001u, -1, b, sizeof b) == 0, "303 knob: no help");
+        RI_ASSERT(ri_ctlreg_help(sel8->reg_id, 1, b, 6) == 5 && !strcmp(b, "Bass "), "truncates to cap '%s'", b);
+        RI_ASSERT(ri_ctlreg_help(sel8->reg_id, 1, 0, 0) == 0, "NULL buffer");
+        for (i = 0; i < ri_ctlreg_count(); i++) { /* every 808/909 group has a name */
+            const struct RICtlDef *d = ri_ctlreg_at(i);
+            if ((d->section == RI_SEC_808 || d->section == RI_SEC_909) && d->group[0] && strcmp(d->group, "Steps"))
+                RI_ASSERT(ri_ctlreg_help(d->reg_id, -1, b, sizeof b) > strlen(d->legend), "%s %s has no help", d->group, d->legend);
+        }
+    }
 
     /* coverage record */
     for (s = 0; s < RI_SEC_COUNT; s++) {

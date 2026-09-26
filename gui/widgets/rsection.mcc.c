@@ -101,6 +101,10 @@ struct RSectionData {
     struct RSectionDiag diag;
     struct RIPanelUI *panel;   /* shared front panel (focus, keys), may be NULL */
     BOOL key_owner;
+    struct BitMap *bm;         /* off-screen frame: paint whole, blit once (no flicker) */
+    struct RastPort brp;
+    int bw, bh;
+    char help[64];             /* bubble text for the control under the pointer */
 };
 
 static void pen(struct RastPort *rp, ULONG col) {
@@ -242,7 +246,8 @@ static void bg_303(struct RastPort *rp, const struct RIGeoSection *g, int ox, in
 #define PX(q) ri_geo_px((q), z)
     fill_rect(rp, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_PANEL);
     line(rp, ox, oy + PX(185), ox + PX(g->w) - 1, oy + PX(185), C_PANEL_DK);
-    fill_rect(rp, ox + PX(185), oy + PX(200), ox + PX(855), oy + PX(435), C_BLACK);
+    /* keyboard block: an 8 Q black rim on every side (low C starts at 184 Q) */
+    fill_rect(rp, ox + PX(176), oy + PX(200), ox + PX(858), oy + PX(435), C_BLACK);
     for (i = 0; i < 13; i++)
         for (j = 0; j < g->nitems; j++)
             if ((g->items[j].reg_id & 0xFFu) == RI_S303_KEY0 + i && g->items[j].shape == RI_GEO_RECT && !black[i])
@@ -253,7 +258,7 @@ static void bg_303(struct RastPort *rp, const struct RIGeoSection *g, int ox, in
             if ((g->items[j].reg_id & 0xFFu) == RI_S303_KEY0 + i && g->items[j].shape == RI_GEO_RECT && black[i])
                 fill_rect(rp, ox + PX(g->items[j].cx - 28), oy + PX(208), ox + PX(g->items[j].cx + 28),
                     oy + PX(320), C_BLACK);
-    fill_rect(rp, ox + PX(860), oy + PX(290), ox + PX(1250), oy + PX(320), C_BLACK);
+    fill_rect(rp, ox + PX(880), oy + PX(290), ox + PX(1270), oy + PX(320), C_BLACK);
 #undef PX
 }
 
@@ -284,7 +289,7 @@ static void bg_909(struct RastPort *rp, const struct RIGeoSection *g, int ox, in
     for (i = 0; i <= 8; i++)                   /* group dividers, as on the TR-909 panel */
         line(rp, ox + PX(106 + 168 * (int)i), oy + PX(56), ox + PX(106 + 168 * (int)i), oy + PX(296), C_909_BAR);
     line(rp, ox + PX(1030), oy + PX(56), ox + PX(1030), oy + PX(296), C_909_BAR);
-    line(rp, ox + PX(20), oy + PX(296), ox + PX(1448), oy + PX(296), C_909_BAR);
+    line(rp, ox + PX(106), oy + PX(296), ox + PX(1448), oy + PX(296), C_909_BAR); /* stops at the AC divider: clear of FLAM */
     for (i = 0; i < 16; i++) {                 /* step numbers under the keys (p. 151) */
         n[0] = (char)(i >= 9 ? '1' : '0' + (i + 1));
         n[1] = (char)(i >= 9 ? '0' + (i + 1 - 10) : 0);
@@ -530,11 +535,10 @@ static void draw_focus_bar(struct RastPort *rp, const struct RSectionData *dd, i
     fill_rect(rp, cx - hw, cy - hh, cx + hw, cy + hh, dd->panel->focus == (uint8_t)f ? C_909_ORANGE : C_MIX_SLOT);
 }
 
-static void draw_section(Object *obj, struct RSectionData *dd) {
-    struct RastPort *rp = _rp(obj);
+static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, int oy) {
     uint8_t sec = dd->ui.section;
     const struct RIGeoSection *g = ri_geo_section(sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec);
-    int ox = _mleft(obj), oy = _mtop(obj), z = (int)dd->zoom, is808 = sec == RI_SEC_808;
+    int z = (int)dd->zoom, is808 = sec == RI_SEC_808;
     int is909 = sec == RI_SEC_909, ismix = ri_smix_strip(sec) >= 0, isfx = sec >= RI_SEC_PCF && sec <= RI_SEC_COMP;
     int ispat = sec >= RI_SEC_PAT_SYNTH1 && sec <= RI_SEC_PAT_909, istr = sec == RI_SEC_TRANSPORT;
     ULONG txt = is808 ? C_CREAM : ismix || isfx || ispat || istr ? C_MIX_TEXT : C_TEXT;
@@ -705,9 +709,12 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
             arrow_btn(rp, cx - hw, cy - hh, cx + hw, cy + hh, it->opt != 0);
             break;
         case RI_GEO_LEGEND: {
-            ULONG col = (!is808 && idx >= RI_S303_DOWN && idx <= RI_S303_SLIDE) ? C_TEXT_INV : txt;
+            /* inverse only on the 303's black Down/Up/Accent/Slide strip: the same
+             * indices on the 909 (CP/CH/OH/CC) drew white labels (Dell 2026-09-26) */
+            int is303 = sec == RI_SEC_SYNTH1 || sec == RI_SEC_SYNTH2;
+            ULONG col = (is303 && idx >= RI_S303_DOWN && idx <= RI_S303_SLIDE) ? C_TEXT_INV : txt;
             const char *s = d->legend;
-            if (!is808 && idx == RI_S303_DISPLAY)
+            if (is303 && idx == RI_S303_DISPLAY)
                 s = "EDIT STEP";
             else if (is808 && d->kind == RI_CK_SWITCH) /* the alternate sound's legend */
                 s = idx == 9 ? "LC" : idx == 12 ? "MC" : idx == 15 ? "HC" : idx == 17 ? "CL" : "MA";
@@ -728,6 +735,43 @@ static void draw_section(Object *obj, struct RSectionData *dd) {
         }
     }
 #undef PX
+}
+
+/* Double buffer (Dell 2026-09-26: knob drags flickered because every change
+ * repainted background then controls straight into the window). The frame is
+ * painted into a friend bitmap of the window's and blitted in one go; if the
+ * bitmap cannot be had, paint direct as before. */
+static void buf_free(struct RSectionData *d) {
+    if (d->bm) {
+        WaitBlit();
+        FreeBitMap(d->bm);
+    }
+    d->bm = NULL;
+    d->bw = d->bh = 0;
+}
+
+static void draw_frame(Object *obj, struct RSectionData *d) {
+    struct RastPort *wrp = _rp(obj);
+    int w = _mwidth(obj), h = _mheight(obj);
+    if (w <= 0 || h <= 0)
+        return;
+    if (!d->bm || d->bw != w || d->bh != h) {
+        buf_free(d);
+        d->bm = AllocBitMap((ULONG)w, (ULONG)h, GetBitMapAttr(wrp->BitMap, BMA_DEPTH), BMF_MINPLANES, wrp->BitMap);
+        if (d->bm) {
+            InitRastPort(&d->brp);
+            d->brp.BitMap = d->bm;
+            d->bw = w;
+            d->bh = h;
+        }
+    }
+    if (!d->bm) {
+        draw_section(wrp, d, _mleft(obj), _mtop(obj));
+        return;
+    }
+    SetFont(&d->brp, wrp->Font);
+    draw_section(&d->brp, d, 0, 0);
+    BltBitMapRastPort(d->bm, 0, 0, wrp, _mleft(obj), _mtop(obj), w, h, 0xC0);
 }
 
 static void changed(Object *obj, struct RSectionData *d) {
@@ -825,6 +869,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
     case MUIM_Cleanup:
         d = (struct RSectionData *)INST_DATA(cl, obj);
         DoMethod(_win(obj), MUIM_Window_RemEventHandler, &d->ehn);
+        buf_free(d);
         pens_release(obj);
         return DoSuperMethodA(cl, obj, msg);
     case MUIM_Show: {
@@ -840,9 +885,21 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
         d->drag_id = 0xFFFFu;
         d->rep_idx = 0xFFFFu;
         return DoSuperMethodA(cl, obj, msg);
+    case MUIM_CreateShortHelp: { /* per-control bubble (Zune re-asks after each move) */
+        struct MUIP_CreateShortHelp *m = (struct MUIP_CreateShortHelp *)msg;
+        int opt = -1;
+        uint16_t id;
+        d = (struct RSectionData *)INST_DATA(cl, obj);
+        id = ri_geo_hit_opt(geo(d), (int)m->mx - _mleft(obj), (int)m->my - _mtop(obj), (int)d->zoom, &opt);
+        if (id == 0xFFFFu || !ri_ctlreg_help(id, opt, d->help, (uint32_t)sizeof d->help))
+            return (IPTR)0;
+        return (IPTR)d->help;
+    }
+    case MUIM_DeleteShortHelp:
+        return (IPTR)TRUE;         /* text lives in instance data */
     case MUIM_Draw:
         DoSuperMethodA(cl, obj, msg);
-        draw_section(obj, (struct RSectionData *)INST_DATA(cl, obj));
+        draw_frame(obj, (struct RSectionData *)INST_DATA(cl, obj));
         return (IPTR)0;
     case MUIM_HandleEvent: {
         struct MUIP_HandleEvent *m = (struct MUIP_HandleEvent *)msg;
@@ -963,6 +1020,7 @@ APTR ri_rsection_create(ULONG section, LONG zoom) {
         TAG_SECTION, section,
         TAG_ZOOM, zoom,
         MUIA_FillArea, FALSE,
+        MUIA_ShortHelp, (IPTR)" ", /* non-NULL so Zune asks MUIM_CreateShortHelp */
         TAG_DONE);
 }
 

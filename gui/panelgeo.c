@@ -29,21 +29,25 @@ static const struct RIGeoItem RI_GEO_303[] = {
     { S1(29), RI_GEO_RECT, 0, 1356, 130, 73, 65 },   /* EDIT STEP display */
     { S1(29), RI_GEO_LEGEND, 0, 1356, 62, 0, 0 },
     /* left block */
-    { S1(27), RI_GEO_RECT, 0, 109, 311, 53, 22 },    /* Pitch Mode */
-    { S1(27), RI_GEO_LED, 0, 108, 278, 12, 12 },
-    { S1(27), RI_GEO_LEGEND, 0, 110, 240, 0, 0 },
-    { S1(28), RI_GEO_RECT, 0, 109, 402, 62, 28 },    /* Clear */
-    { S1(28), RI_GEO_LEGEND, 0, 110, 365, 0, 0 },
+    /* left block: 20 Q left of the figure so the device-font legend clears
+     * the keyboard block's 8 Q rim (owner, Dell 2026-09-26) */
+    { S1(27), RI_GEO_RECT, 0, 89, 311, 53, 22 },     /* Pitch Mode */
+    { S1(27), RI_GEO_LED, 0, 88, 278, 12, 12 },
+    { S1(27), RI_GEO_LEGEND, 0, 90, 240, 0, 0 },
+    { S1(28), RI_GEO_RECT, 0, 89, 402, 62, 28 },     /* Clear */
+    { S1(28), RI_GEO_LEGEND, 0, 90, 365, 0, 0 },
     /* keyboard: C C# D D# E F F# G G# A A# B C (registry 7..19) */
     WKEY(7, 222), BKEY(8, 267), WKEY(9, 307), BKEY(10, 349), WKEY(11, 392),
     WKEY(12, 476), BKEY(13, 518), WKEY(14, 560), BKEY(15, 602), WKEY(16, 645),
     BKEY(17, 687), WKEY(18, 730), WKEY(19, 812),
+    /* right of the keyboard: +20 Q from the figure so nothing touches the
+     * keyboard block's rim (owner, Dell 2026-09-26) */
     /* Note/Pause toggle with its two state LEDs */
-    { S1(24), RI_GEO_RECT, 0, 1212, 252, 60, 27 },
-    { S1(24), RI_GEO_LED, 0, 996, 250, 12, 12 },
-    { S1(24), RI_GEO_LED, 0, 1152, 250, 12, 12 },
+    { S1(24), RI_GEO_RECT, 0, 1232, 252, 60, 27 },
+    { S1(24), RI_GEO_LED, 0, 1016, 250, 12, 12 },
+    { S1(24), RI_GEO_LED, 0, 1172, 250, 12, 12 },
     /* Down Up Accent Slide */
-    SBTN(20, 909), SBTN(21, 1011), SBTN(22, 1111), SBTN(23, 1211),
+    SBTN(20, 929), SBTN(21, 1031), SBTN(22, 1131), SBTN(23, 1231),
     /* Back / Step */
     { S1(25), RI_GEO_RECT, 0, 1345, 267, 58, 30 },
     { S1(25), RI_GEO_LEGEND, 0, 1344, 225, 0, 0 },
@@ -279,7 +283,9 @@ static const struct RIGeoItem RI_GEO_MIX2[] = { RI_GEO_MIXER(RI_SEC_MIX_SYNTH2) 
 static const struct RIGeoItem RI_GEO_MIX8[] = { RI_GEO_MIXER(RI_SEC_MIX_808) };
 static const struct RIGeoItem RI_GEO_MIX9[] = { RI_GEO_MIXER(RI_SEC_MIX_909) };
 
-/* Master: p. 23 figure (83 x 98 px = 332 x 392 Q). "MASTER" header, L/R
+/* Master: p. 23 figure (83 x 98 px = 332 x 392 Q), block height raised to the
+ * mixer strips' 464 Q so the row reads as one board (owner, Dell 2026-09-26;
+ * content stays top-aligned with the strip headers). "MASTER" header, L/R
  * meters (clip lamp on top) either side of the level fader, Comp switch
  * with LED at the bottom. */
 static const struct RIGeoItem RI_GEO_MASTER[] = {
@@ -424,7 +430,7 @@ static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_MIX_SYNTH2, 0, 284, 464, RI_GEO_MIX2, (uint32_t)(sizeof(RI_GEO_MIX2) / sizeof(RI_GEO_MIX2[0])) },
     { RI_SEC_MIX_808, 0, 284, 464, RI_GEO_MIX8, (uint32_t)(sizeof(RI_GEO_MIX8) / sizeof(RI_GEO_MIX8[0])) },
     { RI_SEC_MIX_909, 0, 284, 464, RI_GEO_MIX9, (uint32_t)(sizeof(RI_GEO_MIX9) / sizeof(RI_GEO_MIX9[0])) },
-    { RI_SEC_MASTER, 0, 332, 392, RI_GEO_MASTER, (uint32_t)(sizeof(RI_GEO_MASTER) / sizeof(RI_GEO_MASTER[0])) },
+    { RI_SEC_MASTER, 0, 332, 464, RI_GEO_MASTER, (uint32_t)(sizeof(RI_GEO_MASTER) / sizeof(RI_GEO_MASTER[0])) },
     { RI_SEC_PCF, 0, 332, 424, RI_GEO_PCF, (uint32_t)(sizeof(RI_GEO_PCF) / sizeof(RI_GEO_PCF[0])) },
     { RI_SEC_DELAY, 0, 332, 376, RI_GEO_DELAY, (uint32_t)(sizeof(RI_GEO_DELAY) / sizeof(RI_GEO_DELAY[0])) },
     { RI_SEC_DIST, 0, 336, 264, RI_GEO_DIST, (uint32_t)(sizeof(RI_GEO_DIST) / sizeof(RI_GEO_DIST[0])) },

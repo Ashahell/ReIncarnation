@@ -257,7 +257,7 @@ int main(void) {
     if (s) {
         const struct RIGeoItem *l = value_item(s, ID(RI_SEC_MASTER, 1)), *f = value_item(s, ID(RI_SEC_MASTER, 0));
         const struct RIGeoItem *r = value_item(s, ID(RI_SEC_MASTER, 2));
-        RI_ASSERT(s->w == 332 && s->h == 392, "master = p. 23 figure");
+        RI_ASSERT(s->w == 332 && s->h == ri_geo_section(RI_SEC_MIX_SYNTH1)->h, "master = p. 23 width, mixer-strip height (owner, Dell 2026-09-26)");
         RI_ASSERT(l && f && r && l->cx < f->cx && f->cx < r->cx && l->h == r->h, "meters either side of the fader");
     }
     /* ---- FX units (p. 159, 161, 163, 164) ---- */
