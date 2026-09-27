@@ -548,83 +548,93 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
 /* Rail LED bitmaps: one green disc (C_MIX_GREEN 0x38E040, the exact
  * canvas green of the pattern-block LED) for active, one dim disc
  * (C_MIX_GREEN_OFF 0x1E4A22) for inactive; pen 0 clear + Transparent
- * keeps the rail background. MUI stock images proved theme-dim, so the
- * dots are self-drawn. Built once the window owns a screen (the
- * window's own screen colormap gives exact pens); 0 ok, 2 failure
- * (LEDs stay empty, buttons + log unaffected). */
-static int rail_leds_make(Object *win) {
+ * keeps the rail background. intuition.library is opened here (the app
+ * has no IntuitionBase of its own); bitmaps are built BEFORE the rail
+ * so Bitmap.mui sizes itself from real data at setup (empty-then-set
+ * keeps zero size). 0 ok, 2 failure (LEDs stay empty, buttons + log
+ * unaffected). */
+static int rail_leds_make(void) {
     static const uint32_t cols[2] = { 0x38E040u, 0x1E4A22u };
-    struct Screen *sc = 0;
+    struct Library *ibase;
+    struct IntuitionBase *ib;
+    struct Screen *sc;
     struct RastPort rp;
     uint32_t i;
+    int rc = 0;
     if (s_ledbm[0] || s_ledbm[1])
         return 0;
-    if (!win)
+    ibase = OpenLibrary((STRPTR)"intuition.library", 37u);
+    if (!ibase)
         return 11;
-    GetAttr(MUIA_Window_Screen, win, (IPTR *)&sc);
+    ib = (struct IntuitionBase *)ibase;
+    sc = ib->ActiveScreen;
     if (!sc)
-        return 12;
-    if (!sc->ViewPort.ColorMap)
-        return 13;
-    s_ledcm = sc->ViewPort.ColorMap;
-    InitRastPort(&rp);
-    for (i = 0u; i < 2u; i++) {
-        uint32_t c = cols[i];
-        s_ledpen[i] = ObtainBestPenA(s_ledcm,
-            ((c >> 16u) & 0xFFu) << 24u, ((c >> 8u) & 0xFFu) << 24u,
-            (c & 0xFFu) << 24u, 0);
-        if (s_ledpen[i] < 0)
-            break;
-    }
-    if (s_ledpen[0] < 0 || s_ledpen[1] < 0) {
-        if (s_ledpen[0] >= 0)
-            ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
-        if (s_ledpen[1] >= 0)
-            ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
-        s_ledpen[0] = s_ledpen[1] = -1;
-        return 14;
-    }
-    for (i = 0u; i < 2u; i++) {
-        uint32_t pl;
-        /* Disc spans, integer only (r = 7): AreaEllipse needs AreaInfo
-         * + TmpRas the RastPort doesn't own (Dell guru in
-         * Graphics AreaEllipse); RectFill needs neither. */
-        static const int dx[8] = { 7, 6, 6, 6, 5, 4, 3, 0 };
-        int dy;
-        InitBitMap(&s_ledbms[i], 8u, RIAPP_LED_D, RIAPP_LED_D);
-        for (pl = 0u; pl < 8u; pl++) {
-            PLANEPTR r = AllocRaster(RIAPP_LED_D, RIAPP_LED_D);
-            if (!r)
-                break;
-            memset(r, 0, RIAPP_LED_WBYTES * RIAPP_LED_D);
-            s_ledbms[i].Planes[pl] = r;
-        }
-        if (pl < 8u)
-            break;
-        rp.BitMap = &s_ledbms[i];
-        SetAPen(&rp, (ULONG)s_ledpen[i]);
-        for (dy = -7; dy <= 7; dy++) {
-            int w = dx[dy < 0 ? -dy : dy];
-            RectFill(&rp, (LONG)(9 - w), (LONG)(9 + dy), (LONG)(9 + w), (LONG)(9 + dy));
-        }
-        s_ledbm[i] = &s_ledbms[i];
-    }
-    if (!s_ledbm[0] || !s_ledbm[1]) {
+        rc = 12;
+    else if (!sc->ViewPort.ColorMap)
+        rc = 13;
+    else {
+        s_ledcm = sc->ViewPort.ColorMap;
+        InitRastPort(&rp);
         for (i = 0u; i < 2u; i++) {
-            uint32_t pl;
-            for (pl = 0u; pl < 8u; pl++)
-                if (s_ledbms[i].Planes[pl]) {
-                    FreeRaster(s_ledbms[i].Planes[pl], RIAPP_LED_D, RIAPP_LED_D);
-                    s_ledbms[i].Planes[pl] = 0;
-                }
+            uint32_t c = cols[i];
+            s_ledpen[i] = ObtainBestPenA(s_ledcm,
+                ((c >> 16u) & 0xFFu) << 24u, ((c >> 8u) & 0xFFu) << 24u,
+                (c & 0xFFu) << 24u, 0);
+            if (s_ledpen[i] < 0)
+                break;
         }
-        s_ledbm[0] = s_ledbm[1] = 0;
-        ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
-        ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
-        s_ledpen[0] = s_ledpen[1] = -1;
-        return 15;
+        if (s_ledpen[0] < 0 || s_ledpen[1] < 0) {
+            if (s_ledpen[0] >= 0)
+                ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
+            if (s_ledpen[1] >= 0)
+                ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
+            s_ledpen[0] = s_ledpen[1] = -1;
+            rc = 14;
+        } else {
+            for (i = 0u; i < 2u; i++) {
+                uint32_t pl;
+                /* Disc spans, integer only (r = 7): AreaEllipse needs
+                 * AreaInfo + TmpRas the RastPort doesn't own (Dell guru
+                 * in Graphics AreaEllipse); RectFill needs neither. */
+                static const int dx[8] = { 7, 6, 6, 6, 5, 4, 3, 0 };
+                int dy;
+                InitBitMap(&s_ledbms[i], 8u, RIAPP_LED_D, RIAPP_LED_D);
+                for (pl = 0u; pl < 8u; pl++) {
+                    PLANEPTR r = AllocRaster(RIAPP_LED_D, RIAPP_LED_D);
+                    if (!r)
+                        break;
+                    memset(r, 0, RIAPP_LED_WBYTES * RIAPP_LED_D);
+                    s_ledbms[i].Planes[pl] = r;
+                }
+                if (pl < 8u)
+                    break;
+                rp.BitMap = &s_ledbms[i];
+                SetAPen(&rp, (ULONG)s_ledpen[i]);
+                for (dy = -7; dy <= 7; dy++) {
+                    int w = dx[dy < 0 ? -dy : dy];
+                    RectFill(&rp, (LONG)(9 - w), (LONG)(9 + dy), (LONG)(9 + w), (LONG)(9 + dy));
+                }
+                s_ledbm[i] = &s_ledbms[i];
+            }
+            if (!s_ledbm[0] || !s_ledbm[1]) {
+                for (i = 0u; i < 2u; i++) {
+                    uint32_t pl;
+                    for (pl = 0u; pl < 8u; pl++)
+                        if (s_ledbms[i].Planes[pl]) {
+                            FreeRaster(s_ledbms[i].Planes[pl], RIAPP_LED_D, RIAPP_LED_D);
+                            s_ledbms[i].Planes[pl] = 0;
+                        }
+                }
+                s_ledbm[0] = s_ledbm[1] = 0;
+                ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
+                ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
+                s_ledpen[0] = s_ledpen[1] = -1;
+                rc = 15;
+            }
+        }
     }
-    return 0;
+    CloseLibrary(ibase);
+    return rc;
 }
 
 static void rail_leds_drop(void) {
@@ -679,12 +689,21 @@ static Object *tab_rail(void) {
         Object *btn, *led, *chip;
         snprintf(s_devlbl[d], sizeof s_devlbl[d], "%s", nm);
         btn = (Object *)MUI_MakeObject(MUIO_Button, (IPTR)s_devlbl[d]);
-        led = (Object *)MUI_NewObject(MUIC_Bitmap,
-            MUIA_Bitmap_Width, (LONG)RIAPP_LED_D,
-            MUIA_Bitmap_Height, (LONG)RIAPP_LED_D,
-            MUIA_Bitmap_Transparent, 0L,
-            MUIA_InputMode, MUIV_InputMode_None,
-            TAG_DONE);
+        if (s_ledbm[0] && s_ledbm[1])
+            led = (Object *)MUI_NewObject(MUIC_Bitmap,
+                MUIA_Bitmap_Bitmap, (IPTR)s_ledbm[0],
+                MUIA_Bitmap_Width, (LONG)RIAPP_LED_D,
+                MUIA_Bitmap_Height, (LONG)RIAPP_LED_D,
+                MUIA_Bitmap_Transparent, 0L,
+                MUIA_InputMode, MUIV_InputMode_None,
+                TAG_DONE);
+        else
+            led = (Object *)MUI_NewObject(MUIC_Bitmap,
+                MUIA_Bitmap_Width, (LONG)RIAPP_LED_D,
+                MUIA_Bitmap_Height, (LONG)RIAPP_LED_D,
+                MUIA_Bitmap_Transparent, 0L,
+                MUIA_InputMode, MUIV_InputMode_None,
+                TAG_DONE);
         chip = (btn && led) ? (Object *)MUI_NewObject(MUIC_Group,
             MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
             Child, (IPTR)btn, Child, (IPTR)led, TAG_DONE) : 0;
@@ -742,6 +761,8 @@ int main(int argc, char **argv) {
 
     ri_core_demo(&s_core);
     evlog_open();
+    if (rail_leds_make() != 0 && DOSBase)
+        rlog("RIAPP rail LEDs unavailable (buttons unaffected)\n", 0, 0, 0, 0, 0);
     evlog("RUN", "frames=%lu vol=%s build=%s", frames, s_evvol, RIAPP_BUILD_HASH);
     rc = au_live_open(&s_lv, frames, 48000u);
     if (rc == 0) {
@@ -953,13 +974,7 @@ int main(int argc, char **argv) {
         DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
             MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
-    {
-        int lrc = rail_leds_make(win);
-        if (lrc == 0)
-            rail_leds_show();
-        else if (DOSBase)
-            rlog("RIAPP rail LEDs unavailable rc=%d (buttons unaffected)\n", lrc, 0, 0, 0, 0);
-    }
+    rail_leds_show();
     rlog("RIAPP panel: tabbed Synths/Drums/Mix/FX + transport (2026-09-27)\n",
         0, 0, 0, 0, 0);
 
