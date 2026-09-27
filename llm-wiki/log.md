@@ -1,5 +1,10 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-28] record | Audio in QEMU (scratch HDA lane, music captured)
+- Disposition: New (lane + rebuilds + ladder + proof; nothing covered it)
+- Raw: llm-wiki/raw/articles/2026-09-28-audio-in-qemu.md
+- Updated: llm-wiki/index.md (Live app (§12.11) entry)
+
 ## [2026-09-27] update | sb128 fault: byte-exact instruction found
 - Disposition: Update (scratch HDA lane repro: stock probe faults identically; `movaps (%rdx)` at `DriverInit+0x135` over RDX≡12; 2026-09-21 movups patch never landed; durable fix scoped to fork lane)
 - Raw: llm-wiki/raw/articles/2026-09-26-riqemu1-sb128-open-hang.md
