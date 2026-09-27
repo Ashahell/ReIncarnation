@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-27] record | Upstream AROS#1281 exchange (stealth)
+- Disposition: New (exchange record: their theory, our falsification, posted data, narrower-probe offer)
+- Raw: llm-wiki/raw/articles/2026-09-27-aros-1281-exchange.md
+- Updated: llm-wiki/index.md (Live app (§12.11) entry)
+- Rule banked: never name this project on public trackers
+
 ## [2026-09-27] design | Devices tab elegance challenge (owner)
 - Disposition: Open question (owner verdict: works, but is it elegant?)
 - Requirement: llm-wiki/raw/articles/2026-09-24-extensible-device-rack-requirement.md
