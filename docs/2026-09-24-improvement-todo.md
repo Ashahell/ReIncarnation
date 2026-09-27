@@ -216,6 +216,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 
 ## Planned devices (extensible rack, spec D-k)
 - [ ] Korg Electribe ESX-1 — owner plan 2026-09-26; requirement + rules for current work: `docs/superpowers/specs/2026-09-26-device-korg-esx1-requirement.md` (no 4-device assumptions; new lane-key block, strip, skin token, RBNG chunks — chunk IDs owner review; E1 = Korg ESX-1 manual; clean-room: no Korg samples/ROM/art).
+- [ ] ASM Leviasynth — owner plan 2026-09-28; requirement + E1 + rules: `docs/superpowers/specs/2026-09-28-device-asm-leviasynth-requirement.md` (16v×8op algorithmic hybrid; manual v1.2.1 + SOS review + KVR specs as E1, PDFs kept out of repo; `0x0E` lane block; `levi` token; clean-room: own waves/topologies, no ASM content). Proposed v1: mono FM bass/lead on the 303 pattern model (owner decision open).
 
 ## Done
 - (none yet)
