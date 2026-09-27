@@ -1,5 +1,13 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-27] crash | 909 pack descriptor dangle guru'd the render task
+- Disposition: New (fix landed, device proof open)
+- Evidence: docs/evidence/portability/909-pack-dangle.md
+Stack `lay[]` bound by pointer; `set_layers` now copies into
+voice-owned `store[]` (t99 RED FAIL -> PASS, mutant killed). Piano key
+was coincidence. Proof: 909-sounding session + G# pitch-walk repeat,
+no guru.
+
 ## [2026-09-27] panels | Tabbed RIAPP slice: t97/t98 + full canvases + step sync
 - Disposition: New (unproven on device; needs Dell proof round)
 - Updated: docs/2026-09-24-improvement-todo.md (RIAPP full panels)

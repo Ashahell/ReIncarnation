@@ -8,6 +8,7 @@
  */
 #include "engine/dsp/rb909.h"
 #include "engine/dsp/kernels.h"
+#include <string.h>
 
 #define RI_909_PI 3.14159265f
 #define RI_909_REF_RATE 48000.0f
@@ -177,8 +178,11 @@ int rb909_set_layers(struct RB909Set *s, uint32_t voice,
         if (layers[k].lo > layers[k].hi)
             return RI_909_BADARG;
     }
-    /* Descriptor install (sample data stays with the caller/mod). */
-    s->v[voice].layers = layers;
+    /* Descriptor install: COPY into voice-owned store (the header
+     * contract). The caller's array may be transient (bind-loop local);
+     * only the sample data stays with the caller/mod. */
+    memcpy(s->v[voice].store, layers, n * sizeof(struct RISampleLayer));
+    s->v[voice].layers = s->v[voice].store;
     s->v[voice].n_layers = (uint8_t)n;
     return 0;
 }

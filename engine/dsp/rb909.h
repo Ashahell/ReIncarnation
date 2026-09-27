@@ -82,8 +82,14 @@ struct RB909Voice {
     float pos2; /* flam second playhead, <0 when inactive */
     float shelf_lp; /* accent shelf one-pole state */
     uint32_t age; /* samples since trigger (fade-in ramp) */
-    const struct RISampleLayer *layers; /* non-owning, idle-swap only */
+    const struct RISampleLayer *layers; /* owned descriptor copy (see
+     * set_layers); the SAMPLE data stays caller-owned, never written */
     uint8_t n_layers;
+    /* Descriptor store: set_layers copies here and points layers at it,
+     * so transient caller arrays (e.g. a per-voice bind loop) can never
+     * dangle into the render task (Dell 2026-09-27 guru). Sample data
+     * itself stays with the caller/mod. */
+    struct RISampleLayer store[RI_909_MAX_LAYERS];
     uint8_t flam_capable; /* BD/SD: acc2 = flam; else acc2 = acc1 */
     uint8_t accent_noop; /* CR/RD quirk: accent gain pinned to 1.0 */
     uint8_t pad;
