@@ -164,6 +164,14 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
     ACTIVE (engine sections bit + row together, one atomic read per
     block); disabled = voice never triggers, state kept. Device proof
     open (Dell agent redial pending).
+  - 303B audibility (owner 2026-09-27): two real bugs, fix unproven.
+    (1) Note/Pause button unlabeled on 303A/B (geo LEGEND row missing;
+    shared SYNTH1 table so one row fixes both) + 909 Flam button same
+    shape; t61 legend invariant, t92/t93 pins re-pinned (same 12).
+    (2) 303B knobs drove 303A params (shared table + raw last_hit);
+    sync re-tags to the canvas section. Silence itself was REST-by-
+    default (fresh 303 steps init Pause; keys set pitch only) — by
+    design. Device proof open (labeled toggle + 01xx CTLs + sung 303B).
 
 ## Planned devices (extensible rack, spec D-k)
 - [ ] Korg Electribe ESX-1 — owner plan 2026-09-26; requirement + rules for current work: `docs/superpowers/specs/2026-09-26-device-korg-esx1-requirement.md` (no 4-device assumptions; new lane-key block, strip, skin token, RBNG chunks — chunk IDs owner review; E1 = Korg ESX-1 manual; clean-room: no Korg samples/ROM/art).

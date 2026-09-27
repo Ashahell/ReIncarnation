@@ -448,7 +448,12 @@ static void sync_values(void) {
             continue;
         s_changes[c] = ch;
         if (s_dg[c] && s_dg[c]->last_hit != 0xFFFFu) {
-            uint16_t reg = s_dg[c]->last_hit;
+            /* Re-tag to the canvas's own section: the 303B canvas shares
+             * the SYNTH1 geometry table, so raw hit ids arrive as 303A.
+             * (All other value canvases own their tables; no-op for them.
+             * Owner 2026-09-27: 303B knobs drove 303A params.) */
+            uint16_t reg = (uint16_t)((uint16_t)c_sections[c] << 8) |
+                (uint16_t)(s_dg[c]->last_hit & 0xFFu);
             struct RISectUI *u = s_ui[c];
             int val = ri_sui_value(u, reg & 0xFFu);
             ri_panel_ctl_send(&s_core.ctl, reg, val);

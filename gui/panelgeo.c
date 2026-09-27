@@ -44,6 +44,7 @@ static const struct RIGeoItem RI_GEO_303[] = {
      * keyboard block's rim (owner, Dell 2026-09-26) */
     /* Note/Pause toggle with its two state LEDs */
     { S1(24), RI_GEO_RECT, 0, 1232, 252, 60, 27 },
+    { S1(24), RI_GEO_LEGEND, 0, 1231, 225, 0, 0 },
     { S1(24), RI_GEO_LED, 0, 1016, 250, 12, 12 },
     { S1(24), RI_GEO_LED, 0, 1172, 250, 12, 12 },
     /* Down Up Accent Slide */
@@ -225,6 +226,7 @@ static const struct RIGeoItem RI_GEO_909[] = {
     { S9(27), RI_GEO_KNOB, 0, 60, 335, 44, 52 },
     { S9(27), RI_GEO_LEGEND, 0, 60, 292, 0, 0 },
     { S9(29), RI_GEO_RECT, 0, 60, 405, 40, 40 },
+    { S9(29), RI_GEO_LEGEND, 0, 60, 450, 0, 0 },
     { S9(29), RI_GEO_LED, 0, 60, 380, 10, 10 },
     { S9(28), RI_GEO_OPTION, 0, 60, 222, 60, 26 },
     { S9(28), RI_GEO_OPTION, 1, 190, 322, 150, 26 },

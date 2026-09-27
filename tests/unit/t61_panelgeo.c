@@ -45,6 +45,31 @@ static const struct RIGeoItem *value_item(const struct RIGeoSection *s, uint16_t
     return 0;
 }
 
+/* Owner 2026-09-27 (Dell: 303 Note/Pause button unlabeled): a SWITCH or
+ * BUTTON with a hit rectangle must carry its legend, or the control is
+ * unidentifiable on the panel. */
+static void check_legends(uint32_t sec) {
+    const struct RIGeoSection *s = ri_geo_section(sec);
+    uint32_t i, j;
+    if (!s)
+        return;
+    for (i = 0; i < s->nitems; i++) {
+        const struct RICtlDef *d;
+        int has_legend = 0;
+        if (s->items[i].shape != RI_GEO_RECT)
+            continue;
+        d = ri_ctlreg_find(s->items[i].reg_id);
+        if (!d || (d->kind != RI_CK_SWITCH && d->kind != RI_CK_BUTTON))
+            continue;
+        if (!strcmp(d->group, "Pitch"))
+            continue; /* piano keys are self-labeled by position */
+        for (j = 0; j < s->nitems; j++)
+            if (s->items[j].reg_id == d->reg_id && s->items[j].shape == RI_GEO_LEGEND)
+                has_legend = 1;
+        RI_ASSERT(has_legend, "%s/%s: button without legend", d->group, d->legend);
+    }
+}
+
 static void check_section(uint32_t sec) {
     const struct RIGeoSection *s = ri_geo_section(sec);
     uint32_t i, j, z, nval = 0, nsec;
@@ -146,6 +171,7 @@ int main(void) {
 
     /* ---- 303 (p. 153) ---- */
     check_section(RI_SEC_SYNTH1);
+    check_legends(RI_SEC_SYNTH1);
     s = ri_geo_section(RI_SEC_SYNTH1);
     if (s) {
         const struct RIGeoItem *k[6];
@@ -170,6 +196,7 @@ int main(void) {
 
     /* ---- 808 (p. 148) ---- */
     check_section(RI_SEC_808);
+    check_legends(RI_SEC_808);
     s = ri_geo_section(RI_SEC_808);
     if (s) {
         static const int lvl[12] = { 0, 1, 4, 7, 10, 13, 16, 18, 20, 21, 24, 26 }; /* AC..CH Level */
@@ -208,6 +235,7 @@ int main(void) {
     }
     /* ---- 909 (p. 151) ---- */
     check_section(RI_SEC_909);
+    check_legends(RI_SEC_909);
     s = ri_geo_section(RI_SEC_909);
     if (s) {
         int prev = -1;
