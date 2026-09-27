@@ -1343,3 +1343,15 @@ The tab managed VISIBLE; the rack requirement says ACTIVE. Owner
 picked rail-first: toggles to a slim always-visible rail above the
 Register (same visibility-only bit); activation later. t98 reverts to
 4 tabs (nothing consumes the 5th).
+
+## [2026-09-27] ingest | Tabbed RIAPP + device rail + activation
+- Disposition: New (no existing article covers RIAPP panels)
+- Raw: llm-wiki/raw/articles/2026-09-27-tabbed-riapp-rail-activation.md
+
+## [2026-09-27] ingest | 909 pack descriptor dangle crash
+- Disposition: New (nothing covers the pack bind path)
+- Raw: llm-wiki/raw/articles/2026-09-27-909-pack-dangle-crash.md
+
+## [2026-09-27] ingest | Dell lane bridge recovery
+- Disposition: New (lane-ops; complements the Vulkan4AROS laptop article, not copied)
+- Raw: llm-wiki/raw/articles/2026-09-27-dell-lane-bridge-recovery.md
