@@ -156,6 +156,10 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
     VISIBLE, requirement says ACTIVE). Decision 2026-09-27: rail first —
     toggles move to a slim always-visible rail above the Register (same
     visibility-only bit); activation (engine enable/disable) later.
+  - Rail APPROVED 2026-09-27 (owner: works as intended). Proof CLOSED:
+    ev-log VIS dev=1 show=0/1 (hide/show 303B, twice) with TR PLAY/STOP
+    around the toggles; audio unaffected. Activation (engine
+    enable/disable) remains the explicit next step.
 
 ## Planned devices (extensible rack, spec D-k)
 - [ ] Korg Electribe ESX-1 — owner plan 2026-09-26; requirement + rules for current work: `docs/superpowers/specs/2026-09-26-device-korg-esx1-requirement.md` (no 4-device assumptions; new lane-key block, strip, skin token, RBNG chunks — chunk IDs owner review; E1 = Korg ESX-1 manual; clean-room: no Korg samples/ROM/art).
