@@ -34,6 +34,10 @@ int main(void) {
     uint32_t got = 0u;
     uint8_t wbuf[64], rbuf[64];
     uint32_t i;
+    /* Every path enum resolves (PACKS added for the 909 pack). */
+    RI_ASSERT(ri_pal_path(RI_PATH_MODS, dir, sizeof(dir)) == 0, "mods");
+    RI_ASSERT(ri_pal_path(RI_PATH_PACKS, dir, sizeof(dir)) == 0, "packs");
+    RI_ASSERT(ri_pal_path_join(leaf, sizeof(leaf), dir, "x") == 0, "packs join");
     /* path_join. */
     RI_ASSERT(ri_pal_path_join(dir, sizeof(dir), "/tmp/ri", "x.wav") == 0, "join ok");
     RI_ASSERT(strcmp(dir, "/tmp/ri/x.wav") == 0, "join %s", dir);

@@ -12,7 +12,8 @@ enum ri_path {
     RI_PATH_MODS = 1,   /* skins/mods: AROS SYS:Classes/ReIncarnation/Mods/ */
     RI_PATH_SONGS = 2,  /* songs */
     RI_PATH_TEMP = 3,   /* temp/wav/log: AROS RAM:, Win %TEMP% */
-    RI_PATH_PREFS = 4   /* prefs: AROS ENVARC:, Win %APPDATA% */
+    RI_PATH_PREFS = 4,  /* prefs: AROS ENVARC:, Win %APPDATA% */
+    RI_PATH_PACKS = 5   /* sample packs: AROS SYS:Classes/ReIncarnation/Packs/ */
 };
 
 /* Write the base dir for p into out[cap] (NUL-terminated). 0 ok. */

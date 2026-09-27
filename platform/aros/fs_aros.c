@@ -27,6 +27,7 @@ int ri_pal_path(enum ri_path p, char *out, uint32_t cap) {
     case RI_PATH_SONGS: s = "SYS:Classes/ReIncarnation/Songs/"; break;
     case RI_PATH_TEMP: s = "RAM:"; break;
     case RI_PATH_PREFS: s = "ENVARC:ReIncarnation/"; break;
+    case RI_PATH_PACKS: s = "SYS:Classes/ReIncarnation/Packs/"; break;
     default: break;
     }
     if (!s)

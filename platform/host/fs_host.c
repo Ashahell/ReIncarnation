@@ -20,6 +20,7 @@ static void base_dir(enum ri_path p, char *out, uint32_t cap) {
     switch (p) {
     case RI_PATH_MODS: b = "skins"; break;
     case RI_PATH_SONGS: b = "songs"; break;
+    case RI_PATH_PACKS: b = "packs"; break;
     case RI_PATH_TEMP: b = tmp; break;
     case RI_PATH_PREFS: b = home; break;
     default: break;

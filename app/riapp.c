@@ -38,7 +38,7 @@
  * capture keys (recording UX is Step 5).
  * Startup: built-in demo song (the G9.2 t81 fixture); AHI missing ->
  * null backend + RI_AUDIO_NULL_MSG (panel chases on the null render);
- * unbound 909 pack -> 909 renders silence + notice (§17, never silent).
+ * 909 pack: classic-01 binds at startup (unbound voices render silence + notice, §17).
  */
 #ifndef __AROS__
 #error "app/riapp.c is AROS-only"
@@ -76,6 +76,7 @@
 #include "gui/widgets/rsection.h"
 #include "audio_io/audio_ahi_live.h"
 #include "app/core/riapp_core.h"
+#include "platform/aros/pack_909.h"
 #include "platform/pal/ri_pal_fs.h"
 #include "platform/pal/ri_pal_log.h"
 
@@ -436,6 +437,18 @@ int main(int argc, char **argv) {
         rate = (float)s_lv.mix_freq; /* E0 (G9.0): the session runs at the device rate */
     }
     ri_core_init(&s_core, RIAPP_PPQ, rate, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+    { /* 909 sample pack (owner 2026-09-27): bind idle, before the task runs. */
+        char err[128];
+        int bound;
+        err[0] = 0;
+        bound = ri_pack_909_bind(&s_core.session.eng, err, sizeof err);
+        if (DOSBase) {
+            if (bound > 0)
+                rlog("RIAPP 909 pack: %d voices bound (toms/rim/clap silent: no in-repo samples)\n", bound, 0, 0, 0, 0);
+            else
+                rlog("RIAPP 909 pack missing: %s (909 renders silence)\n", err[0] ? err : "no pack", 0, 0, 0, 0);
+        }
+    }
     if (s_live && au_live_run(&s_lv, &s_core.session) != 0) {
         au_live_close(&s_lv);
         s_live = 0;
@@ -447,7 +460,6 @@ int main(int argc, char **argv) {
         else
             rlog("audio: AHI unavailable - null backend active (offline render only) [err %ld]\n",
                 (IPTR)s_lv.err, 0, 0, 0, 0);
-        rlog("RIAPP 909 pack: unbound - 909 renders silence (load a pack for drums)\n", 0, 0, 0, 0, 0);
     }
 
     /* Panel: transport (compact) + 4 pattern sections + 303A + 808 mixer. */
