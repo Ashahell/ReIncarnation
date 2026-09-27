@@ -179,6 +179,10 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
     notify, Selected mirror). Divider-line attempt dropped (paints under
     the button face). t92/t93 re-pinned (8 synth pins, clean-build
     ground truth after a stale-object mis-pin).
+  - GUI feedback round 2 (owner 2026-09-27, unproven): rail LEDs are red
+    record-dots (spec swap, no layout shift); Note/Pause rect narrowed
+    clear of its LEDs (w132); pins from clean-build ground truth.
+
 
 ## Planned devices (extensible rack, spec D-k)
 - [ ] Korg Electribe ESX-1 — owner plan 2026-09-26; requirement + rules for current work: `docs/superpowers/specs/2026-09-26-device-korg-esx1-requirement.md` (no 4-device assumptions; new lane-key block, strip, skin token, RBNG chunks — chunk IDs owner review; E1 = Korg ESX-1 manual; clean-room: no Korg samples/ROM/art).
