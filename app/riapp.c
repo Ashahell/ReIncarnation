@@ -667,6 +667,7 @@ static void rail_leds_show(void) {
             continue;
         show = ri_vis_get(&s_vis, d) > 0;
         SetAttrs(s_devled[d], MUIA_Bitmap_Bitmap, (IPTR)(show ? s_ledbm[0] : s_ledbm[1]), TAG_DONE);
+        MUI_Redraw(s_devled[d], MADF_DRAWOBJECT);
     }
 }
 
@@ -694,14 +695,14 @@ static Object *tab_rail(void) {
                 MUIA_Bitmap_Bitmap, (IPTR)s_ledbm[0],
                 MUIA_Bitmap_Width, (LONG)RIAPP_LED_D,
                 MUIA_Bitmap_Height, (LONG)RIAPP_LED_D,
-                MUIA_Bitmap_Transparent, 0L,
+                MUIA_Bitmap_Transparent, 1L,
                 MUIA_InputMode, MUIV_InputMode_None,
                 TAG_DONE);
         else
             led = (Object *)MUI_NewObject(MUIC_Bitmap,
                 MUIA_Bitmap_Width, (LONG)RIAPP_LED_D,
                 MUIA_Bitmap_Height, (LONG)RIAPP_LED_D,
-                MUIA_Bitmap_Transparent, 0L,
+                MUIA_Bitmap_Transparent, 1L,
                 MUIA_InputMode, MUIV_InputMode_None,
                 TAG_DONE);
         chip = (btn && led) ? (Object *)MUI_NewObject(MUIC_Group,
