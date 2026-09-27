@@ -1,5 +1,14 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-27] panels | Tabbed RIAPP slice: t97/t98 + full canvases + step sync
+- Disposition: New (unproven on device; needs Dell proof round)
+- Updated: docs/2026-09-24-improvement-todo.md (RIAPP full panels)
+Register.mui Synths/Drums/Mix/FX driven by the t98 page model over the
+t97 visible set; 303B + 808/909 step sync (DSTEP/DSTEPAC ev-log);
+engine +S303B|S909; audit 0/0. Open: device proof (4-tab screenshots,
+909 programming -> audio, demo regression), visibility-selection UI,
+909 demo content.
+
 ## [2026-09-27] decisions | RIAPP tabs + device visibility + 303B silent
 - Disposition: Update (owner answers: layout + 303B content)
 - Updated: docs/2026-09-24-improvement-todo.md (RIAPP full panels)

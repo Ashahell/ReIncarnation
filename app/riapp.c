@@ -1,9 +1,10 @@
 /* app/riapp.c — RIAPP live application with the ReBirth panel (G9b Step 2).
  * AROS-only. Supersedes the bare app/main.c window (kept) and the Step-1
- * text window: one MUI window with Transport + the four Pattern sections
- * + 303A + the 808 mixer strip (the sectproof keys/live layouts, 1x),
- * driving the same live session / control plane / meter snapshot the
- * text shell proved on the Dell.
+ * text window: one MUI window with Transport framed above a Register with
+ * the Synths/Drums/Mix/FX tabs (owner 2026-09-27; stock Register.mui,
+ * device rows follow the visible set through the t98 model), driving the
+ * same live session / control plane / meter snapshot the text shell proved
+ * on the Dell.
  *
  * Usage: RIAPP [frames] (device buffer, default 256; 64..4096).
  * Quit: window close gadget, or Shell `Break <cli> C` (Ctrl-C raises the
@@ -33,9 +34,8 @@
  * evidence file, never silent-by-design): transport tempo/shuffle/loop/
  * rewind/FF/song-mode, record lamp, pattern shuffle switches, mixer
  * on/off switches, 303 programming buttons (pending state: they shape the
- * next stepped note, which does reach the engine), drum taps (need the
- * instrument canvases of a later slice), skins (Classic procedural),
- * capture keys (recording UX is Step 5).
+ * next stepped note, which does reach the engine), skins (Classic
+ * procedural), capture keys (recording UX is Step 5).
  * Startup: built-in demo song (the G9.2 t81 fixture); AHI missing ->
  * null backend + RI_AUDIO_NULL_MSG (panel chases on the null render);
  * 909 pack: classic-01 binds at startup (unbound voices render silence + notice, §17).
@@ -66,9 +66,14 @@
 #include "gui/ctlreg.h"
 #include "gui/sectui.h"
 #include "gui/sect303.h"
+#include "gui/sect808.h"
+#include "gui/sect909.h"
+#include "gui/sectfx.h"
 #include "gui/sectpat.h"
 #include "gui/secttr.h"
 #include "gui/sectmix.h"
+#include "gui/visdev.h"
+#include "gui/tabpages.h"
 #include "gui/panelui.h"
 #include "gui/panelctl.h"
 #include "gui/panelgeo.h"
@@ -98,15 +103,25 @@ extern struct DosLibrary *DOSBase;
 #define RIAPP_PPQ 96u
 #define RIAPP_TICKS_BAR (4u * RIAPP_PPQ)
 
-/* Panel canvases: transport + 4 pattern sections + 303A + 808 mixer. */
-enum { C_TR, C_P0, C_P1, C_P2, C_P3, C_303, C_MIX, C_N };
+/* Panel canvases: transport (frame, always visible) + 4 pattern sections
+ * + 4 voice canvases + mixer board + 4 FX units, grouped into the
+ * Register tabs Synths/Drums/Mix/FX (owner 2026-09-27). */
+enum {
+    C_TR, C_P0, C_P1, C_P2, C_P3, C_303A, C_303B, C_808, C_909, C_MIX,
+    C_FX0, C_FX1, C_FX2, C_FX3, C_N
+};
 static const ULONG c_sections[C_N] = {
     RI_SEC_TRANSPORT,
     RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909,
-    RI_SEC_SYNTH1, RI_SEC_MIX_808
+    RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909, RI_SEC_MIX_808,
+    RI_SEC_PCF, RI_SEC_DELAY, RI_SEC_DIST, RI_SEC_COMP
 };
-/* Pattern instance (bank + track slot) behind each PAT canvas. */
-static const uint32_t c_pat_instance[C_N] = { 0u, 0u, 1u, 2u, 3u, 0u, 2u };
+/* Pattern instance (bank + track slot) behind each PAT/voice canvas. */
+static const uint32_t c_pat_instance[C_N] = {
+    0u, 0u, 1u, 2u, 3u, 0u, 1u, 2u, 3u, 2u, 0u, 0u, 0u, 0u
+};
+/* Voice canvas per classic device (tab rows follow this through t98). */
+static const int c_voice_canvas[4] = { C_303A, C_303B, C_808, C_909 };
 
 static struct RIAppCore s_core; /* portable session wiring (T8) */
 static float s_fl[RIAPP_FRAMES], s_fr[RIAPP_FRAMES];
@@ -122,8 +137,10 @@ static const struct RSectionDiag *s_dg[C_N];
 static int s_tr_state;
 static uint8_t s_pat_bank[C_N], s_pat_pat[C_N], s_pat_off[C_N], s_pat_shuf[C_N];
 static uint8_t s_pat_len[C_N][32];
-static struct RI303Row s_303_row[16];
-static uint8_t s_303_slot;
+static struct RI303Row s_303_row[2][16];
+static uint8_t s_303_slot[2];
+static struct RIPattern s_drum_pat[2]; /* 808/909 canvas-pattern shadow */
+static uint8_t s_drum_slot[2];
 static IPTR s_changes[C_N];
 static int s_meter_shown[2];
 
@@ -306,16 +323,26 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
         s_pat_pat[c] = u->u.pat.pattern;
         ri_core_capture_sel(&s_core, bar, inst, (uint8_t)sel);
         evlog("PAT", "c=%d inst=%d sel=%d", c, inst, sel);
-        if (c == C_P0) {
-            /* 303A shows the selected slot: refresh its steps from the bank. */
-            struct RISectUI *u303 = s_ui[C_303];
+        if (c == C_P0 || c == C_P1) {
+            /* 303A/B show the selected slot: refresh steps from the bank. */
+            uint32_t v = (c == C_P0) ? 0u : 1u;
+            struct RISectUI *uv = s_ui[c_voice_canvas[v]];
             uint32_t k;
-            s_303_slot = (uint8_t)sel;
+            s_303_slot[v] = (uint8_t)sel;
             for (k = 0u; k < 16u; k++) {
-                s_303_row[k] = b->pat[sel].row.r303[k];
-                u303->u.s303.pat.row.r303[k] = b->pat[sel].row.r303[k];
+                s_303_row[v][k] = b->pat[sel].row.r303[k];
+                uv->u.s303.pat.row.r303[k] = b->pat[sel].row.r303[k];
             }
-            ri_rsection_refresh(s_canvas[C_303]);
+            ri_rsection_refresh(s_canvas[c_voice_canvas[v]]);
+        } else if (c == C_P2 || c == C_P3) {
+            /* 808/909 show the selected slot: refresh the canvas pattern. */
+            uint32_t v = (c == C_P2) ? 0u : 1u;
+            struct RISectUI *uv = s_ui[c_voice_canvas[2u + v]];
+            struct RIPattern *dp = (v == 0u) ? &uv->u.s808.pat : &uv->u.s909.pat;
+            *dp = b->pat[sel];
+            s_drum_pat[v] = b->pat[sel];
+            s_drum_slot[v] = (uint8_t)sel;
+            ri_rsection_refresh(s_canvas[c_voice_canvas[2u + v]]);
         }
     }
     /* Sticky live selection (E1 pattern mode): re-assert the panel selection
@@ -338,18 +365,55 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
     s_pat_shuf[c] = u->u.pat.shuffle; /* placeholder: shuffle flags are OPEN */
 }
 
-/* 303A steps -> the GUI-side bank slot (pure edit functions, one path). */
-static void sync_303(void) {
-    struct RISectUI *u = s_ui[C_303];
-    struct RIPatternBank *b = ri_core_bank(&s_core, 0u);
+/* 303 steps -> the GUI-side bank slot (pure edit functions, one path). */
+static void sync_303v(uint32_t v) {
+    int vc = c_voice_canvas[v];
+    struct RISectUI *u = s_ui[vc];
+    struct RIPatternBank *b = ri_core_bank(&s_core, v);
     uint32_t k;
     for (k = 0u; k < 16u; k++) {
-        if (u->u.s303.pat.row.r303[k].key != s_303_row[k].key ||
-            u->u.s303.pat.row.r303[k].flags != s_303_row[k].flags) {
-            s_303_row[k] = u->u.s303.pat.row.r303[k];
-            ri_p303_set(&b->pat[s_303_slot], k, s_303_row[k].key, s_303_row[k].flags);
-            evlog("STEP", "slot=%d step=%d key=%d flags=%d", s_303_slot, k,
-                s_303_row[k].key, s_303_row[k].flags);
+        if (u->u.s303.pat.row.r303[k].key != s_303_row[v][k].key ||
+            u->u.s303.pat.row.r303[k].flags != s_303_row[v][k].flags) {
+            s_303_row[v][k] = u->u.s303.pat.row.r303[k];
+            ri_p303_set(&b->pat[s_303_slot[v]], k, s_303_row[v][k].key,
+                s_303_row[v][k].flags);
+            evlog("STEP", "v=%d slot=%d step=%d key=%d flags=%d", v,
+                s_303_slot[v], k, s_303_row[v][k].key, s_303_row[v][k].flags);
+        }
+    }
+}
+
+/* Drum steps -> the GUI-side bank slot (11 lanes + AC row, one path).
+ * v = 0 (808, bank 2) / 1 (909, bank 3). */
+static void sync_drumv(uint32_t v) {
+    int vc = c_voice_canvas[2u + v];
+    uint32_t inst = 2u + v;
+    struct RISectUI *u = s_ui[vc];
+    struct RIPattern *cp = (v == 0u) ? &u->u.s808.pat : &u->u.s909.pat;
+    struct RIPattern *bp = &ri_core_bank(&s_core, inst)->pat[s_drum_slot[v]];
+    uint32_t step, lane;
+    for (step = 0u; step < 16u; step++) {
+        for (lane = 0u; lane < 11u; lane++) {
+            uint32_t cs = ri_pdrum_get(cp, step, lane);
+            if (cs != ri_pdrum_get(&s_drum_pat[v], step, lane)) {
+                /* Lane bits only: flags (AC) have their own branch below. */
+                s_drum_pat[v].row.drum[step].on = cp->row.drum[step].on;
+                s_drum_pat[v].row.drum[step].high = cp->row.drum[step].high;
+                s_drum_pat[v].row.drum[step].flam = cp->row.drum[step].flam;
+                ri_pdrum_set(bp, step, lane, cs);
+                evlog("DSTEP", "v=%d slot=%d step=%d lane=%d st=%d", v,
+                    s_drum_slot[v], step, lane, cs);
+            }
+        }
+        {
+            int cs = (cp->row.drum[step].flags & RI_DRUM_AC) ? 1 : 0;
+            int os = (s_drum_pat[v].row.drum[step].flags & RI_DRUM_AC) ? 1 : 0;
+            if (cs != os) {
+                s_drum_pat[v].row.drum[step].flags = cp->row.drum[step].flags;
+                ri_pdrum_set_ac(bp, step, cs);
+                evlog("DSTEPAC", "v=%d slot=%d step=%d ac=%d", v,
+                    s_drum_slot[v], step, cs);
+            }
         }
     }
 }
@@ -359,9 +423,11 @@ static void sync_303(void) {
  * nonzero (the bridge owns that law, t83). Transport and PAT canvases
  * travel their state paths above. */
 static void sync_values(void) {
-    static const int val_canvas[2] = { C_303, C_MIX };
+    static const int val_canvas[9] = {
+        C_303A, C_303B, C_808, C_909, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3
+    };
     int i;
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < 9; i++) {
         int c = val_canvas[i];
         IPTR ch = 0;
         GetAttr(MUIA_RSection_Changes, s_canvas[c], &ch);
@@ -405,6 +471,39 @@ static void meter_round(ULONG mix_freq) {
     }
 }
 
+/* Canvas object for a section id (tab rows follow the t98 model). */
+static Object *canvas_for_section(ULONG sec) {
+    int i;
+    for (i = 0; i < C_N; i++)
+        if (c_sections[i] == sec)
+            return s_canvas[i];
+    return 0;
+}
+
+/* One device tab page: a row (pattern + voice canvas) per visible device. */
+static Object *tab_device_page(uint32_t group, struct RIVisSet *vis) {
+    struct RITabDev rows[4];
+    uint32_t n, r;
+    Object *page;
+    if (!vis)
+        return 0;
+    n = ri_tab_devices(group, vis, rows, 4u);
+    page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2, TAG_DONE);
+    if (!page)
+        return 0;
+    for (r = 0u; r < n; r++) {
+        Object *prow = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
+            MUIA_Group_Spacing, 2,
+            Child, (IPTR)canvas_for_section(rows[r].pat_sec),
+            Child, (IPTR)canvas_for_section(rows[r].voice_sec), TAG_DONE);
+        if (!prow || !canvas_for_section(rows[r].pat_sec) ||
+            !canvas_for_section(rows[r].voice_sec))
+            return 0;
+        DoMethod(page, OM_ADDMEMBER, (IPTR)prow);
+    }
+    return (n > 0u) ? page : 0;
+}
+
 static ULONG riapp_arg_frames(int argc, char **argv) {
     ULONG v = 0u;
     const char *p;
@@ -416,7 +515,7 @@ static ULONG riapp_arg_frames(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-    Object *app, *win, *row, *pats;
+    Object *app, *win, *row;
     LONG ret;
     ULONG sigs = 0;
     ULONG frames = riapp_arg_frames(argc, argv);
@@ -436,7 +535,8 @@ int main(int argc, char **argv) {
         s_live = 1;
         rate = (float)s_lv.mix_freq; /* E0 (G9.0): the session runs at the device rate */
     }
-    ri_core_init(&s_core, RIAPP_PPQ, rate, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+    ri_core_init(&s_core, RIAPP_PPQ, rate, 120.0f,
+        RI_ENGINE_S303A | RI_ENGINE_S303B | RI_ENGINE_S808 | RI_ENGINE_S909);
     { /* 909 sample pack (owner 2026-09-27): bind idle, before the task runs. */
         char err[128];
         int bound;
@@ -485,19 +585,35 @@ int main(int argc, char **argv) {
             s_panel.tr = u;
         else if (i >= C_P0 && i <= C_P3)
             s_panel.pat[i - C_P0] = u;
-        else if (i == C_303)
+        else if (i == C_303A)
             s_panel.synth[0] = u;
+        else if (i == C_303B)
+            s_panel.synth[1] = u;
+        else if (i == C_808)
+            s_panel.drum[0] = u;
+        else if (i == C_909)
+            s_panel.drum[1] = u;
         else if (i == C_MIX)
             s_panel.mix[2] = u;
+        else if (i >= C_FX0 && i <= C_FX3)
+            s_panel.fx[i - C_FX0] = u;
         SetAttrs(s_canvas[i], MUIA_RSection_Panel, (IPTR)&s_panel,
             MUIA_RSection_KeyOwner, i == C_TR, TAG_DONE);
     }
-    /* The panel shows the demo: 303A steps mirror bank slot 0. */
+    /* The panel shows the demo: 303A/B steps mirror bank slots 0;
+     * 808/909 canvases mirror their bank slot 0 (empty until programmed). */
     for (i = 0; i < 16; i++) {
-        s_ui[C_303]->u.s303.pat.row.r303[i] = s_core.banks[0].pat[0].row.r303[i];
-        s_303_row[i] = s_core.banks[0].pat[0].row.r303[i];
+        s_ui[C_303A]->u.s303.pat.row.r303[i] = s_core.banks[0].pat[0].row.r303[i];
+        s_303_row[0][i] = s_core.banks[0].pat[0].row.r303[i];
+        s_ui[C_303B]->u.s303.pat.row.r303[i] = s_core.banks[1].pat[0].row.r303[i];
+        s_303_row[1][i] = s_core.banks[1].pat[0].row.r303[i];
     }
-    s_303_slot = 0u;
+    s_303_slot[0] = s_303_slot[1] = 0u;
+    s_ui[C_808]->u.s808.pat = s_core.banks[2].pat[0];
+    s_drum_pat[0] = s_core.banks[2].pat[0];
+    s_ui[C_909]->u.s909.pat = s_core.banks[3].pat[0];
+    s_drum_pat[1] = s_core.banks[3].pat[0];
+    s_drum_slot[0] = s_drum_slot[1] = 0u;
     for (i = C_P0; i <= C_P3; i++) {
         int k;
         s_pat_bank[i] = s_pat_pat[i] = s_pat_off[i] = s_pat_shuf[i] = 0u;
@@ -509,10 +625,25 @@ int main(int argc, char **argv) {
     /* Startup burst: every sounding canvas default through the bridge, so
      * the engine adopts the panel at the first drained buffers (the whole
      * board, not just the 808 strip: the demo 303A level 72 lives on
-     * strip 0). */
-    for (i = 0; i <= 6; i++)
-        ri_panel_ctl_send(&s_core.ctl, (uint16_t)c_sections[C_303] << 8 | (uint16_t)i,
-            ri_sui_value(s_ui[C_303], (uint32_t)i));
+     * strip 0). Non-automatable indices are filtered by the bridge. */
+    for (i = 0; i <= 6; i++) {
+        ri_panel_ctl_send(&s_core.ctl, (uint16_t)c_sections[C_303A] << 8 | (uint16_t)i,
+            ri_sui_value(s_ui[C_303A], (uint32_t)i));
+        ri_panel_ctl_send(&s_core.ctl, (uint16_t)c_sections[C_303B] << 8 | (uint16_t)i,
+            ri_sui_value(s_ui[C_303B], (uint32_t)i));
+    }
+    for (i = 0; i < (int)RI_S808_NCTL; i++)
+        ri_panel_ctl_send(&s_core.ctl, (uint16_t)c_sections[C_808] << 8 | (uint16_t)i,
+            ri_sui_value(s_ui[C_808], (uint32_t)i));
+    for (i = 0; i < (int)RI_S909_NCTL; i++)
+        ri_panel_ctl_send(&s_core.ctl, (uint16_t)c_sections[C_909] << 8 | (uint16_t)i,
+            ri_sui_value(s_ui[C_909], (uint32_t)i));
+    for (i = C_FX0; i <= C_FX3; i++) {
+        int k;
+        for (k = 0; k < (int)RI_SFX_NCTL; k++)
+            ri_panel_ctl_send(&s_core.ctl, (uint16_t)c_sections[i] << 8 | (uint16_t)k,
+                ri_sui_value(s_ui[i], (uint32_t)k));
+    }
     for (i = 0; i < 4; i++) {
         int k;
         struct RISectUI *mu = s_ui[C_MIX];
@@ -532,16 +663,33 @@ int main(int argc, char **argv) {
     if (!s_live)
         ri_live_render(&s_core.session, s_fl, s_fr, RIAPP_FRAMES); /* drain the burst */
 
-    pats = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
-        Child, (IPTR)s_canvas[C_P0], Child, (IPTR)s_canvas[C_P1],
-        Child, (IPTR)s_canvas[C_P2], Child, (IPTR)s_canvas[C_P3], TAG_DONE);
     {
-        Object *lower;
-        lower = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
-            Child, (IPTR)s_canvas[C_303], Child, (IPTR)s_canvas[C_MIX], TAG_DONE);
-        row = (pats && lower) ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
-            Child, (IPTR)s_canvas[C_TR], Child, (IPTR)pats,
-            Child, (IPTR)lower, TAG_DONE) : 0;
+        /* Tabbed panel (owner 2026-09-27): transport stays framed above;
+         * device rows follow the visible set through the t98 model. */
+        struct RIVisSet vis;
+        static const char *tab_titles[RI_TAB_COUNT + 1u];
+        Object *synth_page, *drums_page, *mix_page, *fx_page, *reg;
+        uint32_t g;
+        ri_vis_init(&vis);
+        for (g = 0u; g < RI_TAB_COUNT; g++)
+            tab_titles[g] = ri_tab_title(g);
+        tab_titles[RI_TAB_COUNT] = 0;
+        synth_page = tab_device_page(RI_TAB_SYNTH, &vis);
+        drums_page = tab_device_page(RI_TAB_DRUMS, &vis);
+        mix_page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_canvas[C_MIX], TAG_DONE);
+        fx_page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
+            MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_canvas[C_FX0], Child, (IPTR)s_canvas[C_FX1],
+            Child, (IPTR)s_canvas[C_FX2], Child, (IPTR)s_canvas[C_FX3],
+            TAG_DONE);
+        reg = (synth_page && drums_page && mix_page && fx_page) ?
+            (Object *)MUI_NewObject(MUIC_Register,
+                MUIA_Register_Titles, (IPTR)tab_titles,
+                Child, (IPTR)synth_page, Child, (IPTR)drums_page,
+                Child, (IPTR)mix_page, Child, (IPTR)fx_page, TAG_DONE) : 0;
+        row = reg ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_canvas[C_TR], Child, (IPTR)reg, TAG_DONE) : 0;
     }
     if (!row) {
         if (s_live)
@@ -579,7 +727,7 @@ int main(int argc, char **argv) {
     DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, (IPTR)app, 2,
         MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
-    rlog("RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)\n",
+    rlog("RIAPP panel: tabbed Synths/Drums/Mix/FX + transport (2026-09-27)\n",
         0, 0, 0, 0, 0);
 
     /* 100 ms tick: meter chase + null-backend advance. */
@@ -621,7 +769,10 @@ int main(int argc, char **argv) {
         sync_transport();
         for (i = C_P0; i <= C_P3; i++)
             sync_pat(i, have_cursor ? cursor : 0u);
-        sync_303();
+        sync_303v(0u);
+        sync_303v(1u);
+        sync_drumv(0u);
+        sync_drumv(1u);
         sync_values();
         meter_round(s_live ? s_lv.mix_freq : 48000u);
         /* Wedge diagnostic (2026-09-27 Dell freeze under interaction):
