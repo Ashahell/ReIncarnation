@@ -33,4 +33,8 @@ needed. `render.c` callers are unaffected (synchronous use).
 t99 pins the contract: out-of-scope bind still renders bit-identical
 audio; `layers != caller ptr` (host RED FAIL before the fix, PASS
 after). Mutant (pointer store): FAIL (killed). Audit 0/0.
-Device proof open: 909-sounding session + interactions, no guru.
+Device proof CLOSED 2026-09-27 (owner, Dell, build cb0e702): 1132-event
+session (~24 min, 272k buffers), 909 beat reprogrammed + knob sweeps +
+pitch-walk repeat (key=12, accent/slide toggles), clean TR STOP, no
+guru. 0 xruns throughout (render_max 2811 us, 53% of period — the
+sounding 909 costs load, within budget).
