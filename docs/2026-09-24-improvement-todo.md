@@ -137,6 +137,13 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   (303B, 909 incl. step editing, full mixers, FX, full transport) so all
   bound voices are reachable live; 909 demo content for the new voices
   rides with it (taste: owner ear).
+  - Layout (owner 2026-09-27): tabbed groups via stock `Register.mui`
+    (no custom tab widget); groups ~Synths/Drums/Mix/FX.
+  - Device visibility (owner 2026-09-27, aligns with the extensible-rack
+    requirement): GUI must let the user select which synths are
+    visible/active (Korg, ASM Leviasynth later) — design the tab model
+    for it now, don't hardcode four devices.
+  - 303B (owner 2026-09-27): silent until programmed (no demo content).
 
 ## Planned devices (extensible rack, spec D-k)
 - [ ] Korg Electribe ESX-1 — owner plan 2026-09-26; requirement + rules for current work: `docs/superpowers/specs/2026-09-26-device-korg-esx1-requirement.md` (no 4-device assumptions; new lane-key block, strip, skin token, RBNG chunks — chunk IDs owner review; E1 = Korg ESX-1 manual; clean-room: no Korg samples/ROM/art).

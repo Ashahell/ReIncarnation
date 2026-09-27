@@ -1,6 +1,11 @@
 # ReIncarnation llm-wiki — log
 
-## [2026-09-27] proofs | Dell 6-min soak rerun PASS, freeze theory
+## [2026-09-27] decisions | RIAPP tabs + device visibility + 303B silent
+- Disposition: Update (owner answers: layout + 303B content)
+- Updated: docs/2026-09-24-improvement-todo.md (RIAPP full panels)
+Tabs via stock Register.mui; device visibility model up front (aligns
+with the 2026-09-24 extensible-rack requirement); 303B silent until
+programmed (no demo content change).
 - Disposition: Update (soak rerun + freeze retrospective)
 - Evidence: docs/evidence/portability/dell-soak-rerun.log
 68,657 buffers, 0 xruns, graceful close (unattended). Earlier freeze
