@@ -1361,3 +1361,7 @@ Register (same visibility-only bit); activation later. t98 reverts to
 ## [2026-09-27] ingest | Dell lane bridge recovery
 - Disposition: New (lane-ops; complements the Vulkan4AROS laptop article, not copied)
 - Raw: llm-wiki/raw/articles/2026-09-27-dell-lane-bridge-recovery.md
+
+## [2026-09-27] ingest | Rail LED dots bitmap saga
+- Disposition: New (owner-ordered handoff: everything tried, failures, readings)
+- Raw: llm-wiki/raw/articles/2026-09-27-rail-led-bitmap-saga.md
