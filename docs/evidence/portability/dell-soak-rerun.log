@@ -1,0 +1,2730 @@
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP 909 pack: unbound - 909 renders silence (load a pack for drums)
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=2811 xruns=0 render_max=70 us
+RIAPP hb: buffers=5628 xruns=0 render_max=70 us
+RIAPP hb: buffers=8445 xruns=0 render_max=70 us
+RIAPP hb: buffers=11262 xruns=0 render_max=70 us
+RIAPP hb: buffers=12286 xruns=0 render_max=133 us
+RIAPP hb: buffers=13082 xruns=0 render_max=139 us
+RIAPP hb: buffers=14777 xruns=0 render_max=139 us
+RIAPP play
+RIAPP hb: buffers=16479 xruns=0 render_max=1867 us
+RIAPP hb: buffers=18455 xruns=0 render_max=1867 us
+RIAPP hb: buffers=19906 xruns=0 render_max=1878 us
+RIAPP hb: buffers=21533 xruns=0 render_max=1878 us
+RIAPP hb: buffers=23391 xruns=0 render_max=1878 us
+RIAPP hb: buffers=24995 xruns=0 render_max=1878 us
+RIAPP hb: buffers=26687 xruns=0 render_max=1878 us
+RIAPP hb: buffers=27880 xruns=0 render_max=1878 us
+RIAPP hb: buffers=29162 xruns=0 render_max=1879 us
+RIAPP hb: buffers=30364 xruns=0 render_max=1879 us
+RIAPP hb: buffers=32295 xruns=0 render_max=1879 us
+RIAPP hb: buffers=33624 xruns=0 render_max=1879 us
+RIAPP hb: buffers=35535 xruns=0 render_max=1879 us
+RIAPP hb: buffers=37090 xruns=0 render_max=1879 us
+RIAPP hb: buffers=38676 xruns=0 render_max=1879 us
+RIAPP hb: buffers=40223 xruns=0 render_max=1879 us
+RIAPP hb: buffers=41764 xruns=0 render_max=1879 us
+RIAPP hb: buffers=43316 xruns=0 render_max=1879 us
+RIAPP hb: buffers=45431 xruns=0 render_max=1879 us
+RIAPP hb: buffers=47356 xruns=0 render_max=1879 us
+RIAPP hb: buffers=48784 xruns=0 render_max=1879 us
+RIAPP hb: buffers=50369 xruns=0 render_max=1883 us
+RIAPP hb: buffers=51668 xruns=0 render_max=1883 us
+RIAPP hb: buffers=53234 xruns=0 render_max=1883 us
+RIAPP hb: buffers=54710 xruns=0 render_max=1883 us
+RIAPP hb: buffers=56360 xruns=0 render_max=1883 us
+RIAPP hb: buffers=58069 xruns=0 render_max=1883 us
+RIAPP hb: buffers=59642 xruns=0 render_max=1883 us
+RIAPP hb: buffers=61050 xruns=0 render_max=1883 us
+RIAPP hb: buffers=62863 xruns=0 render_max=1883 us
+RIAPP hb: buffers=64306 xruns=0 render_max=1883 us
+RIAPP hb: buffers=66203 xruns=0 render_max=1883 us
+RIAPP hb: buffers=68847 xruns=0 render_max=1883 us
+RIAPP hb: buffers=70785 xruns=0 render_max=1883 us
+RIAPP hb: buffers=72850 xruns=0 render_max=1883 us
+RIAPP hb: buffers=74628 xruns=0 render_max=1883 us
+RIAPP hb: buffers=76160 xruns=0 render_max=1883 us
+RIAPP hb: buffers=78343 xruns=0 render_max=1883 us
+RIAPP hb: buffers=80607 xruns=0 render_max=1893 us
+RIAPP hb: buffers=82464 xruns=0 render_max=1893 us
+RIAPP hb: buffers=84248 xruns=0 render_max=1893 us
+RIAPP hb: buffers=85921 xruns=0 render_max=1893 us
+RIAPP hb: buffers=87596 xruns=0 render_max=1893 us
+RIAPP hb: buffers=90034 xruns=0 render_max=1893 us
+RIAPP stop
+RIAPP hb: buffers=92068 xruns=0 render_max=1893 us
+RIAPP hb: buffers=94885 xruns=0 render_max=1893 us
+RIAPP hb: buffers=100488 xruns=1 render_max=1893 us
+RIAPP hb: buffers=106118 xruns=1 render_max=1893 us
+RIAPP hb: buffers=111749 xruns=1 render_max=1893 us
+RIAPP hb: buffers=117379 xruns=1 render_max=1893 us
+RIAPP hb: buffers=123009 xruns=1 render_max=1893 us
+RIAPP hb: buffers=126431 xruns=3 render_max=1893 us
+RIAPP hb: buffers=129248 xruns=3 render_max=1893 us
+RIAPP hb: buffers=132065 xruns=3 render_max=1893 us
+RIAPP hb: buffers=134881 xruns=3 render_max=1893 us
+RIAPP hb: buffers=137698 xruns=3 render_max=1893 us
+RIAPP hb: buffers=140515 xruns=3 render_max=1893 us
+RIAPP hb: buffers=143332 xruns=3 render_max=1893 us
+RIAPP hb: buffers=146149 xruns=3 render_max=1893 us
+RIAPP hb: buffers=148984 xruns=3 render_max=1893 us
+RIAPP hb: buffers=151801 xruns=3 render_max=1893 us
+RIAPP hb: buffers=154618 xruns=3 render_max=1893 us
+RIAPP hb: buffers=157435 xruns=3 render_max=1893 us
+RIAPP hb: buffers=160252 xruns=3 render_max=1893 us
+RIAPP hb: buffers=163069 xruns=3 render_max=1893 us
+RIAPP hb: buffers=165886 xruns=3 render_max=1893 us
+RIAPP hb: buffers=168703 xruns=3 render_max=1893 us
+RIAPP hb: buffers=171519 xruns=3 render_max=1893 us
+RIAPP hb: buffers=174336 xruns=3 render_max=1893 us
+RIAPP hb: buffers=177153 xruns=3 render_max=1893 us
+RIAPP hb: buffers=180157 xruns=3 render_max=1893 us
+RIAPP hb: buffers=182972 xruns=3 render_max=1893 us
+RIAPP hb: buffers=185788 xruns=3 render_max=1893 us
+RIAPP hb: buffers=188603 xruns=3 render_max=1893 us
+RIAPP hb: buffers=191418 xruns=3 render_max=1893 us
+RIAPP hb: buffers=194233 xruns=3 render_max=1893 us
+RIAPP hb: buffers=197048 xruns=3 render_max=1893 us
+RIAPP hb: buffers=199864 xruns=3 render_max=1893 us
+RIAPP hb: buffers=202679 xruns=3 render_max=1893 us
+RIAPP hb: buffers=205494 xruns=3 render_max=1893 us
+RIAPP hb: buffers=208309 xruns=3 render_max=1893 us
+RIAPP hb: buffers=211125 xruns=3 render_max=1893 us
+RIAPP hb: buffers=214015 xruns=3 render_max=1893 us
+RIAPP hb: buffers=216830 xruns=3 render_max=1893 us
+RIAPP hb: buffers=219645 xruns=3 render_max=1893 us
+RIAPP hb: buffers=222461 xruns=3 render_max=1893 us
+RIAPP hb: buffers=225276 xruns=3 render_max=1893 us
+RIAPP hb: buffers=228091 xruns=3 render_max=1893 us
+RIAPP hb: buffers=230906 xruns=3 render_max=1893 us
+RIAPP hb: buffers=233721 xruns=3 render_max=1893 us
+RIAPP hb: buffers=236537 xruns=3 render_max=1893 us
+RIAPP hb: buffers=239352 xruns=3 render_max=1893 us
+RIAPP hb: buffers=242167 xruns=3 render_max=1893 us
+RIAPP hb: buffers=245002 xruns=3 render_max=1893 us
+RIAPP hb: buffers=247819 xruns=3 render_max=1893 us
+RIAPP hb: buffers=250636 xruns=3 render_max=1893 us
+RIAPP hb: buffers=253453 xruns=3 render_max=1893 us
+RIAPP hb: buffers=256269 xruns=3 render_max=1893 us
+RIAPP hb: buffers=259086 xruns=3 render_max=1893 us
+RIAPP hb: buffers=261903 xruns=3 render_max=1893 us
+RIAPP hb: buffers=264720 xruns=3 render_max=1893 us
+RIAPP hb: buffers=267537 xruns=3 render_max=1893 us
+RIAPP hb: buffers=270354 xruns=3 render_max=1893 us
+RIAPP hb: buffers=273171 xruns=3 render_max=1893 us
+RIAPP hb: buffers=276100 xruns=3 render_max=1893 us
+RIAPP hb: buffers=278917 xruns=3 render_max=1893 us
+RIAPP hb: buffers=281734 xruns=3 render_max=1893 us
+RIAPP hb: buffers=284551 xruns=3 render_max=1893 us
+RIAPP hb: buffers=287368 xruns=3 render_max=1893 us
+RIAPP hb: buffers=290184 xruns=3 render_max=1893 us
+RIAPP hb: buffers=293001 xruns=3 render_max=1893 us
+RIAPP hb: buffers=295818 xruns=3 render_max=1893 us
+RIAPP hb: buffers=298635 xruns=3 render_max=1893 us
+RIAPP hb: buffers=301452 xruns=3 render_max=1893 us
+RIAPP hb: buffers=304269 xruns=3 render_max=1893 us
+RIAPP hb: buffers=307086 xruns=3 render_max=1893 us
+RIAPP hb: buffers=309939 xruns=3 render_max=1893 us
+RIAPP hb: buffers=312754 xruns=3 render_max=1893 us
+RIAPP hb: buffers=315569 xruns=3 render_max=1893 us
+RIAPP hb: buffers=318384 xruns=3 render_max=1893 us
+RIAPP hb: buffers=321199 xruns=3 render_max=1893 us
+RIAPP hb: buffers=324015 xruns=3 render_max=1893 us
+RIAPP hb: buffers=326830 xruns=3 render_max=1893 us
+RIAPP hb: buffers=329645 xruns=3 render_max=1893 us
+RIAPP hb: buffers=332460 xruns=3 render_max=1893 us
+RIAPP hb: buffers=335276 xruns=3 render_max=1893 us
+RIAPP hb: buffers=338091 xruns=3 render_max=1893 us
+RIAPP hb: buffers=340925 xruns=3 render_max=1893 us
+RIAPP hb: buffers=343742 xruns=3 render_max=1893 us
+RIAPP hb: buffers=346559 xruns=3 render_max=1893 us
+RIAPP hb: buffers=349376 xruns=3 render_max=1893 us
+RIAPP hb: buffers=352193 xruns=3 render_max=1893 us
+RIAPP hb: buffers=355010 xruns=3 render_max=1893 us
+RIAPP hb: buffers=357827 xruns=3 render_max=1893 us
+RIAPP hb: buffers=360643 xruns=3 render_max=1893 us
+RIAPP hb: buffers=363460 xruns=3 render_max=1893 us
+RIAPP hb: buffers=366277 xruns=3 render_max=1893 us
+RIAPP hb: buffers=369094 xruns=3 render_max=1893 us
+RIAPP hb: buffers=371948 xruns=3 render_max=1893 us
+RIAPP hb: buffers=374763 xruns=3 render_max=1893 us
+RIAPP hb: buffers=377579 xruns=3 render_max=1893 us
+RIAPP hb: buffers=380394 xruns=3 render_max=1893 us
+RIAPP hb: buffers=383209 xruns=3 render_max=1893 us
+RIAPP hb: buffers=386024 xruns=3 render_max=1893 us
+RIAPP hb: buffers=388840 xruns=3 render_max=1893 us
+RIAPP hb: buffers=391655 xruns=3 render_max=1893 us
+RIAPP hb: buffers=394470 xruns=3 render_max=1893 us
+RIAPP hb: buffers=397285 xruns=3 render_max=1893 us
+RIAPP hb: buffers=400100 xruns=3 render_max=1893 us
+RIAPP hb: buffers=402916 xruns=3 render_max=1893 us
+RIAPP hb: buffers=405751 xruns=3 render_max=1893 us
+RIAPP hb: buffers=408568 xruns=3 render_max=1893 us
+RIAPP hb: buffers=411384 xruns=3 render_max=1893 us
+RIAPP hb: buffers=414201 xruns=3 render_max=1893 us
+RIAPP hb: buffers=417018 xruns=3 render_max=1893 us
+RIAPP hb: buffers=419835 xruns=3 render_max=1893 us
+RIAPP hb: buffers=422652 xruns=3 render_max=1893 us
+RIAPP hb: buffers=425469 xruns=3 render_max=1893 us
+RIAPP hb: buffers=428286 xruns=3 render_max=1893 us
+RIAPP hb: buffers=431102 xruns=3 render_max=1893 us
+RIAPP hb: buffers=433919 xruns=3 render_max=1893 us
+RIAPP hb: buffers=436754 xruns=3 render_max=1893 us
+RIAPP hb: buffers=439570 xruns=3 render_max=1893 us
+RIAPP hb: buffers=442385 xruns=3 render_max=1893 us
+RIAPP hb: buffers=445200 xruns=3 render_max=1893 us
+RIAPP hb: buffers=448015 xruns=3 render_max=1893 us
+RIAPP hb: buffers=450830 xruns=3 render_max=1893 us
+RIAPP hb: buffers=453646 xruns=3 render_max=1893 us
+RIAPP hb: buffers=456461 xruns=3 render_max=1893 us
+RIAPP hb: buffers=459276 xruns=3 render_max=1893 us
+RIAPP hb: buffers=462091 xruns=3 render_max=1893 us
+RIAPP hb: buffers=464906 xruns=3 render_max=1893 us
+RIAPP hb: buffers=467722 xruns=3 render_max=1893 us
+RIAPP hb: buffers=470557 xruns=3 render_max=1893 us
+RIAPP hb: buffers=473374 xruns=3 render_max=1893 us
+RIAPP hb: buffers=476191 xruns=3 render_max=1893 us
+RIAPP hb: buffers=479008 xruns=3 render_max=1893 us
+RIAPP hb: buffers=481825 xruns=3 render_max=1893 us
+RIAPP hb: buffers=484642 xruns=3 render_max=1893 us
+RIAPP hb: buffers=487458 xruns=3 render_max=1893 us
+RIAPP hb: buffers=490275 xruns=3 render_max=1893 us
+RIAPP hb: buffers=493092 xruns=3 render_max=1893 us
+RIAPP hb: buffers=495909 xruns=3 render_max=1893 us
+RIAPP hb: buffers=498726 xruns=3 render_max=1893 us
+RIAPP hb: buffers=501580 xruns=3 render_max=1893 us
+RIAPP hb: buffers=504397 xruns=3 render_max=1893 us
+RIAPP hb: buffers=507214 xruns=3 render_max=1893 us
+RIAPP hb: buffers=510031 xruns=3 render_max=1893 us
+RIAPP hb: buffers=512848 xruns=3 render_max=1893 us
+RIAPP hb: buffers=515665 xruns=3 render_max=1893 us
+RIAPP hb: buffers=518481 xruns=3 render_max=1893 us
+RIAPP hb: buffers=521298 xruns=3 render_max=1893 us
+RIAPP hb: buffers=524115 xruns=3 render_max=1893 us
+RIAPP hb: buffers=526932 xruns=3 render_max=1893 us
+RIAPP hb: buffers=529749 xruns=3 render_max=1893 us
+RIAPP hb: buffers=532622 xruns=3 render_max=1893 us
+RIAPP hb: buffers=535437 xruns=3 render_max=1893 us
+RIAPP hb: buffers=538252 xruns=3 render_max=1893 us
+RIAPP hb: buffers=541068 xruns=3 render_max=1893 us
+RIAPP hb: buffers=543883 xruns=3 render_max=1893 us
+RIAPP hb: buffers=546698 xruns=3 render_max=1893 us
+RIAPP hb: buffers=549513 xruns=3 render_max=1893 us
+RIAPP hb: buffers=552328 xruns=3 render_max=1893 us
+RIAPP hb: buffers=555144 xruns=3 render_max=1893 us
+RIAPP hb: buffers=557959 xruns=3 render_max=1893 us
+RIAPP hb: buffers=560774 xruns=3 render_max=1893 us
+RIAPP hb: buffers=563589 xruns=3 render_max=1893 us
+RIAPP hb: buffers=566443 xruns=3 render_max=1893 us
+RIAPP hb: buffers=569260 xruns=3 render_max=1893 us
+RIAPP hb: buffers=572077 xruns=3 render_max=1893 us
+RIAPP hb: buffers=574894 xruns=3 render_max=1893 us
+RIAPP hb: buffers=577711 xruns=3 render_max=1893 us
+RIAPP hb: buffers=580528 xruns=3 render_max=1893 us
+RIAPP hb: buffers=583344 xruns=3 render_max=1893 us
+RIAPP hb: buffers=586161 xruns=3 render_max=1893 us
+RIAPP hb: buffers=588978 xruns=3 render_max=1893 us
+RIAPP hb: buffers=591795 xruns=3 render_max=1893 us
+RIAPP hb: buffers=594612 xruns=3 render_max=1893 us
+RIAPP hb: buffers=597541 xruns=3 render_max=1893 us
+RIAPP hb: buffers=600356 xruns=3 render_max=1893 us
+RIAPP hb: buffers=603171 xruns=3 render_max=1893 us
+RIAPP hb: buffers=605987 xruns=3 render_max=1893 us
+RIAPP hb: buffers=608802 xruns=3 render_max=1893 us
+RIAPP hb: buffers=611617 xruns=3 render_max=1893 us
+RIAPP hb: buffers=614432 xruns=3 render_max=1893 us
+RIAPP hb: buffers=617247 xruns=3 render_max=1893 us
+RIAPP hb: buffers=620063 xruns=3 render_max=1893 us
+RIAPP hb: buffers=622878 xruns=3 render_max=1893 us
+RIAPP hb: buffers=625693 xruns=3 render_max=1893 us
+RIAPP hb: buffers=628508 xruns=3 render_max=1893 us
+RIAPP hb: buffers=631361 xruns=3 render_max=1893 us
+RIAPP hb: buffers=634176 xruns=3 render_max=1893 us
+RIAPP hb: buffers=636991 xruns=3 render_max=1893 us
+RIAPP hb: buffers=639807 xruns=3 render_max=1893 us
+RIAPP hb: buffers=642622 xruns=3 render_max=1893 us
+RIAPP hb: buffers=645437 xruns=3 render_max=1893 us
+RIAPP hb: buffers=648252 xruns=3 render_max=1893 us
+RIAPP hb: buffers=651068 xruns=3 render_max=1893 us
+RIAPP hb: buffers=653883 xruns=3 render_max=1893 us
+RIAPP hb: buffers=656698 xruns=3 render_max=1893 us
+RIAPP hb: buffers=659513 xruns=3 render_max=1893 us
+RIAPP hb: buffers=662347 xruns=3 render_max=1893 us
+RIAPP hb: buffers=665162 xruns=3 render_max=1893 us
+RIAPP hb: buffers=667978 xruns=3 render_max=1893 us
+RIAPP hb: buffers=670793 xruns=3 render_max=1893 us
+RIAPP hb: buffers=673608 xruns=3 render_max=1893 us
+RIAPP hb: buffers=676423 xruns=3 render_max=1893 us
+RIAPP hb: buffers=679238 xruns=3 render_max=1893 us
+RIAPP hb: buffers=682054 xruns=3 render_max=1893 us
+RIAPP hb: buffers=684869 xruns=3 render_max=1893 us
+RIAPP hb: buffers=687684 xruns=3 render_max=1893 us
+RIAPP hb: buffers=690499 xruns=3 render_max=1893 us
+RIAPP hb: buffers=693352 xruns=3 render_max=1893 us
+RIAPP hb: buffers=696167 xruns=3 render_max=1893 us
+RIAPP hb: buffers=698982 xruns=3 render_max=1893 us
+RIAPP hb: buffers=701798 xruns=3 render_max=1893 us
+RIAPP hb: buffers=704613 xruns=3 render_max=1893 us
+RIAPP hb: buffers=707428 xruns=3 render_max=1893 us
+RIAPP hb: buffers=710243 xruns=3 render_max=1893 us
+RIAPP hb: buffers=713058 xruns=3 render_max=1893 us
+RIAPP hb: buffers=715874 xruns=3 render_max=1893 us
+RIAPP hb: buffers=718689 xruns=3 render_max=1893 us
+RIAPP hb: buffers=721504 xruns=3 render_max=1893 us
+RIAPP hb: buffers=724319 xruns=3 render_max=1893 us
+RIAPP hb: buffers=727173 xruns=3 render_max=1893 us
+RIAPP hb: buffers=729990 xruns=3 render_max=1893 us
+RIAPP hb: buffers=732807 xruns=3 render_max=1893 us
+RIAPP hb: buffers=735624 xruns=3 render_max=1893 us
+RIAPP hb: buffers=738441 xruns=3 render_max=1893 us
+RIAPP hb: buffers=741258 xruns=3 render_max=1893 us
+RIAPP hb: buffers=744074 xruns=3 render_max=1893 us
+RIAPP hb: buffers=746891 xruns=3 render_max=1893 us
+RIAPP hb: buffers=749708 xruns=3 render_max=1893 us
+RIAPP hb: buffers=752525 xruns=3 render_max=1893 us
+RIAPP hb: buffers=755342 xruns=3 render_max=1893 us
+RIAPP hb: buffers=758178 xruns=3 render_max=1893 us
+RIAPP hb: buffers=760994 xruns=3 render_max=1893 us
+RIAPP hb: buffers=763811 xruns=3 render_max=1893 us
+RIAPP hb: buffers=766628 xruns=3 render_max=1893 us
+RIAPP hb: buffers=769445 xruns=3 render_max=1893 us
+RIAPP hb: buffers=772262 xruns=3 render_max=1893 us
+RIAPP hb: buffers=775079 xruns=3 render_max=1893 us
+RIAPP hb: buffers=777896 xruns=3 render_max=1893 us
+RIAPP hb: buffers=780712 xruns=3 render_max=1893 us
+RIAPP hb: buffers=783529 xruns=3 render_max=1893 us
+RIAPP hb: buffers=786346 xruns=3 render_max=1893 us
+RIAPP hb: buffers=789182 xruns=3 render_max=1893 us
+RIAPP hb: buffers=791997 xruns=3 render_max=1893 us
+RIAPP hb: buffers=794812 xruns=3 render_max=1893 us
+RIAPP hb: buffers=797627 xruns=3 render_max=1893 us
+RIAPP hb: buffers=800443 xruns=3 render_max=1893 us
+RIAPP hb: buffers=803258 xruns=3 render_max=1893 us
+RIAPP hb: buffers=806073 xruns=3 render_max=1893 us
+RIAPP hb: buffers=808888 xruns=3 render_max=1893 us
+RIAPP hb: buffers=811703 xruns=3 render_max=1893 us
+RIAPP hb: buffers=814519 xruns=3 render_max=1893 us
+RIAPP hb: buffers=817334 xruns=3 render_max=1893 us
+RIAPP hb: buffers=820149 xruns=3 render_max=1893 us
+RIAPP hb: buffers=823133 xruns=3 render_max=1893 us
+RIAPP hb: buffers=825949 xruns=3 render_max=1893 us
+RIAPP hb: buffers=828764 xruns=3 render_max=1893 us
+RIAPP hb: buffers=831579 xruns=3 render_max=1893 us
+RIAPP hb: buffers=834394 xruns=3 render_max=1893 us
+RIAPP hb: buffers=837209 xruns=3 render_max=1893 us
+RIAPP hb: buffers=840025 xruns=3 render_max=1893 us
+RIAPP hb: buffers=842840 xruns=3 render_max=1893 us
+RIAPP hb: buffers=845655 xruns=3 render_max=1893 us
+RIAPP hb: buffers=848470 xruns=3 render_max=1893 us
+RIAPP hb: buffers=851286 xruns=3 render_max=1893 us
+RIAPP hb: buffers=854195 xruns=3 render_max=1893 us
+RIAPP hb: buffers=857012 xruns=3 render_max=1893 us
+RIAPP hb: buffers=859829 xruns=3 render_max=1893 us
+RIAPP hb: buffers=862646 xruns=3 render_max=1893 us
+RIAPP hb: buffers=865462 xruns=3 render_max=1893 us
+RIAPP hb: buffers=868279 xruns=3 render_max=1893 us
+RIAPP hb: buffers=871096 xruns=3 render_max=1893 us
+RIAPP hb: buffers=873913 xruns=3 render_max=1893 us
+RIAPP hb: buffers=876730 xruns=3 render_max=1893 us
+RIAPP hb: buffers=879547 xruns=3 render_max=1893 us
+RIAPP hb: buffers=882363 xruns=3 render_max=1893 us
+RIAPP hb: buffers=885180 xruns=3 render_max=1893 us
+RIAPP hb: buffers=888090 xruns=3 render_max=1893 us
+RIAPP hb: buffers=890905 xruns=3 render_max=1893 us
+RIAPP hb: buffers=893720 xruns=3 render_max=1893 us
+RIAPP hb: buffers=896536 xruns=3 render_max=1893 us
+RIAPP hb: buffers=899351 xruns=3 render_max=1893 us
+RIAPP hb: buffers=902166 xruns=3 render_max=1893 us
+RIAPP hb: buffers=904981 xruns=3 render_max=1893 us
+RIAPP hb: buffers=907796 xruns=3 render_max=1893 us
+RIAPP hb: buffers=910612 xruns=3 render_max=1893 us
+RIAPP hb: buffers=913427 xruns=3 render_max=1893 us
+RIAPP hb: buffers=916242 xruns=3 render_max=1893 us
+RIAPP hb: buffers=919095 xruns=3 render_max=1893 us
+RIAPP hb: buffers=921912 xruns=3 render_max=1893 us
+RIAPP hb: buffers=924729 xruns=3 render_max=1893 us
+RIAPP hb: buffers=927546 xruns=3 render_max=1893 us
+RIAPP hb: buffers=930363 xruns=3 render_max=1893 us
+RIAPP hb: buffers=933180 xruns=3 render_max=1893 us
+RIAPP hb: buffers=935997 xruns=3 render_max=1893 us
+RIAPP hb: buffers=938813 xruns=3 render_max=1893 us
+RIAPP hb: buffers=941630 xruns=3 render_max=1893 us
+RIAPP hb: buffers=944447 xruns=3 render_max=1893 us
+RIAPP hb: buffers=947264 xruns=3 render_max=1893 us
+RIAPP hb: buffers=950100 xruns=3 render_max=1893 us
+RIAPP hb: buffers=952915 xruns=3 render_max=1893 us
+RIAPP hb: buffers=955730 xruns=3 render_max=1893 us
+RIAPP hb: buffers=958545 xruns=3 render_max=1893 us
+RIAPP hb: buffers=961360 xruns=3 render_max=1893 us
+RIAPP hb: buffers=964176 xruns=3 render_max=1893 us
+RIAPP hb: buffers=966991 xruns=3 render_max=1893 us
+RIAPP hb: buffers=969806 xruns=3 render_max=1893 us
+RIAPP hb: buffers=972621 xruns=3 render_max=1893 us
+RIAPP hb: buffers=975436 xruns=3 render_max=1893 us
+RIAPP hb: buffers=978252 xruns=3 render_max=1893 us
+RIAPP hb: buffers=981067 xruns=3 render_max=1893 us
+RIAPP hb: buffers=983957 xruns=3 render_max=1893 us
+RIAPP hb: buffers=986773 xruns=3 render_max=1893 us
+RIAPP hb: buffers=989588 xruns=3 render_max=1893 us
+RIAPP hb: buffers=992403 xruns=3 render_max=1893 us
+RIAPP hb: buffers=995218 xruns=3 render_max=1893 us
+RIAPP hb: buffers=998033 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1000849 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1003664 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1006479 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1009294 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1012109 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1015019 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1017836 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1020653 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1023469 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1026286 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1029103 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1031920 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1034737 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1037554 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1040371 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1043187 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1046004 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1048858 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1051673 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1054488 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1057303 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1060118 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1062934 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1065749 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1068564 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1071379 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1074194 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1077010 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1079862 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1082678 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1085493 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1088308 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1091123 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1093938 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1096754 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1099569 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1102384 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1105199 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1108015 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1110830 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1113703 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1116520 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1119336 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1122153 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1124970 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1127787 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1130604 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1133421 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1136238 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1139055 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1141871 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1144744 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1147559 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1150374 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1153189 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1156005 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1158820 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1161635 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1164450 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1167266 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1170081 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1172896 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1175749 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1178564 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1181379 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1184194 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1187010 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1189825 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1192640 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1195455 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1198271 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1201086 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1203901 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1206716 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1209607 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1212424 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1215241 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1218058 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1220875 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1223692 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1226509 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1229326 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1232142 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1234959 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1237776 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1240612 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1243428 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1246245 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1249062 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1251879 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1254696 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1257513 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1260330 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1263147 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1265963 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1268780 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1271597 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1274470 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1277287 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1280104 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1282921 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1285738 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1288555 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1291372 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1294188 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1297005 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1299822 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1302639 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1305474 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1308289 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1311104 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1313920 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1316735 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1319550 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1322365 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1325181 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1327996 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1330811 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1333626 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1336479 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1339315 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1342131 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1344948 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1347765 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1350582 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1353399 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1356216 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1359033 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1361849 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1364666 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1367483 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1370375 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1373192 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1376009 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1378826 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1381643 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1384459 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1387276 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1390093 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1392910 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1395727 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1398544 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1401379 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1404196 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1407013 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1409830 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1412647 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1415464 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1418281 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1421097 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1423914 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1426731 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1429548 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1432365 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1435237 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1438052 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1440867 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1443682 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1446498 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1449313 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1452128 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1454943 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1457758 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1460574 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1463389 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1466242 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1469059 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1471876 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1474693 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1477510 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1480327 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1483143 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1485960 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1488777 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1491594 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1494411 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1497265 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1500082 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1502899 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1505716 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1508533 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1511350 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1514166 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1516983 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1519800 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1522617 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1525434 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1528251 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1531124 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1533941 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1536758 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1539575 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1542391 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1545208 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1548025 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1550842 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1553659 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1556476 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1559293 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1562147 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1564964 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1567781 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1570598 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1573414 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1576231 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1579048 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1581865 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1584682 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1587499 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1590316 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1593132 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1596004 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1598819 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1601635 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1604450 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1607265 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1610080 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1612896 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1615711 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1618526 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1621341 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1624156 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1627010 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1629827 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1632643 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1635460 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1638277 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1641094 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1643911 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1646728 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1649545 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1652362 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1655178 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1658052 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1660868 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1663685 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1666502 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1669319 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1672136 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1674953 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1677770 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1680586 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1683403 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1686220 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1689037 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1691890 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1694706 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1697521 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1700336 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1703151 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1705966 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1708782 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1711597 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1714412 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1717227 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1720043 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1722914 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1725731 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1728548 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1731365 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1734182 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1736999 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1739816 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1742633 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1745449 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1748266 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1751083 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1753900 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1756811 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1759628 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1762444 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1765261 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1768078 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1770895 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1773712 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1776529 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1779346 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1782162 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1784979 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1787871 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1790688 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1793505 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1796322 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1799139 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1801956 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1804772 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1807589 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1810406 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1813223 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1816040 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1818857 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1821692 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1824509 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1827326 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1830143 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1832960 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1835777 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1838593 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1841410 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1844227 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1847044 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1849861 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1852696 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1855511 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1858326 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1861141 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1863956 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1866772 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1869587 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1872402 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1875217 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1878033 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1880848 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1883682 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1886499 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1889316 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1892133 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1894950 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1897766 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1900583 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1903400 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1906217 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1909034 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1911851 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1914668 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1917502 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1920317 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1923132 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1925948 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1928763 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1931578 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1934393 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1937208 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1940024 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1942839 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1945654 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1948583 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1951399 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1954216 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1957033 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1959850 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1962667 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1965484 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1968301 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1971117 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1973934 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1976751 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1979568 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1982404 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1985221 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1988037 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1990854 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1993671 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1996488 xruns=3 render_max=1893 us
+RIAPP hb: buffers=1999305 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2002122 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2004938 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2007755 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2010572 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2013407 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2016222 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2019037 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2021853 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2024668 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2027483 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2030298 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2033113 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2035929 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2038744 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2041559 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2044431 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2047246 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2050061 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2052876 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2055691 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2058506 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2061322 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2064137 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2066952 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2069767 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2072583 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2075398 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2078232 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2081047 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2083862 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2086677 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2089493 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2092308 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2095123 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2097938 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2100753 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2103568 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2106384 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2109387 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2112202 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2115017 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2117832 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2120648 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2123463 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2126278 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2129093 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2131908 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2134724 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2137539 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2140429 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2143244 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2146060 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2148875 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2151690 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2154505 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2157321 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2160136 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2162951 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2165766 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2168581 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2171397 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2174231 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2177046 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2179861 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2182676 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2185491 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2188307 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2191122 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2193937 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2196752 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2199567 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2202383 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2205255 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2208072 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2210888 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2213705 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2216522 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2219339 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2222156 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2224973 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2227790 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2230606 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2233423 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2236240 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2239131 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2241946 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2244761 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2247576 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2250392 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2253207 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2256022 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2258837 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2261652 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2264468 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2267283 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2270118 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2272934 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2275751 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2278568 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2281385 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2284202 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2287019 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2289836 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2292652 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2295469 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2298286 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2301159 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2303976 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2306793 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2309610 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2312427 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2315244 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2318061 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2320877 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2323694 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2326511 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2329328 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2332145 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2335036 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2337851 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2340666 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2343481 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2346297 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2349112 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2351927 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2354742 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2357557 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2360373 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2363188 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2366078 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2368893 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2371709 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2374524 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2377339 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2380154 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2382969 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2385785 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2388600 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2391415 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2394230 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2397046 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2399898 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2402713 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2405529 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2408344 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2411159 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2413974 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2416790 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2419605 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2422420 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2425235 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2428051 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2430903 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2433718 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2436534 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2439349 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2442164 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2444979 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2447794 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2450610 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2453425 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2456240 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2459055 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2461927 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2464744 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2467561 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2470377 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2473194 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2476011 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2478828 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2481645 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2484462 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2487279 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2490096 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2492912 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2495767 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2498584 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2501401 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2504217 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2507034 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2509851 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2512668 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2515485 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2518302 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2521118 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2523935 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2526790 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2529607 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2532423 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2535240 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2538057 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2540874 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2543691 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2546508 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2549325 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2552141 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2554958 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2557775 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2560723 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2563540 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2566357 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2569174 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2571991 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2574808 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2577625 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2580442 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2583258 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2586075 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2588892 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2591728 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2594545 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2597361 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2600178 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2602995 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2605812 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2608629 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2611446 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2614263 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2617079 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2619896 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2622713 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2625549 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2628366 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2631183 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2633999 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2636816 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2639633 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2642450 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2645267 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2648084 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2650901 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2653717 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2656572 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2659389 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2662206 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2665022 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2667839 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2670656 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2673473 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2676290 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2679107 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2681923 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2684740 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2687613 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2690428 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2693244 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2696059 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2698874 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2701689 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2704505 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2707320 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2710135 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2712950 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2715766 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2718581 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2721435 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2724251 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2727068 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2729885 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2732702 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2735519 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2738336 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2741153 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2743970 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2746786 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2749603 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2752439 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2755256 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2758073 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2760889 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2763706 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2766523 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2769340 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2772157 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2774974 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2777791 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2780608 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2783518 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2786333 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2789149 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2791964 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2794779 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2797594 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2800409 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2803225 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2806040 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2808855 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2811670 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2814486 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2817321 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2820137 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2822954 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2825771 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2828588 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2831405 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2834222 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2837038 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2839855 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2842672 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2845489 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2848325 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2851142 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2853958 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2856775 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2859592 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2862409 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2865226 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2868043 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2870860 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2873676 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2876493 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2879310 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2882145 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2884960 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2887775 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2890590 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2893406 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2896221 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2899036 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2901851 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2904666 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2907482 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2910297 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2913131 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2915948 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2918765 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2921582 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2924399 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2927216 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2930032 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2932849 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2935666 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2938483 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2941300 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2944117 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2947009 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2949826 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2952642 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2955459 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2958276 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2961093 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2963910 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2966727 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2969543 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2972360 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2975177 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2978032 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2980848 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2983665 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2986482 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2989299 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2992116 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2994933 xruns=3 render_max=1893 us
+RIAPP hb: buffers=2997750 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3000566 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3003383 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3006200 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3009017 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3011870 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3014685 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3017500 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3020316 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3023131 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3025946 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3028761 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3031576 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3034392 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3037207 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3040022 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3042875 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3045690 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3048505 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3051321 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3054136 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3056951 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3059766 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3062581 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3065397 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3068212 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3071027 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3073880 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3076695 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3079510 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3082325 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3085141 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3087956 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3090771 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3093586 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3096401 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3099217 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3102032 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3104847 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3107700 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3110515 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3113330 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3116146 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3118961 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3121776 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3124591 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3127406 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3130221 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3133037 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3135852 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3138686 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3141503 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3144320 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3147137 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3149954 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3152771 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3155588 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3158404 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3161221 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3164038 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3166855 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3169672 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3172525 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3175340 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3178155 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3180971 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3183786 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3186601 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3189416 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3192231 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3195047 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3197862 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3200677 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3203548 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3206364 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3209179 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3211994 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3214809 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3217624 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3220440 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3223255 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3226070 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3228885 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3231701 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3234553 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3237370 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3240187 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3243004 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3245821 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3248638 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3251455 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3254272 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3257088 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3259905 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3262722 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3265539 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3268375 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3271191 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3274008 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3276825 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3279642 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3282459 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3285276 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3288093 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3290909 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3293726 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3296543 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3299398 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3302214 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3305031 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3307848 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3310665 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3313482 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3316299 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3319116 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3321933 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3324749 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3327566 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3330383 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3333217 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3336032 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3338848 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3341663 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3344478 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3347293 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3350108 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3352924 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3355739 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3358554 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3361369 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3364204 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3367021 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3369838 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3372655 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3375472 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3378288 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3381105 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3383922 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3386739 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3389556 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3392373 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3395208 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3398025 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3400842 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3403659 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3406476 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3409293 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3412110 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3414926 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3417743 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3420560 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3423377 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3426194 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3429048 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3431865 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3434682 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3437499 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3440316 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3443133 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3445949 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3448766 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3451583 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3454400 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3457217 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3460089 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3462905 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3465720 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3468535 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3471350 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3474166 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3476981 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3479796 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3482611 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3485426 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3488242 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3491057 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3493947 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3496762 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3499578 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3502393 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3505208 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3508023 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3510838 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3513653 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3516469 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3519284 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3522099 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3524934 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3527751 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3530568 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3533385 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3536201 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3539018 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3541835 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3544652 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3547469 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3550286 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3553103 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3555957 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3558772 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3561587 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3564402 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3567218 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3570033 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3572848 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3575663 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3578478 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3581294 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3584109 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3586924 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3589890 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3592705 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3595520 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3598335 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3601151 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3603966 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3606781 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3609596 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3612411 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3615227 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3618042 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3620895 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3623710 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3626525 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3629340 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3632156 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3634971 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3637786 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3640601 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3643416 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3646231 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3649047 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3651862 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3654771 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3657586 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3660402 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3663217 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3666032 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3668847 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3671662 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3674478 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3677293 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3680108 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3682923 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3685832 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3688648 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3691463 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3694278 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3697093 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3699908 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3702724 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3705539 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3708354 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3711169 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3713985 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3716800 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3719690 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3722505 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3725320 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3728136 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3730951 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3733766 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3736581 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3739396 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3742212 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3745027 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3747842 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3750751 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3753566 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3756382 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3759197 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3762012 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3764827 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3767642 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3770458 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3773273 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3776088 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3778903 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3781756 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3784571 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3787386 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3790202 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3793017 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3795832 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3798647 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3801463 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3804278 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3807093 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3809908 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3812723 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3815559 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3818376 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3821192 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3824009 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3826826 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3829643 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3832460 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3835277 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3838093 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3840910 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3843727 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3846582 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3849398 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3852215 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3855032 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3857849 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3860666 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3863483 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3866300 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3869116 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3871933 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3874750 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3877567 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3880403 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3883220 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3886036 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3888853 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3891670 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3894487 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3897304 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3900121 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3902938 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3905754 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3908571 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3911407 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3914224 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3917041 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3919857 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3922674 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3925491 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3928308 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3931125 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3933942 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3936759 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3939576 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3942430 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3945247 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3948064 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3950881 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3953697 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3956514 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3959331 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3962148 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3964965 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3967782 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3970598 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3973415 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3976287 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3979102 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3981918 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3984733 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3987548 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3990363 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3993178 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3995993 xruns=3 render_max=1893 us
+RIAPP hb: buffers=3998809 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4001624 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4004439 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4007292 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4010107 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4012922 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4015738 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4018553 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4021368 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4024183 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4026998 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4029814 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4032629 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4035444 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4038278 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4041095 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4043912 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4046729 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4049546 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4052362 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4055179 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4057996 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4060813 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4063630 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4066447 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4069263 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4072098 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4074913 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4077728 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4080544 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4083359 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4086174 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4088989 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4091805 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4094620 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4097435 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4100250 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4103103 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4105920 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4108737 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4111554 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4114371 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4117188 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4120005 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4122821 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4125638 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4128455 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4131272 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4134089 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4136923 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4139738 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4142553 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4145369 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4148184 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4150999 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4153814 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4156629 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4159445 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4162260 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4165075 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4167985 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4170802 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4173619 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4176436 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4179253 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4182069 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4184886 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4187703 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4190520 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4193337 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4196154 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4198989 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4201804 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4204620 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4207435 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4210250 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4213065 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4215880 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4218696 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4221511 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4224326 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4227141 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4229956 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4232867 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4235684 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4238501 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4241317 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4244134 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4246951 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4249768 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4252585 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4255402 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4258218 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4261035 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4263870 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4266686 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4269501 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4272316 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4275131 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4277946 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4280762 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4283577 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4286392 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4289207 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4292023 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4294838 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4297691 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4300506 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4303321 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4306136 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4308951 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4311766 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4314582 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4317397 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4320212 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4323027 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4325843 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4328678 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4331494 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4334311 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4337128 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4339945 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4342762 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4345579 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4348396 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4351212 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4354029 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4356846 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4359681 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4362497 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4365312 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4368127 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4370942 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4373757 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4376573 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4379388 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4382203 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4385018 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4387833 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4390649 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4393503 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4396320 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4399136 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4401953 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4404770 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4407587 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4410404 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4413221 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4416038 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4418855 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4421671 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4424507 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4427324 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4430141 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4432958 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4435774 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4438591 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4441408 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4444225 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4447042 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4449859 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4452676 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4455492 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4458326 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4461142 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4463957 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4466772 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4469587 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4472403 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4475218 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4478033 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4480848 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4483663 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4486478 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4489332 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4492149 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4494966 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4497783 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4500600 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4503417 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4506233 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4509050 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4511867 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4514684 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4517501 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4520336 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4523151 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4525966 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4528782 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4531597 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4534412 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4537227 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4540043 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4542858 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4545673 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4548488 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4551303 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4554176 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4556993 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4559810 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4562627 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4565444 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4568261 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4571078 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4573894 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4576711 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4579528 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4582345 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4585181 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4587997 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4590814 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4593631 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4596448 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4599265 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4602082 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4604898 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4607715 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4610532 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4613349 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4616166 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4619002 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4621818 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4624635 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4627452 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4630269 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4633086 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4635903 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4638720 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4641536 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4644353 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4647170 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4650061 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4652876 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4655692 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4658507 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4661322 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4664137 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4666953 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4669768 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4672583 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4675398 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4678213 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4681085 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4683902 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4686719 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4689536 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4692353 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4695169 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4697986 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4700803 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4703620 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4706437 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4709254 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4712071 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4714906 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4717723 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4720540 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4723357 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4726173 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4728990 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4731807 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4734624 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4737441 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4740258 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4743075 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4745910 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4748727 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4751544 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4754361 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4757178 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4759995 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4762811 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4765628 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4768445 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4771262 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4774079 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4776896 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4779731 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4782548 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4785365 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4788182 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4790999 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4793816 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4796633 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4799449 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4802266 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4805083 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4807900 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4810811 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4813628 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4816444 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4819261 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4822078 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4824895 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4827712 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4830529 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4833346 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4836162 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4838905 xruns=3 render_max=1893 us
+RIAPP hb: buffers=4839843 xruns=3 render_max=1893 us
+RIAPP play
+RIAPP hb: buffers=4841930 xruns=3 render_max=1893 us
+RIAPP closed: buffers=4843058 xruns=3 render_max=1893 us render_total=242900 ms period=5333 us
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP 909 pack: unbound - 909 renders silence (load a pack for drums)
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=1968 xruns=0 render_max=47 us
+RIAPP hb: buffers=4785 xruns=0 render_max=48 us
+RIAPP hb: buffers=7602 xruns=0 render_max=76 us
+RIAPP hb: buffers=8979 xruns=0 render_max=159 us
+RIAPP play
+RIAPP hb: buffers=10329 xruns=0 render_max=1871 us
+RIAPP hb: buffers=12563 xruns=0 render_max=1871 us
+RIAPP hb: buffers=14248 xruns=0 render_max=1871 us
+RIAPP hb: buffers=16114 xruns=0 render_max=1871 us
+RIAPP hb: buffers=18553 xruns=0 render_max=1871 us
+RIAPP hb: buffers=20204 xruns=0 render_max=1872 us
+RIAPP hb: buffers=22342 xruns=0 render_max=1872 us
+RIAPP hb: buffers=25215 xruns=0 render_max=1872 us
+RIAPP hb: buffers=27126 xruns=0 render_max=1872 us
+RIAPP hb: buffers=29097 xruns=0 render_max=1872 us
+RIAPP hb: buffers=30785 xruns=0 render_max=1872 us
+RIAPP hb: buffers=32823 xruns=0 render_max=1872 us
+RIAPP hb: buffers=34772 xruns=0 render_max=1872 us
+RIAPP hb: buffers=36731 xruns=0 render_max=1872 us
+RIAPP hb: buffers=38271 xruns=0 render_max=1872 us
+RIAPP hb: buffers=40052 xruns=0 render_max=1872 us
+RIAPP hb: buffers=41368 xruns=0 render_max=1872 us
+RIAPP hb: buffers=43502 xruns=0 render_max=1887 us
+RIAPP hb: buffers=45149 xruns=0 render_max=1887 us
+RIAPP hb: buffers=46821 xruns=0 render_max=1942 us
+RIAPP hb: buffers=48289 xruns=0 render_max=1942 us
+RIAPP hb: buffers=49707 xruns=0 render_max=1942 us
+RIAPP hb: buffers=52040 xruns=0 render_max=1942 us
+RIAPP hb: buffers=53396 xruns=0 render_max=1942 us
+RIAPP hb: buffers=55171 xruns=0 render_max=1942 us
+RIAPP hb: buffers=56588 xruns=0 render_max=1942 us
+RIAPP hb: buffers=58232 xruns=0 render_max=1942 us
+RIAPP hb: buffers=59888 xruns=0 render_max=1942 us
+RIAPP hb: buffers=61615 xruns=0 render_max=1942 us
+RIAPP hb: buffers=63258 xruns=0 render_max=1942 us
+RIAPP hb: buffers=65791 xruns=0 render_max=1942 us
+RIAPP hb: buffers=67555 xruns=0 render_max=1942 us
+RIAPP hb: buffers=69668 xruns=0 render_max=1942 us
+RIAPP hb: buffers=71677 xruns=0 render_max=1942 us
+RIAPP hb: buffers=74540 xruns=0 render_max=1942 us
+RIAPP hb: buffers=77379 xruns=0 render_max=1942 us
+RIAPP hb: buffers=80255 xruns=0 render_max=1942 us
+RIAPP hb: buffers=83108 xruns=0 render_max=1942 us
+RIAPP hb: buffers=85971 xruns=0 render_max=1942 us
+RIAPP hb: buffers=88810 xruns=0 render_max=1942 us
+RIAPP hb: buffers=91666 xruns=0 render_max=1942 us
+RIAPP hb: buffers=94515 xruns=0 render_max=1942 us
+RIAPP hb: buffers=97381 xruns=0 render_max=1942 us
+RIAPP hb: buffers=100232 xruns=0 render_max=1942 us
+RIAPP hb: buffers=103125 xruns=0 render_max=1942 us
+RIAPP hb: buffers=105973 xruns=0 render_max=1942 us
+RIAPP hb: buffers=108832 xruns=0 render_max=1942 us
+RIAPP hb: buffers=111684 xruns=0 render_max=1942 us
+RIAPP hb: buffers=114540 xruns=0 render_max=1942 us
+RIAPP hb: buffers=117399 xruns=0 render_max=1942 us
+RIAPP hb: buffers=120259 xruns=0 render_max=1942 us
+RIAPP hb: buffers=123122 xruns=0 render_max=1942 us
+RIAPP hb: buffers=125970 xruns=0 render_max=1942 us
+RIAPP hb: buffers=128824 xruns=0 render_max=1942 us
+RIAPP hb: buffers=131669 xruns=0 render_max=1942 us
+RIAPP hb: buffers=134540 xruns=0 render_max=1942 us
+RIAPP hb: buffers=137399 xruns=0 render_max=1942 us
+RIAPP hb: buffers=140242 xruns=0 render_max=1942 us
+RIAPP hb: buffers=143087 xruns=0 render_max=1942 us
+RIAPP hb: buffers=145937 xruns=0 render_max=1942 us
+RIAPP hb: buffers=148785 xruns=0 render_max=1942 us
+RIAPP hb: buffers=151631 xruns=0 render_max=1942 us
+RIAPP hb: buffers=154491 xruns=0 render_max=1942 us
+RIAPP hb: buffers=157336 xruns=0 render_max=1942 us
+RIAPP hb: buffers=160197 xruns=0 render_max=1942 us
+RIAPP hb: buffers=163045 xruns=0 render_max=1942 us
+RIAPP hb: buffers=165895 xruns=0 render_max=1942 us
+RIAPP closed: buffers=166547 xruns=0 render_max=1942 us render_total=246087 ms period=5333 us
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP 909 pack: unbound - 909 renders silence (load a pack for drums)
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=3066 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=5881 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=8697 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=11512 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=14327 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=17142 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=19957 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=22773 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=25588 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=28403 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=31218 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=34240 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=37055 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=39871 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=42686 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP play
+RIAPP hb: buffers=44536 xruns=0 render_max=1780 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=47402 xruns=0 render_max=1794 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=50249 xruns=0 render_max=1800 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=53102 xruns=0 render_max=1802 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=55950 xruns=0 render_max=1802 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=57830 xruns=0 render_max=1897 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=60662 xruns=0 render_max=1897 us snd=0/0/0/0 pend=1/0/0/0
+RIAPP hb: buffers=63512 xruns=0 render_max=1897 us snd=0/0/0/0 pend=1/0/0/0
+RIAPP hb: buffers=66380 xruns=0 render_max=1897 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=69229 xruns=0 render_max=1897 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=72095 xruns=0 render_max=1897 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=74420 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=77273 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=80143 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=83014 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=85874 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=88735 xruns=0 render_max=1912 us snd=2/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=90962 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=93697 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=96555 xruns=0 render_max=1912 us snd=0/0/0/0 pend=3/0/0/0
+RIAPP hb: buffers=99438 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=102308 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=104483 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=107326 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=110171 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=113039 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=115890 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=118757 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=121609 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=124477 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=127329 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=130189 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=133029 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=134790 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP stop
+RIAPP hb: buffers=136323 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=139140 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=141956 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=144811 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=147628 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=150445 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=153262 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=156079 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=158896 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=161712 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=164529 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=167346 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=170163 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=172980 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=175871 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=178687 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=181502 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=184317 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=187132 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=189948 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=192763 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=195578 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=198393 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=201209 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=204024 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=206876 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=209692 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=212507 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=215322 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=218137 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=220953 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=223768 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=226583 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=229398 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=232213 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=235029 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=237881 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=240755 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=243571 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=246389 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=249205 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=252022 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=254839 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=257656 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=260473 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=263290 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=266107 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=268924 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=271758 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=274573 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=277388 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=280204 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=283019 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=285834 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=288649 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=291464 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=294280 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=297095 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=299910 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=302782 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=305597 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=308412 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=311227 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=314043 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=316858 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=319673 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=322488 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=325304 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=328119 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=330934 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=333788 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=336604 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=339421 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=342238 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=345055 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=347872 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=350689 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=353506 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=356323 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=359140 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=361956 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=364849 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=367665 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=370482 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=373299 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=376116 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=378933 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=381750 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=384567 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=387384 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=390201 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=393018 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=395872 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=398687 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=401502 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=404317 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=407133 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=409948 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=412763 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=415578 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=418393 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=421209 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=424024 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=426895 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=429711 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=432526 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=435341 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=438156 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=440971 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=443787 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=446602 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=449417 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=452232 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=455048 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=457863 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=460772 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=463587 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=466402 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=469218 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=472033 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=474848 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=477663 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=480478 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=483294 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=486109 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=488924 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=491909 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=494726 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=497543 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=500360 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=503177 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=505994 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=508811 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=511628 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=514445 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=517262 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=520079 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=522914 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=525731 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=528548 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=531365 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=534182 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=536999 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=539816 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=542633 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=545449 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=548266 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=551083 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=553937 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=556752 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=559567 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=562383 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=565198 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=568013 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=570828 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=573644 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=576459 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=579274 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=582089 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=584999 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=587816 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=590633 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=593449 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=596266 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=599083 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=601900 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=604717 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=607534 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=610351 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=613168 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=616022 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=618837 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=621653 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=624468 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=627283 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=630098 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=632913 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=635729 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=638544 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=641359 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=644174 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=646989 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=649863 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=652679 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=655496 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=658313 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=661130 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=663947 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=666764 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=669581 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=672398 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=675215 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=678032 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=680924 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=683741 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=686557 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=689374 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=692191 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=695008 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=697825 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=700642 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=703459 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=706276 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=709093 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=711928 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=714745 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=717562 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=720379 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=723196 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=726013 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=728830 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=731647 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=734464 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=737280 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=740097 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=743271 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=746088 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=748710 xruns=0 render_max=1912 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP closed: buffers=749319 xruns=0 render_max=1912 us render_total=163353 ms period=5333 us
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP 909 pack: unbound - 909 renders silence (load a pack for drums)
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=2812 xruns=0 render_max=45 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=5629 xruns=0 render_max=46 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=8446 xruns=0 render_max=69 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=11263 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=14080 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=16897 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=19769 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=22585 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=25400 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=28215 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=31030 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=33845 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=36661 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=39476 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=42291 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=45106 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=47922 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=50775 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=53592 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=56408 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=59229 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=62046 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=64863 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=67680 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=70497 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=73314 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=76149 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=78964 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=81779 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=84594 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=87410 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=90225 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=93040 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=95855 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=98670 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=101486 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=104301 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=107172 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=109988 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=112803 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=115618 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=118433 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=121249 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=124064 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=126879 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=129694 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=132509 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=135325 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=138159 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=140975 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=143792 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=146609 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=149426 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=152243 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=155060 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=157877 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=160694 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=163511 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=166328 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=169145 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=172037 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=174853 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=177670 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=180487 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=183304 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=186121 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=188938 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=191755 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=194572 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=197389 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=200205 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=203078 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=205893 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=208708 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=211523 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=214339 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=217154 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=219969 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=222784 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=225600 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=228415 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=231230 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=234083 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=236898 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=239713 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=242528 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=245344 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=248159 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=250974 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=253789 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=256604 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=259420 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=262235 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=265088 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=267903 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=270718 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=273533 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=276348 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=279164 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=281979 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=284794 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=287609 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=290425 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=293240 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=296092 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=298908 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=301723 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=304538 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=307353 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=310169 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=312984 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=315799 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=318614 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=321430 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=324245 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=327079 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=329896 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=332712 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=335529 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=338346 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=341163 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=343980 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=346797 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=349614 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=352431 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=355248 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=358065 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=360900 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=363717 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=366534 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=369351 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=372168 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=374985 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=377802 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=380619 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=383435 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=386252 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=389069 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=391924 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=394741 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=397557 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=400375 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=403191 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=406008 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=408825 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=411642 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=414459 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=417276 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=420093 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=422928 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=425745 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=428562 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=431379 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=434196 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=437013 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=439830 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=442647 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=445464 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=448280 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=451097 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=453951 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=456767 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=459582 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=462397 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=465212 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=468027 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=470843 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=473658 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=476473 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=479288 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=482103 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=484957 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=487773 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=490590 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=493407 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=496224 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=499041 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=501858 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=504675 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=507492 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=510309 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=513126 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=515961 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=518776 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=521592 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=524407 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP 909 pack: 11 voices bound (toms/rim/clap silent: no in-repo samples)
+audio: AHI unavailable - null backend active (offline render only) [err 4]
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=529063 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=534694 xruns=0 render_max=76 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP closed: buffers=537144 xruns=0 render_max=76 us render_total=13316 ms period=5333 us
+RIAPP 909 pack: 11 voices bound (toms/rim/clap silent: no in-repo samples)
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=2807 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=5624 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=8441 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=11257 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=14074 xruns=0 render_max=74 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=16891 xruns=0 render_max=74 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=19708 xruns=0 render_max=74 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=22525 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=25342 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=28215 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=31030 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=33845 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=36661 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=39476 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=42291 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=45106 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=47922 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=50737 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=53552 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=56367 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=59201 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=62112 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=64929 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=67746 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=70563 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=73380 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=76196 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=79013 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP closed: buffers=79493 xruns=0 render_max=77 us render_total=2059 ms period=5333 us
+RIAPP 909 pack: 11 voices bound (toms/rim/clap silent: no in-repo samples)
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=2815 xruns=0 render_max=71 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=5632 xruns=0 render_max=71 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=8449 xruns=0 render_max=71 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=11266 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=14102 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=16917 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=19732 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=22547 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=25363 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=28178 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=30993 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=33808 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=36624 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=39439 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=42254 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=45069 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=47922 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=50737 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=53552 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=56368 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=59183 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=61998 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=64813 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=67629 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=70444 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=73259 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=76074 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=78928 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=81745 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=84562 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=87379 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=90196 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=93013 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=95830 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=98008 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP play
+RIAPP hb: buffers=99102 xruns=0 render_max=1898 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=101130 xruns=0 render_max=1898 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=102764 xruns=0 render_max=1898 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=104267 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=106192 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=107523 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=109056 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=110518 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=112056 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=113827 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=116234 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=117853 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=120073 xruns=0 render_max=2012 us snd=2/0/9/1 pend=2/0/9/1
+RIAPP hb: buffers=121875 xruns=0 render_max=2012 us snd=2/0/9/9 pend=0/0/0/0
+RIAPP hb: buffers=123834 xruns=0 render_max=2012 us snd=2/0/9/9 pend=0/0/0/0
+RIAPP hb: buffers=125889 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=127761 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=129652 xruns=0 render_max=2012 us snd=0/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=132067 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=133727 xruns=0 render_max=2012 us snd=31/0/0/9 pend=31/0/9/9
+RIAPP hb: buffers=135546 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=138385 xruns=0 render_max=2012 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=140946 xruns=0 render_max=2012 us snd=31/0/9/9 pend=0/0/0/0
+RIAPP stop
+RIAPP hb: buffers=143500 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=146355 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=149172 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=151989 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=154805 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=157622 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=160439 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=163256 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=166073 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=168890 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=171707 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=174524 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=177360 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=180176 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=182993 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=185810 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=188627 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=191444 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=194261 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=197078 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=199895 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=202712 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=205528 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=208345 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=211200 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=214017 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=216834 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=219651 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=222467 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=225284 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=228101 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=230918 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP hb: buffers=233735 xruns=0 render_max=2012 us snd=31/0/9/0 pend=0/0/0/0
+RIAPP closed: buffers=234686 xruns=0 render_max=2012 us render_total=72106 ms period=5333 us
+RIAPP 909 pack: 11 voices bound
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=2807 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=5318 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=6144 xruns=0 render_max=160 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=6642 xruns=0 render_max=160 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=7225 xruns=0 render_max=160 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=8790 xruns=0 render_max=160 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=11605 xruns=0 render_max=160 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=13505 xruns=0 render_max=166 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP play
+RIAPP hb: buffers=16196 xruns=0 render_max=1810 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=18830 xruns=0 render_max=1854 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=21197 xruns=0 render_max=1886 us snd=0/0/0/0 pend=1/0/0/0
+RIAPP hb: buffers=24069 xruns=0 render_max=1886 us snd=1/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=26914 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=29496 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=32361 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=35214 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=37769 xruns=0 render_max=1886 us snd=3/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=40648 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=43517 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=46386 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=48593 xruns=0 render_max=1886 us snd=0/0/0/0 pend=3/0/0/0
+RIAPP hb: buffers=51422 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=54287 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=56625 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=58940 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=61804 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=64128 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=65689 xruns=0 render_max=1886 us snd=0/0/0/0 pend=3/13/0/0
+RIAPP hb: buffers=67398 xruns=0 render_max=1886 us snd=3/13/0/0 pend=0/0/0/0
+RIAPP hb: buffers=70254 xruns=0 render_max=1886 us snd=3/13/0/0 pend=0/0/0/0
+RIAPP hb: buffers=72240 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=73466 xruns=0 render_max=1887 us snd=3/13/0/0 pend=0/0/0/0
+RIAPP hb: buffers=74966 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=76751 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=79588 xruns=0 render_max=1887 us snd=0/0/0/0 pend=3/13/0/0
+RIAPP hb: buffers=82452 xruns=0 render_max=1887 us snd=0/0/0/0 pend=3/13/0/0
+RIAPP hb: buffers=85298 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=88149 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=91015 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=93866 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=96736 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=99590 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=102434 xruns=0 render_max=1887 us snd=0/0/0/0 pend=3/13/0/0
+RIAPP hb: buffers=105303 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=108152 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=111007 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=113869 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=116757 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=119625 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=122473 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=125335 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=128197 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=131072 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=133927 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=136786 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=139642 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=142483 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=145362 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=148227 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=151080 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=153936 xruns=0 render_max=1887 us snd=0/0/0/0 pend=3/13/0/0
+RIAPP hb: buffers=156778 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=159643 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=162514 xruns=0 render_max=1887 us snd=0/0/0/0 pend=3/13/0/0
+RIAPP hb: buffers=165366 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=168245 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=171099 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=173964 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=174985 xruns=0 render_max=1887 us snd=0/0/0/0 pend=3/13/0/0
+RIAPP hb: buffers=177324 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=179652 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=182385 xruns=0 render_max=1887 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP stop
+RIAPP closed: buffers=183604 xruns=0 render_max=1889 us render_total=271353 ms period=5333 us
+RIAPP 909 pack: 11 voices bound
+audio: AHI unavailable - null backend active (offline render only) [err 4]
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP 909 pack: 11 voices bound
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=2810 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=5627 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=8444 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=11261 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=14078 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=16895 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=19711 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=22547 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=25362 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=28177 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=30992 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=33808 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=36623 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=39438 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=42253 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=45069 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=47884 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=50699 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=53514 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=56405 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=59220 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=62035 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=64850 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=67665 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=70481 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=73296 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=76111 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=78926 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=81741 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=84557 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=87428 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=90243 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=93059 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=95874 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=98689 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=101504 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=104320 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=107135 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=109950 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=112765 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=115580 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=118396 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=121231 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=124048 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=126865 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=129682 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=132498 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=135315 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=138132 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=140949 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=143766 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=146583 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=149400 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=152235 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=155052 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=157869 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=160686 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=163503 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=165449 xruns=0 render_max=85 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP play
+RIAPP hb: buffers=168047 xruns=0 render_max=1804 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=170902 xruns=0 render_max=1812 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=172972 xruns=0 render_max=1840 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=175822 xruns=0 render_max=1840 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=178344 xruns=0 render_max=1841 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=181214 xruns=0 render_max=1841 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=184050 xruns=0 render_max=1841 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=186916 xruns=0 render_max=1841 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=189770 xruns=0 render_max=1841 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=192612 xruns=0 render_max=1841 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=195482 xruns=0 render_max=1841 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=197800 xruns=0 render_max=1849 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=200711 xruns=0 render_max=1849 us snd=0/0/0/0 pend=2/0/0/0
+RIAPP hb: buffers=203582 xruns=0 render_max=1849 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=206143 xruns=0 render_max=1857 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=208997 xruns=0 render_max=1857 us snd=0/0/0/0 pend=3/0/0/0
+RIAPP hb: buffers=211851 xruns=0 render_max=1857 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=213897 xruns=0 render_max=1857 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=215558 xruns=0 render_max=1885 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=218400 xruns=0 render_max=1885 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=221268 xruns=0 render_max=1885 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=222754 xruns=0 render_max=1885 us snd=12/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=224533 xruns=0 render_max=1885 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=227122 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=229955 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=232812 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=235689 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=237595 xruns=0 render_max=1886 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP stop
+RIAPP hb: buffers=239201 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=242018 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=244835 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=247802 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=250619 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=253436 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=256253 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=259070 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=261887 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=264704 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=267520 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=270337 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=273154 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=275971 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=278900 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=281715 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=284530 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=287345 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP hb: buffers=290161 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP 909 pack: 11 voices bound
+audio: AHI unavailable - null backend active (offline render only) [err 4]
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=294084 xruns=0 render_max=1886 us snd=0/0/0/0 pend=12/0/0/0
+RIAPP closed: buffers=297724 xruns=0 render_max=1886 us render_total=124124 ms period=5333 us
+RIAPP 909 pack: 11 voices bound
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=2814 xruns=0 render_max=72 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=5631 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=8448 xruns=0 render_max=75 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=11265 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=14082 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=16936 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=19753 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=22570 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=25387 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=28204 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=31021 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=33838 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=36655 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=39472 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=42289 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=45105 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=47940 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=50755 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=53571 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=56386 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=59201 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=62016 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=64832 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=67647 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=70462 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=73277 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=76092 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=78926 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=81742 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=84557 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=87372 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=90187 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=93002 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=95818 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=98633 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=101448 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=103628 xruns=0 render_max=77 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP play
+RIAPP hb: buffers=104956 xruns=0 render_max=1829 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=107300 xruns=0 render_max=1885 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=110092 xruns=0 render_max=1885 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=111825 xruns=0 render_max=1885 us snd=0/0/0/0 pend=1/0/0/0
+RIAPP hb: buffers=113400 xruns=0 render_max=1885 us snd=1/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=115021 xruns=0 render_max=1897 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=116225 xruns=0 render_max=1897 us snd=0/0/0/0 pend=1/0/0/0
+RIAPP hb: buffers=117570 xruns=0 render_max=1897 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=119807 xruns=0 render_max=1897 us snd=0/0/0/0 pend=15/0/0/0
+RIAPP hb: buffers=121218 xruns=0 render_max=1924 us snd=0/0/0/0 pend=15/0/0/0
+RIAPP hb: buffers=124031 xruns=0 render_max=1924 us snd=0/0/0/0 pend=30/0/0/0
+RIAPP hb: buffers=125997 xruns=0 render_max=1924 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=128346 xruns=0 render_max=1924 us snd=0/0/0/0 pend=30/0/0/0
+RIAPP hb: buffers=129866 xruns=0 render_max=1924 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=131340 xruns=0 render_max=1924 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=132478 xruns=0 render_max=1924 us snd=30/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=133895 xruns=0 render_max=1924 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=135941 xruns=0 render_max=1924 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=137597 xruns=0 render_max=1924 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=139749 xruns=0 render_max=1924 us snd=0/0/0/0 pend=30/5/0/0
+RIAPP hb: buffers=142535 xruns=0 render_max=1924 us snd=30/5/0/0 pend=0/0/0/0
+RIAPP hb: buffers=144404 xruns=0 render_max=1927 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=147257 xruns=0 render_max=1927 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=149023 xruns=0 render_max=1927 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=150640 xruns=0 render_max=1927 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=152981 xruns=0 render_max=1927 us snd=30/0/0/0 pend=30/18/0/0
+RIAPP hb: buffers=154256 xruns=0 render_max=1927 us snd=30/0/0/0 pend=30/18/14/0
+RIAPP hb: buffers=155648 xruns=0 render_max=1927 us snd=0/0/0/0 pend=30/18/14/0
+RIAPP hb: buffers=157715 xruns=0 render_max=1927 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=159924 xruns=0 render_max=1927 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=161405 xruns=0 render_max=1927 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=163029 xruns=0 render_max=1927 us snd=30/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=164400 xruns=0 render_max=1927 us snd=30/0/0/0 pend=30/18/14/17
+RIAPP hb: buffers=166008 xruns=0 render_max=1927 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=168171 xruns=0 render_max=1927 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=170247 xruns=0 render_max=1927 us snd=30/0/0/0 pend=30/18/14/17
+RIAPP hb: buffers=171652 xruns=0 render_max=1927 us snd=30/0/0/0 pend=30/18/14/17
+RIAPP stop
+RIAPP hb: buffers=173955 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=176772 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=179589 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=182405 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=185222 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=188039 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=190856 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=193673 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=196526 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=199342 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP hb: buffers=202157 xruns=0 render_max=1927 us snd=0/18/14/17 pend=0/0/0/0
+RIAPP closed: buffers=203613 xruns=0 render_max=1927 us render_total=110785 ms period=5333 us
+RIAPP 909 pack: 11 voices bound
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP panel: transport+patterns+303A+mix808 (Dell-proofed 2026-09-26)
+RIAPP hb: buffers=2813 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=5630 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=8447 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=11264 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=14081 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=16917 xruns=0 render_max=70 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=19732 xruns=0 render_max=90 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=22547 xruns=0 render_max=90 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=25362 xruns=0 render_max=90 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=28177 xruns=0 render_max=90 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=30993 xruns=0 render_max=90 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=33808 xruns=0 render_max=90 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=34802 xruns=0 render_max=158 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=36585 xruns=0 render_max=158 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP play
+RIAPP hb: buffers=39416 xruns=0 render_max=1803 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=42263 xruns=0 render_max=1805 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=45123 xruns=0 render_max=1805 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=47968 xruns=0 render_max=1805 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=50839 xruns=0 render_max=1805 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=53699 xruns=0 render_max=1805 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=56571 xruns=0 render_max=1805 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=59434 xruns=0 render_max=1805 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=62284 xruns=0 render_max=1806 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=65156 xruns=0 render_max=1811 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP hb: buffers=68004 xruns=0 render_max=1811 us snd=0/0/0/0 pend=0/0/0/0
+RIAPP closed: buffers=68657 xruns=0 render_max=1811 us render_total=51910 ms period=5333 us

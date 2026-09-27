@@ -50,3 +50,12 @@
   real hardware with headroom (worst buffer 33% of period).
 - 909 unbound as designed (no pack; GUI says so). 5-minute soak + owner
   by-ear listening + knob/click feel still open (owner).
+
+## Soak rerun (2026-09-27): PASS
+
+- 68,657 buffers (~6.1 min), 0 xruns, render_max 1811 us (34% of period),
+  graceful close. Unattended (no interaction this run).
+- The earlier freeze never reproduced across four subsequent interactive
+  runs. Leading theory: that session ran two RIAPP instances against one
+  AHI device (duplicate-window era before close-verify discipline).
+- Full log: `docs/evidence/portability/dell-soak-rerun.log`.

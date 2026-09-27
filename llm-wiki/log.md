@@ -1,6 +1,11 @@
 # ReIncarnation llm-wiki — log
 
-## [2026-09-27] proofs | Dell: pattern flips + delay on-grid ear-verified
+## [2026-09-27] proofs | Dell 6-min soak rerun PASS, freeze theory
+- Disposition: Update (soak rerun + freeze retrospective)
+- Evidence: docs/evidence/portability/dell-soak-rerun.log
+68,657 buffers, 0 xruns, graceful close (unattended). Earlier freeze
+unreproduced in 4+ later interactive runs; leading theory: two RIAPP
+instances contending one AHI device (pre close-verify discipline).
 - Disposition: Update (owner listening verdicts close two findings)
 - Raw: llm-wiki/raw/articles/2026-09-26-lane-proof-round-t2-g7-t4.md
 - Updated: docs/evidence/portability/delay-line.md
