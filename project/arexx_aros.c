@@ -10,7 +10,7 @@
  *
  * DEFERRED (needs the AROS run, recorded in
  * docs/evidence/formats/beta-exit.md): creating the MsgPort +
- * RexxPort (ADDRESS REINCARNATION / REBIRTHAROS alias), the
+ * RexxPort (ADDRESS REINCARNATION / REINCARNATIONAROS alias), the
  * WaitPort/GetMsg loop, and ReplyMsg through rexxsyslib. The reply
  * TEXT contract is pinned host-side here; the port loop only moves
  * these bytes.

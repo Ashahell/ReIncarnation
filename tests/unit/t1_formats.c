@@ -8,7 +8,7 @@
  * MODR missing-mod warn string; SKIN art-fallback; CPRG hook; automation
  * save/load (bound ±1 unit, asserted exact); undo-200 scripted; MIDI
  * learn/loopback + note→step + MMC + 100-bar clock drift + flood cap +
- * hot-unplug; ARexx exact strings + REBIRTHAROS alias; RBNM-full
+ * hot-unplug; ARexx exact strings + REINCARNATIONAROS alias; RBNM-full
  * (reserialize byte-identical, CPRG extract, SHA-256 identity vectors).
  */
 #include <stdio.h>
@@ -289,8 +289,9 @@ int main(void) {
     RI_ASSERT(arexx_parse("SETRPPARAM 768 96", &c) == 0 &&
         c.cmd == RIAREXX_SETRPPARAM, "SETRPPARAM");
     RI_ASSERT(c.ctl == 768u && c.val == 96u, "setrp args");
-    RI_ASSERT(arexx_parse("REBIRTHAROS PLAY", &c) == 0 &&
+    RI_ASSERT(arexx_parse("REINCARNATIONAROS PLAY", &c) == 0 &&
         c.cmd == RIAREXX_PLAY, "deprecated alias");
+    RI_ASSERT(arexx_parse("REBIRTHAROS PLAY", &c) != 0, "old alias refused");
     RI_ASSERT(arexx_parse("REINCARNATION STOP", &c) == 0 &&
         c.cmd == RIAREXX_STOP, "primary port prefix");
     RI_ASSERT(arexx_parse("play", &c) != 0, "lowercase accepted");

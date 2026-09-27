@@ -1,6 +1,6 @@
 /* arexx.h — ARexx command parser (Task 13, gate G13).
  * Spec §1: primary port ADDRESS REINCARNATION; the parser accepts
- * REBIRTHAROS as a deprecated alias. Exact command strings (uppercase,
+ * REINCARNATIONAROS as a deprecated alias. Exact command strings (uppercase,
  * single-space separated):
  *   OPENSONG <path> | PLAY | STOP | EXPORTWAV <song> <wav> |
  *   SETRPPARAM <ctl> <val>   (ctl 0..65535, val 0..127)
@@ -28,7 +28,7 @@ struct RIArexxCmd {
 };
 
 /* Returns 0 ok (cmd filled), nonzero on any malformed input. An
- * optional leading "REINCARNATION " / "REBIRTHAROS " port token is
+ * optional leading "REINCARNATION " / "REINCARNATIONAROS " port token is
  * accepted and stripped; anything else verbatim fails. */
 int arexx_parse(const char *line, struct RIArexxCmd *cmd);
 #endif

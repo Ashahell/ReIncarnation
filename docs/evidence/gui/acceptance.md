@@ -1,4 +1,4 @@
-# GUI acceptance — Task 12 (gate G12), TC-2.9.x–2.11.x, ReBirth-101
+# GUI acceptance — Task 12 (gate G12), TC-2.9.x–2.11.x, ReIncarnation-101
 
 Status 2026-09-26 (G8.3): the Task-12 knob-widget document rewritten for the
 section canvases (G2–G7), skins (G8.1) and zoom (G8.2). Every ticked row
@@ -70,7 +70,7 @@ the human hand stay open below.
   exactly 4 steps apart at 0.5 s/120 bpm on the stand-in clock; audio-clock
   binding is G6b)
 - [x] 303 accent red glow / 909 flam green glow read correctly (G6a
-  captures; accent/slide flags traced 2026-09-26, see ReBirth-101 row 2)
+  captures; accent/slide flags traced 2026-09-26, see ReIncarnation-101 row 2)
 
 ## Zoom (TC-2.11.x)
 
@@ -89,7 +89,7 @@ the human hand stay open below.
   data-driven. A runtime registry would remove even the data edits —
   deferred to the extensible-device-rack design (owner, review §5.6).
 
-## ReBirth-101 tutorial workflow (≥4/5 to pass)
+## ReIncarnation-101 tutorial workflow (≥4/5 to pass)
 
 Machine lanes prove the GUI halves; hearing needs audio (G6b + Dell),
 drags/clicks need a human hand. Evidence 2026-09-26 (`2026-09-26-rb101-*`).

@@ -12,7 +12,7 @@
 
  @{"Panels" link "Panels"} @{"Transport" link "Transport"}
  @{"ARexx port" link "ARexx"} @{"MIDI learn" link "MIDI"}
- @{"Songs, packs, installer" link "Files"} @{"Tutorial ReBirth-101" link "101"}
+ @{"Songs, packs, installer" link "Files"} @{"Tutorial ReIncarnation-101" link "101"}
 @endnode
 
 @node Panels "Panels and every control"
@@ -77,7 +77,7 @@
 @endnode
 
 @node ARexx "ARexx port"
- AREXX — primary port ADDRESS REINCARNATION, alias REBIRTHAROS.
+ AREXX — primary port ADDRESS REINCARNATION, alias REINCARNATIONAROS.
  Exact strings (uppercase, single spaces):
    OPENSONG <path> — open a song file.
    PLAY — start transport. Replies OK PLAYING.
@@ -102,8 +102,8 @@
  icons live in Install/icons (placeholder art, AROS-run unverified).
 @endnode
 
-@node 101 "Tutorial ReBirth-101"
- REBIRTH-101 (pass >= 4/5):
+@node 101 "Tutorial ReIncarnation-101"
+ REINCARNATION-101 (pass >= 4/5):
    1. Dial a 303 cutoff sweep and hear it (303A cutoff).
    2. Program a 16-step 303 pattern (pitch mode + slide flag).
    3. Program a 909 accent + flam step.

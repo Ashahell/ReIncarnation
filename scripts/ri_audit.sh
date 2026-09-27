@@ -427,7 +427,7 @@ grep -q -- "- \[ \]" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: ac
 grep -q "P-18" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks P-18"; exit 1; }
 grep -q "TC-2.9" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks TC-2.9"; exit 1; }
 grep -q "TC-2.10\|TC-2.11" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks TC-2.10/2.11"; exit 1; }
-grep -q "ReBirth-101" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks tutorial workflow"; exit 1; }
+grep -q "ReIncarnation-101" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks tutorial workflow"; exit 1; }
 grep -q "Tester:" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: acceptance lacks sign-off lines"; exit 1; }
 test -f "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
 grep -q "FAIL" "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: RED evidence has no FAIL lines"; exit 1; }

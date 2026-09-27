@@ -44,7 +44,7 @@ int main(void) {
     RI_ASSERT(strcmp(rep.text, "OK PARAM 768 100") == 0, "SETRPPARAM text '%s'", rep.text);
 
     /* port-prefix alias still dispatches */
-    RI_ASSERT(arexx_parse("REBIRTHAROS PLAY", &cmd) == 0, "parse alias");
+    RI_ASSERT(arexx_parse("REINCARNATIONAROS PLAY", &cmd) == 0, "parse alias");
     arexx_dispatch(&cmd, &rep);
     RI_ASSERT(rep.rc == RIAREXX_RC_OK && strcmp(rep.text, "OK PLAYING") == 0, "alias dispatch");
 

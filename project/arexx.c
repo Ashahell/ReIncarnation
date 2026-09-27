@@ -57,7 +57,7 @@ int arexx_parse(const char *line, struct RIArexxCmd *cmd) {
         return 1; /* more than 3 words */
     /* Optional port prefix: shifts words down. No valid command word
      * exceeds 10 chars, so a word that does not fit w0 cannot be one. */
-    if (eq_word(w0, "REINCARNATION") || eq_word(w0, "REBIRTHAROS")) {
+    if (eq_word(w0, "REINCARNATION") || eq_word(w0, "REINCARNATIONAROS")) {
         uint32_t l1 = (uint32_t)strlen(w1);
         if (nw < 2u || l1 >= sizeof w0)
             return 1;

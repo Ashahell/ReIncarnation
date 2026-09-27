@@ -66,7 +66,7 @@ Status markers used throughout: `[LOCKED]` `[HYPOTHESIS]` `[OPEN]` `[DEFERRED]` 
 
 Compatibility target: reproduce the documented/tested musical behavior of the reference application to the extent independently verified. This specification does not make a determination regarding copyright, trademark, trade dress, patent, design-right, or other intellectual-property status. `[LEGAL REVIEW]`
 
-Project rules carried forward from v1 inputs: original artwork and newly recorded/licenced audio material only; no redistribution of third-party images or samples; external name ReIncarnation; legal review before any public release. Code prefixes `RI`/`RB`. ARexx primary port `ADDRESS REINCARNATION`; parser accepts `REBIRTHAROS` as a deprecated alias. `[LOCKED]`
+Project rules carried forward from v1 inputs: original artwork and newly recorded/licenced audio material only; no redistribution of third-party images or samples; external name ReIncarnation; legal review before any public release. Code prefixes `RI`/`RB`. ARexx primary port `ADDRESS REINCARNATION`; parser accepts `REINCARNATIONAROS` as a deprecated alias (renamed 2026-09-27, owner decision amending the §1 lock). `[LOCKED]`
 
 ## 2. Evidence classes and compatibility model
 
