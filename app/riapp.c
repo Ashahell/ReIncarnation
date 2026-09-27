@@ -98,7 +98,6 @@
 #endif
 
 extern struct DosLibrary *DOSBase;
-extern struct IntuitionBase *IntuitionBase;
 
 #define RIAPP_LED_D 18u /* rail LED bitmap diameter (disc + 2 px margin) */
 
@@ -155,6 +154,7 @@ static Object *s_devled[4];
  * a screen. MUI stock images proved theme-dim; self-drawn is exact. */
 static struct BitMap *s_ledbm[2];
 static LONG s_ledpen[2];
+static struct ColorMap *s_ledcm;
 static char s_devlbl[4][16];
 #define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
 
@@ -547,22 +547,26 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
  * canvas green of the pattern-block LED) for active, one dim disc
  * (C_MIX_GREEN_OFF 0x1E4A22) for inactive; pen 0 clear + Transparent
  * keeps the rail background. MUI stock images proved theme-dim, so the
- * dots are self-drawn. Built once the window owns a screen (colormap
- * for exact pens); 0 ok, 2 failure (LEDs stay empty, buttons + log
- * unaffected). */
-static int rail_leds_make(void) {
+ * dots are self-drawn. Built once the window owns a screen (the
+ * window's own screen colormap gives exact pens); 0 ok, 2 failure
+ * (LEDs stay empty, buttons + log unaffected). */
+static int rail_leds_make(Object *win) {
     static const uint32_t cols[2] = { 0x38E040u, 0x1E4A22u };
-    struct Screen *sc;
+    struct Screen *sc = 0;
     struct RastPort rp;
     uint32_t i;
     if (s_ledbm[0] || s_ledbm[1])
         return 0;
-    if (!IntuitionBase || !(sc = IntuitionBase->ActiveScreen) || !sc->ViewPort.ColorMap)
+    if (!win)
         return 2;
+    GetAttr(MUIA_Window_Screen, win, (IPTR *)&sc);
+    if (!sc || !sc->ViewPort.ColorMap)
+        return 2;
+    s_ledcm = sc->ViewPort.ColorMap;
     InitRastPort(&rp);
     for (i = 0u; i < 2u; i++) {
         uint32_t c = cols[i];
-        s_ledpen[i] = ObtainBestPenA(sc->ViewPort.ColorMap,
+        s_ledpen[i] = ObtainBestPenA(s_ledcm,
             ((c >> 16u) & 0xFFu) << 24u, ((c >> 8u) & 0xFFu) << 24u,
             (c & 0xFFu) << 24u, 0);
         if (s_ledpen[i] < 0)
@@ -570,9 +574,9 @@ static int rail_leds_make(void) {
     }
     if (s_ledpen[0] < 0 || s_ledpen[1] < 0) {
         if (s_ledpen[0] >= 0)
-            ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[0]);
+            ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
         if (s_ledpen[1] >= 0)
-            ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[1]);
+            ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
         s_ledpen[0] = s_ledpen[1] = -1;
         return 2;
     }
@@ -593,8 +597,8 @@ static int rail_leds_make(void) {
             FreeBitMap(s_ledbm[0]);
             s_ledbm[0] = 0;
         }
-        ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[0]);
-        ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[1]);
+        ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
+        ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
         s_ledpen[0] = s_ledpen[1] = -1;
         return 2;
     }
@@ -602,12 +606,12 @@ static int rail_leds_make(void) {
 }
 
 static void rail_leds_drop(void) {
-    struct Screen *sc;
-    if (IntuitionBase && (sc = IntuitionBase->ActiveScreen) && sc->ViewPort.ColorMap) {
+    if (s_ledcm) {
         if (s_ledpen[0] >= 0)
-            ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[0]);
+            ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
         if (s_ledpen[1] >= 0)
-            ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[1]);
+            ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
+        s_ledcm = 0;
     }
     s_ledpen[0] = s_ledpen[1] = -1;
     if (s_ledbm[0]) {
@@ -926,7 +930,7 @@ int main(int argc, char **argv) {
         DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
             MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
-    if (rail_leds_make() == 0)
+    if (rail_leds_make(win) == 0)
         rail_leds_show();
     else if (DOSBase)
         rlog("RIAPP rail LEDs unavailable (buttons unaffected)\n", 0, 0, 0, 0, 0);
