@@ -151,6 +151,11 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   - Devices tab landed 2026-09-27 (t98 +1 tab, unproven): per-device
     toggle buttons (display-only ShowMe; engine/mixer untouched),
     VIS ev-log lines. Device proof open.
+  - Devices tab APPROVED by owner ear/eye 2026-09-27 (works as intended).
+    Owner design challenge: 5th tab not the most elegant home (manages
+    VISIBLE, requirement says ACTIVE). Decision 2026-09-27: rail first —
+    toggles move to a slim always-visible rail above the Register (same
+    visibility-only bit); activation (engine enable/disable) later.
 
 ## Planned devices (extensible rack, spec D-k)
 - [ ] Korg Electribe ESX-1 — owner plan 2026-09-26; requirement + rules for current work: `docs/superpowers/specs/2026-09-26-device-korg-esx1-requirement.md` (no 4-device assumptions; new lane-key block, strip, skin token, RBNG chunks — chunk IDs owner review; E1 = Korg ESX-1 manual; clean-room: no Korg samples/ROM/art).

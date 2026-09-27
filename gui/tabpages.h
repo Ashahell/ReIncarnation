@@ -14,8 +14,7 @@
 #define RI_TAB_DRUMS 1u
 #define RI_TAB_MIX 2u
 #define RI_TAB_FX 3u
-#define RI_TAB_DEVICES 4u /* frame tab: per-device visibility toggles */
-#define RI_TAB_COUNT 5u
+#define RI_TAB_COUNT 4u
 
 struct RITabDev {
     uint32_t device;    /* 0..3 classic */

@@ -1,5 +1,17 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-27] design | Devices tab elegance challenge (owner)
+- Disposition: Open question (owner verdict: works, but is it elegant?)
+- Requirement: llm-wiki/raw/articles/2026-09-24-extensible-device-rack-requirement.md
+  + docs/2026-09-24-improvement-opportunities.md §5.6
+The requirement says ACTIVE (engine enable/disable, zero CPU, state
+kept, block-boundary swap, mixer per instance); the tab does VISIBLE
+only (ShowMe, engine keeps rendering). Verdict: scaffolding, not the
+destination. Recommendation: make the bit mean ACTIVE first (sections
+bitmask already read per block in ri_engine_load — the plumbing
+half-exists), then decide its final home (rail vs row-power). Behavior
+before chrome.
+
 ## [2026-09-27] panels | Devices tab: visibility toggles (unproven)
 - Disposition: New (needs Dell proof)
 - Updated: docs/2026-09-24-improvement-todo.md (RIAPP full panels)
@@ -1324,3 +1336,10 @@ P4 abort bounds (dev_min counts natural err==0 only); final green (actuals 5513 
 - Disposition: Update (Status note on the analysis record; no new raw — result is one measured line)
 - Updated: llm-wiki/raw/articles/2026-09-21-linked-r2-delay-analysis.md
 P4.2b WaitIO r2 done err=0 (linked-to-completed, TRUE WaitIO); undo-delay branch works, in-flight chaining is the broken case; promotion-on-completion remains the precise suspect. Index entry updated.
+
+## [2026-09-27] design | Devices tab elegance: rail-first decision (owner)
+- Disposition: Decision (challenge -> direction)
+The tab managed VISIBLE; the rack requirement says ACTIVE. Owner
+picked rail-first: toggles to a slim always-visible rail above the
+Register (same visibility-only bit); activation later. t98 reverts to
+4 tabs (nothing consumes the 5th).

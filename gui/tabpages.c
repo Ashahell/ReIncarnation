@@ -3,7 +3,7 @@
 #include "gui/ctlreg.h"
 
 static const char *const RI_TAB_TITLES[RI_TAB_COUNT] = {
-    "Synths", "Drums", "Mix", "FX", "Devices"
+    "Synths", "Drums", "Mix", "FX"
 };
 
 /* Classic device -> canvas sections (explicit: the single source the

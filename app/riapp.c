@@ -1,10 +1,10 @@
 /* app/riapp.c — RIAPP live application with the ReBirth panel (G9b Step 2).
  * AROS-only. Supersedes the bare app/main.c window (kept) and the Step-1
- * text window: one MUI window with Transport framed above a Register with
- * the Synths/Drums/Mix/FX/Devices tabs (owner 2026-09-27; stock
- * Register.mui, device rows follow the visible set through the t98
- * model), driving the same live session / control plane / meter snapshot
- * the text shell proved on the Dell.
+ * text window: one MUI window with Transport framed above a slim device
+ * rail above a Register with the Synths/Drums/Mix/FX tabs (owner
+ * 2026-09-27; stock Register.mui, device rows follow the visible set
+ * through the t98 model), driving the same live session / control plane
+ * / meter snapshot the text shell proved on the Dell.
  *
  * Usage: RIAPP [frames] (device buffer, default 256; 64..4096).
  * Quit: window close gadget, or Shell `Break <cli> C` (Ctrl-C raises the
@@ -524,13 +524,15 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
     return (n > 0u) ? page : 0;
 }
 
-/* Devices frame tab: one toggle button per classic device. Labels live
- * in s_devlbl (MakeObject keeps the pointer). */
-static Object *tab_devices_page(void) {
-    Object *page;
+/* Device rail (owner 2026-09-27): slim always-visible row of toggle
+ * buttons above the Register. Labels live in s_devlbl (MakeObject keeps
+ * the pointer). Same visibility-only bit the Devices tab had. */
+static Object *tab_rail(void) {
+    Object *rail;
     uint32_t d;
-    page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2, TAG_DONE);
-    if (!page)
+    rail = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
+        MUIA_Group_Spacing, 2, TAG_DONE);
+    if (!rail)
         return 0;
     for (d = 0u; d < 4u; d++) {
         const struct RIPanelDesc *pd = ri_panel_get(d);
@@ -541,9 +543,9 @@ static Object *tab_devices_page(void) {
         if (!btn)
             return 0;
         s_devbtn[d] = btn;
-        DoMethod(page, OM_ADDMEMBER, (IPTR)btn);
+        DoMethod(rail, OM_ADDMEMBER, (IPTR)btn);
     }
-    return page;
+    return rail;
 }
 
 /* Devices-tab toggle: flip the visible bit, ShowMe the row, relabel. */
@@ -724,11 +726,11 @@ int main(int argc, char **argv) {
         ri_live_render(&s_core.session, s_fl, s_fr, RIAPP_FRAMES); /* drain the burst */
 
     {
-        /* Tabbed panel (owner 2026-09-27): transport stays framed above;
-         * device rows follow the visible set through the t98 model; the
-         * Devices tab toggles rows at runtime (display-only). */
+        /* Tabbed panel (owner 2026-09-27): transport framed above, then
+         * the device rail (always visible), then the Register; device
+         * rows follow the visible set through the t98 model. */
         static const char *tab_titles[RI_TAB_COUNT + 1u];
-        Object *synth_page, *drums_page, *mix_page, *fx_page, *dev_page, *reg;
+        Object *synth_page, *drums_page, *mix_page, *fx_page, *rail, *reg;
         uint32_t g, r, nrows;
         uint32_t rowdev[2];
         Object *rowobj[2];
@@ -751,15 +753,15 @@ int main(int argc, char **argv) {
             Child, (IPTR)s_canvas[C_FX0], Child, (IPTR)s_canvas[C_FX1],
             Child, (IPTR)s_canvas[C_FX2], Child, (IPTR)s_canvas[C_FX3],
             TAG_DONE);
-        dev_page = tab_devices_page();
-        reg = (synth_page && drums_page && mix_page && fx_page && dev_page) ?
+        rail = tab_rail();
+        reg = (synth_page && drums_page && mix_page && fx_page && rail) ?
             (Object *)MUI_NewObject(MUIC_Register,
                 MUIA_Register_Titles, (IPTR)tab_titles,
                 Child, (IPTR)synth_page, Child, (IPTR)drums_page,
-                Child, (IPTR)mix_page, Child, (IPTR)fx_page,
-                Child, (IPTR)dev_page, TAG_DONE) : 0;
-        row = reg ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
-            Child, (IPTR)s_canvas[C_TR], Child, (IPTR)reg, TAG_DONE) : 0;
+                Child, (IPTR)mix_page, Child, (IPTR)fx_page, TAG_DONE) : 0;
+        row = (reg && rail) ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
+            Child, (IPTR)s_canvas[C_TR], Child, (IPTR)rail,
+            Child, (IPTR)reg, TAG_DONE) : 0;
     }
     if (!row) {
         if (s_live)
