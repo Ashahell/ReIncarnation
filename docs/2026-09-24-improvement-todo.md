@@ -182,6 +182,11 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   - GUI feedback round 2 (owner 2026-09-27, unproven): rail LEDs are red
     record-dots (spec swap, no layout shift); Note/Pause rect narrowed
     clear of its LEDs (w132); pins from clean-build ground truth.
+  - GUI feedback round 3 CLOSED 2026-09-27 (owner eyes + status log):
+    rail LEDs are self-drawn green discs (C_MIX_GREEN, pixel-verified)
+    after fixing NULL IntuitionBase, NULL-friend AllocBitMap, AreaEllipse
+    area-state guru, and imageless-keeps-zero-size. Lesson recorded:
+    canvas path does LEDs perfectly; rail duplication was the cost.
   - GUI feedback round 3 (owner 2026-09-27, unproven): stock dots render
     black on this theme. Rail LEDs are self-drawn 18px bitmaps in exact
     canvas greens (on 0x38E040 = the Pattern-block LED, pixel-verified;
