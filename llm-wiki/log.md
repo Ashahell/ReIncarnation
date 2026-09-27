@@ -1,6 +1,8 @@
 # ReIncarnation llm-wiki — log
 
-## [2026-09-27] record | Trademark hygiene slice
+## [2026-09-27] update | sb128 fault: byte-exact instruction found
+- Disposition: Update (scratch HDA lane repro: stock probe faults identically; `movaps (%rdx)` at `DriverInit+0x135` over RDX≡12; 2026-09-21 movups patch never landed; durable fix scoped to fork lane)
+- Raw: llm-wiki/raw/articles/2026-09-26-riqemu1-sb128-open-hang.md
 - Disposition: New (assessment + rename + sample rules + Korg read; no existing article covered it)
 - Raw: n/a (session source; facts grounded in `489bd69`, `project/arexx.c:26`, `reference/packs/classic-01`, `scripts/ri_audit.sh`)
 - Updated: llm-wiki/index.md (Live app (§12.11) entry)

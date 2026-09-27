@@ -53,3 +53,33 @@ device-level, not app code.
 - Open Dell question: two display freezes launching the panel binary
   (text `RIAPP 256` is the known-good control: run it first after a
   reboot, then the panel).
+
+## Byte-exact root cause (2026-09-27, scratch HDA lane)
+
+Reproduced on a scratch QEMU lane with real HDA hardware present
+(`intel-hda` + `hda-duplex` on host PA; PCI `8086:2668` visible): the
+stock `probe_ahi` faults identically — same module, same offsets
+(`sb128.audio` Segment 4 `.text+0x6C5`, `DriverInit+0x135`), victim
+this time the probe's own main task. HDA hardware changes nothing:
+sb128 blocks the scan first.
+
+Disassembly of the tree-built `sb128.audio` at file offset `0x6C5`
+(`DriverInit+0x135`, matching the guest offset):
+
+```asm
+6c5: movaps (%rdx),%xmm0   <- fault: RDX=...7D8C, identical 12 (mod 16)
+6c8: movups %xmm0,(%rax)
+```
+
+A compiler-vectorized 16-byte copy (aligned load + unaligned store)
+over a misaligned source — the exact instruction the 2026-09-21
+session patched `movaps→movups`, evidently never landed durably (the
+Sep-15 tree object still carries it). R12 at fault points inside the
+module (sane base), and our caller stacks are movaps-proven, so this
+is driver-data misalignment (consistent with HUNK+8-shifted module
+data), not caller ABI. The `-ffixed-r12` CFLAGS gap is real but is
+not this fault's cause.
+
+Durable fix (fork lane, not here): re-apply the movups (or build
+this TU with `-fno-vectorize -fno-slp-vectorize` per the HUNK rule),
+rebuild `ahi.device`, redeploy, re-run `probe_ahi` on this lane.
