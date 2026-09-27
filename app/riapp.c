@@ -153,8 +153,10 @@ static Object *s_devled[4];
  * (C_MIX_GREEN on / C_MIX_GREEN_OFF off), drawn once the window owns
  * a screen. MUI stock images proved theme-dim; self-drawn is exact. */
 static struct BitMap *s_ledbm[2];
+static struct BitMap s_ledbms[2]; /* backing store (chip planes, no friend needed) */
 static LONG s_ledpen[2];
 static struct ColorMap *s_ledcm;
+#define RIAPP_LED_WBYTES 4u /* 18 px rows = 2 words, chip-cleared */
 static char s_devlbl[4][16];
 #define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
 
@@ -583,22 +585,34 @@ static int rail_leds_make(Object *win) {
         return 14;
     }
     for (i = 0u; i < 2u; i++) {
-        struct BitMap *bm = AllocBitMap(RIAPP_LED_D, RIAPP_LED_D, 8u,
-            BMF_CLEAR | BMF_DISPLAYABLE, 0);
-        if (!bm)
+        uint32_t pl;
+        InitBitMap(&s_ledbms[i], 8u, RIAPP_LED_D, RIAPP_LED_D);
+        for (pl = 0u; pl < 8u; pl++) {
+            PLANEPTR r = AllocRaster(RIAPP_LED_D, RIAPP_LED_D);
+            if (!r)
+                break;
+            memset(r, 0, RIAPP_LED_WBYTES * RIAPP_LED_D);
+            s_ledbms[i].Planes[pl] = r;
+        }
+        if (pl < 8u)
             break;
-        rp.BitMap = bm;
+        rp.BitMap = &s_ledbms[i];
         SetAPen(&rp, (ULONG)s_ledpen[i]);
         AreaEllipse(&rp, RIAPP_LED_D / 2u, RIAPP_LED_D / 2u,
             RIAPP_LED_D / 2u - 2u, RIAPP_LED_D / 2u - 2u);
         AreaEnd(&rp);
-        s_ledbm[i] = bm;
+        s_ledbm[i] = &s_ledbms[i];
     }
     if (!s_ledbm[0] || !s_ledbm[1]) {
-        if (s_ledbm[0]) {
-            FreeBitMap(s_ledbm[0]);
-            s_ledbm[0] = 0;
+        for (i = 0u; i < 2u; i++) {
+            uint32_t pl;
+            for (pl = 0u; pl < 8u; pl++)
+                if (s_ledbms[i].Planes[pl]) {
+                    FreeRaster(s_ledbms[i].Planes[pl], RIAPP_LED_D, RIAPP_LED_D);
+                    s_ledbms[i].Planes[pl] = 0;
+                }
         }
+        s_ledbm[0] = s_ledbm[1] = 0;
         ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
         ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
         s_ledpen[0] = s_ledpen[1] = -1;
@@ -608,6 +622,7 @@ static int rail_leds_make(Object *win) {
 }
 
 static void rail_leds_drop(void) {
+    uint32_t i, pl;
     if (s_ledcm) {
         if (s_ledpen[0] >= 0)
             ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
@@ -616,14 +631,14 @@ static void rail_leds_drop(void) {
         s_ledcm = 0;
     }
     s_ledpen[0] = s_ledpen[1] = -1;
-    if (s_ledbm[0]) {
-        FreeBitMap(s_ledbm[0]);
-        s_ledbm[0] = 0;
+    for (i = 0u; i < 2u; i++) {
+        for (pl = 0u; pl < 8u; pl++)
+            if (s_ledbms[i].Planes[pl]) {
+                FreeRaster(s_ledbms[i].Planes[pl], RIAPP_LED_D, RIAPP_LED_D);
+                s_ledbms[i].Planes[pl] = 0;
+            }
     }
-    if (s_ledbm[1]) {
-        FreeBitMap(s_ledbm[1]);
-        s_ledbm[1] = 0;
-    }
+    s_ledbm[0] = s_ledbm[1] = 0;
 }
 
 /* Push the LED bitmaps into the rail chips (after make; the toggle swaps
