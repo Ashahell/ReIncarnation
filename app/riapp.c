@@ -192,13 +192,27 @@ static ULONG s_evseq;
 static char s_evvol[48]; /* USB volume or the TEMP base (never a literal) */
 
 static void evlog_vol(void) {
-    /* Owner 2026-09-27: the Dell's stick is Vk4aros: (USB icon in Wanderer).
-     * Probed first; the generic names cover other sticks/machines. */
+    /* Spike hunt 2026-09-27: RIAPP_EVLOG=RAM: forces the ev-log off the
+     * USB stick (the stick must stay in: the Dell runs system parts
+     * off it, and shells won't open without it). Default unchanged. */
     static const char *const vols[] = { "Vk4aros:", "USB0:", "USB1:", "UMSD0:", "UMSD1:", "USBDISK0:" };
     uint32_t i;
     s_evvol[0] = 0;
     if (!DOSBase)
         return;
+    {
+        char v[16];
+        LONG r = GetVar((STRPTR)"RIAPP_EVLOG", (STRPTR)v, (LONG)sizeof v - 1u, 0L);
+        if (r > 0) {
+            uint32_t k = 0u;
+            while (v[k] && k < sizeof(s_evvol) - 1u) {
+                s_evvol[k] = v[k];
+                k++;
+            }
+            s_evvol[k] = 0;
+            return;
+        }
+    }
     for (i = 0u; i < sizeof(vols) / sizeof(vols[0]); i++) {
         BPTR lock = Lock((CONST_STRPTR)vols[i], ACCESS_READ);
         if (lock) {
