@@ -1,4 +1,4 @@
-# Rail LED dots: bitmap saga (Dell 2026-09-27, open)
+# Rail LED dots: bitmap saga (Dell 2026-09-27, root cause found; fixed by dropping Bitmap.mui)
 
 - Source: ReIncarnation session, 2026-09-27 (Dell E6320 lane, owner eye + status-log forensics)
 - Collected: 2026-09-27
@@ -41,8 +41,8 @@ around it (must sit clean on the rail grey).
      `MUIA_Bitmap_Transparent, 0L` disables transparency (grey box =
      pen 0 opaque); bitmap swap needs `MUI_Redraw(DRAWOBJECT)`.
      Fixed in `9ac03e2`.
-   - (f) **NOW: boxes persist with `Transparent, 1L`.** So 1L is not
-     pen-0-transparent on this Bitmap.mui. Unresolved at write time.
+   - (f) Boxes persisted with `Transparent, 1L`. Root cause: see
+     "Resolution" below. Neither 0L nor 1L can work as used.
 
 ## Readings for the next attempt
 
@@ -57,8 +57,42 @@ around it (must sit clean on the rail grey).
   LEDs everywhere else) and delete the bitmap code instead of feeding
   it. Real work (new controls), kills the class; offered, not ordered.
 
+## Resolution (2026-09-27, from the Zune class source)
+
+The source is `workbench/libs/muimaster/classes/bitmap.c` in the AROS
+tree (checked in the v11 tree under Vulkan4Aros).
+- `MUIA_Bitmap_Transparent` is a **colour index** (LONG, default -1 =
+  none), not a boolean.
+- The transparency **mask is only built inside `remap_bitmap()`**, which
+  returns immediately unless `MUIA_Bitmap_MappingTable` or
+  `MUIA_Bitmap_SourceColors` is set.
+- Without either, `MUIM_Draw` takes the plain `BltBitMapRastPort` path and
+  the whole 18x18 bitmap is blitted opaque, background pixels included:
+  the box.
+- Hence (e) and (f): no `Transparent` value can matter without a remap.
+- A remap would also allocate a second bitmap through `AllocBitMap`, which
+  failed on this AROS without a friend (step b), unless `UseFriend` is set.
+- `MUIA_Bitmap_Alpha` drawing is a TODO in this class.
+
+**Fix (in place of feeding the class more tags):** the rail LED is now a
+tiny self-drawing Zune `Area` subclass (`RLed`, in `app/riapp.c`):
+- `MUIA_FillArea TRUE` lets Area paint the parent (rail) background;
+- `MUIM_Draw` draws the 15-row disc as `RectFill` spans in pens obtained
+  per screen in `MUIM_Setup` (`C_MIX_GREEN 0x38E040` lit,
+  `C_MIX_GREEN_OFF 0x1E4A22` dim), released in `MUIM_Cleanup`;
+- `MUIA_RLed_On` in `OM_SET` redraws only on a change.
+
+This is the same drawing path as the proven section canvas. All the
+bitmap, pen and intuition-hack code (`InitBitMap`/`AllocRaster` planes,
+the `ActiveScreen` colormap, local `OpenLibrary("intuition.library")`) is
+deleted. If the class cannot be created, a plain rectangle takes the
+slot and the buttons are unaffected.
+
 ## Current device state
 
-Build `9ac03e2` runs clean (no guru, no failure line); green dots show
-but boxed; toggle refresh believed fixed (redraw added) awaiting owner
-re-test. Proof open.
+- The ABIv1 build gate is clean.
+- The ABIv11 Dell build has 0 unresolved symbols and shows **green discs
+  with no box** on the rail grey (half-scale agent capture, 2026-09-27).
+- The toggle between dim and bright awaits the owner's eye: the remote
+  click did not reach a chip, and an older RIAPP instance was still
+  running and holding AHI.

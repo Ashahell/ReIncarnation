@@ -1,5 +1,10 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-27] update | Rail LED bitmap saga: root cause + fix
+- Disposition: Update (the open saga is resolved in place: Resolution section)
+- Raw: llm-wiki/raw/articles/2026-09-27-rail-led-bitmap-saga.md
+Zune Bitmap.mui builds its transparency mask only in the remap pass (needs MappingTable/SourceColors); `Transparent` is a colour index. Rail LEDs are now a self-drawing Area subclass (RLed); green discs without a box on the Dell; toggle awaits the owner.
+
 ## [2026-09-27] record | Upstream AROS#1281 exchange (stealth)
 - Disposition: New (exchange record: their theory, our falsification, posted data, narrower-probe offer)
 - Raw: llm-wiki/raw/articles/2026-09-27-aros-1281-exchange.md

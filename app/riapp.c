@@ -61,6 +61,9 @@
 #include <proto/dos.h>
 #include <proto/muimaster.h>
 #include <proto/timer.h>
+#include <proto/utility.h>
+#include <utility/tagitem.h>
+#include <clib/alib_protos.h>
 #include "engine/live.h"
 #include "engine/seq/ctlplane.h"
 #include "engine/seq/autolane.h"
@@ -99,7 +102,7 @@
 
 extern struct DosLibrary *DOSBase;
 
-#define RIAPP_LED_D 18u /* rail LED bitmap diameter (disc + 2 px margin) */
+#define RIAPP_LED_D 18u /* rail LED area: 15-px disc + margin */
 
 #define RIAPP_FRAMES 64u /* null-backend render chunk */
 #define RIAPP_DEV_FRAMES 256u /* default device buffer (owner-approved 2026-09-26) */
@@ -149,14 +152,18 @@ static struct RIVisSet s_vis;
 static Object *s_devrow[4];
 static Object *s_devbtn[4];
 static Object *s_devled[4];
-/* Rail LED bitmaps (owner 2026-09-27): exact canvas greens
- * (C_MIX_GREEN on / C_MIX_GREEN_OFF off), drawn once the window owns
- * a screen. MUI stock images proved theme-dim; self-drawn is exact. */
-static struct BitMap *s_ledbm[2];
-static struct BitMap s_ledbms[2]; /* backing store (chip planes, no friend needed) */
-static LONG s_ledpen[2];
-static struct ColorMap *s_ledcm;
-#define RIAPP_LED_WBYTES 4u /* 18 px rows = 2 words, chip-cleared */
+/* Rail LEDs (owner 2026-09-27): exact canvas greens (C_MIX_GREEN on /
+ * C_MIX_GREEN_OFF off), no box. A tiny self-drawing Area class (RLed):
+ * the parent background is filled by Area (MUIA_FillArea TRUE), the disc
+ * is RectFill spans in pens obtained per screen in MUIM_Setup — the same
+ * proven path as the section canvas. Bitmap.mui was dropped: its
+ * MUIA_Bitmap_Transparent is a colour INDEX and the mask is only built by
+ * its remap pass, which runs only with MUIA_Bitmap_MappingTable or
+ * SourceColors (Zune classes/bitmap.c remap_bitmap) — without them the
+ * bitmap is blitted opaque, so the box stayed at any Transparent value
+ * (saga steps e/f, llm-wiki 2026-09-27-rail-led-bitmap-saga.md). */
+#define MUIA_RLed_On (TAG_USER | 0x52494C45u) /* BOOL: lit (active) */
+static struct MUI_CustomClass *s_led_mcc;
 static char s_devlbl[4][16];
 #define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
 
@@ -545,130 +552,123 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
     return (n > 0u) ? page : 0;
 }
 
-/* Rail LED bitmaps: one green disc (C_MIX_GREEN 0x38E040, the exact
- * canvas green of the pattern-block LED) for active, one dim disc
- * (C_MIX_GREEN_OFF 0x1E4A22) for inactive; pen 0 clear + Transparent
- * keeps the rail background. intuition.library is opened here (the app
- * has no IntuitionBase of its own); bitmaps are built BEFORE the rail
- * so Bitmap.mui sizes itself from real data at setup (empty-then-set
- * keeps zero size). 0 ok, 2 failure (LEDs stay empty, buttons + log
- * unaffected). */
-static int rail_leds_make(void) {
-    static const uint32_t cols[2] = { 0x38E040u, 0x1E4A22u };
-    struct Library *ibase;
-    struct IntuitionBase *ib;
-    struct Screen *sc;
-    struct RastPort rp;
-    uint32_t i;
-    int rc = 0;
-    if (s_ledbm[0] || s_ledbm[1])
-        return 0;
-    ibase = OpenLibrary((STRPTR)"intuition.library", 37u);
-    if (!ibase)
-        return 11;
-    ib = (struct IntuitionBase *)ibase;
-    sc = ib->ActiveScreen;
-    if (!sc)
-        rc = 12;
-    else if (!sc->ViewPort.ColorMap)
-        rc = 13;
-    else {
-        s_ledcm = sc->ViewPort.ColorMap;
-        InitRastPort(&rp);
-        for (i = 0u; i < 2u; i++) {
-            uint32_t c = cols[i];
-            s_ledpen[i] = ObtainBestPenA(s_ledcm,
-                ((c >> 16u) & 0xFFu) << 24u, ((c >> 8u) & 0xFFu) << 24u,
-                (c & 0xFFu) << 24u, 0);
-            if (s_ledpen[i] < 0)
-                break;
+struct RLedData {
+    LONG pen[2]; /* 0 lit, 1 dim; -1 until MUIM_Setup */
+    BOOL on;
+};
+
+/* Disc spans (r = 7, integer only): half-widths per |dy| 0..7. */
+static const int s_led_dx[8] = { 7, 6, 6, 6, 5, 4, 3, 0 };
+
+BOOPSI_DISPATCHER_PROTO(IPTR, rled_dispatcher, Class *, Object *, Msg);
+
+BOOPSI_DISPATCHER(IPTR, rled_dispatcher, cl, obj, msg) {
+    struct RLedData *d;
+    switch (msg->MethodID) {
+    case OM_NEW: {
+        Object *o = (Object *)DoSuperMethodA(cl, obj, msg);
+        if (!o)
+            return (IPTR)NULL;
+        d = (struct RLedData *)INST_DATA(cl, o);
+        d->pen[0] = d->pen[1] = -1;
+        d->on = (BOOL)GetTagData(MUIA_RLed_On, TRUE, ((struct opSet *)msg)->ops_AttrList);
+        return (IPTR)o;
+    }
+    case OM_SET: {
+        struct TagItem *t = FindTagItem(MUIA_RLed_On, ((struct opSet *)msg)->ops_AttrList);
+        d = (struct RLedData *)INST_DATA(cl, obj);
+        if (t && (BOOL)(t->ti_Data != 0) != d->on) {
+            d->on = (BOOL)(t->ti_Data != 0);
+            MUI_Redraw(obj, MADF_DRAWOBJECT);
         }
-        if (s_ledpen[0] < 0 || s_ledpen[1] < 0) {
-            if (s_ledpen[0] >= 0)
-                ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
-            if (s_ledpen[1] >= 0)
-                ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
-            s_ledpen[0] = s_ledpen[1] = -1;
-            rc = 14;
-        } else {
+        return DoSuperMethodA(cl, obj, msg);
+    }
+    case MUIM_AskMinMax: {
+        struct MUIP_AskMinMax *m = (struct MUIP_AskMinMax *)msg;
+        IPTR rc = DoSuperMethodA(cl, obj, msg);
+        m->MinMaxInfo->MinWidth += RIAPP_LED_D;
+        m->MinMaxInfo->MinHeight += RIAPP_LED_D;
+        m->MinMaxInfo->DefWidth = m->MinMaxInfo->MaxWidth = m->MinMaxInfo->MinWidth;
+        m->MinMaxInfo->DefHeight = m->MinMaxInfo->MaxHeight = m->MinMaxInfo->MinHeight;
+        return rc;
+    }
+    case MUIM_Setup: {
+        static const uint32_t cols[2] = { 0x38E040u, 0x1E4A22u };
+        IPTR rc = DoSuperMethodA(cl, obj, msg);
+        uint32_t i;
+        if (rc) {
+            struct ColorMap *cm = _screen(obj)->ViewPort.ColorMap;
+            d = (struct RLedData *)INST_DATA(cl, obj);
             for (i = 0u; i < 2u; i++) {
-                uint32_t pl;
-                /* Disc spans, integer only (r = 7): AreaEllipse needs
-                 * AreaInfo + TmpRas the RastPort doesn't own (Dell guru
-                 * in Graphics AreaEllipse); RectFill needs neither. */
-                static const int dx[8] = { 7, 6, 6, 6, 5, 4, 3, 0 };
-                int dy;
-                InitBitMap(&s_ledbms[i], 8u, RIAPP_LED_D, RIAPP_LED_D);
-                for (pl = 0u; pl < 8u; pl++) {
-                    PLANEPTR r = AllocRaster(RIAPP_LED_D, RIAPP_LED_D);
-                    if (!r)
-                        break;
-                    memset(r, 0, RIAPP_LED_WBYTES * RIAPP_LED_D);
-                    s_ledbms[i].Planes[pl] = r;
-                }
-                if (pl < 8u)
-                    break;
-                rp.BitMap = &s_ledbms[i];
-                SetAPen(&rp, (ULONG)s_ledpen[i]);
-                for (dy = -7; dy <= 7; dy++) {
-                    int w = dx[dy < 0 ? -dy : dy];
-                    RectFill(&rp, (LONG)(9 - w), (LONG)(9 + dy), (LONG)(9 + w), (LONG)(9 + dy));
-                }
-                s_ledbm[i] = &s_ledbms[i];
-            }
-            if (!s_ledbm[0] || !s_ledbm[1]) {
-                for (i = 0u; i < 2u; i++) {
-                    uint32_t pl;
-                    for (pl = 0u; pl < 8u; pl++)
-                        if (s_ledbms[i].Planes[pl]) {
-                            FreeRaster(s_ledbms[i].Planes[pl], RIAPP_LED_D, RIAPP_LED_D);
-                            s_ledbms[i].Planes[pl] = 0;
-                        }
-                }
-                s_ledbm[0] = s_ledbm[1] = 0;
-                ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
-                ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
-                s_ledpen[0] = s_ledpen[1] = -1;
-                rc = 15;
+                uint32_t c = cols[i];
+                d->pen[i] = ObtainBestPenA(cm, ((c >> 16u) & 0xFFu) * 0x01010101u,
+                    ((c >> 8u) & 0xFFu) * 0x01010101u, (c & 0xFFu) * 0x01010101u, 0);
             }
         }
+        return rc;
     }
-    CloseLibrary(ibase);
-    return rc;
-}
-
-static void rail_leds_drop(void) {
-    uint32_t i, pl;
-    if (s_ledcm) {
-        if (s_ledpen[0] >= 0)
-            ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
-        if (s_ledpen[1] >= 0)
-            ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
-        s_ledcm = 0;
-    }
-    s_ledpen[0] = s_ledpen[1] = -1;
-    for (i = 0u; i < 2u; i++) {
-        for (pl = 0u; pl < 8u; pl++)
-            if (s_ledbms[i].Planes[pl]) {
-                FreeRaster(s_ledbms[i].Planes[pl], RIAPP_LED_D, RIAPP_LED_D);
-                s_ledbms[i].Planes[pl] = 0;
+    case MUIM_Cleanup: {
+        struct ColorMap *cm = _screen(obj)->ViewPort.ColorMap;
+        uint32_t i;
+        d = (struct RLedData *)INST_DATA(cl, obj);
+        for (i = 0u; i < 2u; i++)
+            if (d->pen[i] >= 0) {
+                ReleasePen(cm, (ULONG)d->pen[i]);
+                d->pen[i] = -1;
             }
+        return DoSuperMethodA(cl, obj, msg);
     }
-    s_ledbm[0] = s_ledbm[1] = 0;
+    case MUIM_Draw: {
+        struct MUIP_Draw *m = (struct MUIP_Draw *)msg;
+        struct RastPort *rp;
+        LONG pen;
+        int cx, cy, dy;
+        DoSuperMethodA(cl, obj, msg); /* Area fills the parent background */
+        if (!(m->flags & (MADF_DRAWOBJECT | MADF_DRAWUPDATE)))
+            return 0;
+        d = (struct RLedData *)INST_DATA(cl, obj);
+        pen = d->pen[d->on ? 0 : 1];
+        if (pen < 0)
+            return 0;
+        rp = _rp(obj);
+        cx = _mleft(obj) + _mwidth(obj) / 2;
+        cy = _mtop(obj) + _mheight(obj) / 2;
+        SetAPen(rp, (ULONG)pen);
+        for (dy = -7; dy <= 7; dy++) {
+            int w = s_led_dx[dy < 0 ? -dy : dy];
+            RectFill(rp, (LONG)(cx - w), (LONG)(cy + dy), (LONG)(cx + w), (LONG)(cy + dy));
+        }
+        return 0;
+    }
+    default:
+        return DoSuperMethodA(cl, obj, msg);
+    }
+}
+BOOPSI_DISPATCHER_END
+
+/* 0 ok, 2 class unavailable (LEDs stay empty; buttons + log unaffected). */
+static int rail_leds_make(void) {
+    if (!s_led_mcc)
+        s_led_mcc = MUI_CreateCustomClass(NULL, (ClassID)MUIC_Area, NULL, sizeof(struct RLedData),
+            (APTR)rled_dispatcher);
+    return s_led_mcc ? 0 : 2;
 }
 
-/* Push the LED bitmaps into the rail chips (after make; the toggle swaps
- * on/off the same way). */
+/* After the application object is disposed (no instances left). */
+static void rail_leds_drop(void) {
+    if (s_led_mcc) {
+        MUI_DeleteCustomClass(s_led_mcc);
+        s_led_mcc = 0;
+    }
+}
+
+/* Mirror each device's active bit into its LED (the class redraws itself
+ * when the state changes). */
 static void rail_leds_show(void) {
     uint32_t d;
-    for (d = 0u; d < 4u; d++) {
-        int show;
-        if (!s_devled[d] || !s_ledbm[0] || !s_ledbm[1])
-            continue;
-        show = ri_vis_get(&s_vis, d) > 0;
-        SetAttrs(s_devled[d], MUIA_Bitmap_Bitmap, (IPTR)(show ? s_ledbm[0] : s_ledbm[1]), TAG_DONE);
-        MUI_Redraw(s_devled[d], MADF_DRAWOBJECT);
-    }
+    for (d = 0u; d < 4u; d++)
+        if (s_devled[d])
+            SetAttrs(s_devled[d], MUIA_RLed_On, (IPTR)(ri_vis_get(&s_vis, d) > 0 ? TRUE : FALSE), TAG_DONE);
 }
 
 /* Device rail (owner 2026-09-27): slim always-visible row of on/off
@@ -690,21 +690,14 @@ static Object *tab_rail(void) {
         Object *btn, *led, *chip;
         snprintf(s_devlbl[d], sizeof s_devlbl[d], "%s", nm);
         btn = (Object *)MUI_MakeObject(MUIO_Button, (IPTR)s_devlbl[d]);
-        if (s_ledbm[0] && s_ledbm[1])
-            led = (Object *)MUI_NewObject(MUIC_Bitmap,
-                MUIA_Bitmap_Bitmap, (IPTR)s_ledbm[0],
-                MUIA_Bitmap_Width, (LONG)RIAPP_LED_D,
-                MUIA_Bitmap_Height, (LONG)RIAPP_LED_D,
-                MUIA_Bitmap_Transparent, 1L,
-                MUIA_InputMode, MUIV_InputMode_None,
+        if (s_led_mcc)
+            led = (Object *)NewObject(s_led_mcc->mcc_Class, NULL,
+                MUIA_RLed_On, (IPTR)(ri_vis_get(&s_vis, d) > 0 ? TRUE : FALSE),
+                MUIA_FillArea, TRUE,
                 TAG_DONE);
         else
-            led = (Object *)MUI_NewObject(MUIC_Bitmap,
-                MUIA_Bitmap_Width, (LONG)RIAPP_LED_D,
-                MUIA_Bitmap_Height, (LONG)RIAPP_LED_D,
-                MUIA_Bitmap_Transparent, 1L,
-                MUIA_InputMode, MUIV_InputMode_None,
-                TAG_DONE);
+            led = (Object *)MUI_NewObject(MUIC_Rectangle,
+                MUIA_FixWidth, (LONG)RIAPP_LED_D, MUIA_FixHeight, (LONG)RIAPP_LED_D, TAG_DONE);
         chip = (btn && led) ? (Object *)MUI_NewObject(MUIC_Group,
             MUIA_Group_Horiz, TRUE, MUIA_Group_Spacing, 2,
             Child, (IPTR)btn, Child, (IPTR)led, TAG_DONE) : 0;
@@ -770,7 +763,7 @@ int main(int argc, char **argv) {
         s_live = 1;
         rate = (float)s_lv.mix_freq; /* E0 (G9.0): the session runs at the device rate */
     }
-    ri_core_init(&s_core, RIAPP_PPQ, rate, 120.0f,
+    ri_core_init(&s_core, RIAPP_PPQ, rate, 140.0f,
         RI_ENGINE_S303A | RI_ENGINE_S303B | RI_ENGINE_S808 | RI_ENGINE_S909);
     { /* 909 sample pack (owner 2026-09-27): bind idle, before the task runs. */
         char err[128];
