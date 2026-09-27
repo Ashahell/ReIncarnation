@@ -182,6 +182,9 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   - GUI feedback round 2 (owner 2026-09-27, unproven): rail LEDs are red
     record-dots (spec swap, no layout shift); Note/Pause rect narrowed
     clear of its LEDs (w132); pins from clean-build ground truth.
+  - GUI feedback round 2 verdict (owner 2026-09-27): everything approved
+    EXCEPT rail LED color (TapeRecord dot not bright red). Round 3: green
+    on-state (TapePlay dot), dark off-state unchanged.
 
 
 ## Planned devices (extensible rack, spec D-k)
