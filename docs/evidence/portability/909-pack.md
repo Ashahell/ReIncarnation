@@ -54,5 +54,5 @@
   byte-identical incl. 2026-09-20 dates). Proof: per-layer memcmp —
   OLD-EXACT=18, TOMS-CHANGED=9. (Rebuilding old layers straight from
   the 24-bit WAVs gives documented 1-LSB rint diffs — not taken.)
-- 909 bus RMS 0.2087 -> 0.2205 host. Dell timbre verdict: owner by ear
-  (open).
+- 909 bus RMS 0.2087 -> 0.2205 host. Dell timbre verdict: APPROVED by
+  owner 2026-09-27 (toms have body; whole kit accepted).
