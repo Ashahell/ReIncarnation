@@ -313,7 +313,9 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
     ri_engine_load(&s->eng, s->scratch, n, frames,
         ri_atomic_load_acq(&s->sections));
     /* Delay clock ownership (owner 2026-09-27: echoes ran at the 140 BPM
-     * default against a 120 groove): the transport tempo owns it. */
+     * engine default against a 120 groove): the transport tempo owns it.
+     * (Demo is 140 since the Zombie Nation drive; the push stays — it
+     * guards any future default/session split.) */
     if (s->eng.tempo != s->bpm)
         ri_engine_set_tempo(&s->eng, s->bpm);
     {

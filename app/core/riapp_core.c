@@ -27,9 +27,12 @@ void ri_core_init(struct RIAppCore *c, uint32_t ppq, float sr, float bpm,
 }
 
 void ri_core_demo(struct RIAppCore *c) {
-    static const uint8_t keys[16] = { 0, 0, 12, 0, 3, 0, 5, 7, 0, 0, 12, 10, 7, 5, 3, 0 };
-    static const uint8_t fl[16] = { RI_STEP_ACCENT, 0, RI_STEP_SLIDE, 0, 0, RI_STEP_REST, RI_STEP_ACCENT, 0,
-        0, RI_STEP_SLIDE, RI_STEP_ACCENT, 0, 0, RI_STEP_REST, 0, RI_STEP_SLIDE };
+    /* Demo line (owner 2026-09-27: Zombie Nation drive): laconic E-minor
+     * riff, accented quarters, one rest (the hook's hole). Original,
+     * not transcribed — few moves, relentless. */
+    static const uint8_t keys[16] = { 0, 0, 0, 3, 0, 0, 10, 0, 0, 0, 0, 3, 5, 3, 0, 0 };
+    static const uint8_t fl[16] = { RI_STEP_ACCENT, 0, 0, 0, RI_STEP_ACCENT, 0, 0, 0,
+        RI_STEP_ACCENT, 0, 0, 0, RI_STEP_ACCENT, 0, RI_STEP_REST, 0 };
     uint32_t i;
     struct RIPatternBank *ba, *bb, *b808, *b909;
     if (!c)

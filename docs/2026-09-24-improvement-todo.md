@@ -182,6 +182,9 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   - GUI feedback round 2 (owner 2026-09-27, unproven): rail LEDs are red
     record-dots (spec swap, no layout shift); Note/Pause rect narrowed
     clear of its LEDs (w132); pins from clean-build ground truth.
+  - Demo drive (owner 2026-09-27, ear verdict open): Zombie Nation
+    drive — E-minor riff (accented quarters + rest), four-floor kept,
+    tempo 140 (researched). Original, not transcribed.
   - GUI feedback round 3 CLOSED 2026-09-27 (owner eyes + status log):
     rail LEDs are self-drawn green discs (C_MIX_GREEN, pixel-verified)
     after fixing NULL IntuitionBase, NULL-friend AllocBitMap, AreaEllipse
