@@ -531,9 +531,9 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
     return (n > 0u) ? page : 0;
 }
 
-/* Device rail (owner 2026-09-27): slim always-visible row of toggle
- * buttons above the Register. Labels live in s_devlbl (MakeObject keeps
- * the pointer). Same visibility-only bit the Devices tab had. */
+/* Device rail (owner 2026-09-27): slim always-visible row of on/off
+ * chips above the Register. Each chip is a checkmark + label (state
+ * lives in the widget); labels live in s_devlbl (kept, static). */
 static Object *tab_rail(void) {
     Object *rail;
     uint32_t d;
@@ -545,31 +545,29 @@ static Object *tab_rail(void) {
         const struct RIPanelDesc *pd = ri_panel_get(d);
         const char *nm = (pd && pd->name) ? pd->name : "?";
         Object *btn;
-        snprintf(s_devlbl[d], sizeof s_devlbl[d], "[x] %s", nm);
-        btn = (Object *)MUI_MakeObject(MUIO_Button, (IPTR)s_devlbl[d]);
+        snprintf(s_devlbl[d], sizeof s_devlbl[d], "%s", nm);
+        btn = (Object *)MUI_MakeObject(MUIO_Checkmark, (IPTR)s_devlbl[d]);
         if (!btn)
             return 0;
+        SetAttrs(btn, MUIA_Selected, TRUE, TAG_DONE);
         s_devbtn[d] = btn;
         DoMethod(rail, OM_ADDMEMBER, (IPTR)btn);
     }
     return rail;
 }
 
-/* Rail toggle: flip the visible bit, ShowMe the row, relabel — and flip
- * the engine bit with it (ACTIVE, rack requirement 2026-09-24). */
+/* Rail toggle: the chip's Selected state drives the visible bit, the
+ * row ShowMe, and the engine bit with it (ACTIVE, rack requirement
+ * 2026-09-24). */
 static void dev_visibility_toggle(uint32_t dev) {
-    const struct RIPanelDesc *pd;
-    const char *nm;
+    IPTR sel = 0;
     int show;
     uint32_t d, mask = 0u;
-    if (dev >= 4u)
+    if (dev >= 4u || !s_devbtn[dev])
         return;
-    show = !ri_vis_get(&s_vis, dev);
+    GetAttr(MUIA_Selected, s_devbtn[dev], &sel);
+    show = sel ? 1 : 0;
     ri_vis_set(&s_vis, dev, show);
-    pd = ri_panel_get(dev);
-    nm = (pd && pd->name) ? pd->name : "?";
-    snprintf(s_devlbl[dev], sizeof s_devlbl[dev], "[%c] %s", show ? 'x' : ' ', nm);
-    SetAttrs(s_devbtn[dev], MUIA_Text_Contents, (IPTR)s_devlbl[dev], TAG_DONE);
     if (s_devrow[dev])
         SetAttrs(s_devrow[dev], MUIA_ShowMe, show ? TRUE : FALSE, TAG_DONE);
     for (d = 0u; d < 4u; d++)
@@ -812,7 +810,7 @@ int main(int argc, char **argv) {
     DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, (IPTR)app, 2,
         MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
     for (i = 0; i < 4; i++)
-        DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
+        DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Selected, MUIV_EveryTime, (IPTR)app, 3,
             MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
     rlog("RIAPP panel: tabbed Synths/Drums/Mix/FX + transport (2026-09-27)\n",
