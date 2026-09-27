@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include "gui/draw/art.h"
 #include "gui/ctlreg.h"
@@ -81,22 +82,22 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 13u, 1u, 0x0e7ea3cbu },
     { 13u, 2u, 0x4899e30fu },
     { 13u, 3u, 0x7a36e7a1u },
-    { 14u, 0u, 0x10fb0da4u },
-    { 14u, 1u, 0xc284a127u },
-    { 14u, 2u, 0x475e6b09u },
-    { 14u, 3u, 0xeb4f96acu },
-    { 15u, 0u, 0x10fb0da4u },
-    { 15u, 1u, 0xc284a127u },
-    { 15u, 2u, 0x475e6b09u },
-    { 15u, 3u, 0xeb4f96acu },
-    { 16u, 0u, 0x10fb0da4u },
-    { 16u, 1u, 0xc284a127u },
-    { 16u, 2u, 0x475e6b09u },
-    { 16u, 3u, 0xeb4f96acu },
-    { 17u, 0u, 0x10fb0da4u },
-    { 17u, 1u, 0xc284a127u },
-    { 17u, 2u, 0x475e6b09u },
-    { 17u, 3u, 0xeb4f96acu },
+    { 14u, 0u, 0x8fd852bbu },
+    { 14u, 1u, 0x7f139ae0u },
+    { 14u, 2u, 0x6f397638u },
+    { 14u, 3u, 0x34fe0657u },
+    { 15u, 0u, 0xf7cae7f6u },
+    { 15u, 1u, 0x8ffbb3a9u },
+    { 15u, 2u, 0x65c85889u },
+    { 15u, 3u, 0xab356e92u },
+    { 16u, 0u, 0x63a5bb74u },
+    { 16u, 1u, 0x1d472bd7u },
+    { 16u, 2u, 0x4b9d85d9u },
+    { 16u, 3u, 0x3abbe17cu },
+    { 17u, 0u, 0x9c346d5cu },
+    { 17u, 1u, 0x2c0a0fffu },
+    { 17u, 2u, 0xf1212241u },
+    { 17u, 3u, 0x8e33cdb4u },
 };
 
 static uint32_t pin_lookup(uint8_t sec, uint8_t z) {
@@ -126,6 +127,23 @@ int main(void) {
             RI_ASSERT(dl.spn < dl.spcap, "sec %u z%u spool", T_SECS[s], z);
             h = ri_dlist_hash(&dl);
             RI_ASSERT(h == pin_lookup(T_SECS[s], z), "pin sec=%u z=%u got %08x", T_SECS[s], z, h);
+            /* Title-bar device tag (owner 2026-09-27): each pattern block
+             * names the device it affects, from the wiring table. */
+            if (T_SECS[s] >= RI_SEC_PAT_SYNTH1 && T_SECS[s] <= RI_SEC_PAT_909 && z == 0u) {
+                static const char *const want[4] = {
+                    "PATTERN 303A", "PATTERN 303B", "PATTERN 808", "PATTERN 909"
+                };
+                uint32_t k, found = 0u;
+                const char *tag = want[T_SECS[s] - RI_SEC_PAT_SYNTH1];
+                for (k = 0u; k < dl.n; k++) {
+                    if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
+                        !strcmp(dl.cmd[k].text, tag)) {
+                        found = 1u;
+                        break;
+                    }
+                }
+                RI_ASSERT(found, "tag %s sec=%u", tag, T_SECS[s]);
+            }
         }
     }
     RI_RESULT("draw_hash");

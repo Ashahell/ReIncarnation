@@ -64,7 +64,7 @@ void ri_art_bg_808(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, in
 void ri_art_bg_909(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
 void ri_art_bg_mix(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, int master);
 void ri_art_bg_fx(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, uint8_t sec);
-void ri_art_bg_pat(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
+void ri_art_bg_pat(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, uint8_t sec);
 void ri_art_bg_tr(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z,
     const struct ri_text_metrics *tm);
 void ri_art_focus_bar(struct ri_dlist *dl, uint8_t section,

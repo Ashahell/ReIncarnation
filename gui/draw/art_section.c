@@ -79,7 +79,7 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
         else if (isfx)
             ri_art_bg_fx(out, g, ox, oy, z, section);
         else if (ispat)
-            ri_art_bg_pat(out, g, ox, oy, z);
+            ri_art_bg_pat(out, g, ox, oy, z, section);
         else if (istr)
             ri_art_bg_tr(out, g, ox, oy, z, tm);
         else

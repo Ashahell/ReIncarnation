@@ -79,6 +79,13 @@
 #include "platform/pal/ri_pal_fs.h"
 #include "platform/pal/ri_pal_log.h"
 
+/* Build identity for device attribution (never ambiguous binaries again):
+ * the v11 build script passes -DRIAPP_BUILD_HASH="<short-sha>"; every
+ * other build reports "?". Logged in the ev-log RUN line. */
+#ifndef RIAPP_BUILD_HASH
+#define RIAPP_BUILD_HASH "?"
+#endif
+
 extern struct DosLibrary *DOSBase;
 
 #define RIAPP_FRAMES 64u /* null-backend render chunk */
@@ -422,7 +429,7 @@ int main(int argc, char **argv) {
 
     ri_core_demo(&s_core);
     evlog_open();
-    evlog("RUN", "frames=%lu vol=%s", frames, s_evvol);
+    evlog("RUN", "frames=%lu vol=%s build=%s", frames, s_evvol, RIAPP_BUILD_HASH);
     rc = au_live_open(&s_lv, frames, 48000u);
     if (rc == 0) {
         s_live = 1;

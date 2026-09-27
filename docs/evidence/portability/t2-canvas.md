@@ -43,3 +43,13 @@
 - Equivalence proof on AROS (captures before/after on riqemu1 + Dell):
   OPEN — needs the lanes; construction is pixel-identical (same font path,
   same pen RGB, same blits, same metrics decisions).
+
+## Title-bar device tags (owner 2026-09-27)
+
+- Each pattern block names its device (`PATTERN 303A/303B/808/909`) from
+  `ri_panel_get(instance)->name` — the same instance table as the wiring,
+  never a parallel table. AROS needs no changes (replayed TEXT).
+- t92 pins tag presence per section; the 16 PAT hashes re-pinned (the old
+  pins were identical across sections — now differentiated, which itself
+  proves the tags render). Mutant (`PATTERN`→`PATTERNS`) kills pins+tags.
+- Sections link gained `gui/panels.c` (`ri_panel_get`); RISECT re-links.
