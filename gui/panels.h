@@ -8,6 +8,7 @@
  */
 #ifndef RI_PANELS_H
 #define RI_PANELS_H
+#include <stdint.h>
 
 #define RI_CTL_303A_BASE 0x0300u
 #define RI_CTL_303B_BASE 0x0310u
@@ -29,6 +30,7 @@ struct RIPanelDesc {
     unsigned int device; /* 0..3 classic (303A, 303B, 808, 909), 4 mix, 5 transport */
     const struct RIPanelControl *ctls;
     unsigned int nctls;
+    const char *role; /* device family for bubbles/titles ("BASS", "DRUMS", ...); "" when none */
 };
 
 unsigned int ri_panel_count(void);
@@ -36,6 +38,10 @@ const struct RIPanelDesc *ri_panel_get(unsigned int i); /* NULL out of range */
 const struct RIPanelControl *ri_panel_find_ctl(const struct RIPanelDesc *p,
                                                unsigned int ctl_id);
 const struct RIPanelDesc *ri_panel_dummy(void);
+/* Role bubble label for a classic device instance (0..3): "808 DRUMS".
+ * Returns 1 with buf NUL-terminated, 0 on bad instance/buffer (untouched).
+ * Single source for device tags (title bars + bubbles read this). */
+int ri_panel_role_label(unsigned int inst, char *buf, unsigned int cap);
 /* Right-click → default: the control's neutral value, or -1 when the
  * panel is NULL or carries no such control (fail-closed; the MCC
  * shell ignores -1). TC-2.9.2. */

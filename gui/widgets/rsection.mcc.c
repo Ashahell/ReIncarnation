@@ -40,6 +40,7 @@
 #include <string.h>
 #include "gui/ctlreg.h"
 #include "gui/panelgeo.h"
+#include "gui/panels.h"
 #include "gui/sectui.h"
 #include "gui/knob_logic.h"
 #include "gui/skin.h"
@@ -244,7 +245,16 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
         uint16_t id;
         d = (struct RSectionData *)INST_DATA(cl, obj);
         id = ri_geo_hit_opt(geo(d), (int)m->mx - _mleft(obj), (int)m->my - _mtop(obj), (int)d->zoom, &opt);
-        if (id == 0xFFFFu || !ri_ctlreg_help(id, opt, d->help, (uint32_t)sizeof d->help))
+        if (id == 0xFFFFu) {
+            /* Background bubble on pattern blocks (owner 2026-09-27):
+             * which device this block affects + its role. */
+            uint32_t sec = d->ui.section;
+            if (sec >= RI_SEC_PAT_SYNTH1 && sec <= RI_SEC_PAT_909 &&
+                ri_panel_role_label(sec - RI_SEC_PAT_SYNTH1, d->help, (uint32_t)sizeof d->help))
+                return (IPTR)d->help;
+            return (IPTR)0;
+        }
+        if (!ri_ctlreg_help(id, opt, d->help, (uint32_t)sizeof d->help))
             return (IPTR)0;
         return (IPTR)d->help;
     }

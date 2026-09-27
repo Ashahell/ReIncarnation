@@ -17,6 +17,7 @@
  * shape as the t23/t24 slices that pinned new panel/params surfaces).
  */
 #include <stdio.h>
+#include <string.h>
 #include "gui/panels.h"
 
 static int fails = 0;
@@ -94,6 +95,24 @@ int main(void) {
     /* --- fail-closed edges: unknown id, NULL panel --- */
     CHECK(ri_panel_default_ctl(p909, 0xDEADu) == -1, "unknown id not -1");
     CHECK(ri_panel_default_ctl(0, 0x0900u) == -1, "null panel not -1");
+
+    /* --- role labels (owner 2026-09-27): device tags for title bars
+     * and pattern background bubbles, from the wiring table --- */
+    {
+        char role[16];
+        CHECK(ri_panel_role_label(0u, role, sizeof role) == 1 &&
+            !strcmp(role, "303A BASS"), "role 0 [%s]", role);
+        CHECK(ri_panel_role_label(1u, role, sizeof role) == 1 &&
+            !strcmp(role, "303B BASS"), "role 1 [%s]", role);
+        CHECK(ri_panel_role_label(2u, role, sizeof role) == 1 &&
+            !strcmp(role, "808 DRUMS"), "role 2 [%s]", role);
+        CHECK(ri_panel_role_label(3u, role, sizeof role) == 1 &&
+            !strcmp(role, "909 DRUMS"), "role 3 [%s]", role);
+        CHECK(ri_panel_role_label(4u, role, sizeof role) == 0, "role 4 refused");
+        CHECK(ri_panel_role_label(9u, role, sizeof role) == 0, "role 9 refused");
+        CHECK(ri_panel_role_label(0u, 0, sizeof role) == 0, "role null buf");
+        CHECK(ri_panel_role_label(0u, role, 4u) == 0, "role tiny buf");
+    }
 
     if (fails)
         printf("FAIL %d\n", fails);

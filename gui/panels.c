@@ -72,18 +72,18 @@ static const struct RIPanelControl RI_DUMMY_CTLS[] = {
 };
 
 static const struct RIPanelDesc RI_DUMMY = {
-    "dummy", 9, RI_DUMMY_CTLS, 2
+    "dummy", 9, RI_DUMMY_CTLS, 2, ""
 };
 
 #define NCTL(a) (unsigned int)(sizeof(a) / sizeof((a)[0]))
 
 static const struct RIPanelDesc RI_PANELS[] = {
-    { "303A", 0, RI_303A_CTLS, NCTL(RI_303A_CTLS) },
-    { "303B", 1, RI_303B_CTLS, NCTL(RI_303B_CTLS) },
-    { "808", 2, RI_808_CTLS, NCTL(RI_808_CTLS) },
-    { "909", 3, RI_909_CTLS, NCTL(RI_909_CTLS) },
-    { "mixer", 4, RI_MIX_CTLS, NCTL(RI_MIX_CTLS) },
-    { "transport", 5, RI_TRANSPORT_CTLS, NCTL(RI_TRANSPORT_CTLS) },
+    { "303A", 0, RI_303A_CTLS, NCTL(RI_303A_CTLS), "BASS" },
+    { "303B", 1, RI_303B_CTLS, NCTL(RI_303B_CTLS), "BASS" },
+    { "808", 2, RI_808_CTLS, NCTL(RI_808_CTLS), "DRUMS" },
+    { "909", 3, RI_909_CTLS, NCTL(RI_909_CTLS), "DRUMS" },
+    { "mixer", 4, RI_MIX_CTLS, NCTL(RI_MIX_CTLS), "MIX" },
+    { "transport", 5, RI_TRANSPORT_CTLS, NCTL(RI_TRANSPORT_CTLS), "" },
 };
 
 unsigned int ri_panel_count(void) {
@@ -110,6 +110,29 @@ const struct RIPanelControl *ri_panel_find_ctl(const struct RIPanelDesc *p,
 
 const struct RIPanelDesc *ri_panel_dummy(void) {
     return &RI_DUMMY;
+}
+
+int ri_panel_role_label(unsigned int inst, char *buf, unsigned int cap) {
+    const struct RIPanelDesc *p;
+    uint32_t i = 0u, j = 0u;
+    if (inst > 3u || !buf || cap < 2u)
+        return 0;
+    p = ri_panel_get(inst);
+    if (!p || !p->name || !p->role || !p->role[0])
+        return 0;
+    while (p->name[i] && i + 2u < cap) {
+        buf[i] = p->name[i];
+        i++;
+    }
+    if (p->name[i])
+        return 0;
+    buf[i++] = ' ';
+    while (p->role[j] && i + 1u < cap)
+        buf[i++] = p->role[j++];
+    if (p->role[j])
+        return 0;
+    buf[i] = 0;
+    return 1;
 }
 
 int ri_panel_default_ctl(const struct RIPanelDesc *p, unsigned int ctl_id) {
