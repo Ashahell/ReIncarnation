@@ -1,5 +1,12 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-27] panels | Devices tab: visibility toggles (unproven)
+- Disposition: New (needs Dell proof)
+- Updated: docs/2026-09-24-improvement-todo.md (RIAPP full panels)
+Fifth Register tab with per-device toggle buttons (MUIO_Button +
+ReturnID 1001..1004); ShowMe rows display-only, engine/mixer untouched;
+VIS ev-log lines. t98 +Devices title/frame (RED FAIL -> PASS).
+
 ## [2026-09-27] crash | 909 pack descriptor dangle guru'd the render task
 - Disposition: CLOSED by device proof (owner session, build cb0e702)
 - Evidence: docs/evidence/portability/909-pack-dangle.md

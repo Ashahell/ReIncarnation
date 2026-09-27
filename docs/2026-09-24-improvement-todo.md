@@ -148,6 +148,9 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
     Register tabs, all voice canvases, 303B + 808/909 step sync, full
     value/FX paths, engine +S303B|S909. Remaining: device proof, the
     visibility-selection UI, 909 demo content (owner taste).
+  - Devices tab landed 2026-09-27 (t98 +1 tab, unproven): per-device
+    toggle buttons (display-only ShowMe; engine/mixer untouched),
+    VIS ev-log lines. Device proof open.
 
 ## Planned devices (extensible rack, spec D-k)
 - [ ] Korg Electribe ESX-1 — owner plan 2026-09-26; requirement + rules for current work: `docs/superpowers/specs/2026-09-26-device-korg-esx1-requirement.md` (no 4-device assumptions; new lane-key block, strip, skin token, RBNG chunks — chunk IDs owner review; E1 = Korg ESX-1 manual; clean-room: no Korg samples/ROM/art).

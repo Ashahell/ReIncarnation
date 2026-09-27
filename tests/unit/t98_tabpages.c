@@ -19,7 +19,8 @@ int main(void) {
     RI_ASSERT(ri_tab_title(RI_TAB_DRUMS) && !strcmp(ri_tab_title(RI_TAB_DRUMS), "Drums"), "t drums");
     RI_ASSERT(ri_tab_title(RI_TAB_MIX) && !strcmp(ri_tab_title(RI_TAB_MIX), "Mix"), "t mix");
     RI_ASSERT(ri_tab_title(RI_TAB_FX) && !strcmp(ri_tab_title(RI_TAB_FX), "FX"), "t fx");
-    RI_ASSERT(ri_tab_title(4u) == 0, "t bad");
+    RI_ASSERT(ri_tab_title(RI_TAB_DEVICES) && !strcmp(ri_tab_title(RI_TAB_DEVICES), "Devices"), "t dev");
+    RI_ASSERT(ri_tab_title(5u) == 0, "t bad");
     RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, &vis, rows, 4u) == 2u, "synth n");
     RI_ASSERT(rows[0].device == 0u && rows[0].voice_sec == RI_SEC_SYNTH1 &&
         rows[0].pat_sec == RI_SEC_PAT_SYNTH1, "synth row0");
@@ -37,6 +38,7 @@ int main(void) {
     RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, &vis, rows, 1u) == 1u, "cap");
     RI_ASSERT(ri_tab_devices(RI_TAB_MIX, &vis, rows, 4u) == 0u, "mix frame");
     RI_ASSERT(ri_tab_devices(RI_TAB_FX, &vis, rows, 4u) == 0u, "fx frame");
+    RI_ASSERT(ri_tab_devices(RI_TAB_DEVICES, &vis, rows, 4u) == 0u, "dev frame");
     RI_ASSERT(ri_tab_devices(9u, &vis, rows, 4u) == 0u, "bad group");
     RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, 0, rows, 4u) == 0u, "null vis");
     RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, &vis, 0, 4u) == 0u, "null out");

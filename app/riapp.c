@@ -1,10 +1,10 @@
 /* app/riapp.c — RIAPP live application with the ReBirth panel (G9b Step 2).
  * AROS-only. Supersedes the bare app/main.c window (kept) and the Step-1
  * text window: one MUI window with Transport framed above a Register with
- * the Synths/Drums/Mix/FX tabs (owner 2026-09-27; stock Register.mui,
- * device rows follow the visible set through the t98 model), driving the
- * same live session / control plane / meter snapshot the text shell proved
- * on the Dell.
+ * the Synths/Drums/Mix/FX/Devices tabs (owner 2026-09-27; stock
+ * Register.mui, device rows follow the visible set through the t98
+ * model), driving the same live session / control plane / meter snapshot
+ * the text shell proved on the Dell.
  *
  * Usage: RIAPP [frames] (device buffer, default 256; 64..4096).
  * Quit: window close gadget, or Shell `Break <cli> C` (Ctrl-C raises the
@@ -49,6 +49,7 @@
 #include <exec/io.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <libraries/mui.h>
 #include <devices/timer.h>
 #include <intuition/intuition.h>
@@ -72,6 +73,7 @@
 #include "gui/sectpat.h"
 #include "gui/secttr.h"
 #include "gui/sectmix.h"
+#include "gui/panels.h"
 #include "gui/visdev.h"
 #include "gui/tabpages.h"
 #include "gui/panelui.h"
@@ -132,6 +134,15 @@ static struct RIPanelUI s_panel;
 static Object *s_canvas[C_N];
 static struct RISectUI *s_ui[C_N];
 static const struct RSectionDiag *s_dg[C_N];
+
+/* Device visibility (owner 2026-09-27): the Devices tab toggles rows.
+ * Display-only: the engine keeps rendering hidden devices (mixer strips
+ * mute); sync shadows follow every canvas regardless of ShowMe. */
+static struct RIVisSet s_vis;
+static Object *s_devrow[4];
+static Object *s_devbtn[4];
+static char s_devlbl[4][16];
+#define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
 
 /* Sync shadows (state-compare: the panel is the truth, the session follows). */
 static int s_tr_state;
@@ -480,8 +491,10 @@ static Object *canvas_for_section(ULONG sec) {
     return 0;
 }
 
-/* One device tab page: a row (pattern + voice canvas) per visible device. */
-static Object *tab_device_page(uint32_t group, struct RIVisSet *vis) {
+/* One device tab page: a row (pattern + voice canvas) per visible device.
+ * Row objects (by device) go through devs/objs for ShowMe toggling. */
+static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
+    uint32_t *devs, Object **objs, uint32_t cap, uint32_t *n_out) {
     struct RITabDev rows[4];
     uint32_t n, r;
     Object *page;
@@ -491,6 +504,8 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis) {
     page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2, TAG_DONE);
     if (!page)
         return 0;
+    if (n_out)
+        *n_out = 0u;
     for (r = 0u; r < n; r++) {
         Object *prow = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
             MUIA_Group_Spacing, 2,
@@ -500,8 +515,53 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis) {
             !canvas_for_section(rows[r].voice_sec))
             return 0;
         DoMethod(page, OM_ADDMEMBER, (IPTR)prow);
+        if (devs && objs && n_out && *n_out < cap) {
+            devs[*n_out] = rows[r].device;
+            objs[*n_out] = prow;
+            (*n_out)++;
+        }
     }
     return (n > 0u) ? page : 0;
+}
+
+/* Devices frame tab: one toggle button per classic device. Labels live
+ * in s_devlbl (MakeObject keeps the pointer). */
+static Object *tab_devices_page(void) {
+    Object *page;
+    uint32_t d;
+    page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2, TAG_DONE);
+    if (!page)
+        return 0;
+    for (d = 0u; d < 4u; d++) {
+        const struct RIPanelDesc *pd = ri_panel_get(d);
+        const char *nm = (pd && pd->name) ? pd->name : "?";
+        Object *btn;
+        snprintf(s_devlbl[d], sizeof s_devlbl[d], "[x] %s", nm);
+        btn = (Object *)MUI_MakeObject(MUIO_Button, (IPTR)s_devlbl[d]);
+        if (!btn)
+            return 0;
+        s_devbtn[d] = btn;
+        DoMethod(page, OM_ADDMEMBER, (IPTR)btn);
+    }
+    return page;
+}
+
+/* Devices-tab toggle: flip the visible bit, ShowMe the row, relabel. */
+static void dev_visibility_toggle(uint32_t dev) {
+    const struct RIPanelDesc *pd;
+    const char *nm;
+    int show;
+    if (dev >= 4u)
+        return;
+    show = !ri_vis_get(&s_vis, dev);
+    ri_vis_set(&s_vis, dev, show);
+    pd = ri_panel_get(dev);
+    nm = (pd && pd->name) ? pd->name : "?";
+    snprintf(s_devlbl[dev], sizeof s_devlbl[dev], "[%c] %s", show ? 'x' : ' ', nm);
+    SetAttrs(s_devbtn[dev], MUIA_Text_Contents, (IPTR)s_devlbl[dev], TAG_DONE);
+    if (s_devrow[dev])
+        SetAttrs(s_devrow[dev], MUIA_ShowMe, show ? TRUE : FALSE, TAG_DONE);
+    evlog("VIS", "dev=%d show=%d", dev, show ? 1 : 0);
 }
 
 static ULONG riapp_arg_frames(int argc, char **argv) {
@@ -665,17 +725,25 @@ int main(int argc, char **argv) {
 
     {
         /* Tabbed panel (owner 2026-09-27): transport stays framed above;
-         * device rows follow the visible set through the t98 model. */
-        struct RIVisSet vis;
+         * device rows follow the visible set through the t98 model; the
+         * Devices tab toggles rows at runtime (display-only). */
         static const char *tab_titles[RI_TAB_COUNT + 1u];
-        Object *synth_page, *drums_page, *mix_page, *fx_page, *reg;
-        uint32_t g;
-        ri_vis_init(&vis);
+        Object *synth_page, *drums_page, *mix_page, *fx_page, *dev_page, *reg;
+        uint32_t g, r, nrows;
+        uint32_t rowdev[2];
+        Object *rowobj[2];
+        ri_vis_init(&s_vis);
         for (g = 0u; g < RI_TAB_COUNT; g++)
             tab_titles[g] = ri_tab_title(g);
         tab_titles[RI_TAB_COUNT] = 0;
-        synth_page = tab_device_page(RI_TAB_SYNTH, &vis);
-        drums_page = tab_device_page(RI_TAB_DRUMS, &vis);
+        for (r = 0u; r < 4u; r++)
+            s_devrow[r] = 0;
+        synth_page = tab_device_page(RI_TAB_SYNTH, &s_vis, rowdev, rowobj, 2u, &nrows);
+        for (r = 0u; r < nrows; r++)
+            s_devrow[rowdev[r]] = rowobj[r];
+        drums_page = tab_device_page(RI_TAB_DRUMS, &s_vis, rowdev, rowobj, 2u, &nrows);
+        for (r = 0u; r < nrows; r++)
+            s_devrow[rowdev[r]] = rowobj[r];
         mix_page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
             Child, (IPTR)s_canvas[C_MIX], TAG_DONE);
         fx_page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
@@ -683,11 +751,13 @@ int main(int argc, char **argv) {
             Child, (IPTR)s_canvas[C_FX0], Child, (IPTR)s_canvas[C_FX1],
             Child, (IPTR)s_canvas[C_FX2], Child, (IPTR)s_canvas[C_FX3],
             TAG_DONE);
-        reg = (synth_page && drums_page && mix_page && fx_page) ?
+        dev_page = tab_devices_page();
+        reg = (synth_page && drums_page && mix_page && fx_page && dev_page) ?
             (Object *)MUI_NewObject(MUIC_Register,
                 MUIA_Register_Titles, (IPTR)tab_titles,
                 Child, (IPTR)synth_page, Child, (IPTR)drums_page,
-                Child, (IPTR)mix_page, Child, (IPTR)fx_page, TAG_DONE) : 0;
+                Child, (IPTR)mix_page, Child, (IPTR)fx_page,
+                Child, (IPTR)dev_page, TAG_DONE) : 0;
         row = reg ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
             Child, (IPTR)s_canvas[C_TR], Child, (IPTR)reg, TAG_DONE) : 0;
     }
@@ -726,6 +796,9 @@ int main(int argc, char **argv) {
     }
     DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, (IPTR)app, 2,
         MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
+    for (i = 0; i < 4; i++)
+        DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
+            MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
     rlog("RIAPP panel: tabbed Synths/Drums/Mix/FX + transport (2026-09-27)\n",
         0, 0, 0, 0, 0);
@@ -753,6 +826,8 @@ int main(int argc, char **argv) {
         ret = (LONG)DoMethod(app, MUIM_Application_NewInput, &sigs);
         if (ret == (LONG)MUIV_Application_ReturnID_Quit)
             break;
+        if (ret >= (LONG)RIAPP_ID_DEV0 && ret < (LONG)(RIAPP_ID_DEV0 + 4u))
+            dev_visibility_toggle((uint32_t)ret - RIAPP_ID_DEV0);
         if (timer_armed && CheckIO((struct IORequest *)treq)) {
             WaitIO((struct IORequest *)treq);
             treq->tr_node.io_Command = TR_ADDREQUEST;
