@@ -164,6 +164,11 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
     ACTIVE (engine sections bit + row together, one atomic read per
     block); disabled = voice never triggers, state kept. Device proof
     open (Dell agent redial pending).
+  - Activation proof CLOSED 2026-09-27 (owner, build 274c297): full
+    mask walk 0f→0e→0c→04→00→02→03→07→0f→07 under PLAY (synths-only
+    drums-only silence full round-trips, voices rejoin mid-phrase);
+    TR STOP clean. Open follow-up: 303B-vs-303A difference the owner
+    hears (notes vs tone TBD).
   - 303B audibility (owner 2026-09-27): two real bugs, fix unproven.
     (1) Note/Pause button unlabeled on 303A/B (geo LEGEND row missing;
     shared SYNTH1 table so one row fixes both) + 909 Flam button same
