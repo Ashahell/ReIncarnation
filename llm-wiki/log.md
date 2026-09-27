@@ -1,6 +1,13 @@
 # ReIncarnation llm-wiki — log
 
-## [2026-09-26] proofs | Lane round: G7 re-proof MATCH, T2 pixel-identity, Dell 0 xruns
+## [2026-09-27] proofs | Dell: pattern flips + delay on-grid ear-verified
+- Disposition: Update (owner listening verdicts close two findings)
+- Raw: llm-wiki/raw/articles/2026-09-26-lane-proof-round-t2-g7-t4.md
+- Updated: docs/evidence/portability/delay-line.md
+- Evidence: ev-log PAT selections vs heartbeat snd/pend tracking
+Pattern selection flips audible (empty-slot dropouts as designed); delay
+send blooms on-grid after the tempo-clock fix; comp fine downstream.
+0 xruns throughout. Open: 5-min soak rerun, new-voice timbre, full panels.
 - Disposition: New (device-proof record)
 - Raw: llm-wiki/raw/articles/2026-09-26-lane-proof-round-t2-g7-t4.md
 - Updated: llm-wiki/index.md (Lane infrastructure entry)

@@ -12,7 +12,10 @@ delays clamp inside the FX unit); `ri_core_init` attaches via
 `ri_engine_set_delay` (knob fields preserved). Covers AHI, null, and
 headless paths at once; AROS needs no changes.
 Tests: t95 pins attachment + pre-echo identity + audible return.
-Mutant (detach): 2 FAILs (killed). Device proof: owner delay sweep re-run.
+Mutant (detach): 2 FAILs (killed).
 Tempo clock: `ri_live_render` pushes session BPM into the engine (t95 pins
-`eng.tempo == bpm`; without it the 140 default stands — observed live as
-the stale-object RED). Device retest decides timing by ear.
+`eng.tempo == bpm`; without it the 140 default stands).
+Device proof CLOSED 2026-09-27 (owner, Dell): delay send blooms on the
+grid after the tempo-clock fix; comp downstream judged fine. Pattern
+selection flips verified the same session (303 drops out on empty slots,
+returns on slot 0; heartbeat pend tracks selections). 0 xruns throughout.
