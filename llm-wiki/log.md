@@ -1,5 +1,10 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-27] record | Trademark hygiene slice
+- Disposition: New (assessment + rename + sample rules + Korg read; no existing article covered it)
+- Raw: n/a (session source; facts grounded in `489bd69`, `project/arexx.c:26`, `reference/packs/classic-01`, `scripts/ri_audit.sh`)
+- Updated: llm-wiki/index.md (Live app (§12.11) entry)
+
 ## [2026-09-27] update | Rail LED bitmap saga: root cause + fix
 - Disposition: Update (the open saga is resolved in place: Resolution section)
 - Raw: llm-wiki/raw/articles/2026-09-27-rail-led-bitmap-saga.md
