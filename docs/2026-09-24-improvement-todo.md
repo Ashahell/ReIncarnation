@@ -194,6 +194,9 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
     + transient + decay in mk909 (same seeds); showcase hits accented;
     pack rebuilt with bit-exact carry-over (OLD-EXACT=18). APPROVED
     2026-09-27 (owner ear).
+  - Spike hunt DEFERRED 2026-09-28 (owner): USB falsified by matched
+    A/B (both 2 xruns, ~3.6 ms max). Rules: debug-only RIAPP
+    (audit-gated), USB fresh-per-run ev-log. Resume on 3x spikes.
   - GUI feedback round 3 CLOSED 2026-09-27 (owner eyes + status log):
     rail LEDs are self-drawn green discs (C_MIX_GREEN, pixel-verified)
     after fixing NULL IntuitionBase, NULL-friend AllocBitMap, AreaEllipse

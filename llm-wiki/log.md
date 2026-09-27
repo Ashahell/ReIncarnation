@@ -1377,3 +1377,7 @@ Register (same visibility-only bit); activation later. t98 reverts to
 ## [2026-09-27] ingest | Rail LED dots bitmap saga
 - Disposition: New (owner-ordered handoff: everything tried, failures, readings)
 - Raw: llm-wiki/raw/articles/2026-09-27-rail-led-bitmap-saga.md
+
+## [2026-09-28] ingest | Render-spike hunt deferred (USB falsified)
+- Disposition: New (hunt record; hunt itself deferred by owner decision)
+- Raw: llm-wiki/raw/articles/2026-09-28-render-spike-hunt-deferred.md

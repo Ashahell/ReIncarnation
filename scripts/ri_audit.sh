@@ -178,6 +178,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t97_visdev >/dev/null || { echo "FAIL
 bash "$ROOT/scripts/ri_build_host.sh" test t98_tabpages >/dev/null || { echo "FAIL: t98_tabpages (tabbed panels pages)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t99_pack_bind_lifetime >/dev/null || { echo "FAIL: t99_pack_bind_lifetime (909 bind lifetime)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t100_activation >/dev/null || { echo "FAIL: t100_activation (activation sections)"; exit 1; }
+grep '^  CF9=' "$ROOT/scripts/ri_build_aros.sh" | grep -q '\-O0' || { echo "FAIL: RIAPP must build -O0 (owner 2026-09-28 debug-only rule)"; exit 1; }
 echo "-- portability T8: headless core runs without AROS (WAV; PNG after T2) --"
 gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I"$ROOT" -o "$OUT/headless" "$ROOT/platform/host/main_headless.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: headless build"; exit 1; }
 rm -f /tmp/ri/null.wav
