@@ -66,16 +66,19 @@ void ri_core_demo(struct RIAppCore *c) {
     }
     /* 909 showcase (owner 2026-09-27: timbre verdicts need demo content).
      * Supports, never fights, the 808 floor: crash on the one, rim+clap
-     * doubling the backbeat, descending toms, open-hat sparkle. */
+     * doubling the backbeat, descending toms, open-hat sparkle.
+     * Accented (the 808 hits are accented; unaccented 909 sat thin). */
     ri_pdrum_set(&b909->pat[0], 0u, RI_L909_CC, RI_HIT_HIGH);
     ri_pdrum_set_ac(&b909->pat[0], 0u, 1);
-    ri_pdrum_set(&b909->pat[0], 4u, RI_L909_RS, RI_HIT_LOW);
-    ri_pdrum_set(&b909->pat[0], 4u, RI_L909_CP, RI_HIT_LOW);
+    ri_pdrum_set(&b909->pat[0], 4u, RI_L909_RS, RI_HIT_HIGH);
+    ri_pdrum_set(&b909->pat[0], 4u, RI_L909_CP, RI_HIT_HIGH);
+    ri_pdrum_set_ac(&b909->pat[0], 4u, 1);
     ri_pdrum_set(&b909->pat[0], 6u, RI_L909_LT, RI_HIT_LOW);
     ri_pdrum_set(&b909->pat[0], 7u, RI_L909_OH, RI_HIT_LOW);
     ri_pdrum_set(&b909->pat[0], 10u, RI_L909_MT, RI_HIT_LOW);
-    ri_pdrum_set(&b909->pat[0], 12u, RI_L909_RS, RI_HIT_LOW);
-    ri_pdrum_set(&b909->pat[0], 12u, RI_L909_CP, RI_HIT_LOW);
+    ri_pdrum_set(&b909->pat[0], 12u, RI_L909_RS, RI_HIT_HIGH);
+    ri_pdrum_set(&b909->pat[0], 12u, RI_L909_CP, RI_HIT_HIGH);
+    ri_pdrum_set_ac(&b909->pat[0], 12u, 1);
     ri_pdrum_set(&b909->pat[0], 14u, RI_L909_HT, RI_HIT_LOW);
     ri_pdrum_set(&b909->pat[0], 15u, RI_L909_OH, RI_HIT_LOW);
     ri_track_init(&c->track);

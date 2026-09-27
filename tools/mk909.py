@@ -58,16 +58,23 @@ def tom(f0, f1, tau, seconds, seed, extra=""):
     n = int(seconds * SR)
     rng = LCG(seed)
     out = []
-    phase = 0.0
+    # Membrane modes (ratio, mix, decay-scale): fundamental + faster-
+    # dying upper modes. Owner 2026-09-27: pure sine read as thin/plucked.
+    modes = ((1.00, 1.00, 1.00), (1.51, 0.40, 0.50), (2.09, 0.22, 0.30))
+    phases = [0.0, 0.0, 0.0]
     for i in range(n):
         t = i / SR
         # exponential pitch drop f0 -> f1 over ~80 ms, then hold
         k = min(1.0, t / 0.08)
         f = f1 + (f0 - f1) * math.exp(-t / 0.08 * 3.0) if k < 1.0 else f1
-        phase += 2.0 * math.pi * f / SR
-        body = math.sin(phase) * math.exp(-t / tau)
+        body = 0.0
+        for m in range(3):
+            ratio, mix, ts = modes[m]
+            phases[m] += 2.0 * math.pi * f * ratio / SR
+            body += mix * math.sin(phases[m]) * math.exp(-t / (tau * ts))
+        body = math.tanh(body * 1.3) * 0.8  # mild warmth, peak-normalized later
         click = math.sin(2.0 * math.pi * 2500.0 * t) * math.exp(-t / 0.004) * 0.35
-        nz = rng.next() * math.exp(-t / 0.01) * 0.05
+        nz = rng.next() * math.exp(-t / 0.025) * 0.12
         out.append(body + click + nz)
     return out, extra
 
@@ -125,9 +132,9 @@ def emit(layer, voice, lo, hi, samples, recipe, manf_map):
 def main():
     base_seed = 0x9091
     # Toms: LOW/MID/HI follow the BD/SD tune-split convention.
-    for name, vid, f0, f1, tau in (("LT", 6, 120.0, 55.0, 0.35),
-                                   ("MT", 7, 160.0, 80.0, 0.30),
-                                   ("HT", 8, 210.0, 105.0, 0.25)):
+    for name, vid, f0, f1, tau in (("LT", 6, 120.0, 55.0, 0.45),
+                                   ("MT", 7, 160.0, 80.0, 0.40),
+                                   ("HT", 8, 210.0, 105.0, 0.35)):
         for ln, mult, lo, hi in (("LOW", 0.94, 0, 42), ("MID", 1.0, 43, 84),
                                  ("HI", 1.06, 85, 127)):
             lid = "%s-%s" % (name, ln)
@@ -136,7 +143,7 @@ def main():
             emit(lid, vid, lo, hi, smp,
                  {"layer": "%s (voice %s, tune %d-%d)" % (lid, name.lower(), lo, hi),
                   "source": "synthesized from scratch (this script)",
-                  "recipe": "sine %.0fHz->%.0fHz tau %.2fs + 2.5kHz click blip(tau 4ms, mix 0.35); d[0]=0 by sine phase 0" % (f0 * mult, f1 * mult, tau),
+                  "recipe": "modes 1.00/1.51/2.09 (mix 1/.4/.22, tau x1/.5/.3) %.0fHz->%.0fHz tau %.2fs + tanh 1.3 + 2.5kHz click blip(tau 4ms, mix 0.35) + noise(tau 25ms, mix 0.12); d[0]=0" % (f0 * mult, f1 * mult, tau),
                   "rate/depth": "44100/16 master, peak -3dBFS, no dither",
                   "seed": "LCG 0x9091+%d (%s)" % (vid * 16 + lo, name.lower()),
                   "license": "CC0, holder ReIncarnation project"},

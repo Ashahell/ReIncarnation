@@ -190,6 +190,9 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   - Demo drive (owner 2026-09-27, ear verdict open): Zombie Nation
     drive — E-minor riff (accented quarters + rest), four-floor kept,
     tempo 140 (researched). Original, not transcribed.
+  - 909 body v2 (owner 2026-09-27: kit thin/string-like): membrane modes
+    + transient + decay in mk909 (same seeds); showcase hits accented;
+    pack rebuilt with bit-exact carry-over (OLD-EXACT=18). Verdict open.
   - GUI feedback round 3 CLOSED 2026-09-27 (owner eyes + status log):
     rail LEDs are self-drawn green discs (C_MIX_GREEN, pixel-verified)
     after fixing NULL IntuitionBase, NULL-friend AllocBitMap, AreaEllipse

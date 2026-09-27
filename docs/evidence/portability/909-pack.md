@@ -38,3 +38,21 @@
   new fact); S909 goldens re-verified identical (old voices bit-exact).
 - New pack replaces `pack.rbnm` in-tree (old in git history). Host bind
   check: 11/11 voices. Dell timbre verdict: owner by ear (pending).
+
+## Tom body v2 (owner 2026-09-27: whole kit thin/string-like)
+
+- Host measurement first: demo 909 bus RMS 0.2087 vs 808 bus 0.1123
+  (repo pack) — levels fine, so timbre/envelope, not gain. Fix:
+  membrane modes 1.00/1.51/2.09 (mix 1/.4/.22, tau x1/.5/.3), 25 ms
+  noise transient (was 10 ms), taus 0.45/0.40/0.35, mild tanh 1.3;
+  same seeds. Showcase hits accented (HIGH + AC backbeats) to match
+  the accented 808 floor.
+- Rebuild with bit-exact carry-over (the 2bdd88a procedure): old 18
+  layers extracted as 16-bit WAVs from the current pack (s16/32768 is
+  exact in binary32, round-trips losslessly), new tom WAVs from
+  `mk909.py`, `mkpack` over carry spec + manifest (old rows
+  byte-identical incl. 2026-09-20 dates). Proof: per-layer memcmp —
+  OLD-EXACT=18, TOMS-CHANGED=9. (Rebuilding old layers straight from
+  the 24-bit WAVs gives documented 1-LSB rint diffs — not taken.)
+- 909 bus RMS 0.2087 -> 0.2205 host. Dell timbre verdict: owner by ear
+  (open).
