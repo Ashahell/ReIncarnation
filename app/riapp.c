@@ -533,9 +533,10 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
 }
 
 /* Device rail (owner 2026-09-27): slim always-visible row of on/off
- * chips above the Register. Each chip is a labeled button plus a radio
- * dot (LED semantics: filled = active); the button carries the press,
- * the dot mirrors state. Labels live in s_devlbl (kept, static). */
+ * chips above the Register. Each chip is a labeled button plus a LED
+ * dot (bright red record-dot lit, background tile dark: no layout
+ * shift); the button carries the press, the dot mirrors state. Labels
+ * live in s_devlbl (kept, static). */
 static Object *tab_rail(void) {
     Object *rail;
     uint32_t d;
@@ -550,9 +551,7 @@ static Object *tab_rail(void) {
         snprintf(s_devlbl[d], sizeof s_devlbl[d], "%s", nm);
         btn = (Object *)MUI_MakeObject(MUIO_Button, (IPTR)s_devlbl[d]);
         led = (Object *)MUI_NewObject(MUIC_Image,
-            MUIA_Image_Spec, (IPTR)MUII_RadioButton,
-            MUIA_ShowSelState, TRUE,
-            MUIA_Selected, TRUE,
+            MUIA_Image_Spec, (IPTR)MUII_TapeRecord,
             MUIA_InputMode, MUIV_InputMode_None,
             TAG_DONE);
         chip = (btn && led) ? (Object *)MUI_NewObject(MUIC_Group,
@@ -578,7 +577,8 @@ static void dev_visibility_toggle(uint32_t dev) {
     show = !ri_vis_get(&s_vis, dev);
     ri_vis_set(&s_vis, dev, show);
     if (s_devled[dev])
-        SetAttrs(s_devled[dev], MUIA_Selected, show ? TRUE : FALSE, TAG_DONE);
+        SetAttrs(s_devled[dev], MUIA_Image_Spec,
+            show ? (IPTR)MUII_TapeRecord : (IPTR)MUII_ButtonBack, TAG_DONE);
     if (s_devrow[dev])
         SetAttrs(s_devrow[dev], MUIA_ShowMe, show ? TRUE : FALSE, TAG_DONE);
     for (d = 0u; d < 4u; d++)

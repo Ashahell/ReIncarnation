@@ -43,7 +43,7 @@ static const struct RIGeoItem RI_GEO_303[] = {
     /* right of the keyboard: +20 Q from the figure so nothing touches the
      * keyboard block's rim (owner, Dell 2026-09-26) */
     /* Note/Pause toggle with its two state LEDs */
-    { S1(24), RI_GEO_RECT, 0, 1094, 252, 150, 27 },
+    { S1(24), RI_GEO_RECT, 0, 1094, 252, 132, 27 },
     { S1(24), RI_GEO_LEGEND, 0, 1094, 225, 0, 0 },
     { S1(24), RI_GEO_LED, 0, 1016, 250, 12, 12 },
     { S1(24), RI_GEO_LED, 0, 1172, 250, 12, 12 },
