@@ -133,6 +133,10 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 - [x] Dell first sound + knob-within-a-buffer + owner words + 5-min soak (`docs/evidence/audio/live-render-task.md`; G9b Step 1: 256 default owner-approved, P-21 measured)
 - [x] Full panel integration into RIAPP (G9b Step 2, Dell-proofed: knobs sound, meters chase; `docs/evidence/gui/riapp-panel.md`)
 - [ ] G10 carry-overs (skin chunk, zoom cap, minors)
+- [ ] RIAPP full panels (owner req 2026-09-27): wire up every RISECT panel
+  (303B, 909 incl. step editing, full mixers, FX, full transport) so all
+  bound voices are reachable live; 909 demo content for the new voices
+  rides with it (taste: owner ear).
 
 ## Planned devices (extensible rack, spec D-k)
 - [ ] Korg Electribe ESX-1 — owner plan 2026-09-26; requirement + rules for current work: `docs/superpowers/specs/2026-09-26-device-korg-esx1-requirement.md` (no 4-device assumptions; new lane-key block, strip, skin token, RBNG chunks — chunk IDs owner review; E1 = Korg ESX-1 manual; clean-room: no Korg samples/ROM/art).

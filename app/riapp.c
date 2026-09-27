@@ -444,7 +444,7 @@ int main(int argc, char **argv) {
         bound = ri_pack_909_bind(&s_core.session.eng, err, sizeof err);
         if (DOSBase) {
             if (bound > 0)
-                rlog("RIAPP 909 pack: %d voices bound (toms/rim/clap silent: no in-repo samples)\n", bound, 0, 0, 0, 0);
+                rlog("RIAPP 909 pack: %d voices bound\n", bound, 0, 0, 0, 0);
             else
                 rlog("RIAPP 909 pack missing: %s (909 renders silence)\n", err[0] ? err : "no pack", 0, 0, 0, 0);
         }
