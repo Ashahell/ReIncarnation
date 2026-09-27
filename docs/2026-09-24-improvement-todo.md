@@ -167,8 +167,8 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   - Activation proof CLOSED 2026-09-27 (owner, build 274c297): full
     mask walk 0f→0e→0c→04→00→02→03→07→0f→07 under PLAY (synths-only
     drums-only silence full round-trips, voices rejoin mid-phrase);
-    TR STOP clean. Open follow-up: 303B-vs-303A difference the owner
-    hears (notes vs tone TBD).
+    TR STOP clean. Follow-up closed per owner: technique, not a bug
+    (303 programming learning curve); no voice-path chase.
   - 303B audibility (owner 2026-09-27): two real bugs, fix unproven.
     (1) Note/Pause button unlabeled on 303A/B (geo LEGEND row missing;
     shared SYNTH1 table so one row fixes both) + 909 Flam button same
@@ -195,6 +195,8 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
     after fixing NULL IntuitionBase, NULL-friend AllocBitMap, AreaEllipse
     area-state guru, and imageless-keeps-zero-size. Lesson recorded:
     canvas path does LEDs perfectly; rail duplication was the cost.
+  - Rail LED boxes CLOSED 2026-09-27 (owner eyes): dots render clean.
+    Saga article stands as the failure record.
   - GUI feedback round 3 (owner 2026-09-27, unproven): stock dots render
     black on this theme. Rail LEDs are self-drawn 18px bitmaps in exact
     canvas greens (on 0x38E040 = the Pattern-block LED, pixel-verified;
