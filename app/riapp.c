@@ -608,13 +608,20 @@ int main(int argc, char **argv) {
         /* Wedge diagnostic (2026-09-27 Dell freeze under interaction):
          * ~30 s heartbeat while live (10 Hz timer ticks the loop).
          * Last line dates the wedge; buffers/xruns say whether the
-         * render task was still producing. Remove after. */
+         * render task was still producing. snd/pend are diagnostic-only
+         * unsynchronized byte reads (same basis as the meter snapshot):
+         * they show WHAT the engine plays after pattern selection.
+         * Remove after. */
         if (s_live && ++hb >= 300u) {
             hb = 0u;
-            rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us\n",
+            rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us snd=%u/%u/%u/%u pend=%u/%u/%u/%u\n",
                 ri_atomic_load_acq(&s_lv.drv.buffers),
                 ri_atomic_load_acq(&s_lv.drv.xruns),
-                ri_atomic_load_acq(&s_lv.drv.render_us_max));
+                ri_atomic_load_acq(&s_lv.drv.render_us_max),
+                s_core.session.player.sounding_slot[0], s_core.session.player.sounding_slot[1],
+                s_core.session.player.sounding_slot[2], s_core.session.player.sounding_slot[3],
+                s_core.session.player.pending_slot[0], s_core.session.player.pending_slot[1],
+                s_core.session.player.pending_slot[2], s_core.session.player.pending_slot[3]);
         }
         sigs |= SIGBREAKF_CTRL_C | (timer_armed ? 1UL << tport->mp_SigBit : 0UL);
         sigs = Wait(sigs);
