@@ -31,7 +31,7 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     s->nspq = (uint64_t)(60000000000.0 / (double)s->bpm);
     if (s->nspq == 0u)
         s->nspq = 500000000ULL;
-    s->sections = sections;
+    ri_atomic_store_rel(&s->sections, sections);
     s->seg.start_tick = 0u;
     s->seg.ns_per_quarter = s->nspq;
     s->map.segs = &s->seg;
@@ -69,6 +69,18 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     s->meters.samples = 0u;
     s->meters.cursor_ticks = 0u;
     s->meters.xruns = 0u;
+}
+
+void ri_live_set_sections(struct RILiveSession *s, uint32_t sections) {
+    if (!s)
+        return;
+    ri_atomic_store_rel(&s->sections, sections);
+}
+
+uint32_t ri_live_sections(struct RILiveSession *s) {
+    if (!s)
+        return 0u;
+    return ri_atomic_load_acq(&s->sections);
 }
 
 void ri_live_set_banks(struct RILiveSession *s,
@@ -298,7 +310,8 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         }
         n = w;
     }
-    ri_engine_load(&s->eng, s->scratch, n, frames, s->sections);
+    ri_engine_load(&s->eng, s->scratch, n, frames,
+        ri_atomic_load_acq(&s->sections));
     /* Delay clock ownership (owner 2026-09-27: echoes ran at the 140 BPM
      * default against a 120 groove): the transport tempo owns it. */
     if (s->eng.tempo != s->bpm)

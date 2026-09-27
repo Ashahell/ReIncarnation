@@ -135,9 +135,11 @@ static Object *s_canvas[C_N];
 static struct RISectUI *s_ui[C_N];
 static const struct RSectionDiag *s_dg[C_N];
 
-/* Device visibility (owner 2026-09-27): the Devices tab toggles rows.
- * Display-only: the engine keeps rendering hidden devices (mixer strips
- * mute); sync shadows follow every canvas regardless of ShowMe. */
+/* Device visibility (owner 2026-09-27): the rail toggles rows. Since
+ * the activation slice the same bit means ACTIVE: ShowMe the row AND
+ * flip the engine sections bit (snapshot-free single-word swap, read
+ * once per render block). Mixer strips stay (mute there); sync shadows
+ * follow every canvas regardless of ShowMe. */
 static struct RIVisSet s_vis;
 static Object *s_devrow[4];
 static Object *s_devbtn[4];
@@ -548,11 +550,13 @@ static Object *tab_rail(void) {
     return rail;
 }
 
-/* Devices-tab toggle: flip the visible bit, ShowMe the row, relabel. */
+/* Rail toggle: flip the visible bit, ShowMe the row, relabel — and flip
+ * the engine bit with it (ACTIVE, rack requirement 2026-09-24). */
 static void dev_visibility_toggle(uint32_t dev) {
     const struct RIPanelDesc *pd;
     const char *nm;
     int show;
+    uint32_t d, mask = 0u;
     if (dev >= 4u)
         return;
     show = !ri_vis_get(&s_vis, dev);
@@ -563,7 +567,11 @@ static void dev_visibility_toggle(uint32_t dev) {
     SetAttrs(s_devbtn[dev], MUIA_Text_Contents, (IPTR)s_devlbl[dev], TAG_DONE);
     if (s_devrow[dev])
         SetAttrs(s_devrow[dev], MUIA_ShowMe, show ? TRUE : FALSE, TAG_DONE);
-    evlog("VIS", "dev=%d show=%d", dev, show ? 1 : 0);
+    for (d = 0u; d < 4u; d++)
+        if (ri_vis_get(&s_vis, d) > 0)
+            mask |= (uint32_t)RI_ENGINE_S303A << d;
+    ri_live_set_sections(&s_core.session, mask);
+    evlog("VIS", "dev=%d show=%d mask=%02x", dev, show ? 1 : 0, mask);
 }
 
 static ULONG riapp_arg_frames(int argc, char **argv) {

@@ -35,7 +35,11 @@ struct RILiveSession {
     float sr;
     float bpm;
     uint64_t nspq;
-    uint32_t sections;
+    /* Active-device mask (owner 2026-09-27, rack requirement): crosses the
+     * GUI/render boundary as one atomic, read once per render call, so a
+     * flip applies at the next block by construction. Disabled = voice
+     * never triggers (zero CPU); banks/voices/patterns keep state. */
+    ri_atomic_u32 sections;
     struct RISegment seg;
     struct RITempoMap map;
     struct RIPlayer player;
@@ -62,6 +66,11 @@ struct RILiveSession {
 
 void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     uint32_t sections, struct RIEvent *scratch, uint32_t scratch_cap);
+/* Active-device mask (see the sections field): GUI-task callable at any
+ * time; takes effect at the next rendered block. NULL fail-closed
+ * (set ignores, get returns 0). */
+void ri_live_set_sections(struct RILiveSession *s, uint32_t sections);
+uint32_t ri_live_sections(struct RILiveSession *s);
 void ri_live_set_banks(struct RILiveSession *s,
     const struct RIPatternBank *const banks[RI_SONGTRACK_INSTANCES],
     const struct RISongTrack *track, const struct RILoop *loop);
