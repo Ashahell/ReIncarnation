@@ -558,10 +558,12 @@ static int rail_leds_make(Object *win) {
     if (s_ledbm[0] || s_ledbm[1])
         return 0;
     if (!win)
-        return 2;
+        return 11;
     GetAttr(MUIA_Window_Screen, win, (IPTR *)&sc);
-    if (!sc || !sc->ViewPort.ColorMap)
-        return 2;
+    if (!sc)
+        return 12;
+    if (!sc->ViewPort.ColorMap)
+        return 13;
     s_ledcm = sc->ViewPort.ColorMap;
     InitRastPort(&rp);
     for (i = 0u; i < 2u; i++) {
@@ -578,7 +580,7 @@ static int rail_leds_make(Object *win) {
         if (s_ledpen[1] >= 0)
             ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
         s_ledpen[0] = s_ledpen[1] = -1;
-        return 2;
+        return 14;
     }
     for (i = 0u; i < 2u; i++) {
         struct BitMap *bm = AllocBitMap(RIAPP_LED_D, RIAPP_LED_D, 8u,
@@ -600,7 +602,7 @@ static int rail_leds_make(Object *win) {
         ReleasePen(s_ledcm, (ULONG)s_ledpen[0]);
         ReleasePen(s_ledcm, (ULONG)s_ledpen[1]);
         s_ledpen[0] = s_ledpen[1] = -1;
-        return 2;
+        return 15;
     }
     return 0;
 }
@@ -930,10 +932,13 @@ int main(int argc, char **argv) {
         DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
             MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
-    if (rail_leds_make(win) == 0)
-        rail_leds_show();
-    else if (DOSBase)
-        rlog("RIAPP rail LEDs unavailable (buttons unaffected)\n", 0, 0, 0, 0, 0);
+    {
+        int lrc = rail_leds_make(win);
+        if (lrc == 0)
+            rail_leds_show();
+        else if (DOSBase)
+            rlog("RIAPP rail LEDs unavailable rc=%d (buttons unaffected)\n", lrc, 0, 0, 0, 0);
+    }
     rlog("RIAPP panel: tabbed Synths/Drums/Mix/FX + transport (2026-09-27)\n",
         0, 0, 0, 0, 0);
 
