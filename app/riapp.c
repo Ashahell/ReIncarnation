@@ -586,6 +586,11 @@ static int rail_leds_make(Object *win) {
     }
     for (i = 0u; i < 2u; i++) {
         uint32_t pl;
+        /* Disc spans, integer only (r = 7): AreaEllipse needs AreaInfo
+         * + TmpRas the RastPort doesn't own (Dell guru in
+         * Graphics AreaEllipse); RectFill needs neither. */
+        static const int dx[8] = { 7, 6, 6, 6, 5, 4, 3, 0 };
+        int dy;
         InitBitMap(&s_ledbms[i], 8u, RIAPP_LED_D, RIAPP_LED_D);
         for (pl = 0u; pl < 8u; pl++) {
             PLANEPTR r = AllocRaster(RIAPP_LED_D, RIAPP_LED_D);
@@ -598,9 +603,10 @@ static int rail_leds_make(Object *win) {
             break;
         rp.BitMap = &s_ledbms[i];
         SetAPen(&rp, (ULONG)s_ledpen[i]);
-        AreaEllipse(&rp, RIAPP_LED_D / 2u, RIAPP_LED_D / 2u,
-            RIAPP_LED_D / 2u - 2u, RIAPP_LED_D / 2u - 2u);
-        AreaEnd(&rp);
+        for (dy = -7; dy <= 7; dy++) {
+            int w = dx[dy < 0 ? -dy : dy];
+            RectFill(&rp, (LONG)(9 - w), (LONG)(9 + dy), (LONG)(9 + w), (LONG)(9 + dy));
+        }
         s_ledbm[i] = &s_ledbms[i];
     }
     if (!s_ledbm[0] || !s_ledbm[1]) {
