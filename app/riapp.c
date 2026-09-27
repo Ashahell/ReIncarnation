@@ -53,7 +53,10 @@
 #include <libraries/mui.h>
 #include <devices/timer.h>
 #include <intuition/intuition.h>
+#include <graphics/gfx.h>
+#include <graphics/rastport.h>
 #include <proto/exec.h>
+#include <proto/graphics.h>
 #include <proto/intuition.h>
 #include <proto/dos.h>
 #include <proto/muimaster.h>
@@ -95,6 +98,9 @@
 #endif
 
 extern struct DosLibrary *DOSBase;
+extern struct IntuitionBase *IntuitionBase;
+
+#define RIAPP_LED_D 18u /* rail LED bitmap diameter (disc + 2 px margin) */
 
 #define RIAPP_FRAMES 64u /* null-backend render chunk */
 #define RIAPP_DEV_FRAMES 256u /* default device buffer (owner-approved 2026-09-26) */
@@ -144,6 +150,11 @@ static struct RIVisSet s_vis;
 static Object *s_devrow[4];
 static Object *s_devbtn[4];
 static Object *s_devled[4];
+/* Rail LED bitmaps (owner 2026-09-27): exact canvas greens
+ * (C_MIX_GREEN on / C_MIX_GREEN_OFF off), drawn once the window owns
+ * a screen. MUI stock images proved theme-dim; self-drawn is exact. */
+static struct BitMap *s_ledbm[2];
+static LONG s_ledpen[2];
 static char s_devlbl[4][16];
 #define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
 
@@ -532,6 +543,96 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
     return (n > 0u) ? page : 0;
 }
 
+/* Rail LED bitmaps: one green disc (C_MIX_GREEN 0x38E040, the exact
+ * canvas green of the pattern-block LED) for active, one dim disc
+ * (C_MIX_GREEN_OFF 0x1E4A22) for inactive; pen 0 clear + Transparent
+ * keeps the rail background. MUI stock images proved theme-dim, so the
+ * dots are self-drawn. Built once the window owns a screen (colormap
+ * for exact pens); 0 ok, 2 failure (LEDs stay empty, buttons + log
+ * unaffected). */
+static int rail_leds_make(void) {
+    static const uint32_t cols[2] = { 0x38E040u, 0x1E4A22u };
+    struct Screen *sc;
+    struct RastPort rp;
+    uint32_t i;
+    if (s_ledbm[0] || s_ledbm[1])
+        return 0;
+    if (!IntuitionBase || !(sc = IntuitionBase->ActiveScreen) || !sc->ViewPort.ColorMap)
+        return 2;
+    InitRastPort(&rp);
+    for (i = 0u; i < 2u; i++) {
+        uint32_t c = cols[i];
+        s_ledpen[i] = ObtainBestPenA(sc->ViewPort.ColorMap,
+            ((c >> 16u) & 0xFFu) << 24u, ((c >> 8u) & 0xFFu) << 24u,
+            (c & 0xFFu) << 24u, 0);
+        if (s_ledpen[i] < 0)
+            break;
+    }
+    if (s_ledpen[0] < 0 || s_ledpen[1] < 0) {
+        if (s_ledpen[0] >= 0)
+            ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[0]);
+        if (s_ledpen[1] >= 0)
+            ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[1]);
+        s_ledpen[0] = s_ledpen[1] = -1;
+        return 2;
+    }
+    for (i = 0u; i < 2u; i++) {
+        struct BitMap *bm = AllocBitMap(RIAPP_LED_D, RIAPP_LED_D, 8u,
+            BMF_CLEAR | BMF_DISPLAYABLE, 0);
+        if (!bm)
+            break;
+        rp.BitMap = bm;
+        SetAPen(&rp, (ULONG)s_ledpen[i]);
+        AreaEllipse(&rp, RIAPP_LED_D / 2u, RIAPP_LED_D / 2u,
+            RIAPP_LED_D / 2u - 2u, RIAPP_LED_D / 2u - 2u);
+        AreaEnd(&rp);
+        s_ledbm[i] = bm;
+    }
+    if (!s_ledbm[0] || !s_ledbm[1]) {
+        if (s_ledbm[0]) {
+            FreeBitMap(s_ledbm[0]);
+            s_ledbm[0] = 0;
+        }
+        ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[0]);
+        ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[1]);
+        s_ledpen[0] = s_ledpen[1] = -1;
+        return 2;
+    }
+    return 0;
+}
+
+static void rail_leds_drop(void) {
+    struct Screen *sc;
+    if (IntuitionBase && (sc = IntuitionBase->ActiveScreen) && sc->ViewPort.ColorMap) {
+        if (s_ledpen[0] >= 0)
+            ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[0]);
+        if (s_ledpen[1] >= 0)
+            ReleasePen(sc->ViewPort.ColorMap, (ULONG)s_ledpen[1]);
+    }
+    s_ledpen[0] = s_ledpen[1] = -1;
+    if (s_ledbm[0]) {
+        FreeBitMap(s_ledbm[0]);
+        s_ledbm[0] = 0;
+    }
+    if (s_ledbm[1]) {
+        FreeBitMap(s_ledbm[1]);
+        s_ledbm[1] = 0;
+    }
+}
+
+/* Push the LED bitmaps into the rail chips (after make; the toggle swaps
+ * on/off the same way). */
+static void rail_leds_show(void) {
+    uint32_t d;
+    for (d = 0u; d < 4u; d++) {
+        int show;
+        if (!s_devled[d] || !s_ledbm[0] || !s_ledbm[1])
+            continue;
+        show = ri_vis_get(&s_vis, d) > 0;
+        SetAttrs(s_devled[d], MUIA_Bitmap_Bitmap, (IPTR)(show ? s_ledbm[0] : s_ledbm[1]), TAG_DONE);
+    }
+}
+
 /* Device rail (owner 2026-09-27): slim always-visible row of on/off
  * chips above the Register. Each chip is a labeled button plus a LED
  * dot (bright green play-triangle lit, background tile dark: no layout
@@ -551,8 +652,10 @@ static Object *tab_rail(void) {
         Object *btn, *led, *chip;
         snprintf(s_devlbl[d], sizeof s_devlbl[d], "%s", nm);
         btn = (Object *)MUI_MakeObject(MUIO_Button, (IPTR)s_devlbl[d]);
-        led = (Object *)MUI_NewObject(MUIC_Image,
-            MUIA_Image_Spec, (IPTR)MUII_TapePlay,
+        led = (Object *)MUI_NewObject(MUIC_Bitmap,
+            MUIA_Bitmap_Width, (LONG)RIAPP_LED_D,
+            MUIA_Bitmap_Height, (LONG)RIAPP_LED_D,
+            MUIA_Bitmap_Transparent, 0L,
             MUIA_InputMode, MUIV_InputMode_None,
             TAG_DONE);
         chip = (btn && led) ? (Object *)MUI_NewObject(MUIC_Group,
@@ -577,9 +680,7 @@ static void dev_visibility_toggle(uint32_t dev) {
         return;
     show = !ri_vis_get(&s_vis, dev);
     ri_vis_set(&s_vis, dev, show);
-    if (s_devled[dev])
-        SetAttrs(s_devled[dev], MUIA_Image_Spec,
-            show ? (IPTR)MUII_TapePlay : (IPTR)MUII_ButtonBack, TAG_DONE);
+    rail_leds_show();
     if (s_devrow[dev])
         SetAttrs(s_devrow[dev], MUIA_ShowMe, show ? TRUE : FALSE, TAG_DONE);
     for (d = 0u; d < 4u; d++)
@@ -825,6 +926,10 @@ int main(int argc, char **argv) {
         DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
             MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
+    if (rail_leds_make() == 0)
+        rail_leds_show();
+    else if (DOSBase)
+        rlog("RIAPP rail LEDs unavailable (buttons unaffected)\n", 0, 0, 0, 0, 0);
     rlog("RIAPP panel: tabbed Synths/Drums/Mix/FX + transport (2026-09-27)\n",
         0, 0, 0, 0, 0);
 
@@ -917,6 +1022,7 @@ int main(int argc, char **argv) {
     }
     SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
     MUI_DisposeObject(app);
+    rail_leds_drop();
     ri_rsection_dispose_class();
     if (s_evfh) {
         Close(s_evfh);
