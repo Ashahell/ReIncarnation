@@ -83,6 +83,14 @@ int main(void) {
     RI_ASSERT(ri_core_capture_sel(&c, 0u, 9u, 5u) == 0, "sel bad inst");
     /* Delay line wired (owner 2026-09-27: sends were dry everywhere). */
     RI_ASSERT(c.session.eng.dline != 0, "dline attached");
+    /* Delay clock ownership (owner 2026-09-27: echoes ran at the 140 BPM
+     * default against a 120 groove): session tempo reaches the engine. */
+    {
+        static float ql[256], qr[256];
+        ri_live_render(&c.session, ql, qr, 256u);
+        RI_ASSERT(c.session.eng.tempo == c.session.bpm, "tempo owned %f",
+            c.session.eng.tempo);
+    }
     {
         /* Send at full on 808 vs dry: the echo must be audible. Prime
          * 2 s first so the line holds signal, then compare 1 s. */

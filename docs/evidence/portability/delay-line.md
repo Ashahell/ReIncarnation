@@ -13,3 +13,6 @@ delays clamp inside the FX unit); `ri_core_init` attaches via
 headless paths at once; AROS needs no changes.
 Tests: t95 pins attachment + pre-echo identity + audible return.
 Mutant (detach): 2 FAILs (killed). Device proof: owner delay sweep re-run.
+Tempo clock: `ri_live_render` pushes session BPM into the engine (t95 pins
+`eng.tempo == bpm`; without it the 140 default stands — observed live as
+the stale-object RED). Device retest decides timing by ear.

@@ -299,6 +299,10 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         n = w;
     }
     ri_engine_load(&s->eng, s->scratch, n, frames, s->sections);
+    /* Delay clock ownership (owner 2026-09-27: echoes ran at the 140 BPM
+     * default against a 120 groove): the transport tempo owns it. */
+    if (s->eng.tempo != s->bpm)
+        ri_engine_set_tempo(&s->eng, s->bpm);
     {
         uint32_t got = ri_engine_render(&s->eng, out_l, out_r, frames, s->sr);
         if (got < frames) {
