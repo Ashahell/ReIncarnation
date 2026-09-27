@@ -23,6 +23,7 @@ void ri_core_init(struct RIAppCore *c, uint32_t ppq, float sr, float bpm,
         ri_live_set_banks(&c->session, b4, &c->track, 0);
     }
     ri_live_set_ctl(&c->session, &c->ctl);
+    ri_engine_set_delay(&c->session.eng, c->dline, RI_CORE_DLINE);
 }
 
 void ri_core_demo(struct RIAppCore *c) {

@@ -81,5 +81,36 @@ int main(void) {
     RI_ASSERT(ri_track_selected(&c.track, 1u, 0u) == 5u, "sticky");
     RI_ASSERT(ri_core_capture_sel(0, 0u, 0u, 5u) == 0, "sel null");
     RI_ASSERT(ri_core_capture_sel(&c, 0u, 9u, 5u) == 0, "sel bad inst");
+    /* Delay line wired (owner 2026-09-27: sends were dry everywhere). */
+    RI_ASSERT(c.session.eng.dline != 0, "dline attached");
+    {
+        /* Send at full on 808 vs dry: the echo must be audible. Prime
+         * 2 s first so the line holds signal, then compare 1 s. */
+        static struct RIAppCore d, e;
+        static float dl[144256], dr[144256], el[144256], er[144256];
+        uint32_t n = 0u;
+        ri_core_init(&d, 96u, 48000.0f, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+        ri_core_demo(&d);
+        ri_core_init(&e, 96u, 48000.0f, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+        ri_core_demo(&e);
+        ri_engine_set_send(&e.session.eng, 2u, 127u);
+        ri_core_play(&d);
+        ri_core_play(&e);
+        while (n < 144000u) {
+            uint32_t want = 144000u - n;
+            uint32_t g, h;
+            if (want > 256u)
+                want = 256u;
+            g = ri_live_render(&d.session, dl + n, dr + n, want);
+            h = ri_live_render(&e.session, el + n, er + n, want);
+            if (!g || !h || g != h)
+                break;
+            n += g;
+        }
+        RI_ASSERT(n == 144000u, "delay render %u", n);
+        RI_ASSERT(!memcmp(dl, el, 9600u * sizeof(float)), "pre-echo same");
+        RI_ASSERT(memcmp(dl + 48000u, el + 48000u, 48000u * sizeof(float)) != 0,
+            "delay return audible");
+    }
     RI_RESULT("riapp_core");
 }

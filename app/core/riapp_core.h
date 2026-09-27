@@ -15,6 +15,10 @@
 #include "engine/seq/sched.h"
 
 #define RI_CORE_SCRATCH 512u
+/* Shared delay-send line storage (owner 2026-09-27: no live path ever
+ * provided one, so delay sends were dry). ~2.7 s at 48 kHz; longer
+ * musical delays clamp to the cap inside the FX unit. */
+#define RI_CORE_DLINE 131072u
 
 struct RIAppCore {
     struct RIPatternBank banks[4];
@@ -22,6 +26,7 @@ struct RIAppCore {
     struct RIControlPlane ctl;
     struct RILiveSession session;
     struct RIEvent scratch[RI_CORE_SCRATCH];
+    float dline[RI_CORE_DLINE];
 };
 
 /* Init banks/track/control plane/session (ppq/sr/bpm/engine as given).
