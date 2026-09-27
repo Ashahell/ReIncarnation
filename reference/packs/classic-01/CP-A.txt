@@ -1,0 +1,6 @@
+layer: CP-A (voice cp, tune 0-63)
+source: synthesized from scratch (this script)
+recipe: noise bursts at 0/12/24ms + tail, RBJ bandpass 1600Hz Q2, density 1.0; d[0]=0
+rate/depth: 44100/16 master, peak -3dBFS, no dither
+seed: LCG 0x9091+160 (cp)
+license: CC0, holder ReIncarnation project

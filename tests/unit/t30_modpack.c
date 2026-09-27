@@ -1,7 +1,7 @@
 /* t30_modpack — M2.5, TC-2.12.1 (shipped mod round-trip) +
  * TC-2.12.5 (S909 layers change sound):
  *
- *   - Inventory: the shipped classic-01 pack lists 14 layers via
+ *   - Inventory: the shipped classic-01 pack lists 27 layers via
  *     rbnm_pack_layers (ids/voices/rates/frames/lo-hi sane:
  *     44.1/48 kHz rates only, frames > 0, lo <= hi).
  *   - Every layer's samples load finite via rbnm_load_smpl (no
@@ -45,28 +45,28 @@ static int finite_buf(const float *b, uint32_t n) {
 }
 
 int main(void) {
-    struct RBNMLayerInfo info[16];
+    struct RBNMLayerInfo info[32];
     char err[192];
     int32_t nl, f0, f1;
     uint32_t r0, r1, i;
-    static unsigned char A[1 << 20], B[1 << 20];
+    static unsigned char A[1 << 22], B[1 << 22];
     FILE *f;
     long na = 0, nb = 0;
 
-    /* --- inventory: 14 layers, sane rows --- */
-    nl = rbnm_pack_layers(T30_PACK, info, 16, err, sizeof err);
-    CHECK(nl == 14, "layers %d want 14 (%s)", nl, err);
-    for (i = 0; i < 14 && i < 16; i++) {
+    /* --- inventory: 27 layers (14 classic + 13 tom/rim/clap), sane rows --- */
+    nl = rbnm_pack_layers(T30_PACK, info, 32, err, sizeof err);
+    CHECK(nl == 27, "layers %d want 27 (%s)", nl, err);
+    for (i = 0; i < 27 && i < 32; i++) {
         CHECK(info[i].frames > 0, "layer %u empty", i);
         CHECK(info[i].lo <= info[i].hi, "layer %u lo>hi", i);
         CHECK(info[i].rate == 44100u || info[i].rate == 48000u,
             "layer %u rate %u", i, info[i].rate);
     }
-    if (nl == 14)
-        printf("inventory: 14 layers sane\n");
+    if (nl == 27)
+        printf("inventory: 27 layers sane\n");
 
     /* --- every layer loads finite --- */
-    for (i = 0; i < 14 && fails == 0; i++) {
+    for (i = 0; i < 27 && fails == 0; i++) {
         int32_t fr = rbnm_load_smpl(T30_PACK, info[i].id, LA, 88200u,
             &r0, err, sizeof err);
         CHECK(fr > 0, "load %s: %s", info[i].id, err);

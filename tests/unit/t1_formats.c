@@ -80,7 +80,7 @@ static int file_bytes(const char *path, unsigned char *dst, uint32_t cap,
 int main(void) {
     static char err[256];
     static char warn[256];
-    static unsigned char A[2097152], B[2097152];
+    static unsigned char A[4194304], B[4194304];
     static unsigned char fbuf[8192];
     uint32_t na = 0, nb = 0, nf = 0;
     struct RISong s = demo_song(), r;

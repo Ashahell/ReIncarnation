@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define RBNM_MAX_FILE 2097152u /* 2 MiB: 14 layers x ~1 s x 44.1k x 2 B */
-#define RBNM_MAX_LAYERS 16u
+#define RBNM_MAX_FILE 4194304u /* 4 MiB: 27 layers (11 voices) x ~1 s x 44.1k x 2 B */
+#define RBNM_MAX_LAYERS 32u
 #define RBNM_MAX_ID 31u
 
 static unsigned char RI_IMG[RBNM_MAX_FILE];

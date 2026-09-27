@@ -20,3 +20,21 @@
 - Tests: t86 pins `RI_PATH_PACKS` resolution. No host test for the bind
   itself (AROS-only AllocVec/paths); proven by v1+v11 `-Werror` builds,
   0-UND links, and the Dell by-ear run (owner).
+
+## 11 voices (owner 2026-09-27): toms/rim/clap synthesized
+
+- Missing 5 voices (LT/MT/HT/RS/CP) synthesized clean-room with
+  `tools/mk909.py` (stdlib-only, seeded LCG, 44100/16, -3 dBFS peak,
+  d[0]=0): pitch-drop toms, burst rimshot, bandpass-noise clap. 13 layers
+  (toms LOW/MID/HI, RS/CP A/B) + recipe `.txt` + MANIFEST rows, same
+  conventions. All pass the audibility floor.
+- `tools/mkpack.c` (new): reproducible pack builder (chunk-walking RIFF
+  reader, manifest pre-validation, dup refusal). Rebuilds classic-01
+  bit-exact for old layers modulo 832 one-LSB diffs in 793800 (original
+  rounding unrecoverable — documented in-file; carry-over done by exact
+  16-bit extraction instead).
+- Format: `RBNM_MAX_LAYERS` 16→32 (old files parse identically) and
+  `RBNM_MAX_FILE` 2→4 MiB (pack is 2.4 MB). t30 updated 14→27 (pins the
+  new fact); S909 goldens re-verified identical (old voices bit-exact).
+- New pack replaces `pack.rbnm` in-tree (old in git history). Host bind
+  check: 11/11 voices. Dell timbre verdict: owner by ear (pending).

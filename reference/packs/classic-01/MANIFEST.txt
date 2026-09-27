@@ -12,3 +12,16 @@ CR-A src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=CR-A;fm
 CR-B src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=CR-B;fmt=44100/16;norm=-3dBFS;loop=none;map=cr:64-127
 RD-A src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=RD-A;fmt=44100/16;norm=-3dBFS;loop=none;map=rd:0-63
 RD-B src=synth;date=2026-09-20;equip=host-python3;lic=CC0;holder=RI;proc=RD-B;fmt=44100/16;norm=-3dBFS;loop=none;map=rd:64-127
+LT-LOW src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=LT-LOW;fmt=44100/16;norm=-3dBFS;loop=none;map=lt:0-42
+LT-MID src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=LT-MID;fmt=44100/16;norm=-3dBFS;loop=none;map=lt:43-84
+LT-HI src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=LT-HI;fmt=44100/16;norm=-3dBFS;loop=none;map=lt:85-127
+MT-LOW src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=MT-LOW;fmt=44100/16;norm=-3dBFS;loop=none;map=mt:0-42
+MT-MID src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=MT-MID;fmt=44100/16;norm=-3dBFS;loop=none;map=mt:43-84
+MT-HI src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=MT-HI;fmt=44100/16;norm=-3dBFS;loop=none;map=mt:85-127
+HT-LOW src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=HT-LOW;fmt=44100/16;norm=-3dBFS;loop=none;map=ht:0-42
+HT-MID src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=HT-MID;fmt=44100/16;norm=-3dBFS;loop=none;map=ht:43-84
+HT-HI src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=HT-HI;fmt=44100/16;norm=-3dBFS;loop=none;map=ht:85-127
+RS-A src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=RS-A;fmt=44100/16;norm=-3dBFS;loop=none;map=rs:0-63
+RS-B src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=RS-B;fmt=44100/16;norm=-3dBFS;loop=none;map=rs:64-127
+CP-A src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=CP-A;fmt=44100/16;norm=-3dBFS;loop=none;map=cp:0-63
+CP-B src=synth;date=2026-09-27;equip=host-python3;lic=CC0;holder=RI;proc=CP-B;fmt=44100/16;norm=-3dBFS;loop=none;map=cp:64-127

@@ -1,0 +1,6 @@
+layer: RS-B (voice rs, tune 64-127)
+source: synthesized from scratch (this script)
+recipe: sine 420Hz tau 12ms + noise click(tau 3ms, mix 0.3); d[0]=0
+rate/depth: 44100/16 master, peak -3dBFS, no dither
+seed: LCG 0x9091+208 (rs)
+license: CC0, holder ReIncarnation project

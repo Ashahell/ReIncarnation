@@ -28,7 +28,7 @@
 
 int ri_pack_909_bind(struct RIEngine *eng, char *err, uint32_t errcap) {
     char base[96], pack[128];
-    struct RBNMLayerInfo info[16];
+    struct RBNMLayerInfo info[32];
     int32_t nl, v, bound = 0;
     if (!eng)
         return 0;
@@ -38,7 +38,7 @@ int ri_pack_909_bind(struct RIEngine *eng, char *err, uint32_t errcap) {
             snprintf(err, errcap, "pack path");
         return 0;
     }
-    nl = rbnm_pack_layers(pack, info, 16u, err, errcap);
+    nl = rbnm_pack_layers(pack, info, 32u, err, errcap);
     if (nl < 0)
         return 0;
     for (v = 0; v < (int32_t)RI_909_NVOICES; v++) {

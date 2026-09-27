@@ -832,7 +832,7 @@ static int render_909pack(const char *name, const char *out_path,
     struct RB909Set s;
     static float pa[88200], pb[88200], pc[88200];
     static struct RISampleLayer lay[3];
-    static struct RBNMLayerInfo info[16];
+    static struct RBNMLayerInfo info[32];
     static char err[192];
     const char *pack = pack_opt ? pack_opt : "reference/packs/classic-01/pack.rbnm";
     uint32_t v = voice_idx909(name);
@@ -846,7 +846,7 @@ static int render_909pack(const char *name, const char *out_path,
         return 2;
     }
     secs = voice_secs909(name);
-    nl = rbnm_pack_layers(pack, info, 16, err, sizeof err);
+    nl = rbnm_pack_layers(pack, info, 32, err, sizeof err);
     if (nl < 0) {
         printf("render: pack inventory failed: %s\n", err);
         return 2;
