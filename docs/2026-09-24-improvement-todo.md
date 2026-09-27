@@ -174,8 +174,11 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
     design. Device proof open (labeled toggle + 01xx CTLs + sung 303B).
   - GUI feedback round 1 (owner 2026-09-27, unproven): Note/Pause legend
     between its LEDs, wide switch rect under the LED pair, BACK
-    re-centered to the row (rect y280, legend y250); rail chips are
-    checkmark+label (Selected-driven). t92/t93 re-pinned (8 synth pins).
+    between its LEDs with the rect widened beneath (BACK reverted to
+    its row); rail chips are labeled button + radio-dot LED (Pressed
+    notify, Selected mirror). Divider-line attempt dropped (paints under
+    the button face). t92/t93 re-pinned (8 synth pins, clean-build
+    ground truth after a stale-object mis-pin).
 
 ## Planned devices (extensible rack, spec D-k)
 - [ ] Korg Electribe ESX-1 — owner plan 2026-09-26; requirement + rules for current work: `docs/superpowers/specs/2026-09-26-device-korg-esx1-requirement.md` (no 4-device assumptions; new lane-key block, strip, skin token, RBNG chunks — chunk IDs owner review; E1 = Korg ESX-1 manual; clean-room: no Korg samples/ROM/art).

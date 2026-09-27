@@ -26,14 +26,14 @@ static const uint8_t T_SECS[] = {
 
 /* Pinned hashes (first GREEN run): any drawing change is deliberate. */
 static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
-    { 0u, 0u, 0x03c5c3dfu },
-    { 0u, 1u, 0x74efafb3u },
-    { 0u, 2u, 0x673cb1f8u },
-    { 0u, 3u, 0x89f6d842u },
-    { 1u, 0u, 0x03c5c3dfu },
-    { 1u, 1u, 0x74efafb3u },
-    { 1u, 2u, 0x673cb1f8u },
-    { 1u, 3u, 0x89f6d842u },
+    { 0u, 0u, 0xbbec181du },
+    { 0u, 1u, 0x325393dbu },
+    { 0u, 2u, 0x527ea532u },
+    { 0u, 3u, 0x5afe0508u },
+    { 1u, 0u, 0xbbec181du },
+    { 1u, 1u, 0x325393dbu },
+    { 1u, 2u, 0x527ea532u },
+    { 1u, 3u, 0x5afe0508u },
     { 2u, 0u, 0xa09e073cu },
     { 2u, 1u, 0xd88bd2cbu },
     { 2u, 2u, 0x3ace0365u },

@@ -142,14 +142,14 @@ static int load_skin(const char *dir, int zoom, struct RISkin *skin) {
 }
 
 static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
-    { 0u, 0u, 0x8022a0b4u },
-    { 0u, 1u, 0xddb0661au },
-    { 0u, 2u, 0x2421f21eu },
-    { 0u, 3u, 0x7e8d2a65u },
-    { 1u, 0u, 0x8022a0b4u },
-    { 1u, 1u, 0xddb0661au },
-    { 1u, 2u, 0x2421f21eu },
-    { 1u, 3u, 0x7e8d2a65u },
+    { 0u, 0u, 0x02ff8084u },
+    { 0u, 1u, 0xb297ee22u },
+    { 0u, 2u, 0x72dad5dcu },
+    { 0u, 3u, 0x71a7f1c7u },
+    { 1u, 0u, 0x02ff8084u },
+    { 1u, 1u, 0xb297ee22u },
+    { 1u, 2u, 0x72dad5dcu },
+    { 1u, 3u, 0x71a7f1c7u },
     { 2u, 0u, 0xb89a2b83u },
     { 2u, 1u, 0x2c062e4bu },
     { 2u, 2u, 0xe0d16e0eu },
