@@ -1,7 +1,8 @@
-/* tabpages.h — tabbed-panel page model (owner 2026-09-27).
- * Pure C, host-tested. Four fixed tabs (Synths/Drums/Mix/FX, stock
+/* tabpages.h — tabbed-panel page model (owner 2026-09-27; Levi own
+ * tab owner 2026-09-28).
+ * Pure C, host-tested. Five fixed tabs (Synths/Drums/Levi/Mix/FX, stock
  * Register.mui); device visibility selects which device rows appear
- * inside Synths/Drums. Single-sources the device -> (voice section,
+ * inside Synths/Drums/Levi. Single-sources the device -> (voice section,
  * pattern section, bank instance) mapping the app table hardcodes.
  * Mix/FX are frame groups (mixer board, FX units) with no device rows.
  */
@@ -12,9 +13,10 @@
 
 #define RI_TAB_SYNTH 0u
 #define RI_TAB_DRUMS 1u
-#define RI_TAB_MIX 2u
-#define RI_TAB_FX 3u
-#define RI_TAB_COUNT 4u
+#define RI_TAB_LEVI 2u
+#define RI_TAB_MIX 3u
+#define RI_TAB_FX 4u
+#define RI_TAB_COUNT 5u
 
 struct RITabDev {
     uint32_t device;    /* 0..3 classic */

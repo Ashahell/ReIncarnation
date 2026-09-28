@@ -3,12 +3,12 @@
 #include "gui/ctlreg.h"
 
 static const char *const RI_TAB_TITLES[RI_TAB_COUNT] = {
-    "Synths", "Drums", "Mix", "FX"
+    "Synths", "Drums", "Levi", "Mix", "FX"
 };
 
 /* Classic device -> canvas sections (explicit: the single source the
  * app table derives from; never arithmetic on section IDs). Levi (dev 4,
- * owner 2026-09-28) is a synth: Synths = 303A/303B/Levi, Drums = 808/909. */
+ * owner 2026-09-28) has its own tab (owner photo verdict). */
 static const uint8_t RI_TAB_VOICE[RI_VIS_MAX] = {
     RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909, RI_SEC_LEVI
 };
@@ -18,8 +18,9 @@ static const uint8_t RI_TAB_PAT[RI_VIS_MAX] = {
 
 /* Tab membership is explicit (device lists, not ranges: Levi breaks
  * contiguity at dev 4). */
-static const uint8_t RI_TAB_SYNTH_DEVS[] = { 0u, 1u, 4u };
+static const uint8_t RI_TAB_SYNTH_DEVS[] = { 0u, 1u };
 static const uint8_t RI_TAB_DRUMS_DEVS[] = { 2u, 3u };
+static const uint8_t RI_TAB_LEVI_DEVS[] = { 4u };
 
 const char *ri_tab_title(uint32_t group) {
     if (group >= RI_TAB_COUNT)
@@ -39,6 +40,9 @@ uint32_t ri_tab_devices(uint32_t group, const struct RIVisSet *vis,
     } else if (group == RI_TAB_DRUMS) {
         devs = RI_TAB_DRUMS_DEVS;
         ndev = (uint32_t)(sizeof RI_TAB_DRUMS_DEVS / sizeof RI_TAB_DRUMS_DEVS[0]);
+    } else if (group == RI_TAB_LEVI) {
+        devs = RI_TAB_LEVI_DEVS;
+        ndev = (uint32_t)(sizeof RI_TAB_LEVI_DEVS / sizeof RI_TAB_LEVI_DEVS[0]);
     } else {
         return 0u;
     }

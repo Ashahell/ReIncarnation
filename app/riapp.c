@@ -899,7 +899,7 @@ static uint32_t dev_tab(uint32_t dev) {
     struct RITabDev t[5];
     uint32_t g, i, n;
     ri_vis_init(&all);
-    for (g = RI_TAB_SYNTH; g <= RI_TAB_DRUMS; g++) {
+    for (g = 0u; g < RI_TAB_COUNT; g++) {
         n = ri_tab_devices(g, &all, t, 5u);
         for (i = 0u; i < n; i++)
             if (t[i].device == dev)
@@ -909,8 +909,8 @@ static uint32_t dev_tab(uint32_t dev) {
 }
 
 /* Rail follows the Register (owner 2026-09-28): Synths shows the synth
- * power buttons, Drums the drum machines; Mix and FX serve every device,
- * so they show all five. */
+ * power buttons, Drums the drum machines, Levi its own chip; Mix and FX
+ * serve every device, so they show all five. */
 static void rail_for_tab(void) {
     static int shown[5] = { -1, -1, -1, -1, -1 };
     IPTR page = 0;
@@ -1186,7 +1186,7 @@ int main(int argc, char **argv) {
          * the device rail (always visible), then the Register; device
          * rows follow the visible set through the t98 model. */
         static const char *tab_titles[RI_TAB_COUNT + 1u];
-        Object *synth_page, *drums_page, *mix_page, *fx_page, *rail, *reg;
+        Object *synth_page, *drums_page, *levi_page, *mix_page, *fx_page, *rail, *reg;
         uint32_t g, r, nrows;
         uint32_t rowdev[3];
         Object *rowobj[3];
@@ -1202,6 +1202,9 @@ int main(int argc, char **argv) {
         drums_page = tab_device_page(RI_TAB_DRUMS, &s_vis, rowdev, rowobj, 2u, &nrows);
         for (r = 0u; r < nrows; r++)
             s_devrow[rowdev[r]] = rowobj[r];
+        levi_page = tab_device_page(RI_TAB_LEVI, &s_vis, rowdev, rowobj, 1u, &nrows);
+        for (r = 0u; r < nrows; r++)
+            s_devrow[rowdev[r]] = rowobj[r];
         {
             Object *mx[5];
             for (r = 0u; r < 5u; r++)
@@ -1210,10 +1213,11 @@ int main(int argc, char **argv) {
         }
         fx_page = rack_page(&s_canvas[C_FX0], 4u, 0);
         rail = tab_rail();
-        reg = (synth_page && drums_page && mix_page && fx_page && rail) ?
+        reg = (synth_page && drums_page && levi_page && mix_page && fx_page && rail) ?
             (Object *)MUI_NewObject(MUIC_Register,
                 MUIA_Register_Titles, (IPTR)tab_titles,
                 Child, (IPTR)synth_page, Child, (IPTR)drums_page,
+                Child, (IPTR)levi_page,
                 Child, (IPTR)mix_page, Child, (IPTR)fx_page, TAG_DONE) : 0;
         s_reg = reg;
         row = (reg && rail) ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
