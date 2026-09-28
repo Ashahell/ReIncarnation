@@ -12,6 +12,7 @@ MOD_sched="engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/s
 MOD_dsp303="engine/dsp/rb303.c engine/dsp/params.c"
 MOD_dsp808="engine/dsp/rb808.c"
 MOD_dsp909="engine/dsp/rb909.c project/rbnm.c"
+MOD_dsplevi="engine/dsp/levi.c"
 MOD_fx="engine/fx/fx.c engine/fx/route.c"
 MOD_mixer="engine/mixer/mixer.c engine/framework/ridevice.c"
 MOD_audio="audio_io/audio.c audio_io/backend_null.c platform/host/audio_null.c platform/host/fpu_host.c"
@@ -36,9 +37,9 @@ build_pcf() {
     echo "pcf: SKIP (table unverified)";
   fi }
 case "${1:-all}" in
-  kernels|engine|clock|sched|dsp303|dsp808|dsp909|fx|mixer|audio|gui|formats|core|draw) compile_list "$(eval echo \$MOD_$1)" ;;
+  kernels|engine|clock|sched|dsp303|dsp808|dsp909|dsplevi|fx|mixer|audio|gui|formats|core|draw) compile_list "$(eval echo \$MOD_$1)" ;;
   pcf) build_pcf strict ;;
-  all) for t in kernels engine clock sched formats dsp303 dsp808 dsp909 fx mixer audio gui core draw; do "$0" $t; done; build_pcf skip ;;
+  all) for t in kernels engine clock sched formats dsp303 dsp808 dsp909 dsplevi fx mixer audio gui core draw; do "$0" $t; done; build_pcf skip ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
     # -lpng: the T7 host image backend (platform/host/image_host.c); present
     # on dev/CI Linux alongside the mkskin toolchain dep. All other tests

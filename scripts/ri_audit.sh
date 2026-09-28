@@ -180,6 +180,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t99_pack_bind_lifetime >/dev/null || 
 bash "$ROOT/scripts/ri_build_host.sh" test t100_activation >/dev/null || { echo "FAIL: t100_activation (activation sections)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t101_levi_pattern >/dev/null || { echo "FAIL: t101_levi_pattern (levi chord steps)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t102_levi_emit >/dev/null || { echo "FAIL: t102_levi_emit (levi emission)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t103_levi_dsp >/dev/null || { echo "FAIL: t103_levi_dsp (levi voices)"; exit 1; }
 grep '^  CF9=' "$ROOT/scripts/ri_build_aros.sh" | grep -q '\-O0' || { echo "FAIL: RIAPP must build -O0 (owner 2026-09-28 debug-only rule)"; exit 1; }
 echo "-- portability T8: headless core runs without AROS (WAV; PNG after T2) --"
 gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I"$ROOT" -o "$OUT/headless" "$ROOT/platform/host/main_headless.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: headless build"; exit 1; }
