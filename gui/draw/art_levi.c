@@ -1,7 +1,11 @@
 /* art_levi.c — Levi voice canvas background (owner 2026-09-28).
- * Dark slate panel, 303-position piano keyboard block, 909-style step
- * number plates, lane option numerals. Control states (LEDs, knob
- * faces, step fills) render generically from the geometry + UI state.
+ * Hardware-family front panel (photo verdict): near-black own panel,
+ * amber section title bars with steel divider rules (909-bar idiom),
+ * 303-position piano keyboard block, 909-style step number plates.
+ * Option numerals render inside their boxes via art_section (909-plate
+ * idiom). Control states (LEDs, knob faces, step fills) render
+ * generically from the geometry + UI state. Own words only: no ASM
+ * marks, no Leviasynth wordmark, house font path.
  */
 #include "gui/draw/art.h"
 
@@ -10,12 +14,46 @@
 
 static const int black[13] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0 };
 
+/* Top-band section title bars: hardware block order left to right. */
+static const struct { int x0, x1; const char *t; } LEVI_BAR[] = {
+    { 40, 350, "MODULE" },
+    { 360, 640, "OSC" },
+    { 660, 990, "ALGORITHM" },
+    { 1010, 1220, "DIGITAL FILTER" },
+};
+
 void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z) {
     uint32_t i, j;
     char n[3];
-    static const char *const lanes[6] = { "1", "2", "3", "4", "5", "6" };
 #define PX(q) ri_geo_px((q), z)
     ri_art_rect(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_LEVI_PANEL);
+    /* Section title bars (909-bar idiom, hardware block order). */
+    {
+        static const struct { int x0, x1; const char *t; } bars[] = {
+            { 40, 350, "MODULE" }, { 360, 640, "OSC" }, { 660, 990, "ALGORITHM" },
+            { 1010, 1220, "DIGITAL FILTER" },
+        };
+        uint32_t b;
+        for (b = 0u; b < sizeof(bars) / sizeof(bars[0]); b++) {
+            ri_art_panel(dl, ox + PX(bars[b].x0), oy + PX(26), ox + PX(bars[b].x1), oy + PX(56),
+                ri_art_rgb(C_LEVI_RULE), 0);
+            ri_art_text_c(dl, ox + PX((bars[b].x0 + bars[b].x1) / 2), oy + PX(41), bars[b].t,
+                C_LEVI_HEAD);
+        }
+        ri_art_text_c(dl, ox + PX(1430), oy + PX(41), "LEVI", C_LEVI_HEAD);
+        ri_art_line(dl, ox + PX(350), oy + PX(56), ox + PX(350), oy + PX(190), C_LEVI_RULE);
+        ri_art_line(dl, ox + PX(650), oy + PX(56), ox + PX(650), oy + PX(190), C_LEVI_RULE);
+        ri_art_line(dl, ox + PX(1000), oy + PX(56), ox + PX(1000), oy + PX(190), C_LEVI_RULE);
+    }
+    for (i = 0; i < sizeof(LEVI_BAR) / sizeof(LEVI_BAR[0]); i++) {
+        int x0 = LEVI_BAR[i].x0, x1 = LEVI_BAR[i].x1;
+        ri_art_panel(dl, ox + PX(x0), oy + PX(26), ox + PX(x1), oy + PX(56), ri_art_rgb(C_LEVI_RULE), 0);
+        ri_art_text_c(dl, ox + PX((x0 + x1) / 2), oy + PX(41), LEVI_BAR[i].t, C_LEVI_HEAD);
+    }
+    ri_art_text_c(dl, ox + PX(1430), oy + PX(41), "LEVI", C_LEVI_HEAD);
+    ri_art_line(dl, ox + PX(350), oy + PX(56), ox + PX(350), oy + PX(190), C_LEVI_RULE);
+    ri_art_line(dl, ox + PX(650), oy + PX(56), ox + PX(650), oy + PX(190), C_LEVI_RULE);
+    ri_art_line(dl, ox + PX(1000), oy + PX(56), ox + PX(1000), oy + PX(190), C_LEVI_RULE);
     /* Piano keyboard block (303 block geometry, Levi registry ids). */
     ri_art_rect(dl, ox + PX(176), oy + PX(200), ox + PX(858), oy + PX(435), C_BLACK);
     for (i = 0; i < 13; i++)
@@ -38,30 +76,9 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
         ri_art_rect(dl, ox + PX(cx - 28), oy + PX(cy + 38), ox + PX(cx + 28), oy + PX(cy + 62), C_BLACK);
         ri_art_text_c(dl, ox + PX(cx), oy + PX(cy + 50), n, C_CREAM);
     }
-    /* Lane option numerals above the select row. */
-    for (i = 0; i < 6; i++)
-        ri_art_text_c(dl, ox + PX(480 + 70 * (int)i), oy + PX(60), lanes[i], C_CREAM);
-    /* Algo block: value numerals near each option row (lane idiom).
-     * Rows sit right of the step plates; labels are geometry legends. */
-    for (i = 0; i < 8; i++) {
-        n[0] = (char)('0' + i);
-        n[1] = 0;
-        ri_art_text_c(dl, ox + PX(950 + 62 * (int)i), oy + PX(123), n, C_CREAM);
-        ri_art_text_c(dl, ox + PX(950 + 62 * (int)i), oy + PX(394), n, C_CREAM);
-        ri_art_text_c(dl, ox + PX(950 + 62 * (int)i), oy + PX(434), n, C_CREAM);
-    }
-    for (i = 0; i < 7; i++) {
-        n[0] = (char)('0' + i);
-        n[1] = 0;
-        ri_art_text_c(dl, ox + PX(450 + 62 * (int)i), oy + PX(162), n, C_CREAM);
-    }
-    for (i = 0; i < 4; i++) {
-        n[0] = (char)('0' + i);
-        n[1] = 0;
-        ri_art_text_c(dl, ox + PX(450 + 62 * (int)i), oy + PX(188), n, C_CREAM);
-    }
     /* Bottom voice-strip block titles (hardware order). */
-    ri_art_text_c(dl, ox + PX(190), oy + PX(452), "ANALOG", C_CREAM);
-    ri_art_text_c(dl, ox + PX(600), oy + PX(452), "ENVELOPE", C_CREAM);
+    ri_art_text_c(dl, ox + PX(1095), oy + PX(452), "ANALOG FILTER", C_LEVI_HEAD);
+    ri_art_text_c(dl, ox + PX(1300), oy + PX(452), "ENVELOPE", C_LEVI_HEAD);
+    ri_art_line(dl, ox + PX(1165), oy + PX(460), ox + PX(1165), oy + PX(540), C_LEVI_RULE);
 #undef PX
 }
