@@ -8,7 +8,7 @@
 #define RI_VISDEV_H
 #include <stdint.h>
 
-#define RI_VIS_MAX 4u
+#define RI_VIS_MAX 5u /* 303A 303B 808 909 Levi */
 
 struct RIVisSet {
     uint8_t vis[RI_VIS_MAX]; /* 0 hidden, 1 shown */

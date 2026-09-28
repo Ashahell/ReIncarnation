@@ -11,28 +11,29 @@
 
 int main(void) {
     struct RIVisSet s;
-    const char *titles[4] = { "", "", "", "" };
+    const char *titles[5] = { "", "", "", "", "" };
     ri_vis_init(&s);
-    RI_ASSERT(ri_vis_count(&s) == 4u, "all shown");
-    RI_ASSERT(ri_vis_get(&s, 0u) == 1 && ri_vis_get(&s, 3u) == 1, "get");
+    RI_ASSERT(ri_vis_count(&s) == 5u, "all shown");
+    RI_ASSERT(ri_vis_get(&s, 0u) == 1 && ri_vis_get(&s, 4u) == 1, "get");
     RI_ASSERT(ri_vis_set(&s, 1u, 0) == 0, "hide rc");
     RI_ASSERT(ri_vis_get(&s, 1u) == 0, "hidden");
-    RI_ASSERT(ri_vis_count(&s) == 3u, "count 3");
-    RI_ASSERT(ri_vis_set(&s, 1u, 1) == 0, "show rc");
     RI_ASSERT(ri_vis_count(&s) == 4u, "count 4");
-    RI_ASSERT(ri_vis_set(&s, 4u, 0) == 2, "bad dev");
+    RI_ASSERT(ri_vis_set(&s, 1u, 1) == 0, "show rc");
+    RI_ASSERT(ri_vis_count(&s) == 5u, "count 5");
+    RI_ASSERT(ri_vis_set(&s, 5u, 0) == 2, "bad dev");
     RI_ASSERT(ri_vis_set(0, 0u, 0) == 2, "null set");
     RI_ASSERT(ri_vis_get(&s, 9u) == -1, "bad get");
     RI_ASSERT(ri_vis_get(0, 0u) == -1, "null get");
     RI_ASSERT(ri_vis_count(0) == 0u, "null count");
-    RI_ASSERT(ri_vis_titles(&s, titles, 4u) == 4u, "titles n");
+    RI_ASSERT(ri_vis_titles(&s, titles, 5u) == 5u, "titles n");
     RI_ASSERT(!strcmp(titles[0], "303A") && !strcmp(titles[1], "303B") &&
-        !strcmp(titles[2], "808") && !strcmp(titles[3], "909"), "titles");
+        !strcmp(titles[2], "808") && !strcmp(titles[3], "909") &&
+        !strcmp(titles[4], "Levi"), "titles");
     ri_vis_set(&s, 2u, 0);
-    RI_ASSERT(ri_vis_titles(&s, titles, 4u) == 3u, "titles skip");
+    RI_ASSERT(ri_vis_titles(&s, titles, 5u) == 4u, "titles skip");
     RI_ASSERT(!strcmp(titles[2], "909"), "titles order");
     RI_ASSERT(ri_vis_titles(&s, titles, 0u) == 0u, "titles nocap");
-    RI_ASSERT(ri_vis_titles(0, titles, 4u) == 0u, "titles null");
+    RI_ASSERT(ri_vis_titles(0, titles, 5u) == 0u, "titles null");
     ri_vis_init(0);
     RI_RESULT("visdev");
 }

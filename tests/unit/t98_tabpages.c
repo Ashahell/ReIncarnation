@@ -13,26 +13,28 @@
 
 int main(void) {
     struct RIVisSet vis;
-    struct RITabDev rows[4];
+    struct RITabDev rows[5];
     ri_vis_init(&vis);
     RI_ASSERT(ri_tab_title(RI_TAB_SYNTH) && !strcmp(ri_tab_title(RI_TAB_SYNTH), "Synths"), "t synth");
     RI_ASSERT(ri_tab_title(RI_TAB_DRUMS) && !strcmp(ri_tab_title(RI_TAB_DRUMS), "Drums"), "t drums");
     RI_ASSERT(ri_tab_title(RI_TAB_MIX) && !strcmp(ri_tab_title(RI_TAB_MIX), "Mix"), "t mix");
     RI_ASSERT(ri_tab_title(RI_TAB_FX) && !strcmp(ri_tab_title(RI_TAB_FX), "FX"), "t fx");
     RI_ASSERT(ri_tab_title(4u) == 0, "t bad");
-    RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, &vis, rows, 4u) == 2u, "synth n");
+    RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, &vis, rows, 5u) == 3u, "synth n");
     RI_ASSERT(rows[0].device == 0u && rows[0].voice_sec == RI_SEC_SYNTH1 &&
         rows[0].pat_sec == RI_SEC_PAT_SYNTH1, "synth row0");
     RI_ASSERT(rows[1].device == 1u && rows[1].voice_sec == RI_SEC_SYNTH2 &&
         rows[1].pat_sec == RI_SEC_PAT_SYNTH2, "synth row1");
-    RI_ASSERT(ri_tab_devices(RI_TAB_DRUMS, &vis, rows, 4u) == 2u, "drums n");
+    RI_ASSERT(rows[2].device == 4u && rows[2].voice_sec == RI_SEC_LEVI &&
+        rows[2].pat_sec == RI_SEC_PAT_LEVI, "synth row2");
+    RI_ASSERT(ri_tab_devices(RI_TAB_DRUMS, &vis, rows, 5u) == 2u, "drums n");
     RI_ASSERT(rows[0].device == 2u && rows[0].voice_sec == RI_SEC_808 &&
         rows[0].pat_sec == RI_SEC_PAT_808, "drums row0");
     RI_ASSERT(rows[1].device == 3u && rows[1].voice_sec == RI_SEC_909 &&
         rows[1].pat_sec == RI_SEC_PAT_909, "drums row1");
     ri_vis_set(&vis, 1u, 0);
-    RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, &vis, rows, 4u) == 1u, "hide");
-    RI_ASSERT(rows[0].device == 0u, "hide order");
+    RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, &vis, rows, 5u) == 2u, "hide");
+    RI_ASSERT(rows[0].device == 0u && rows[1].device == 4u, "hide order");
     ri_vis_set(&vis, 1u, 1);
     RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, &vis, rows, 1u) == 1u, "cap");
     RI_ASSERT(ri_tab_devices(RI_TAB_MIX, &vis, rows, 4u) == 0u, "mix frame");

@@ -112,29 +112,31 @@ extern struct DosLibrary *DOSBase;
 #define RIAPP_PPQ 96u
 #define RIAPP_TICKS_BAR (4u * RIAPP_PPQ)
 
-/* Panel canvases: transport (frame, always visible) + 4 pattern sections
- * + 4 voice canvases + mixer board + 4 FX units, grouped into the
- * Register tabs Synths/Drums/Mix/FX (owner 2026-09-27). */
+/* Panel canvases: transport (frame, always visible) + 5 pattern sections
+ * + 5 voice canvases + mixer board + 4 FX units, grouped into the
+ * Register tabs Synths/Drums/Mix/FX (owner 2026-09-27; Levi 2026-09-28).
+ * Levi has no mixer strip yet (MIX_LEVI is the next slice) and no
+ * keyboard-focus slot (s_panel stays 4-focus; mouse path is direct). */
 enum {
-    C_TR, C_P0, C_P1, C_P2, C_P3, C_303A, C_303B, C_808, C_909, C_MIX,
+    C_TR, C_P0, C_P1, C_P2, C_P3, C_P4, C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX,
     C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_N
 };
 static const ULONG c_sections[C_N] = {
     RI_SEC_TRANSPORT,
-    RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909,
-    RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909, RI_SEC_MIX_808,
+    RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909, RI_SEC_PAT_LEVI,
+    RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909, RI_SEC_LEVI, RI_SEC_MIX_808,
     RI_SEC_PCF, RI_SEC_DELAY, RI_SEC_DIST, RI_SEC_COMP,
     RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_909
 };
 /* Pattern instance (bank + track slot) behind each PAT/voice canvas. */
 static const uint32_t c_pat_instance[C_N] = {
-    0u, 0u, 1u, 2u, 3u, 0u, 1u, 2u, 3u, 2u, 0u, 0u, 0u, 0u, 0u, 1u, 3u
+    0u, 0u, 1u, 2u, 3u, 4u, 0u, 1u, 2u, 3u, 4u, 2u, 0u, 0u, 0u, 0u, 0u, 1u, 3u
 };
 /* Mix tab (owner 2026-09-28): one strip per device, device order; C_MIX
  * (the 808 strip) owns the shared board, the others bind to it. */
 static const int c_mix_canvas[4] = { C_MXA, C_MXB, C_MIX, C_MX9 };
 /* Voice canvas per classic device (tab rows follow this through t98). */
-static const int c_voice_canvas[4] = { C_303A, C_303B, C_808, C_909 };
+static const int c_voice_canvas[5] = { C_303A, C_303B, C_808, C_909, C_LEVI };
 
 static struct RIAppCore s_core; /* portable session wiring (T8) */
 static float s_fl[RIAPP_FRAMES], s_fr[RIAPP_FRAMES];
@@ -152,10 +154,10 @@ static const struct RSectionDiag *s_dg[C_N];
  * once per render block). Mixer strips stay (mute there); sync shadows
  * follow every canvas regardless of ShowMe. */
 static struct RIVisSet s_vis;
-static Object *s_devrow[4];
-static Object *s_devbtn[4];
-static Object *s_devled[4];
-static Object *s_mixslot[4]; /* Mix tab strip per device (follows s_vis) */
+static Object *s_devrow[5];
+static Object *s_devbtn[5];
+static Object *s_devled[5];
+static Object *s_mixslot[5]; /* Mix tab strip per device (follows s_vis) */
 static Object *s_reg;        /* the Register: rail follows its active page */
 /* Rack furniture (owner 2026-09-28, second pass): the Mix/FX bays and the
  * device rail are brushed dark metal (RBay, a Group that paints its own
@@ -179,7 +181,7 @@ static struct MUI_CustomClass *s_art_mcc;
 static struct MUI_CustomClass *s_bay_mcc;
 static struct ri_dcmd s_art_back[16384];
 static char s_art_spool[512];
-static char s_devlbl[4][16];
+static char s_devlbl[5][16];
 #define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
 #define RIAPP_ID_TAB 1010u  /* Register page changed: rail follows */
 
@@ -191,6 +193,8 @@ static struct RI303Row s_303_row[2][16];
 static uint8_t s_303_slot[2];
 static struct RIPattern s_drum_pat[2]; /* 808/909 canvas-pattern shadow */
 static uint8_t s_drum_slot[2];
+static struct RIPattern s_levi_pat; /* Levi voice-canvas shadow (bank 4 slot) */
+static uint8_t s_levi_slot;
 static IPTR s_changes[C_N];
 static int s_meter_shown[4];
 
@@ -407,6 +411,13 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
             s_drum_pat[v] = b->pat[sel];
             s_drum_slot[v] = (uint8_t)sel;
             ri_rsection_refresh(s_canvas[c_voice_canvas[2u + v]]);
+        } else if (c == C_P4) {
+            /* Levi shows the selected slot: refresh the chord canvas. */
+            struct RISectUI *uv = s_ui[C_LEVI];
+            uv->u.slevi.pat = b->pat[sel];
+            s_levi_pat = b->pat[sel];
+            s_levi_slot = (uint8_t)sel;
+            ri_rsection_refresh(s_canvas[C_LEVI]);
         }
     }
     /* Sticky live selection (E1 pattern mode): re-assert the panel selection
@@ -482,16 +493,41 @@ static void sync_drumv(uint32_t v) {
     }
 }
 
+/* Levi chord steps -> the GUI-side bank-4 slot (16 steps x 6 lanes).
+ * On/off + pitch both travel: a canvas edit and the bank slot agree
+ * step for step, and the shadow makes the sync edge-triggered. */
+static void sync_leviv(void) {
+    struct RISectUI *u = s_ui[C_LEVI];
+    struct RIPattern *cp = &u->u.slevi.pat;
+    struct RIPattern *bp = &ri_core_bank(&s_core, 4u)->pat[s_levi_slot];
+    uint32_t step, lane;
+    for (step = 0u; step < 16u; step++) {
+        for (lane = 0u; lane < RI_LEVI_LANES; lane++) {
+            int con = ri_levi_on(cp, step, lane);
+            int son = ri_levi_on(&s_levi_pat, step, lane);
+            uint32_t cn = ri_levi_get(cp, step, lane);
+            uint32_t sn = ri_levi_get(&s_levi_pat, step, lane);
+            if (con != son || (con && cn != sn)) {
+                s_levi_pat.row.levi[step].on = cp->row.levi[step].on;
+                s_levi_pat.row.levi[step].note[lane] = cp->row.levi[step].note[lane];
+                ri_levi_set(bp, step, lane, (uint8_t)cn, con);
+                evlog("LSTEP", "slot=%d step=%d lane=%d on=%d note=%d",
+                    s_levi_slot, step, lane, con, cn);
+            }
+        }
+    }
+}
+
 /* Sounding value controls (mouse incl. drags and arrow repeats report the
  * hit control): exactly one control-plane message when the lane key is
  * nonzero (the bridge owns that law, t83). Transport and PAT canvases
  * travel their state paths above. */
 static void sync_values(void) {
-    static const int val_canvas[12] = {
-        C_303A, C_303B, C_808, C_909, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9
+    static const int val_canvas[13] = {
+        C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9
     };
     int i;
-    for (i = 0; i < 12; i++) {
+    for (i = 0; i < 13; i++) {
         int c = val_canvas[i];
         IPTR ch = 0;
         GetAttr(MUIA_RSection_Changes, s_canvas[c], &ch);
@@ -559,12 +595,12 @@ static Object *canvas_for_section(ULONG sec) {
  * Row objects (by device) go through devs/objs for ShowMe toggling. */
 static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
     uint32_t *devs, Object **objs, uint32_t cap, uint32_t *n_out) {
-    struct RITabDev rows[4];
+    struct RITabDev rows[5];
     uint32_t n, r;
     Object *page;
     if (!vis)
         return 0;
-    n = ri_tab_devices(group, vis, rows, 4u);
+    n = ri_tab_devices(group, vis, rows, 5u);
     page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2, TAG_DONE);
     if (!page)
         return 0;
@@ -850,7 +886,7 @@ static Object *rack_page(Object *const *mods, uint32_t n, Object **slots) {
  * itself when the state changes). */
 static void rail_leds_show(void) {
     uint32_t d;
-    for (d = 0u; d < 4u; d++)
+    for (d = 0u; d < 5u; d++)
         if (s_devled[d])
             SetAttrs(s_devled[d], MUIA_RArt_On, (IPTR)(ri_vis_get(&s_vis, d) > 0 ? TRUE : FALSE), TAG_DONE);
 }
@@ -859,11 +895,11 @@ static void rail_leds_show(void) {
  * RI_TAB_COUNT when none. */
 static uint32_t dev_tab(uint32_t dev) {
     struct RIVisSet all;
-    struct RITabDev t[4];
+    struct RITabDev t[5];
     uint32_t g, i, n;
     ri_vis_init(&all);
     for (g = RI_TAB_SYNTH; g <= RI_TAB_DRUMS; g++) {
-        n = ri_tab_devices(g, &all, t, 4u);
+        n = ri_tab_devices(g, &all, t, 5u);
         for (i = 0u; i < n; i++)
             if (t[i].device == dev)
                 return g;
@@ -873,15 +909,15 @@ static uint32_t dev_tab(uint32_t dev) {
 
 /* Rail follows the Register (owner 2026-09-28): Synths shows the synth
  * power buttons, Drums the drum machines; Mix and FX serve every device,
- * so they show all four. */
+ * so they show all five. */
 static void rail_for_tab(void) {
-    static int shown[4] = { -1, -1, -1, -1 };
+    static int shown[5] = { -1, -1, -1, -1, -1 };
     IPTR page = 0;
     uint32_t d;
     if (!s_reg)
         return;
     GetAttr(MUIA_Group_ActivePage, s_reg, &page);
-    for (d = 0u; d < 4u; d++) {
+    for (d = 0u; d < 5u; d++) {
         int show = (page == RI_TAB_MIX || page == RI_TAB_FX) ? 1 : dev_tab(d) == (uint32_t)page;
         if (s_devbtn[d] && show != shown[d]) {
             SetAttrs(s_devbtn[d], MUIA_ShowMe, show ? TRUE : FALSE, TAG_DONE);
@@ -907,7 +943,7 @@ static Object *tab_rail(void) {
     rail = bay_group(tags);
     if (!rail)
         return 0;
-    for (d = 0u; d < 4u; d++) {
+    for (d = 0u; d < 5u; d++) {
         const struct RIPanelDesc *pd = ri_panel_get(d);
         const char *nm = (pd && pd->name) ? pd->name : "?";
         Object *btn;
@@ -941,7 +977,7 @@ static Object *tab_rail(void) {
 static void dev_visibility_toggle(uint32_t dev) {
     int show;
     uint32_t d, mask = 0u;
-    if (dev >= 4u || !s_devbtn[dev])
+    if (dev >= 5u || !s_devbtn[dev])
         return;
     show = !ri_vis_get(&s_vis, dev);
     ri_vis_set(&s_vis, dev, show);
@@ -950,7 +986,8 @@ static void dev_visibility_toggle(uint32_t dev) {
         SetAttrs(s_devrow[dev], MUIA_ShowMe, show ? TRUE : FALSE, TAG_DONE);
     if (s_mixslot[dev])     /* Mix tab: a strip per active device */
         SetAttrs(s_mixslot[dev], MUIA_ShowMe, show ? TRUE : FALSE, TAG_DONE);
-    for (d = 0u; d < 4u; d++)
+    /* Bit law (t100): device d owns bit d; dev 4 is RI_ENGINE_SLEVI. */
+    for (d = 0u; d < 5u; d++)
         if (ri_vis_get(&s_vis, d) > 0)
             mask |= (uint32_t)RI_ENGINE_S303A << d;
     ri_live_set_sections(&s_core.session, mask);
@@ -991,7 +1028,7 @@ int main(int argc, char **argv) {
         rate = (float)s_lv.mix_freq; /* E0 (G9.0): the session runs at the device rate */
     }
     ri_core_init(&s_core, RIAPP_PPQ, rate, 140.0f,
-        RI_ENGINE_S303A | RI_ENGINE_S303B | RI_ENGINE_S808 | RI_ENGINE_S909);
+        RI_ENGINE_S303A | RI_ENGINE_S303B | RI_ENGINE_S808 | RI_ENGINE_S909 | RI_ENGINE_SLEVI);
     { /* 909 sample pack (owner 2026-09-27): bind idle, before the task runs. */
         char err[128];
         int bound;
@@ -1040,6 +1077,8 @@ int main(int argc, char **argv) {
             s_panel.tr = u;
         else if (i >= C_P0 && i <= C_P3)
             s_panel.pat[i - C_P0] = u;
+        /* C_P4/C_LEVI stay out of s_panel (4-focus keyboard model; the
+         * MIDI slice owns focus 5; mouse + rail paths use s_ui direct). */
         else if (i == C_303A)
             s_panel.synth[0] = u;
         else if (i == C_303B)
@@ -1076,7 +1115,11 @@ int main(int argc, char **argv) {
     s_ui[C_909]->u.s909.pat = s_core.banks[3].pat[0];
     s_drum_pat[1] = s_core.banks[3].pat[0];
     s_drum_slot[0] = s_drum_slot[1] = 0u;
-    for (i = C_P0; i <= C_P3; i++) {
+    /* Levi mirrors bank 4 slot 0 (silent until programmed, 303B precedent). */
+    s_ui[C_LEVI]->u.slevi.pat = s_core.banks[4].pat[0];
+    s_levi_pat = s_core.banks[4].pat[0];
+    s_levi_slot = 0u;
+    for (i = C_P0; i <= C_P4; i++) {
         int k;
         s_pat_bank[i] = s_pat_pat[i] = s_pat_off[i] = s_pat_shuf[i] = 0u;
         for (k = 0; k < 32; k++)
@@ -1132,15 +1175,15 @@ int main(int argc, char **argv) {
         static const char *tab_titles[RI_TAB_COUNT + 1u];
         Object *synth_page, *drums_page, *mix_page, *fx_page, *rail, *reg;
         uint32_t g, r, nrows;
-        uint32_t rowdev[2];
-        Object *rowobj[2];
+        uint32_t rowdev[3];
+        Object *rowobj[3];
         ri_vis_init(&s_vis);
         for (g = 0u; g < RI_TAB_COUNT; g++)
             tab_titles[g] = ri_tab_title(g);
         tab_titles[RI_TAB_COUNT] = 0;
         for (r = 0u; r < 4u; r++)
             s_devrow[r] = 0;
-        synth_page = tab_device_page(RI_TAB_SYNTH, &s_vis, rowdev, rowobj, 2u, &nrows);
+        synth_page = tab_device_page(RI_TAB_SYNTH, &s_vis, rowdev, rowobj, 3u, &nrows);
         for (r = 0u; r < nrows; r++)
             s_devrow[rowdev[r]] = rowobj[r];
         drums_page = tab_device_page(RI_TAB_DRUMS, &s_vis, rowdev, rowobj, 2u, &nrows);
@@ -1255,12 +1298,13 @@ int main(int argc, char **argv) {
             have_cursor = 1;
         }
         sync_transport();
-        for (i = C_P0; i <= C_P3; i++)
+        for (i = C_P0; i <= C_P4; i++)
             sync_pat(i, have_cursor ? cursor : 0u);
         sync_303v(0u);
         sync_303v(1u);
         sync_drumv(0u);
         sync_drumv(1u);
+        sync_leviv();
         sync_values();
         meter_round(s_live ? s_lv.mix_freq : 48000u);
         /* Wedge diagnostic (2026-09-27 Dell freeze under interaction):
