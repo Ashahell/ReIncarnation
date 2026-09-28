@@ -52,6 +52,12 @@
    909 decay (0x0902) range 0..127 default 64 — sample decay scale.
    909 flamres (0x0903) range 0..127 default 64 — flam response.
 
+ Levi — FM voice bank (base 0x0E00, device 4, 6 voices)
+   Levi cutoff (0x0E00) range 0..127 default 96 — lowpass cutoff.
+   Levi reso (0x0E01) range 0..127 default 32 — filter resonance.
+   Levi mode (0x0E02) range 0..1 default 0 — FM/PM modulator role.
+   Levi ratio (0x0E03) range 0..127 default 32 — modulator ratio.
+
  Mixer — 4 buses + master (base 0x0B00, device 4)
    mixer bus1 (0x0B00) range 0..127 default 127 — bus 1 fader.
    mixer bus2 (0x0B01) range 0..127 default 127 — bus 2 fader.

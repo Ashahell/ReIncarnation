@@ -72,7 +72,7 @@ int main(void) {
     RI_ASSERT(ri_panel_ctl_send(&q, (RI_SEC_909 << 8) | 3u, 64) == 1, "attack none");
     RI_ASSERT(ri_panel_ctl_send(&q, (RI_SEC_TRANSPORT << 8) | 4u, 1) == 1, "play none");
     RI_ASSERT(ri_panel_ctl_send(&q, (RI_SEC_PAT_SYNTH1 << 8) | 2u, 3) == 1, "pat none");
-    RI_ASSERT(ri_panel_ctl_send(&q, (18u << 8) | 0u, 64) == 1, "unknown none");
+    RI_ASSERT(ri_panel_ctl_send(&q, (RI_SEC_COUNT << 8) | 0u, 64) == 1, "unknown none");
     RI_ASSERT(ri_ctl_pending(&q) == before, "unbound queues zero");
     RI_ASSERT(ri_panel_ctl_send(0, (RI_SEC_SYNTH1 << 8) | 2u, 64) == 2, "null plane");
 

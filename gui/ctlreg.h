@@ -30,7 +30,9 @@
 #define RI_SEC_PAT_SYNTH2 15u
 #define RI_SEC_PAT_808 16u
 #define RI_SEC_PAT_909 17u
-#define RI_SEC_COUNT 18u
+#define RI_SEC_LEVI 18u
+#define RI_SEC_PAT_LEVI 19u
+#define RI_SEC_COUNT 20u
 
 /* Widget kinds. Only KNOB/FADER/SWITCH/SELECTOR are value controls that
  * can carry a MIDI controller or Song automation. */
@@ -57,6 +59,7 @@
 #define RI_BIND_INSERT 9u  /* ri_engine_assign_insert(engine_id = unit, voice = owner) */
 #define RI_BIND_TEMPO 10u  /* ri_engine_set_tempo */
 #define RI_BIND_LEVEL 11u  /* ri_engine_set_level(voice = route section) */
+#define RI_BIND_LEVI 12u   /* levi_set_param_ui on every voice (section-wide) */
 
 #define RI_MIDI_CC_NONE 0xFFu
 

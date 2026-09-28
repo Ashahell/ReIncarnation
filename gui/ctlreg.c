@@ -24,6 +24,7 @@
 #include "engine/dsp/rb303.h"
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
+#include "engine/dsp/levi.h"
 #include "engine/fx/fx.h"
 #include "engine/fx/route.h"
 
@@ -276,6 +277,15 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(PAT_909, 2, SELECTOR, "", "Pattern", 0, 7, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
     R(PAT_909, 3, DISPLAY, "", "Length", 1, 16, 16, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(PAT_909, 4, SWITCH, "", "Shuffle", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 0, KNOB, "", "Cutoff", 0, 127, 96, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_CUTOFF, 0),
+    R(LEVI, 1, KNOB, "", "Reso", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RESO, 0),
+    R(LEVI, 2, SELECTOR, "", "Mode", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MODE, 0),
+    R(LEVI, 3, KNOB, "", "Ratio", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RATIO, 0),
+    R(PAT_LEVI, 0, SWITCH, "", "Section Off", 0, 1, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
+    R(PAT_LEVI, 1, SELECTOR, "", "Bank", 0, 3, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
+    R(PAT_LEVI, 2, SELECTOR, "", "Pattern", 0, 7, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
+    R(PAT_LEVI, 3, DISPLAY, "", "Length", 1, 16, 16, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(PAT_LEVI, 4, SWITCH, "", "Shuffle", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
 };
 
 #define RI_CTLREG_N (uint32_t)(sizeof(RI_CTLREG) / sizeof(RI_CTLREG[0]))
@@ -284,7 +294,8 @@ static const char *const RI_SEC_NAMES[RI_SEC_COUNT] = {
     "Synth 1", "Synth 2", "808", "909",
     "Mixer Synth 1", "Mixer Synth 2", "Mixer 808", "Mixer 909",
     "Master", "PCF", "Delay", "Dist", "Comp", "Transport",
-    "Pattern Synth 1", "Pattern Synth 2", "Pattern 808", "Pattern 909"
+    "Pattern Synth 1", "Pattern Synth 2", "Pattern 808", "Pattern 909",
+    "Levi", "Pattern Levi"
 };
 
 uint32_t ri_ctlreg_count(void) {
@@ -388,7 +399,8 @@ uint32_t ri_ctlreg_help(uint16_t reg_id, int opt, char *buf, uint32_t cap) {
  * once shipped never changes meaning. */
 static const char *const RI_SEC_TOKENS[RI_SEC_COUNT] = {
     "303", 0, "808", "909", "mix-303a", "mix-303b", "mix-808", "mix-909", "master",
-    "pcf", "delay", "dist", "comp", "transport", "pat-303a", "pat-303b", "pat-808", "pat-909"
+    "pcf", "delay", "dist", "comp", "transport", "pat-303a", "pat-303b", "pat-808", "pat-909",
+    "levi", "pat-levi"
 };
 static const char *const RI_CK_TOKENS[9] = {
     "knob", "fader", "switch", "button", "led", "step", "selector", "display", "meter"
@@ -429,6 +441,7 @@ uint16_t ri_ctlreg_auto_id(const struct RICtlDef *d) {
     switch (d->bind) {
     case RI_BIND_303:
     case RI_BIND_FX:
+    case RI_BIND_LEVI:
         return d->engine_id;
     case RI_BIND_808V:
         return RI_AUTO_ID_808(d->engine_id, d->voice);

@@ -40,6 +40,7 @@ struct RIAutoPass {
 #define RI_AUTO_BLK_MIX 0x0B00u
 #define RI_AUTO_BLK_808 0x0C00u
 #define RI_AUTO_BLK_909 0x0D00u
+#define RI_AUTO_BLK_LEVI 0x0E00u /* section-wide voice params (owner 2026-09-28) */
 #define RI_AUTO_MIX_LEVEL 0u
 #define RI_AUTO_MIX_PAN 1u
 #define RI_AUTO_MIX_SEND 2u

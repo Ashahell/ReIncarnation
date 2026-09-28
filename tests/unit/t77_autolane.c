@@ -201,12 +201,15 @@ int main(void) {
     {RI_SEC_PAT_909,0}, /* Section Off [NONE 0] */
     {RI_SEC_PAT_909,1}, /* Bank [NONE 0] */
     {RI_SEC_PAT_909,2}, /* Pattern [NONE 0] */
+    {RI_SEC_PAT_LEVI,0}, /* Section Off [NONE 0] */
+    {RI_SEC_PAT_LEVI,1}, /* Bank [NONE 0] */
+    {RI_SEC_PAT_LEVI,2}, /* Pattern [NONE 0] */
         };
         {
             uint32_t nc = ri_ctlreg_count();
             uint32_t nq = (uint32_t)(sizeof UNREC / sizeof UNREC[0]);
             uint32_t k, q, mapped = 0u, listed = 0u;
-            RI_ASSERT(nq == 28u, "unrecordable census size %u", nq);
+            RI_ASSERT(nq == 31u, "unrecordable census size %u", nq);
             for (k = 0u; k < nc; k++) {
                 const struct RICtlDef *d = ri_ctlreg_at(k);
                 int found;
@@ -229,8 +232,8 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 98u, "mapped count %u", mapped);
-            RI_ASSERT(listed == 28u, "listed count %u", listed);
+            RI_ASSERT(mapped == 102u, "mapped count %u", mapped);
+            RI_ASSERT(listed == 31u, "listed count %u", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
                 for (key = 0u; key < 0x10000u; key++) {
@@ -249,7 +252,7 @@ int main(void) {
                         owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 100u, "allow-list size %u (98 controls + 2 VOLUME)", nallow);
+                RI_ASSERT(nallow == 104u, "allow-list size %u (102 controls + 2 VOLUME)", nallow);
             }
         }
     }

@@ -21,6 +21,11 @@
 #define RI_LEVI_RESO 1u   /* 0..1 */
 #define RI_LEVI_MODE 2u   /* RI_LEVI_FM/PM (modulator role) */
 #define RI_LEVI_RATIO 3u  /* modulator ratio 0.25..64 */
+/* Control-block ids (0x0E, recorded in the requirement before code). */
+#define RI_CTL_LEVI_CUTOFF 0x0E00u
+#define RI_CTL_LEVI_RESO 0x0E01u
+#define RI_CTL_LEVI_MODE 0x0E02u
+#define RI_CTL_LEVI_RATIO 0x0E03u
 
 /* E0 defaults (ledgered here; panel exposes later slices). */
 #define RI_LEVI_DEF_CUTOFF 12000.0f
@@ -75,7 +80,12 @@ void levi_init_set(struct RILeviSet *s);
 /* Trigger (note 0..127) / release a voice. Returns 0 ok, 2 bad. */
 int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note);
 void levi_release(struct RILeviSet *s, uint32_t voice);
-/* Render one sample; idle voices return exact 0. */
+/* UI-value mapper (panel/automation 0..127 -> voice params, rb303
+ * set_param shape): cutoff exponential 40..18000 Hz, reso linear,
+ * mode >= 64 PM else FM, ratio 0.25..64 over 8 octaves. Applies to one
+ * voice; returns 0 ok, 2 bad. */
+int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
+    uint8_t val);
 /* Render one sample; idle voices return exact 0. */
 float levi_voice_render(struct RILeviVoice *v, float sr);
 /* Sum all voices into out (render mix, rb909 pattern). */

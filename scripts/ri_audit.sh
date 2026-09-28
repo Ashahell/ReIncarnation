@@ -183,6 +183,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t102_levi_emit >/dev/null || { echo "
 bash "$ROOT/scripts/ri_build_host.sh" test t103_levi_dsp >/dev/null || { echo "FAIL: t103_levi_dsp (levi voices)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t104_levi_engine >/dev/null || { echo "FAIL: t104_levi_engine (levi instance)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t105_rbng_levi >/dev/null || { echo "FAIL: t105_rbng_levi (levi song compat)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t106_levi_ctl >/dev/null || { echo "FAIL: t106_levi_ctl (levi controls)"; exit 1; }
 grep '^  CF9=' "$ROOT/scripts/ri_build_aros.sh" | grep -q '\-O0' || { echo "FAIL: RIAPP must build -O0 (owner 2026-09-28 debug-only rule)"; exit 1; }
 echo "-- portability T8: headless core runs without AROS (WAV; PNG after T2) --"
 gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I"$ROOT" -o "$OUT/headless" "$ROOT/platform/host/main_headless.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: headless build"; exit 1; }
@@ -571,6 +572,7 @@ for row in "303A cutoff" "303A reso" "303A envmod" "303A decay" "303A accent" "3
   "303B cutoff" "303B reso" "303B envmod" "303B decay" "303B accent" "303B volume" \
   "808 level" "808 tune" "808 decay" "808 snappy" "808 tone" "808 accent" \
   "909 tune" "909 level" "909 decay" "909 flamres" \
+  "Levi cutoff" "Levi reso" "Levi mode" "Levi ratio" \
   "mixer bus1" "mixer bus2" "mixer bus3" "mixer bus4" "mixer master" "mixer send1" \
   "transport play" "transport stop" "transport tempo" "transport pattern" "transport shuffle"; do
   grep -q "$row" "$ROOT/docs/ReIncarnation.guide" || { echo "FAIL: guide lacks: $row"; exit 1; }

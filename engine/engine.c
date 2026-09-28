@@ -588,6 +588,12 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
             rb909_set_param(&e->s909.v[lo], RI_CTL_909_TUNE + hi, val);
         return;
     }
+    if (blk == RI_AUTO_BLK_LEVI) {
+        /* Section-wide (panel model): every voice follows the knob. */
+        for (v = 0u; v < RI_LEVI_NVOICES; v++)
+            levi_set_param_ui(&e->slevi, v, key & 0xFu, val);
+        return;
+    }
     if (blk == RI_AUTO_BLK_MIX && hi >= 1u && hi <= RI_AUTO_STRIP_MASTER + 1u) {
         uint32_t strip = hi - 1u;
         int owner = strip == RI_AUTO_STRIP_MASTER ? RI_ROUTE_MASTER : (int)strip;
