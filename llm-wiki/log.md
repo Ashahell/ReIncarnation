@@ -1412,3 +1412,17 @@ Register (same visibility-only bit); activation later. t98 reverts to
 ## [2026-09-28] ingest | Mix/FX tabs as a rack bay
 - Disposition: New
 - Raw: llm-wiki/raw/articles/2026-09-28-mix-fx-rack-bay.md
+
+## [2026-09-28] ingest | Leviasynth v1 implementation (slices 3b-3c-iv)
+- Disposition: New (implements the planned-device article; decisions recorded)
+- Raw: llm-wiki/raw/articles/2026-09-28-leviasynth-v1-implementation.md
+
+## [2026-09-28] ingest | Levi filter NaN crash
+- Disposition: New (crash record; fix bc9237c, owner re-proof approved)
+- Raw: llm-wiki/raw/articles/2026-09-28-levi-filter-nan-crash.md
+
+## [2026-09-28] ingest | Dell Levi proof runs
+- Disposition: New (lane-ops; complements the bridge-recovery article)
+- Raw: llm-wiki/raw/articles/2026-09-28-dell-levi-proof-runs.md
+
+## [2026-09-28] lint | 0 issues found, 0 auto-fixed
