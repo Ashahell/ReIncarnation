@@ -30,7 +30,8 @@ int main(void) {
     /* Sections + names exist. */
     RI_ASSERT(RI_SEC_LEVI == 18u, "voice section");
     RI_ASSERT(RI_SEC_PAT_LEVI == 19u, "pat section");
-    RI_ASSERT(RI_SEC_COUNT == 20u, "count");
+    RI_ASSERT(RI_SEC_MIX_LEVI == 20u, "mix section");
+    RI_ASSERT(RI_SEC_COUNT == 21u, "count");
     RI_ASSERT(!strcmp(ri_ctlreg_section_name(RI_SEC_LEVI), "Levi"), "name");
     RI_ASSERT(!strcmp(ri_ctlreg_section_token(RI_SEC_LEVI), "levi"), "token");
     RI_ASSERT(!strcmp(ri_ctlreg_section_token(RI_SEC_PAT_LEVI), "pat-levi"), "pat token");

@@ -216,6 +216,14 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MIX_909, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 3),
     R(MIX_909, 6, SWITCH, "", "PCF", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_PCF, 3),
     R(MIX_909, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 3),
+    R(MIX_LEVI, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(MIX_LEVI, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(MIX_LEVI, 2, FADER, "", "Level", 0, 127, 100, 109, 1, LEVEL, 0, 4),
+    R(MIX_LEVI, 3, KNOB, "", "Pan", 0, 127, 64, 110, 1, PAN, 0, 4),
+    R(MIX_LEVI, 4, KNOB, "", "Delay", 0, 127, 0, 111, 1, SEND, 0, 4),
+    R(MIX_LEVI, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 4),
+    R(MIX_LEVI, 6, SWITCH, "", "PCF", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_PCF, 4),
+    R(MIX_LEVI, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 4),
     R(MASTER, 0, FADER, "", "Level", 0, 127, 100, 7, 0, NONE, 0, 0),
     R(MASTER, 1, METER, "", "Meter L", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MASTER, 2, METER, "", "Meter R", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
@@ -328,7 +336,7 @@ static const char *const RI_SEC_NAMES[RI_SEC_COUNT] = {
     "Mixer Synth 1", "Mixer Synth 2", "Mixer 808", "Mixer 909",
     "Master", "PCF", "Delay", "Dist", "Comp", "Transport",
     "Pattern Synth 1", "Pattern Synth 2", "Pattern 808", "Pattern 909",
-    "Levi", "Pattern Levi"
+    "Levi", "Pattern Levi", "Mixer Levi"
 };
 
 uint32_t ri_ctlreg_count(void) {
@@ -433,7 +441,7 @@ uint32_t ri_ctlreg_help(uint16_t reg_id, int opt, char *buf, uint32_t cap) {
 static const char *const RI_SEC_TOKENS[RI_SEC_COUNT] = {
     "303", 0, "808", "909", "mix-303a", "mix-303b", "mix-808", "mix-909", "master",
     "pcf", "delay", "dist", "comp", "transport", "pat-303a", "pat-303b", "pat-808", "pat-909",
-    "levi", "pat-levi"
+    "levi", "pat-levi", "mix-levi"
 };
 static const char *const RI_CK_TOKENS[9] = {
     "knob", "fader", "switch", "button", "led", "step", "selector", "display", "meter"
@@ -468,6 +476,15 @@ int ri_ctlreg_kind_by_token(const char *tok) {
 }
 
 /* Lane key per bind (engine/seq/autolane.h blocks). */
+/* Route section -> automation strip: identity except the Levi/master
+ * cross (route 4 = Levi strip 5, route 5 = master strip 4). */
+static uint16_t auto_strip_of(uint16_t voice) {
+    if (voice == 4u)
+        return RI_AUTO_STRIP_LEVI;
+    if (voice == (uint16_t)RI_ROUTE_MASTER)
+        return RI_AUTO_STRIP_MASTER;
+    return voice;
+}
 uint16_t ri_ctlreg_auto_id(const struct RICtlDef *d) {
     if (!d)
         return 0u;
@@ -485,14 +502,14 @@ uint16_t ri_ctlreg_auto_id(const struct RICtlDef *d) {
     case RI_BIND_909HAT:
         return RI_AUTO_ID_909(RI_CTL_909_LEVEL, RI_AUTO_909_HATPAIR);
     case RI_BIND_LEVEL:
-        return RI_AUTO_ID_MIX(d->voice, RI_AUTO_MIX_LEVEL);
+        return RI_AUTO_ID_MIX(auto_strip_of(d->voice), RI_AUTO_MIX_LEVEL);
     case RI_BIND_PAN:
-        return RI_AUTO_ID_MIX(d->voice, RI_AUTO_MIX_PAN);
+        return RI_AUTO_ID_MIX(auto_strip_of(d->voice), RI_AUTO_MIX_PAN);
     case RI_BIND_SEND:
-        return RI_AUTO_ID_MIX(d->voice, RI_AUTO_MIX_SEND);
+        return RI_AUTO_ID_MIX(auto_strip_of(d->voice), RI_AUTO_MIX_SEND);
     case RI_BIND_INSERT:
-        return RI_AUTO_ID_MIX(d->voice == (uint16_t)RI_ROUTE_MASTER ? RI_AUTO_STRIP_MASTER : d->voice,
-                              RI_AUTO_MIX_DIST + d->engine_id);
+        return RI_AUTO_ID_MIX(d->voice == (uint16_t)RI_ROUTE_MASTER ? RI_AUTO_STRIP_MASTER
+            : auto_strip_of(d->voice), RI_AUTO_MIX_DIST + d->engine_id);
     default:
         return 0u;
     }

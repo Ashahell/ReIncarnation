@@ -33,7 +33,7 @@
 #define RI_SMST_COMP 3u
 #define RI_SMST_NCTL 4u
 
-#define RI_SMIX_NSTRIPS 5u /* 0..3 = 303A 303B 808 909 mixers, 4 = master */
+#define RI_SMIX_NSTRIPS 6u /* 0..3 = 303A 303B 808 909 mixers, 4 = master, 5 = Levi */
 
 struct RIMixBoard {
     int16_t val[RI_SMIX_NSTRIPS][RI_SMIX_NCTL]; /* switches 5..7 unused: route */

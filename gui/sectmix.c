@@ -9,14 +9,21 @@ static const struct RICtlDef *def(uint32_t section, uint32_t idx) {
 int ri_smix_strip(uint32_t section) {
     if (section >= RI_SEC_MIX_SYNTH1 && section <= RI_SEC_MIX_909)
         return (int)(section - RI_SEC_MIX_SYNTH1);
+    if (section == RI_SEC_MIX_LEVI)
+        return 5;
     return section == RI_SEC_MASTER ? 4 : -1;
 }
 
-/* Board strip -> route owner: sections address themselves, but the
- * board's master strip (index 4) is NOT route section 4 (Levi) — the
- * route master lives at RI_ROUTE_MASTER (owner 2026-09-28, option A). */
+/* Strip -> route owner: the master strip (index 4) is NOT route section
+ * 4 (Levi) and the Levi strip (index 5) is NOT route 5 (master) — both
+ * map explicitly, everything else is identity. */
 static int owner_of(uint32_t section, int strip) {
-    return section == RI_SEC_MASTER ? RI_ROUTE_MASTER : strip;
+    (void)strip;
+    if (section == RI_SEC_MASTER)
+        return RI_ROUTE_MASTER;
+    if (section == RI_SEC_MIX_LEVI)
+        return 4;
+    return strip;
 }
 
 /* insert unit behind a switch, or -1 */
@@ -32,7 +39,7 @@ void ri_smix_init(struct RIMixBoard *b) {
     if (!b)
         return;
     for (s = 0; s < RI_SMIX_NSTRIPS; s++) {
-        uint32_t sec = s < 4 ? RI_SEC_MIX_SYNTH1 + s : RI_SEC_MASTER;
+        uint32_t sec = s < 4u ? RI_SEC_MIX_SYNTH1 + s : s == 4u ? RI_SEC_MASTER : RI_SEC_MIX_LEVI;
         for (i = 0; i < RI_SMIX_NCTL; i++) {
             const struct RICtlDef *d = def(sec, i);
             b->val[s][i] = d ? d->def_v : 0;

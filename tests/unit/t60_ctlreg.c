@@ -24,6 +24,7 @@ static const struct CCRow APPX_C[] = {
     { 14, RI_SEC_MIX_SYNTH2, "", "Level" }, { 15, RI_SEC_MIX_SYNTH2, "", "Pan" }, { 16, RI_SEC_MIX_SYNTH2, "", "Delay" },
     { 17, RI_SEC_MIX_808, "", "Level" }, { 18, RI_SEC_MIX_808, "", "Pan" }, { 19, RI_SEC_MIX_808, "", "Delay" },
     { 20, RI_SEC_MIX_909, "", "Level" }, { 21, RI_SEC_MIX_909, "", "Pan" }, { 22, RI_SEC_MIX_909, "", "Delay" },
+    { 109, RI_SEC_MIX_LEVI, "", "Level" }, { 110, RI_SEC_MIX_LEVI, "", "Pan" }, { 111, RI_SEC_MIX_LEVI, "", "Delay" },
     { 23, RI_SEC_SYNTH1, "", "Waveform" }, { 24, RI_SEC_SYNTH1, "", "Tune" }, { 25, RI_SEC_SYNTH1, "", "Cutoff" },
     { 26, RI_SEC_SYNTH1, "", "Reso" }, { 27, RI_SEC_SYNTH1, "", "Env Mod" }, { 28, RI_SEC_SYNTH1, "", "Decay" },
     { 29, RI_SEC_SYNTH1, "", "Accent" },
@@ -220,7 +221,7 @@ int main(void) {
         static const char *const want[RI_SEC_COUNT] = {
             "303", 0, "808", "909", "mix-303a", "mix-303b", "mix-808", "mix-909", "master",
             "pcf", "delay", "dist", "comp", "transport", "pat-303a", "pat-303b", "pat-808", "pat-909",
-            "levi", "pat-levi" };
+            "levi", "pat-levi", "mix-levi" };
         static const char *const kinds[9] = {
             "knob", "fader", "switch", "button", "led", "step", "selector", "display", "meter" };
         for (s = 0; s < RI_SEC_COUNT; s++) {
@@ -256,6 +257,9 @@ int main(void) {
         RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_909, "", "Delay")) == 0x0B42u, "909 send key");
         RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_SYNTH1, "", "PCF")) == 0x0B14u, "303A pcf insert key");
         RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MASTER, "", "Comp")) == 0x0B55u, "master comp key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_LEVI, "", "Level")) == 0x0B60u, "levi level key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_LEVI, "", "Pan")) == 0x0B61u, "levi pan key");
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_LEVI, "", "Comp")) == 0x0B65u, "levi comp key");
         RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_SYNTH1, "", "On/Off")) == 0u, "mute: no key");
         RI_ASSERT(ri_ctlreg_auto_id(0) == 0u, "null");
         RI_ASSERT(find_leg(RI_SEC_MIX_909, "", "Level")->bind == RI_BIND_LEVEL &&

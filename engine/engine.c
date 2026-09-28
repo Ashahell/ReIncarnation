@@ -594,9 +594,10 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
             levi_set_param_ui(&e->slevi, v, key & 0xFu, val);
         return;
     }
-    if (blk == RI_AUTO_BLK_MIX && hi >= 1u && hi <= RI_AUTO_STRIP_MASTER + 1u) {
+    if (blk == RI_AUTO_BLK_MIX && hi >= 1u && hi <= RI_AUTO_STRIP_LEVI + 1u) {
         uint32_t strip = hi - 1u;
-        int owner = strip == RI_AUTO_STRIP_MASTER ? RI_ROUTE_MASTER : (int)strip;
+        int owner = strip == RI_AUTO_STRIP_MASTER ? RI_ROUTE_MASTER
+            : strip == RI_AUTO_STRIP_LEVI ? 4 : (int)strip;
         if (lo >= RI_AUTO_MIX_DIST && lo < RI_AUTO_MIX_DIST + RI_ROUTE_NUNITS) {
             uint32_t unit = lo - RI_AUTO_MIX_DIST;
             if (strip == RI_AUTO_STRIP_MASTER && unit != RI_ROUTE_COMP)
@@ -610,10 +611,10 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
         if (strip == RI_AUTO_STRIP_MASTER)
             return; /* master level: not automatable (p. 72) */
         if (lo == RI_AUTO_MIX_LEVEL)
-            ri_engine_set_level(e, strip, val);
+            ri_engine_set_level(e, (uint32_t)owner, val);
         else if (lo == RI_AUTO_MIX_PAN)
-            ri_engine_set_pan(e, strip, val);
+            ri_engine_set_pan(e, (uint32_t)owner, val);
         else if (lo == RI_AUTO_MIX_SEND)
-            ri_engine_set_send(e, strip, val);
+            ri_engine_set_send(e, (uint32_t)owner, val);
     }
 }

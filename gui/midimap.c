@@ -32,6 +32,8 @@ static struct RISectUI *ui_of(struct RIPanelUI *p, uint32_t sec) {
         return p->drum[sec - RI_SEC_808];
     if (sec >= RI_SEC_MIX_SYNTH1 && sec <= RI_SEC_MASTER)
         return p->mix[sec - RI_SEC_MIX_SYNTH1];
+    if (sec == RI_SEC_MIX_LEVI)
+        return p->mix[5];
     if (sec >= RI_SEC_PCF && sec <= RI_SEC_COMP)
         return p->fx[sec - RI_SEC_PCF];
     if (sec >= RI_SEC_PAT_SYNTH1 && sec <= RI_SEC_PAT_909)

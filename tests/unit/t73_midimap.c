@@ -7,7 +7,7 @@
 #include "gui/midimap.h"
 #include "gui/ctlreg.h"
 
-static struct RISectUI s1, s2, d8, d9, mx[5], fx[4], pat[4], tr;
+static struct RISectUI s1, s2, d8, d9, mx[5], mxl, fx[4], pat[4], tr;
 static struct RIPanelUI pu;
 static struct RIMidiIn mi;
 
@@ -22,6 +22,8 @@ static void setup(void) {
         if (i)
             ri_sui_bind_board(&mx[i], mx[0].u.mix.board);
     }
+    ri_sui_init(&mxl, RI_SEC_MIX_LEVI);
+    ri_sui_bind_board(&mxl, mx[0].u.mix.board);
     for (i = 0; i < 4; i++) {
         ri_sui_init(&fx[i], (uint8_t)(RI_SEC_PCF + i));
         ri_sui_init(&pat[i], (uint8_t)(RI_SEC_PAT_SYNTH1 + i));
@@ -31,6 +33,7 @@ static void setup(void) {
     pu.synth[0] = &s1; pu.synth[1] = &s2; pu.drum[0] = &d8; pu.drum[1] = &d9; pu.tr = &tr;
     for (i = 0; i < 5; i++)
         pu.mix[i] = &mx[i];
+    pu.mix[5] = &mxl;
     for (i = 0; i < 4; i++) {
         pu.fx[i] = &fx[i];
         pu.pat[i] = &pat[i];
@@ -53,6 +56,7 @@ int main(void) {
         ncc++;
         u = d->section == RI_SEC_SYNTH1 ? &s1 : d->section == RI_SEC_SYNTH2 ? &s2 : d->section == RI_SEC_808 ? &d8
           : d->section == RI_SEC_909 ? &d9 : d->section == RI_SEC_MASTER ? &mx[4]
+          : d->section == RI_SEC_MIX_LEVI ? &mxl
           : d->section >= RI_SEC_MIX_SYNTH1 && d->section <= RI_SEC_MIX_909 ? &mx[d->section - RI_SEC_MIX_SYNTH1]
           : d->section >= RI_SEC_PCF && d->section <= RI_SEC_COMP ? &fx[d->section - RI_SEC_PCF] : &tr;
         idx = d->reg_id & 0xFFu;
@@ -68,7 +72,7 @@ int main(void) {
         else
             RI_ASSERT(ri_sui_value(u, idx) == d->min_v, "CC %u -> min", d->midi_cc);
     }
-    RI_ASSERT(ncc == 99u, "Appendix C controllers %u", ncc);
+    RI_ASSERT(ncc == 102u, "Appendix C controllers %u", ncc);
     /* CC value laws (E0): selectors split 0..127 evenly; knobs round */
     ri_midi_msg(&mi, &pu, 0xB0, 64, 63);          /* 808 Instrument Selection: 12 positions */
     RI_ASSERT(ri_sui_value(&d8, RI_S808_SELECT) == 5, "63 -> position 5 of 12");

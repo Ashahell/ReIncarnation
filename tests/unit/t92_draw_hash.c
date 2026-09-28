@@ -21,7 +21,7 @@ static const uint8_t T_SECS[] = {
     RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_808, RI_SEC_MIX_909, RI_SEC_MASTER,
     RI_SEC_PCF, RI_SEC_DELAY, RI_SEC_DIST, RI_SEC_COMP,
     RI_SEC_TRANSPORT, RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909,
-    RI_SEC_PAT_LEVI
+    RI_SEC_PAT_LEVI, RI_SEC_MIX_LEVI
 };
 
 /* Pattern-section device tag: PAT ids are not contiguous (PAT_LEVI=19). */
@@ -119,6 +119,10 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 19u, 1u, 0x8b87fee9u },
     { 19u, 2u, 0x190d4fefu },
     { 19u, 3u, 0x26a0b95cu },
+    { 20u, 0u, 0x2b6b21a4u },
+    { 20u, 1u, 0x575795c6u },
+    { 20u, 2u, 0x595cd5ecu },
+    { 20u, 3u, 0x85cb10f8u },
 };
 
 static uint32_t pin_lookup(uint8_t sec, uint8_t z) {

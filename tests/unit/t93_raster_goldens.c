@@ -26,7 +26,7 @@ static const uint8_t T_SECS[] = {
     RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_808, RI_SEC_MIX_909, RI_SEC_MASTER,
     RI_SEC_PCF, RI_SEC_DELAY, RI_SEC_DIST, RI_SEC_COMP,
     RI_SEC_TRANSPORT, RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909,
-    RI_SEC_PAT_LEVI
+    RI_SEC_PAT_LEVI, RI_SEC_MIX_LEVI
 };
 
 static uint32_t render_one(uint8_t sec, int z, const struct RISkin *skin,
@@ -223,6 +223,10 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 19u, 1u, 0x44310248u },
     { 19u, 2u, 0xc4174a51u },
     { 19u, 3u, 0xd05fa851u },
+    { 20u, 0u, 0xf7195a2cu },
+    { 20u, 1u, 0x993c59e0u },
+    { 20u, 2u, 0x4e5e0bd8u },
+    { 20u, 3u, 0xfc3c91d7u },
 };
 static const uint32_t T_SKIN_PIN = 0x9a05fa63u;
 

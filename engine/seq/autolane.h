@@ -46,6 +46,7 @@ struct RIAutoPass {
 #define RI_AUTO_MIX_SEND 2u
 #define RI_AUTO_MIX_DIST 3u /* + RI_ROUTE_* unit: 3 dist, 4 pcf, 5 comp */
 #define RI_AUTO_STRIP_MASTER 4u
+#define RI_AUTO_STRIP_LEVI 5u /* strip 5, route section 4 (never the master owner) */
 #define RI_AUTO_909_HATPAIR 0xFu
 #define RI_AUTO_ID_MIX(strip, p) \
     ((uint16_t)(RI_AUTO_BLK_MIX | ((((uint32_t)(strip) + 1u) & 0xFu) << 4) | ((uint32_t)(p) & 0xFu)))

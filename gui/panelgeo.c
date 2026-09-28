@@ -332,6 +332,7 @@ static const struct RIGeoItem RI_GEO_MIX1[] = { RI_GEO_MIXER(RI_SEC_MIX_SYNTH1) 
 static const struct RIGeoItem RI_GEO_MIX2[] = { RI_GEO_MIXER(RI_SEC_MIX_SYNTH2) };
 static const struct RIGeoItem RI_GEO_MIX8[] = { RI_GEO_MIXER(RI_SEC_MIX_808) };
 static const struct RIGeoItem RI_GEO_MIX9[] = { RI_GEO_MIXER(RI_SEC_MIX_909) };
+static const struct RIGeoItem RI_GEO_MIXL[] = { RI_GEO_MIXER(RI_SEC_MIX_LEVI) };
 
 /* Master: p. 23 figure (83 x 98 px = 332 x 392 Q), block height raised to the
  * mixer strips' 464 Q so the row reads as one board (owner, Dell 2026-09-26;
@@ -481,6 +482,7 @@ static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_MIX_SYNTH2, 0, 284, 464, RI_GEO_MIX2, (uint32_t)(sizeof(RI_GEO_MIX2) / sizeof(RI_GEO_MIX2[0])) },
     { RI_SEC_MIX_808, 0, 284, 464, RI_GEO_MIX8, (uint32_t)(sizeof(RI_GEO_MIX8) / sizeof(RI_GEO_MIX8[0])) },
     { RI_SEC_MIX_909, 0, 284, 464, RI_GEO_MIX9, (uint32_t)(sizeof(RI_GEO_MIX9) / sizeof(RI_GEO_MIX9[0])) },
+    { RI_SEC_MIX_LEVI, 0, 284, 464, RI_GEO_MIXL, (uint32_t)(sizeof(RI_GEO_MIXL) / sizeof(RI_GEO_MIXL[0])) },
     { RI_SEC_MASTER, 0, 332, 464, RI_GEO_MASTER, (uint32_t)(sizeof(RI_GEO_MASTER) / sizeof(RI_GEO_MASTER[0])) },
     { RI_SEC_PCF, 0, 332, 424, RI_GEO_PCF, (uint32_t)(sizeof(RI_GEO_PCF) / sizeof(RI_GEO_PCF[0])) },
     { RI_SEC_DELAY, 0, 332, 376, RI_GEO_DELAY, (uint32_t)(sizeof(RI_GEO_DELAY) / sizeof(RI_GEO_DELAY[0])) },

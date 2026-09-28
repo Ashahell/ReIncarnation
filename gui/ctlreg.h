@@ -32,7 +32,8 @@
 #define RI_SEC_PAT_909 17u
 #define RI_SEC_LEVI 18u
 #define RI_SEC_PAT_LEVI 19u
-#define RI_SEC_COUNT 20u
+#define RI_SEC_MIX_LEVI 20u
+#define RI_SEC_COUNT 21u
 
 /* Widget kinds. Only KNOB/FADER/SWITCH/SELECTOR are value controls that
  * can carry a MIDI controller or Song automation. */

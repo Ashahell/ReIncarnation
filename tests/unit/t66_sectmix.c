@@ -68,5 +68,24 @@ int main(void) {
     /* non-mixer sections refused */
     RI_ASSERT(ri_smix_press(&b, RI_SEC_909, 0) == 0 && ri_smix_value(&b, RI_SEC_PCF, 0) == 0, "foreign section");
     RI_ASSERT(ri_smix_press(0, RI_SEC_MIX_808, RI_SMIX_ONOFF) == 0, "null board");
+    /* Levi strip (owner 2026-09-28): strip 5, master stays 4; inserts
+     * own route section 4 (never the master owner 5). */
+    RI_ASSERT(ri_smix_strip(RI_SEC_MIX_LEVI) == 5, "levi strip");
+    RI_ASSERT(ri_smix_strip(RI_SEC_MASTER) == 4, "master stays");
+    RI_ASSERT(ri_smix_led(&b, RI_SEC_MIX_LEVI, RI_SMIX_ONOFF) == 1, "levi on");
+    RI_ASSERT(ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_LEVEL) == 100 &&
+        ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_PAN) == 64 &&
+        ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_DELAY) == 0, "levi defaults");
+    RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_LEVEL, 72) == 1 &&
+        ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_LEVEL) == 72, "levi fader");
+    RI_ASSERT(ri_smix_value(&b, RI_SEC_MIX_909, RI_SMIX_LEVEL) == 100, "909 untouched");
+    ri_smix_press(&b, RI_SEC_MIX_808, RI_SMIX_PCF);
+    ri_smix_press(&b, RI_SEC_MIX_LEVI, RI_SMIX_PCF);
+    RI_ASSERT(ri_smix_led(&b, RI_SEC_MIX_LEVI, RI_SMIX_PCF) && !ri_smix_led(&b, RI_SEC_MIX_808, RI_SMIX_PCF) &&
+        ri_route_owner(&b.route, RI_ROUTE_PCF) == 4, "levi steals PCF as route 4");
+    ri_smix_press(&b, RI_SEC_MIX_LEVI, RI_SMIX_PCF);
+    RI_ASSERT(ri_route_owner(&b.route, RI_ROUTE_PCF) == RI_ROUTE_NONE, "levi releases");
+    ri_smix_meter_set(&b, RI_SEC_MIX_LEVI, 0, 77);
+    RI_ASSERT(ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_METER) == 77, "levi meter");
     RI_RESULT("sectmix");
 }

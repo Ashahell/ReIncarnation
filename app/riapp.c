@@ -119,22 +119,22 @@ extern struct DosLibrary *DOSBase;
  * keyboard-focus slot (s_panel stays 4-focus; mouse path is direct). */
 enum {
     C_TR, C_P0, C_P1, C_P2, C_P3, C_P4, C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX,
-    C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_N
+    C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_MXL, C_N
 };
 static const ULONG c_sections[C_N] = {
     RI_SEC_TRANSPORT,
     RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909, RI_SEC_PAT_LEVI,
     RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909, RI_SEC_LEVI, RI_SEC_MIX_808,
     RI_SEC_PCF, RI_SEC_DELAY, RI_SEC_DIST, RI_SEC_COMP,
-    RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_909
+    RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_909, RI_SEC_MIX_LEVI
 };
 /* Pattern instance (bank + track slot) behind each PAT/voice canvas. */
 static const uint32_t c_pat_instance[C_N] = {
-    0u, 0u, 1u, 2u, 3u, 4u, 0u, 1u, 2u, 3u, 4u, 2u, 0u, 0u, 0u, 0u, 0u, 1u, 3u
+    0u, 0u, 1u, 2u, 3u, 4u, 0u, 1u, 2u, 3u, 4u, 2u, 0u, 0u, 0u, 0u, 0u, 1u, 3u, 4u
 };
 /* Mix tab (owner 2026-09-28): one strip per device, device order; C_MIX
  * (the 808 strip) owns the shared board, the others bind to it. */
-static const int c_mix_canvas[4] = { C_MXA, C_MXB, C_MIX, C_MX9 };
+static const int c_mix_canvas[5] = { C_MXA, C_MXB, C_MIX, C_MX9, C_MXL };
 /* Voice canvas per classic device (tab rows follow this through t98). */
 static const int c_voice_canvas[5] = { C_303A, C_303B, C_808, C_909, C_LEVI };
 
@@ -196,7 +196,7 @@ static uint8_t s_drum_slot[2];
 static struct RIPattern s_levi_pat; /* Levi voice-canvas shadow (bank 4 slot) */
 static uint8_t s_levi_slot;
 static IPTR s_changes[C_N];
-static int s_meter_shown[4];
+static int s_meter_shown[5];
 
 /* Demo song, bank table, transport and meters live in app/core (T8).
  * Status lines also go to the TEMP log, opened, appended and closed per
@@ -523,11 +523,11 @@ static void sync_leviv(void) {
  * nonzero (the bridge owns that law, t83). Transport and PAT canvases
  * travel their state paths above. */
 static void sync_values(void) {
-    static const int val_canvas[13] = {
-        C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9
+    static const int val_canvas[14] = {
+        C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_MXL
     };
     int i;
-    for (i = 0; i < 13; i++) {
+    for (i = 0; i < 14; i++) {
         int c = val_canvas[i];
         IPTR ch = 0;
         GetAttr(MUIA_RSection_Changes, s_canvas[c], &ch);
@@ -550,13 +550,13 @@ static void sync_values(void) {
 }
 
 /* Meters + position from the published snapshot only (G6b). Levels feed
- * the four mixer strips; the playhead chases the transport cursor. */
+ * the five mixer strips; the playhead chases the transport cursor. */
 static void meter_round(ULONG mix_freq) {
-    static const ULONG strip_sec[4] = {
-        RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_808, RI_SEC_MIX_909
+    static const ULONG strip_sec[5] = {
+        RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_808, RI_SEC_MIX_909, RI_SEC_MIX_LEVI
     };
     struct RILiveMeters mm;
-    int lvl[4];
+    int lvl[5];
     uint64_t sixteenths;
     int playing, k;
     if (!ri_core_meters(&s_core, &lvl[0], &lvl[2], &sixteenths, mix_freq ? mix_freq : 48000u,
@@ -566,8 +566,9 @@ static void meter_round(ULONG mix_freq) {
     if (ri_live_meters_read(&s_core.session, &mm) == 0) {
         lvl[1] = ri_live_meter_level(mm.sec_peak[1]);
         lvl[3] = ri_live_meter_level(mm.sec_peak[3]);
+        lvl[4] = ri_live_meter_level(mm.sec_peak[4]);
     }
-    for (k = 0; k < 4; k++) {
+    for (k = 0; k < 5; k++) {
         struct RISectUI *u = s_ui[c_mix_canvas[k]];
         if (lvl[k] == s_meter_shown[k] || !u || !u->u.mix.board)
             continue;
@@ -1093,12 +1094,14 @@ int main(int argc, char **argv) {
             s_panel.mix[i - C_MXA] = u;
         else if (i == C_MX9)
             s_panel.mix[3] = u;
+        else if (i == C_MXL)
+            s_panel.mix[5] = u;
         else if (i >= C_FX0 && i <= C_FX3)
             s_panel.fx[i - C_FX0] = u;
         SetAttrs(s_canvas[i], MUIA_RSection_Panel, (IPTR)&s_panel,
             MUIA_RSection_KeyOwner, i == C_TR, TAG_DONE);
     }
-    for (i = 0; i < 4; i++)                 /* one mixer board, four strips */
+    for (i = 0; i < 5; i++)                 /* one mixer board, five strips */
         if (c_mix_canvas[i] != C_MIX)
             ri_sui_bind_board(s_ui[c_mix_canvas[i]], s_ui[C_MIX]->u.mix.board);
     /* The panel shows the demo: 303A/B steps mirror bank slots 0;
@@ -1190,10 +1193,10 @@ int main(int argc, char **argv) {
         for (r = 0u; r < nrows; r++)
             s_devrow[rowdev[r]] = rowobj[r];
         {
-            Object *mx[4];
-            for (r = 0u; r < 4u; r++)
+            Object *mx[5];
+            for (r = 0u; r < 5u; r++)
                 mx[r] = s_canvas[c_mix_canvas[r]];
-            mix_page = rack_page(mx, 4u, s_mixslot);
+            mix_page = rack_page(mx, 5u, s_mixslot);
         }
         fx_page = rack_page(&s_canvas[C_FX0], 4u, 0);
         rail = tab_rail();

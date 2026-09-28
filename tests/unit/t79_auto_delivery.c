@@ -111,6 +111,14 @@ int main(void) {
     RI_ASSERT(ri_route_owner(&E.route, RI_ROUTE_COMP) == RI_ROUTE_MASTER, "master comp key");
     autoev(&E, RI_AUTO_ID_MIX(3u, RI_AUTO_MIX_LEVEL), 90u, 0u);
     RI_ASSERT(E.level[3] == 90u, "909 level key %u", E.level[3]);
+    autoev(&E, RI_AUTO_ID_MIX(RI_AUTO_STRIP_LEVI, RI_AUTO_MIX_LEVEL), 90u, 0u);
+    RI_ASSERT(E.level[4] == 90u, "levi level key %u", E.level[4]);
+    autoev(&E, RI_AUTO_ID_MIX(RI_AUTO_STRIP_LEVI, RI_AUTO_MIX_PAN), 10u, 0u);
+    RI_ASSERT(E.pan[4] == 10u, "levi pan key %u", E.pan[4]);
+    autoev(&E, RI_AUTO_ID_MIX(RI_AUTO_STRIP_LEVI, RI_AUTO_MIX_DIST + RI_ROUTE_PCF), 1u, 0u);
+    RI_ASSERT(ri_route_owner(&E.route, RI_ROUTE_PCF) == 4, "levi pcf owns route 4");
+    autoev(&E, RI_AUTO_ID_MIX(RI_AUTO_STRIP_LEVI, RI_AUTO_MIX_DIST + RI_ROUTE_PCF), 0u, 0u);
+    RI_ASSERT(ri_route_owner(&E.route, RI_ROUTE_PCF) == RI_ROUTE_NONE, "levi pcf off releases");
 
     /* (d) level law + render identity */
     RI_ASSERT(ri_engine_set_level(&E, 5u, 1u) == 2 && ri_engine_set_level(0, 0u, 1u) == 2, "level bad args");
@@ -157,7 +165,7 @@ int main(void) {
     ri_engine_init(&F);
     autoev(&E, 0x0B00u, 5u, 0u); /* legacy Task-12 panel id */
     autoev(&E, 0x0B0Fu, 5u, 0u);
-    autoev(&E, 0x0B60u, 5u, 0u); /* strip 5 (no such strip) */
+    autoev(&E, 0x0B66u, 5u, 0u); /* strip-5 param 6 (no such param) */
     autoev(&E, 0x0B16u, 5u, 0u); /* param 6 */
     autoev(&E, 0x0F00u, 5u, 0u); /* unknown block */
     autoev(&E, RI_AUTO_ID_909(RI_CTL_909_TUNE, 12u), 5u, 3u); /* no voice 12 */

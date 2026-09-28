@@ -283,6 +283,20 @@ int main(void) {
                 fad->h > 3 * fad->w, "mixer arrangement");
         }
     }
+    /* Levi strip shares the mixer layout (same macro, sec 20). */
+    {
+        const struct RIGeoSection *m = ri_geo_section(RI_SEC_MIX_LEVI), *m0 = ri_geo_section(RI_SEC_MIX_SYNTH1);
+        uint32_t k;
+        check_section(RI_SEC_MIX_LEVI);
+        RI_ASSERT(m && m->w == 284 && m->h == 464, "levi mixer figure");
+        if (m && m0) {
+            RI_ASSERT(m->nitems == m0->nitems, "levi mixer shares layout");
+            for (k = 0u; k < m->nitems && k < m0->nitems; k++)
+                RI_ASSERT((m->items[k].reg_id & 0xFF) == (m0->items[k].reg_id & 0xFF) &&
+                    m->items[k].cx == m0->items[k].cx && m->items[k].cy == m0->items[k].cy &&
+                    m->items[k].shape == m0->items[k].shape, "levi mixer item %u", k);
+        }
+    }
     check_section(RI_SEC_MASTER);
     s = ri_geo_section(RI_SEC_MASTER);
     if (s) {
