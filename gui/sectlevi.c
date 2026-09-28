@@ -132,3 +132,11 @@ int ri_slevi_display(const struct RISectLevi *s) {
         return 0;
     return (int)(s->edit_step % RI_PATTERN_STEPS) + 1;
 }
+
+int ri_slevi_algo_display(const struct RISectLevi *s) {
+    uint32_t a;
+    if (!s)
+        return 0;
+    a = (uint32_t)s->val[RI_SLEVI_ALGO] + 1u;
+    return a < 1u ? 1 : (int)(a > 8u ? 8u : a);
+}

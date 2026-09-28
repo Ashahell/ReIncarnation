@@ -259,6 +259,7 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
     { SL(38), RI_GEO_OPTION, 7, 918, 105, 30, 24 },
     { SL(39), RI_GEO_KNOB, 0, 962, 115, 44, 52 },
     { SL(39), RI_GEO_LEGEND, 0, 962, 160, 0, 0 },
+    { SL(51), RI_GEO_RECT, 0, 962, 70, 56, 30 },
     /* DIGITAL FILTER: type row, cutoff/reso/drive knobs */
     { SL(42), RI_GEO_OPTION, 0, 1030, 70, 40, 24 },
     { SL(42), RI_GEO_OPTION, 1, 1080, 70, 40, 24 },

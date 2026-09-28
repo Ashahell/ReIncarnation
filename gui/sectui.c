@@ -135,5 +135,7 @@ int ri_sui_display(const struct RISectUI *s, uint32_t idx) {
         return ri_s303_display(&s->u.s303);
     if (s && s->section == RI_SEC_LEVI && idx == RI_SLEVI_DISPLAY)
         return ri_slevi_display(&s->u.slevi);
+    if (s && s->section == RI_SEC_LEVI && idx == RI_SLEVI_ALGODISP)
+        return ri_slevi_algo_display(&s->u.slevi);
     return 0;
 }

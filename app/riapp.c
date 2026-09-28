@@ -158,7 +158,8 @@ static Object *s_devrow[5];
 static Object *s_devbtn[5];
 static Object *s_devled[5];
 static Object *s_mixslot[5]; /* Mix tab strip per device (follows s_vis) */
-static Object *s_reg;        /* the Register: rail follows its active page */
+static Object *s_pages;      /* page group: rail follows its active page */
+static Object *s_tabs[5];    /* hardware tab keys (S1, one per tab) */
 /* Rack furniture (owner 2026-09-28, second pass): the Mix/FX bays and the
  * device rail are brushed dark metal (RBay, a Group that paints its own
  * background for itself and every child without one), the bays sit
@@ -172,18 +173,21 @@ static Object *s_reg;        /* the Register: rail follows its active page */
 #define MUIA_RArt_Kind (TAG_USER | 0x5241524Bu)  /* RART_* (init) */
 #define MUIA_RArt_On (TAG_USER | 0x52494C45u)    /* BOOL: power lit */
 #define MUIA_RArt_Label (TAG_USER | 0x5241524Cu) /* STRPTR, kept by caller */
+#define MUIA_RArt_Active (TAG_USER | 0x52415442u) /* BOOL: tab latched */
 #define RART_RAIL 0
 #define RART_SEAM_L 1
 #define RART_SEAM_R 2
 #define RART_POWER 3
+#define RART_TAB 4
 #define RIAPP_BAY_SPEC "2:r1A1A1A1A,1B1B1B1B,1E1E1E1E" /* fallback without RBay */
 static struct MUI_CustomClass *s_art_mcc;
 static struct MUI_CustomClass *s_bay_mcc;
 static struct ri_dcmd s_art_back[16384];
 static char s_art_spool[512];
 static char s_devlbl[5][16];
+static char s_tablbl[5][16];
 #define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
-#define RIAPP_ID_TAB 1010u  /* Register page changed: rail follows */
+#define RIAPP_ID_TAB0 1020u /* + tab: hardware tab keys */
 
 /* Sync shadows (state-compare: the panel is the truth, the session follows). */
 static int s_tr_state;
@@ -657,6 +661,7 @@ static void art_clip(struct ri_dlist *dl, int x0, int y0, int x1, int y1) {
 struct RArtData {
     LONG kind;
     BOOL on;
+    BOOL active;
     const char *label;
 };
 
@@ -673,19 +678,26 @@ BOOPSI_DISPATCHER(IPTR, rart_dispatcher, cl, obj, msg) {
         d = (struct RArtData *)INST_DATA(cl, o);
         d->kind = (LONG)GetTagData(MUIA_RArt_Kind, RART_RAIL, tl);
         d->on = (BOOL)GetTagData(MUIA_RArt_On, TRUE, tl);
+        d->active = (BOOL)GetTagData(MUIA_RArt_Active, FALSE, tl);
         d->label = (const char *)GetTagData(MUIA_RArt_Label, 0, tl);
         return (IPTR)o;
     }
     case OM_SET: {
         struct TagItem *tl = ((struct opSet *)msg)->ops_AttrList;
         struct TagItem *t = FindTagItem(MUIA_RArt_On, tl);
+        struct TagItem *ta = FindTagItem(MUIA_RArt_Active, tl);
         IPTR rc = DoSuperMethodA(cl, obj, msg);
         d = (struct RArtData *)INST_DATA(cl, obj);
         if (t && (BOOL)(t->ti_Data != 0) != d->on) {
             d->on = (BOOL)(t->ti_Data != 0);
             MUI_Redraw(obj, MADF_DRAWOBJECT);
+        } else if (ta && (BOOL)(ta->ti_Data != 0) != d->active) {
+            d->active = (BOOL)(ta->ti_Data != 0);
+            MUI_Redraw(obj, MADF_DRAWOBJECT);
         } else if (d->kind == RART_POWER && FindTagItem(MUIA_Selected, tl))
             MUI_Redraw(obj, MADF_DRAWOBJECT); /* cap sinks while held */
+        else if (d->kind == RART_TAB && FindTagItem(MUIA_Selected, tl))
+            MUI_Redraw(obj, MADF_DRAWOBJECT); /* key sinks while held */
         return rc;
     }
     case MUIM_AskMinMax: {
@@ -703,6 +715,19 @@ BOOPSI_DISPATCHER(IPTR, rart_dispatcher, cl, obj, msg) {
                 tw = (LONG)TextLength(&trp, (STRPTR)d->label, (ULONG)strlen(d->label));
             mm->MinWidth += RI_ART_POWER_H + 6 + tw + 10;
             mm->MinHeight += RI_ART_POWER_H;
+            mm->DefWidth = mm->MaxWidth = mm->MinWidth;
+            mm->DefHeight = mm->MaxHeight = mm->MinHeight;
+            return rc;
+        }
+        if (d->kind == RART_TAB) {
+            struct RastPort trp;
+            LONG tw = 0;
+            InitRastPort(&trp);
+            SetFont(&trp, _font(obj));
+            if (d->label)
+                tw = (LONG)TextLength(&trp, (STRPTR)d->label, (ULONG)strlen(d->label));
+            mm->MinWidth += tw + 2 * 14;
+            mm->MinHeight += RI_ART_TAB_H;
             mm->DefWidth = mm->MaxWidth = mm->MinWidth;
             mm->DefHeight = mm->MaxHeight = mm->MinHeight;
             return rc;
@@ -734,6 +759,11 @@ BOOPSI_DISPATCHER(IPTR, rart_dispatcher, cl, obj, msg) {
             GetAttr(MUIA_Selected, obj, &sel);
             SetFont(_rp(obj), _font(obj));
             ri_art_power(&dl, x0, y0, x1, y1, d->label, d->on ? 1 : 0, sel ? 1 : 0);
+        } else if (d->kind == RART_TAB) {
+            IPTR sel = 0;
+            GetAttr(MUIA_Selected, obj, &sel);
+            SetFont(_rp(obj), _font(obj));
+            ri_art_tab(&dl, x0, y0, x1, y1, d->label, d->active ? 1 : 0, sel ? 1 : 0);
         } else if (d->kind == RART_RAIL)
             ri_art_rack_rail(&dl, x0, y0, x1, y1);
         else
@@ -908,16 +938,18 @@ static uint32_t dev_tab(uint32_t dev) {
     return RI_TAB_COUNT;
 }
 
-/* Rail follows the Register (owner 2026-09-28): Synths shows the synth
- * power buttons, Drums the drum machines, Levi its own chip; Mix and FX
- * serve every device, so they show all five. */
+/* Rail follows the page group (owner 2026-09-28, S1: custom tabs replace
+ * the Register): Synths shows the synth power buttons, Drums the drum
+ * machines, Levi its own chip; Mix and FX serve every device, so they
+ * show all five. Mouse-only tab keys (ledger S1: F1-F4/Ctrl+1..4 need an
+ * owner key decision, #2). */
 static void rail_for_tab(void) {
     static int shown[5] = { -1, -1, -1, -1, -1 };
     IPTR page = 0;
     uint32_t d;
-    if (!s_reg)
+    if (!s_pages)
         return;
-    GetAttr(MUIA_Group_ActivePage, s_reg, &page);
+    GetAttr(MUIA_Group_ActivePage, s_pages, &page);
     for (d = 0u; d < 5u; d++) {
         int show = (page == RI_TAB_MIX || page == RI_TAB_FX) ? 1 : dev_tab(d) == (uint32_t)page;
         if (s_devbtn[d] && show != shown[d]) {
@@ -970,6 +1002,62 @@ static Object *tab_rail(void) {
     if (fill)
         DoMethod(rail, OM_ADDMEMBER, (IPTR)fill);
     return rail;
+}
+
+/* Hardware tab strip (S1): an RBay HGroup of RART_TAB keys, one per tab,
+ * labels from ri_tab_title. Without the class, plain buttons. */
+static Object *tab_strip(void) {
+    Object *strip, *fill;
+    struct TagItem tags[6];
+    uint32_t g;
+    tags[0].ti_Tag = MUIA_Group_Horiz;   tags[0].ti_Data = TRUE;
+    tags[1].ti_Tag = MUIA_Group_Spacing; tags[1].ti_Data = 4;
+    tags[2].ti_Tag = MUIA_InnerLeft;     tags[2].ti_Data = 8;
+    tags[3].ti_Tag = MUIA_InnerTop;      tags[3].ti_Data = 3;
+    tags[4].ti_Tag = MUIA_InnerBottom;   tags[4].ti_Data = 3;
+    tags[5].ti_Tag = TAG_DONE;           tags[5].ti_Data = 0;
+    strip = bay_group(tags);
+    if (!strip)
+        return 0;
+    for (g = 0u; g < RI_TAB_COUNT; g++) {
+        const char *t = ri_tab_title(g);
+        Object *btn;
+        if (!t)
+            return 0;
+        snprintf(s_tablbl[g], sizeof s_tablbl[g], "%s", t);
+        if (s_art_mcc)
+            btn = (Object *)NewObject(s_art_mcc->mcc_Class, NULL,
+                MUIA_RArt_Kind, RART_TAB,
+                MUIA_RArt_Label, (IPTR)s_tablbl[g],
+                MUIA_RArt_Active, (IPTR)(g == 0u ? TRUE : FALSE),
+                MUIA_InputMode, MUIV_InputMode_RelVerify,
+                MUIA_ShowSelState, FALSE,
+                MUIA_FillArea, TRUE,
+                TAG_DONE);
+        else
+            btn = (Object *)MUI_MakeObject(MUIO_Button, (IPTR)s_tablbl[g]);
+        if (!btn)
+            return 0;
+        s_tabs[g] = btn;
+        DoMethod(strip, OM_ADDMEMBER, (IPTR)btn);
+    }
+    fill = (Object *)MUI_NewObject(MUIC_Rectangle, TAG_DONE);
+    if (fill)
+        DoMethod(strip, OM_ADDMEMBER, (IPTR)fill);
+    return strip;
+}
+
+/* Switch the page group to g: set ActivePage, latch the tab keys, rail. */
+static void tab_switch(uint32_t g) {
+    uint32_t k;
+    if (g >= RI_TAB_COUNT || !s_pages)
+        return;
+    SetAttrs(s_pages, MUIA_Group_ActivePage, (IPTR)g, TAG_DONE);
+    for (k = 0u; k < RI_TAB_COUNT; k++)
+        if (s_tabs[k])
+            SetAttrs(s_tabs[k], MUIA_RArt_Active, (IPTR)(k == g ? TRUE : FALSE), TAG_DONE);
+    rail_for_tab();
+    evlog("TAB", "page=%d", g);
 }
 
 /* Rail toggle: flip the visible bit, ShowMe the row, mirror the LED —
@@ -1182,20 +1270,21 @@ int main(int argc, char **argv) {
         ri_live_render(&s_core.session, s_fl, s_fr, RIAPP_FRAMES); /* drain the burst */
 
     {
-        /* Tabbed panel (owner 2026-09-27): transport framed above, then
-         * the device rail (always visible), then the Register; device
-         * rows follow the visible set through the t98 model. */
-        static const char *tab_titles[RI_TAB_COUNT + 1u];
-        Object *synth_page, *drums_page, *levi_page, *mix_page, *fx_page, *rail, *reg;
-        uint32_t g, r, nrows;
+        /* Tabbed panel (owner 2026-09-27, S1 hardware tabs 2026-09-28):
+         * transport racked above, then the device rail (always visible),
+         * then the hardware tab strip, then the page group; device rows
+         * follow the visible set through the t98 model. The window root
+         * is a brushed bay, so no stock MUI grey remains. */
+        Object *synth_page, *drums_page, *levi_page, *mix_page, *fx_page, *rail, *strip, *pages, *trslot;
+        struct TagItem roottags[6];
+        uint32_t r, nrows;
         uint32_t rowdev[3];
         Object *rowobj[3];
         ri_vis_init(&s_vis);
-        for (g = 0u; g < RI_TAB_COUNT; g++)
-            tab_titles[g] = ri_tab_title(g);
-        tab_titles[RI_TAB_COUNT] = 0;
-        for (r = 0u; r < 5u; r++)
+        for (r = 0u; r < 5u; r++) {
             s_devrow[r] = 0;
+            s_tabs[r] = 0;
+        }
         synth_page = tab_device_page(RI_TAB_SYNTH, &s_vis, rowdev, rowobj, 3u, &nrows);
         for (r = 0u; r < nrows; r++)
             s_devrow[rowdev[r]] = rowobj[r];
@@ -1213,16 +1302,27 @@ int main(int argc, char **argv) {
         }
         fx_page = rack_page(&s_canvas[C_FX0], 4u, 0);
         rail = tab_rail();
-        reg = (synth_page && drums_page && levi_page && mix_page && fx_page && rail) ?
-            (Object *)MUI_NewObject(MUIC_Register,
-                MUIA_Register_Titles, (IPTR)tab_titles,
+        strip = tab_strip();
+        pages = (synth_page && drums_page && levi_page && mix_page && fx_page) ?
+            (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_PageMode, TRUE,
                 Child, (IPTR)synth_page, Child, (IPTR)drums_page,
                 Child, (IPTR)levi_page,
                 Child, (IPTR)mix_page, Child, (IPTR)fx_page, TAG_DONE) : 0;
-        s_reg = reg;
-        row = (reg && rail) ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
-            Child, (IPTR)s_canvas[C_TR], Child, (IPTR)rail,
-            Child, (IPTR)reg, TAG_DONE) : 0;
+        trslot = rack_slot(s_canvas[C_TR]);
+        s_pages = pages;
+        roottags[0].ti_Tag = MUIA_Group_Spacing; roottags[0].ti_Data = 4;
+        roottags[1].ti_Tag = MUIA_InnerLeft;     roottags[1].ti_Data = 6;
+        roottags[2].ti_Tag = MUIA_InnerRight;    roottags[2].ti_Data = 6;
+        roottags[3].ti_Tag = MUIA_InnerTop;      roottags[3].ti_Data = 6;
+        roottags[4].ti_Tag = MUIA_InnerBottom;   roottags[4].ti_Data = 6;
+        roottags[5].ti_Tag = TAG_DONE;           roottags[5].ti_Data = 0;
+        row = (pages && rail && strip && trslot) ? bay_group(roottags) : 0;
+        if (row) {
+            DoMethod(row, OM_ADDMEMBER, (IPTR)trslot);
+            DoMethod(row, OM_ADDMEMBER, (IPTR)rail);
+            DoMethod(row, OM_ADDMEMBER, (IPTR)strip);
+            DoMethod(row, OM_ADDMEMBER, (IPTR)pages);
+        }
     }
     if (!row) {
         if (s_live)
@@ -1262,16 +1362,19 @@ int main(int argc, char **argv) {
     for (i = 0; i < 5; i++)
         DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
             MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
-    DoMethod(s_reg, MUIM_Notify, MUIA_Group_ActivePage, MUIV_EveryTime, (IPTR)app, 2,
-        MUIM_Application_ReturnID, RIAPP_ID_TAB);
+    for (i = 0; i < (int)RI_TAB_COUNT; i++)
+        DoMethod(s_tabs[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
+            MUIM_Application_ReturnID, RIAPP_ID_TAB0 + (ULONG)i);
     rail_for_tab();
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
     rail_leds_show();
     {
-        IPTR open = 0;
+        IPTR open = 0, tabs = 0;
         GetAttr(MUIA_Window_Open, win, &open);
-        rlog("RIAPP panel: tabbed Synths/Drums/Mix/FX + transport, rack bay (open=%ld rack=%ld)\n",
-            (long)open, (long)(s_art_mcc && s_bay_mcc), 0, 0, 0);
+        for (i = 0; i < (int)RI_TAB_COUNT; i++)
+            tabs += s_tabs[i] ? 1 : 0;
+        rlog("RIAPP panel: tabbed Synths/Drums/Levi/Mix/FX + transport, rack bay (open=%ld rack=%ld tabs=%ld)\n",
+            (long)open, (long)(s_art_mcc && s_bay_mcc), (long)tabs, 0, 0);
     }
 
     /* 100 ms tick: meter chase + null-backend advance. */
@@ -1299,8 +1402,8 @@ int main(int argc, char **argv) {
             break;
         if (ret >= (LONG)RIAPP_ID_DEV0 && ret < (LONG)(RIAPP_ID_DEV0 + 5u))
             dev_visibility_toggle((uint32_t)ret - RIAPP_ID_DEV0);
-        if (ret == (LONG)RIAPP_ID_TAB)
-            rail_for_tab();
+        if (ret >= (LONG)RIAPP_ID_TAB0 && ret < (LONG)(RIAPP_ID_TAB0 + RI_TAB_COUNT))
+            tab_switch((uint32_t)ret - RIAPP_ID_TAB0);
         if (timer_armed && CheckIO((struct IORequest *)treq)) {
             WaitIO((struct IORequest *)treq);
             treq->tr_node.io_Command = TR_ADDREQUEST;

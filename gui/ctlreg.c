@@ -303,6 +303,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 48, KNOB, "Env", "Sustain", 0, 127, 102, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_SUSTAIN, 0),
     R(LEVI, 49, KNOB, "Env", "Release", 0, 127, 84, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RELEASE, 0),
     R(LEVI, 50, SWITCH, "Env", "Loop", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_LOOP, 0),
+    R(LEVI, 51, DISPLAY, "Algo", "Algo Num", 1, 8, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

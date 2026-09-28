@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 51u
+#define RI_SLEVI_NCTL 52u
 #define RI_SLEVI_SELECT 4u      /* Lane Selection: 0..5 */
 #define RI_SLEVI_MODE 2u          /* FM/PM toggle */
 #define RI_SLEVI_ALGO 37u         /* Algorithm select 0..7 */
@@ -27,6 +27,7 @@
 #define RI_SLEVI_SUSTAIN 48u      /* Sustain level */
 #define RI_SLEVI_RELEASE 49u      /* Release time */
 #define RI_SLEVI_LOOP 50u /* Envelope loop */
+#define RI_SLEVI_ALGODISP 51u   /* Central algorithm readout 1..8 */
 #define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
 #define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */
 #define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */
@@ -54,5 +55,7 @@ int ri_slevi_reset(struct RISectLevi *s, uint32_t idx);
 int ri_slevi_led(const struct RISectLevi *s, uint32_t idx);
 /* EDIT STEP 1..16. */
 int ri_slevi_display(const struct RISectLevi *s);
+/* Central algorithm readout 1..8 (panel truth); 0 on NULL. */
+int ri_slevi_algo_display(const struct RISectLevi *s);
 
 #endif

@@ -92,6 +92,13 @@ int main(void) {
     RI_ASSERT(ri_slevi_set_value(&s, 0u, -5) == 1, "knob floor");
     RI_ASSERT(s.val[0] == 0, "knob min");
     RI_ASSERT(ri_slevi_set_value(&s, 0u, -5) == 0, "knob same");
+    /* Central algorithm display (owner photo verdict): readout follows
+     * the Algorithm selector, 1..8 like the hardware "01". */
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGO, 0) == 1, "algo reset");
+    RI_ASSERT(ri_slevi_algo_display(&s) == 1, "algo display default");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGO, 5) == 1, "algo set");
+    RI_ASSERT(ri_slevi_algo_display(&s) == 6, "algo display tracks");
+    RI_ASSERT(ri_slevi_algo_display(0) == 0, "algo display null");
     /* Fail-closed. */
     RI_ASSERT(ri_slevi_press(0, RI_SLEVI_STEP0) == 0, "press null");
     RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_NCTL) == 0, "press bad");
