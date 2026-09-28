@@ -43,7 +43,7 @@ int main(void) {
     static struct RIAutoPass pass;
     static struct RIAutoCarry cA, cB;
     static struct RIControlPlane ctl;
-    const struct RIPatternBank *b4[4];
+    const struct RIPatternBank *b4[5];
     struct RILiveSession a, b;
     static float aL[128], aR[128], bL[128], bR[128];
     struct RIAutoLane *bk;
@@ -53,6 +53,7 @@ int main(void) {
     b4[1] = &BB;
     b4[2] = &B808;
     b4[3] = &B909;
+    b4[4] = 0;
     memset(&pass, 0, sizeof pass);
 
     ri_auto_pub_init(&pub, ev0, 16u, ev1, 16u);

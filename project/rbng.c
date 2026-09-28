@@ -369,6 +369,18 @@ static void chunk_head(FILE *f, const char *id, uint32_t len) {
     wr32be(f, len);
 }
 
+/* Instance-4 (Levi) track usage: the v1.4 file marker (shared by the
+ * VERS minor choice, the total, and the STRK width below). */
+static int song_uses_levi(const struct RISong *s) {
+    uint32_t b;
+    if (!s)
+        return 0;
+    for (b = 0u; b < (uint32_t)RI_SONGTRACK_BARS; b++)
+        if (s->track.slot[b][4] != 0u)
+            return 1;
+    return 0;
+}
+
 int rbng_write_song(const char *path, const struct RISong *s, char *err,
     uint32_t errcap) {
     FILE *f;
@@ -399,8 +411,10 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
         total += 8u + auto_n + (auto_n & 1u);
     total += 8u + modr_n + (modr_n & 1u);
     total += 8u + cprg_n + (cprg_n & 1u);
-    if (!ri_track_is_empty(&s->track))
-        total += 8u + RI_RBNG_STRK_BYTES; /* 3996 is even: never padded */
+    if (!ri_track_is_empty(&s->track)) {
+        uint32_t w = song_uses_levi(s) ? RI_RBNG_STRK_BYTES : RI_RBNG_STRK_BYTES_V1;
+        total += 8u + w + (w & 1u); /* 4-wide 3996 even; 5-wide needs the pad */
+    }
     for (k = 0; k < s->nunknown; k++)
         total += 8u + s->unknown[k].len + (s->unknown[k].len & 1u);
     f = fopen(path, "wb");
@@ -415,9 +429,10 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     wr16be(f, RI_RBNG_MAJOR);
     /* Legacy-shaped songs (no banks, empty track, no ATRK) stay minor 0
      * and remain byte-identical v1.0 files; banks OR a track make it 1.1,
-     * automation ATRK makes it 1.2. */
-    wr16be(f, (s->natrk > 0u) ? 2u :
-        ((s->nbanks > 0u || !ri_track_is_empty(&s->track)) ? 1u : 0u));
+     * automation ATRK makes it 1.2. Instance-4 (Levi) track usage makes
+     * it 1.4 with a 5-wide STRK; anything else keeps the old bytes. */
+    wr16be(f, (s->natrk > 0u) ? 2u : (song_uses_levi(s) ? 4u :
+        ((s->nbanks > 0u || !ri_track_is_empty(&s->track)) ? 1u : 0u)));
     wr32be(f, 0u);
     chunk_head(f, "SONG", 6u);
     wr16be(f, s->tempo);
@@ -437,10 +452,13 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
             write_bank(f, &s->bank[k]);
     }
     if (!ri_track_is_empty(&s->track)) {
-        chunk_head(f, "STRK", RI_RBNG_STRK_BYTES);
+        uint32_t levi = (uint32_t)song_uses_levi(s);
+        chunk_head(f, "STRK", levi ? RI_RBNG_STRK_BYTES : RI_RBNG_STRK_BYTES_V1);
         for (tb = 0u; tb < (uint32_t)RI_SONGTRACK_BARS; tb++)
-            for (ti = 0u; ti < RI_SONGTRACK_INSTANCES; ti++)
+            for (ti = 0u; ti < (levi ? (uint32_t)RI_SONGTRACK_INSTANCES : 4u); ti++)
                 fputc((int)s->track.slot[tb][ti], f);
+        if (levi)
+            fputc(0, f); /* 5-wide body is odd: pad */
     }
     if (s->natrk > 0u) {
         chunk_head(f, "ATRK", atrk_n);
@@ -642,16 +660,27 @@ static int parse_strk(const unsigned char *cid, uint32_t off,
         ck_err(err, errcap, cid, off, "STRK requires 1.1");
         return 1;
     }
-    if (size != RI_RBNG_STRK_BYTES) {
+    if (size != RI_RBNG_STRK_BYTES && size != RI_RBNG_STRK_BYTES_V1) {
         ck_err(err, errcap, cid, off, "STRK length mismatch");
         return 1;
     }
-    /* Validate the whole body BEFORE storing anything (all-or-nothing). */
-    for (k = 0u; k < RI_RBNG_STRK_BYTES; k++) {
+    if (size == RI_RBNG_STRK_BYTES && file_minor < 4u) {
+        ck_err(err, errcap, cid, off, "STRK 5-wide needs v1.4+");
+        return 1;
+    }
+    for (k = 0u; k < size; k++) {
         if (img[doff + k] > RI_SONGTRACK_MAX_SLOT) {
             ck_err(err, errcap, cid, off, "STRK slot out of range");
             return 1;
         }
+    }
+    if (size == RI_RBNG_STRK_BYTES_V1) {
+        /* Classic file: 4-wide grid, Levi instance defaults to slot 0. */
+        for (k = 0u; k < RI_RBNG_STRK_BYTES_V1; k++)
+            s->track.slot[k / 4u][k % 4u] = img[doff + k];
+        for (k = 0u; k < (uint32_t)RI_SONGTRACK_BARS; k++)
+            s->track.slot[k][4] = 0u;
+        return 0;
     }
     for (k = 0u; k < RI_RBNG_STRK_BYTES; k++)
         s->track.slot[k / RI_SONGTRACK_INSTANCES][k % RI_SONGTRACK_INSTANCES] = img[doff + k];

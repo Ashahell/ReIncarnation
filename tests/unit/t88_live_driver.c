@@ -29,7 +29,7 @@ static uint64_t fake_now(void) {
 }
 
 static void fixture_session(struct RILiveSession *s) {
-    const struct RIPatternBank *b4[4];
+    const struct RIPatternBank *b4[5];
     uint32_t q;
     ri_bank_init(&BA, 0u, RI_PATTERN_KIND_303, 0u);
     ri_bank_init(&BB, 1u, RI_PATTERN_KIND_303, 0u);
@@ -48,6 +48,7 @@ static void fixture_session(struct RILiveSession *s) {
     b4[1] = &BB;
     b4[2] = &B808;
     b4[3] = &B909;
+    b4[4] = 0;
     ri_live_init(s, PPQ, SR, BPM, RI_ENGINE_S303A, SCR1, 512u);
     ri_live_set_banks(s, b4, &TR, 0);
 }

@@ -51,7 +51,7 @@ int main(void) {
     RI_ASSERT(ri_track_selected(&t, 5u, 1u) == 3u, "recapture wins");
     /* Refusals: nothing stored, neighbors untouched. */
     RI_ASSERT(ri_track_capture(&t, 999u, 0u, 9u) == 2, "cap bar 999");
-    RI_ASSERT(ri_track_capture(&t, 0u, 4u, 9u) == 2, "cap inst 4");
+    RI_ASSERT(ri_track_capture(&t, 0u, 5u, 9u) == 2, "cap inst 5");
     RI_ASSERT(ri_track_capture(&t, 0u, 0u, 32u) == 2, "cap slot 32");
     RI_ASSERT(ri_track_capture(0, 0u, 0u, 1u) == 2, "cap null");
     RI_ASSERT(ri_track_selected(&t, 998u, 0u) == 0u, "refusal leak");
@@ -125,15 +125,15 @@ int main(void) {
         uint32_t n, seq, k;
         map.segs = &seg; map.n = 1u; map.ppq = 96u; map.sr = 48000u;
 
-        /* Establishment: a fresh carry emits all four slots at the bar. */
+        /* Establishment: a fresh carry emits all five slots at the bar. */
         ri_track_init(&tr);
         ri_track_capture(&tr, 3u, 0u, 5u);
         memset(&carry, 0, sizeof carry);
         n = 0u; seq = 0u;
-        RI_ASSERT(ri_track_emit_measure(&tr, 3u, &carry, &map, 96u, ev, &n, 64u, &seq) == 4u,
+        RI_ASSERT(ri_track_emit_measure(&tr, 3u, &carry, &map, 96u, ev, &n, 64u, &seq) == 5u,
             "establish added %u", n);
-        RI_ASSERT(n == 4u && seq == 4u, "establish count");
-        for (k = 0u; k < 4u; k++) {
+        RI_ASSERT(n == 5u && seq == 5u, "establish count");
+        for (k = 0u; k < 5u; k++) {
             RI_ASSERT(ev[k].type == RI_EV_PATTERN_CHANGE, "type %u", ev[k].type);
             RI_ASSERT(ev[k].device == (uint16_t)k && ev[k].voice == 0u, "dev %u", k);
             RI_ASSERT(ev[k].sample == ri_map_tick(&map, ri_seq_tick_of_bar(96u, 3u)),
@@ -141,7 +141,7 @@ int main(void) {
             RI_ASSERT(ev[k].seq == k, "seq %u", k);
         }
         RI_ASSERT(ev[0].value == 5u && ev[1].value == 0u, "values");
-        RI_ASSERT(carry.known == 0x0Fu && carry.prev[0] == 5u, "carry seeded");
+        RI_ASSERT(carry.known == 0x1Fu && carry.prev[0] == 5u, "carry seeded");
 
         /* Same bar again: no change, no events. */
         n = 0u;
@@ -167,7 +167,7 @@ int main(void) {
             "measure bar 999");
         RI_ASSERT(carry.known == 0u, "999 left carry cold");
 
-        /* Cap pressure: 4 pending, cap 2 -> instances 0,1 go out; 2,3 stay
+        /* Cap pressure: 5 pending, cap 2 -> instances 0,1 go out; 2,3,4 stay
          * PENDING (carry mirrors what was emitted) and are re-sent at the
          * next measure call — late, never lost. */
         memset(&carry, 0, sizeof carry);
@@ -176,9 +176,10 @@ int main(void) {
             "cap added");
         RI_ASSERT(n == 2u && carry.known == 0x03u, "cap state %u", (unsigned)carry.known);
         n = 0u;
-        RI_ASSERT(ri_track_emit_measure(&tr, 4u, &carry, &map, 96u, ev, &n, 64u, &seq) == 2u,
+        RI_ASSERT(ri_track_emit_measure(&tr, 4u, &carry, &map, 96u, ev, &n, 64u, &seq) == 3u,
             "capped changes re-sent");
-        RI_ASSERT(ev[0].device == 2u && ev[1].device == 3u && carry.known == 0x0Fu, "re-sent lanes");
+        RI_ASSERT(ev[0].device == 2u && ev[1].device == 3u && ev[2].device == 4u &&
+            carry.known == 0x1Fu, "re-sent lanes");
 
         /* NULL safety. */
         n = 0u;
@@ -210,33 +211,33 @@ int main(void) {
         ri_track_init(&tr);
         ri_track_capture(&tr, 5u, 0u, 6u);
 
-        /* Loop OFF: bars 3,4,5,6. Establishment at 3 (4 events), nothing at
+        /* Loop OFF: bars 3,4,5,6. Establishment at 3 (5 events), nothing at
          * 4, the rise at 5 (+1), and the fall back to 0 at 6 (+1). */
         memset(&carry, 0, sizeof carry);
         n = ri_track_emit_range(&tr, 3u, 4u, 0, &map, 96u, &carry, ev, 64u);
-        RI_ASSERT(n == 6u, "offline range %u", n);
+        RI_ASSERT(n == 7u, "offline range %u", n);
         RI_ASSERT(ev[0].sample == ri_map_tick(&map, ri_seq_tick_of_bar(96u, 3u)),
             "offline first sample");
-        RI_ASSERT(ev[4].sample == ri_map_tick(&map, ri_seq_tick_of_bar(96u, 5u)),
+        RI_ASSERT(ev[5].sample == ri_map_tick(&map, ri_seq_tick_of_bar(96u, 5u)),
             "offline change sample");
 
         /* The NEXT window does not re-establish (carry crosses blocks). */
         n = ri_track_emit_range(&tr, 3u, 2u, 0, &map, 96u, &carry, ev, 64u);
         RI_ASSERT(n == 0u, "second window re-established %u", n);
 
-        /* Loop ON [4,6): 4 bars from 3 -> 3(est 4), 4(0), 5(+1), wrap->4(+1) = 6. */
+        /* Loop ON [4,6): 4 bars from 3 -> 3(est 5), 4(0), 5(+1), wrap->4(+1) = 7. */
         lp.on = 1u; lp.start_bar = 4u; lp.len_bars = 2u;
         memset(&carry, 0, sizeof carry);
         n = ri_track_emit_range(&tr, 3u, 4u, &lp, &map, 96u, &carry, ev, 64u);
-        RI_ASSERT(n == 6u, "wrap4 count %u", n);
+        RI_ASSERT(n == 7u, "wrap4 count %u", n);
         if (n > 0u)
             RI_ASSERT(ev[n - 1u].sample == ri_map_tick(&map, ri_seq_tick_of_bar(96u, 4u)),
                 "wrap lands on the loop start here");
 
-        /* PHASE PIN — 8 bars: 3,4,5,4,5,4,5,4 -> 4+0+1+1+1+1+1+1 = 10. */
+        /* PHASE PIN — 8 bars: 3,4,5,4,5,4,5,4 -> 5+0+1+1+1+1+1+1 = 11. */
         memset(&carry, 0, sizeof carry);
         n = ri_track_emit_range(&tr, 3u, 8u, &lp, &map, 96u, &carry, ev, 64u);
-        RI_ASSERT(n == 10u, "phase count %u (6 = wrap lost phase)", n);
+        RI_ASSERT(n == 11u, "phase count %u (7 = wrap lost phase)", n);
         if (n >= 2u) {
             RI_ASSERT(ev[n - 1u].sample == ri_map_tick(&map, ri_seq_tick_of_bar(96u, 4u)),
                 "phase tail bar 4");
@@ -247,7 +248,7 @@ int main(void) {
         /* Starting past the loop end folds into the loop (both bars legal). */
         memset(&carry, 0, sizeof carry);
         n = ri_track_emit_range(&tr, 900u, 2u, &lp, &map, 96u, &carry, ev, 64u);
-        RI_ASSERT(n == 5u, "fold count %u", n);
+        RI_ASSERT(n == 6u, "fold count %u", n);
         RI_ASSERT(ev[0].sample == ri_map_tick(&map, ri_seq_tick_of_bar(96u, 4u)),
             "fold lands in loop");
 
@@ -255,7 +256,7 @@ int main(void) {
         lp.on = 1u; lp.start_bar = 4u; lp.len_bars = 0u;
         memset(&carry, 0, sizeof carry);
         n = ri_track_emit_range(&tr, 3u, 4u, &lp, &map, 96u, &carry, ev, 64u);
-        RI_ASSERT(n == 6u, "zero-len loop %u", n);
+        RI_ASSERT(n == 7u, "zero-len loop %u", n);
 
         /* Loop ON never reaches bar 999 (E1: end-of-song cannot fire). */
         lp.on = 1u; lp.start_bar = 4u; lp.len_bars = 2u;
@@ -269,12 +270,12 @@ int main(void) {
         /* A RAW loop past the song end is normalized first (ri_loop_clamp):
          * [995, 1005) -> [995, 999), so the walk wraps instead of stopping at
          * 999. Track: 995/inst1 = 3, so every pass over 995,996 adds 2.
-         * 20 bars from 990: est 4 + four passes x 2 = 12. Unclamped: 6. */
+         * 20 bars from 990: est 5 + four passes x 2 = 13. Unclamped: 7. */
         ri_track_capture(&tr, 995u, 1u, 3u);
         lp.on = 1u; lp.start_bar = 995u; lp.len_bars = 10u;
         memset(&carry, 0, sizeof carry);
         n = ri_track_emit_range(&tr, 990u, 20u, &lp, &map, 96u, &carry, ev, 64u);
-        RI_ASSERT(n == 12u, "raw loop count %u (6 = loop not clamped)", n);
+        RI_ASSERT(n == 13u, "raw loop count %u (7 = loop not clamped)", n);
         for (k = 0u; k < n; k++)
             RI_ASSERT(ev[k].sample < ri_map_tick(&map, ri_seq_tick_of_bar(96u, 999u)),
                 "raw loop reached the end boundary");
@@ -283,7 +284,7 @@ int main(void) {
         /* No loop: the walk truncates before the end boundary. */
         memset(&carry, 0, sizeof carry);
         n = ri_track_emit_range(&tr, 997u, 5u, 0, &map, 96u, &carry, ev, 64u);
-        RI_ASSERT(n == 4u, "truncate count %u", n);
+        RI_ASSERT(n == 5u, "truncate count %u", n);
 
         /* Edges. */
         RI_ASSERT(ri_track_emit_range(0, 0u, 4u, 0, &map, 96u, &carry, ev, 64u) == 0u, "range null t");
@@ -303,7 +304,7 @@ int main(void) {
         struct RITempoMap map;
         struct RISongTrack tr;
         struct RITrackCarry carry;
-        uint8_t cur[4];
+        uint8_t cur[5];
         uint32_t n, e, i;
         uint64_t b;
         map.segs = &seg; map.n = 1u; map.ppq = 96u; map.sr = 48000u;
@@ -318,8 +319,8 @@ int main(void) {
         for (b = 0u; b < RI_SONGTRACK_BARS; b++) {
             uint64_t smp = ri_map_tick(&map, ri_seq_tick_of_bar(96u, b));
             while (e < n && big[e].sample == smp) {
-                RI_ASSERT(big[e].type == RI_EV_PATTERN_CHANGE && big[e].device < 4u, "replay ev %u", e);
-                if (big[e].device < 4u)
+                RI_ASSERT(big[e].type == RI_EV_PATTERN_CHANGE && big[e].device < 5u, "replay ev %u", e);
+                if (big[e].device < 5u)
                     cur[big[e].device] = (uint8_t)big[e].value;
                 e++;
             }
@@ -335,19 +336,19 @@ int main(void) {
         n = ri_track_emit_range(&tr, 0u, RI_SONGTRACK_BARS, 0, &map, 96u, &carry, big, 4096u);
         memset(&carry, 0, sizeof carry);
         n = ri_track_emit_range(&tr, 0u, RI_SONGTRACK_BARS, 0, &map, 96u, &carry, big, 4096u);
-        RI_ASSERT(n == 4u + 998u, "sweep %u", n);
+        RI_ASSERT(n == 5u + 998u, "sweep %u", n);
     }
     /* ---- edits ---- */
     {
         struct RISongTrack tr;
         struct RITrackClip clip;
-        uint8_t s4[4];
-        uint8_t bad4[4];
+        uint8_t s4[5];
+        uint8_t bad4[5];
         uint64_t b;
         uint32_t i;
 
         /* init-song: every bar, every instance. */
-        s4[0] = 3u; s4[1] = 1u; s4[2] = 0u; s4[3] = 2u;
+        s4[0] = 3u; s4[1] = 1u; s4[2] = 0u; s4[3] = 2u; s4[4] = 0u;
         ri_track_init(&tr);
         ri_track_capture(&tr, 500u, 0u, 9u);
         ri_track_init_song(&tr, s4);
@@ -357,7 +358,7 @@ int main(void) {
                     "init song %llu/%u", (unsigned long long)b, i);
         /* Slot law (one law, no masking): {32,40,1,2} is refused whole and
          * the track keeps the previous init-song content. */
-        bad4[0] = 32u; bad4[1] = 40u; bad4[2] = 1u; bad4[3] = 2u;
+        bad4[0] = 32u; bad4[1] = 40u; bad4[2] = 1u; bad4[3] = 2u; bad4[4] = 0u;
         RI_ASSERT(ri_track_init_song(&tr, bad4) == 2, "init song refuses slot 32/40");
         RI_ASSERT(ri_track_selected(&tr, 0u, 0u) == 3u && ri_track_selected(&tr, 998u, 2u) == 0u,
             "refused init song left the track untouched");
@@ -553,7 +554,7 @@ int main(void) {
         /* Reject (b): the LAST body byte (bar 998, instance 3) out of range. */
         {
             unsigned char v = 32u;
-            RI_ASSERT(rbng_test_patch_bytes(FA, FM, soff + 8u + RI_RBNG_STRK_BYTES - 1u, &v, 1u) == 0,
+            RI_ASSERT(rbng_test_patch_bytes(FA, FM, soff + 8u + RI_RBNG_STRK_BYTES_V1 - 1u, &v, 1u) == 0,
                 "patch slot");
             memset(&r, 0xA5, sizeof r);
             RI_ASSERT(rbng_read_song(FM, &r, err, sizeof err) != 0, "slot32 accepted");

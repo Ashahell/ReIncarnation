@@ -19,7 +19,7 @@
 #define RI_LIVE_QUEUE 256u /* pending future-event queue (one block max) */
 
 struct RILiveMeters {
-    float sec_peak[4];
+    float sec_peak[RI_ROUTE_NSECTIONS];
     float fx_peak[4];
     float comp_gr;
     uint64_t samples;

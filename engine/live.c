@@ -61,10 +61,10 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     s->meters_seq.v = 0u;
     /* Init before sharing; plain store safe here. */
     s->tick_rem = 0u;
-    for (i = 0u; i < 4u; i++) {
+    for (i = 0u; i < RI_ROUTE_NSECTIONS; i++)
         s->meters.sec_peak[i] = 0.0f;
+    for (i = 0u; i < 4u; i++)
         s->meters.fx_peak[i] = 0.0f;
-    }
     s->meters.comp_gr = 0.0f;
     s->meters.samples = 0u;
     s->meters.cursor_ticks = 0u;
@@ -173,7 +173,7 @@ int ri_live_record_touch(struct RILiveSession *s, uint16_t key, uint8_t val) {
 
 static void live_meters_update(struct RILiveSession *s) {
     uint32_t i;
-    for (i = 0u; i < 4u; i++)
+    for (i = 0u; i < RI_ROUTE_NSECTIONS; i++)
         s->meters.sec_peak[i] = ri_engine_section_peak(&s->eng, i);
     for (i = 0u; i < 4u; i++)
         s->meters.fx_peak[i] = ri_engine_fx_peak(&s->eng, i);
@@ -210,10 +210,10 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
                 ri_engine_apply_event(&s->eng, &tmp[q]);
         }
         ri_live_meters_begin(s);
-        for (k = 0u; k < 4u; k++) {
+        for (k = 0u; k < RI_ROUTE_NSECTIONS; k++)
             s->meters.sec_peak[k] = 0.0f;
+        for (k = 0u; k < 4u; k++)
             s->meters.fx_peak[k] = 0.0f;
-        }
         s->meters.comp_gr = 0.0f;
         s->meters.samples = s->sample_cursor;
         s->meters.cursor_ticks = s->cursor_ticks;

@@ -15,11 +15,12 @@ void ri_core_init(struct RIAppCore *c, uint32_t ppq, float sr, float bpm,
     ri_track_init(&c->track);
     ri_live_init(&c->session, ppq, sr, bpm, engine, c->scratch, RI_CORE_SCRATCH);
     {
-        const struct RIPatternBank *b4[4];
+        const struct RIPatternBank *b4[5];
         b4[0] = &c->banks[0];
         b4[1] = &c->banks[1];
         b4[2] = &c->banks[2];
         b4[3] = &c->banks[3];
+        b4[4] = &c->banks[4];
         ri_live_set_banks(&c->session, b4, &c->track, 0);
     }
     ri_live_set_ctl(&c->session, &c->ctl);
@@ -36,17 +37,20 @@ void ri_core_demo(struct RIAppCore *c) {
     static const uint8_t fl[16] = { RI_STEP_ACCENT, 0, 0, 0, RI_STEP_ACCENT, 0, 0, 0,
         RI_STEP_ACCENT, 0, 0, 0, 0, 0, 0, RI_STEP_REST };
     uint32_t i;
-    struct RIPatternBank *ba, *bb, *b808, *b909;
+    struct RIPatternBank *ba, *bb, *b808, *b909, *blevi;
     if (!c)
         return;
     ba = &c->banks[0];
     bb = &c->banks[1];
     b808 = &c->banks[2];
     b909 = &c->banks[3];
+    blevi = &c->banks[4];
     ri_bank_init(ba, 0u, RI_PATTERN_KIND_303, 0u);
     ri_bank_init(bb, 1u, RI_PATTERN_KIND_303, 0u);
     ri_bank_init(b808, 2u, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_808);
     ri_bank_init(b909, 3u, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_909);
+    /* Levi: silent until programmed (303B precedent, owner taste later). */
+    ri_bank_init(blevi, 4u, RI_PATTERN_KIND_LEVI, 0u);
     for (i = 0u; i < 32u; i++) {
         ri_pattern_set_length(&ba->pat[i], 16u);
         ri_pattern_set_length(&bb->pat[i], 16u);
@@ -87,13 +91,13 @@ void ri_core_demo(struct RIAppCore *c) {
 struct RIPatternBank *ri_core_bank(struct RIAppCore *c, uint32_t inst) {
     if (!c)
         return 0;
-    return &c->banks[inst < 4u ? inst : 0u];
+    return &c->banks[inst < 5u ? inst : 0u];
 }
 
 const struct RIPatternBank *ri_core_bank_ro(const struct RIAppCore *c, uint32_t inst) {
     if (!c)
         return 0;
-    return &c->banks[inst < 4u ? inst : 0u];
+    return &c->banks[inst < 5u ? inst : 0u];
 }
 
 void ri_core_play(struct RIAppCore *c) {
@@ -102,7 +106,7 @@ void ri_core_play(struct RIAppCore *c) {
 }
 
 int ri_core_capture_sel(struct RIAppCore *c, uint64_t bar, uint32_t inst, uint8_t sel) {
-    if (!c || inst >= 4u || sel > 31u)
+    if (!c || inst >= 5u || sel > 31u)
         return 0;
     if (bar >= (uint64_t)RI_SONG_BARS)
         bar = (uint64_t)RI_SONG_BARS - 1u;

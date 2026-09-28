@@ -21,7 +21,7 @@ CORE_TU := \
   engine/seq/pattern_emit.c engine/seq/transport.c engine/seq/songtrack.c \
   engine/seq/player.c engine/seq/autolane.c engine/seq/ctlplane.c \
   engine/dsp/rb303.c engine/dsp/params.c engine/dsp/rb808.c \
-  engine/dsp/rb909.c project/rbnm.c engine/fx/fx.c engine/fx/route.c \
+  engine/dsp/rb909.c engine/dsp/levi.c project/rbnm.c engine/fx/fx.c engine/fx/route.c \
   engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c \
   audio_io/audio.c audio_io/backend_null.c platform/host/audio_null.c \
   project/sha256.c project/rbng.c project/arexx.c project/arexx_dispatch.c \

@@ -35,6 +35,7 @@ static float B_B0[BENCH_BLOCK];
 static float B_B1[BENCH_BLOCK];
 static float B_B2[BENCH_BLOCK];
 static float B_B3[BENCH_BLOCK];
+static float B_B4[BENCH_BLOCK];
 static float B_T0[BENCH_BLOCK];
 static float B_T1[BENCH_BLOCK];
 static float B_OUT[BENCH_BLOCK];
@@ -93,6 +94,7 @@ static uint64_t bench_pass(uint32_t blocks) {
     buses[1] = B_B1;
     buses[2] = B_B2;
     buses[3] = B_B3;
+    buses[4] = B_B4;
 
     for (b = 0; b < blocks; b++) {
         /* Max-density retrigger: every voice, every block. */
@@ -113,6 +115,8 @@ static uint64_t bench_pass(uint32_t blocks) {
         rb909_render_mix(&s909, B_B2, BENCH_BLOCK, BENCH_SR);
         for (i = 0; i < BENCH_BLOCK; i++)
             B_B3[i] = 0.0f;
+        for (i = 0; i < BENCH_BLOCK; i++)
+            B_B4[i] = 0.0f;
         pcf_render(&pcf, B_B0, B_T0, BENCH_BLOCK, BENCH_SR);
         for (i = 0; i < BENCH_BLOCK; i++)
             B_B0[i] = B_T0[i];

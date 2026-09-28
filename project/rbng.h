@@ -71,6 +71,10 @@
 /* Derived, never a forked 999: the STRK body is the whole track grid. */
 #define RI_RBNG_STRK_BYTES \
     ((uint32_t)RI_SONGTRACK_BARS * (uint32_t)RI_SONGTRACK_INSTANCES)
+/* v1.1 shape (Classic 4-wide track grid); minor <= 3 files parse here
+ * with instance 4 defaulting to slot 0. Minor 4 (Levi era) is 5-wide. */
+#define RI_RBNG_STRK_BYTES_V1 \
+    ((uint32_t)RI_SONGTRACK_BARS * 4u)
 
 /* Step flag bits (== RI_STEP_* by contract, see t1_formats §16). */
 #define RI_RBNG_SLIDE 0x01u

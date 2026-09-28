@@ -31,7 +31,7 @@ int main(void) {
         struct RITempoMap map;
         struct RISegment seg;
         struct RILoop loop;
-        const struct RIPatternBank *b4[4] = { &b, 0, 0, 0 };
+        const struct RIPatternBank *b4[5] = { &b, 0, 0, 0, 0 };
         uint32_t got;
         ri_bank_init(&b, 0u, RI_PATTERN_KIND_303, 0u);
         ri_track_init(&t);

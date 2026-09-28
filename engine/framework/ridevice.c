@@ -1,5 +1,5 @@
 /* ridevice.c — RIDevice static registry, Classic (Task 11, gate G11).
- * No allocation; no IO; the table is file-static, four slots.
+ * No allocation; no IO; the table is file-static, five slots.
  */
 #include "engine/framework/ridevice.h"
 
@@ -11,6 +11,7 @@ void ri_devices_init(void) {
     RI_DEVICES[1].name = "303B";
     RI_DEVICES[2].name = "808";
     RI_DEVICES[3].name = "909";
+    RI_DEVICES[4].name = "Levi";
     for (i = 0; i < RI_DEVICE_COUNT; i++) {
         RI_DEVICES[i].render = 0;
         RI_DEVICES[i].ctx = 0;

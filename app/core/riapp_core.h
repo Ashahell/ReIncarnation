@@ -21,7 +21,7 @@
 #define RI_CORE_DLINE 131072u
 
 struct RIAppCore {
-    struct RIPatternBank banks[4];
+    struct RIPatternBank banks[5];
     struct RISongTrack track;
     struct RIControlPlane ctl;
     struct RILiveSession session;

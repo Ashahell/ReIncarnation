@@ -76,7 +76,11 @@ void levi_init_set(struct RILeviSet *s);
 int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note);
 void levi_release(struct RILeviSet *s, uint32_t voice);
 /* Render one sample; idle voices return exact 0. */
+/* Render one sample; idle voices return exact 0. */
 float levi_voice_render(struct RILeviVoice *v, float sr);
+/* Sum all voices into out (render mix, rb909 pattern). */
+void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
+    float sr);
 /* Voice params; returns 0 ok, 2 bad id/voice/range/NULL. */
 int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
     float value);

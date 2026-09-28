@@ -1044,6 +1044,7 @@ static int render_fx(const char *name, const char *out_path) {
  * blocks at 48 kHz, static buffers, deterministic (D1). */
 static int render_mix(const char *name, const char *out_path) {
     static float bus[4][96000];
+    static float silence[96000];
     static float tmp[96000], snd[96000];
     static float pcm[96000];
     struct RiMixer m;
@@ -1072,11 +1073,12 @@ static int render_mix(const char *name, const char *out_path) {
         ri_mix_set_mute(&m, 1, 1);
     while (pos < total) {
         uint32_t cc = total - pos;
-        const float *blk[4];
+        const float *blk[RI_MIX_NBUS];
         if (cc > RI_BLOCK)
             cc = RI_BLOCK;
-        for (b = 0; b < 4u; b++)
+        for (b = 0u; b < 4u; b++)
             blk[b] = bus[b] + pos;
+        blk[4] = silence + pos; /* 5th bus silent: 4-bus goldens bit-identical */
         ri_mix_render(&m, blk, tmp + pos, snd + pos, cc);
         pos += cc;
     }

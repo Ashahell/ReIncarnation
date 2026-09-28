@@ -18,6 +18,7 @@
 #define SR 48000.0f
 
 static float DC[512];
+static float ZR[512]; /* 5th bus: silent (static zero-init) */
 static float B0[512];
 static float OUT[512], SND[512];
 static float LONG[48000];
@@ -52,9 +53,9 @@ int main(void) {
     fill(LONG, 48000, 0.0f);
     LONG[0] = 1.0f;
 
-    /* --- 0. registry: static table of 4, exact names --- */
+    /* --- 0. registry: static table of 5, exact names --- */
     ri_devices_init();
-    RI_ASSERT(ri_device_count() == 4u, "count %u want 4",
+    RI_ASSERT(ri_device_count() == 5u, "count %u want 5",
         ri_device_count());
     RI_ASSERT(ri_device_get(0) && strcmp(ri_device_get(0)->name, "303A") == 0,
         "slot0 name");
@@ -64,9 +65,11 @@ int main(void) {
         "slot2 name");
     RI_ASSERT(ri_device_get(3) && strcmp(ri_device_get(3)->name, "909") == 0,
         "slot3 name");
-    RI_ASSERT(ri_device_get(4) == 0, "slot4 must be NULL");
+    RI_ASSERT(ri_device_get(4) && strcmp(ri_device_get(4)->name, "Levi") == 0,
+        "slot4 name");
+    RI_ASSERT(ri_device_get(5) == 0, "slot5 must be NULL");
     ri_devices_init(); /* idempotent */
-    RI_ASSERT(ri_device_count() == 4u, "re-init count");
+    RI_ASSERT(ri_device_count() == 5u, "re-init count");
 
     /* --- 1. fader law: 9 anchors ±0.5 dB --- */
     for (i = 0; i < 9; i++) {
@@ -124,6 +127,7 @@ int main(void) {
     ins[1] = DC;
     ins[2] = DC;
     ins[3] = DC;
+    ins[4] = ZR;
     ri_mix_render(&m, ins, OUT, SND, 512);
     RI_ASSERT(OUT[511] == 0.0f, "all-mute tail %g", (double)OUT[511]);
     /* rendered: solo bus2 over DC -> tail exactly bus2 x master */
@@ -266,12 +270,12 @@ int main(void) {
     ri_mix_set_master(&m, 0);
     ri_mix_render(&m, ins, OUT, SND, 512);
     RI_ASSERT(OUT[511] == 0.0f, "master0 tail %g", (double)OUT[511]);
-    RI_ASSERT(ri_mix_set_fader(&m, 4, 100) == 2, "bad bus fader");
-    RI_ASSERT(ri_mix_set_send(&m, 4, 100) == 2, "bad bus send");
-    RI_ASSERT(ri_mix_set_mute(&m, 4, 1) == 2, "bad bus mute");
-    RI_ASSERT(ri_mix_set_solo(&m, 4, 1) == 2, "bad bus solo");
+    RI_ASSERT(ri_mix_set_fader(&m, 5, 100) == 2, "bad bus fader");
+    RI_ASSERT(ri_mix_set_send(&m, 5, 100) == 2, "bad bus send");
+    RI_ASSERT(ri_mix_set_mute(&m, 5, 1) == 2, "bad bus mute");
+    RI_ASSERT(ri_mix_set_solo(&m, 5, 1) == 2, "bad bus solo");
     RI_ASSERT(ri_mix_set_master(0, 100) == 2, "null master");
-    RI_ASSERT(ri_mix_audible(&m, 4) == 0, "bad bus fails closed");
+    RI_ASSERT(ri_mix_audible(&m, 5) == 0, "bad bus fails closed");
     RI_ASSERT(ri_mix_audible(0, 0) == 0, "null mixer fails closed");
     ri_mix_render(0, ins, OUT, SND, 8); /* null mixer: no crash */
     ri_meter_feed(0, DC, 8);

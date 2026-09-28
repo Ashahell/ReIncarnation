@@ -7,7 +7,7 @@
 #include "engine/seq/transport.h"
 
 #define RI_SONGTRACK_BARS      RI_SONG_BARS /* single source; never a forked 999 */
-#define RI_SONGTRACK_INSTANCES 4u           /* 303A 303B 808 909 (Classic) */
+#define RI_SONGTRACK_INSTANCES 5u           /* 303A 303B 808 909 Levi (Classic +1) */
 #define RI_SONGTRACK_MAX_SLOT  31u          /* 4 banks x 8 (p. 147) */
 
 struct RISongTrack { uint8_t slot[RI_SONGTRACK_BARS][RI_SONGTRACK_INSTANCES]; };

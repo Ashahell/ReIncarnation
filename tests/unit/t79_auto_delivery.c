@@ -113,7 +113,7 @@ int main(void) {
     RI_ASSERT(E.level[3] == 90u, "909 level key %u", E.level[3]);
 
     /* (d) level law + render identity */
-    RI_ASSERT(ri_engine_set_level(&E, 4u, 1u) == 2 && ri_engine_set_level(0, 0u, 1u) == 2, "level bad args");
+    RI_ASSERT(ri_engine_set_level(&E, 5u, 1u) == 2 && ri_engine_set_level(0, 0u, 1u) == 2, "level bad args");
     solo(&E);
     RI_ASSERT(E.level[0] == 127u, "level default 127 (unity)");
     RI_ASSERT(ri_engine_render(&E, LA, RA, N, SR) == N, "neutral render");

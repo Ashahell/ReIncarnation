@@ -21,23 +21,24 @@ static int fails = 0;
     if (!(cond)) { printf("FAIL "); printf(__VA_ARGS__); printf("\n"); fails++; } \
 } while (0)
 
-static float B0[512], B1[512], B2[512], B3[512];
+static float B0[512], B1[512], B2[512], B3[512], B4[512];
 static float OUT[512], SND[512];
 
 int main(void) {
     struct RiMixer m;
-    const float *ins[RI_MIX_NBUS] = { B0, B1, B2, B3 };
+    const float *ins[RI_MIX_NBUS] = { B0, B1, B2, B3, B4 };
     uint32_t i, b, mm, sm;
     for (i = 0; i < 512; i++) {
         B0[i] = 1.0f;
         B1[i] = 2.0f;
         B2[i] = 3.0f;
         B3[i] = 4.0f;
+        B4[i] = 5.0f;
     }
 
-    /* --- exhaustive rendered 4x4 matrix --- */
-    for (mm = 0; mm < 16; mm++) {
-        for (sm = 0; sm < 16; sm++) {
+    /* --- exhaustive rendered 5x5 matrix --- */
+    for (mm = 0; mm < 32; mm++) {
+        for (sm = 0; sm < 32; sm++) {
             double want = 0.0;
             ri_mix_init(&m, T26_SR);
             for (b = 0; b < RI_MIX_NBUS; b++) {
@@ -57,15 +58,15 @@ int main(void) {
                 (double)OUT[511], want);
         }
     }
-    printf("rendered matrix 16x16 exact\n");
+    printf("rendered matrix 32x32 exact\n");
 
     /* --- live solo toggle zipper, both directions.
      * Bound generalizes the ledger's single-bus rule (worst step
      * 1/64 of full scale per slewing bus): soloing bus 0 collapses
-     * buses 1..3 (DC 2+3+4 = 9), so the transient bound is 9/64 —
+     * buses 1..4 (DC 2+3+4+5 = 14), so the transient bound is 14/64 —
      * simultaneous per-bus slews, each <= 1/64, never a step. --- */
     {
-        const float collapse = 9.0f / 64.0f;
+        const float collapse = 14.0f / 64.0f;
         float worst = 0.0f;
         ri_mix_init(&m, T26_SR);
         ri_mix_render(&m, ins, OUT, SND, 512); /* all open, settle */
@@ -94,7 +95,7 @@ int main(void) {
         }
         CHECK(worst <= collapse + 1e-6f, "solo-off transient %g > 9/64",
             (double)worst);
-        CHECK(fabs((double)OUT[511] - 10.0) < 1e-4, "reopen tail %g",
+        CHECK(fabs((double)OUT[511] - 15.0) < 1e-4, "reopen tail %g",
             (double)OUT[511]);
         printf("solo toggle worst steps ok\n");
     }

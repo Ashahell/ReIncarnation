@@ -206,8 +206,7 @@ static float lp_step(struct RILeviVoice *v, float x, float sr) {
     return lp;
 }
 
-float levi_voice_render(struct RILeviVoice *v, float sr) {
-    float modsig, carph, osc, out;
+float levi_voice_render(struct RILeviVoice *v, float sr) {    float modsig, carph, osc, out;
     int car_on, mod_on;
     if (!v || !v->active || !(sr > 0.0f))
         return 0.0f;
@@ -244,4 +243,17 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
         out = 0.0f;
     }
     return out * v->level;
+}
+
+void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
+    float sr) {
+    uint32_t i, v;
+    if (!s || !out)
+        return;
+    for (i = 0u; i < n; i++) {
+        float m = 0.0f;
+        for (v = 0u; v < RI_LEVI_NVOICES; v++)
+            m += levi_voice_render(&s->v[v], sr);
+        out[i] = m;
+    }
 }

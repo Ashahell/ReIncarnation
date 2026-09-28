@@ -1,4 +1,4 @@
-/* mixer.c — 4 section buses + master + meter tap + mono send bus
+/* mixer.c — 5 section buses + master + meter tap + mono send bus
  * (Task 11, gate G11). No allocation; no IO; bounded loops; ri_* only.
  */
 #include "engine/mixer/mixer.h"

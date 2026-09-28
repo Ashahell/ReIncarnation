@@ -20,6 +20,7 @@
 #include "engine/dsp/rb303.h"
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
+#include "engine/dsp/levi.h"
 #include "engine/fx/fx.h"
 #include "engine/fx/route.h"
 #include "engine/mixer/mixer.h"
@@ -29,6 +30,7 @@
 #define RI_ENGINE_S303B 0x02u
 #define RI_ENGINE_S808 0x04u
 #define RI_ENGINE_S909 0x08u
+#define RI_ENGINE_SLEVI 0x10u /* 5th instance (owner 2026-09-28, option A) */
 #define RI_ENGINE_PAN_CENTER 64u /* detent: exact unity (gL = gR = 1) */
 #define RI_ENGINE_TEMPO_DEFAULT 140.0f /* delay clock until transport owns it */
 /* Live-tap units for ri_engine_fx_peak (C2): DIST/PCF render per-section
@@ -44,6 +46,7 @@ struct RIEngine {
     struct RB303Voice v303a, v303b;
     struct RB808Set s808; /* §12.7a/m64: drum sections */
     struct RB909Set s909;
+    struct RILeviSet slevi; /* 5th instance (polyphonic synth) */
     uint64_t tag808[RI_808_NSOUNDS]; /* trigger sample per sound */
     uint64_t tag909[RI_909_NVOICES]; /* trigger sample per voice */
     const struct RIEvent *ev; /* caller-owned, sample-sorted */

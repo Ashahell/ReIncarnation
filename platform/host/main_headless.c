@@ -43,7 +43,7 @@ static void pull(void *user, void *out, uint32_t frames) {
 }
 
 int main(int argc, char **argv) {
-    const struct RIPatternBank *b4[4];
+    const struct RIPatternBank *b4[5];
     /* Backend defaults: /tmp/ri/null.wav, 2 s (no env needed). */
     const char *wav = "/tmp/ri/null.wav";
     struct ri_audio_cfg c;
@@ -70,6 +70,7 @@ int main(int argc, char **argv) {
     b4[1] = &BB;
     b4[2] = &B808;
     b4[3] = &B909;
+    b4[4] = 0;
     ri_live_init(&SESS, 96u, 48000.0f, 120.0f, RI_ENGINE_S303A, SCR, 512u);
     ri_live_set_banks(&SESS, b4, &TR, 0);
     ri_livedrv_init(&DRV, &SESS, CHUNK, 0);

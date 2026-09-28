@@ -42,7 +42,7 @@ int main(void) {
     ri_engine_init(&a);
     RI_ASSERT(ri_engine_section_peak(&a, 0u) == 0.0f, "fresh sec0");
     RI_ASSERT(ri_engine_section_peak(&a, 3u) == 0.0f, "fresh sec3");
-    RI_ASSERT(ri_engine_section_peak(&a, 4u) == 0.0f, "bad section");
+    RI_ASSERT(ri_engine_section_peak(&a, 5u) == 0.0f, "bad section");
     RI_ASSERT(ri_engine_fx_peak(&a, 0u) == 0.0f, "fresh dist");
     RI_ASSERT(ri_engine_fx_peak(&a, 3u) == 0.0f, "fresh comp");
     RI_ASSERT(ri_engine_fx_peak(&a, 4u) == 0.0f, "bad unit");

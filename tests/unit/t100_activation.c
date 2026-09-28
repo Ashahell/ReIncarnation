@@ -46,12 +46,13 @@ static void fixture(int sounding) {
 
 static void render_all(uint32_t sections, float *ol, float *or_) {
     struct RILiveSession s;
-    const struct RIPatternBank *b4[4];
+    const struct RIPatternBank *b4[5];
     uint32_t done = 0u;
     b4[0] = &BA;
     b4[1] = &BB;
     b4[2] = &B808;
     b4[3] = &B909;
+    b4[4] = 0;
     ri_live_init(&s, PPQ, SR, BPM, sections, SCR, 512u);
     ri_live_set_banks(&s, b4, &TR, 0);
     ri_live_play(&s);
@@ -78,7 +79,7 @@ int main(void) {
     static float on_l[TOTAL], on_r[TOTAL], off_l[TOTAL], off_r[TOTAL];
     static float rest_l[TOTAL], rest_r[TOTAL], re_l[TOTAL], re_r[TOTAL];
     struct RILiveSession s;
-    const struct RIPatternBank *b4[4];
+    const struct RIPatternBank *b4[5];
     uint32_t done = 0u;
     /* Sections bits are one-per-device (rail mask law). */
     RI_ASSERT(ALL == 0x0Fu, "mask law");
@@ -88,6 +89,7 @@ int main(void) {
     b4[1] = &BB;
     b4[2] = &B808;
     b4[3] = &B909;
+    b4[4] = 0;
     ri_live_init(&s, PPQ, SR, BPM, ALL, SCR, 512u);
     RI_ASSERT(ri_live_sections(&s) == ALL, "get init");
     ri_live_set_sections(&s, RI_ENGINE_S808);

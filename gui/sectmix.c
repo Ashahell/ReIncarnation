@@ -12,6 +12,13 @@ int ri_smix_strip(uint32_t section) {
     return section == RI_SEC_MASTER ? 4 : -1;
 }
 
+/* Board strip -> route owner: sections address themselves, but the
+ * board's master strip (index 4) is NOT route section 4 (Levi) — the
+ * route master lives at RI_ROUTE_MASTER (owner 2026-09-28, option A). */
+static int owner_of(uint32_t section, int strip) {
+    return section == RI_SEC_MASTER ? RI_ROUTE_MASTER : strip;
+}
+
 /* insert unit behind a switch, or -1 */
 static int unit_of(uint32_t section, uint32_t idx) {
     if (section == RI_SEC_MASTER)
@@ -42,8 +49,8 @@ int ri_smix_press(struct RIMixBoard *b, uint32_t section, uint32_t idx) {
         return 0;
     unit = unit_of(section, idx);
     if (unit >= 0) {       /* radio: on here steals it; on again releases it */
-        int own = ri_route_owner(&b->route, (uint32_t)unit) == strip;
-        return ri_route_assign(&b->route, (uint32_t)unit, own ? RI_ROUTE_NONE : strip) != -2;
+        int own = ri_route_owner(&b->route, (uint32_t)unit) == owner_of(section, strip);
+        return ri_route_assign(&b->route, (uint32_t)unit, own ? RI_ROUTE_NONE : owner_of(section, strip)) != -2;
     }
     b->val[strip][idx] = (int16_t)(b->val[strip][idx] ? 0 : 1);
     return 1;
@@ -87,7 +94,7 @@ int ri_smix_led(const struct RIMixBoard *b, uint32_t section, uint32_t idx) {
     if (!d || d->kind != RI_CK_SWITCH)
         return 0;
     if (unit >= 0)
-        return ri_route_owner(&b->route, (uint32_t)unit) == ri_smix_strip(section);
+        return ri_route_owner(&b->route, (uint32_t)unit) == owner_of(section, ri_smix_strip(section));
     return b->val[ri_smix_strip(section)][idx] != 0;
 }
 

@@ -24,7 +24,7 @@ static struct RISongTrack TR;
 static struct RIEvent SCR1[512], SCR2[512], SCR3[512];
 
 static void fixture(void) {
-    const struct RIPatternBank *b4[4];
+    const struct RIPatternBank *b4[5];
     uint32_t s;
     ri_bank_init(&BA, 0u, RI_PATTERN_KIND_303, 0u);
     ri_bank_init(&BB, 1u, RI_PATTERN_KIND_303, 0u);
@@ -48,13 +48,14 @@ static void banks4(const struct RIPatternBank **out) {
     out[1] = &BB;
     out[2] = &B808;
     out[3] = &B909;
+    out[4] = 0;
 }
 
 static uint32_t render_live(uint32_t chunk, float *ol, float *or_,
     struct RIControlPlane *ctl, struct RIAutoPub *pub,
     struct RIAutoCarry *carry, int inject_at_bound) {
     struct RILiveSession s;
-    const struct RIPatternBank *b4[4];
+    const struct RIPatternBank *b4[5];
     uint32_t done = 0u, nbuf = 0u;
     banks4(b4);
     ri_live_init(&s, PPQ, SR, BPM, RI_ENGINE_S303A, SCR1, 512u);
@@ -119,7 +120,7 @@ int main(void) {
     /* Meters come from the engine, position follows the transport. */
     {
         struct RILiveSession s;
-        const struct RIPatternBank *b4[4];
+        const struct RIPatternBank *b4[5];
         static float ol[256], or_[256];
         banks4(b4);
         ri_live_init(&s, PPQ, SR, BPM, RI_ENGINE_S303A, SCR2, 512u);
@@ -136,7 +137,7 @@ int main(void) {
     /* STOPPED renders silence and holds the cursor. */
     {
         struct RILiveSession s;
-        const struct RIPatternBank *b4[4];
+        const struct RIPatternBank *b4[5];
         static float ol[128], or_[128];
         uint32_t k, silent = 0u;
         banks4(b4);
@@ -182,7 +183,7 @@ int main(void) {
         static struct RIEvent off[512];
         struct RIEngine e;
         struct RIPlayer pl;
-        const struct RIPatternBank *b4[4];
+        const struct RIPatternBank *b4[5];
         struct RISegment seg;
         struct RITempoMap map;
         uint32_t n = 0u, seq = 0u, k;

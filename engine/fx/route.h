@@ -14,8 +14,8 @@
 #define RI_ROUTE_NUNITS 3u
 
 #define RI_ROUTE_NONE (-1)
-#define RI_ROUTE_MASTER 4 /* comp only: stereo master insert */
-#define RI_ROUTE_NSECTIONS 4u /* 0=303A 1=303B 2=808 3=909 */
+#define RI_ROUTE_MASTER 5 /* comp only: stereo master insert */
+#define RI_ROUTE_NSECTIONS 5u /* 0=303A 1=303B 2=808 3=909 4=Levi */
 
 struct RIRoute {
     int8_t owner[RI_ROUTE_NUNITS]; /* -1 none, 0..3 section, 4 master */

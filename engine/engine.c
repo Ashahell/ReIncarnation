@@ -18,6 +18,7 @@ void ri_engine_init(struct RIEngine *e) {
     rb303_init(&e->v303b);
     rb808_init_set(&e->s808);
     rb909_init_set(&e->s909);
+    levi_init_set(&e->slevi);
     for (i = 0; i < RI_808_NSOUNDS; i++)
         e->tag808[i] = ~(uint64_t)0u;
     for (i = 0; i < RI_909_NVOICES; i++)
@@ -373,6 +374,24 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
             return; /* one-shots: no gate to release */
         }
     }
+    /* Levi instance (owner 2026-09-28, option A): chord lanes arrive as
+     * NOTE_ON (voice = lane, value = MIDI note) and NOTE_OFF (voice =
+     * lane); lane == engine voice slot, fixed allocation. */
+    if (ev->device == 4u) {
+        uint32_t lane = ev->voice;
+        if (lane >= RI_LEVI_NVOICES)
+            return; /* reserved rack lanes: later slice */
+        switch (ev->type) {
+        case RI_EV_NOTE_ON:
+            levi_trigger(&e->slevi, lane, (uint8_t)(ev->value & 127u));
+            return;
+        case RI_EV_NOTE_OFF:
+            levi_release(&e->slevi, lane);
+            return;
+        default:
+            return;
+        }
+    }
     switch (ev->type) {
     case RI_EV_NOTE_ON:
     case RI_EV_NOTE_CONTINUE:
@@ -457,6 +476,10 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             if (e->sections & RI_ENGINE_S909) {
                 rb909_render_mix(&e->s909, e->scratch, cc, sr);
                 engine_section(e, 3, ml, mr, sendbus, cc, sr);
+            }
+            if (e->sections & RI_ENGINE_SLEVI) {
+                levi_voice_render_sum(&e->slevi, e->scratch, cc, sr);
+                engine_section(e, 4, ml, mr, sendbus, cc, sr);
             }
             /* Shared delay send: one line over the summed post-insert
              * sends; stereo return with its own pan (NULL = dry). */

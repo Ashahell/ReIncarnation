@@ -31,17 +31,18 @@ static void banks_4(struct RIPatternBank **out4) {
     ri_pdrum_set(&B808.pat[0], 0u, (uint32_t)RI_L808_BD, (uint32_t)RI_HIT_LOW);
     ri_pdrum_set(&B909.pat[0], 0u, (uint32_t)RI_L909_BD, (uint32_t)RI_HIT_LOW);
     out4[0] = &BA; out4[1] = &BB; out4[2] = &B808; out4[3] = &B909;
+    out4[4] = 0;
 }
 
 int main(void) {
-    struct RIPatternBank *b4[4];
-    const struct RIPatternBank *c4[4];
+    struct RIPatternBank *b4[5];
+    const struct RIPatternBank *c4[5];
     struct RISongTrack tr;
     struct RIPlayer pl;
     uint32_t i;
     (void)MAP;
     banks_4(b4);
-    for (i = 0u; i < 4u; i++) c4[i] = b4[i];
+    for (i = 0u; i < 5u; i++) c4[i] = b4[i];
     /* Cold start seeds sounding = pending = track selection at bar 0. */
     ri_track_init(&tr);
     ri_track_capture(&tr, 0u, 0u, 5u);
@@ -64,16 +65,16 @@ int main(void) {
     /* Refresh swaps ONLY the pointers — never phase/sounding/pending/carries. */
     pl.phase_ticks[1] = 48u;
     pl.sched_carry[1].valid = 1u; pl.sched_carry[1].held_note = 60u;
-    pl.track_carry.known = 0x0Fu;
+    pl.track_carry.known = 0x1Fu;
     {
-        const struct RIPatternBank *d4[4];
-        d4[0] = &BB; d4[1] = &BA; d4[2] = &B909; d4[3] = &B808;
+        const struct RIPatternBank *d4[5];
+        d4[0] = &BB; d4[1] = &BA; d4[2] = &B909; d4[3] = &B808; d4[4] = 0;
         ri_player_refresh_banks(&pl, d4);
         RI_ASSERT(pl.banks[0] == &BB && pl.banks[1] == &BA, "refresh swaps");
         RI_ASSERT(pl.phase_ticks[1] == 48u, "refresh keeps phase");
         RI_ASSERT(pl.sounding_slot[0] == 5u && pl.pending_slot[0] == 5u, "refresh keeps slots");
         RI_ASSERT(pl.sched_carry[1].valid == 1u, "refresh keeps tie carry");
-        RI_ASSERT(pl.track_carry.known == 0x0Fu, "refresh keeps track carry");
+        RI_ASSERT(pl.track_carry.known == 0x1Fu, "refresh keeps track carry");
     }
     ri_player_init(&pl, c4, &tr, 0u);
     /* NULL safety: NULL player no-ops; NULL banks entry = silent instance
@@ -82,8 +83,8 @@ int main(void) {
     ri_player_refresh_banks(0, c4);
     ri_player_refresh_banks(&pl, 0);
     {
-        const struct RIPatternBank *n4[4];
-        n4[0] = 0; n4[1] = c4[1]; n4[2] = c4[2]; n4[3] = c4[3];
+        const struct RIPatternBank *n4[5];
+        n4[0] = 0; n4[1] = c4[1]; n4[2] = c4[2]; n4[3] = c4[3]; n4[4] = 0;
         ri_player_init(&pl, n4, &tr, 0u);
         RI_ASSERT(pl.banks[0] == 0, "null bank held");
         RI_ASSERT(pl.sounding_slot[0] == 5u && pl.pending_slot[0] == 5u, "null bank still tracks");

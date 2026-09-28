@@ -1,4 +1,4 @@
-/* mixer.h — 4 section buses + master + meter tap + mono send bus
+/* mixer.h — 5 section buses + master + meter tap + mono send bus
  * (Task 11, gate G11). Spec §13 mixer + Appendix A P-16 (meter, ~20 dB/s
  * peak-hold) + P-17 (fader law) + §6 device order (mixer sums section
  * buses after the barrier; single-threaded Classic).
@@ -24,7 +24,7 @@
 #define RI_MIXER_H
 #include <stdint.h>
 
-#define RI_MIX_NBUS 4u
+#define RI_MIX_NBUS 5u
 #define RI_MIX_RAMP_SMP 64u /* zipless slew: full 0..1 traverse, samples */
 #define RI_MIX_DB_PER_SEC 20.0f /* P-16 meter decay rate */
 #define RI_MIX_LOG2_10 3.3219281f /* binary log of ten (meter coef) */
