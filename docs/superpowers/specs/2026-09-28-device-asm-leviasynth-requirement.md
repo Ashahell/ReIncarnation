@@ -77,17 +77,15 @@ test case for rack generality (classes, not just instances).
 - **Naming:** "Leviasynth" descriptively (as "ESX-1"); no ASM logo,
   trade dress, or "Leviathan"-adjacent branding in UI or skins.
 
-## Proposed v1 slice (owner decision required, not started)
+## Proposed v1 slice (owner decision 2026-09-28: POLYPHONIC voice)
 
-**Levi bass/lead mono voice** (fits today's architecture with no new
-pattern kind): 2–3 operator FM core (Freq Mod + Phase Mod first; PD /
-HTE / morphing later), one DAHDSR amp contour, resonant lowpass,
-step-programmable on the 303 pattern model (16 steps pitch+gate),
-Synths-tab row, rail chip, mixer strip, demo line. Polyphony, the
-remaining modes, morphing, arp/sequencer and FX stay later slices.
-First 4-device-assumption breaks: `RI_VIS_MAX` 4→5, tab rows, rail
-chips, `c_voice_canvas`, `s_panel.synth[2]`, `0x0E` lane block, `levi`
-skin token, RBNG chunk IDs (owner review).
+Full polyphonic Levi voice with chord/note patterns — accepted cost of
+a new pattern kind first. Slices: (1) Levi pattern kind (chord steps)
++ engine polyphonic emission; (2) FM DSP voice bank (modest count,
+Dell-budgeted) + DAHDSR + resonant lowpass; (3) control table (0x0E),
+panel row + chord step editor, rail chip, mixer strip, skin token,
+RBNG chunks (owner review); (4) demo content + MIDI + Dell xrun proof.
+Mono step-row fitting explicitly rejected (owner wants the real thing).
 
 ## Open questions (owner; do not decide)
 
