@@ -266,6 +266,50 @@ static void p_rail(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
 static void p_power(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
     ri_art_power(dl, 0, 0, (int)w - 1, (int)h - 1, "303A", a & 1, (a >> 1) & 1);
 }
+static void p_tab(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
+    ri_art_tab(dl, 0, 0, (int)w - 1, (int)h - 1, "SYNTHS", a & 1, (a >> 1) & 1);
+}
+
+static int t_luma(uint32_t c) {
+    return (int)(((c >> 16 & 0xFF) * 299u + (c >> 8 & 0xFF) * 587u + (c & 0xFF) * 114u) / 1000u);
+}
+
+static void tab_checks(uint32_t *px) {
+    struct ri_raster r;
+    uint32_t x, y, on_green = 0u, off_green = 0u, hash_on, hash_off, hash_press;
+    int face_luma, text_luma, dl = 0;
+    /* Active shows a green LED strip; inactive shows none. */
+    t_art(&r, px, 96u, 24u, p_tab, 1);
+    for (y = 0u; y < 24u; y++)
+        for (x = 0u; x < 96u; x++)
+            on_green += t_green(px[y * 96u + x]);
+    hash_on = ri_raster_hash(&r);
+    t_art(&r, px, 96u, 24u, p_tab, 0);
+    for (y = 0u; y < 24u; y++)
+        for (x = 0u; x < 96u; x++)
+            off_green += t_green(px[y * 96u + x]);
+    hash_off = ri_raster_hash(&r);
+    RI_ASSERT(on_green >= 20u, "tab on: %u green px", on_green);
+    RI_ASSERT(off_green == 0u, "tab off: %u green px", off_green);
+    RI_ASSERT(hash_on != hash_off, "tab active looks inactive");
+    /* Label contrasts with the face (hardware printed legend). */
+    face_luma = t_luma(px[23u * 96u + 2u] & 0xFFFFFFu);
+    text_luma = 0;
+    for (y = 8u; y < 22u; y++)
+        for (x = 8u; x < 88u; x++) {
+            int l = t_luma(px[y * 96u + x] & 0xFFFFFFu);
+            if (l > text_luma)
+                text_luma = l;
+        }
+    dl = text_luma - face_luma;
+    if (dl < 0)
+        dl = -dl;
+    RI_ASSERT(dl >= 60, "tab label contrast %d (face %d text %d)", dl, face_luma, text_luma);
+    /* Pressed sinks the cap. */
+    t_art(&r, px, 96u, 24u, p_tab, 3);
+    hash_press = ri_raster_hash(&r);
+    RI_ASSERT(hash_press != hash_on, "tab pressed looks unpressed");
+}
 
 static void rack_checks(uint32_t *px) {
     struct ri_raster r;
@@ -352,5 +396,6 @@ int main(void) {
         RI_ASSERT(h == T_SKIN_PIN, "pin skin got %08x", h);
     }
     rack_checks(px);
+    tab_checks(px);
     RI_RESULT("raster_goldens");
 }

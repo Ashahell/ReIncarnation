@@ -82,6 +82,7 @@ const char *ri_art_808_opt(uint32_t opt);
 #define RI_ART_RAIL_W 18           /* rack rail width, px */
 #define RI_ART_SEAM_W 2            /* one module edge; two meet as a groove */
 #define RI_ART_POWER_H 26          /* power-button chip height, px */
+#define RI_ART_TAB_H 24            /* hardware tab key height, px */
 /* Brushed dark plate, grain keyed to (x0, y0) so partial redraws match. */
 void ri_art_bay(struct ri_dlist *dl, int x0, int y0, int x1, int y1);
 /* Steel rack rail: vertical grain, rolled edges, 1U slotted holes, a
@@ -93,6 +94,11 @@ void ri_art_seam(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int right)
  * green on, dim off), label centred right of it; pressed sinks the cap. */
 void ri_art_power(struct ri_dlist *dl, int x0, int y0, int x1, int y1, const char *label,
     int on, int pressed);
+/* Hardware tab key (S1, 2026-09-28): a moulded dark key with a 3 px LED
+ * strip above the label. Active = lit strip + 1 px latched + darker face;
+ * pressed = 1 px sink + darker face. Label is a palette C_* (pens). */
+void ri_art_tab(struct ri_dlist *dl, int x0, int y0, int x1, int y1, const char *label,
+    int active, int pressed);
 
 /* Backgrounds (g = geometry section, ox/oy origin, z = zoom index). */
 void ri_art_bg_303(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);

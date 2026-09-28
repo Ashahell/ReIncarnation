@@ -482,3 +482,46 @@ void ri_art_power(struct ri_dlist *dl, int x0, int y0, int x1, int y1, const cha
         ri_draw_text(dl, (x0 + h + x1) / 2, (y0 + y1) / 2, 1u,
             on ? 0xE6E8EAu : 0x8C9096u, label);
 }
+
+/* Hardware tab key (S1, 2026-09-28): moulded dark key with a 3 px LED
+ * strip above the label. Active = lit strip + 1 px latched + darker face;
+ * pressed = 1 px sink + darker face. Label is a palette C_* (pens). */
+void ri_art_tab(struct ri_dlist *dl, int x0, int y0, int x1, int y1, const char *label,
+    int active, int pressed) {
+    const uint32_t base = 0x3A3C40u;
+    uint32_t face = base;
+    int latch, lx0, lx1, ly0, ly1, cx, cy;
+    uint32_t led;
+    if (x1 < x0 || y1 < y0)
+        return;
+    if (active)
+        face = ri_art_shade(base, -12);
+    if (pressed)
+        face = ri_art_shade(face, -10);
+    latch = (active ? 1 : 0) + (pressed ? 1 : 0);
+    if (latch > 2)
+        latch = 2;
+    ri_draw_rect(dl, x0, y0, x1, y1, face);
+    ri_draw_line(dl, x0, y0, x1, y0, ri_art_shade(face, 38));
+    ri_draw_line(dl, x0, y0, x0, y1, ri_art_shade(face, 22));
+    ri_draw_line(dl, x0, y1, x1, y1, ri_art_shade(face, -45));
+    ri_draw_line(dl, x1, y0, x1, y1, ri_art_shade(face, -35));
+    if (x1 - x0 >= 4 && y1 - y0 >= 4) {
+        ri_draw_line(dl, x0 + 1, y0 + 1, x1 - 1, y0 + 1, ri_art_shade(face, 18));
+        ri_draw_line(dl, x0 + 1, y1 - 1, x1 - 1, y1 - 1, ri_art_shade(face, -25));
+    }
+    lx0 = x0 + 6;
+    lx1 = x1 - 6;
+    ly0 = y0 + 4 + latch;
+    ly1 = ly0 + 2;
+    led = active ? ri_art_rgb(C_MIX_GREEN) : ri_art_rgb(C_MIX_GREEN_OFF);
+    if (lx1 >= lx0 && ly1 <= y1 - 2 && ly0 <= ly1) {
+        ri_draw_rect(dl, lx0, ly0, lx1, ly1, led);
+        ri_draw_line(dl, lx0, ly0, lx1, ly0, ri_art_shade(led, active ? 35 : 10));
+    }
+    if (label && label[0]) {
+        cx = (x0 + x1) / 2;
+        cy = (y0 + y1) / 2 + 4 + latch;
+        ri_art_text_c(dl, cx, cy, label, active ? C_TEXT_INV : C_MIX_TEXT);
+    }
+}
