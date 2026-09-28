@@ -86,3 +86,38 @@ Owner asks after pass 1: give the bay a brushed look, add corner screws and line
 - **Mix tab:** four strips (TB-303 A, TB-303 B, TR-808, TR-909) sharing one mixer board. The strip headers are now named, and the t92/t93 mixer pins were re-pinned deliberately. A strip hides when its device is switched off, and each strip's meter is fed from the live snapshot.
 - **Rail:** Synths shows the two 303 buttons and Drums shows the 808 and 909. Mix and FX show all four, because those pages serve every device.
 - Dell captures (ABIv11, half scale): `dell-rack2-synths-rail.png`, `dell-rack2-mix.png`, `dell-rack2-fx.png`. The Mix and FX captures came from check builds that open on those pages.
+
+## S1: No grey left (2026-09-28, GUI round 3)
+
+Owner ask (round-3 prompt §7 S1): nothing on the RIAPP window is stock MUI
+grey — the transport surround, the window background, and the stock Zune
+tab bar. The whole window must read as one piece of equipment.
+
+- **Art** (`gui/draw/art_shared.c`, `gui/draw/art.h`):
+  - `ri_art_tab` (new, host-checked in t93 `tab_checks`): a moulded dark
+    key (face `0x3A3C40`), 3 px LED strip above the label (`C_MIX_GREEN`
+    lit when active, `C_MIX_GREEN_OFF` dim when not), 1 px latch when
+    active, sink + darker face when pressed, palette label (`C_TEXT_INV`
+    active, `C_MIX_TEXT` otherwise). `RI_ART_TAB_H` 24; width = text + 2×14
+    (in `RArt` `MUIM_AskMinMax`).
+  - Ledger (E0): transport keeps its `C_TR_PANEL` satin module colour (an
+    instrument finish, not MUI grey) and sits racked in seams on the dark
+    plate; tab keys are mouse-only until the owner decides tab keys (#2).
+- **App** (`app/riapp.c`):
+  - `RArt` gains `RART_TAB` + `MUIA_RArt_Active`; pressed sinks via
+    `MUIA_Selected` like the power cap.
+  - The stock `MUIC_Register` is gone: pages are a `MUIC_Group`
+    `PageMode` group (`s_pages`), tabs are an RBay strip of five `RART_TAB`
+    keys (`s_tabs`, `tab_strip`, `tab_switch` with `RIAPP_ID_TAB0+g`).
+  - The window root is a vertical `bay_group` (spacing 4, inner 6); the
+    transport rides in `rack_slot` seams. Nested RBays (root, rail, strip,
+    Mix/FX bays) each paint their own box.
+  - Log line adds `tabs=`: `RIAPP panel: tabbed … (open=1 rack=1 tabs=5)`.
+- **Tests:** t93 `p_tab`/`tab_checks` (green ≥20 only when on, off 0,
+  label contrast ≥60, active≠inactive, pressed≠unpressed). Mutants killed
+  (LED always off; pressed ignored). t92/t93 section pins unmoved (no
+  section art changed).
+- **Proof:** Dell ABIv11 `RAM:RIAPPS1`, `open=1 rack=1 tabs=5`. All five
+  pages via page-open variants (agent clicks do not reach tabs until S6):
+  `dell-s1-synths/drums/levi/mix/fx.png` plus crop-zoom `dell-s1-tabs.png`;
+  host preview `host-s1-tabs.png`.
