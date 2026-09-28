@@ -1408,3 +1408,7 @@ Register (same visibility-only bit); activation later. t98 reverts to
 ## [2026-09-28] ingest | Planned device ASM Leviasynth
 - Disposition: New (second named rack device; E1 researched same-day)
 - Raw: llm-wiki/raw/articles/2026-09-28-planned-device-asm-leviasynth.md
+
+## [2026-09-28] ingest | Mix/FX tabs as a rack bay
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-09-28-mix-fx-rack-bay.md
