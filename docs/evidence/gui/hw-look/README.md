@@ -121,3 +121,39 @@ tab bar. The whole window must read as one piece of equipment.
   pages via page-open variants (agent clicks do not reach tabs until S6):
   `dell-s1-synths/drums/levi/mix/fx.png` plus crop-zoom `dell-s1-tabs.png`;
   host preview `host-s1-tabs.png`.
+
+## S2: Real lettering (2026-09-28, GUI round 3)
+
+Owner ask (round-3 prompt §7 S2): panel legends as printed hardware
+legends — a crisp condensed grotesque at fixed sizes, identical on host
+and AROS.
+
+- **Face** (`gui/draw/font_legend.{h,c}`, new, in all build lists):
+  in-house clean-room bitmaps (no traced font): 1-px monolinear strokes,
+  flat-sided O, straight-legged R, G with spur, narrow M. S (cap 5, z0 +
+  compact 3), M (cap 7, z1), L (cap 9, z2); full ASCII 32..126,
+  proportional advance, 1-px tracking. Uniform `uint16_t rows[12]`
+  (bit15 = left; L needs >8 px) — ledgered deviation from the prompt's
+  `uint8_t` sketch. `ri_face_width` sums advances (trailing gap kept).
+- **Display list** (`platform/pal/ri_pal_draw.h`, `gui/draw/canvas.{h,c}`):
+  TEXT carries the face in `pad[0]` (0 = system); `ri_draw_text_face`;
+  `ri_dlist_set_face` state read by `ri_art_text_c`; `ri_dlist_hash` covers
+  `pad` so face switches move t92 pins. `ri_art_text_at` measures with the
+  face when set. `ri_draw_section` sets the face from the zoom.
+- **Host** (`platform/host/raster.c`): face glyph blits centred by
+  `ri_face_width`, baseline at `cy + cap/2`.
+- **AROS** (`gui/widgets/rsection_replay.inc`): per-glyph `BltTemplate`
+  from one packed `AllocRaster` plane per face (never `AllocBitMap` with
+  NULL friend); `SetDrMd(JAM1)` + exact pens; same placement math as host;
+  1-px exact-fill fallback with a one-time `kprintf`; planes freed in
+  `ri_rsection_dispose_class`. RArt power/tab labels keep the system font.
+- **Tests:** new `t111_legend_face` (pixels, bounds, advance law, width
+  sum, uppercase uniqueness, zoom map; mutants killed: zeroed M-A row →
+  `pixels 2 ch 65`; narrowed M-A width → `bounds 2 ch 65`). t93
+  `textface_checks` ("CUTOFF 303" face-M left edge == `cx - W/2`, right ==
+  `x0 + W - 1 - gap`). t92/t93 re-pinned for **every** section + skin
+  (all legends moved — expected, verified section list 0..20 × z0..z3).
+- **Proof:** host sheet `host-legend-faces.png`; Dell ABIv11 `RAM:RIAPPS2`
+  (`open=1 rack=1 tabs=5`): `dell-s2-303.png`, `dell-s2-mix.png` (Mix via
+  page-open variant) and crop-zoom `dell-s2-legends.png`. Half-scale text
+  is unreadable in captures — the owner reads the Dell.

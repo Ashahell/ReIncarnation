@@ -13,6 +13,8 @@ void ri_dlist_init(struct ri_dlist *dl, struct ri_dcmd *backing, uint32_t cap,
     dl->spool = spool;
     dl->spn = 0u;
     dl->spcap = (spool && spcap) ? spcap : 0u;
+    dl->cur_face = 0u;
+    dl->_rfu[0] = dl->_rfu[1] = dl->_rfu[2] = 0u;
 }
 
 void ri_dlist_clear(struct ri_dlist *dl) {
@@ -30,11 +32,12 @@ int ri_dlist_push(struct ri_dlist *dl, const struct ri_dcmd *c) {
 }
 
 static int emit(struct ri_dlist *dl, uint8_t op, int x0, int y0, int x1, int y1,
-    uint32_t rgb, uint16_t img, uint16_t frame, uint8_t align, const char *text) {
+    uint32_t rgb, uint16_t img, uint16_t frame, uint8_t align, uint8_t face, const char *text) {
     struct ri_dcmd c;
     c.op = op;
     c.align = align;
-    c.pad[0] = c.pad[1] = 0;
+    c.pad[0] = face;
+    c.pad[1] = 0;
     c.x0 = (int16_t)x0;
     c.y0 = (int16_t)y0;
     c.x1 = (int16_t)x1;
@@ -49,20 +52,25 @@ static int emit(struct ri_dlist *dl, uint8_t op, int x0, int y0, int x1, int y1,
 int ri_draw_rect(struct ri_dlist *dl, int x0, int y0, int x1, int y1, uint32_t rgb) {
     if (x1 < x0 || y1 < y0)
         return 0; /* degenerate: skip like fill_rect */
-    return emit(dl, RI_D_RECT, x0, y0, x1, y1, rgb, 0u, 0u, 0u, 0);
+    return emit(dl, RI_D_RECT, x0, y0, x1, y1, rgb, 0u, 0u, 0u, 0u, 0);
 }
 
 int ri_draw_line(struct ri_dlist *dl, int x0, int y0, int x1, int y1, uint32_t rgb) {
-    return emit(dl, RI_D_LINE, x0, y0, x1, y1, rgb, 0u, 0u, 0u, 0);
+    return emit(dl, RI_D_LINE, x0, y0, x1, y1, rgb, 0u, 0u, 0u, 0u, 0);
 }
 
 int ri_draw_circle(struct ri_dlist *dl, int cx, int cy, int r, uint32_t rgb) {
     if (r < 0)
         return 0;
-    return emit(dl, RI_D_CIRCLE, cx, cy, r, 0, rgb, 0u, 0u, 0u, 0);
+    return emit(dl, RI_D_CIRCLE, cx, cy, r, 0, rgb, 0u, 0u, 0u, 0u, 0);
 }
 
 int ri_draw_text(struct ri_dlist *dl, int x, int y, uint8_t align, uint32_t rgb, const char *text) {
+    return ri_draw_text_face(dl, x, y, align, rgb, 0, text);
+}
+
+int ri_draw_text_face(struct ri_dlist *dl, int x, int y, uint8_t align, uint32_t rgb, int face,
+    const char *text) {
     uint32_t len = 0u;
     const char *dst;
     if (!dl || !text || !text[0])
@@ -76,15 +84,23 @@ int ri_draw_text(struct ri_dlist *dl, int x, int y, uint8_t align, uint32_t rgb,
     if (text[len])
         dl->spool[dl->spn + len] = 0;
     dl->spn += len + 1u;
-    return emit(dl, RI_D_TEXT, x, y, 0, 0, rgb, 0u, 0u, align, dst);
+    if (face < 0 || face > 3)
+        face = 0;
+    return emit(dl, RI_D_TEXT, x, y, 0, 0, rgb, 0u, 0u, align, (uint8_t)face, dst);
+}
+
+void ri_dlist_set_face(struct ri_dlist *dl, int face) {
+    if (!dl)
+        return;
+    dl->cur_face = (uint8_t)(face >= 1 && face <= 3 ? face : 0);
 }
 
 int ri_draw_image(struct ri_dlist *dl, int x, int y, uint16_t img, uint16_t frame) {
-    return emit(dl, RI_D_IMAGE, x, y, 0, 0, 0u, img, frame, 0u, 0);
+    return emit(dl, RI_D_IMAGE, x, y, 0, 0, 0u, img, frame, 0u, 0u, 0);
 }
 
 int ri_draw_clip(struct ri_dlist *dl, int x0, int y0, int x1, int y1) {
-    return emit(dl, RI_D_CLIP, x0, y0, x1, y1, 0u, 0u, 0u, 0u, 0);
+    return emit(dl, RI_D_CLIP, x0, y0, x1, y1, 0u, 0u, 0u, 0u, 0u, 0);
 }
 
 uint32_t ri_dlist_hash(const struct ri_dlist *dl) {
@@ -93,7 +109,8 @@ uint32_t ri_dlist_hash(const struct ri_dlist *dl) {
     if (!dl || !dl->cmd)
         return h;
     for (i = 0u; i < dl->n; i++) {
-        /* Hash the value fields, not padding/pointers (text hashed by bytes). */
+        /* Hash the value fields, not pointers (text hashed by bytes).
+         * pad[0] (TEXT face) is a value: face switches must move pins. */
         uint32_t words[6];
         words[0] = ((uint32_t)dl->cmd[i].op << 24) | ((uint32_t)dl->cmd[i].align << 16) |
             ((uint32_t)(uint16_t)dl->cmd[i].x0);
@@ -101,7 +118,7 @@ uint32_t ri_dlist_hash(const struct ri_dlist *dl) {
         words[2] = (uint32_t)(uint16_t)dl->cmd[i].y1;
         words[3] = dl->cmd[i].rgb;
         words[4] = ((uint32_t)dl->cmd[i].img << 16) | dl->cmd[i].frame;
-        words[5] = 0u;
+        words[5] = ((uint32_t)dl->cmd[i].pad[0] << 8) | (uint32_t)dl->cmd[i].pad[1];
         p = (const unsigned char *)words;
         for (k = 0u; k < sizeof words; k++) {
             h ^= p[k];

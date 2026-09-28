@@ -5,6 +5,8 @@
  * WritePixelArrayAlpha — pixel-identical by construction (same font path,
  * same pen RGB, same blits).
  */
+#include <aros/debug.h>
+#include "gui/draw/font_legend.h"
 
 /* Colour for one primitive. The shaded art (graded knobs, LEDs, panels)
  * needs arbitrary colours: on hi/truecolor screens rects and spans go
@@ -98,6 +100,128 @@ static int rtext_width(void *ctx, const char *s) {
     return n ? (int)TextLength(rp, (STRPTR)s, (ULONG)n) : 0;
 }
 
+/* Legend-face templates (S2): one packed 1bpp plane per face in chip
+ * memory. AllocRaster, never AllocBitMap with a NULL friend (that returns
+ * NULL on this AROS — the 2026-09-27 saga, step b). Planes are
+ * screen-independent; pens still come from the section class setup.
+ * Glyph i of face f starts at bit s_face_off[f][i]; rows are s_face_rb[f]
+ * bytes wide (MSB = leftmost). BltTemplate draws with APen/JAM1; when a
+ * plane is missing, 1px exact fills keep the string correct but slow. */
+static UBYTE *s_face_plane[3];
+static int s_face_rb[3], s_face_ph[3];
+static uint16_t s_face_off[3][95];
+static int s_face_built, s_face_failed, s_face_logged;
+
+static void face_templates_build(void) {
+    int f;
+    s_face_built = 1;
+    for (f = 0; f < 3; f++) {
+        const struct ri_face *fc = ri_face_by_id(f + 1);
+        int i, total = 0, pw, rb, hh;
+        UBYTE *pl;
+        if (!fc)
+            continue;
+        for (i = 0; i < 95; i++)
+            total += (int)fc->g[i].w + (int)fc->adv_gap;
+        pw = total + 32;
+        hh = (int)fc->asc + (int)fc->desc;
+        rb = ((pw + 15) / 16) * 2;
+        pl = AllocRaster((ULONG)pw, (ULONG)hh);
+        if (!pl)
+            continue;
+        memset(pl, 0, (size_t)rb * (size_t)hh);
+        total = 0;
+        for (i = 0; i < 95; i++) {
+            const struct ri_glyph *gl = &fc->g[i];
+            int r, c;
+            s_face_off[f][i] = (uint16_t)total;
+            for (r = 0; r < hh; r++)
+                for (c = 0; c < gl->w; c++)
+                    if (gl->rows[r] & (0x8000u >> c)) {
+                        int bit = total + c, by = r * rb + bit / 8;
+                        pl[by] |= (UBYTE)(1u << (7u - (unsigned)(bit % 8)));
+                    }
+            total += (int)gl->w + (int)fc->adv_gap;
+        }
+        s_face_plane[f] = pl;
+        s_face_rb[f] = rb;
+        s_face_ph[f] = hh;
+    }
+    if (!s_face_plane[0] && !s_face_plane[1] && !s_face_plane[2])
+        s_face_failed = 1;
+}
+
+static void face_templates_free(void) {
+    int f;
+    for (f = 0; f < 3; f++) {
+        const struct ri_face *fc = ri_face_by_id(f + 1);
+        int pw = 0, i;
+        if (!s_face_plane[f])
+            continue;
+        if (fc) {
+            for (i = 0; i < 95; i++)
+                pw += (int)fc->g[i].w + (int)fc->adv_gap;
+            pw += 32;
+        }
+        FreeRaster(s_face_plane[f], (ULONG)pw, (ULONG)s_face_ph[f]);
+        s_face_plane[f] = NULL;
+    }
+    s_face_built = s_face_failed = 0;
+}
+
+/* Legend-face string (S2): same placement math as the host rasterizer
+ * (centred by ri_face_width, baseline at cy + cap/2), so both backends
+ * show the same pixels. Colour is exact on truecolor: pens are
+ * PRECISION_EXACT (or the 1px exact-fill fallback). */
+static void rtext_face(struct RastPort *rp, int cx, int cy, const char *s, uint32_t rgb, int face_id) {
+    const struct ri_face *f = ri_face_by_id(face_id);
+    int w, x0, base, top, hh, x, i, fb = 0;
+    if (!rp || !f || !s || !s[0])
+        return;
+    w = 0;
+    for (i = 0; s[i]; i++) {
+        unsigned c = (unsigned char)s[i];
+        if (c >= 32u && c <= 126u)
+            w += (int)f->g[c - 32u].w + (int)f->adv_gap;
+    }
+    if (!w)
+        return;
+    x0 = cx - w / 2;
+    base = cy + (int)f->cap / 2;
+    top = base - (int)f->asc;
+    hh = (int)f->asc + (int)f->desc;
+    rpen(rp, rgb);
+    SetDrMd(rp, JAM1);
+    if (!s_face_built && !s_face_failed)
+        face_templates_build();
+    x = x0;
+    for (i = 0; s[i]; i++) {
+        unsigned c = (unsigned char)s[i];
+        const struct ri_glyph *gl;
+        int off;
+        if (c < 32u || c > 126u)
+            continue;
+        gl = &f->g[c - 32u];
+        off = (int)s_face_off[face_id - 1][c - 32u];
+        if (s_face_plane[face_id - 1] && gl->w > 0)
+            BltTemplate(s_face_plane[face_id - 1] + (off / 16) * 2, (WORD)(off % 16),
+                (WORD)s_face_rb[face_id - 1], rp, (WORD)x, (WORD)top, (WORD)gl->w, (WORD)hh);
+        else {
+            int r, cc;
+            for (r = 0; r < hh; r++)
+                for (cc = 0; cc < gl->w; cc++)
+                    if (gl->rows[r] & (0x8000u >> cc))
+                        rrect(rp, x + cc, top + r, x + cc, top + r, rgb);
+            fb = 1;
+        }
+        x += (int)gl->w + (int)f->adv_gap;
+    }
+    if (fb && !s_face_logged) {
+        s_face_logged = 1;
+        kprintf("rsection: legend-face template missing, 1px fallback\n");
+    }
+}
+
 /* Display-list backing: one GUI task draws at a time (MUI app task). */
 static struct ri_dcmd s_dl_back[24576]; /* shaded art: ~8k cmds per 909 at 2x */
 static char s_dl_spool[32768];
@@ -141,7 +265,10 @@ static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl) {
             rcircle(rp, c->x0, c->y0, c->x1, c->rgb);
             break;
         case RI_D_TEXT:
-            rtext(rp, c->x0, c->y0, c->text, c->rgb);
+            if (c->pad[0])
+                rtext_face(rp, c->x0, c->y0, c->text, c->rgb, c->pad[0]);
+            else
+                rtext(rp, c->x0, c->y0, c->text, c->rgb);
             break;
         case RI_D_IMAGE:
             ri_skin_aros_blit_idx(rp, ri_skin_aros_active(), (int)c->img, c->frame, c->x0, c->y0);

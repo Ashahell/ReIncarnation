@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <png.h>
+#include "gui/draw/font_legend.h"
 
 /* Clean-room 5x7 face (bit0 = left pixel). Uppercase + digits + marks. */
 static const uint8_t RI_FONT[43][7] = {
@@ -150,6 +151,41 @@ static void line(struct ri_raster *r, int x0, int y0, int x1, int y1, uint32_t r
     }
 }
 
+/* Legend-face text (S2): same metrics as AROS by construction — centred
+ * by ri_face_width, baseline at cy + cap/2, glyph rows top-down from
+ * baseline - asc. Bit15 of each row is the leftmost pixel. */
+static void face_text(struct ri_raster *r, int cx, int cy, const char *s, uint32_t rgb, int face_id) {
+    const struct ri_face *f = ri_face_by_id(face_id);
+    uint32_t n = 0u, i;
+    int w, x0, base, top, x, rr, cc, hh;
+    uint32_t argb;
+    if (!r || !f || !s)
+        return;
+    while (s[n])
+        n++;
+    if (!n)
+        return;
+    w = ri_face_width(f, s);
+    x0 = cx - w / 2;
+    base = cy + (int)f->cap / 2;
+    top = base - (int)f->asc;
+    hh = (int)f->asc + (int)f->desc;
+    argb = 0xFF000000u | (rgb & 0xFFFFFFu);
+    x = x0;
+    for (i = 0u; i < n; i++) {
+        unsigned c = (unsigned char)s[i];
+        const struct ri_glyph *gl;
+        if (c < 32u || c > 126u)
+            continue;
+        gl = &f->g[c - 32u];
+        for (rr = 0; rr < hh; rr++)
+            for (cc = 0; cc < gl->w; cc++)
+                if (gl->rows[rr] & (0x8000u >> cc))
+                    put(r, x + cc, top + rr, argb);
+        x += (int)gl->w + (int)f->adv_gap;
+    }
+}
+
 static void text(struct ri_raster *r, int cx, int cy, const char *s, uint32_t rgb) {
     uint32_t n = 0u, i;
     int x0, y0, gx, gy;
@@ -231,7 +267,10 @@ void ri_raster_replay(struct ri_raster *r, const struct ri_dlist *dl,
             }
             break;
         case RI_D_TEXT:
-            text(r, c->x0, c->y0, c->text, c->rgb);
+            if (c->pad[0])
+                face_text(r, c->x0, c->y0, c->text, c->rgb, c->pad[0]);
+            else
+                text(r, c->x0, c->y0, c->text, c->rgb);
             break;
         case RI_D_IMAGE: {
             uint32_t frames, fh;

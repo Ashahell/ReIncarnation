@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include "engine/dsp/kernels.h"
+#include "gui/draw/font_legend.h"
 #include "gui/panelgeo.h"
 #include "gui/panelui.h"
 
@@ -172,7 +173,7 @@ void ri_art_bevel(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int face)
 
 void ri_art_text_c(struct ri_dlist *dl, int cx, int cy, const char *s0, int col) {
     char s[24];
-    int n = 0;
+    int n = 0, face = 0;
     if (!s0)
         return;
     while (s0[n] && n < 23) {
@@ -182,8 +183,15 @@ void ri_art_text_c(struct ri_dlist *dl, int cx, int cy, const char *s0, int col)
     s[n] = 0;
     if (!n)
         return;
-    /* Backend centers with its own metrics (AROS: TextLength + baseline). */
-    ri_draw_text(dl, cx, cy, 1u, ri_art_rgb(col), s);
+    /* Backend centers with its own metrics (AROS: TextLength + baseline).
+     * With a legend face set (S2: draw_section sets it from the zoom),
+     * legends replay from the in-house bitmap face and scale with zoom. */
+    if (dl)
+        face = dl->cur_face >= 1 && dl->cur_face <= 3 ? dl->cur_face : 0;
+    if (face)
+        ri_draw_text_face(dl, cx, cy, 1u, ri_art_rgb(col), face, s);
+    else
+        ri_draw_text(dl, cx, cy, 1u, ri_art_rgb(col), s);
 }
 
 static void art_polar(int cx, int cy, float deg, float r, int *x, int *y) {

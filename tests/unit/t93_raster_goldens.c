@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include "tests/helpers/ri_assert.h"
 #include "gui/draw/art.h"
+#include "gui/draw/font_legend.h"
 #include "gui/ctlreg.h"
 #include "gui/sectui.h"
 #include "gui/sectmix.h"
@@ -143,92 +144,92 @@ static int load_skin(const char *dir, int zoom, struct RISkin *skin) {
 }
 
 static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
-    { 0u, 0u, 0xc47cd3c5u },
-    { 0u, 1u, 0x00018449u },
-    { 0u, 2u, 0xfa6a05f3u },
-    { 0u, 3u, 0x0eccdb29u },
-    { 1u, 0u, 0xc47cd3c5u },
-    { 1u, 1u, 0x00018449u },
-    { 1u, 2u, 0xfa6a05f3u },
-    { 1u, 3u, 0x0eccdb29u },
-    { 2u, 0u, 0x2105c559u },
-    { 2u, 1u, 0x81ce007du },
-    { 2u, 2u, 0xbce03e09u },
-    { 2u, 3u, 0x1ee24c4eu },
-    { 3u, 0u, 0x065b822fu },
-    { 3u, 1u, 0xbb7e49b3u },
-    { 3u, 2u, 0xf7f85387u },
-    { 3u, 3u, 0x8ea4d158u },
-    { 4u, 0u, 0xb55ebe13u },
-    { 4u, 1u, 0x478f5a5au },
-    { 4u, 2u, 0x458f1e3eu },
-    { 4u, 3u, 0x3f2f717fu },
-    { 5u, 0u, 0x97548624u },
-    { 5u, 1u, 0xfd8c7a6fu },
-    { 5u, 2u, 0x46c10a09u },
-    { 5u, 3u, 0xa0ae358bu },
-    { 6u, 0u, 0xc7e9f41cu },
-    { 6u, 1u, 0xb13149d7u },
-    { 6u, 2u, 0x799b0929u },
-    { 6u, 3u, 0x26e94c3bu },
-    { 7u, 0u, 0x35b460f8u },
-    { 7u, 1u, 0xdf7571dfu },
-    { 7u, 2u, 0x4be08a69u },
-    { 7u, 3u, 0xe18d8b2bu },
-    { 8u, 0u, 0x11ace733u },
-    { 8u, 1u, 0x4c4fb259u },
-    { 8u, 2u, 0xbe928047u },
-    { 8u, 3u, 0xb0d7f400u },
-    { 9u, 0u, 0xaacb4086u },
-    { 9u, 1u, 0xb393e7e7u },
-    { 9u, 2u, 0xfd6e7ee3u },
-    { 9u, 3u, 0xe7c74874u },
-    { 10u, 0u, 0xe3ec8863u },
-    { 10u, 1u, 0x8fa8c77cu },
-    { 10u, 2u, 0x2a2711fcu },
-    { 10u, 3u, 0xd6c90d1eu },
-    { 11u, 0u, 0x1f4e571cu },
-    { 11u, 1u, 0x657392bbu },
-    { 11u, 2u, 0xed8b7cd9u },
-    { 11u, 3u, 0x8d33532au },
-    { 12u, 0u, 0x00caeaf8u },
-    { 12u, 1u, 0x59249702u },
-    { 12u, 2u, 0x64930a55u },
-    { 12u, 3u, 0x24570736u },
-    { 13u, 0u, 0xf2264acdu },
-    { 13u, 1u, 0x4dfb31f4u },
-    { 13u, 2u, 0xc879672eu },
-    { 13u, 3u, 0x4e2bd61au },
-    { 14u, 0u, 0x07874516u },
-    { 14u, 1u, 0x5bfd94a2u },
-    { 14u, 2u, 0x8fd556a2u },
-    { 14u, 3u, 0x1e2faf3du },
-    { 15u, 0u, 0x3e90aad4u },
-    { 15u, 1u, 0xa6dd2d1bu },
-    { 15u, 2u, 0x33f31f9fu },
-    { 15u, 3u, 0x9271f591u },
-    { 16u, 0u, 0x65d99a64u },
-    { 16u, 1u, 0x2d3a5883u },
-    { 16u, 2u, 0x6dd25de7u },
-    { 16u, 3u, 0x04ad5ce1u },
-    { 17u, 0u, 0xf4a7c0c8u },
-    { 17u, 1u, 0xe8b5e2d7u },
-    { 17u, 2u, 0xb2403dc3u },
-    { 17u, 3u, 0xb81b6285u },
-    { 18u, 0u, 0xe97ff71cu },
-    { 18u, 1u, 0x9345b2c9u },
-    { 18u, 2u, 0x2f0d7ea8u },
-    { 18u, 3u, 0x28649e62u },
-    { 19u, 0u, 0xf602c09cu },
-    { 19u, 1u, 0x44310248u },
-    { 19u, 2u, 0xc4174a51u },
-    { 19u, 3u, 0xd05fa851u },
-    { 20u, 0u, 0xf7195a2cu },
-    { 20u, 1u, 0x993c59e0u },
-    { 20u, 2u, 0x4e5e0bd8u },
-    { 20u, 3u, 0xfc3c91d7u },
+    { 0u, 0u, 0xfd171d42u },
+    { 0u, 1u, 0x0bfc844du },
+    { 0u, 2u, 0x0526d286u },
+    { 0u, 3u, 0x8b2a46bbu },
+    { 1u, 0u, 0xfd171d42u },
+    { 1u, 1u, 0x0bfc844du },
+    { 1u, 2u, 0x0526d286u },
+    { 1u, 3u, 0x8b2a46bbu },
+    { 2u, 0u, 0xe7967b1du },
+    { 2u, 1u, 0x30f72db9u },
+    { 2u, 2u, 0x22ead32cu },
+    { 2u, 3u, 0xfcc63febu },
+    { 3u, 0u, 0x2ac69cd4u },
+    { 3u, 1u, 0xfd1d8edeu },
+    { 3u, 2u, 0x487005c5u },
+    { 3u, 3u, 0xd4586ea3u },
+    { 4u, 0u, 0x497f2b5au },
+    { 4u, 1u, 0x0a60141eu },
+    { 4u, 2u, 0x48da0083u },
+    { 4u, 3u, 0x0cf70d76u },
+    { 5u, 0u, 0x54a2ae6au },
+    { 5u, 1u, 0x58452691u },
+    { 5u, 2u, 0x9b2c46fbu },
+    { 5u, 3u, 0xa1d32a0bu },
+    { 6u, 0u, 0x82219366u },
+    { 6u, 1u, 0x58400b2cu },
+    { 6u, 2u, 0xea87d93bu },
+    { 6u, 3u, 0x787c10bfu },
+    { 7u, 0u, 0x6b9d1296u },
+    { 7u, 1u, 0x58e33bf0u },
+    { 7u, 2u, 0xb1bf0e0fu },
+    { 7u, 3u, 0x3ab24493u },
+    { 8u, 0u, 0xfd034267u },
+    { 8u, 1u, 0xbb15da0bu },
+    { 8u, 2u, 0x2e6c04e2u },
+    { 8u, 3u, 0x0de6a9b9u },
+    { 9u, 0u, 0x61a7cb09u },
+    { 9u, 1u, 0x30abc0fau },
+    { 9u, 2u, 0xd410477fu },
+    { 9u, 3u, 0x51f30ffau },
+    { 10u, 0u, 0x92647d79u },
+    { 10u, 1u, 0x547865c5u },
+    { 10u, 2u, 0x4dfc43ceu },
+    { 10u, 3u, 0x2cb5f969u },
+    { 11u, 0u, 0xeace214bu },
+    { 11u, 1u, 0xaf133f14u },
+    { 11u, 2u, 0x7ae9d4e7u },
+    { 11u, 3u, 0x62946158u },
+    { 12u, 0u, 0x0fe80faeu },
+    { 12u, 1u, 0x2ec3d1f4u },
+    { 12u, 2u, 0x94e3467eu },
+    { 12u, 3u, 0xda4318cbu },
+    { 13u, 0u, 0x88c72895u },
+    { 13u, 1u, 0x0153a2edu },
+    { 13u, 2u, 0x53c3c6fbu },
+    { 13u, 3u, 0xd0f0d2d8u },
+    { 14u, 0u, 0x01149021u },
+    { 14u, 1u, 0x10d88c9cu },
+    { 14u, 2u, 0x1a01eb0eu },
+    { 14u, 3u, 0x1e5c492fu },
+    { 15u, 0u, 0x41d931fcu },
+    { 15u, 1u, 0xbd18996du },
+    { 15u, 2u, 0xf217dc37u },
+    { 15u, 3u, 0x1fadc16cu },
+    { 16u, 0u, 0xa830acb4u },
+    { 16u, 1u, 0x6ec4f384u },
+    { 16u, 2u, 0xd5893f23u },
+    { 16u, 3u, 0xfca76474u },
+    { 17u, 0u, 0xbed3bf80u },
+    { 17u, 1u, 0xf040cea0u },
+    { 17u, 2u, 0xfc368a9bu },
+    { 17u, 3u, 0x0376ba78u },
+    { 18u, 0u, 0x371ca601u },
+    { 18u, 1u, 0xb5946cdeu },
+    { 18u, 2u, 0xd01bd6c1u },
+    { 18u, 3u, 0x3e274f8bu },
+    { 19u, 0u, 0xc663c06au },
+    { 19u, 1u, 0x854d5ab5u },
+    { 19u, 2u, 0xecbfc991u },
+    { 19u, 3u, 0x54d512dau },
+    { 20u, 0u, 0x4338a710u },
+    { 20u, 1u, 0x9b4b846au },
+    { 20u, 2u, 0x0c328674u },
+    { 20u, 3u, 0x4eaee113u },
 };
-static const uint32_t T_SKIN_PIN = 0x9a05fa63u;
+static const uint32_t T_SKIN_PIN = 0x1237847fu;
 
 static uint32_t pin_lookup(uint8_t sec, uint8_t z) {
     uint32_t i;
@@ -268,6 +269,36 @@ static void p_power(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
 }
 static void p_tab(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
     ri_art_tab(dl, 0, 0, (int)w - 1, (int)h - 1, "SYNTHS", a & 1, (a >> 1) & 1);
+}
+
+/* Legend-face parity (S2): a face-M line centres by ri_face_width with
+ * its left edge exactly at cx - W/2 (same math on host and AROS). */
+static void textface_checks(uint32_t *px) {
+    struct ri_raster r;
+    struct ri_dlist dl;
+    const struct ri_face *f = ri_face_by_id(RI_FACE_M);
+    const char *s = "CUTOFF 303";
+    int w, x0, x, y, lo = 1 << 30, hi = -(1 << 30);
+    RI_ASSERT(f != 0, "face M");
+    w = ri_face_width(f, s);
+    RI_ASSERT(w > 20, "face width %d", w);
+    ri_dlist_init(&dl, T_BACK, 24576u, T_SPOOL, sizeof T_SPOOL);
+    ri_draw_text_face(&dl, 100, 12, 1u, 0xFFFFFFu, RI_FACE_M, s);
+    RI_ASSERT(dl.n == 1u && dl.cmd[0].pad[0] == RI_FACE_M, "face carried %u", dl.n);
+    ri_raster_init(&r, px, 220u, 24u);
+    ri_raster_clear(&r, 0x000000u);
+    ri_raster_replay(&r, &dl, 0);
+    x0 = 100 - w / 2;
+    for (y = 0; y < 24; y++)
+        for (x = 0; x < 220; x++)
+            if ((px[(uint32_t)y * 220u + (uint32_t)x] & 0xFFFFFFu) != 0u) {
+                if (x < lo)
+                    lo = x;
+                if (x > hi)
+                    hi = x;
+            }
+    RI_ASSERT(lo == x0, "face left %d want %d", lo, x0);
+    RI_ASSERT(hi == x0 + w - 1 - (int)f->adv_gap, "face right %d", hi);
 }
 
 static int t_luma(uint32_t c) {
@@ -397,5 +428,6 @@ int main(void) {
     }
     rack_checks(px);
     tab_checks(px);
+    textface_checks(px);
     RI_RESULT("raster_goldens");
 }

@@ -5,6 +5,7 @@
 
 #include <string.h>
 #include "gui/ctlreg.h"
+#include "gui/draw/font_legend.h"
 #include "gui/panelgeo.h"
 #include "gui/sectui.h"
 #include "gui/panelui.h"
@@ -43,6 +44,9 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
 #define PX(q) ri_geo_px((q), z)
     if (!out || !ui)
         return;
+    /* S2: legends ride the in-house bitmap face for this zoom (S z0 +
+     * compact, M z1, L z2), so host and AROS show the same pixels. */
+    ri_dlist_set_face(out, ri_face_id_for_zoom(z));
     gs = section == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : section;
     g = ri_geo_section(gs);
     is808 = section == RI_SEC_808;

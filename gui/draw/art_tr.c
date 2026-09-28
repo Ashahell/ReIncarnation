@@ -2,6 +2,7 @@
 #include "gui/draw/art.h"
 
 #include <string.h>
+#include "gui/draw/font_legend.h"
 #include "gui/panelgeo.h"
 
 void ri_art_text_at(struct ri_dlist *dl, int x, int cy, const char *t, int col, int align,
@@ -9,7 +10,12 @@ void ri_art_text_at(struct ri_dlist *dl, int x, int cy, const char *t, int col, 
     int w = 0;
     if (!t)
         return;
-    if (tm && tm->width)
+    if (dl && dl->cur_face) {
+        /* Face metrics (S2): identical on host and AROS by construction. */
+        const struct ri_face *f = ri_face_by_id(dl->cur_face);
+        if (f)
+            w = ri_face_width(f, t);
+    } else if (tm && tm->width)
         w = tm->width(tm->ctx, t);
     /* Without metrics the backend centres at x (documented fallback;
      * AROS always passes metrics, keeping the old TextLength behaviour). */

@@ -337,6 +337,7 @@ void ri_rsection_dispose_class(void) {
         MUI_DeleteCustomClass(s_rsection_class);
         s_rsection_class = NULL;
     }
+    face_templates_free();
     if (s_rcyber) {
         CloseLibrary(s_rcyber);
         s_rcyber = NULL;
