@@ -77,6 +77,102 @@ static void drum_tick_params(const struct RISchedOpts *opts, uint32_t ppq,
     *flam_samples = fl;
 }
 
+/* Levi chord emission (owner 2026-09-28, v1): per sounding lane
+ * NOTE_ON(device, voice=lane, value=note) at the step tick; NOTE_OFF
+ * (value = held pitch) at the next step boundary for lanes that stop,
+ * and at the occurrence end for still-sounding lanes (§8 gate law,
+ * retrigger timing). Shuffle follows the drum grid. */
+static uint32_t levi_emit(const struct RIPattern *p, uint16_t device,
+    const struct RITempoMap *map, uint64_t start_tick, uint32_t ppq,
+    const struct RISchedOpts *opts, struct RIEvent *out, uint32_t cap) {
+    uint32_t step_ticks, shuffle_ticks, flam_samples;
+    uint32_t n = 0, seq = 0, i;
+    uint8_t prev = 0u;
+    uint16_t held[RI_LEVI_LANES] = { 0u, 0u, 0u, 0u, 0u, 0u };
+    drum_tick_params(opts, ppq, &step_ticks, &shuffle_ticks, &flam_samples,
+        map);
+    (void)flam_samples;
+    if (cap > RI_SCHED_MAX_EVENTS)
+        cap = RI_SCHED_MAX_EVENTS;
+    for (i = 0u; i < p->length; i++) {
+        uint64_t tick = start_tick + (uint64_t)i * (uint64_t)step_ticks;
+        uint64_t sample;
+        uint8_t cur;
+        uint32_t L;
+        if ((i & 1u) != 0u)
+            tick += (uint64_t)shuffle_ticks;
+        sample = ri_map_tick(map, tick);
+        cur = p->row.levi[i].on;
+        for (L = 0u; L < RI_LEVI_LANES && n < cap; L++) {
+            uint8_t bit = (uint8_t)(1u << L);
+            if (!(cur & bit))
+                continue;
+            held[L] = (uint16_t)p->row.levi[i].note[L];
+            out[n].sample = sample;
+            out[n].type = RI_EV_NOTE_ON;
+            out[n].device = device;
+            out[n].voice = (uint16_t)L;
+            out[n].value = held[L];
+            out[n].flags = 0u;
+            out[n].seq = seq++;
+            n++;
+        }
+        for (L = 0u; L < RI_LEVI_LANES && n < cap; L++) {
+            uint8_t bit = (uint8_t)(1u << L);
+            if (!(prev & bit) || (cur & bit))
+                continue;
+            out[n].sample = sample;
+            out[n].type = RI_EV_NOTE_OFF;
+            out[n].device = device;
+            out[n].voice = (uint16_t)L;
+            out[n].value = held[L];
+            out[n].flags = 0u;
+            out[n].seq = seq++;
+            n++;
+        }
+        prev = cur;
+    }
+    {
+        uint64_t tick = start_tick + (uint64_t)p->length * (uint64_t)step_ticks;
+        uint64_t sample = ri_map_tick(map, tick);
+        uint32_t L;
+        for (L = 0u; L < RI_LEVI_LANES && n < cap; L++) {
+            uint8_t bit = (uint8_t)(1u << L);
+            if (!(prev & bit))
+                continue;
+            out[n].sample = sample;
+            out[n].type = RI_EV_NOTE_OFF;
+            out[n].device = device;
+            out[n].voice = (uint16_t)L;
+            out[n].value = held[L];
+            out[n].flags = 0u;
+            out[n].seq = seq++;
+            n++;
+        }
+    }
+    /* Insertion sort by the §8 total key (bounded, drum_emit shape). */
+    {
+        uint32_t a, b;
+        for (a = 1; a < RI_SCHED_MAX_EVENTS; a++) {
+            struct RIEvent key;
+            if (a >= n)
+                break;
+            key = out[a];
+            b = a;
+            for (;;) {
+                if (b == 0)
+                    break;
+                if (!ri_event_less(&key, &out[b - 1]))
+                    break;
+                out[b] = out[b - 1];
+                b--;
+            }
+            out[b] = key;
+        }
+    }
+    return n;
+}
+
 static uint32_t drum_emit(const struct RIPattern *p, uint16_t device,
     const struct RITempoMap *map, uint64_t start_tick, uint32_t ppq,
     const struct RISchedOpts *opts, struct RIEvent *out, uint32_t cap) {
@@ -180,6 +276,12 @@ uint32_t ri_sched_emit_pattern(const struct RIPattern *p, uint16_t device,
     }
     if (p->kind == RI_PATTERN_KIND_DRUM)
         return drum_emit(p, device, map, start_tick, ppq, opts, out,
+            cap);
+    if (p->kind == RI_PATTERN_KIND_LEVI)
+        /* Occurrence-scoped gate like drums (no carry across the seam
+         * in v1; retrigger timing): still-sounding lanes close at the
+         * occurrence end tick. */
+        return levi_emit(p, device, map, start_tick, ppq, opts, out,
             cap);
     return 0;
 }
