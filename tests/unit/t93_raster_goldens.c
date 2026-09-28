@@ -22,10 +22,11 @@ static char T_SPOOL[32768];
 static struct RIMixBoard T_BOARD;
 
 static const uint8_t T_SECS[] = {
-    RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909,
+    RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909, RI_SEC_LEVI,
     RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_808, RI_SEC_MIX_909, RI_SEC_MASTER,
     RI_SEC_PCF, RI_SEC_DELAY, RI_SEC_DIST, RI_SEC_COMP,
-    RI_SEC_TRANSPORT, RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909
+    RI_SEC_TRANSPORT, RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909,
+    RI_SEC_PAT_LEVI
 };
 
 static uint32_t render_one(uint8_t sec, int z, const struct RISkin *skin,
@@ -214,6 +215,14 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 17u, 1u, 0xe8b5e2d7u },
     { 17u, 2u, 0xb2403dc3u },
     { 17u, 3u, 0xb81b6285u },
+    { 18u, 0u, 0x58063f48u },
+    { 18u, 1u, 0x71126164u },
+    { 18u, 2u, 0x96a568b7u },
+    { 18u, 3u, 0xfa60fb90u },
+    { 19u, 0u, 0xf602c09cu },
+    { 19u, 1u, 0x44310248u },
+    { 19u, 2u, 0xc4174a51u },
+    { 19u, 3u, 0xd05fa851u },
 };
 static const uint32_t T_SKIN_PIN = 0x9a05fa63u;
 

@@ -13,9 +13,9 @@ void ri_art_bg_pat(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, in
     char title[16];
     const struct RIPanelDesc *pd = 0;
     uint32_t inst;
-    if (sec < RI_SEC_PAT_SYNTH1 || sec > RI_SEC_PAT_909)
+    if (!((sec >= RI_SEC_PAT_SYNTH1 && sec <= RI_SEC_PAT_909) || sec == RI_SEC_PAT_LEVI))
         return;
-    inst = (uint32_t)sec - RI_SEC_PAT_SYNTH1;
+    inst = (sec == RI_SEC_PAT_LEVI) ? 4u : (uint32_t)sec - RI_SEC_PAT_SYNTH1;
     pd = ri_panel_get(inst);
     if (!pd || !pd->name)
         return;

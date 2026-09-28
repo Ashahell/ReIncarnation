@@ -30,11 +30,11 @@ int main(void) {
     unsigned int npanels = ri_panel_count();
     int done = 0;
     /* Title wires the panel tables into the binary: the count IS the
-     * contract (6: 303A/303B/808/909/mixer/transport). */
-    static TEXT title[] = "ReIncarnation Classic (6 panels)";
+     * contract (7: 303A/303B/808/909/Levi/mixer/transport). */
+    static TEXT title[] = "ReIncarnation Classic (7 panels)";
     static struct TagItem wi_tags[8];
 
-    if (npanels != 6u)
+    if (npanels != 7u)
         return 5; /* panel-table drift: refuse to run, loudly */
 
     /* Plain tag array + OpenWindowTagList: avoids the variadic inline

@@ -17,11 +17,24 @@ static char T_SPOOL[32768];
 static struct RIMixBoard T_BOARD;
 
 static const uint8_t T_SECS[] = {
-    RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909,
+    RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909, RI_SEC_LEVI,
     RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_808, RI_SEC_MIX_909, RI_SEC_MASTER,
     RI_SEC_PCF, RI_SEC_DELAY, RI_SEC_DIST, RI_SEC_COMP,
-    RI_SEC_TRANSPORT, RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909
+    RI_SEC_TRANSPORT, RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909,
+    RI_SEC_PAT_LEVI
 };
+
+/* Pattern-section device tag: PAT ids are not contiguous (PAT_LEVI=19). */
+static const char *pat_tag(uint8_t sec) {
+    switch (sec) {
+    case RI_SEC_PAT_SYNTH1: return "PATTERN 303A";
+    case RI_SEC_PAT_SYNTH2: return "PATTERN 303B";
+    case RI_SEC_PAT_808: return "PATTERN 808";
+    case RI_SEC_PAT_909: return "PATTERN 909";
+    case RI_SEC_PAT_LEVI: return "PATTERN LEVI";
+    default: return 0;
+    }
+}
 
 
 /* Pinned hashes (first GREEN run): any drawing change is deliberate. */
@@ -98,6 +111,14 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 17u, 1u, 0x2d0ec499u },
     { 17u, 2u, 0x76c9beb5u },
     { 17u, 3u, 0x073ab36cu },
+    { 18u, 0u, 0xcf3f0714u },
+    { 18u, 1u, 0x8d51ad0cu },
+    { 18u, 2u, 0xe9f61f4au },
+    { 18u, 3u, 0x86299581u },
+    { 19u, 0u, 0xaff068fau },
+    { 19u, 1u, 0x8b87fee9u },
+    { 19u, 2u, 0x190d4fefu },
+    { 19u, 3u, 0x26a0b95cu },
 };
 
 static uint32_t pin_lookup(uint8_t sec, uint8_t z) {
@@ -129,12 +150,9 @@ int main(void) {
             RI_ASSERT(h == pin_lookup(T_SECS[s], z), "pin sec=%u z=%u got %08x", T_SECS[s], z, h);
             /* Title-bar device tag (owner 2026-09-27): each pattern block
              * names the device it affects, from the wiring table. */
-            if (T_SECS[s] >= RI_SEC_PAT_SYNTH1 && T_SECS[s] <= RI_SEC_PAT_909 && z == 0u) {
-                static const char *const want[4] = {
-                    "PATTERN 303A", "PATTERN 303B", "PATTERN 808", "PATTERN 909"
-                };
+            if (pat_tag(T_SECS[s]) && z == 0u) {
                 uint32_t k, found = 0u;
-                const char *tag = want[T_SECS[s] - RI_SEC_PAT_SYNTH1];
+                const char *tag = pat_tag(T_SECS[s]);
                 for (k = 0u; k < dl.n; k++) {
                     if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
                         !strcmp(dl.cmd[k].text, tag)) {

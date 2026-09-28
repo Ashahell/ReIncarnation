@@ -236,6 +236,9 @@ int main(void) {
     /* ---- 909 (p. 151) ---- */
     check_section(RI_SEC_909);
     check_legends(RI_SEC_909);
+    /* ---- Levi voice (owner 2026-09-28): knobs + select + steps + keys ---- */
+    check_section(RI_SEC_LEVI);
+    check_legends(RI_SEC_LEVI);
     s = ri_geo_section(RI_SEC_909);
     if (s) {
         int prev = -1;

@@ -168,6 +168,54 @@ static const struct RIGeoItem RI_GEO_808[] = {
  * boxes (options) at y 322; AC Level, Flam knob and Flam button on the left.
  * No selector knob: the 909 selects instruments by clicking legends (p. 151). */
 #define S9(i) (uint16_t)((RI_SEC_909 << 8) | (i))
+#define SL(i) (uint16_t)((RI_SEC_LEVI << 8) | (i))
+#define LKNOB(i, x) { SL(i), RI_GEO_KNOB, 0, (x), 100, 44, 52 }, \
+                    { SL(i), RI_GEO_LEGEND, 0, (x), 55, 0, 0 }
+#define LWKEY(i, x) { SL(i), RI_GEO_RECT, 0, (x), 385, 34, 60 }, \
+                    { SL(i), RI_GEO_LED, 0, (x), 338, 12, 12 }
+#define LBKEY(i, x) { SL(i), RI_GEO_RECT, 0, (x), 275, 30, 50 }, \
+                    { SL(i), RI_GEO_LED, 0, (x), 238, 12, 12 }
+static const struct RIGeoItem RI_GEO_LEVI[] = {
+    LKNOB(0, 100), LKNOB(1, 200), LKNOB(3, 400),
+    { SL(2), RI_GEO_RECT, 0, 300, 100, 44, 52 },
+    { SL(2), RI_GEO_LED, 0, 300, 60, 12, 12 },
+    { SL(2), RI_GEO_LEGEND, 0, 300, 32, 0, 0 },
+    /* lane select: 6 options, numerals painted by art_levi */
+    { SL(4), RI_GEO_OPTION, 0, 480, 100, 55, 26 },
+    { SL(4), RI_GEO_OPTION, 1, 550, 100, 55, 26 },
+    { SL(4), RI_GEO_OPTION, 2, 620, 100, 55, 26 },
+    { SL(4), RI_GEO_OPTION, 3, 690, 100, 55, 26 },
+    { SL(4), RI_GEO_OPTION, 4, 760, 100, 55, 26 },
+    { SL(4), RI_GEO_OPTION, 5, 830, 100, 55, 26 },
+    /* step / back / display */
+    { SL(5), RI_GEO_RECT, 0, 1240, 100, 60, 30 },
+    { SL(5), RI_GEO_LEGEND, 0, 1240, 70, 0, 0 },
+    { SL(6), RI_GEO_RECT, 0, 1310, 100, 60, 30 },
+    { SL(6), RI_GEO_LEGEND, 0, 1310, 70, 0, 0 },
+    { SL(7), RI_GEO_RECT, 0, 1380, 100, 60, 30 },
+    { SL(7), RI_GEO_LEGEND, 0, 1380, 70, 0, 0 },
+    /* 16 steps, 2 rows of 8 (state reads off the rect fill) */
+    { SL(8), RI_GEO_RECT, 0, 900, 200, 60, 60 },
+    { SL(9), RI_GEO_RECT, 0, 970, 200, 60, 60 },
+    { SL(10), RI_GEO_RECT, 0, 1040, 200, 60, 60 },
+    { SL(11), RI_GEO_RECT, 0, 1110, 200, 60, 60 },
+    { SL(12), RI_GEO_RECT, 0, 1180, 200, 60, 60 },
+    { SL(13), RI_GEO_RECT, 0, 1250, 200, 60, 60 },
+    { SL(14), RI_GEO_RECT, 0, 1320, 200, 60, 60 },
+    { SL(15), RI_GEO_RECT, 0, 1390, 200, 60, 60 },
+    { SL(16), RI_GEO_RECT, 0, 900, 300, 60, 60 },
+    { SL(17), RI_GEO_RECT, 0, 970, 300, 60, 60 },
+    { SL(18), RI_GEO_RECT, 0, 1040, 300, 60, 60 },
+    { SL(19), RI_GEO_RECT, 0, 1110, 300, 60, 60 },
+    { SL(20), RI_GEO_RECT, 0, 1180, 300, 60, 60 },
+    { SL(21), RI_GEO_RECT, 0, 1250, 300, 60, 60 },
+    { SL(22), RI_GEO_RECT, 0, 1320, 300, 60, 60 },
+    { SL(23), RI_GEO_RECT, 0, 1390, 300, 60, 60 },
+    /* piano keyboard (303 block positions) */
+    LWKEY(24, 222), LBKEY(25, 267), LWKEY(26, 307), LBKEY(27, 349), LWKEY(28, 392),
+    LWKEY(29, 476), LBKEY(30, 518), LWKEY(31, 560), LBKEY(32, 602), LWKEY(33, 645),
+    LBKEY(34, 687), LWKEY(35, 730), LWKEY(36, 812),
+};
 static const struct RIGeoItem RI_GEO_909[] = {
     { S9(0), RI_GEO_KNOB, 0, 60, 140, 44, 52 },
     { S9(0), RI_GEO_LEGEND, 0, 60, 96, 0, 0 },
@@ -378,6 +426,7 @@ static const struct RIGeoItem RI_GEO_COMP[] = {
     { MX(sec, 3), RI_GEO_STEPPER, 1, 244, 395, 32, 28 }, \
     { MX(sec, 3), RI_GEO_STEPPER, 0, 244, 430, 32, 28 }, \
     { MX(sec, 3), RI_GEO_LEGEND, 0, 188, 360, 0, 0 }
+static const struct RIGeoItem RI_GEO_PATL[] = { RI_GEO_PATSEC(RI_SEC_PAT_LEVI) };
 static const struct RIGeoItem RI_GEO_PAT1[] = { RI_GEO_PATSEC(RI_SEC_PAT_SYNTH1) };
 static const struct RIGeoItem RI_GEO_PAT2[] = { RI_GEO_PATSEC(RI_SEC_PAT_SYNTH2) };
 static const struct RIGeoItem RI_GEO_PAT8[] = { RI_GEO_PATSEC(RI_SEC_PAT_808) };
@@ -443,6 +492,8 @@ static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_PAT_SYNTH2, 0, 284, 464, RI_GEO_PAT2, (uint32_t)(sizeof(RI_GEO_PAT2) / sizeof(RI_GEO_PAT2[0])) },
     { RI_SEC_PAT_808, 0, 284, 464, RI_GEO_PAT8, (uint32_t)(sizeof(RI_GEO_PAT8) / sizeof(RI_GEO_PAT8[0])) },
     { RI_SEC_PAT_909, 0, 284, 464, RI_GEO_PAT9, (uint32_t)(sizeof(RI_GEO_PAT9) / sizeof(RI_GEO_PAT9[0])) },
+    { RI_SEC_LEVI, 0, 1464, 460, RI_GEO_LEVI, (uint32_t)(sizeof(RI_GEO_LEVI) / sizeof(RI_GEO_LEVI[0])) },
+    { RI_SEC_PAT_LEVI, 0, 284, 464, RI_GEO_PATL, (uint32_t)(sizeof(RI_GEO_PATL) / sizeof(RI_GEO_PATL[0])) },
 };
 
 const struct RIGeoSection *ri_geo_section(uint32_t section) {

@@ -220,7 +220,7 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case RI_LEVI_RESO:
         return levi_set_param(s, voice, id, (float)val / 127.0f);
     case RI_LEVI_MODE:
-        return levi_set_param(s, voice, id, val >= 64u ? 1.0f : 0.0f);
+        return levi_set_param(s, voice, id, val != 0u ? 1.0f : 0.0f);
     case RI_LEVI_RATIO:
         return levi_set_param(s, voice, id,
             0.25f * ri_pow2(((float)val / 127.0f) * 8.0f));

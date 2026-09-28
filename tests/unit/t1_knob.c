@@ -141,8 +141,8 @@ int main(void) {
     RI_ASSERT(ri_flam_glow(0) == 0, "flam dark");
 
     /* --- 8. panel tables: 6 panels, stable IDs, dummy same path --- */
-    RI_ASSERT(ri_panel_count() == 6u, "6 panels");
-    RI_ASSERT(ri_panel_get(6) == 0, "panel oob null");
+    RI_ASSERT(ri_panel_count() == 7u, "7 panels");
+    RI_ASSERT(ri_panel_get(7) == 0, "panel oob null");
     {
         const struct RIPanelDesc *p = ri_panel_get(0);
         const struct RIPanelControl *c;
@@ -153,7 +153,12 @@ int main(void) {
         RI_ASSERT(ri_panel_find_ctl(0, RI_CTL_303A_BASE) == 0, "null panel null");
     }
     {
-        const struct RIPanelDesc *t = ri_panel_get(5);
+        const struct RIPanelDesc *l = ri_panel_get(4);
+        RI_ASSERT(l && l->device == 4u, "levi slot");
+        RI_ASSERT(ri_panel_find_ctl(l, RI_CTL_LEVI_BASE + 0) != 0, "levi cutoff");
+    }
+    {
+        const struct RIPanelDesc *t = ri_panel_get(6);
         RI_ASSERT(t && t->device == 5u, "transport slot");
         RI_ASSERT(ri_panel_find_ctl(t, RI_CTL_MIX_BASE + 10) != 0, "tempo ctl");
     }

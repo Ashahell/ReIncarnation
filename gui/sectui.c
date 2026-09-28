@@ -9,7 +9,8 @@ static int isfx(const struct RISectUI *s) {
     return s->section >= RI_SEC_PCF && s->section <= RI_SEC_COMP;
 }
 static int ispat(const struct RISectUI *s) {
-    return s->section >= RI_SEC_PAT_SYNTH1 && s->section <= RI_SEC_PAT_909;
+    return (s->section >= RI_SEC_PAT_SYNTH1 && s->section <= RI_SEC_PAT_909)
+        || s->section == RI_SEC_PAT_LEVI;
 }
 static int istr(const struct RISectUI *s) {
     return s->section == RI_SEC_TRANSPORT;
@@ -36,6 +37,8 @@ int ri_sui_init(struct RISectUI *s, uint8_t section) {
         return ri_s808_init(&s->u.s808);
     if (section == RI_SEC_909)
         return ri_s909_init(&s->u.s909);
+    if (section == RI_SEC_LEVI)
+        return ri_slevi_init(&s->u.slevi);
     if (isfx(s))
         return ri_sfx_init(&s->u.fx, section);
     if (ispat(s))
@@ -56,6 +59,7 @@ int ri_sui_press(struct RISectUI *s, uint32_t idx) {
     return is303(s) ? ri_s303_press(&s->u.s303, idx)
          : s->section == RI_SEC_808 ? ri_s808_press(&s->u.s808, idx)
          : s->section == RI_SEC_909 ? ri_s909_press(&s->u.s909, idx)
+         : s->section == RI_SEC_LEVI ? ri_slevi_press(&s->u.slevi, idx)
          : ismix(s) ? ri_smix_press(s->u.mix.board, s->section, idx)
          : isfx(s) ? ri_sfx_press(&s->u.fx, idx)
          : ispat(s) ? ri_spat_press(&s->u.pat, idx) : istr(s) ? ri_str_press(&s->u.tr, idx) : 0;
@@ -67,6 +71,7 @@ int ri_sui_set(struct RISectUI *s, uint32_t idx, int v) {
     return is303(s) ? ri_s303_set_value(&s->u.s303, idx, v)
          : s->section == RI_SEC_808 ? ri_s808_set_value(&s->u.s808, idx, v)
          : s->section == RI_SEC_909 ? ri_s909_set_value(&s->u.s909, idx, v)
+         : s->section == RI_SEC_LEVI ? ri_slevi_set_value(&s->u.slevi, idx, v)
          : ismix(s) ? ri_smix_set_value(s->u.mix.board, s->section, idx, v)
          : isfx(s) ? ri_sfx_set_value(&s->u.fx, idx, v)
          : ispat(s) ? ri_spat_set_value(&s->u.pat, idx, v) : istr(s) ? ri_str_set_value(&s->u.tr, idx, v) : 0;
@@ -78,6 +83,7 @@ int ri_sui_reset(struct RISectUI *s, uint32_t idx) {
     return is303(s) ? ri_s303_reset(&s->u.s303, idx)
          : s->section == RI_SEC_808 ? ri_s808_reset(&s->u.s808, idx)
          : s->section == RI_SEC_909 ? ri_s909_reset(&s->u.s909, idx)
+         : s->section == RI_SEC_LEVI ? ri_slevi_reset(&s->u.slevi, idx)
          : ismix(s) ? ri_smix_reset(s->u.mix.board, s->section, idx)
          : isfx(s) ? ri_sfx_reset(&s->u.fx, idx)
          : ispat(s) ? ri_spat_reset(&s->u.pat, idx) : istr(s) ? ri_str_reset(&s->u.tr, idx) : 0;
@@ -92,6 +98,8 @@ int ri_sui_value(const struct RISectUI *s, uint32_t idx) {
         return idx < RI_S808_NCTL ? s->u.s808.val[idx] : 0;
     if (s->section == RI_SEC_909)
         return idx < RI_S909_NCTL ? s->u.s909.val[idx] : 0;
+    if (s->section == RI_SEC_LEVI)
+        return idx < RI_SLEVI_NCTL ? s->u.slevi.val[idx] : 0;
     if (ismix(s))
         return ri_smix_value(s->u.mix.board, s->section, idx);
     if (isfx(s))
@@ -109,6 +117,7 @@ int ri_sui_led(const struct RISectUI *s, uint32_t idx, uint32_t which) {
     return is303(s) ? ri_s303_led(&s->u.s303, idx, which)
          : s->section == RI_SEC_808 ? ri_s808_led(&s->u.s808, idx)
          : s->section == RI_SEC_909 ? ri_s909_led(&s->u.s909, idx)
+         : s->section == RI_SEC_LEVI ? ri_slevi_led(&s->u.slevi, idx)
          : ismix(s) ? ri_smix_led(s->u.mix.board, s->section, idx)
          : isfx(s) ? ri_sfx_led(&s->u.fx, idx)
          : ispat(s) ? ri_spat_led(&s->u.pat, idx) : istr(s) ? ri_str_led(&s->u.tr, idx, which) : 0;
@@ -124,5 +133,7 @@ int ri_sui_step(struct RISectUI *s, uint32_t idx, int dir) {
 int ri_sui_display(const struct RISectUI *s, uint32_t idx) {
     if (s && is303(s) && idx == RI_S303_DISPLAY)
         return ri_s303_display(&s->u.s303);
+    if (s && s->section == RI_SEC_LEVI && idx == RI_SLEVI_DISPLAY)
+        return ri_slevi_display(&s->u.slevi);
     return 0;
 }

@@ -12,7 +12,7 @@ CFLAGS ?= -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-un
 CORE_TU := \
   app/core/live_driver.c app/core/canvas_events.c \
   gui/draw/canvas.c gui/draw/art_shared.c gui/draw/art_303.c \
-  gui/draw/art_808.c gui/draw/art_909.c gui/draw/art_mix.c \
+  gui/draw/art_808.c gui/draw/art_909.c gui/draw/art_levi.c gui/draw/art_mix.c \
   gui/draw/art_fx.c gui/draw/art_pat.c gui/draw/art_tr.c \
   gui/draw/art_section.c platform/host/raster.c \
   engine/dsp/kernels.c engine/engine.c engine/live.c \
@@ -28,7 +28,7 @@ CORE_TU := \
   project/undo.c midi_io/midi.c \
   gui/knob_logic.c gui/panels.c gui/catalog.c gui/knob_art.c gui/ctlreg.c \
   gui/panelctl.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c \
-  gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c \
+  gui/sectlevi.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c \
   gui/keymap.c gui/panelui.c gui/livestate.c gui/midimap.c gui/skin.c
 
 CORE_OBJS := $(patsubst %.c,$(OUT)/%.o,$(CORE_TU))

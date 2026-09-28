@@ -1,0 +1,42 @@
+/* gui/sectlevi.h — Levi section front-panel behaviour (owner 2026-09-28).
+ * Pure C, host-tested. 909-style lane select (SELECTOR) + 16 step
+ * buttons (toggle the selected lane, middle C on enable) with 303-style
+ * edit step + piano keyboard for pitch (13 chromatic keys C..C+).
+ * Values index = registry index within the section (reg_id & 0xFF).
+ */
+#ifndef RI_SECTLEVI_H
+#define RI_SECTLEVI_H
+#include <stdint.h>
+#include "engine/seq/pattern.h"
+
+#define RI_SLEVI_NCTL 37u
+#define RI_SLEVI_SELECT 4u      /* Lane Selection: 0..5 */
+#define RI_SLEVI_MODE 2u          /* FM/PM toggle */
+#define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
+#define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */
+#define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */
+#define RI_SLEVI_STEP0 8u       /* 16 step buttons: 8..23 */
+#define RI_SLEVI_KEY0 24u       /* 13 pitch keys: 24..36 = C..C+ */
+#define RI_SLEVI_KEYS 13u
+#define RI_SLEVI_MIDDLE_C 60u
+
+struct RISectLevi {
+    uint8_t section;           /* RI_SEC_LEVI */
+    uint8_t sel;               /* selected lane 0..5 */
+    uint8_t edit_step;         /* 0..15 */
+    uint8_t pad;
+    int16_t val[RI_SLEVI_NCTL];
+    struct RIPattern pat;      /* chord kind, class Levi */
+};
+
+int ri_slevi_init(struct RISectLevi *s);
+int ri_slevi_press(struct RISectLevi *s, uint32_t idx);
+int ri_slevi_set_value(struct RISectLevi *s, uint32_t idx, int v);
+int ri_slevi_reset(struct RISectLevi *s, uint32_t idx);
+/* Step LED: selected lane sounding; key LED: pitch match at
+ * (edit step, selected lane). */
+int ri_slevi_led(const struct RISectLevi *s, uint32_t idx);
+/* EDIT STEP 1..16. */
+int ri_slevi_display(const struct RISectLevi *s);
+
+#endif

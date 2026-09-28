@@ -9,8 +9,7 @@
 
 #define CTL(id, nm, dv) { (id), (nm), (dv), 0, 127 }
 
-static const struct RIPanelControl RI_303A_CTLS[] = {
-    CTL(RI_CTL_303A_BASE + 0, "cutoff", 96),
+static const struct RIPanelControl RI_303A_CTLS[] = {    CTL(RI_CTL_303A_BASE + 0, "cutoff", 96),
     CTL(RI_CTL_303A_BASE + 1, "reso", 32),
     CTL(RI_CTL_303A_BASE + 2, "envmod", 64),
     CTL(RI_CTL_303A_BASE + 3, "decay", 64),
@@ -18,6 +17,13 @@ static const struct RIPanelControl RI_303A_CTLS[] = {
     CTL(RI_CTL_303A_BASE + 5, "waveform", 0),
     CTL(RI_CTL_303A_BASE + 6, "volume", 100),
     CTL(RI_CTL_303A_BASE + 7, "tune", 64),
+};
+
+static const struct RIPanelControl RI_LEVI_CTLS[] = {
+    CTL(RI_CTL_LEVI_BASE + 0, "cutoff", 96),
+    CTL(RI_CTL_LEVI_BASE + 1, "reso", 32),
+    CTL(RI_CTL_LEVI_BASE + 2, "mode", 0),
+    CTL(RI_CTL_LEVI_BASE + 3, "ratio", 32),
 };
 
 static const struct RIPanelControl RI_303B_CTLS[] = {
@@ -82,6 +88,7 @@ static const struct RIPanelDesc RI_PANELS[] = {
     { "303B", 1, RI_303B_CTLS, NCTL(RI_303B_CTLS), "BASS" },
     { "808", 2, RI_808_CTLS, NCTL(RI_808_CTLS), "DRUMS" },
     { "909", 3, RI_909_CTLS, NCTL(RI_909_CTLS), "DRUMS" },
+    { "Levi", 4, RI_LEVI_CTLS, NCTL(RI_LEVI_CTLS), "SYNTH" },
     { "mixer", 4, RI_MIX_CTLS, NCTL(RI_MIX_CTLS), "MIX" },
     { "transport", 5, RI_TRANSPORT_CTLS, NCTL(RI_TRANSPORT_CTLS), "" },
 };
@@ -115,7 +122,7 @@ const struct RIPanelDesc *ri_panel_dummy(void) {
 int ri_panel_role_label(unsigned int inst, char *buf, unsigned int cap) {
     const struct RIPanelDesc *p;
     uint32_t i = 0u, j = 0u;
-    if (inst > 3u || !buf || cap < 2u)
+    if (inst > 4u || !buf || cap < 2u)
         return 0;
     p = ri_panel_get(inst);
     if (!p || !p->name || !p->role || !p->role[0])

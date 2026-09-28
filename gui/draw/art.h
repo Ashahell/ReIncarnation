@@ -26,6 +26,7 @@ enum {
     C_909_PANEL, C_909_BAR, C_909_ORANGE, C_909_KNOB, C_LAMP_LOW, C_LAMP_FLAM, C_909_STEP,
     C_MIX_PANEL, C_MIX_HEAD, C_MIX_HEADTX, C_MIX_SLOT, C_MIX_GREEN, C_MIX_GREEN_OFF, C_MIX_KNOB, C_MIX_TEXT,
     C_FX_PANEL, C_FX_HEAD, C_SEG_DIM, C_PAT_HEAD, C_PAT_SEL, C_TR_PANEL,
+    C_LEVI_PANEL,
     C_NCOL
 };
 
@@ -95,6 +96,7 @@ void ri_art_power(struct ri_dlist *dl, int x0, int y0, int x1, int y1, const cha
 void ri_art_bg_303(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
 void ri_art_bg_808(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
 void ri_art_bg_909(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
+void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
 void ri_art_bg_mix(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, int master);
 void ri_art_bg_fx(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, uint8_t sec);
 void ri_art_bg_pat(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, uint8_t sec);

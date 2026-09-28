@@ -9,6 +9,8 @@
 #include "gui/sect303.h"
 #include "gui/sect808.h"
 #include "gui/sect909.h"
+#include "gui/sectlevi.h"
+#include "gui/sectlevi.h"
 #include "gui/sectmix.h"
 #include "gui/sectfx.h"
 #include "gui/sectpat.h"
@@ -21,6 +23,7 @@ struct RISectUI {
         struct RISect303 s303;
         struct RISect808 s808;
         struct RISect909 s909;
+        struct RISectLevi slevi;
         struct RISectFx fx;       /* RI_SEC_PCF..RI_SEC_COMP */
         struct RISectPat pat;     /* RI_SEC_PAT_* */
         struct RISectTr tr;       /* RI_SEC_TRANSPORT */

@@ -44,7 +44,7 @@ int main(void) {
     RI_ASSERT(d->min_v == 0 && d->max_v == 127 && d->def_v == 32, "reso range");
     RI_ASSERT(d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_RESO, "reso bind");
     d = find_leg(RI_SEC_LEVI, "Mode");
-    RI_ASSERT(d && d->kind == RI_CK_SELECTOR, "mode kind");
+    RI_ASSERT(d && d->kind == RI_CK_SWITCH, "mode kind");
     RI_ASSERT(d->min_v == 0 && d->max_v == 1 && d->def_v == 0, "mode range");
     RI_ASSERT(d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_MODE, "mode bind");
     d = find_leg(RI_SEC_LEVI, "Ratio");

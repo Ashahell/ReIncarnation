@@ -3,7 +3,7 @@
 #include "gui/ctlreg.h"
 
 static int ispat(uint32_t section) {
-    return section >= RI_SEC_PAT_SYNTH1 && section <= RI_SEC_PAT_909;
+    return (section >= RI_SEC_PAT_SYNTH1 && section <= RI_SEC_PAT_909) || section == RI_SEC_PAT_LEVI;
 }
 
 int ri_spat_init(struct RISectPat *s, uint8_t section) {

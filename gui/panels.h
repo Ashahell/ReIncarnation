@@ -14,6 +14,7 @@
 #define RI_CTL_303B_BASE 0x0310u
 #define RI_CTL_808_BASE 0x0400u
 #define RI_CTL_909_BASE 0x0900u
+#define RI_CTL_LEVI_BASE 0x0E00u
 #define RI_CTL_FX_BASE 0x0A00u
 #define RI_CTL_MIX_BASE 0x0B00u
 

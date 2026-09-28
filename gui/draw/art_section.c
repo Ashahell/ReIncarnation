@@ -35,7 +35,7 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
     const struct RIPanelUI *panel) {
     const struct RIGeoSection *g;
     uint8_t gs;
-    int z = zoom, is808, is909, ismix, isfx, ispat, istr;
+    int z = zoom, is808, is909, islevi, ismix, isfx, ispat, istr;
     int txt, skinned = 0;
     uint32_t pan;
     uint32_t i;
@@ -47,12 +47,13 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
     g = ri_geo_section(gs);
     is808 = section == RI_SEC_808;
     is909 = section == RI_SEC_909;
+    islevi = section == RI_SEC_LEVI;
     ismix = ri_smix_strip(section) >= 0;
     isfx = section >= RI_SEC_PCF && section <= RI_SEC_COMP;
-    ispat = section >= RI_SEC_PAT_SYNTH1 && section <= RI_SEC_PAT_909;
+    ispat = (section >= RI_SEC_PAT_SYNTH1 && section <= RI_SEC_PAT_909) || section == RI_SEC_PAT_LEVI;
     istr = section == RI_SEC_TRANSPORT;
     txt = is808 ? C_CREAM : ismix || isfx || ispat || istr ? C_MIX_TEXT : C_TEXT;
-    pan = ri_art_rgb(is808 ? C_808_PANEL : is909 ? C_909_PANEL : ismix ? C_MIX_PANEL
+    pan = ri_art_rgb(is808 ? C_808_PANEL : is909 ? C_909_PANEL : islevi ? C_LEVI_PANEL : ismix ? C_MIX_PANEL
         : (isfx || ispat) ? C_FX_PANEL : istr ? C_TR_PANEL : C_PANEL);
     if (!g)
         return;
@@ -77,6 +78,8 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
             ri_art_bg_808(out, g, ox, oy, z);
         else if (is909)
             ri_art_bg_909(out, g, ox, oy, z);
+        else if (islevi)
+            ri_art_bg_levi(out, g, ox, oy, z);
         else if (ismix)
             ri_art_bg_mix(out, g, ox, oy, z, section == RI_SEC_MASTER);
         else if (isfx)

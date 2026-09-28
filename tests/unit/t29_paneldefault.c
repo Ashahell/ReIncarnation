@@ -87,9 +87,9 @@ int main(void) {
     /* --- spot defaults elsewhere (neutral playing positions) --- */
     CHECK(ri_panel_default_ctl(ri_panel_get(0), 0x0300u) == 96,
         "cutoff def");
-    CHECK(ri_panel_default_ctl(ri_panel_get(4), 0x0B00u) == 127,
+    CHECK(ri_panel_default_ctl(ri_panel_get(5), 0x0B00u) == 127,
         "bus1 def");
-    CHECK(ri_panel_default_ctl(ri_panel_get(5), 0x0B00u + 10u) == 120,
+    CHECK(ri_panel_default_ctl(ri_panel_get(6), 0x0B00u + 10u) == 120,
         "tempo def");
 
     /* --- fail-closed edges: unknown id, NULL panel --- */
@@ -108,7 +108,9 @@ int main(void) {
             !strcmp(role, "808 DRUMS"), "role 2 [%s]", role);
         CHECK(ri_panel_role_label(3u, role, sizeof role) == 1 &&
             !strcmp(role, "909 DRUMS"), "role 3 [%s]", role);
-        CHECK(ri_panel_role_label(4u, role, sizeof role) == 0, "role 4 refused");
+        CHECK(ri_panel_role_label(4u, role, sizeof role) == 1 &&
+            !strcmp(role, "Levi SYNTH"), "role 4 [%s]", role);
+        CHECK(ri_panel_role_label(6u, role, sizeof role) == 0, "role 6 refused");
         CHECK(ri_panel_role_label(9u, role, sizeof role) == 0, "role 9 refused");
         CHECK(ri_panel_role_label(0u, 0, sizeof role) == 0, "role null buf");
         CHECK(ri_panel_role_label(0u, role, 4u) == 0, "role tiny buf");
