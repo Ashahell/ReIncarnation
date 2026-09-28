@@ -59,3 +59,13 @@ The shaded art needs arbitrary RGB. On this AROS, `RPTAG_FgColor` is ignored: th
 - A real text face: the host rasterizer uses a 5x7 test font; AROS uses the system font. Hardware legends want a condensed sans (Helvetica-like) at fixed sizes.
 - Rotary "chicken-head" pointer shapes (the TB-303 uses round knobs with a line, so this is correct for the 303).
 - Performance: a 2x redraw of the 909 is about 8k primitives. Knob drags repaint the whole section, so dirty-rect redraws are the next step if drags feel slow on real hardware.
+
+## Mix and FX tabs: rack bay (2026-09-28, second pass)
+
+Owner verdict on the first pass: the Mix and FX panels were fine but sat on window grey, so they did not read as devices.
+
+- Both pages are now a rack bay (`rack_page` in `app/riapp.c`):
+  - a dark bay background (Zune penspec `2:r…`, `0x1A1B1E`);
+  - a steel rack rail at each side, drawn by a small self-drawing Area class (`RRail`, pens per screen like `RLed`), with rolled edges and slotted holes on a 1U pattern;
+  - the modules touch, their tops are aligned like racked units, and the group is centred in the bay.
+- Dell captures (ABIv11, half scale): `dell-rack-mix.png`, `dell-rack-fx.png`. The FX capture came from a check build that opens on the FX page, because agent clicks do not reach the Register tabs.

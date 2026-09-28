@@ -164,6 +164,12 @@ static Object *s_devled[4];
  * (saga steps e/f, llm-wiki 2026-09-27-rail-led-bitmap-saga.md). */
 #define MUIA_RLed_On (TAG_USER | 0x52494C45u) /* BOOL: lit (active) */
 static struct MUI_CustomClass *s_led_mcc;
+/* Rack bay (owner 2026-09-28): the Mix and FX modules sit in a dark bay
+ * between two steel rack rails instead of on window grey. RRail is a
+ * self-drawing Area like RLed (pens per screen in MUIM_Setup). */
+#define RIAPP_BAY_SPEC "2:r1A1A1A1A,1B1B1B1B,1E1E1E1E" /* 0x1A1B1E */
+#define RIAPP_RAIL_W 18u
+static struct MUI_CustomClass *s_rail_mcc;
 static char s_devlbl[4][16];
 #define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
 
@@ -660,11 +666,117 @@ BOOPSI_DISPATCHER(IPTR, rled_dispatcher, cl, obj, msg) {
 }
 BOOPSI_DISPATCHER_END
 
-/* 0 ok, 2 class unavailable (LEDs stay empty; buttons + log unaffected). */
+/* Rack rail pens: face, top-left highlight, bottom-right shadow, hole. */
+#define RRAIL_NPEN 4u
+struct RRailData {
+    LONG pen[RRAIL_NPEN];
+};
+
+BOOPSI_DISPATCHER_PROTO(IPTR, rrail_dispatcher, Class *, Object *, Msg);
+
+BOOPSI_DISPATCHER(IPTR, rrail_dispatcher, cl, obj, msg) {
+    struct RRailData *d;
+    uint32_t i;
+    switch (msg->MethodID) {
+    case OM_NEW: {
+        Object *o = (Object *)DoSuperMethodA(cl, obj, msg);
+        if (!o)
+            return (IPTR)NULL;
+        d = (struct RRailData *)INST_DATA(cl, o);
+        for (i = 0u; i < RRAIL_NPEN; i++)
+            d->pen[i] = -1;
+        return (IPTR)o;
+    }
+    case MUIM_AskMinMax: {
+        struct MUIP_AskMinMax *m = (struct MUIP_AskMinMax *)msg;
+        IPTR rc = DoSuperMethodA(cl, obj, msg);
+        m->MinMaxInfo->MinWidth += RIAPP_RAIL_W;
+        m->MinMaxInfo->DefWidth = m->MinMaxInfo->MaxWidth = m->MinMaxInfo->MinWidth;
+        m->MinMaxInfo->MinHeight += 8;
+        m->MinMaxInfo->DefHeight += 8;
+        m->MinMaxInfo->MaxHeight = MUI_MAXMAX;
+        return rc;
+    }
+    case MUIM_Setup: {
+        static const uint32_t cols[RRAIL_NPEN] = { 0x8E9296u, 0xC9CDD1u, 0x3E4145u, 0x0C0C0Du };
+        IPTR rc = DoSuperMethodA(cl, obj, msg);
+        if (rc) {
+            struct ColorMap *cm = _screen(obj)->ViewPort.ColorMap;
+            d = (struct RRailData *)INST_DATA(cl, obj);
+            for (i = 0u; i < RRAIL_NPEN; i++) {
+                uint32_t c = cols[i];
+                d->pen[i] = ObtainBestPenA(cm, ((c >> 16u) & 0xFFu) * 0x01010101u,
+                    ((c >> 8u) & 0xFFu) * 0x01010101u, (c & 0xFFu) * 0x01010101u, 0);
+            }
+        }
+        return rc;
+    }
+    case MUIM_Cleanup: {
+        struct ColorMap *cm = _screen(obj)->ViewPort.ColorMap;
+        d = (struct RRailData *)INST_DATA(cl, obj);
+        for (i = 0u; i < RRAIL_NPEN; i++)
+            if (d->pen[i] >= 0) {
+                ReleasePen(cm, (ULONG)d->pen[i]);
+                d->pen[i] = -1;
+            }
+        return DoSuperMethodA(cl, obj, msg);
+    }
+    case MUIM_Draw: {
+        struct MUIP_Draw *m = (struct MUIP_Draw *)msg;
+        struct RastPort *rp;
+        LONG x0, y0, x1, y1, y, hx0, hx1;
+        DoSuperMethodA(cl, obj, msg);
+        if (!(m->flags & (MADF_DRAWOBJECT | MADF_DRAWUPDATE)))
+            return 0;
+        d = (struct RRailData *)INST_DATA(cl, obj);
+        for (i = 0u; i < RRAIL_NPEN; i++)
+            if (d->pen[i] < 0)
+                return 0;
+        rp = _rp(obj);
+        x0 = _mleft(obj);
+        y0 = _mtop(obj);
+        x1 = _mright(obj);
+        y1 = _mbottom(obj);
+        /* Steel strip, rolled edges, slotted holes on the 1U pattern
+         * (three holes per 44 px, gaps 16/16/12). */
+        SetAPen(rp, (ULONG)d->pen[0]);
+        RectFill(rp, x0, y0, x1, y1);
+        SetAPen(rp, (ULONG)d->pen[1]);
+        RectFill(rp, x0, y0, x0, y1);
+        RectFill(rp, x0 + 1, y0, x0 + 1, y1);
+        SetAPen(rp, (ULONG)d->pen[2]);
+        RectFill(rp, x1 - 1, y0, x1, y1);
+        hx0 = x0 + (x1 - x0) / 2 - 4;
+        hx1 = hx0 + 8;
+        for (y = y0 + 6; y + 5 <= y1; ) {
+            LONG k;
+            for (k = 0; k < 3 && y + 5 <= y1; k++) {
+                SetAPen(rp, (ULONG)d->pen[2]);
+                RectFill(rp, hx0, y, hx1, y);
+                SetAPen(rp, (ULONG)d->pen[3]);
+                RectFill(rp, hx0, y + 1, hx1, y + 4);
+                SetAPen(rp, (ULONG)d->pen[1]);
+                RectFill(rp, hx0 + 1, y + 5, hx1 - 1, y + 5);
+                y += (k < 2) ? 16 : 12;
+            }
+        }
+        return 0;
+    }
+    default:
+        return DoSuperMethodA(cl, obj, msg);
+    }
+}
+BOOPSI_DISPATCHER_END
+
+/* 0 ok, 2 class unavailable (LEDs stay empty; buttons + log unaffected).
+ * The rack-rail class rides along; without it the bay has no rails. */
 static int rail_leds_make(void) {
     if (!s_led_mcc)
         s_led_mcc = MUI_CreateCustomClass(NULL, (ClassID)MUIC_Area, NULL, sizeof(struct RLedData),
             (APTR)rled_dispatcher);
+    if (!s_rail_mcc)
+        s_rail_mcc = MUI_CreateCustomClass(NULL, (ClassID)MUIC_Area, NULL, sizeof(struct RRailData),
+            (APTR)rrail_dispatcher);
     return s_led_mcc ? 0 : 2;
 }
 
@@ -674,6 +786,54 @@ static void rail_leds_drop(void) {
         MUI_DeleteCustomClass(s_led_mcc);
         s_led_mcc = 0;
     }
+    if (s_rail_mcc) {
+        MUI_DeleteCustomClass(s_rail_mcc);
+        s_rail_mcc = 0;
+    }
+}
+
+/* One rack rail, or a plain bay-coloured strip without the class. */
+static Object *rack_rail(void) {
+    if (s_rail_mcc)
+        return (Object *)NewObject(s_rail_mcc->mcc_Class, NULL, TAG_DONE);
+    return (Object *)MUI_NewObject(MUIC_Rectangle, MUIA_FixWidth, (LONG)RIAPP_RAIL_W, TAG_DONE);
+}
+
+/* Rack bay page: rail | bay | modules (touching, tops aligned, centred)
+ * | bay | rail,
+ * all on the dark bay background. */
+static Object *rack_page(Object **mods, uint32_t n) {
+    Object *row, *col, *l, *r, *sp[4];
+    uint32_t i;
+    /* Weight 1 against the spacers' 100: the row stays at the tallest
+     * module, so the bay splits evenly above and below. */
+    row = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
+        MUIA_Group_Spacing, 0, MUIA_Weight, 1, TAG_DONE);
+    if (!row)
+        return 0;
+    for (i = 0u; i < n; i++) {
+        /* Tops aligned like racked units; the bay shows below short ones. */
+        Object *fill = (Object *)MUI_NewObject(MUIC_Rectangle, TAG_DONE);
+        Object *slot = fill ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 0,
+            Child, (IPTR)mods[i], Child, (IPTR)fill, TAG_DONE) : 0;
+        if (!slot)
+            return 0;
+        DoMethod(row, OM_ADDMEMBER, (IPTR)slot);
+    }
+    for (i = 0u; i < 4u; i++)
+        sp[i] = (Object *)MUI_NewObject(MUIC_Rectangle, TAG_DONE);
+    col = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 0,
+        Child, (IPTR)sp[0], Child, (IPTR)row, Child, (IPTR)sp[1], TAG_DONE);
+    l = rack_rail();
+    r = rack_rail();
+    if (!col || !l || !r || !sp[2] || !sp[3])
+        return 0;
+    return (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
+        MUIA_Group_Spacing, 0, MUIA_InnerLeft, 0, MUIA_InnerRight, 0,
+        MUIA_InnerTop, 0, MUIA_InnerBottom, 0,
+        MUIA_Background, (IPTR)RIAPP_BAY_SPEC,
+        Child, (IPTR)l, Child, (IPTR)sp[2], Child, (IPTR)col,
+        Child, (IPTR)sp[3], Child, (IPTR)r, TAG_DONE);
 }
 
 /* Mirror each device's active bit into its LED (the class redraws itself
@@ -926,13 +1086,8 @@ int main(int argc, char **argv) {
         drums_page = tab_device_page(RI_TAB_DRUMS, &s_vis, rowdev, rowobj, 2u, &nrows);
         for (r = 0u; r < nrows; r++)
             s_devrow[rowdev[r]] = rowobj[r];
-        mix_page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 2,
-            Child, (IPTR)s_canvas[C_MIX], TAG_DONE);
-        fx_page = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
-            MUIA_Group_Spacing, 2,
-            Child, (IPTR)s_canvas[C_FX0], Child, (IPTR)s_canvas[C_FX1],
-            Child, (IPTR)s_canvas[C_FX2], Child, (IPTR)s_canvas[C_FX3],
-            TAG_DONE);
+        mix_page = rack_page(&s_canvas[C_MIX], 1u);
+        fx_page = rack_page(&s_canvas[C_FX0], 4u);
         rail = tab_rail();
         reg = (synth_page && drums_page && mix_page && fx_page && rail) ?
             (Object *)MUI_NewObject(MUIC_Register,
@@ -983,8 +1138,12 @@ int main(int argc, char **argv) {
             MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
     rail_leds_show();
-    rlog("RIAPP panel: tabbed Synths/Drums/Mix/FX + transport (2026-09-27)\n",
-        0, 0, 0, 0, 0);
+    {
+        IPTR open = 0;
+        GetAttr(MUIA_Window_Open, win, &open);
+        rlog("RIAPP panel: tabbed Synths/Drums/Mix/FX + transport, rack bay (open=%ld rails=%ld)\n",
+            (long)open, (long)(s_rail_mcc != 0), 0, 0, 0);
+    }
 
     /* 100 ms tick: meter chase + null-backend advance. */
     tport = CreateMsgPort();
