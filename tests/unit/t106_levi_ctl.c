@@ -62,7 +62,27 @@ int main(void) {
     RI_ASSERT(ri_ctlreg_auto_id(d) == RI_CTL_LEVI_CUTOFF, "key = engine id");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_CUTOFF), "allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_MODE), "allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0E04u), "unbound refused");
+    RI_ASSERT(!ri_auto_allowed(0x0E08u), "unbound refused");
+    /* Algo block rows (owner 2026-09-28, v2 slice 1d). */
+    d = find_leg(RI_SEC_LEVI, "Algorithm");
+    RI_ASSERT(d && d->kind == RI_CK_SELECTOR, "algo kind");
+    RI_ASSERT(d->min_v == 0 && d->max_v == 7 && d->def_v == 0, "algo range");
+    RI_ASSERT(d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_ALGO, "algo bind");
+    d = find_leg(RI_SEC_LEVI, "Morph");
+    RI_ASSERT(d && d->kind == RI_CK_KNOB, "morph kind");
+    RI_ASSERT(d->min_v == 0 && d->max_v == 100 && d->def_v == 0, "morph range");
+    RI_ASSERT(d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_MORPH, "morph bind");
+    d = find_leg(RI_SEC_LEVI, "Op");
+    RI_ASSERT(d && d->kind == RI_CK_SELECTOR && d->bind == RI_BIND_NONE, "opsel ui-only");
+    d = find_leg(RI_SEC_LEVI, "Op Mode");
+    RI_ASSERT(d && d->kind == RI_CK_SELECTOR, "opmode kind");
+    RI_ASSERT(d->min_v == 0 && d->max_v == 6 && d->def_v == 0, "opmode range");
+    RI_ASSERT(d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_OPMODE, "opmode bind");
+    RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_LEVI, "Algorithm")) == RI_CTL_LEVI_ALGO, "algo key");
+    RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_LEVI, "Morph")) == RI_CTL_LEVI_MORPH, "morph key");
+    RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_LEVI, "Op Mode")) == RI_CTL_LEVI_OPMODE, "opmode key");
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_ALGO) && ri_auto_allowed(RI_CTL_LEVI_MORPH) &&
+        ri_auto_allowed(RI_CTL_LEVI_OPMODE), "algo keys allowed");
     /* Engine applies section-wide to every voice. */
     ri_engine_init(&e);
     memset(&ev, 0, sizeof ev);
@@ -81,6 +101,27 @@ int main(void) {
     ev.flags = 127u;
     ri_engine_apply_event(&e, &ev);
     RI_ASSERT(e.slevi.v[3].op[1].mode == RI_LEVI_PM, "mode set");
+    /* Algo/morph/opmode keys apply section-wide (packed opmode). */
+    ev.value = RI_CTL_LEVI_ALGO;
+    ev.flags = 5u;
+    ri_engine_apply_event(&e, &ev);
+    {
+        uint32_t v;
+        for (v = 0u; v < RI_LEVI_NVOICES; v++)
+            RI_ASSERT(levi_algo_get(&e.slevi, v) == 5, "v%u algo applied", v);
+    }
+    ev.value = RI_CTL_LEVI_MORPH;
+    ev.flags = 50u;
+    ri_engine_apply_event(&e, &ev);
+    RI_ASSERT(levi_morph_get(&e.slevi, 3u) == 50, "morph applied");
+    ev.value = RI_CTL_LEVI_OPMODE;
+    ev.flags = (uint8_t)(3u * 16u + 2u);
+    ri_engine_apply_event(&e, &ev);
+    RI_ASSERT(e.slevi.v[3].op[3].mode == RI_LEVI_PWM, "opmode applied");
+    RI_ASSERT(e.slevi.v[3].op[2].mode == RI_LEVI_FM, "other op untouched");
+    ev.flags = (uint8_t)(8u * 16u);
+    ri_engine_apply_event(&e, &ev);
+    RI_ASSERT(e.slevi.v[3].op[3].mode == RI_LEVI_PWM, "bad op ignored");
     ri_engine_apply_event(0, &ev);
     RI_RESULT("levictl");
 }

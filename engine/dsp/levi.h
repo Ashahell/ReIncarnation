@@ -46,6 +46,10 @@
 #define RI_CTL_LEVI_RESO 0x0E01u
 #define RI_CTL_LEVI_MODE 0x0E02u
 #define RI_CTL_LEVI_RATIO 0x0E03u
+#define RI_CTL_LEVI_ALGO 0x0E04u  /* voice algorithm 0..7 */
+#define RI_CTL_LEVI_MORPH 0x0E05u /* morph position 0..100 */
+#define RI_CTL_LEVI_OPMODE 0x0E06u        /* packed op*16+mode (op 0..7, mode 0..6) */
+#define RI_CTL_LEVI_ALGOB 0x0E07u /* morph-target algorithm 0..7 */
 
 /* E0 defaults (ledgered here; panel exposes later slices). */
 #define RI_LEVI_DEF_CUTOFF 12000.0f

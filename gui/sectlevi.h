@@ -8,10 +8,16 @@
 #define RI_SECTLEVI_H
 #include <stdint.h>
 #include "engine/seq/pattern.h"
+#include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 37u
+#define RI_SLEVI_NCTL 42u
 #define RI_SLEVI_SELECT 4u      /* Lane Selection: 0..5 */
 #define RI_SLEVI_MODE 2u          /* FM/PM toggle */
+#define RI_SLEVI_ALGO 37u         /* Algorithm select 0..7 */
+#define RI_SLEVI_ALGOB 38u        /* Morph target 0..7 */
+#define RI_SLEVI_MORPH 39u        /* Morph position 0..100 */
+#define RI_SLEVI_OPSEL 40u        /* Op selection 0..7 (UI-only) */
+#define RI_SLEVI_OPMODE 41u       /* Op Mode 0..6 (packed op*16+mode) */
 #define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
 #define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */
 #define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */
@@ -24,8 +30,9 @@ struct RISectLevi {
     uint8_t section;           /* RI_SEC_LEVI */
     uint8_t sel;               /* selected lane 0..5 */
     uint8_t edit_step;         /* 0..15 */
-    uint8_t pad;
+    uint8_t opsel;             /* selected operator 0..7 */
     int16_t val[RI_SLEVI_NCTL];
+    uint8_t opmode[RI_LEVI_NOPS];      /* panel truth per op (engine follows) */
     struct RIPattern pat;      /* chord kind, class Levi */
 };
 

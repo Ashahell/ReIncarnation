@@ -50,6 +50,27 @@ int main(void) {
     RI_ASSERT(s.val[RI_SLEVI_MODE] == 1, "mode PM");
     RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_MODE) == 1, "mode off");
     RI_ASSERT(s.val[RI_SLEVI_MODE] == 0, "mode FM");
+    /* Algo block: selects clamp, op knob packs op*16+mode, opsel
+     * re-points the packed display at the newly selected op. */
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGO, 5) == 1, "algo");
+    RI_ASSERT(s.val[RI_SLEVI_ALGO] == 5, "algo stored");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGO, 5) == 0, "algo same");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGO, 99) == 1, "algo clamp");
+    RI_ASSERT(s.val[RI_SLEVI_ALGO] == 7, "algo max");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGOB, 3) == 1, "algob");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_MORPH, 50) == 1, "morph");
+    RI_ASSERT(s.val[RI_SLEVI_MORPH] == 50, "morph stored");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_OPSEL, 3) == 1, "opsel");
+    RI_ASSERT(s.opsel == 3u && s.val[RI_SLEVI_OPMODE] == 48, "opsel points packed");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_OPMODE, 2) == 1, "opmode");
+    RI_ASSERT(s.opmode[3] == 2u && s.val[RI_SLEVI_OPMODE] == 50, "packed 3*16+2");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_OPMODE, 2) == 0, "opmode same");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_OPSEL, 0) == 1, "opsel back");
+    RI_ASSERT(s.val[RI_SLEVI_OPMODE] == 0, "packed follows selection");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_OPMODE, 99) == 1, "opmode clamp");
+    RI_ASSERT(s.opmode[0] == 6u && s.val[RI_SLEVI_OPMODE] == 6, "opmode max");
+    RI_ASSERT(ri_slevi_reset(&s, RI_SLEVI_OPMODE) == 1, "opmode reset");
+    RI_ASSERT(s.opmode[0] == 0u, "opmode default");
     RI_ASSERT(ri_slevi_set_value(&s, 0u, 200) == 1, "knob clamp");
     RI_ASSERT(s.val[0] == 127, "knob max");
     RI_ASSERT(ri_slevi_set_value(&s, 0u, -5) == 1, "knob floor");

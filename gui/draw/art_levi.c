@@ -41,5 +41,19 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
     /* Lane option numerals above the select row. */
     for (i = 0; i < 6; i++)
         ri_art_text_c(dl, ox + PX(480 + 70 * (int)i), oy + PX(60), lanes[i], C_CREAM);
+    /* Algo block: value numerals near each option row (lane idiom).
+     * Rows sit right of the step plates; labels are geometry legends. */
+    for (i = 0; i < 8; i++) {
+        n[0] = (char)('0' + i);
+        n[1] = 0;
+        ri_art_text_c(dl, ox + PX(950 + 62 * (int)i), oy + PX(123), n, C_CREAM);
+        ri_art_text_c(dl, ox + PX(950 + 62 * (int)i), oy + PX(394), n, C_CREAM);
+        ri_art_text_c(dl, ox + PX(950 + 62 * (int)i), oy + PX(434), n, C_CREAM);
+    }
+    for (i = 0; i < 7; i++) {
+        n[0] = (char)('0' + i);
+        n[1] = 0;
+        ri_art_text_c(dl, ox + PX(450 + 62 * (int)i), oy + PX(162), n, C_CREAM);
+    }
 #undef PX
 }

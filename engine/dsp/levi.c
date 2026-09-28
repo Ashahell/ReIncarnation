@@ -316,6 +316,26 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case RI_LEVI_RATIO:
         return levi_set_param(s, voice, id,
             0.25f * ri_pow2(((float)val / 127.0f) * 8.0f));
+    case (RI_CTL_LEVI_ALGO & 0xFu): /* ALGO */
+        return levi_set_algo(s, voice, val <= 7u ? val : (uint32_t)(val >> 4));
+    case (RI_CTL_LEVI_ALGOB & 0xFu): /* ALGOB */ {
+        uint32_t a = val <= 7u ? val : (uint32_t)(val >> 4);
+        struct RILeviVoice *v;
+        if (a >= RI_LEVI_ALGO_N)
+            return 2;
+        v = &s->v[voice];
+        bank_preset(v, 1u, a);
+        v->algoB = (uint8_t)a;
+        return 0;
+    }
+    case (RI_CTL_LEVI_MORPH & 0xFu): /* MORPH */
+        return levi_set_morph(s, voice, s->v[voice].algoB, val > 100u ? 100u : val);
+    case (RI_CTL_LEVI_OPMODE & 0xFu): /* OPMODE */ {
+        uint32_t op = (uint32_t)val >> 4u, mode = (uint32_t)val & 0xFu;
+        if (op >= RI_LEVI_NOPS || mode >= RI_LEVI_NMODES)
+            return 2;
+        return levi_set_op_mode(s, voice, op, mode);
+    }
     default:
         return 2;
     }

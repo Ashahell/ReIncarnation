@@ -1,6 +1,7 @@
 /* sectlevi.c — Levi section behaviour bodies (owner 2026-09-28). */
 #include "gui/sectlevi.h"
 #include "gui/ctlreg.h"
+#include "engine/dsp/levi.h"
 
 static const struct RICtlDef *def(const struct RISectLevi *s, uint32_t idx) {
     (void)s;
@@ -14,11 +15,14 @@ int ri_slevi_init(struct RISectLevi *s) {
     s->section = RI_SEC_LEVI;
     s->sel = 0u;
     s->edit_step = 0u;
-    s->pad = 0u;
+    s->opsel = 0u;
+    for (i = 0u; i < RI_LEVI_NOPS; i++)
+        s->opmode[i] = RI_LEVI_FM;
     for (i = 0u; i < RI_SLEVI_NCTL; i++) {
         const struct RICtlDef *d = def(s, i);
         s->val[i] = d ? d->def_v : 0;
     }
+    s->val[RI_SLEVI_OPMODE] = 0; /* packed op*16+mode, op 0 FM */
     ri_pattern_init(&s->pat, RI_PATTERN_KIND_LEVI, 0u);
     return 0;
 }
@@ -63,6 +67,33 @@ int ri_slevi_set_value(struct RISectLevi *s, uint32_t idx, int v) {
         if (s->sel == sel)
             return 0;
         s->sel = sel;
+        return 1;
+    }
+    if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB) {
+        /* Plain selectors 0..7 (selector idiom, like Lane). */
+        int w = v < 0 ? 0 : v > 7 ? 7 : v;
+        if (s->val[idx] == w)
+            return 0;
+        s->val[idx] = (int16_t)w;
+        return 1;
+    }
+    if (idx == RI_SLEVI_OPSEL) {
+        uint8_t o = v < 0 ? 0u : v > 7 ? 7u : (uint8_t)v;
+        int packed = (int)o * 16 + s->opmode[o];
+        if (s->opsel == o && s->val[RI_SLEVI_OPMODE] == packed)
+            return 0;
+        s->opsel = o;
+        s->val[RI_SLEVI_OPMODE] = (int16_t)packed;
+        return 1;
+    }
+    if (idx == RI_SLEVI_OPMODE) {
+        /* Shared knob: panel truth per op, packed op*16+mode on the wire. */
+        int m = v < 0 ? 0 : v > 6 ? 6 : v;
+        int packed = (int)s->opsel * 16 + m;
+        if (s->val[idx] == packed && s->opmode[s->opsel] == (uint8_t)m)
+            return 0;
+        s->opmode[s->opsel] = (uint8_t)m;
+        s->val[idx] = (int16_t)packed;
         return 1;
     }
     if (d->kind != RI_CK_KNOB && d->kind != RI_CK_SWITCH)

@@ -103,11 +103,16 @@ static void check_section(uint32_t sec) {
             "%s/%s: knob shape iff knob/selector kind", d->group, d->legend);
     }
     /* a SELECTOR may have no value item when options reach every value
-     * (the 909 selects instruments by legend only, p. 151) */
-    for (i = 0; i < nsec; i++) {
-        const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((sec << 8) | i));
-        if (d && d->kind == RI_CK_SELECTOR && !value_item(s, d->reg_id))
-            nsec--;
+     * (the 909 selects instruments by legend only, p. 151). Snapshot
+     * the count: decrementing nsec mid-loop skips trailing selectors
+     * (Levi app-end rows 40/41 never got visited). */
+    {
+        uint32_t n = nsec, k;
+        for (k = 0u; k < n; k++) {
+            const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((sec << 8) | k));
+            if (d && d->kind == RI_CK_SELECTOR && !value_item(s, d->reg_id))
+                nsec--;
+        }
     }
     RI_ASSERT(nval == nsec, "%s value items %u, registry controls %u", ri_ctlreg_section_name(sec), nval, nsec);
     /* every selector value reachable by an option */
