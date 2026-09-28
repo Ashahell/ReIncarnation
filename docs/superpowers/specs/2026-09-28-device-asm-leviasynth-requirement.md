@@ -87,13 +87,33 @@ panel row + chord step editor, rail chip, mixer strip, skin token,
 RBNG chunks (owner review); (4) demo content + MIDI + Dell xrun proof.
 Mono step-row fitting explicitly rejected (owner wants the real thing).
 
+## v2 program (owner decisions 2026-09-28: panel + full feature set)
+
+- **Look:** match the real hardware as close as possible with a
+  DIFFERENT font. Own art only (clean-room holds: arrangement and
+  function from the manual, no ASM assets, no logo/trade dress).
+  Hardware block order per the Owner's Manual top-panel map
+  (MASTER CONTROL / ALGORITHM / OSC groups / DIGITAL FILTER / ANALOG
+  FILTER / VOICE / ARP+SEQ / MODULE SELECT / ENV blocks).
+- **Features, in order:** (1) algorithms + operator modes (8-op
+  topologies incl. custom, morph; PM/FM/PWM/HTE Sync/3×PD per
+  operator); (2) filters + envelopes (18-mode digital + analog 24 dB
+  LP w/ pre-drive, both resonant/self-oscillating; per-op DAHDSR +
+  loopable contour gens); (3) arp + sequencer (8-mode arp w/ Entropy,
+  3-track seq); (4) mod matrix (32-slot) + macros; (5) FX
+  (pre/delay/reverb/post) + performance (chord/ribbon/voice modes).
+  Architecture refs: SOS Jul 2026 (Reid), web research 2026-09-28.
+- v1 scope above is DONE (slices landed 3b–3c-iv + demo + NaN fix);
+  v2 slice (1) takes E1 from the Algorithms chart (`/tmp`, kept out
+  of repo) with own topologies.
+
 ## Open questions (owner; do not decide)
 
-- v1 mono-voice scope as above, or polyphony ambitions now (needs a
-  chord/note pattern model we do not have)?
-- Which factory character to chase first with the FM core (bass/lead/pad)?
 - RBNG chunk IDs for Levi patterns (file format review).
-- Demo content for the Levi voice (owner taste, as with 909).
+- (Closed 2026-09-28: polyphony — POLYPHONIC; character — approved
+  for now; demo — full Bm-G-D-A part; LED — approved; timbre —
+  deferred to Dell ears; rail chip — fixed c69de53, retest pending;
+  strip proof — pending; USB stick — error 42 then gone, re-seated.)
 
 ## Where it is tracked
 
