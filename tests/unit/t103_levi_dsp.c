@@ -106,6 +106,41 @@ int main(void) {
                                 cuts[ci], resos[ri], modes[mi], ratios[ai], j, og[j]);
                     }
     }
+    /* Operator modes (owner 2026-09-28, v2 slice 1b: own definitions).
+     * Every mode sounds finite; each differs from FM; bad mode refused;
+     * per-op select composes (carrier FM + modulator PWM). */
+    {
+        static const uint32_t all[7] = { RI_LEVI_FM, RI_LEVI_PM, RI_LEVI_PWM,
+            RI_LEVI_SYNC, RI_LEVI_PDSAW, RI_LEVI_PDSQ, RI_LEVI_PDPULSE };
+        static float om[4800], fm[4800];
+        uint32_t mi, j;
+        levi_init_set(&a);
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, fm, 4800u);
+        for (mi = 1u; mi < 7u; mi++) {
+            levi_init_set(&a);
+            RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_MODE, (float)all[mi]) == 0, "mode %u", mi);
+            RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+            render_set(&a, om, 4800u);
+            RI_ASSERT(energy(om, 4800u) > 1000u, "mode %u sounds", mi);
+            for (j = 0u; j < 4800u; j++)
+                RI_ASSERT(om[j] > -1e30f && om[j] < 1e30f, "mode %u finite", mi);
+            RI_ASSERT(memcmp(om, fm, sizeof om) != 0, "mode %u differs", mi);
+        }
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_MODE, 7.0f) == 2, "bad mode");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_MODE, -1.0f) == 2, "neg mode");
+        /* Per-op select: modulator PWM under an FM carrier. */
+        levi_init_set(&a);
+        RI_ASSERT(levi_set_op_mode(&a, 0u, 1u, RI_LEVI_PWM) == 0, "op mode");
+        RI_ASSERT(a.v[0].op[1].mode == RI_LEVI_PWM && a.v[0].op[0].mode == RI_LEVI_FM, "op split");
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, om, 4800u);
+        RI_ASSERT(energy(om, 4800u) > 1000u && memcmp(om, fm, sizeof om) != 0, "op mode sounds");
+        RI_ASSERT(levi_set_op_mode(&a, 0u, 1u, 7u) == 2, "bad op mode");
+        RI_ASSERT(levi_set_op_mode(&a, 0u, 8u, RI_LEVI_PWM) == 2, "bad op");
+        RI_ASSERT(levi_set_op_mode(&a, 6u, 0u, RI_LEVI_PWM) == 2, "bad voice");
+        RI_ASSERT(levi_set_op_mode(0, 0u, 0u, RI_LEVI_PWM) == 2, "null set");
+    }
     /* Params move sound; bad args fail closed. */
     levi_init_set(&a);
     RI_ASSERT(levi_trigger(&a, 0u, 60u) == 0, "trig");

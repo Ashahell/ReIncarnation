@@ -88,6 +88,7 @@ static void op_reset(struct RILeviOp *o, float freq, float level) {
     o->phase = 0.0f;
     o->freq = freq;
     o->level = level;
+    o->ps = 0.0f;
     env_reset(&o->env);
 }
 
@@ -233,10 +234,10 @@ int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
         v->reso = value;
         return 0;
     case RI_LEVI_MODE:
-        if (value != (float)RI_LEVI_FM && value != (float)RI_LEVI_PM)
+        if (!(value >= 0.0f && value <= (float)(RI_LEVI_NMODES - 1u)))
             return 2;
         for (o = 0u; o < RI_LEVI_NOPS; o++)
-            if (v->live[o] && v->mod_src[o] >= 0)
+            if (v->live[o])
                 v->op[o].mode = (uint8_t)value;
         return 0;
     case RI_LEVI_RATIO:
@@ -300,14 +301,14 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
 
 float levi_voice_render(struct RILeviVoice *v, float sr) {
     float opout[RI_LEVI_NOPS] = { 0.0f }, mix = 0.0f, out;
-    uint32_t k;
+    uint32_t k, j;
     int any_on = 0;
     if (!v || !v->active || !(sr > 0.0f))
         return 0.0f;
     for (k = 0u; k < RI_LEVI_NOPS; k++) {
         uint32_t i = v->order[k];
         struct RILeviOp *o;
-        float m, carph, osc;
+        float m, osc;
         int on;
         if (i >= RI_LEVI_NOPS || !v->live[i]) {
             opout[k & (RI_LEVI_NOPS - 1u)] = 0.0f;
@@ -320,8 +321,14 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
             opout[i] = 0.0f;
             continue;
         }
-        /* Modulator output carries its envelope (v1 modsig law). */
-        m = v->mod_src[i] >= 0 ? opout[(uint32_t)v->mod_src[i]] : 0.0f;
+        /* Modulator output carries its envelope (v1 modsig law); a
+         * voice sums every feeder into its target (target semantics:
+         * mod_src[i] is who i feeds, -1 the mix). Feeders render
+         * first by topological order, so their slots are filled. */
+        m = 0.0f;
+        for (j = 0u; j < RI_LEVI_NOPS; j++)
+            if (v->mod_src[j] == (int)i)
+                m += opout[j];
         /* Modulator always runs at its ratio; envelope gates depth. */
         if (o->mode == RI_LEVI_FM)
             o->phase += (o->freq + o->freq * RI_LEVI_MOD_INDEX * m) / sr;
@@ -329,14 +336,49 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
             o->phase += o->freq / sr;
         if (o->phase >= 1.0f)
             o->phase -= 1.0f;
-        if (o->mode == RI_LEVI_PM)
-            carph = o->phase + RI_LEVI_MOD_INDEX * m;
-        else
-            carph = o->phase;
         if (o->phase < 0.0f)
             o->phase += 1.0f;
-        osc = ri_sin(carph * 6.2831853f) * o->level;
-        opout[i] = osc * o->env.value;
+        switch (o->mode) {
+        case RI_LEVI_PM:
+            osc = ri_sin((o->phase + RI_LEVI_MOD_INDEX * m) * 6.2831853f);
+            break;
+        case RI_LEVI_PWM: {
+            float w = 0.5f + 0.4f * m;
+            osc = (o->phase < w ? 1.0f : -1.0f) * 0.7f;
+            break;
+        }
+        case RI_LEVI_SYNC: {
+            if (o->ps <= 0.0f && m > 0.0f)
+                o->phase = 0.5f + 0.5f * (m > 1.0f ? 1.0f : m);
+            osc = 2.0f * o->phase - 1.0f;
+            break;
+        }
+        case RI_LEVI_PDSAW: {
+            float ph = ri_sin(o->phase * 6.2831853f);
+            float am = m < 0.0f ? -m : m;
+            osc = (ph + m * ph * ph) / (1.0f + am);
+            break;
+        }
+        case RI_LEVI_PDSQ: {
+            float ph = ri_sin(o->phase * 6.2831853f);
+            float k = 2.0f * (m < 0.0f ? -m : m);
+            float a = ph < 0.0f ? -ph : ph;
+            osc = ph * (1.0f + k) / (1.0f + k * a);
+            break;
+        }
+        case RI_LEVI_PDPULSE: {
+            float ph = ri_sin(o->phase * 6.2831853f);
+            float depth = m < 0.0f ? -m : m;
+            float sq = o->phase < 0.25f || o->phase >= 0.75f ? 0.8f : -0.8f;
+            osc = ph + (sq - ph) * (depth > 1.0f ? 1.0f : depth);
+            break;
+        }
+        default: /* FM */
+            osc = ri_sin(o->phase * 6.2831853f);
+            break;
+        }
+        o->ps = m;
+        opout[i] = osc * o->level * o->env.value;
         if (v->mod_src[i] < 0)
             mix += opout[i];
     }
@@ -408,4 +450,14 @@ int levi_route_get(const struct RILeviSet *s, uint32_t voice,
     if (!s || voice >= RI_LEVI_NVOICES || op >= RI_LEVI_NOPS)
         return -2;
     return (int)s->v[voice].mod_src[op];
+}
+
+int levi_set_op_mode(struct RILeviSet *s, uint32_t voice, uint32_t op,
+    uint32_t mode) {
+    if (!s || voice >= RI_LEVI_NVOICES || op >= RI_LEVI_NOPS)
+        return 2;
+    if (mode >= RI_LEVI_NMODES)
+        return 2;
+    s->v[voice].op[op].mode = (uint8_t)mode;
+    return 0;
 }

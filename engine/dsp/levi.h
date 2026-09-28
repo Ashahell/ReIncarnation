@@ -26,9 +26,15 @@
 #define RI_LEVI_ALGO_CUSTOM 8u
 #define RI_LEVI_ALGO_N 8u
 
-/* Operator modes (manual p. 43 subset). */
-#define RI_LEVI_FM 0u
-#define RI_LEVI_PM 1u
+/* Operator modes (manual p. 43 list; own definitions below). */
+#define RI_LEVI_FM 0u     /* frequency wobble by modulator */
+#define RI_LEVI_PM 1u     /* phase offset by modulator */
+#define RI_LEVI_PWM 2u    /* square, duty 0.5 + 0.4*m (intrinsic pulse) */
+#define RI_LEVI_SYNC 3u   /* saw, hard reset on modulator rising edge */
+#define RI_LEVI_PDSAW 4u  /* sine tilted saw-ish by modulator drive */
+#define RI_LEVI_PDSQ 5u   /* sine folded toward square by drive */
+#define RI_LEVI_PDPULSE 6u        /* sine morphed to narrow pulse by |m| */
+#define RI_LEVI_NMODES 7u
 
 /* Voice params (set_param ids). */
 #define RI_LEVI_CUTOFF 0u /* Hz, 40..18000 */
@@ -70,6 +76,7 @@ struct RILeviOp {
     float freq;  /* Hz at trigger (note x ratio) */
     float ratio;
     float level; /* 0..1 (Initial Level; Env Level full v1) */
+    float ps;    /* previous modulator (SYNC edge detect) */
     uint8_t mode;
     uint8_t pad[3];
     struct RILeviEnv env;
@@ -81,7 +88,7 @@ struct RILeviVoice {
     uint8_t algo; /* preset id, or RI_LEVI_ALGO_CUSTOM */
     uint8_t pad;
     struct RILeviOp op[RI_LEVI_NOPS];
-    int8_t mod_src[RI_LEVI_NOPS]; /* modulator op index, -1 = carrier */
+    int8_t mod_src[RI_LEVI_NOPS]; /* who i feeds (target op), -1 = mix */
     uint8_t order[RI_LEVI_NOPS];  /* render order (modulators first) */
     uint8_t live[RI_LEVI_NOPS];   /* 1 = in the graph */
     float cutoff; /* Hz */
@@ -114,16 +121,21 @@ void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
 int levi_set_algo(struct RILeviSet *s, uint32_t voice, uint32_t algo);
 /* Current algorithm id (0..8); negative on bad voice/NULL. */
 int levi_algo_get(const struct RILeviSet *s, uint32_t voice);
-/* Custom routing: op's modulator (op index) or -1 for carrier; the
- * voice becomes custom. Acyclic only: cycles/self-routes refused
- * (returns 2, routing unchanged). Returns 0 ok, 2 bad. */
+/* Custom routing: op feeds src (target op index) or -1 to the mix;
+ * the voice becomes custom. Acyclic only: src's forward chain must not
+ * reach op (cycles/self-routes refused, returns 2, routing unchanged).
+ * Returns 0 ok, 2 bad. */
 int levi_set_route(struct RILeviSet *s, uint32_t voice, uint32_t op,
     int src);
-/* Routing read: modulator op index, -1 carrier; -2 on bad voice/op/NULL. */
+/* Routing read: feed target op index, -1 mix; -2 on bad voice/op/NULL. */
 int levi_route_get(const struct RILeviSet *s, uint32_t voice,
     uint32_t op);
 /* Voice params; returns 0 ok, 2 bad id/voice/range/NULL. */
 int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
     float value);
+/* Per-operator mode (panel slice owns names; DSP owns behaviour).
+ * Returns 0 ok, 2 bad. */
+int levi_set_op_mode(struct RILeviSet *s, uint32_t voice, uint32_t op,
+    uint32_t mode);
 
 #endif
