@@ -1161,13 +1161,23 @@ int main(int argc, char **argv) {
                 ri_smix_value(mu->u.mix.board, (uint32_t)(RI_SEC_MIX_SYNTH1 + i),
                     (uint32_t)k));
     }
+    {   /* Levi strip defaults ride the same burst (section id is not
+         * contiguous: MIX_SYNTH1+i would land on MASTER). */
+        int k;
+        struct RISectUI *mu = s_ui[C_MIX];
+        for (k = 2; k <= 7; k++)
+            ri_panel_ctl_send(&s_core.ctl,
+                (uint16_t)RI_SEC_MIX_LEVI << 8 | (uint16_t)k,
+                ri_smix_value(mu->u.mix.board, (uint32_t)RI_SEC_MIX_LEVI,
+                    (uint32_t)k));
+    }
     s_tr_state = s_ui[C_TR]->u.tr.tr.state;
     for (i = 0; i < C_N; i++) {
         IPTR ch = 0;
         GetAttr(MUIA_RSection_Changes, s_canvas[i], &ch);
         s_changes[i] = ch;
     }
-    s_meter_shown[0] = s_meter_shown[1] = s_meter_shown[2] = s_meter_shown[3] = -1;
+    s_meter_shown[0] = s_meter_shown[1] = s_meter_shown[2] = s_meter_shown[3] = s_meter_shown[4] = -1;
     if (!s_live)
         ri_live_render(&s_core.session, s_fl, s_fr, RIAPP_FRAMES); /* drain the burst */
 
@@ -1184,7 +1194,7 @@ int main(int argc, char **argv) {
         for (g = 0u; g < RI_TAB_COUNT; g++)
             tab_titles[g] = ri_tab_title(g);
         tab_titles[RI_TAB_COUNT] = 0;
-        for (r = 0u; r < 4u; r++)
+        for (r = 0u; r < 5u; r++)
             s_devrow[r] = 0;
         synth_page = tab_device_page(RI_TAB_SYNTH, &s_vis, rowdev, rowobj, 3u, &nrows);
         for (r = 0u; r < nrows; r++)
@@ -1245,7 +1255,7 @@ int main(int argc, char **argv) {
     }
     DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, (IPTR)app, 2,
         MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < 5; i++)
         DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
             MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
     DoMethod(s_reg, MUIM_Notify, MUIA_Group_ActivePage, MUIV_EveryTime, (IPTR)app, 2,
@@ -1283,7 +1293,7 @@ int main(int argc, char **argv) {
         ret = (LONG)DoMethod(app, MUIM_Application_NewInput, &sigs);
         if (ret == (LONG)MUIV_Application_ReturnID_Quit)
             break;
-        if (ret >= (LONG)RIAPP_ID_DEV0 && ret < (LONG)(RIAPP_ID_DEV0 + 4u))
+        if (ret >= (LONG)RIAPP_ID_DEV0 && ret < (LONG)(RIAPP_ID_DEV0 + 5u))
             dev_visibility_toggle((uint32_t)ret - RIAPP_ID_DEV0);
         if (ret == (LONG)RIAPP_ID_TAB)
             rail_for_tab();
