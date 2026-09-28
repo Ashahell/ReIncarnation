@@ -20,7 +20,7 @@ void ri_art_text_at(struct ri_dlist *dl, int x, int cy, const char *t, int col, 
 void ri_art_bg_tr(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z,
     const struct ri_text_metrics *tm) {
 #define PX(q) ri_geo_px((q), z)
-    ri_art_rect(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_TR_PANEL);
+    ri_art_panel(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, ri_art_rgb(C_TR_PANEL), 0);
     ri_art_text_c(dl, ox + PX(25), oy + PX(150), "0", C_MIX_TEXT);
     ri_art_text_c(dl, ox + PX(132), oy + PX(150), "10", C_MIX_TEXT);
     ri_art_text_c(dl, ox + PX(242), oy + PX(40), "SYNC", C_MIX_TEXT);

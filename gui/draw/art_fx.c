@@ -9,8 +9,8 @@ void ri_art_bg_fx(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int
     static const char *const title[4] = { "PCF", "DELAY", "DIST", "COMP" };
     int k, x1 = g->w - 17;
 #define PX(q) ri_geo_px((q), z)
-    ri_art_rect(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_FX_PANEL);
-    ri_art_rect(dl, ox + PX(17), oy + PX(17), ox + PX(x1), oy + PX(70), C_FX_HEAD);
+    ri_art_panel(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, ri_art_rgb(C_FX_PANEL), 0);
+    ri_art_panel(dl, ox + PX(17), oy + PX(17), ox + PX(x1), oy + PX(70), ri_art_rgb(C_FX_HEAD), 0); /* moulded header strip */
     ri_art_text_c(dl, ox + PX(g->w / 2), oy + PX(43), title[sec - RI_SEC_PCF], C_MIX_TEXT);
     if (sec == RI_SEC_PCF) {
         ri_art_text_c(dl, ox + PX(268), oy + PX(105), "BP", C_MIX_TEXT);

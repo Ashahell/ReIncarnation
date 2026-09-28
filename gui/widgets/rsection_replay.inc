@@ -6,20 +6,58 @@
  * same pen RGB, same blits).
  */
 
-/* Pen from an RGB token (palette reverse-map; unknown falls back black). */
+/* Colour for one primitive. The shaded art (graded knobs, LEDs, panels)
+ * needs arbitrary colours: on hi/truecolor screens rects and spans go
+ * through cybergraphics FillPixelArray with the exact ARGB (this AROS
+ * ignores RPTAG_FgColor — Dell 2026-09-28: every canvas painted one colour).
+ * Pens (the nearest C_* palette entry) remain for text, diagonal lines
+ * (pointers: palette colours) and palette screens. */
+static int s_direct_rgb;
+
+static int rpen_nearest(uint32_t rgb) {
+    int i, best = C_BLACK;
+    long bd = 0x7FFFFFFFL;
+    for (i = 0; i < C_NCOL; i++) {
+        uint32_t c = ri_art_rgb(i);
+        long dr = (long)((rgb >> 16) & 0xFF) - (long)((c >> 16) & 0xFF);
+        long dg = (long)((rgb >> 8) & 0xFF) - (long)((c >> 8) & 0xFF);
+        long db = (long)(rgb & 0xFF) - (long)(c & 0xFF);
+        long d = dr * dr * 3 + dg * dg * 6 + db * db;
+        if (d < bd) {
+            bd = d;
+            best = i;
+        }
+    }
+    return best;
+}
+
 static void rpen(struct RastPort *rp, uint32_t rgb) {
     int i = ri_art_index(rgb);
-    SetAPen(rp, (ULONG)s_pens[i >= 0 ? i : C_BLACK]);
+    SetAPen(rp, (ULONG)s_pens[i >= 0 ? i : rpen_nearest(rgb)]);
+}
+
+/* Exact-colour fill (truecolor): 1 when drawn, 0 = caller uses a pen. */
+static int rfill_rgb(struct RastPort *rp, int x0, int y0, int x1, int y1, uint32_t rgb) {
+    if (!s_direct_rgb || !s_rcyber || x1 < x0 || y1 < y0)
+        return 0;
+    FillPixelArray(rp, (UWORD)x0, (UWORD)y0, (UWORD)(x1 - x0 + 1), (UWORD)(y1 - y0 + 1),
+        (ULONG)(0xFF000000u | (rgb & 0xFFFFFFu)));
+    return 1;
 }
 
 static void rrect(struct RastPort *rp, int x0, int y0, int x1, int y1, uint32_t rgb) {
     if (x1 < x0 || y1 < y0)
+        return;
+    if (rfill_rgb(rp, x0, y0, x1, y1, rgb))
         return;
     rpen(rp, rgb);
     RectFill(rp, x0, y0, x1, y1);
 }
 
 static void rline(struct RastPort *rp, int x0, int y0, int x1, int y1, uint32_t rgb) {
+    if ((x0 == x1 || y0 == y1) &&                  /* axis lines: exact colour */
+        rfill_rgb(rp, x0 < x1 ? x0 : x1, y0 < y1 ? y0 : y1, x0 < x1 ? x1 : x0, y0 < y1 ? y1 : y0, rgb))
+        return;
     rpen(rp, rgb);
     Move(rp, x0, y0);
     Draw(rp, x1, y1);
@@ -34,7 +72,8 @@ static void rcircle(struct RastPort *rp, int cx, int cy, int r, uint32_t rgb) {
         int dx = r;
         while (dx > 0 && dx * dx + dy * dy > r * r)
             dx--;
-        RectFill(rp, cx - dx, cy + dy, cx + dx, cy + dy);
+        if (!rfill_rgb(rp, cx - dx, cy + dy, cx + dx, cy + dy, rgb))
+            RectFill(rp, cx - dx, cy + dy, cx + dx, cy + dy);
     }
 }
 
@@ -60,7 +99,7 @@ static int rtext_width(void *ctx, const char *s) {
 }
 
 /* Display-list backing: one GUI task draws at a time (MUI app task). */
-static struct ri_dcmd s_dl_back[8192];
+static struct ri_dcmd s_dl_back[24576]; /* shaded art: ~8k cmds per 909 at 2x */
 static char s_dl_spool[32768];
 
 static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, int oy) {
@@ -71,7 +110,7 @@ static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, i
     tm.height = rp ? rp->TxHeight : 8;
     tm.baseline = rp ? rp->TxBaseline : 6;
     tm.ctx = rp;
-    ri_dlist_init(&dl, s_dl_back, 8192u, s_dl_spool, sizeof s_dl_spool);
+    ri_dlist_init(&dl, s_dl_back, 24576u, s_dl_spool, sizeof s_dl_spool);
     ri_draw_section(&dl, &dd->ui, dd->ui.section, (int)dd->zoom, ox, oy, &tm,
         ri_skin_aros_active(), dd->panel);
     for (i = 0u; i < dl.n; i++) {

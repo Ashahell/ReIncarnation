@@ -34,6 +34,9 @@
 #include <proto/exec.h>
 #include <proto/intuition.h>
 #include <proto/graphics.h>
+#define __CYBERGRAPHICS_LIBBASE s_rcyber
+#include <cybergraphx/cybergraphics.h>
+#include <inline/cybergraphics.h>
 #include <proto/muimaster.h>
 #include <proto/utility.h>
 #include <clib/alib_protos.h>
@@ -72,11 +75,16 @@ struct RSectionData {
     char help[64];             /* bubble text for the control under the pointer */
 };
 
+/* Own cybergraphics base for exact-colour fills (never the knob_blit global). */
+static struct Library *s_rcyber;
 #include "gui/widgets/rsection_replay.inc"
 
 static void pens_obtain(Object *obj) {
     struct ColorMap *cm = _screen(obj)->ViewPort.ColorMap;
     ULONG i;
+    s_direct_rgb = GetBitMapAttr(_screen(obj)->RastPort.BitMap, BMA_DEPTH) > 8;
+    if (s_direct_rgb && !s_rcyber)
+        s_rcyber = OpenLibrary((CONST_STRPTR)"cybergraphics.library", 0);
     for (i = 0; i < C_NCOL; i++) {
         ULONG c = ri_art_rgb((int)i);
         s_pens[i] = ObtainBestPen(cm, (c >> 16 & 0xFF) * 0x01010101u,
@@ -328,6 +336,10 @@ void ri_rsection_dispose_class(void) {
     if (s_rsection_class) {
         MUI_DeleteCustomClass(s_rsection_class);
         s_rsection_class = NULL;
+    }
+    if (s_rcyber) {
+        CloseLibrary(s_rcyber);
+        s_rcyber = NULL;
     }
 }
 

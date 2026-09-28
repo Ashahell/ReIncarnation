@@ -40,12 +40,26 @@ void ri_art_circle(struct ri_dlist *dl, int cx, int cy, int r, int col);
 void ri_art_bevel(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int face);
 /* Centred upper-cased legend (text_c equivalent). */
 void ri_art_text_c(struct ri_dlist *dl, int cx, int cy, const char *s0, int col);
+/* Hardware-look finish (2026-09-28 GUI review): colour math, shaded
+ * discs, panels, screws, LEDs. Colours here are RGB (0xRRGGBB); backends
+ * replay any RGB (AROS: direct colour on hi/truecolor screens, nearest
+ * palette pen on palette screens). */
+uint32_t ri_art_mix(uint32_t a, uint32_t b, int t256);   /* 0 = a .. 256 = b */
+uint32_t ri_art_shade(uint32_t c, int pct);              /* +: toward white, -: toward black */
+int ri_art_luma(uint32_t c);                             /* 0..255 */
+void ri_art_disc_grad(struct ri_dlist *dl, int cx, int cy, int r, uint32_t top, uint32_t bot);
+void ri_art_panel(struct ri_dlist *dl, int x0, int y0, int x1, int y1, uint32_t base, int brushed);
+void ri_art_screw(struct ri_dlist *dl, int cx, int cy, int r, uint32_t panel);
+void ri_art_led(struct ri_dlist *dl, int cx, int cy, int r, int col, int lit, uint32_t panel);
+/* Knob: shadow + skirt + graded body + concave cap + highlight + thick
+ * pointer; panel = the colour it sits on (shadow + tick contrast). */
 void ri_art_knob(struct ri_dlist *dl, int cx, int cy, int body, int ring, int face,
-    int ptr, int ticks, float deg);
+    int ptr, int ticks, float deg, uint32_t panel);
 void ri_art_meter(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int level, int nseg, int master);
 void ri_art_fader(struct ri_dlist *dl, int cx, int y0, int y1, int w, int pos, int n, int skinned);
 void ri_art_key_909(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int z, int lamp);
 void ri_art_note_glyph(struct ri_dlist *dl, int x, int y, int v, int col);
+void ri_art_lcd_bg(struct ri_dlist *dl, int x0, int y0, int x1, int y1);
 void ri_art_led_digits(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int v, int ndig);
 void ri_art_gr_row(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int v);
 void ri_art_tr_key(struct ri_dlist *dl, int x0, int y0, int x1, int y1, uint32_t idx, int lit, int z);

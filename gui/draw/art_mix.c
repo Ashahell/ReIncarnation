@@ -8,16 +8,16 @@ void ri_art_bg_mix(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, in
     static const int dby[5] = { 120, 158, 200, 240, 272 };
     int k;
 #define PX(q) ri_geo_px((q), z)
-    ri_art_rect(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_MIX_PANEL);
+    ri_art_panel(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, ri_art_rgb(C_MIX_PANEL), 0);
     if (master) {
-        ri_art_rect(dl, ox + PX(22), oy + PX(20), ox + PX(315), oy + PX(70), C_MIX_HEAD);
+        ri_art_panel(dl, ox + PX(22), oy + PX(20), ox + PX(315), oy + PX(70), ri_art_rgb(C_MIX_HEAD), 0); /* moulded header strip */
         ri_art_text_c(dl, ox + PX(170), oy + PX(45), "MASTER", C_MIX_HEADTX);
         for (k = 0; k < 5; k++) {
             ri_art_text_c(dl, ox + PX(42), oy + PX(dby[k]), db[k], C_MIX_TEXT);
             ri_art_text_c(dl, ox + PX(292), oy + PX(dby[k]), db[k], C_MIX_TEXT);
         }
     } else {
-        ri_art_rect(dl, ox + PX(10), oy + PX(10), ox + PX(274), oy + PX(82), C_MIX_HEAD);
+        ri_art_panel(dl, ox + PX(10), oy + PX(10), ox + PX(274), oy + PX(82), ri_art_rgb(C_MIX_HEAD), 0); /* moulded header strip */
         ri_art_text_c(dl, ox + PX(142), oy + PX(45), "MIX", C_MIX_HEADTX);
         ri_art_text_c(dl, ox + PX(32), oy + PX(190), "L", C_MIX_TEXT);
         ri_art_text_c(dl, ox + PX(125), oy + PX(190), "R", C_MIX_TEXT);

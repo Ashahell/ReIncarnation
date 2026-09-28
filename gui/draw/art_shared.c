@@ -10,8 +10,8 @@
 #include "gui/panelui.h"
 
 static const uint32_t RI_ART_RGB[C_NCOL] = {
-    0xD6D6CEu, 0x8C8C84u, 0x141414u, 0xF4F4F0u, 0xB4B4AEu, 0xF0F0EAu, 0x5A5A56u,
-    0xFF2A1Au, 0x5A1410u, 0xC8C8C4u, 0x3C3C3Cu, 0x2A2A2Au, 0x1E1E1Eu, 0xF0F0F0u,
+    0xCACCC7u, 0x8C8C84u, 0x141414u, 0xF4F4F0u, 0xB4B4AEu, 0xF0F0EAu, 0x5A5A56u,
+    0xFF2A1Au, 0x5A1410u, 0x2C2C2Cu, 0x3C3C3Cu, 0x2A2A2Au, 0x1E1E1Eu, 0xF0F0F0u,
     0x280808u, 0xFF3020u, 0x9C9C96u,
     0x3A362Eu, 0x6A6458u, 0xC41E1Eu, 0xE6E6E0u, 0xE8E0C8u, 0xFFF6D0u,
     0xC82020u, 0xE07418u, 0xE6D21Eu, 0xE4E4DCu, 0x2A2620u,
@@ -55,12 +55,118 @@ void ri_art_circle(struct ri_dlist *dl, int cx, int cy, int r, int col) {
     }
 }
 
+uint32_t ri_art_mix(uint32_t a, uint32_t b, int t) {
+    uint32_t r, g, bl;
+    if (t <= 0)
+        return a & 0xFFFFFFu;
+    if (t >= 256)
+        return b & 0xFFFFFFu;
+    r = (((a >> 16) & 0xFFu) * (uint32_t)(256 - t) + ((b >> 16) & 0xFFu) * (uint32_t)t) >> 8;
+    g = (((a >> 8) & 0xFFu) * (uint32_t)(256 - t) + ((b >> 8) & 0xFFu) * (uint32_t)t) >> 8;
+    bl = ((a & 0xFFu) * (uint32_t)(256 - t) + (b & 0xFFu) * (uint32_t)t) >> 8;
+    return (r << 16) | (g << 8) | bl;
+}
+
+uint32_t ri_art_shade(uint32_t c, int pct) {
+    if (pct >= 0)
+        return ri_art_mix(c, 0xFFFFFFu, pct * 256 / 100);
+    return ri_art_mix(c, 0x000000u, -pct * 256 / 100);
+}
+
+int ri_art_luma(uint32_t c) {
+    return (int)((((c >> 16) & 0xFFu) * 299u + ((c >> 8) & 0xFFu) * 587u + (c & 0xFFu) * 114u) / 1000u);
+}
+
+/* Integer half-width of a disc row. */
+static int art_hw(int r, int dy) {
+    int dx = r;
+    while (dx > 0 && dx * dx + dy * dy > r * r)
+        dx--;
+    return dx;
+}
+
+void ri_art_disc_grad(struct ri_dlist *dl, int cx, int cy, int r, uint32_t top, uint32_t bot) {
+    int dy;
+    if (r < 0)
+        return;
+    for (dy = -r; dy <= r; dy++) {
+        int w = art_hw(r, dy);
+        int t = r > 0 ? (dy + r) * 256 / (2 * r) : 128;
+        ri_draw_rect(dl, cx - w, cy + dy, cx + w, cy + dy, ri_art_mix(top, bot, t));
+    }
+}
+
+/* Panel plate: satin vertical grade (or brushed hairlines) + a rolled edge
+ * (light top/left, dark bottom/right), like a folded metal front. */
+void ri_art_panel(struct ri_dlist *dl, int x0, int y0, int x1, int y1, uint32_t base, int brushed) {
+    int y, h = y1 - y0;
+    if (h <= 0 || x1 <= x0)
+        return;
+    if (brushed) {
+        ri_draw_rect(dl, x0, y0, x1, y1, base);
+        for (y = y0 + 1; y < y1; y += 2)
+            ri_draw_line(dl, x0, y, x1, y, ri_art_shade(base, ((y / 2) % 3 == 0) ? 7 : -4));
+    } else {
+        int bands = h < 64 ? h : 64, b;
+        for (b = 0; b < bands; b++) {
+            int ya = y0 + b * h / bands, yb = y0 + (b + 1) * h / bands - 1;
+            ri_draw_rect(dl, x0, ya, x1, yb < ya ? ya : yb,
+                ri_art_mix(ri_art_shade(base, 6), ri_art_shade(base, -7), b * 256 / (bands > 1 ? bands - 1 : 1)));
+        }
+    }
+    ri_draw_line(dl, x0, y0, x1, y0, ri_art_shade(base, 38));
+    ri_draw_line(dl, x0, y0, x0, y1, ri_art_shade(base, 22));
+    ri_draw_line(dl, x0, y1, x1, y1, ri_art_shade(base, -45));
+    ri_draw_line(dl, x1, y0, x1, y1, ri_art_shade(base, -35));
+}
+
+/* Countersunk slotted screw. */
+void ri_art_screw(struct ri_dlist *dl, int cx, int cy, int r, uint32_t panel) {
+    if (r < 2)
+        return;
+    ri_art_disc_grad(dl, cx + 1, cy + 1, r, ri_art_shade(panel, -30), ri_art_shade(panel, -30));
+    ri_art_disc_grad(dl, cx, cy, r, ri_art_shade(0xB8B8B4u, 25), ri_art_shade(0xB8B8B4u, -40));
+    ri_art_disc_grad(dl, cx, cy, r - 1, ri_art_shade(0xB8B8B4u, 10), ri_art_shade(0xB8B8B4u, -25));
+    ri_draw_line(dl, cx - r + 2, cy + r - 2, cx + r - 2, cy - r + 2, ri_art_shade(0xB8B8B4u, -60));
+}
+
+/* LED lens: lit = glow halo + bright graded core + specular; unlit = dark
+ * lens in a bezel with a faint glint. */
+void ri_art_led(struct ri_dlist *dl, int cx, int cy, int r, int col, int lit, uint32_t panel) {
+    uint32_t c = ri_art_rgb(col);
+    int hr = r / 2 > 1 ? r / 2 : 1, sr = r / 3 > 0 ? r / 3 : 1;
+    if (r < 1)
+        return;
+    if (lit) {
+        ri_art_disc_grad(dl, cx, cy, r + hr + 1, ri_art_mix(panel, c, 60), ri_art_mix(panel, c, 60));
+        ri_art_disc_grad(dl, cx, cy, r + hr / 2 + 1, ri_art_mix(panel, c, 130), ri_art_mix(panel, c, 110));
+        ri_art_disc_grad(dl, cx, cy, r, ri_art_shade(c, 35), c);
+        ri_art_disc_grad(dl, cx - r / 3, cy - r / 3, sr, ri_art_shade(c, 80), ri_art_shade(c, 55));
+    } else {
+        ri_art_disc_grad(dl, cx, cy, r + 1, ri_art_shade(panel, -45), ri_art_shade(panel, -25));
+        ri_art_disc_grad(dl, cx, cy, r, ri_art_shade(c, 10), ri_art_shade(c, -45));
+        ri_draw_rect(dl, cx - r / 3, cy - r / 2, cx - r / 3 + (sr > 1 ? 1 : 0), cy - r / 2, ri_art_shade(c, 45));
+    }
+}
+
+/* Moulded key/button: dark outline with softened corners, graded face,
+ * top highlight, bottom inner shadow. */
 void ri_art_bevel(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int face) {
-    ri_art_rect(dl, x0, y0, x1, y1, face);
-    ri_art_line(dl, x0, y0, x1, y0, C_BTN_HI);
-    ri_art_line(dl, x0, y0, x0, y1, C_BTN_HI);
-    ri_art_line(dl, x0, y1, x1, y1, C_BTN_LO);
-    ri_art_line(dl, x1, y0, x1, y1, C_BTN_LO);
+    uint32_t f = ri_art_rgb(face), ol = ri_art_shade(f, -48), top = ri_art_shade(f, 16), bot = ri_art_shade(f, -12);
+    int y, h = y1 - y0;
+    if (x1 - x0 < 3 || h < 3) {
+        ri_draw_rect(dl, x0, y0, x1, y1, f);
+        return;
+    }
+    for (y = y0 + 1; y < y1; y++)
+        ri_draw_rect(dl, x0 + 1, y, x1 - 1, y, ri_art_mix(top, bot, (y - y0) * 256 / h));
+    ri_draw_line(dl, x0 + 1, y0, x1 - 1, y0, ol);
+    ri_draw_line(dl, x0 + 1, y1, x1 - 1, y1, ri_art_shade(ol, -20));
+    ri_draw_line(dl, x0, y0 + 1, x0, y1 - 1, ol);
+    ri_draw_line(dl, x1, y0 + 1, x1, y1 - 1, ri_art_shade(ol, -12));
+    ri_draw_line(dl, x0 + 2, y0 + 1, x1 - 2, y0 + 1, ri_art_shade(f, 45));
+    ri_draw_line(dl, x0 + 1, y0 + 2, x0 + 1, y1 - 2, ri_art_shade(f, 25));
+    ri_draw_line(dl, x0 + 2, y1 - 1, x1 - 2, y1 - 1, ri_art_shade(f, -25));
 }
 
 void ri_art_text_c(struct ri_dlist *dl, int cx, int cy, const char *s0, int col) {
@@ -86,19 +192,40 @@ static void art_polar(int cx, int cy, float deg, float r, int *x, int *y) {
 }
 
 void ri_art_knob(struct ri_dlist *dl, int cx, int cy, int body, int ring, int face,
-    int ptr, int ticks, float deg) {
-    int k, rb = body / 2, rr = ring / 2, x0, y0, x1, y1;
-    if (ticks)
+    int ptr, int ticks, float deg, uint32_t panel) {
+    uint32_t f = ri_art_rgb(face), p = ri_art_rgb(ptr);
+    int k, rb = body / 2, rr = ring / 2, x0, y0, x1, y1, rbody, rcap, sh, th, t;
+    uint32_t tick = ri_art_luma(panel) > 128 ? ri_art_shade(panel, -62) : ri_art_shade(panel, 58);
+    if (rb < 3)
+        return;
+    if (ticks)                                     /* printed scale: 11 dots, ends + centre larger */
         for (k = 0; k <= 10; k++) {
-            art_polar(cx, cy, (float)(-135 + 27 * k), (float)(rb + 2), &x0, &y0);
-            art_polar(cx, cy, (float)(-135 + 27 * k), (float)rr, &x1, &y1);
-            ri_art_line(dl, x0, y0, x1, y1, C_TICK);
+            int dr = (k == 0 || k == 5 || k == 10) ? (rb / 12 > 1 ? rb / 12 : 1) + 1 : (rb / 14 > 0 ? rb / 14 : 1);
+            art_polar(cx, cy, (float)(-135 + 27 * k), (float)(rb + (rr - rb) * 2 / 3 + 1), &x0, &y0);
+            ri_art_disc_grad(dl, x0, y0, dr, tick, tick);
         }
-    ri_art_circle(dl, cx, cy, rb, C_KNOB_RIM);
-    ri_art_circle(dl, cx, cy, rb - 2, face);
-    art_polar(cx, cy, deg, (float)(rb / 3), &x0, &y0);
-    art_polar(cx, cy, deg, (float)(rb - 3), &x1, &y1);
-    ri_art_line(dl, x0, y0, x1, y1, ptr);
+    sh = rb / 9 > 1 ? rb / 9 : 1;                  /* soft drop shadow, light from top-left */
+    ri_art_disc_grad(dl, cx + sh, cy + sh + sh / 2 + 1, rb, ri_art_shade(panel, -22), ri_art_shade(panel, -38));
+    ri_art_disc_grad(dl, cx, cy, rb, ri_art_shade(f, -6), ri_art_shade(f, -48));        /* skirt */
+    rbody = rb * 86 / 100;
+    ri_art_disc_grad(dl, cx, cy, rbody, ri_art_shade(f, 30), ri_art_shade(f, -22));      /* body */
+    rcap = rb * 64 / 100;
+    ri_art_disc_grad(dl, cx, cy, rcap, ri_art_shade(f, -6), ri_art_shade(f, 14));        /* concave cap */
+    t = rb / 8 > 1 ? rb / 8 : 1;                                                        /* glint */
+    ri_art_disc_grad(dl, cx - rb * 38 / 100, cy - rb * 46 / 100, t, ri_art_shade(f, 42), ri_art_shade(f, 22));
+    th = rb / 11 > 0 ? rb / 11 : 0;                /* pointer: a solid bar th*2+1 px wide */
+    art_polar(cx, cy, deg, (float)(rcap / 5), &x0, &y0);
+    art_polar(cx, cy, deg, (float)(rbody - 1), &x1, &y1);
+    {
+        float a = (deg - 90.0f) * 0.0174533f;      /* direction (cos a, sin a); perpendicular (-sin a, cos a) */
+        float sx = -ri_sin(a), sy = ri_sin(a + 1.5707963f);
+        for (k = -th; k <= th; k++) {              /* x and y offsets both: no rounding gaps */
+            int px = (int)(sx * (float)k), py = (int)(sy * (float)k);
+            ri_draw_line(dl, x0 + px, y0 + py, x1 + px, y1 + py, p);
+            ri_draw_line(dl, x0 + k, y0, x1 + k, y1, p);
+            ri_draw_line(dl, x0, y0 + k, x1, y1 + k, p);
+        }
+    }
 }
 
 void ri_art_meter(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int level, int nseg, int master) {
@@ -113,24 +240,54 @@ void ri_art_meter(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int level
         int on = top ? C_LED_ON : warn ? C_STEP_YELLOW : C_MIX_GREEN;
         int off = top ? C_LED_OFF : warn ? C_LAMP_OFF : C_MIX_GREEN_OFF;
         int yb = y1 - 1 - k * h;
-        ri_art_rect(dl, x0 + 2, yb - h + 2, x1 - 2, yb, lit ? on : off);
+        {                                          /* segment lens: bright centre line when lit */
+            uint32_t c = ri_art_rgb(lit ? on : off);
+            ri_draw_rect(dl, x0 + 2, yb - h + 2, x1 - 2, yb, lit ? c : ri_art_shade(c, -15));
+            ri_draw_line(dl, x0 + 3, yb - h + 2, x1 - 3, yb - h + 2, ri_art_shade(c, lit ? 45 : 10));
+        }
     }
 }
 
 void ri_art_fader(struct ri_dlist *dl, int cx, int y0, int y1, int capw, int caph, int n, int skinned) {
-    int travel = (y1 - y0) - caph, cy = y0 + caph / 2 + (int)((long)travel * (127 - n) / 127);
-    ri_art_rect(dl, cx - 1, y0, cx + 1, y1, skinned ? C_MIX_KNOB : C_BLACK);
-    ri_art_bevel(dl, cx - capw / 2, cy - caph / 2, cx + capw / 2, cy + caph / 2,
-        skinned ? C_BTN_LO : C_MIX_SLOT);
-    ri_art_line(dl, cx - capw / 2 + 2, cy, cx + capw / 2 - 2, cy, C_MIX_TEXT);
+    int travel = (y1 - y0) - caph, cy = y0 + caph / 2 + (int)((long)travel * (127 - n) / 127), k;
+    uint32_t slot = ri_art_rgb(skinned ? C_MIX_KNOB : C_BLACK), cap = ri_art_rgb(skinned ? C_BTN_LO : C_MIX_SLOT);
+    int cx0 = cx - capw / 2, cx1 = cx + capw / 2, cy0 = cy - caph / 2, cy1 = cy + caph / 2;
+    /* groove: dark slot with a lit lower lip */
+    ri_draw_rect(dl, cx - 2, y0, cx + 2, y1, ri_art_shade(slot, -30));
+    ri_draw_line(dl, cx - 2, y0, cx - 2, y1, ri_art_shade(slot, -55));
+    ri_draw_line(dl, cx + 3, y0, cx + 3, y1, ri_art_shade(slot, 35));
+    /* cap: drop shadow, graded moulding, finger ridges, white index line */
+    ri_draw_rect(dl, cx0 + 2, cy0 + 3, cx1 + 2, cy1 + 3, ri_art_mix(slot, 0x000000u, 120));
+    for (k = cy0; k <= cy1; k++)
+        ri_draw_rect(dl, cx0, k, cx1, k, ri_art_mix(ri_art_shade(cap, 38), ri_art_shade(cap, -30),
+            (k - cy0) * 256 / (caph > 0 ? caph : 1)));
+    ri_draw_line(dl, cx0, cy0, cx1, cy0, ri_art_shade(cap, 60));
+    ri_draw_line(dl, cx0, cy1, cx1, cy1, ri_art_shade(cap, -60));
+    for (k = 1; k <= 2; k++) {
+        int dy = k * caph / 6;
+        ri_draw_line(dl, cx0 + 2, cy - dy, cx1 - 2, cy - dy, ri_art_shade(cap, -35));
+        ri_draw_line(dl, cx0 + 2, cy + dy, cx1 - 2, cy + dy, ri_art_shade(cap, -35));
+    }
+    ri_draw_rect(dl, cx0 + 1, cy, cx1 - 1, cy, ri_art_rgb(C_MIX_TEXT));
 }
 
 void ri_art_key_909(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int z, int lamp) {
     int f = ri_geo_px(6, z), lw = (x1 - x0) / 4;
-    ri_art_rect(dl, x0, y0, x1, y1, C_909_BAR);
+    uint32_t bar = ri_art_rgb(C_909_BAR);
+    ri_draw_rect(dl, x0, y0, x1, y1, bar);
+    ri_draw_line(dl, x0, y1, x1, y1, ri_art_shade(bar, 30));
     ri_art_bevel(dl, x0 + f, y0 + f, x1 - f, y1 - f, C_WHITEKEY);
-    ri_art_rect(dl, (x0 + x1) / 2 - lw, y0 + f + ri_geo_px(8, z),
-        (x0 + x1) / 2 + lw, y0 + f + ri_geo_px(16, z), lamp);
+    /* lamp window: dark lens, lit lamps glow through a diffuser */
+    {
+        int lx0 = (x0 + x1) / 2 - lw, lx1 = (x0 + x1) / 2 + lw;
+        int ly0 = y0 + f + ri_geo_px(8, z), ly1 = y0 + f + ri_geo_px(16, z), yy;
+        uint32_t c = ri_art_rgb(lamp);
+        int lit = lamp != C_LAMP_OFF;
+        ri_draw_rect(dl, lx0 - 1, ly0 - 1, lx1 + 1, ly1 + 1, ri_art_shade(bar, -20));
+        for (yy = ly0; yy <= ly1; yy++)
+            ri_draw_rect(dl, lx0, yy, lx1, yy, lit ? ri_art_mix(ri_art_shade(c, 45), c, (yy - ly0) * 256 / (ly1 - ly0 + 1))
+                : ri_art_mix(ri_art_shade(c, 12), ri_art_shade(c, -30), (yy - ly0) * 256 / (ly1 - ly0 + 1)));
+    }
 }
 
 void ri_art_note_glyph(struct ri_dlist *dl, int x, int y, int flags, int z) {
@@ -142,12 +299,23 @@ void ri_art_note_glyph(struct ri_dlist *dl, int x, int y, int flags, int z) {
             y - ri_geo_px(20 - 8 * k, z), C_MIX_TEXT);
 }
 
+/* LCD/LED window: black bezel + smoked glass with a top glint. */
+void ri_art_lcd_bg(struct ri_dlist *dl, int x0, int y0, int x1, int y1) {
+    uint32_t bg = ri_art_rgb(C_SEG_BG);
+    int k;
+    ri_draw_rect(dl, x0 - 1, y0 - 1, x1 + 1, y1 + 1, 0x0A0A0Au);
+    for (k = y0; k <= y1; k++)
+        ri_draw_rect(dl, x0, k, x1, k, ri_art_mix(ri_art_shade(bg, 12), ri_art_shade(bg, -35),
+            (k - y0) * 256 / (y1 - y0 + 1)));
+    ri_draw_line(dl, x0 + 1, y0 + 1, x1 - 1, y0 + 1, ri_art_shade(bg, 30));
+}
+
 void ri_art_led_digits(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int v, int ndig) {
     char b[4];
     int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, k, p = 1;
     if (ndig < 1 || ndig > 3)
         return;
-    ri_art_rect(dl, x0, y0, x1, y1, C_SEG_BG);
+    ri_art_lcd_bg(dl, x0, y0, x1, y1);
     ri_art_text_c(dl, cx, cy, ndig == 3 ? "888" : "88", C_SEG_DIM);
     for (k = ndig - 1; k >= 0; k--, p *= 10)       /* leading digits blank */
         b[k] = (char)(k == ndig - 1 || v >= p ? '0' + v / p % 10 : ' ');
@@ -161,7 +329,8 @@ void ri_art_gr_row(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int v) {
         int lit = k <= 4 && 4 - k < n;
         int on = k <= 2 ? C_MIX_GREEN : C_STEP_YELLOW;
         int off = k <= 2 ? C_MIX_GREEN_OFF : k <= 4 ? C_LAMP_OFF : C_LED_OFF;
-        ri_art_circle(dl, x0 + w * k + w / 2, (y0 + y1) / 2, (y1 - y0) / 2 - 1, lit ? on : off);
+        ri_art_led(dl, x0 + w * k + w / 2, (y0 + y1) / 2, (y1 - y0) / 2 - 1, lit ? on : off, lit,
+            ri_art_rgb(C_FX_PANEL));
     }
 }
 

@@ -37,6 +37,7 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
     uint8_t gs;
     int z = zoom, is808, is909, ismix, isfx, ispat, istr;
     int txt, skinned = 0;
+    uint32_t pan;
     uint32_t i;
     char buf[4];
 #define PX(q) ri_geo_px((q), z)
@@ -51,6 +52,8 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
     ispat = section >= RI_SEC_PAT_SYNTH1 && section <= RI_SEC_PAT_909;
     istr = section == RI_SEC_TRANSPORT;
     txt = is808 ? C_CREAM : ismix || isfx || ispat || istr ? C_MIX_TEXT : C_TEXT;
+    pan = ri_art_rgb(is808 ? C_808_PANEL : is909 ? C_909_PANEL : ismix ? C_MIX_PANEL
+        : (isfx || ispat) ? C_FX_PANEL : istr ? C_TR_PANEL : C_PANEL);
     if (!g)
         return;
     if (skin) {
@@ -101,7 +104,7 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
         case RI_GEO_KNOB:
             if (d->kind == RI_CK_SELECTOR) {             /* 808 instrument selector */
                 ri_art_knob(out, cx, cy, PX(it->w), PX(it->h), C_BLACK, C_LED_ON, 0,
-                    208.0f + 28.2f * (float)v);
+                    208.0f + 28.2f * (float)v, pan);
             } else {
                 int face = d->bind == RI_BIND_NONE ? C_DISABLED
                     : is909 ? C_909_KNOB : ismix || isfx || istr ? C_MIX_KNOB
@@ -120,8 +123,10 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
                     }
                 }
                 if (!done)
-                    ri_art_knob(out, cx, cy, PX(it->w), PX(it->h), face, is909 ? C_909_ORANGE : C_BLACK, !is808,
-                        (float)ri_knob_pointer_mdeg((int)sec_to_n(d, v)) / 1000.0f);
+                    ri_art_knob(out, cx, cy, PX(it->w), PX(it->h), face,
+                        is909 ? C_909_ORANGE : (is808 || face == C_DISABLED) ? C_BLACK
+                        : (ismix || isfx || istr) ? C_MIX_TEXT : C_TEXT_INV, !is808,
+                        (float)ri_knob_pointer_mdeg((int)sec_to_n(d, v)) / 1000.0f, pan);
             }
             break;
         case RI_GEO_RECT:
@@ -131,14 +136,19 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
                 ri_art_bevel(out, cx - hw, cy - hh, cx + hw, cy + hh, v ? C_PAT_SEL : C_WHITEKEY);
             } else if (ispat) {                                            /* section lamp */
                 ri_art_bevel(out, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
-                ri_art_rect(out, cx - hw + 3, cy - hh + 3, cx + hw - 3, cy + hh - 3,
-                    ri_sui_led(ui, idx, 0) ? C_MIX_GREEN : C_MIX_GREEN_OFF);
+                {                                                /* lamp lens: graded, glows when lit */
+                    int on = ri_sui_led(ui, idx, 0), yy;
+                    uint32_t c = ri_art_rgb(on ? C_MIX_GREEN : C_MIX_GREEN_OFF);
+                    for (yy = cy - hh + 3; yy <= cy + hh - 3; yy++)
+                        ri_draw_rect(out, cx - hw + 3, yy, cx + hw - 3, yy, ri_art_mix(ri_art_shade(c, on ? 45 : 15),
+                            ri_art_shade(c, on ? -5 : -35), (yy - (cy - hh + 3)) * 256 / (2 * hh - 5 > 0 ? 2 * hh - 5 : 1)));
+                }
             } else if (istr && d->kind == RI_CK_DISPLAY) {
                 ri_art_led_digits(out, cx - hw, cy - hh, cx + hw, cy + hh, v, 3);
             } else if (istr && d->kind == RI_CK_BUTTON) {
                 ri_art_tr_key(out, cx - hw, cy - hh, cx + hw, cy + hh, idx, ri_sui_led(ui, idx, 0), z);
             } else if (istr && d->kind == RI_CK_LED) {
-                ri_art_circle(out, cx, cy, hw + 1, v == 2 ? C_MIX_GREEN : v ? C_LED_ON : C_LED_OFF);
+                ri_art_led(out, cx, cy, hw + 1, v == 2 ? C_MIX_GREEN : v ? C_LED_ON : C_LED_OFF, v != 0, pan);
             } else if (istr) {                                             /* Pattern/Song, Loop levers */
                 ri_art_rect(out, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
                 ri_art_bevel(out, cx - hw + 2, v ? cy - hh + 2 : cy + 1, cx + hw - 2, v ? cy - 1 : cy + hh - 2, C_BTN);
@@ -157,8 +167,13 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
                     ri_art_fader(out, cx, cy - hh, cy + hh, 2 * hw, PX(it->w) * 3 / 5, (int)sec_to_n(d, v), skinned);
                 } else if (idx == 0 && section != RI_SEC_MASTER) {   /* mute / bypass lamp button */
                     ri_art_bevel(out, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
-                    ri_art_rect(out, cx - hw + 3, cy - hh + 3, cx + hw - 3, cy + hh - 3,
-                        ri_sui_led(ui, idx, 0) ? C_MIX_GREEN : C_MIX_GREEN_OFF);
+                    {                                                /* lamp lens: graded, glows when lit */
+                        int on = ri_sui_led(ui, idx, 0), yy;
+                        uint32_t c = ri_art_rgb(on ? C_MIX_GREEN : C_MIX_GREEN_OFF);
+                        for (yy = cy - hh + 3; yy <= cy + hh - 3; yy++)
+                            ri_draw_rect(out, cx - hw + 3, yy, cx + hw - 3, yy, ri_art_mix(ri_art_shade(c, on ? 45 : 15),
+                                ri_art_shade(c, on ? -5 : -35), (yy - (cy - hh + 3)) * 256 / (2 * hh - 5 > 0 ? 2 * hh - 5 : 1)));
+                    }
                 } else {                                                    /* insert rocker */
                     ri_art_rect(out, cx - hw, cy - hh, cx + hw, cy + hh, C_MIX_SLOT);
                     ri_art_bevel(out, cx - hw + 2, cy - hh + 2, cx + hw - 2, cy + hh - 2,
@@ -166,7 +181,7 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
                 }
             } else if (d->kind == RI_CK_DISPLAY) {
                 int n = ri_sui_display(ui, idx);
-                ri_art_rect(out, cx - hw, cy - hh, cx + hw, cy + hh, C_SEG_BG);
+                ri_art_lcd_bg(out, cx - hw, cy - hh, cx + hw, cy + hh);
                 buf[0] = (char)('0' + n / 10);
                 buf[1] = (char)('0' + n % 10);
                 buf[2] = 0;
@@ -174,8 +189,11 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
             } else if (d->kind == RI_CK_STEP && is808) {
                 uint32_t st = idx - RI_S808_STEP0;
                 ri_art_bevel(out, cx - hw, cy - hh, cx + hw, cy + hh, ri_art_step_colour_808(st));
-                ri_art_rect(out, cx - hw / 3, cy - hh + 3, cx + hw / 3, cy - hh + 3 + PX(10),
-                    ri_art_chase(panel, section, st) ? C_WHITEKEY : ri_sui_led(ui, idx, 0) ? C_LED_ON : C_LAMP_OFF);
+                {                                            /* step LED set into the key top */
+                    int chase = ri_art_chase(panel, section, st), on = ri_sui_led(ui, idx, 0);
+                    ri_art_led(out, cx, cy - hh + PX(12), PX(6), chase ? C_WHITEKEY : on ? C_LED_ON : C_LED_OFF,
+                        chase || on, ri_art_rgb(ri_art_step_colour_808(st)));
+                }
             } else if (d->kind == RI_CK_STEP && is909) {
                 int st = ri_sui_led(ui, idx, 0);
                 int lamp = st == 1 ? (ri_sui_value(ui, RI_S909_SELECT) == 0 ? C_LED_ON : C_LAMP_LOW)
@@ -185,12 +203,13 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
                 ri_art_key_909(out, cx - hw, cy - hh, cx + hw, cy + hh, z, lamp);
             } else if (d->kind == RI_CK_SWITCH && is909) {     /* Flam button */
                 ri_art_key_909(out, cx - hw, cy - hh, cx + hw, cy + hh, z, v ? C_LED_ON : C_LAMP_OFF);
-            } else if (d->kind == RI_CK_SWITCH && is808) {     /* sound switch: slot + lever */
+            } else if (d->kind == RI_CK_SWITCH && is808) {     /* sound switch: recessed slot + slide lever */
                 ri_art_rect(out, cx - hw, cy - hh, cx + hw, cy + hh, C_BLACK);
+                ri_draw_line(out, cx - hw, cy + hh, cx + hw, cy + hh, ri_art_shade(pan, 30));
                 if (v)
-                    ri_art_rect(out, cx - hw + 2, cy, cx + hw - 2, cy + hh - 2, C_BTN);
+                    ri_art_bevel(out, cx - hw + 2, cy, cx + hw - 2, cy + hh - 2, C_BTN);
                 else
-                    ri_art_rect(out, cx - hw + 2, cy - hh + 2, cx + hw - 2, cy, C_BTN);
+                    ri_art_bevel(out, cx - hw + 2, cy - hh + 2, cx + hw - 2, cy, C_BTN);
             } else if (section != RI_SEC_808 && idx == RI_S303_WAVE) {
                 ri_art_rect(out, cx - hw, cy - hh, cx + hw, cy + hh, C_BLACK);
                 if (v)
@@ -219,13 +238,13 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
                     t = it->opt == 1 ? "BASS" : it->opt == 2 ? "SNARE" : t; /* bar above names the drum */
                 ri_art_rect(out, cx - hw, cy - hh, cx + hw, cy + hh, C_909_BAR);
                 ri_art_rect(out, cx - hw + 1, cy - hh + 1, cx + hw - 1, cy + hh - 1, C_909_PANEL);
-                ri_art_circle(out, cx - hw + PX(12), cy, PX(5), lit ? C_LED_ON : C_LED_OFF);
+                ri_art_led(out, cx - hw + PX(12), cy, PX(5), lit ? C_LED_ON : C_LED_OFF, lit, ri_art_rgb(C_909_PANEL));
                 ri_art_text_c(out, cx + PX(8), cy, t, C_BLACK);
                 break;
             }
-            ri_art_rect(out, cx - hw, cy - hh, cx + hw, cy + hh, lit ? C_CREAM_LIT : C_CREAM);
+            ri_art_bevel(out, cx - hw, cy - hh, cx + hw, cy + hh, lit ? C_CREAM_LIT : C_CREAM);
             if (lit)
-                ri_art_line(out, cx - hw, cy + hh, cx + hw, cy + hh, C_LED_ON);
+                ri_art_rect(out, cx - hw + 2, cy + hh - 2, cx + hw - 2, cy + hh - 1, C_LED_ON);
             ri_art_text_c(out, cx, cy, ri_art_808_opt((uint32_t)it->opt), C_BLACK);
             break;
         }
@@ -234,8 +253,11 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
             for (j = 0; j < i; j++)
                 if (g->items[j].reg_id == it->reg_id && g->items[j].shape == RI_GEO_LED)
                     which++;
-            ri_art_circle(out, cx, cy, PX(it->w) / 2 + 1, ri_sui_led(ui, idx, which)
-                ? (istr ? C_MIX_GREEN : C_LED_ON) : (istr ? C_MIX_GREEN_OFF : C_LED_OFF));
+            {
+                int on = ri_sui_led(ui, idx, which);
+                ri_art_led(out, cx, cy, PX(it->w) / 2 + 1, on ? (istr ? C_MIX_GREEN : C_LED_ON)
+                    : (istr ? C_MIX_GREEN_OFF : C_LED_OFF), on, pan);
+            }
             break;
         }
         case RI_GEO_STEPPER:

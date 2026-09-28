@@ -34,8 +34,8 @@ void ri_art_bg_pat(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, in
         title[k] = 0;
     }
 #define PX(q) ri_geo_px((q), z)
-    ri_art_rect(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_FX_PANEL);
-    ri_art_rect(dl, ox + PX(20), oy + PX(17), ox + PX(262), oy + PX(72), C_PAT_HEAD);
+    ri_art_panel(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, ri_art_rgb(C_FX_PANEL), 0);
+    ri_art_panel(dl, ox + PX(20), oy + PX(17), ox + PX(262), oy + PX(72), ri_art_rgb(C_PAT_HEAD), 0); /* moulded header strip */
     ri_art_text_c(dl, ox + PX(158), oy + PX(45), title, C_MIX_TEXT);
     ri_art_rect(dl, ox + PX(18), oy + PX(92), ox + PX(262), oy + PX(212), C_MIX_SLOT);
     ri_art_rect(dl, ox + PX(18), oy + PX(258), ox + PX(262), oy + PX(318), C_MIX_SLOT);
