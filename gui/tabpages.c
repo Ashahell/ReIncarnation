@@ -52,7 +52,7 @@ uint32_t ri_tab_devices(uint32_t group, const struct RIVisSet *vis,
             continue;
         out[n].device = d;
         out[n].voice_sec = RI_TAB_VOICE[d];
-        out[n].pat_sec = RI_TAB_PAT[d];
+        out[n].pat_sec = (d == 4u) ? RI_TAB_PAT_NONE : RI_TAB_PAT[d];
         n++;
     }
     return n;

@@ -54,18 +54,23 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
     ri_art_line(dl, ox + PX(350), oy + PX(56), ox + PX(350), oy + PX(190), C_LEVI_RULE);
     ri_art_line(dl, ox + PX(650), oy + PX(56), ox + PX(650), oy + PX(190), C_LEVI_RULE);
     ri_art_line(dl, ox + PX(1000), oy + PX(56), ox + PX(1000), oy + PX(190), C_LEVI_RULE);
-    /* Piano keyboard block (303 block geometry, Levi registry ids). */
-    ri_art_rect(dl, ox + PX(176), oy + PX(200), ox + PX(858), oy + PX(435), C_BLACK);
+    /* Piano keyboard section (owner 2026-09-29 photo verdict): labeled
+     * KEYBOARD block, black row above the white row (geometry rows:
+     * black cy=335 h=60, white cy=380 h=90). */
+    ri_art_panel(dl, ox + PX(40), oy + PX(272), ox + PX(880), oy + PX(298),
+        ri_art_rgb(C_LEVI_RULE), 0);
+    ri_art_text_c(dl, ox + PX(460), oy + PX(285), "KEYBOARD", C_LEVI_HEAD);
+    ri_art_rect(dl, ox + PX(40), oy + PX(300), ox + PX(880), oy + PX(435), C_BLACK);
     for (i = 0; i < 13; i++)
         for (j = 0; j < g->nitems; j++)
             if ((g->items[j].reg_id & 0xFFu) == RI_SLEVI_KEY0 + i && g->items[j].shape == RI_GEO_RECT && !black[i])
-                ri_art_rect(dl, ox + PX(g->items[j].cx - 38), oy + PX(208), ox + PX(g->items[j].cx + 38),
-                    oy + PX(428), C_WHITEKEY);
+                ri_art_rect(dl, ox + PX(g->items[j].cx - 38), oy + PX(335), ox + PX(g->items[j].cx + 38),
+                    oy + PX(425), C_WHITEKEY);
     for (i = 0; i < 13; i++)
         for (j = 0; j < g->nitems; j++)
             if ((g->items[j].reg_id & 0xFFu) == RI_SLEVI_KEY0 + i && g->items[j].shape == RI_GEO_RECT && black[i])
-                ri_art_rect(dl, ox + PX(g->items[j].cx - 28), oy + PX(208), ox + PX(g->items[j].cx + 28),
-                    oy + PX(320), C_BLACK);
+                ri_art_rect(dl, ox + PX(g->items[j].cx - 28), oy + PX(305), ox + PX(g->items[j].cx + 28),
+                    oy + PX(365), C_BLACK);
     /* Step number plates (909 idiom, Levi step rows y=200/300). */
     for (i = 0; i < 16; i++) {
         int cx = 900 + 70 * (int)(i % 8u);

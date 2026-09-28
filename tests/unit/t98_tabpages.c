@@ -34,7 +34,7 @@ int main(void) {
         rows[1].pat_sec == RI_SEC_PAT_909, "drums row1");
     RI_ASSERT(ri_tab_devices(RI_TAB_LEVI, &vis, rows, 5u) == 1u, "levi n");
     RI_ASSERT(rows[0].device == 4u && rows[0].voice_sec == RI_SEC_LEVI &&
-        rows[0].pat_sec == RI_SEC_PAT_LEVI, "levi row0");
+        rows[0].pat_sec == RI_TAB_PAT_NONE, "levi row0 voice-only");
     ri_vis_set(&vis, 1u, 0);
     RI_ASSERT(ri_tab_devices(RI_TAB_SYNTH, &vis, rows, 5u) == 1u, "hide");
     RI_ASSERT(rows[0].device == 0u, "hide order");

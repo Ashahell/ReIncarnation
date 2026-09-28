@@ -12,6 +12,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "gui/panelgeo.h"
 #include "gui/ctlreg.h"
+#include "gui/sectmix.h"
 
 static int is_value(const struct RIGeoItem *it) {
     return it->shape == RI_GEO_KNOB || it->shape == RI_GEO_RECT;
@@ -162,6 +163,106 @@ static void check_section(uint32_t sec) {
                 "option value of %04x", it->reg_id);
         }
     RI_ASSERT(ri_geo_hit(s, 1, 1, 0) == 0xFFFFu, "corner hits nothing");
+    /* S3 damage boxes: every damage id resolves; boxes sit inside the
+     * section (margin slack); the +3 law is pinned on single-item knobs;
+     * static-only ids resolve to none. Every mixer/strip index present
+     * in the table has a bbox. */
+    {
+        int SW = ri_geo_px(s->w, 0), SH = ri_geo_px(s->h, 0);
+        uint32_t seen[256] = { 0 };
+        for (i = 0; i < s->nitems; i++) {
+            const struct RIGeoItem *it = &s->items[i];
+            uint32_t lo = it->reg_id & 0xFFu;
+            int x0, y0, x1, y1, rc, damage = 0;
+            uint32_t k;
+            if (lo < 256u && seen[lo])
+                continue;
+            if (lo < 256u)
+                seen[lo] = 1u;
+            for (k = 0u; k < s->nitems; k++) {
+                uint8_t sh = s->items[k].shape;
+                if ((s->items[k].reg_id & 0xFFu) == lo &&
+                    (sh == RI_GEO_KNOB || sh == RI_GEO_RECT || sh == RI_GEO_OPTION ||
+                        sh == RI_GEO_STEPPER || sh == RI_GEO_LED))
+                    damage = 1;
+            }
+            rc = ri_geo_bbox(s, it->reg_id, 0, &x0, &y0, &x1, &y1);
+            if (damage) {
+                RI_ASSERT(rc == 0, "bbox missing for %04x", it->reg_id);
+                if (rc != 0)
+                    continue;
+                RI_ASSERT(x0 >= -RI_GEO_BBOX_MARGIN && y0 >= -RI_GEO_BBOX_MARGIN &&
+                    x1 <= SW + RI_GEO_BBOX_MARGIN && y1 <= SH + RI_GEO_BBOX_MARGIN,
+                    "bbox of %04x outside section", it->reg_id);
+                /* margin law: a lone damage item's box equals raw grown by 3 */
+                {
+                    int ndmg = 0, j;
+                    const struct RIGeoItem *one = 0;
+                    for (j = 0; j < (int)s->nitems; j++) {
+                        uint8_t sh = s->items[j].shape;
+                        if ((s->items[j].reg_id & 0xFFu) == lo &&
+                            (sh == RI_GEO_KNOB || sh == RI_GEO_RECT || sh == RI_GEO_OPTION ||
+                                sh == RI_GEO_STEPPER || sh == RI_GEO_LED)) {
+                            ndmg++;
+                            one = &s->items[j];
+                        }
+                    }
+                    if (ndmg == 1 && one) {
+                        /* The +3 law is pinned as a literal: impl and test
+                         * must change together; a 0 margin must FAIL here. */
+                        int rw = ri_geo_px(one->w, 0), rh = ri_geo_px(one->h, 0);
+                        int ex0, ey0, ex1, ey1;
+                        if (one->shape == RI_GEO_KNOB)
+                            rw = rh = rw > rh ? rw : rh;
+                        ex0 = ri_geo_px(one->cx, 0) - rw / 2 - 3;
+                        ey0 = ri_geo_px(one->cy, 0) - rh / 2 - 3;
+                        ex1 = ri_geo_px(one->cx, 0) + rw / 2 + 3;
+                        ey1 = ri_geo_px(one->cy, 0) + rh / 2 + 3;
+                        RI_ASSERT(x0 == ex0 && y0 == ey0 && x1 == ex1 && y1 == ey1,
+                            "margin law on %04x", one->reg_id);
+                    }
+                }
+            } else {
+                RI_ASSERT(rc == 2, "static-only %04x resolves", it->reg_id);
+            }
+        }
+    }
+    if (sec >= RI_SEC_MIX_SYNTH1 && sec <= RI_SEC_MASTER) {
+        uint32_t k;
+        for (k = 0u; k < RI_SMIX_NCTL; k++) {
+            uint32_t j, has = 0;
+            int x0, y0, x1, y1;
+            for (j = 0u; j < s->nitems; j++)
+                if ((s->items[j].reg_id & 0xFFu) == k)
+                    has = 1u;
+            if (!has)
+                continue;
+            RI_ASSERT(ri_geo_bbox(s, (uint16_t)(((uint32_t)sec << 8) | k), 0,
+                    &x0, &y0, &x1, &y1) == 0,
+                "MX(%u,%u) has no bbox", sec, k);
+        }
+    }
+    /* S3 wide classification: selectors repaint widely; Loop Start drags
+     * Len; a plain knob never does. */
+    {
+        uint32_t k, nctl = ri_ctlreg_count();
+        for (k = 0u; k < nctl; k++) {
+            const struct RICtlDef *d = ri_ctlreg_at(k);
+            int wide;
+            if (!d || d->section != sec)
+                continue;
+            wide = ri_geo_wide(d->reg_id);
+            if (d->kind == RI_CK_SELECTOR)
+                RI_ASSERT(wide, "selector %04x not wide", d->reg_id);
+            else if (d->section == RI_SEC_TRANSPORT && (d->reg_id & 0xFFu) == 10u)
+                RI_ASSERT(wide, "loop start not wide");
+        }
+        if (sec == RI_SEC_SYNTH1) {
+            const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((RI_SEC_SYNTH1 << 8) | 1u));
+            RI_ASSERT(d && d->kind == RI_CK_KNOB && !ri_geo_wide(d->reg_id), "knob wide?");
+        }
+        RI_ASSERT(!ri_geo_wide(0xFFFFu), "bad id wide?");
+    }
 }
 
 #define ID(sec, i) (uint16_t)(((sec) << 8) | (i))
@@ -386,6 +487,29 @@ int main(void) {
         }
         RI_ASSERT(has_steppers(s, ID(RI_SEC_TRANSPORT, 1)) && has_steppers(s, ID(RI_SEC_TRANSPORT, 3)) &&
             has_steppers(s, ID(RI_SEC_TRANSPORT, 10)) && has_steppers(s, ID(RI_SEC_TRANSPORT, 11)), "display arrows");
+    }
+    /* ---- Levi voice (owner 2026-09-29 photo verdict): top-band knobs
+     * share one row, legends above; piano keys form a labeled bottom
+     * section (black row above white row). ---- */
+    s = ri_geo_section(RI_SEC_LEVI);
+    if (s) {
+        static const uint32_t knobs[] = { 0u, 1u, 3u, 39u, 43u };
+        static const int black[13] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0 };
+        const struct RIGeoItem *k0 = value_item(s, ID(RI_SEC_LEVI, knobs[0]));
+        for (i = 1; i < sizeof(knobs) / sizeof(knobs[0]); i++) {
+            const struct RIGeoItem *k = value_item(s, ID(RI_SEC_LEVI, knobs[i]));
+            RI_ASSERT(k && k0 && k->shape == RI_GEO_KNOB && k->cy == k0->cy, "levi top knob %u off-row", knobs[i]);
+        }
+        for (i = 0; i < 13; i++) {
+            const struct RIGeoItem *it = value_item(s, ID(RI_SEC_LEVI, 24 + i));
+            RI_ASSERT(it != 0, "levi key %u", i);
+            if (!it)
+                continue;
+            if (black[i])
+                RI_ASSERT(it->cy == 335 && it->h == 60, "levi black key %u row", i);
+            else
+                RI_ASSERT(it->cy == 380 && it->h == 90, "levi white key %u row", i);
+        }
     }
     RI_RESULT("panelgeo");
 }

@@ -7,6 +7,7 @@
  */
 #include "gui/panelgeo.h"
 #include "gui/ctlreg.h"
+#include "gui/secttr.h"
 
 #define S1(i) (uint16_t)((RI_SEC_SYNTH1 << 8) | (i))
 #define KNOB(i, x) { S1(i), RI_GEO_KNOB, 0, (x), 110, 84, 120 }, \
@@ -169,27 +170,29 @@ static const struct RIGeoItem RI_GEO_808[] = {
  * No selector knob: the 909 selects instruments by clicking legends (p. 151). */
 #define S9(i) (uint16_t)((RI_SEC_909 << 8) | (i))
 #define SL(i) (uint16_t)((RI_SEC_LEVI << 8) | (i))
-#define LKNOB(i, x) { SL(i), RI_GEO_KNOB, 0, (x), 100, 44, 52 }, \
-                    { SL(i), RI_GEO_LEGEND, 0, (x), 55, 0, 0 }
-#define LWKEY(i, x) { SL(i), RI_GEO_RECT, 0, (x), 385, 34, 60 }, \
-                    { SL(i), RI_GEO_LED, 0, (x), 338, 12, 12 }
-#define LBKEY(i, x) { SL(i), RI_GEO_RECT, 0, (x), 275, 30, 50 }, \
-                    { SL(i), RI_GEO_LED, 0, (x), 238, 12, 12 }
+#define LKNOB(i, x) { SL(i), RI_GEO_KNOB, 0, (x), 130, 44, 52 }, \
+                    { SL(i), RI_GEO_LEGEND, 0, (x), 70, 0, 0 }
+#define LWKEY(i, x) { SL(i), RI_GEO_RECT, 0, (x), 380, 34, 90 }, \
+                    { SL(i), RI_GEO_LED, 0, (x), 320, 12, 12 }
+#define LBKEY(i, x) { SL(i), RI_GEO_RECT, 0, (x), 335, 30, 60 }, \
+                    { SL(i), RI_GEO_LED, 0, (x), 290, 12, 12 }
 static const struct RIGeoItem RI_GEO_LEVI[] = {
-    /* Top band (owner 2026-09-28, photo verdict): hardware block order
-     * left to right — MODULE (lane/op select + op mode), OSC (mode +
-     * ratio), ALGORITHM (algo + target + morph), DIGITAL FILTER
-     * (type + cutoff/reso/drive). Titles + dividers painted by art_levi
-     * (909-bar idiom); per-control legends sit below their controls. */
-    { SL(0), RI_GEO_KNOB, 0, 1030, 125, 44, 52 },
-    { SL(0), RI_GEO_LEGEND, 0, 1030, 90, 0, 0 },
-    { SL(1), RI_GEO_KNOB, 0, 1100, 125, 44, 52 },
-    { SL(1), RI_GEO_LEGEND, 0, 1100, 90, 0, 0 },
-    { SL(2), RI_GEO_RECT, 0, 420, 115, 44, 52 },
+    /* Top band (owner 2026-09-28 photo verdict, row locked 2026-09-29):
+     * hardware block order left to right — MODULE (lane/op select +
+     * op mode), OSC (mode + ratio), ALGORITHM (algo + target + morph),
+     * DIGITAL FILTER (type + cutoff/reso/drive). Every top-band knob
+     * shares cy=130 with its legend above at y=70 (909-bar idiom);
+     * titles + dividers painted by art_levi; per-control legends sit
+     * above their controls. */
+    { SL(0), RI_GEO_KNOB, 0, 1030, 130, 44, 52 },
+    { SL(0), RI_GEO_LEGEND, 0, 1030, 70, 0, 0 },
+    { SL(1), RI_GEO_KNOB, 0, 1100, 130, 44, 52 },
+    { SL(1), RI_GEO_LEGEND, 0, 1100, 70, 0, 0 },
+    { SL(2), RI_GEO_RECT, 0, 420, 130, 44, 52 },
     { SL(2), RI_GEO_LED, 0, 420, 72, 12, 12 },
-    { SL(2), RI_GEO_LEGEND, 0, 420, 160, 0, 0 },
-    { SL(3), RI_GEO_KNOB, 0, 540, 115, 44, 52 },
-    { SL(3), RI_GEO_LEGEND, 0, 540, 160, 0, 0 },
+    { SL(2), RI_GEO_LEGEND, 0, 420, 70, 0, 0 },
+    { SL(3), RI_GEO_KNOB, 0, 540, 130, 44, 52 },
+    { SL(3), RI_GEO_LEGEND, 0, 540, 70, 0, 0 },
     /* MODULE: lane + op select + op mode option rows */
     { SL(4), RI_GEO_OPTION, 0, 60, 70, 36, 24 },
     { SL(4), RI_GEO_OPTION, 1, 102, 70, 36, 24 },
@@ -257,16 +260,16 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
     { SL(38), RI_GEO_OPTION, 5, 850, 105, 30, 24 },
     { SL(38), RI_GEO_OPTION, 6, 884, 105, 30, 24 },
     { SL(38), RI_GEO_OPTION, 7, 918, 105, 30, 24 },
-    { SL(39), RI_GEO_KNOB, 0, 962, 115, 44, 52 },
-    { SL(39), RI_GEO_LEGEND, 0, 962, 160, 0, 0 },
+    { SL(39), RI_GEO_KNOB, 0, 962, 130, 44, 52 },
+    { SL(39), RI_GEO_LEGEND, 0, 962, 70, 0, 0 },
     { SL(51), RI_GEO_RECT, 0, 962, 70, 56, 30 },
     /* DIGITAL FILTER: type row, cutoff/reso/drive knobs */
     { SL(42), RI_GEO_OPTION, 0, 1030, 70, 40, 24 },
     { SL(42), RI_GEO_OPTION, 1, 1080, 70, 40, 24 },
     { SL(42), RI_GEO_OPTION, 2, 1130, 70, 40, 24 },
     { SL(42), RI_GEO_OPTION, 3, 1180, 70, 40, 24 },
-    { SL(43), RI_GEO_KNOB, 0, 1170, 125, 44, 52 },
-    { SL(43), RI_GEO_LEGEND, 0, 1170, 90, 0, 0 },
+    { SL(43), RI_GEO_KNOB, 0, 1170, 130, 44, 52 },
+    { SL(43), RI_GEO_LEGEND, 0, 1170, 70, 0, 0 },
     /* bottom voice strip (owner 2026-09-28, hardware block order):
      * analog filter under digital, envelope right of analog */
     { SL(44), RI_GEO_KNOB, 0, 1060, 510, 44, 52 },
@@ -651,6 +654,77 @@ uint16_t ri_geo_hit_opt(const struct RIGeoSection *s, int x, int y, int zoom, in
 
 uint16_t ri_geo_hit(const struct RIGeoSection *s, int x, int y, int zoom) {
     return ri_geo_hit_opt(s, x, y, zoom, 0);
+}
+
+int ri_geo_bbox(const struct RIGeoSection *g, uint16_t reg_id, int zoom,
+    int *x0, int *y0, int *x1, int *y1) {
+    uint32_t i, found = 0u;
+    int a0 = 0, b0 = 0, a1 = -1, b1 = -1;
+    if (!g || !zoom_num(zoom) || !x0 || !y0 || !x1 || !y1)
+        return 2;
+    for (i = 0u; i < g->nitems; i++) {
+        const struct RIGeoItem *it = &g->items[i];
+        int cx, cy, hw, hh, ix0, iy0, ix1, iy1;
+        if ((it->reg_id & 0xFFu) != (reg_id & 0xFFu))
+            continue;
+        /* Knobs paint body + tick ring: cover the larger of the two, like
+         * the hit disc covers the ring. Decorations that follow the value
+         * (LEDs) join the union; static legends/dividers do not. */
+        if (it->shape == RI_GEO_KNOB) {
+            int r = ri_geo_px(it->w, zoom) > ri_geo_px(it->h, zoom)
+                ? ri_geo_px(it->w, zoom) : ri_geo_px(it->h, zoom);
+            cx = ri_geo_px(it->cx, zoom);
+            cy = ri_geo_px(it->cy, zoom);
+            ix0 = cx - r / 2;
+            iy0 = cy - r / 2;
+            ix1 = cx + r / 2;
+            iy1 = cy + r / 2;
+        } else if (it->shape == RI_GEO_RECT || it->shape == RI_GEO_OPTION ||
+            it->shape == RI_GEO_STEPPER || it->shape == RI_GEO_LED) {
+            cx = ri_geo_px(it->cx, zoom);
+            cy = ri_geo_px(it->cy, zoom);
+            hw = ri_geo_px(it->w, zoom) / 2;
+            hh = ri_geo_px(it->h, zoom) / 2;
+            ix0 = cx - hw;
+            iy0 = cy - hh;
+            ix1 = cx + hw;
+            iy1 = cy + hh;
+        } else {
+            continue;
+        }
+        if (!found) {
+            a0 = ix0;
+            b0 = iy0;
+            a1 = ix1;
+            b1 = iy1;
+            found = 1u;
+        } else {
+            if (ix0 < a0) a0 = ix0;
+            if (iy0 < b0) b0 = iy0;
+            if (ix1 > a1) a1 = ix1;
+            if (iy1 > b1) b1 = iy1;
+        }
+    }
+    if (!found)
+        return 2;
+    *x0 = a0 - RI_GEO_BBOX_MARGIN;
+    *y0 = b0 - RI_GEO_BBOX_MARGIN;
+    *x1 = a1 + RI_GEO_BBOX_MARGIN;
+    *y1 = b1 + RI_GEO_BBOX_MARGIN;
+    return 0;
+}
+
+int ri_geo_wide(uint16_t reg_id) {
+    const struct RICtlDef *d = ri_ctlreg_find(reg_id);
+    if (!d)
+        return 0;
+    if (d->kind == RI_CK_SELECTOR)
+        return 1;
+    /* Loop Start drags Loop Len through ri_loop_clamp (Dell-proven: start
+     * 1->999 re-lamps the Len digits); Len never touches Start. */
+    if (d->section == RI_SEC_TRANSPORT && (d->reg_id & 0xFFu) == RI_STR_LOOP_START)
+        return 1;
+    return 0;
 }
 
 /* E0 position: the p. 147 figure ends at the Pattern selectors; the p. 22

@@ -578,12 +578,67 @@ static void meter_round(ULONG mix_freq) {
             continue;
         s_meter_shown[k] = lvl[k];
         ri_smix_meter_set(u->u.mix.board, strip_sec[k], 0, lvl[k]);
-        ri_rsection_refresh(s_canvas[c_mix_canvas[k]]);
+        /* S3: meters repaint their own box (MIX(sec, RI_SMIX_METER)). */
+        {
+            const struct RIGeoSection *g = ri_geo_section(strip_sec[k]);
+            int x0, y0, x1, y1;
+            if (g && ri_geo_bbox(g, (uint16_t)(((uint32_t)strip_sec[k] << 8) | RI_SMIX_METER),
+                0, &x0, &y0, &x1, &y1) == 0)
+                ri_rsection_refresh_box(s_canvas[c_mix_canvas[k]], x0, y0, x1, y1);
+            else
+                ri_rsection_refresh(s_canvas[c_mix_canvas[k]]);
+        }
     }
     playing = (s_tr_state != RI_TR_STOPPED);
     if (ri_panel_live(&s_panel, playing, sixteenths)) {
-        for (k = 0; k < C_N; k++)
-            ri_rsection_refresh(s_canvas[k]);
+        /* S3: 808/909 chase lamps repaint old+new step boxes (the lamps
+         * live inside their step keys); everything else keeps the full
+         * refresh (position text, pattern follows). */
+        static int8_t s_chase_last[C_N];
+        static int s_chase_init;
+        int c;
+        if (!s_chase_init) {
+            for (c = 0; c < C_N; c++)
+                s_chase_last[c] = -1;
+            s_chase_init = 1;
+        }
+        for (k = 0; k < C_N; k++) {
+            int is_chase = (k == C_808 || k == C_909);
+            if (!is_chase) {
+                ri_rsection_refresh(s_canvas[k]);
+                continue;
+            }
+            {
+                uint32_t sec = c_sections[k];
+                uint32_t base = (k == C_808) ? RI_S808_STEP0 : RI_S909_STEP0;
+                int f = ri_panel_focus_of(sec);
+                int st = (f >= 0 && f < (int)RI_FOCUS_COUNT) ? s_panel.playhead[f] : -1;
+                const struct RIGeoSection *g = ri_geo_section(sec);
+                if (st < 0 || st > 15 || !g) {
+                    ri_rsection_refresh(s_canvas[k]);
+                    s_chase_last[k] = -1;
+                    continue;
+                }
+                if (st == s_chase_last[k])
+                    continue; /* lamp already where it belongs */
+                {
+                    int steps[2] = { s_chase_last[k], st }, s, ok = 1;
+                    for (s = 0; s < 2; s++) {
+                        int x0, y0, x1, y1;
+                        if (steps[s] < 0 || steps[s] > 15)
+                            continue;
+                        if (ri_geo_bbox(g, (uint16_t)(base + (uint32_t)steps[s]), 0,
+                            &x0, &y0, &x1, &y1) == 0)
+                            ri_rsection_refresh_box(s_canvas[k], x0, y0, x1, y1);
+                        else
+                            ok = 0;
+                    }
+                    if (!ok)
+                        ri_rsection_refresh(s_canvas[k]);
+                    s_chase_last[k] = (int8_t)st;
+                }
+            }
+        }
     }
 }
 
@@ -612,13 +667,25 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
     if (n_out)
         *n_out = 0u;
     for (r = 0u; r < n; r++) {
-        Object *prow = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
-            MUIA_Group_Spacing, 2,
-            Child, (IPTR)canvas_for_section(rows[r].pat_sec),
-            Child, (IPTR)canvas_for_section(rows[r].voice_sec), TAG_DONE);
-        if (!prow || !canvas_for_section(rows[r].pat_sec) ||
-            !canvas_for_section(rows[r].voice_sec))
-            return 0;
+        Object *prow;
+        if (rows[r].pat_sec == RI_TAB_PAT_NONE) {
+            /* Levi voice-only row (owner 2026-09-29): the real
+             * instrument has no pattern section; the bank engine
+             * (C_P4/sync_pat) keeps running on slot 0 underneath. */
+            prow = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
+                MUIA_Group_Spacing, 2,
+                Child, (IPTR)canvas_for_section(rows[r].voice_sec), TAG_DONE);
+            if (!prow || !canvas_for_section(rows[r].voice_sec))
+                return 0;
+        } else {
+            prow = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
+                MUIA_Group_Spacing, 2,
+                Child, (IPTR)canvas_for_section(rows[r].pat_sec),
+                Child, (IPTR)canvas_for_section(rows[r].voice_sec), TAG_DONE);
+            if (!prow || !canvas_for_section(rows[r].pat_sec) ||
+                !canvas_for_section(rows[r].voice_sec))
+                return 0;
+        }
         DoMethod(page, OM_ADDMEMBER, (IPTR)prow);
         if (devs && objs && n_out && *n_out < cap) {
             devs[*n_out] = rows[r].device;
@@ -1433,9 +1500,32 @@ int main(int argc, char **argv) {
          * render task was still producing. snd/pend are diagnostic-only
          * unsynchronized byte reads (same basis as the meter snapshot):
          * they show WHAT the engine plays after pattern selection.
-         * Remove after. */
-        if (s_live && ++hb >= 300u) {
+         * Remove after.
+         * S3 draw timing joins the window (live or not): full vs partial
+         * redraw us, max + mean, so a knob-drag session reports both. */
+        if (++hb >= 300u) {
+            ULONG dfmax = 0u, dpmax = 0u, dfsum = 0u, dpsum = 0u, dfn = 0u, dpn = 0u;
             hb = 0u;
+            for (i = 0; i < C_N; i++) {
+                struct RSectionDiag *dg = (struct RSectionDiag *)s_dg[i];
+                if (!dg)
+                    continue;
+                if (dg->df_max > dfmax)
+                    dfmax = dg->df_max;
+                if (dg->dp_max > dpmax)
+                    dpmax = dg->dp_max;
+                dfsum += dg->df_sum;
+                dpsum += dg->dp_sum;
+                dfn += (ULONG)(dg->df_n > 0 ? dg->df_n : 0);
+                dpn += (ULONG)(dg->dp_n > 0 ? dg->dp_n : 0);
+                dg->df_max = dg->df_sum = 0u;
+                dg->df_n = 0;
+                dg->dp_max = dg->dp_sum = 0u;
+                dg->dp_n = 0;
+            }
+            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu\n",
+                dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn);
+            if (s_live)
             rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us snd=%u/%u/%u/%u pend=%u/%u/%u/%u\n",
                 ri_atomic_load_acq(&s_lv.drv.buffers),
                 ri_atomic_load_acq(&s_lv.drv.xruns),

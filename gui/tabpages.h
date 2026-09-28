@@ -18,6 +18,10 @@
 #define RI_TAB_FX 4u
 #define RI_TAB_COUNT 5u
 
+/* Levi carries no pattern row (owner 2026-09-29 photo verdict: the real
+ * instrument has no pattern section); voice-only rows report this. */
+#define RI_TAB_PAT_NONE 0xFFFFFFFFu
+
 struct RITabDev {
     uint32_t device;    /* 0..3 classic */
     uint32_t voice_sec; /* RI_SEC_* voice canvas */
