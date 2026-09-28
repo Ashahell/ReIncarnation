@@ -44,6 +44,8 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Live app (§12.11)
 
+- [raw/articles/2026-09-28-ahi-lifecycle-guru.md](raw/articles/2026-09-28-ahi-lifecycle-guru.md) — **2026-09-28 — AHI lifecycle guru: teardown suspect, err-7 fallback field-confirmed.** Owner evidence (`3db1c92`): render-task guru `LibNextTagItem+0x8` parked after a normal close; next open fell back clean to null, panel usable; Suspend + restart recovers, no reboot. Suspect: teardown path wedging the driver; harden only with attribution.
+
 - [raw/articles/2026-09-28-audio-in-qemu.md](raw/articles/2026-09-28-audio-in-qemu.md) — **2026-09-28 — Audio in QEMU: scratch HDA lane, full M1.1 green, music captured.** New `riaudio` lane (clone + intel-hda/hda-duplex + wav capture); 9 drivers + device rebuilt (no-vectorize, per-TU mno-sse); fault ladder sb128→hdaudio→ReadConfig, one step per fix; probe ladder green at `0x003E0001`; RIAPP 20174 bufs 0 xruns + 31.6 s captured music; 3/3 boots green; sibling notes (evlog Lock requester, binary size, 44.1 kHz capture).
 
 - [raw/articles/2026-09-27-trademark-hygiene.md](raw/articles/2026-09-27-trademark-hygiene.md) — **2026-09-27 — Trademark hygiene: assessment, rename, sample rules.** Patents no-exposure reasoning; `REBIRTHAROS`→`REINCARNATIONAROS` + `ReBirth-101`→`ReIncarnation-101` (`489bd69`, history keeps old names); open-source samples ride the classic-01 manifest pipeline (CC0/BY only, no GPL/NC/factory); Korg ESX-1 same-difficulty read + tighten-naming recommendation.

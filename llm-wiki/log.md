@@ -1,5 +1,15 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-28] update | AROS#1281 record: r12 mechanism disputed by the end-to-end fix
+- Disposition: Disputed (Status block on the follow-up; cascade from `2026-09-28-audio-in-qemu.md`)
+- Raw: llm-wiki/raw/articles/2026-09-27-aros-1281-exchange.md
+
+## [2026-09-28] record | AHI lifecycle guru (owner evidence)
+- Disposition: New (no article covered it; evidence commit `3db1c92` grounded verbatim)
+- Raw: llm-wiki/raw/articles/2026-09-28-ahi-lifecycle-guru.md
+- Evidence: `docs/evidence/portability/ahi-lifecycle-guru.md`
+- Updated: llm-wiki/index.md (Live app (§12.11) entry)
+
 ## [2026-09-28] record | Audio in QEMU (scratch HDA lane, music captured)
 - Disposition: New (lane + rebuilds + ladder + proof; nothing covered it)
 - Raw: llm-wiki/raw/articles/2026-09-28-audio-in-qemu.md
@@ -8,6 +18,8 @@
 ## [2026-09-27] update | sb128 fault: byte-exact instruction found
 - Disposition: Update (scratch HDA lane repro: stock probe faults identically; `movaps (%rdx)` at `DriverInit+0x135` over RDX≡12; 2026-09-21 movups patch never landed; durable fix scoped to fork lane)
 - Raw: llm-wiki/raw/articles/2026-09-26-riqemu1-sb128-open-hang.md
+
+## [2026-09-27] record | Trademark hygiene slice
 - Disposition: New (assessment + rename + sample rules + Korg read; no existing article covered it)
 - Raw: n/a (session source; facts grounded in `489bd69`, `project/arexx.c:26`, `reference/packs/classic-01`, `scripts/ri_audit.sh`)
 - Updated: llm-wiki/index.md (Live app (§12.11) entry)
