@@ -61,6 +61,51 @@ int main(void) {
     RI_ASSERT(levi_trigger(&b, 1u, 64u) == 0, "trig");
     render_set(&b, ob, 2048u);
     RI_ASSERT(memcmp(oa, ob, 2048u * sizeof(float)) == 0, "deterministic");
+    /* Filter stability (Dell 2026-09-28: default 12 kHz cutoff blew the
+     * SVF to inf/NaN ~300 samples after trigger — 6 ms of sound, then
+     * permanent silence. energy() counts inf/NaN as sound, so this
+     * asserts finite + bounded instead). */
+    {
+        static const uint8_t cuts[4] = { 0u, 64u, 96u, 127u };
+        static const uint8_t resos[3] = { 0u, 64u, 127u };
+        static const uint8_t modes[2] = { 0u, 1u };
+        static const uint8_t ratios[3] = { 0u, 64u, 127u };
+        static float og[4800];
+        uint32_t ci, ri, mi, ai, k;
+        /* Defaults first (the device renders blocks before any knob
+         * apply lands): must hold a full second. */
+        levi_init_set(&a);
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        RI_ASSERT(levi_trigger(&a, 1u, 62u) == 0, "trig");
+        RI_ASSERT(levi_trigger(&a, 2u, 66u) == 0, "trig");
+        for (k = 0u; k < 10u; k++) {
+            uint32_t j;
+            render_set(&a, og, 4800u);
+            for (j = 0u; j < 4800u; j++)
+                RI_ASSERT(og[j] > -8.0f && og[j] < 8.0f, "default finite %u:%u %f", k, j, og[j]);
+        }
+        /* UI extremes grid (NaN/inf fail every comparison: one assert
+         * covers non-finite; no amplitude bound — max reso is meant
+         * to scream, stability means finite forever). */
+        for (ci = 0u; ci < 4u; ci++)
+            for (ri = 0u; ri < 3u; ri++)
+                for (mi = 0u; mi < 2u; mi++)
+                    for (ai = 0u; ai < 3u; ai++) {
+                        uint32_t j, v;
+                        levi_init_set(&a);
+                        for (v = 0u; v < RI_LEVI_NVOICES; v++) {
+                            RI_ASSERT(levi_set_param_ui(&a, v, RI_LEVI_CUTOFF, cuts[ci]) == 0, "cut");
+                            RI_ASSERT(levi_set_param_ui(&a, v, RI_LEVI_RESO, resos[ri]) == 0, "reso");
+                            RI_ASSERT(levi_set_param_ui(&a, v, RI_LEVI_MODE, modes[mi]) == 0, "mode");
+                            RI_ASSERT(levi_set_param_ui(&a, v, RI_LEVI_RATIO, ratios[ai]) == 0, "ratio");
+                        }
+                        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+                        render_set(&a, og, 4800u);
+                        for (j = 0u; j < 4800u; j++)
+                            RI_ASSERT(og[j] > -1e30f && og[j] < 1e30f, "grid %u/%u/%u/%u:%u %f",
+                                cuts[ci], resos[ri], modes[mi], ratios[ai], j, og[j]);
+                    }
+    }
     /* Params move sound; bad args fail closed. */
     levi_init_set(&a);
     RI_ASSERT(levi_trigger(&a, 0u, 60u) == 0, "trig");

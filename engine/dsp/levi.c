@@ -184,15 +184,17 @@ int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
     }
 }
 
-/* Resonant lowpass (clean-room 2-pole SVF): cutoff/reso modulate per
- * render; states flushed (denormal-safe). */
+/* Resonant lowpass (clean-room 2-pole Chamberlin SVF): cutoff/reso
+ * modulate per render; states flushed (denormal-safe). f is clamped to
+ * 1.0 (Dell 2026-09-28: the 1.8 ceiling admitted tunings past the
+ * stability limit — inf/NaN ~300 samples after trigger, latched). */
 static float lp_step(struct RILeviVoice *v, float x, float sr) {
     float f, q, hp, bp, lp;
     if (!(sr > 0.0f))
         return 0.0f;
     f = 2.0f * ri_sin(3.14159265f * v->cutoff / sr);
-    if (f > 1.8f)
-        f = 1.8f;
+    if (f > 1.0f)
+        f = 1.0f;
     if (f < 0.02f)
         f = 0.02f;
     q = 1.0f - v->reso * 0.85f;
@@ -264,6 +266,13 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {    float modsig, carp
         /* Carrier resting while modulator still rings: output is exact
          * 0 (filter states already flushed on full rest above). */
         out = 0.0f;
+    }
+    if (!(out > -1e20f && out < 1e20f)) {
+        /* Non-finite latch guard (Dell 2026-09-28): a poisoned filter
+         * state must self-heal to silence, never mute the mix. */
+        v->lp1 = 0.0f;
+        v->lp2 = 0.0f;
+        return 0.0f;
     }
     return out * v->level;
 }

@@ -87,6 +87,29 @@ int main(void) {
     RI_ASSERT(ri_core_meters(&c, &l303, &l808, &six, 48000u, 1) == 1, "meters");
     RI_ASSERT(l303 >= 0 && l808 >= 0, "levels %d %d", l303, l808);
     RI_ASSERT(ri_core_meters(0, &l303, &l808, &six, 48000u, 1) == 0, "meters null");
+    /* Full-mask demo render stays finite (Dell 2026-09-28: the Levi
+     * filter blew to NaN ~300 samples in and muted the device). */
+    {
+        static struct RIAppCore f;
+        static float ffl[4096], ffr[4096];
+        uint32_t done = 0u, k;
+        ri_core_init(&f, 96u, 48000.0f, 140.0f,
+            RI_ENGINE_S303A | RI_ENGINE_S303B | RI_ENGINE_S808 | RI_ENGINE_S909 | RI_ENGINE_SLEVI);
+        ri_core_demo(&f);
+        ri_core_play(&f);
+        while (done < 4096u) {
+            uint32_t got = ri_live_render(&f.session, ffl + done, ffr + done, 4096u - done);
+            RI_ASSERT(got > 0u, "demo renders");
+            if (!got)
+                break;
+            done += got;
+        }
+        RI_ASSERT(done == 4096u, "demo full %u", done);
+        for (k = 0u; k < 4096u; k++)
+            RI_ASSERT(ffl[k] > -8.0f && ffl[k] < 8.0f && ffr[k] > -8.0f && ffr[k] < 8.0f,
+                "demo finite %u %f %f", k, ffl[k], ffr[k]);
+        ri_core_stop(&f);
+    }
     ri_core_stop(&c);
     {
         uint32_t k, silent = 1u;
