@@ -9,7 +9,13 @@
 #define RI_PATTERN_BANK_PATTERNS   32u
 #define RI_PATTERN_KIND_303         0u
 #define RI_PATTERN_KIND_DRUM        1u
+#define RI_PATTERN_KIND_LEVI        2u /* chord steps (owner 2026-09-28) */
 #define RI_PATTERN_PAYLOAD_VERSION  1u
+
+/* Levi: per-step note lanes (drum shape, melodic content). Lane ==
+ * engine voice slot (fixed allocation, like drum lanes). */
+#define RI_LEVI_LANES 6u
+struct RILeviStep { uint8_t note[RI_LEVI_LANES]; uint8_t on; uint8_t pad; };
 
 /* 303 (spec §1.1) */
 #define RI_303_KEYS        13u   /* low C .. high C */
@@ -42,7 +48,8 @@ struct RIDrumRow { uint16_t on, high, flam; uint8_t flags; uint8_t pad; };
 struct RIPattern {
     uint8_t kind, length, payload_ver, drum_class;
     union { struct RI303Row r303[RI_PATTERN_STEPS];
-            struct RIDrumRow drum[RI_PATTERN_STEPS]; } row;
+            struct RIDrumRow drum[RI_PATTERN_STEPS];
+            struct RILeviStep levi[RI_PATTERN_STEPS]; } row;
 };
 
 struct RIPatternBank {
@@ -69,6 +76,13 @@ int  ri_p303_set(struct RIPattern *p, uint32_t step, uint8_t key, uint8_t flags)
 int  ri_pdrum_set(struct RIPattern *p, uint32_t step, uint32_t lane, uint32_t state);
 uint32_t ri_pdrum_get(const struct RIPattern *p, uint32_t step, uint32_t lane);
 int  ri_pdrum_set_ac(struct RIPattern *p, uint32_t step, int on);
+/* Levi chord steps: set one lane (note = MIDI 0..127, on = sounding).
+ * rc 2 on wrong kind / step >= 16 / lane >= RI_LEVI_LANES / note > 127.
+ * get returns the note (0xFF on bad args); on returns 1 when sounding. */
+int  ri_levi_set(struct RIPattern *p, uint32_t step, uint32_t lane,
+    uint8_t note, int on);
+uint32_t ri_levi_get(const struct RIPattern *p, uint32_t step, uint32_t lane);
+int  ri_levi_on(const struct RIPattern *p, uint32_t step, uint32_t lane);
 /* ReBirth step-button click (p. 30): 909 off->low->high->off, flam mode
  * off<->flam; 808 off<->on. Returns the new state. */
 uint32_t ri_pdrum_click(struct RIPattern *p, uint32_t step, uint32_t lane, int flam_mode);

@@ -15,7 +15,7 @@ const uint8_t RI_LANE_TO_RB909_VOICE[RI_DRUM_CLASSIC_LANES] = {
 
 void ri_pattern_init(struct RIPattern *p, uint8_t kind, uint8_t drum_class) {
     uint32_t i;
-    if (!p || kind > RI_PATTERN_KIND_DRUM)
+    if (!p || kind > RI_PATTERN_KIND_LEVI)
         return;
     /* Zero first: the union's inactive overlay has no meaning, and
      * cleared-state memcmp (sparse BANK writing, round-trip tests)
@@ -42,7 +42,7 @@ void ri_pattern_init(struct RIPattern *p, uint8_t kind, uint8_t drum_class) {
 void ri_bank_init(struct RIPatternBank *b, uint8_t instance, uint8_t kind,
     uint8_t drum_class) {
     uint32_t i;
-    if (!b || kind > RI_PATTERN_KIND_DRUM)
+    if (!b || kind > RI_PATTERN_KIND_LEVI)
         return;
     b->instance = instance;
     b->kind = kind;
@@ -70,7 +70,7 @@ int ri_pattern_valid(const struct RIPattern *p) {
     uint32_t i;
     if (!p)
         return 2;
-    if (p->kind > RI_PATTERN_KIND_DRUM)
+    if (p->kind > RI_PATTERN_KIND_LEVI)
         return 2;
     if (p->length < 1u || p->length > RI_PATTERN_STEPS)
         return 2;
@@ -82,6 +82,17 @@ int ri_pattern_valid(const struct RIPattern *p) {
                 return 2;
             if (p->row.r303[i].flags & (uint8_t)~RI_STEP_KNOWN_MASK)
                 return 2;
+        }
+        return 0;
+    }
+    if (p->kind == RI_PATTERN_KIND_LEVI) {
+        for (i = 0; i < RI_PATTERN_STEPS; i++) {
+            uint32_t l;
+            if (p->row.levi[i].on & (uint8_t)~((1u << RI_LEVI_LANES) - 1u))
+                return 2;
+            for (l = 0u; l < RI_LEVI_LANES; l++)
+                if (p->row.levi[i].note[l] > 127u)
+                    return 2;
         }
         return 0;
     }
@@ -168,6 +179,36 @@ int ri_pdrum_set_ac(struct RIPattern *p, uint32_t step, int on) {
     else
         p->row.drum[step].flags &= (uint8_t)~RI_DRUM_AC;
     return 0;
+}
+
+int ri_levi_set(struct RIPattern *p, uint32_t step, uint32_t lane,
+    uint8_t note, int on) {
+    if (!p || p->kind != RI_PATTERN_KIND_LEVI)
+        return 2;
+    if (step >= RI_PATTERN_STEPS || lane >= RI_LEVI_LANES || note > 127u)
+        return 2;
+    p->row.levi[step].note[lane] = note;
+    if (on)
+        p->row.levi[step].on |= (uint8_t)(1u << lane);
+    else
+        p->row.levi[step].on &= (uint8_t)~(1u << lane);
+    return 0;
+}
+
+uint32_t ri_levi_get(const struct RIPattern *p, uint32_t step, uint32_t lane) {
+    if (!p || p->kind != RI_PATTERN_KIND_LEVI)
+        return 0xFFu;
+    if (step >= RI_PATTERN_STEPS || lane >= RI_LEVI_LANES)
+        return 0xFFu;
+    return (uint32_t)p->row.levi[step].note[lane];
+}
+
+int ri_levi_on(const struct RIPattern *p, uint32_t step, uint32_t lane) {
+    if (!p || p->kind != RI_PATTERN_KIND_LEVI)
+        return 0;
+    if (step >= RI_PATTERN_STEPS || lane >= RI_LEVI_LANES)
+        return 0;
+    return (p->row.levi[step].on & (uint8_t)(1u << lane)) ? 1 : 0;
 }
 
 uint32_t ri_pdrum_click(struct RIPattern *p, uint32_t step, uint32_t lane,

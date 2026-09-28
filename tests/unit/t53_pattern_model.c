@@ -54,8 +54,8 @@ int main(void) {
     ri_pattern_init(&p, RI_PATTERN_KIND_303, 0);
     RI_ASSERT(ri_pattern_valid(&p) == 0, "init 303 invalid");
     RI_ASSERT(ri_pattern_valid(0) == 2, "null valid");
-    p.kind = 2u;
-    RI_ASSERT(ri_pattern_valid(&p) == 2, "kind 2");
+    p.kind = RI_PATTERN_KIND_LEVI + 1u;
+    RI_ASSERT(ri_pattern_valid(&p) == 2, "kind 3");
     p.kind = RI_PATTERN_KIND_303;
     p.length = 0u;
     RI_ASSERT(ri_pattern_valid(&p) == 2, "len 0");
