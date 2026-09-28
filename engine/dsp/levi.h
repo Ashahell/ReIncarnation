@@ -1,16 +1,30 @@
-/* levi.h — Levi FM voice bank (owner 2026-09-28, v1 slice 3a).
- * Faithful subset of the manual (pp. 35-36, 43): 2-operator FM core
- * (Freq Mod + Phase Mod; PD/HTE/morphing later), per-operator DAHDSR
+/* levi.h — Levi FM voice bank (owner 2026-09-28, v1 slice 3a + v2 slice 1).
+ * Faithful subset of the manual (pp. 35-36, 43) growing toward the
+ * hardware: 8-operator algorithms (own topologies) + custom routing,
+ * per-operator FM/PM modes (PD/PWM/Sync later), per-operator DAHDSR
  * amplitude contour, resonant lowpass, fixed 6-voice polyphony (lane ==
  * voice slot, like drum lanes). Clean-room: own code, own waves (sine
- * only v1), no ASM content. Determinism: float ri_* kernels only, no
- * RNG, no globals; idle voices return exact 0 without advancing.
+ * only v1), own topologies, no ASM content. Determinism: float ri_*
+ * kernels only, no RNG, no globals; idle voices return exact 0
+ * without advancing.
  */
 #ifndef RI_LEVI_H
 #define RI_LEVI_H
 #include <stdint.h>
 
 #define RI_LEVI_NVOICES 6u
+#define RI_LEVI_NOPS 8u
+/* Algorithm ids (own presets; 8 = custom routing, readable not settable). */
+#define RI_LEVI_ALGO_DUO 0u     /* one 2-op pair (v1 sound), rest idle */
+#define RI_LEVI_ALGO_ALLPAR 1u  /* 8 parallel carriers */
+#define RI_LEVI_ALGO_STACK8 2u  /* single 8-op chain */
+#define RI_LEVI_ALGO_STACK44 3u /* two 4-op chains */
+#define RI_LEVI_ALGO_STACK422 4u        /* 4-chain + two pairs */
+#define RI_LEVI_ALGO_PAIRS4 5u  /* four 2-op pairs */
+#define RI_LEVI_ALGO_STACK332 6u        /* 3+3+2 chains */
+#define RI_LEVI_ALGO_STACK62 7u /* 6-chain + pair */
+#define RI_LEVI_ALGO_CUSTOM 8u
+#define RI_LEVI_ALGO_N 8u
 
 /* Operator modes (manual p. 43 subset). */
 #define RI_LEVI_FM 0u
@@ -64,8 +78,12 @@ struct RILeviOp {
 struct RILeviVoice {
     uint8_t active;
     uint8_t note; /* MIDI */
-    uint8_t pad[2];
-    struct RILeviOp car, mod;
+    uint8_t algo; /* preset id, or RI_LEVI_ALGO_CUSTOM */
+    uint8_t pad;
+    struct RILeviOp op[RI_LEVI_NOPS];
+    int8_t mod_src[RI_LEVI_NOPS]; /* modulator op index, -1 = carrier */
+    uint8_t order[RI_LEVI_NOPS];  /* render order (modulators first) */
+    uint8_t live[RI_LEVI_NOPS];   /* 1 = in the graph */
     float cutoff; /* Hz */
     float reso;   /* 0..1 */
     float level;  /* voice trim */
@@ -91,6 +109,19 @@ float levi_voice_render(struct RILeviVoice *v, float sr);
 /* Sum all voices into out (render mix, rb909 pattern). */
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
     float sr);
+/* Algorithm select (preset 0..7; 8/custom is readable, not settable).
+ * Returns 0 ok, 2 bad. Selecting a preset replaces custom routing. */
+int levi_set_algo(struct RILeviSet *s, uint32_t voice, uint32_t algo);
+/* Current algorithm id (0..8); negative on bad voice/NULL. */
+int levi_algo_get(const struct RILeviSet *s, uint32_t voice);
+/* Custom routing: op's modulator (op index) or -1 for carrier; the
+ * voice becomes custom. Acyclic only: cycles/self-routes refused
+ * (returns 2, routing unchanged). Returns 0 ok, 2 bad. */
+int levi_set_route(struct RILeviSet *s, uint32_t voice, uint32_t op,
+    int src);
+/* Routing read: modulator op index, -1 carrier; -2 on bad voice/op/NULL. */
+int levi_route_get(const struct RILeviSet *s, uint32_t voice,
+    uint32_t op);
 /* Voice params; returns 0 ok, 2 bad id/voice/range/NULL. */
 int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
     float value);

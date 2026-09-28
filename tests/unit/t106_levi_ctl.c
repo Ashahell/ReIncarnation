@@ -80,7 +80,7 @@ int main(void) {
     ev.value = RI_CTL_LEVI_MODE;
     ev.flags = 127u;
     ri_engine_apply_event(&e, &ev);
-    RI_ASSERT(e.slevi.v[3].mod.mode == RI_LEVI_PM, "mode set");
+    RI_ASSERT(e.slevi.v[3].op[1].mode == RI_LEVI_PM, "mode set");
     ri_engine_apply_event(0, &ev);
     RI_RESULT("levictl");
 }
