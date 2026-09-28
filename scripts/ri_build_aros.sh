@@ -76,7 +76,8 @@ fi
 # backend structure). Gates: 0 unresolved, 0 r12 moves (v1).
 if [ "${1:-}" = riapp ]; then
   O9="$OUT/riapp"; mkdir -p "$O9"
-  CF9="${CFLAGS_AROS/-O2/-O0} -Werror -fno-stack-protector -I$ROOT -DPCF_TABLE_VERIFIED=1"
+  HASH="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo "?")"
+  CF9="${CFLAGS_AROS/-O2/-O0} -Werror -fno-stack-protector -I$ROOT -DPCF_TABLE_VERIFIED=1 -DRIAPP_BUILD_HASH=\"$HASH\""
   # Owner 2026-09-28: RIAPP ships debug builds only (-O0); audit-gated below.
   OBJS9=""
   for f in app/riapp.c app/core/live_driver.c app/core/canvas_events.c app/core/riapp_core.c project/rbnm.c gui/draw/canvas.c gui/draw/art_shared.c gui/draw/art_303.c gui/draw/art_808.c gui/draw/art_909.c gui/draw/art_levi.c gui/draw/art_mix.c gui/draw/art_fx.c gui/draw/art_pat.c gui/draw/art_tr.c gui/draw/art_section.c platform/aros/fs_aros.c platform/aros/log_aros.c platform/aros/image_dt.c platform/aros/fpu_aros.c platform/aros/pack_909.c audio_io/audio_ahi_live.c engine/engine.c engine/live.c engine/seq/clock.c engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c engine/seq/pattern.c engine/seq/pattern_emit.c engine/seq/transport.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c engine/seq/ctlplane.c engine/dsp/kernels.c engine/dsp/rb303.c engine/dsp/params.c engine/dsp/rb808.c engine/dsp/rb909.c engine/dsp/levi.c engine/fx/fx.c engine/fx/route.c engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c project/sha256.c gui/panelctl.c gui/ctlreg.c gui/panelgeo.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectlevi.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/knob_logic.c gui/knob_art.c gui/panels.c gui/visdev.c gui/tabpages.c gui/catalog.c gui/skin.c gui/skin_aros.c gui/widgets/rsection.mcc.c; do
