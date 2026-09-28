@@ -158,22 +158,22 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 3u, 1u, 0xbb7e49b3u },
     { 3u, 2u, 0xf7f85387u },
     { 3u, 3u, 0x8ea4d158u },
-    { 4u, 0u, 0x97565c26u },
-    { 4u, 1u, 0xfc095742u },
-    { 4u, 2u, 0x2f8bb97au },
-    { 4u, 3u, 0x63a79877u },
-    { 5u, 0u, 0x97565c26u },
-    { 5u, 1u, 0xfc095742u },
-    { 5u, 2u, 0x2f8bb97au },
-    { 5u, 3u, 0x63a79877u },
-    { 6u, 0u, 0x97565c26u },
-    { 6u, 1u, 0xfc095742u },
-    { 6u, 2u, 0x2f8bb97au },
-    { 6u, 3u, 0x63a79877u },
-    { 7u, 0u, 0x97565c26u },
-    { 7u, 1u, 0xfc095742u },
-    { 7u, 2u, 0x2f8bb97au },
-    { 7u, 3u, 0x63a79877u },
+    { 4u, 0u, 0xb55ebe13u },
+    { 4u, 1u, 0x478f5a5au },
+    { 4u, 2u, 0x458f1e3eu },
+    { 4u, 3u, 0x3f2f717fu },
+    { 5u, 0u, 0x97548624u },
+    { 5u, 1u, 0xfd8c7a6fu },
+    { 5u, 2u, 0x46c10a09u },
+    { 5u, 3u, 0xa0ae358bu },
+    { 6u, 0u, 0xc7e9f41cu },
+    { 6u, 1u, 0xb13149d7u },
+    { 6u, 2u, 0x799b0929u },
+    { 6u, 3u, 0x26e94c3bu },
+    { 7u, 0u, 0x35b460f8u },
+    { 7u, 1u, 0xdf7571dfu },
+    { 7u, 2u, 0x4be08a69u },
+    { 7u, 3u, 0xe18d8b2bu },
     { 8u, 0u, 0x11ace733u },
     { 8u, 1u, 0x4c4fb259u },
     { 8u, 2u, 0xbe928047u },
@@ -225,6 +225,89 @@ static uint32_t pin_lookup(uint8_t sec, uint8_t z) {
     return 0u;
 }
 
+/* Rack furniture (owner 2026-09-28): property checks, not hash pins — the
+ * owner is still tuning the look. */
+static int t_green(uint32_t c) {
+    int r = (int)(c >> 16 & 0xFF), g = (int)(c >> 8 & 0xFF), b = (int)(c & 0xFF);
+    return g > 150 && g > r + 60 && g > b + 60;
+}
+
+static void t_art(struct ri_raster *r, uint32_t *px, uint32_t w, uint32_t h,
+    void (*paint)(struct ri_dlist *, uint32_t, uint32_t, int), int arg) {
+    struct ri_dlist dl;
+    ri_dlist_init(&dl, T_BACK, 24576u, T_SPOOL, sizeof T_SPOOL);
+    paint(&dl, w, h, arg);
+    RI_ASSERT(dl.n > 0u && dl.n < dl.cap, "rack art emitted %u", dl.n);
+    ri_raster_init(r, px, w, h);
+    ri_raster_clear(r, 0xFF00FFu);
+    ri_raster_replay(r, &dl, 0);
+}
+static void p_bay(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
+    (void)a;
+    ri_art_bay(dl, 0, 0, (int)w - 1, (int)h - 1);
+}
+static void p_rail(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
+    (void)a;
+    ri_art_rack_rail(dl, 0, 0, (int)w - 1, (int)h - 1);
+}
+static void p_power(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
+    ri_art_power(dl, 0, 0, (int)w - 1, (int)h - 1, "303A", a & 1, (a >> 1) & 1);
+}
+
+static void rack_checks(uint32_t *px) {
+    struct ri_raster r;
+    uint32_t x, y, n, prev, rows = 0u, magenta = 0u, lum = 0u;
+    uint32_t on_green = 0u, off_green = 0u, lit_text = 0u, dim_text = 0u, hash_up, hash_dn;
+    /* Bay: fully covered, dark, brushed (row tones vary down a column). */
+    t_art(&r, px, 200u, 120u, p_bay, 0);
+    prev = 0xFFFFFFFFu;
+    for (y = 0u; y < 120u; y++) {
+        uint32_t c = px[y * 200u + 100u] & 0xFFFFFFu;
+        if (c != prev)
+            rows++;
+        prev = c;
+        for (x = 0u; x < 200u; x++) {
+            uint32_t p = px[y * 200u + x] & 0xFFFFFFu;
+            magenta += p == 0xFF00FFu;
+            lum += ((p >> 16 & 0xFF) + (p >> 8 & 0xFF) + (p & 0xFF)) / 3u;
+        }
+    }
+    RI_ASSERT(magenta == 0u, "bay leaves %u px uncovered", magenta);
+    RI_ASSERT(lum / (200u * 120u) < 70u, "bay too light: mean %u", lum / (200u * 120u));
+    RI_ASSERT(rows >= 40u, "bay not brushed: %u tone changes down a column", rows);
+    /* Rail: black holes and a light screw head near the top. */
+    t_art(&r, px, 18u, 200u, p_rail, 0);
+    for (n = 0u, y = 0u; y < 200u; y++)
+        n += (px[y * 18u + 9u] & 0xFFFFFFu) == 0x0C0C0Du;
+    RI_ASSERT(n >= 8u, "rail holes: %u px", n);
+    for (n = 0u, y = 0u; y < 20u; y++)
+        for (x = 4u; x < 14u; x++)
+            n += ((px[y * 18u + x] >> 8) & 0xFF) > 0xB0u;
+    RI_ASSERT(n >= 4u, "rail top screw head: %u light px", n);
+    /* Power: the glyph is the LED (green only when on); label dims off. */
+    t_art(&r, px, 90u, 26u, p_power, 1);
+    for (y = 0u; y < 26u; y++)
+        for (x = 0u; x < 26u; x++)
+            on_green += t_green(px[y * 90u + x]);
+    for (y = 0u; y < 26u; y++)
+        for (x = 30u; x < 90u; x++)
+            lit_text += ((px[y * 90u + x] >> 8) & 0xFF) > 0xD0u;
+    hash_up = ri_raster_hash(&r);
+    t_art(&r, px, 90u, 26u, p_power, 0);
+    for (y = 0u; y < 26u; y++)
+        for (x = 0u; x < 26u; x++)
+            off_green += t_green(px[y * 90u + x]);
+    for (y = 0u; y < 26u; y++)
+        for (x = 30u; x < 90u; x++)
+            dim_text += ((px[y * 90u + x] >> 8) & 0xFF) > 0xD0u;
+    RI_ASSERT(on_green >= 20u, "power on: %u green px", on_green);
+    RI_ASSERT(off_green == 0u, "power off: %u green px", off_green);
+    RI_ASSERT(lit_text >= 10u && dim_text == 0u, "label on %u / off %u bright px", lit_text, dim_text);
+    t_art(&r, px, 90u, 26u, p_power, 3);
+    hash_dn = ri_raster_hash(&r);
+    RI_ASSERT(hash_dn != hash_up, "pressed cap looks unpressed");
+}
+
 int main(void) {
     /* Max raster: 909 z2-ish bounds; 2048x1024 covers every section. */
     static uint32_t px[2048u * 1024u];
@@ -255,5 +338,6 @@ int main(void) {
         RI_ASSERT(h != 0u, "skin render");
         RI_ASSERT(h == T_SKIN_PIN, "pin skin got %08x", h);
     }
+    rack_checks(px);
     RI_RESULT("raster_goldens");
 }

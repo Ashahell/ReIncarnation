@@ -2,6 +2,7 @@
 #include "gui/draw/art.h"
 
 #include "gui/panelgeo.h"
+#include "gui/ctlreg.h"
 
 void ri_art_bg_mix(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, int master) {
     static const char *const db[5] = { "CLIP", "-6", "-12", "-24", "-36" };
@@ -18,7 +19,11 @@ void ri_art_bg_mix(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, in
         }
     } else {
         ri_art_panel(dl, ox + PX(10), oy + PX(10), ox + PX(274), oy + PX(82), ri_art_rgb(C_MIX_HEAD), 0); /* moulded header strip */
-        ri_art_text_c(dl, ox + PX(142), oy + PX(45), "MIX", C_MIX_HEADTX);
+        /* One strip per device on the Mix tab (owner 2026-09-28): name it. */
+        ri_art_text_c(dl, ox + PX(142), oy + PX(45),
+            g->section == RI_SEC_MIX_SYNTH1 ? "TB-303 A" :
+            g->section == RI_SEC_MIX_SYNTH2 ? "TB-303 B" :
+            g->section == RI_SEC_MIX_909 ? "TR-909" : "TR-808", C_MIX_HEADTX);
         ri_art_text_c(dl, ox + PX(32), oy + PX(190), "L", C_MIX_TEXT);
         ri_art_text_c(dl, ox + PX(125), oy + PX(190), "R", C_MIX_TEXT);
         ri_art_text_c(dl, ox + PX(160), oy + PX(407), "0", C_MIX_TEXT);

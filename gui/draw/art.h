@@ -72,6 +72,25 @@ const char *ri_art_legend_fx(const char *leg);
 const char *ri_art_909_opt(uint32_t opt);
 const char *ri_art_808_opt(uint32_t opt);
 
+/* Rack furniture (owner 2026-09-28): the Mix/FX bays and the device rail
+ * are dark brushed metal between steel rack rails with screws; modules
+ * sit in seams; devices switch with lit power buttons. Pure art, any size. */
+#define RI_ART_BAY_BASE 0x2A2B2Fu  /* dark anodised plate */
+#define RI_ART_RAIL_W 18           /* rack rail width, px */
+#define RI_ART_SEAM_W 2            /* one module edge; two meet as a groove */
+#define RI_ART_POWER_H 26          /* power-button chip height, px */
+/* Brushed dark plate, grain keyed to (x0, y0) so partial redraws match. */
+void ri_art_bay(struct ri_dlist *dl, int x0, int y0, int x1, int y1);
+/* Steel rack rail: vertical grain, rolled edges, 1U slotted holes, a
+ * screw in the first and last hole. */
+void ri_art_rack_rail(struct ri_dlist *dl, int x0, int y0, int x1, int y1);
+/* Module edge: right = 0 left edge, 1 right edge (dark outside). */
+void ri_art_seam(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int right);
+/* Power button chip: round moulded cap whose power glyph is the LED (lit
+ * green on, dim off), label centred right of it; pressed sinks the cap. */
+void ri_art_power(struct ri_dlist *dl, int x0, int y0, int x1, int y1, const char *label,
+    int on, int pressed);
+
 /* Backgrounds (g = geometry section, ox/oy origin, z = zoom index). */
 void ri_art_bg_303(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
 void ri_art_bg_808(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);

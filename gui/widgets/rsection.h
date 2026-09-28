@@ -46,4 +46,8 @@ void ri_rsection_dispose_class(void);
 APTR ri_rsection_create(ULONG section, LONG zoom);
 /* Redraw after the state was changed from outside (demo / automation). */
 void ri_rsection_refresh(APTR obj);
+/* Replay an app-built display list (rack furniture) with the canvas
+ * colour path; needs a section canvas set up on the same screen. */
+struct ri_dlist;
+void ri_rsection_replay(struct RastPort *rp, const struct ri_dlist *dl);
 #endif

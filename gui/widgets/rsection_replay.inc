@@ -102,10 +102,11 @@ static int rtext_width(void *ctx, const char *s) {
 static struct ri_dcmd s_dl_back[24576]; /* shaded art: ~8k cmds per 909 at 2x */
 static char s_dl_spool[32768];
 
+static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl);
+
 static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, int oy) {
     struct ri_dlist dl;
     struct ri_text_metrics tm;
-    uint32_t i;
     tm.width = rtext_width;
     tm.height = rp ? rp->TxHeight : 8;
     tm.baseline = rp ? rp->TxBaseline : 6;
@@ -113,8 +114,22 @@ static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, i
     ri_dlist_init(&dl, s_dl_back, 24576u, s_dl_spool, sizeof s_dl_spool);
     ri_draw_section(&dl, &dd->ui, dd->ui.section, (int)dd->zoom, ox, oy, &tm,
         ri_skin_aros_active(), dd->panel);
-    for (i = 0u; i < dl.n; i++) {
-        const struct ri_dcmd *c = &dl.cmd[i];
+    replay_dl(rp, &dl);
+}
+
+/* Rack furniture and other app-side art (riapp: bay, rails, power
+ * buttons) replays through the same colour path. Pens and the direct-RGB
+ * switch come from the section class's MUIM_Setup, so a section canvas
+ * must be set up on the same screen (RIAPP always has the transport). */
+void ri_rsection_replay(struct RastPort *rp, const struct ri_dlist *dl) {
+    if (rp && dl)
+        replay_dl(rp, dl);
+}
+
+static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl) {
+    uint32_t i;
+    for (i = 0u; i < dl->n; i++) {
+        const struct ri_dcmd *c = &dl->cmd[i];
         switch (c->op) {
         case RI_D_RECT:
             rrect(rp, c->x0, c->y0, c->x1, c->y1, c->rgb);

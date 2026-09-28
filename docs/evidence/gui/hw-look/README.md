@@ -69,3 +69,20 @@ Owner verdict on the first pass: the Mix and FX panels were fine but sat on wind
   - a steel rack rail at each side, drawn by a small self-drawing Area class (`RRail`, pens per screen like `RLed`), with rolled edges and slotted holes on a 1U pattern;
   - the modules touch, their tops are aligned like racked units, and the group is centred in the bay.
 - Dell captures (ABIv11, half scale): `dell-rack-mix.png`, `dell-rack-fx.png`. The FX capture came from a check build that opens on the FX page, because agent clicks do not reach the Register tabs.
+
+## Rack pass 2: brushed bay, screws, seams, strips per device, power buttons (2026-09-28)
+
+Owner asks after pass 1: give the bay a brushed look, add corner screws and lines between the panels, a fader per active device on Mix, power buttons with an indicator LED in the device rail, and a rail that shows only the active tab's devices.
+
+- **Art in the portable layer** (`gui/draw/art_shared.c`):
+  - `ri_art_bay`: a brushed dark plate (row-by-row tones plus longer bright streaks, rolled top edge).
+  - `ri_art_rack_rail`: vertical grain, rolled edges, 1U slotted holes, and a screw in the first and last hole, so a screw sits at each corner of the rack.
+  - `ri_art_seam`: module edges; two neighbours meet as a dark groove, which gives the separation lines.
+  - `ri_art_power`: a round moulded cap whose power glyph is the LED (green and glowing when on, dim when off), a label that dims when off, and a cap that sinks while pressed.
+- **Host check:** t93 checks these properties rather than hashes, because the look is still being tuned. The bay is dark, fully covered and brushed; the rail has holes and a screw head; the power glyph is green only when on, the label dims when off, and the pressed state differs. Mutants were killed. `host-rack-furniture.png` is a host preview.
+- **App** (`app/riapp.c`):
+  - `RBay` is a Group that paints the brushed plate as its own background and for every child without one, clipped to the box it is asked for.
+  - `RArt` is a self-drawing Area for rails, seams and power buttons. Both replay through `ri_rsection_replay` (the canvas colour path: exact RGB on truecolor screens).
+- **Mix tab:** four strips (TB-303 A, TB-303 B, TR-808, TR-909) sharing one mixer board. The strip headers are now named, and the t92/t93 mixer pins were re-pinned deliberately. A strip hides when its device is switched off, and each strip's meter is fed from the live snapshot.
+- **Rail:** Synths shows the two 303 buttons and Drums shows the 808 and 909. Mix and FX show all four, because those pages serve every device.
+- Dell captures (ABIv11, half scale): `dell-rack2-synths-rail.png`, `dell-rack2-mix.png`, `dell-rack2-fx.png`. The Mix and FX captures came from check builds that open on those pages.

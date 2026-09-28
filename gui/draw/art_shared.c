@@ -372,3 +372,112 @@ void ri_art_tr_key(struct ri_dlist *dl, int x0, int y0, int x1, int y1, uint32_t
         }
     }
 }
+
+/* ---- Rack furniture (owner 2026-09-28) ---- */
+
+static uint32_t art_hash(uint32_t v) {
+    v ^= v >> 16;
+    v *= 0x7FEB352Du;
+    v ^= v >> 15;
+    v *= 0x846CA68Bu;
+    v ^= v >> 16;
+    return v;
+}
+
+/* Brushed dark plate: every row its own tone (fine horizontal grain) plus
+ * a few longer bright streaks, rolled top edge and shadowed bottom. */
+void ri_art_bay(struct ri_dlist *dl, int x0, int y0, int x1, int y1) {
+    const uint32_t base = RI_ART_BAY_BASE;
+    int y, w = x1 - x0 + 1;
+    if (x1 < x0 || y1 < y0)
+        return;
+    for (y = y0; y <= y1; y++) {
+        uint32_t h = art_hash((uint32_t)(y - y0) * 2654435761u + 17u);
+        int k;
+        ri_draw_rect(dl, x0, y, x1, y, ri_art_shade(base, (int)(h % 15u) - 8));
+        for (k = 0; k < 2; k++) {
+            uint32_t s = art_hash(h + (uint32_t)k * 0x9E37u);
+            int len, sx;
+            if (s % 3u)
+                continue;
+            len = 24 + (int)((s >> 8) % 160u);
+            sx = x0 + (int)((s >> 16) % (uint32_t)(w > 1 ? w : 1));
+            ri_draw_rect(dl, sx, y, sx + len < x1 ? sx + len : x1, y,
+                ri_art_shade(base, 4 + (int)((s >> 4) % 6u)));
+        }
+    }
+    ri_draw_line(dl, x0, y0, x1, y0, ri_art_shade(base, 30));
+    if (y1 > y0)
+        ri_draw_line(dl, x0, y1, x1, y1, ri_art_shade(base, -55));
+}
+
+void ri_art_rack_rail(struct ri_dlist *dl, int x0, int y0, int x1, int y1) {
+    const uint32_t steel = 0x8E9296u;
+    int x, y, hx0, hx1, cx, n = 0, first = -1, last = -1;
+    if (x1 - x0 < 5 || y1 - y0 < 12)
+        return;
+    for (x = x0; x <= x1; x++) {       /* vertical grain */
+        uint32_t h = art_hash((uint32_t)(x - x0) + 91u);
+        ri_draw_rect(dl, x, y0, x, y1, ri_art_shade(steel, (int)(h % 9u) - 4));
+    }
+    ri_draw_rect(dl, x0, y0, x0 + 1, y1, ri_art_shade(steel, 40));
+    ri_draw_rect(dl, x1 - 1, y0, x1, y1, ri_art_shade(steel, -55));
+    ri_draw_line(dl, x0, y0, x1, y0, ri_art_shade(steel, 30));
+    ri_draw_line(dl, x0, y1, x1, y1, ri_art_shade(steel, -60));
+    cx = (x0 + x1) / 2;
+    hx0 = cx - 4;
+    hx1 = cx + 4;
+    /* 1U = 44 px: three holes, gaps 16/16/12. */
+    for (y = y0 + 8; y + 5 <= y1 - 4; n++) {
+        ri_draw_rect(dl, hx0, y, hx1, y, ri_art_shade(steel, -50));
+        ri_draw_rect(dl, hx0, y + 1, hx1, y + 4, 0x0C0C0Du);
+        ri_draw_rect(dl, hx0 + 1, y + 5, hx1 - 1, y + 5, ri_art_shade(steel, 35));
+        if (first < 0)
+            first = y;
+        last = y;
+        y += (n % 3 < 2) ? 16 : 12;
+    }
+    if (first >= 0) {
+        ri_art_screw(dl, cx, first + 2, 5, steel);
+        if (last != first)
+            ri_art_screw(dl, cx, last + 2, 5, steel);
+    }
+}
+
+void ri_art_seam(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int right) {
+    if (x1 < x0 || y1 < y0)
+        return;
+    ri_draw_rect(dl, x0, y0, x1, y1, 0x151517u);
+    if (right)
+        ri_draw_rect(dl, x1, y0, x1, y1, 0x0A0A0Bu);
+    else
+        ri_draw_rect(dl, x0, y0, x0, y1, 0x0A0A0Bu);
+}
+
+void ri_art_power(struct ri_dlist *dl, int x0, int y0, int x1, int y1, const char *label,
+    int on, int pressed) {
+    const uint32_t green = ri_art_rgb(C_MIX_GREEN);
+    int h = y1 - y0 + 1, r = h / 2 - 3, cx = x0 + h / 2, cy = (y0 + y1) / 2 + (pressed ? 1 : 0);
+    uint32_t cap_t = pressed ? 0x3C3E42u : 0x5E6166u, cap_b = pressed ? 0x222326u : 0x2A2C30u;
+    uint32_t well = pressed ? 0x2A2C30u : 0x34363Au;
+    uint32_t led = on ? green : 0x44524Au;
+    int gr = r - 4;               /* glyph ring radius */
+    if (r < 5 || x1 <= x0)
+        return;
+    ri_art_disc_grad(dl, cx + 1, (y0 + y1) / 2 + 2, r + 1, 0x0B0B0Cu, 0x0B0B0Cu); /* drop shadow */
+    ri_art_disc_grad(dl, cx, (y0 + y1) / 2, r + 1, 0x101113u, 0x1A1B1Du);          /* bezel */
+    ri_art_disc_grad(dl, cx, cy, r, cap_t, cap_b);                                 /* cap */
+    ri_art_disc_grad(dl, cx, cy, r - 2, ri_art_shade(well, -15), ri_art_shade(well, 12)); /* dish */
+    if (on)                                                                        /* glow */
+        ri_art_disc_grad(dl, cx, cy, gr + 2, ri_art_mix(well, green, 70), ri_art_mix(well, green, 50));
+    /* Power glyph = the LED: open ring with a bar through the gap. */
+    ri_art_disc_grad(dl, cx, cy, gr, ri_art_shade(led, on ? 30 : 0), led);
+    ri_art_disc_grad(dl, cx, cy, gr - 2, on ? ri_art_mix(well, green, 70) : well,
+        on ? ri_art_mix(well, green, 50) : well);
+    ri_draw_rect(dl, cx - 2, cy - gr - 1, cx + 1, cy - 1, on ? ri_art_mix(well, green, 70) : well);
+    ri_draw_rect(dl, cx - 1, cy - gr - 1, cx, cy + 1, ri_art_shade(led, on ? 45 : 5));
+    ri_draw_line(dl, cx - r + 3, cy - r + 2, cx - 2, cy - r, ri_art_shade(cap_t, 45)); /* glint */
+    if (label && label[0])
+        ri_draw_text(dl, (x0 + h + x1) / 2, (y0 + y1) / 2, 1u,
+            on ? 0xE6E8EAu : 0x8C9096u, label);
+}
