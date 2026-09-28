@@ -80,5 +80,11 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
     ri_art_text_c(dl, ox + PX(1095), oy + PX(452), "ANALOG FILTER", C_LEVI_HEAD);
     ri_art_text_c(dl, ox + PX(1300), oy + PX(452), "ENVELOPE", C_LEVI_HEAD);
     ri_art_line(dl, ox + PX(1165), oy + PX(460), ox + PX(1165), oy + PX(540), C_LEVI_RULE);
+    ri_art_text_c(dl, ox + PX(160), oy + PX(452), "ARP", C_LEVI_HEAD);
+    ri_art_text_c(dl, ox + PX(380), oy + PX(452), "SEQ", C_LEVI_HEAD);
+    ri_art_text_c(dl, ox + PX(660), oy + PX(452), "MATRIX", C_LEVI_HEAD);
+    ri_art_text_c(dl, ox + PX(950), oy + PX(452), "FX", C_LEVI_HEAD);
+    ri_art_line(dl, ox + PX(270), oy + PX(460), ox + PX(270), oy + PX(540), C_LEVI_RULE);
+    ri_art_line(dl, ox + PX(470), oy + PX(460), ox + PX(470), oy + PX(540), C_LEVI_RULE);
 #undef PX
 }

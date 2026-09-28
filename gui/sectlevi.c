@@ -39,6 +39,19 @@ int ri_slevi_press(struct RISectLevi *s, uint32_t idx) {
         s->val[RI_SLEVI_MODE] = (int16_t)(s->val[RI_SLEVI_MODE] ? 0 : 1);
         return 1;
     }
+    if (idx < RI_SLEVI_NCTL) {
+        /* Generic front-panel truth for UI-only switches (ARP/SEQ/
+         * MATRIX/FX ride here until their engines land; bound controls
+         * travel the automation path instead). Knobs arrive via set. */
+        const struct RICtlDef *d = def(s, idx);
+        if (d && d->kind == RI_CK_SWITCH && d->bind == RI_BIND_NONE) {
+            int v = s->val[idx] ? d->min_v : d->max_v;
+            if (s->val[idx] == v)
+                return 0;
+            s->val[idx] = (int16_t)v;
+            return 1;
+        }
+    }
     if (idx == RI_SLEVI_BACK) {
         s->edit_step = (uint8_t)((s->edit_step + RI_PATTERN_STEPS - 1u) % RI_PATTERN_STEPS);
         return 1;

@@ -53,11 +53,12 @@ static int valcx(uint32_t idx) {
 
 int main(void) {
     static const char *const titles[] = { "MODULE", "OSC", "ALGORITHM",
-        "DIGITAL FILTER", "ANALOG FILTER", "ENVELOPE", "LEVI" };
+        "DIGITAL FILTER", "ANALOG FILTER", "ENVELOPE", "LEVI",
+        "ARP", "SEQ", "MATRIX", "FX" };
     struct RISectUI ui;
     struct ri_dlist dl;
     uint32_t k, t;
-    int found[7] = { 0, 0, 0, 0, 0, 0, 0 };
+    int found[11] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     int bg = 0;
     /* Block order left to right across the canvas. */
     RI_ASSERT(optcx(RI_SLEVI_OPSEL) >= 0, "opsel placed");
@@ -100,14 +101,14 @@ int main(void) {
         if (dl.cmd[k].op != RI_D_TEXT || !dl.cmd[k].text)
             continue;
         RI_ASSERT(!strstr(dl.cmd[k].text, "ASM"), "no ASM mark: %s", dl.cmd[k].text);
-        for (t = 0u; t < 7u; t++)
+        for (t = 0u; t < 11u; t++)
             if (!strcmp(dl.cmd[k].text, titles[t])) {
                 RI_ASSERT(dl.cmd[k].rgb == 0xD8A93Cu, "title %s amber, got %06x",
                     titles[t], dl.cmd[k].rgb);
                 found[t] = 1;
             }
     }
-    for (t = 0u; t < 7u; t++)
+    for (t = 0u; t < 11u; t++)
         RI_ASSERT(found[t], "title missing: %s", titles[t]);
     RI_RESULT("levi_layout");
 }

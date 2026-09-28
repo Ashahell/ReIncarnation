@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 52u
+#define RI_SLEVI_NCTL 68u
 #define RI_SLEVI_SELECT 4u      /* Lane Selection: 0..5 */
 #define RI_SLEVI_MODE 2u          /* FM/PM toggle */
 #define RI_SLEVI_ALGO 37u         /* Algorithm select 0..7 */
@@ -28,6 +28,15 @@
 #define RI_SLEVI_RELEASE 49u      /* Release time */
 #define RI_SLEVI_LOOP 50u /* Envelope loop */
 #define RI_SLEVI_ALGODISP 51u   /* Central algorithm readout 1..8 */
+#define RI_SLEVI_ARPON 52u        /* Arp on (UI-only, binds later) */
+#define RI_SLEVI_ARPRATE 53u      /* Arp rate (UI-only) */
+#define RI_SLEVI_SEQON 54u        /* Seq on (UI-only) */
+#define RI_SLEVI_SEQLEN 55u       /* Seq length 1..16 (UI-only) */
+#define RI_SLEVI_ROUTE0 56u       /* Matrix routes 0..7 (UI-only) */
+#define RI_SLEVI_FXPRE 64u        /* PreFX (UI-only) */
+#define RI_SLEVI_FXDLY 65u        /* Delay (UI-only) */
+#define RI_SLEVI_FXREV 66u        /* Reverb (UI-only) */
+#define RI_SLEVI_FXPOST 67u       /* PostFX (UI-only) */
 #define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
 #define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */
 #define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */

@@ -99,6 +99,35 @@ int main(void) {
     RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGO, 5) == 1, "algo set");
     RI_ASSERT(ri_slevi_algo_display(&s) == 6, "algo display tracks");
     RI_ASSERT(ri_slevi_algo_display(0) == 0, "algo display null");
+    /* Disabled blocks (owner photo verdict): ARP/SEQ/MATRIX/FX ride the
+     * generic KNOB/SWITCH paths (UI-only, bind NONE); switches toggle
+     * on press like MODE. */
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ARPON, 1) == 1, "arpon");
+    RI_ASSERT(s.val[RI_SLEVI_ARPON] == 1, "arpon stored");
+    RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_ARPON) == 1, "arpon toggle");
+    RI_ASSERT(s.val[RI_SLEVI_ARPON] == 0, "arpon off");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ARPRATE, 200) == 1, "arprate clamp");
+    RI_ASSERT(s.val[RI_SLEVI_ARPRATE] == 127, "arprate max");
+    RI_ASSERT(ri_slevi_reset(&s, RI_SLEVI_ARPRATE) == 1, "arprate reset");
+    RI_ASSERT(s.val[RI_SLEVI_ARPRATE] == 64, "arprate default");
+    RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_SEQON) == 1, "seqon toggle");
+    RI_ASSERT(s.val[RI_SLEVI_SEQON] == 1, "seqon on");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_SEQLEN, 0) == 1, "seqlen clamp");
+    RI_ASSERT(s.val[RI_SLEVI_SEQLEN] == 1, "seqlen min");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_SEQLEN, 99) == 1, "seqlen clamp hi");
+    RI_ASSERT(s.val[RI_SLEVI_SEQLEN] == 16, "seqlen max");
+    RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_ROUTE0 + 3) == 1, "route toggle");
+    RI_ASSERT(s.val[RI_SLEVI_ROUTE0 + 3] == 1, "route on");
+    RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_ROUTE0 + 3) == 1, "route toggle back");
+    RI_ASSERT(s.val[RI_SLEVI_ROUTE0 + 3] == 0, "route off");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ROUTE0 + 7, 1) == 1, "route7 set");
+    RI_ASSERT(ri_slevi_reset(&s, RI_SLEVI_ROUTE0 + 7) == 1, "route7 reset");
+    RI_ASSERT(s.val[RI_SLEVI_ROUTE0 + 7] == 0, "route7 default");
+    RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_FXPRE) == 1, "fxpre toggle");
+    RI_ASSERT(s.val[RI_SLEVI_FXPRE] == 1, "fxpre on");
+    RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_FXPOST) == 1, "fxpost toggle");
+    RI_ASSERT(s.val[RI_SLEVI_FXPOST] == 1, "fxpost on");
+    RI_ASSERT(ri_slevi_reset(&s, RI_SLEVI_FXPOST) == 1, "fxpost reset");
     /* Fail-closed. */
     RI_ASSERT(ri_slevi_press(0, RI_SLEVI_STEP0) == 0, "press null");
     RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_NCTL) == 0, "press bad");
