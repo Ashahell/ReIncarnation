@@ -1426,3 +1426,7 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-09-28-dell-levi-proof-runs.md
 
 ## [2026-09-28] lint | 0 issues found, 0 auto-fixed
+
+## [2026-09-28] ingest | Rack pass 2 and GUI round-3 plan
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-09-28-rack-pass-2-and-gui-round3-plan.md
