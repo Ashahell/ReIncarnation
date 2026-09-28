@@ -36,11 +36,20 @@
 #define RI_LEVI_PDPULSE 6u        /* sine morphed to narrow pulse by |m| */
 #define RI_LEVI_NMODES 7u
 
+/* Filter types (own subset: SVF taps + driven 24 dB second stage). */
+#define RI_LEVI_FTYPE_LP 0u
+#define RI_LEVI_FTYPE_HP 1u
+#define RI_LEVI_FTYPE_BP 2u
+#define RI_LEVI_FTYPE_NOTCH 3u
+#define RI_LEVI_NFTYPES 4u
+
 /* Voice params (set_param ids). */
 #define RI_LEVI_CUTOFF 0u /* Hz, 40..18000 */
 #define RI_LEVI_RESO 1u   /* 0..1 */
 #define RI_LEVI_MODE 2u   /* RI_LEVI_FM/PM (modulator role) */
 #define RI_LEVI_RATIO 3u  /* modulator ratio 0.25..64 */
+#define RI_LEVI_FTYPE 4u  /* RI_LEVI_FTYPE_* */
+#define RI_LEVI_DRIVE 5u  /* 0..1 pre-drive saturation */
 /* Control-block ids (0x0E, recorded in the requirement before code). */
 #define RI_CTL_LEVI_CUTOFF 0x0E00u
 #define RI_CTL_LEVI_RESO 0x0E01u
@@ -50,6 +59,8 @@
 #define RI_CTL_LEVI_MORPH 0x0E05u /* morph position 0..100 */
 #define RI_CTL_LEVI_OPMODE 0x0E06u        /* packed op*16+mode (op 0..7, mode 0..6) */
 #define RI_CTL_LEVI_ALGOB 0x0E07u /* morph-target algorithm 0..7 */
+#define RI_CTL_LEVI_FTYPE 0x0E08u /* filter type 0..3 */
+#define RI_CTL_LEVI_DRIVE 0x0E09u /* drive 0..127 */
 
 /* E0 defaults (ledgered here; panel exposes later slices). */
 #define RI_LEVI_DEF_CUTOFF 12000.0f
@@ -107,7 +118,11 @@ struct RILeviVoice {
     float cutoff; /* Hz */
     float reso;   /* 0..1 */
     float level;  /* voice trim */
-    float lp1, lp2; /* resonant-LP state */
+    float drive;  /* 0..1 pre-drive saturation */
+    uint8_t ftype;        /* RI_LEVI_FTYPE_* */
+    uint8_t padlp[3];
+    float lp1, lp2; /* stage-1 SVF state */
+    float lp3, lp4; /* stage-2 LP state (24 dB cascade) */
 };
 
 struct RILeviSet {

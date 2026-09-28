@@ -294,6 +294,8 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 39, KNOB, "Algo", "Morph", 0, 100, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MORPH, 0),
     R(LEVI, 40, SELECTOR, "Algo", "Op", 0, 7, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 41, SELECTOR, "Algo", "Op Mode", 0, 6, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_OPMODE, 0),
+    R(LEVI, 42, SELECTOR, "Filter", "Type", 0, 3, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_FTYPE, 0),
+    R(LEVI, 43, KNOB, "Filter", "Drive", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DRIVE, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

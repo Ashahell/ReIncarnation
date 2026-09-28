@@ -69,9 +69,10 @@ int ri_slevi_set_value(struct RISectLevi *s, uint32_t idx, int v) {
         s->sel = sel;
         return 1;
     }
-    if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB) {
-        /* Plain selectors 0..7 (selector idiom, like Lane). */
-        int w = v < 0 ? 0 : v > 7 ? 7 : v;
+    if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_FTYPE) {
+        /* Plain selectors (selector idiom, like Lane). FTYPE clamps 0..3. */
+        int hi = idx == RI_SLEVI_FTYPE ? 3 : 7;
+        int w = v < 0 ? 0 : v > hi ? hi : v;
         if (s->val[idx] == w)
             return 0;
         s->val[idx] = (int16_t)w;

@@ -256,6 +256,15 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
     { SL(41), RI_GEO_OPTION, 4, 698, 140, 55, 24 },
     { SL(41), RI_GEO_OPTION, 5, 760, 140, 55, 24 },
     { SL(41), RI_GEO_OPTION, 6, 822, 140, 55, 24 },
+    /* filter block: type options + drive knob (free zones below the
+     * opmode row and the morph knob) */
+    { SL(42), RI_GEO_LEGEND, 0, 430, 182, 0, 0 },
+    { SL(42), RI_GEO_OPTION, 0, 450, 170, 55, 24 },
+    { SL(42), RI_GEO_OPTION, 1, 512, 170, 55, 24 },
+    { SL(42), RI_GEO_OPTION, 2, 574, 170, 55, 24 },
+    { SL(42), RI_GEO_OPTION, 3, 636, 170, 55, 24 },
+    { SL(43), RI_GEO_KNOB, 0, 110, 320, 44, 52 },
+    { SL(43), RI_GEO_LEGEND, 0, 110, 280, 0, 0 },
 };
 static const struct RIGeoItem RI_GEO_909[] = {
     { S9(0), RI_GEO_KNOB, 0, 60, 140, 44, 52 },

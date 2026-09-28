@@ -62,7 +62,7 @@ int main(void) {
     RI_ASSERT(ri_ctlreg_auto_id(d) == RI_CTL_LEVI_CUTOFF, "key = engine id");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_CUTOFF), "allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_MODE), "allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0E08u), "unbound refused");
+    RI_ASSERT(!ri_auto_allowed(0x0E0Au), "unbound refused");
     /* Algo block rows (owner 2026-09-28, v2 slice 1d). */
     d = find_leg(RI_SEC_LEVI, "Algorithm");
     RI_ASSERT(d && d->kind == RI_CK_SELECTOR, "algo kind");
@@ -83,6 +83,17 @@ int main(void) {
     RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_LEVI, "Op Mode")) == RI_CTL_LEVI_OPMODE, "opmode key");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_ALGO) && ri_auto_allowed(RI_CTL_LEVI_MORPH) &&
         ri_auto_allowed(RI_CTL_LEVI_OPMODE), "algo keys allowed");
+    d = find_leg(RI_SEC_LEVI, "Type");
+    RI_ASSERT(d && d->kind == RI_CK_SELECTOR, "ftype kind");
+    RI_ASSERT(d->min_v == 0 && d->max_v == 3 && d->def_v == 0, "ftype range");
+    RI_ASSERT(d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_FTYPE, "ftype bind");
+    d = find_leg(RI_SEC_LEVI, "Drive");
+    RI_ASSERT(d && d->kind == RI_CK_KNOB, "drive kind");
+    RI_ASSERT(d->min_v == 0 && d->max_v == 127 && d->def_v == 0, "drive range");
+    RI_ASSERT(d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_DRIVE, "drive bind");
+    RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_LEVI, "Type")) == RI_CTL_LEVI_FTYPE, "ftype key");
+    RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_LEVI, "Drive")) == RI_CTL_LEVI_DRIVE, "drive key");
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_FTYPE) && ri_auto_allowed(RI_CTL_LEVI_DRIVE), "filter keys allowed");
     /* Engine applies section-wide to every voice. */
     ri_engine_init(&e);
     memset(&ev, 0, sizeof ev);

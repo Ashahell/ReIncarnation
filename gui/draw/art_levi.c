@@ -55,5 +55,10 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
         n[1] = 0;
         ri_art_text_c(dl, ox + PX(450 + 62 * (int)i), oy + PX(162), n, C_CREAM);
     }
+    for (i = 0; i < 4; i++) {
+        n[0] = (char)('0' + i);
+        n[1] = 0;
+        ri_art_text_c(dl, ox + PX(450 + 62 * (int)i), oy + PX(188), n, C_CREAM);
+    }
 #undef PX
 }

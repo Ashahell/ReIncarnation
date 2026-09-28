@@ -141,6 +141,42 @@ int main(void) {
         RI_ASSERT(levi_set_op_mode(&a, 6u, 0u, RI_LEVI_PWM) == 2, "bad voice");
         RI_ASSERT(levi_set_op_mode(0, 0u, 0u, RI_LEVI_PWM) == 2, "null set");
     }
+    /* Filter types + drive (owner 2026-09-28, v2 slice 2a: SVF taps,
+     * pre-drive shaper, 24 dB second stage). Each type sounds finite
+     * and differs from LP; bad type refused. */
+    {
+        static const uint32_t types[4] = { RI_LEVI_FTYPE_LP, RI_LEVI_FTYPE_HP,
+            RI_LEVI_FTYPE_BP, RI_LEVI_FTYPE_NOTCH };
+        static float fo[4800], lp[4800];
+        uint32_t ti, j;
+        levi_init_set(&a);
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, lp, 4800u);
+        for (ti = 1u; ti < 4u; ti++) {
+            levi_init_set(&a);
+            RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_FTYPE, (float)types[ti]) == 0, "type %u", ti);
+            RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+            render_set(&a, fo, 4800u);
+            RI_ASSERT(energy(fo, 4800u) > 100u, "type %u sounds", ti);
+            for (j = 0u; j < 4800u; j++)
+                RI_ASSERT(fo[j] > -1e30f && fo[j] < 1e30f, "type %u finite", ti);
+            RI_ASSERT(memcmp(fo, lp, sizeof fo) != 0, "type %u differs", ti);
+        }
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_FTYPE, 4.0f) == 2, "bad type");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_FTYPE, -1.0f) == 2, "neg type");
+        /* Drive adds harmonics (differs), stays finite; second stage
+         * steepens (LP+drive vs dry LP differ). */
+        levi_init_set(&a);
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_DRIVE, 0.8f) == 0, "drive");
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, fo, 4800u);
+        RI_ASSERT(energy(fo, 4800u) > 100u, "drive sounds");
+        for (j = 0u; j < 4800u; j++)
+            RI_ASSERT(fo[j] > -1e30f && fo[j] < 1e30f, "drive finite");
+        RI_ASSERT(memcmp(fo, lp, sizeof fo) != 0, "drive differs");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_DRIVE, 2.0f) == 2, "drive range");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_DRIVE, -0.5f) == 2, "drive neg");
+    }
     /* Params move sound; bad args fail closed. */
     levi_init_set(&a);
     RI_ASSERT(levi_trigger(&a, 0u, 60u) == 0, "trig");

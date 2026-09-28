@@ -194,8 +194,12 @@ void levi_init_set(struct RILeviSet *s) {
         v->cutoff = RI_LEVI_DEF_CUTOFF;
         v->reso = RI_LEVI_DEF_RESO;
         v->level = 1.0f;
+        v->drive = 0.0f;
+        v->ftype = RI_LEVI_FTYPE_LP;
         v->lp1 = 0.0f;
         v->lp2 = 0.0f;
+        v->lp3 = 0.0f;
+        v->lp4 = 0.0f;
     }
 }
 
@@ -217,6 +221,8 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
     }
     v->lp1 = 0.0f;
     v->lp2 = 0.0f;
+    v->lp3 = 0.0f;
+    v->lp4 = 0.0f;
     return 0;
 }
 
@@ -269,17 +275,31 @@ int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
             if (v->live[o] && v->mod_src[o] >= 0)
                 v->op[o].ratio = value;
         return 0;
+    case RI_LEVI_FTYPE:
+        if (value != (float)RI_LEVI_FTYPE_LP && value != (float)RI_LEVI_FTYPE_HP &&
+            value != (float)RI_LEVI_FTYPE_BP && value != (float)RI_LEVI_FTYPE_NOTCH)
+            return 2;
+        v->ftype = (uint8_t)value;
+        return 0;
+    case RI_LEVI_DRIVE:
+        if (!(value >= 0.0f && value <= 1.0f))
+            return 2;
+        v->drive = value;
+        return 0;
     default:
         return 2;
     }
 }
 
-/* Resonant lowpass (clean-room 2-pole Chamberlin SVF): cutoff/reso
+/* Resonant multimode (clean-room 2-pole Chamberlin SVF + driven
+ * 24 dB LP cascade): stage 1 selects the LP/HP/BP/notch tap, drive
+ * saturates pre-filter, stage 2 re-filters the tap at the same tuning
+ * (hardware digital-into-analog path, own topology). Cutoff/reso/drive
  * modulate per render; states flushed (denormal-safe). f is clamped to
  * 1.0 (Dell 2026-09-28: the 1.8 ceiling admitted tunings past the
  * stability limit — inf/NaN ~300 samples after trigger, latched). */
 static float lp_step(struct RILeviVoice *v, float x, float sr) {
-    float f, q, hp, bp, lp;
+    float f, q, hp, bp, lp, tap, k, xd, hp2, bp2, lp2;
     if (!(sr > 0.0f))
         return 0.0f;
     f = 2.0f * ri_sin(3.14159265f * v->cutoff / sr);
@@ -290,12 +310,27 @@ static float lp_step(struct RILeviVoice *v, float x, float sr) {
     q = 1.0f - v->reso * 0.85f;
     if (q < 0.05f)
         q = 0.05f;
-    hp = x - v->lp1 * q - v->lp2;
+    k = v->drive < 0.0f ? 0.0f : v->drive > 1.0f ? 1.0f : v->drive;
+    xd = x * (1.0f + 4.0f * k) / (1.0f + 4.0f * k * (x < 0.0f ? -x : x));
+    hp = xd - v->lp1 * q - v->lp2;
     bp = v->lp1 + f * hp;
     lp = v->lp2 + f * bp;
     v->lp1 = ftz(bp);
     v->lp2 = ftz(lp);
-    return lp;
+    if (v->ftype == RI_LEVI_FTYPE_HP)
+        tap = hp;
+    else if (v->ftype == RI_LEVI_FTYPE_BP)
+        tap = bp;
+    else if (v->ftype == RI_LEVI_FTYPE_NOTCH)
+        tap = lp + hp;
+    else
+        tap = lp;
+    hp2 = tap - v->lp3 * q - v->lp4;
+    bp2 = v->lp3 + f * hp2;
+    lp2 = v->lp4 + f * bp2;
+    v->lp3 = ftz(bp2);
+    v->lp4 = ftz(lp2);
+    return lp2;
 }
 
 int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
@@ -336,6 +371,11 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
             return 2;
         return levi_set_op_mode(s, voice, op, mode);
     }
+    case (RI_CTL_LEVI_FTYPE & 0xFu): /* FTYPE */
+        return levi_set_param(s, voice, RI_LEVI_FTYPE,
+            val <= 3u ? (float)val : (float)(val >> 5));
+    case (RI_CTL_LEVI_DRIVE & 0xFu): /* DRIVE */
+        return levi_set_param(s, voice, RI_LEVI_DRIVE, (float)val / 127.0f);
     default:
         return 2;
     }
@@ -446,6 +486,8 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
         v->active = 0u;
         v->lp1 = 0.0f;
         v->lp2 = 0.0f;
+        v->lp3 = 0.0f;
+        v->lp4 = 0.0f;
         return 0.0f;
     }
     out = lp_step(v, mix, sr);
@@ -454,6 +496,8 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
          * state must self-heal to silence, never mute the mix. */
         v->lp1 = 0.0f;
         v->lp2 = 0.0f;
+        v->lp3 = 0.0f;
+        v->lp4 = 0.0f;
         return 0.0f;
     }
     return out * v->level;

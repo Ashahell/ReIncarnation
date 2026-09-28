@@ -71,6 +71,13 @@ int main(void) {
     RI_ASSERT(s.opmode[0] == 6u && s.val[RI_SLEVI_OPMODE] == 6, "opmode max");
     RI_ASSERT(ri_slevi_reset(&s, RI_SLEVI_OPMODE) == 1, "opmode reset");
     RI_ASSERT(s.opmode[0] == 0u, "opmode default");
+    /* Filter block: type clamps, drive clamps through the knob law. */
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_FTYPE, 2) == 1, "ftype");
+    RI_ASSERT(s.val[RI_SLEVI_FTYPE] == 2, "ftype stored");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_FTYPE, 9) == 1, "ftype clamp");
+    RI_ASSERT(s.val[RI_SLEVI_FTYPE] == 3, "ftype max");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_DRIVE, 200) == 1, "drive clamp");
+    RI_ASSERT(s.val[RI_SLEVI_DRIVE] == 127, "drive max");
     RI_ASSERT(ri_slevi_set_value(&s, 0u, 200) == 1, "knob clamp");
     RI_ASSERT(s.val[0] == 127, "knob max");
     RI_ASSERT(ri_slevi_set_value(&s, 0u, -5) == 1, "knob floor");

@@ -39,6 +39,8 @@ int main(void) {
         { RI_SEC_LEVI, 37u, 5, RI_CTL_LEVI_ALGO },
         { RI_SEC_LEVI, 39u, 50, RI_CTL_LEVI_MORPH },
         { RI_SEC_LEVI, 41u, 50, RI_CTL_LEVI_OPMODE },
+        { RI_SEC_LEVI, 42u, 2, RI_CTL_LEVI_FTYPE },
+        { RI_SEC_LEVI, 43u, 100, RI_CTL_LEVI_DRIVE },
         { RI_SEC_MASTER, 3u, 1, RI_AUTO_ID_MIX(RI_AUTO_STRIP_MASTER,
             RI_AUTO_MIX_DIST + RI_ROUTE_COMP) },
         { RI_SEC_PCF, 4u, 64, RI_FXID_PCF_BASE },
