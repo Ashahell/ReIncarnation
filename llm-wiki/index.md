@@ -44,6 +44,7 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Live app (§12.11)
 
+- [raw/articles/2026-09-28-gui-hardware-look-pass.md](raw/articles/2026-09-28-gui-hardware-look-pass.md) — **2026-09-28 — GUI hardware-look pass (`adc51ee`).** Critical review (all flat; 303 knobs grey vs black hardware) → shaded knobs, moulded keys, glowing LEDs, ridged faders, bezelled displays, brushed/satin plates + screws; AROS exact colour via FillPixelArray (RPTAG_FgColor ignored); t92/t93 re-pinned; Dell renders it.
 - [raw/articles/2026-09-28-ahi-lifecycle-guru.md](raw/articles/2026-09-28-ahi-lifecycle-guru.md) — **2026-09-28 — AHI lifecycle guru: teardown suspect, err-7 fallback field-confirmed.** Owner evidence (`3db1c92`): render-task guru `LibNextTagItem+0x8` parked after a normal close; next open fell back clean to null, panel usable; Suspend + restart recovers, no reboot. Suspect: teardown path wedging the driver; harden only with attribution.
 
 - [raw/articles/2026-09-28-audio-in-qemu.md](raw/articles/2026-09-28-audio-in-qemu.md) — **2026-09-28 — Audio in QEMU: scratch HDA lane, full M1.1 green, music captured.** New `riaudio` lane (clone + intel-hda/hda-duplex + wav capture); 9 drivers + device rebuilt (no-vectorize, per-TU mno-sse); fault ladder sb128→hdaudio→ReadConfig, one step per fix; probe ladder green at `0x003E0001`; RIAPP 20174 bufs 0 xruns + 31.6 s captured music; 3/3 boots green; sibling notes (evlog Lock requester, binary size, 44.1 kHz capture).

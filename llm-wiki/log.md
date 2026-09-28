@@ -1,5 +1,11 @@
 # ReIncarnation llm-wiki — log
 
+## [2026-09-28] ingest | GUI hardware-look pass
+- Disposition: New (slice record)
+- Raw: llm-wiki/raw/articles/2026-09-28-gui-hardware-look-pass.md
+- Updated: llm-wiki/index.md (Live app (§12.11) entry)
+Commit `adc51ee`; AROS colour finding cross-posted to Vulkan4AROS.
+
 ## [2026-09-28] update | AROS#1281 record: r12 mechanism disputed by the end-to-end fix
 - Disposition: Disputed (Status block on the follow-up; cascade from `2026-09-28-audio-in-qemu.md`)
 - Raw: llm-wiki/raw/articles/2026-09-27-aros-1281-exchange.md
