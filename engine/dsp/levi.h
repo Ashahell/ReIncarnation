@@ -72,25 +72,34 @@ struct RILeviEnv {
 };
 
 struct RILeviOp {
-    float phase; /* 0..1 */
-    float freq;  /* Hz at trigger (note x ratio) */
     float ratio;
     float level; /* 0..1 (Initial Level; Env Level full v1) */
-    float ps;    /* previous modulator (SYNC edge detect) */
     uint8_t mode;
     uint8_t pad[3];
+};
+
+struct RILeviOpState {
+    float phase; /* 0..1 */
+    float freq;  /* Hz at trigger (note x ratio) */
+    float ps;    /* previous modulator (SYNC edge detect) */
     struct RILeviEnv env;
 };
 
 struct RILeviVoice {
     uint8_t active;
     uint8_t note; /* MIDI */
-    uint8_t algo; /* preset id, or RI_LEVI_ALGO_CUSTOM */
-    uint8_t pad;
-    struct RILeviOp op[RI_LEVI_NOPS];
-    int8_t mod_src[RI_LEVI_NOPS]; /* who i feeds (target op), -1 = mix */
-    uint8_t order[RI_LEVI_NOPS];  /* render order (modulators first) */
-    uint8_t live[RI_LEVI_NOPS];   /* 1 = in the graph */
+    uint8_t algo; /* bank-A preset id, or RI_LEVI_ALGO_CUSTOM */
+    uint8_t algoB;        /* morph-target preset id */
+    uint8_t morph;        /* bank blend 0..100 (A->B) */
+    uint8_t pad[3];
+    struct RILeviOp op[RI_LEVI_NOPS]; /* params, shared by both banks */
+    struct RILeviOpState st[2][RI_LEVI_NOPS]; /* render states, bank A/B */
+    int8_t mod_src[RI_LEVI_NOPS]; /* bank A: who i feeds, -1 = mix */
+    int8_t mod_srcB[RI_LEVI_NOPS];        /* bank B routing */
+    uint8_t order[RI_LEVI_NOPS];  /* bank-A render order */
+    uint8_t orderB[RI_LEVI_NOPS]; /* bank-B render order */
+    uint8_t live[RI_LEVI_NOPS];   /* bank A graph */
+    uint8_t liveB[RI_LEVI_NOPS];  /* bank B graph */
     float cutoff; /* Hz */
     float reso;   /* 0..1 */
     float level;  /* voice trim */
@@ -130,6 +139,13 @@ int levi_set_route(struct RILeviSet *s, uint32_t voice, uint32_t op,
 /* Routing read: feed target op index, -1 mix; -2 on bad voice/op/NULL. */
 int levi_route_get(const struct RILeviSet *s, uint32_t voice,
     uint32_t op);
+/* Morph target select (preset 0..7) + blend position 0..100. Bank-B
+ * states start as a copy of bank A (seamless join); both banks tick
+ * every sample. Returns 0 ok, 2 bad. */
+int levi_set_morph(struct RILeviSet *s, uint32_t voice, uint32_t algoB,
+    uint32_t pos);
+/* Blend position 0..100; negative on bad voice/NULL. */
+int levi_morph_get(const struct RILeviSet *s, uint32_t voice);
 /* Voice params; returns 0 ok, 2 bad id/voice/range/NULL. */
 int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
     float value);

@@ -84,12 +84,11 @@ static int env_tick(struct RILeviEnv *e, float sr) {
     return 1;
 }
 
-static void op_reset(struct RILeviOp *o, float freq, float level) {
-    o->phase = 0.0f;
-    o->freq = freq;
-    o->level = level;
-    o->ps = 0.0f;
-    env_reset(&o->env);
+static void op_state_reset(struct RILeviOpState *st, float freq) {
+    st->phase = 0.0f;
+    st->freq = freq;
+    st->ps = 0.0f;
+    env_reset(&st->env);
 }
 
 /* Own preset topologies (functional shapes; mod_src per op, -1 = carrier).
@@ -120,41 +119,49 @@ static const uint8_t RI_LEVI_PRESET_LIVE[RI_LEVI_ALGO_N][RI_LEVI_NOPS] = {
 
 /* Render order: modulators before their carriers (depth-descending).
  * Graph is acyclic by construction (presets) or validation (custom). */
-static void order_compute(struct RILeviVoice *v) {
+static void order_compute_src(const int8_t *src, uint8_t *order) {
     uint8_t depth[RI_LEVI_NOPS], done[RI_LEVI_NOPS];
     uint32_t i, k, placed = 0u;
     for (i = 0u; i < RI_LEVI_NOPS; i++) {
         int cur = (int)i, d = 0;
         while (cur >= 0 && d <= (int)RI_LEVI_NOPS) {
-            cur = v->mod_src[cur];
+            cur = src[cur];
             d++;
         }
         depth[i] = (uint8_t)(d - 1);
         done[i] = 0u;
-        v->order[i] = (uint8_t)i;
+        order[i] = (uint8_t)i;
     }
     for (k = 0u; k < RI_LEVI_NOPS; k++) {
-        uint32_t best = RI_LEVI_NOPS, i;
+        uint32_t best = RI_LEVI_NOPS;
         for (i = 0u; i < RI_LEVI_NOPS; i++)
             if (!done[i] && (best == RI_LEVI_NOPS || depth[i] > depth[best]))
                 best = i;
         if (best == RI_LEVI_NOPS)
             break; /* unreachable: placed counts every op once */
-        v->order[placed++] = (uint8_t)best;
+        order[placed++] = (uint8_t)best;
         done[best] = 1u;
     }
     for (; placed < RI_LEVI_NOPS; placed++)
-        v->order[placed] = 0u;
+        order[placed] = 0u;
+}
+
+static void bank_preset(struct RILeviVoice *v, uint32_t bank,
+    uint32_t algo) {
+    uint32_t i;
+    int8_t *src = bank ? v->mod_srcB : v->mod_src;
+    uint8_t *ord = bank ? v->orderB : v->order;
+    uint8_t *live = bank ? v->liveB : v->live;
+    for (i = 0u; i < RI_LEVI_NOPS; i++) {
+        src[i] = RI_LEVI_PRESET_SRC[algo][i];
+        live[i] = RI_LEVI_PRESET_LIVE[algo][i];
+    }
+    order_compute_src(src, ord);
 }
 
 static void voice_preset(struct RILeviVoice *v, uint32_t algo) {
-    uint32_t i;
-    for (i = 0u; i < RI_LEVI_NOPS; i++) {
-        v->mod_src[i] = RI_LEVI_PRESET_SRC[algo][i];
-        v->live[i] = RI_LEVI_PRESET_LIVE[algo][i];
-    }
+    bank_preset(v, 0u, algo);
     v->algo = (uint8_t)algo;
-    order_compute(v);
 }
 
 void levi_init_set(struct RILeviSet *s) {
@@ -163,16 +170,25 @@ void levi_init_set(struct RILeviSet *s) {
         return;
     for (i = 0u; i < RI_LEVI_NVOICES; i++) {
         struct RILeviVoice *v = &s->v[i];
+        uint32_t b;
         v->active = 0u;
         v->note = 0u;
+        v->algoB = RI_LEVI_ALGO_DUO;
+        v->morph = 0u;
         for (o = 0u; o < RI_LEVI_NOPS; o++) {
-            v->op[o].phase = 0.0f;
-            v->op[o].freq = 440.0f;
             v->op[o].ratio = RI_LEVI_DEF_RATIO;
             v->op[o].level = 1.0f;
             v->op[o].mode = RI_LEVI_FM;
-            env_reset(&v->op[o].env);
-            v->op[o].env.stage = RI_LEVI_SEG_IDLE;
+        }
+        for (b = 0u; b < 2u; b++) {
+            bank_preset(v, b, RI_LEVI_ALGO_DUO);
+            for (o = 0u; o < RI_LEVI_NOPS; o++) {
+                v->st[b][o].phase = 0.0f;
+                v->st[b][o].freq = 440.0f;
+                v->st[b][o].ps = 0.0f;
+                env_reset(&v->st[b][o].env);
+                v->st[b][o].env.stage = RI_LEVI_SEG_IDLE;
+            }
         }
         voice_preset(v, RI_LEVI_ALGO_DUO);
         v->cutoff = RI_LEVI_DEF_CUTOFF;
@@ -186,16 +202,19 @@ void levi_init_set(struct RILeviSet *s) {
 int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
     struct RILeviVoice *v;
     float f;
-    uint32_t o;
+    uint32_t o, b;
     if (!s || voice >= RI_LEVI_NVOICES || note > 127u)
         return 2;
     v = &s->v[voice];
     f = note_hz(note);
     v->active = 1u;
     v->note = note;
-    for (o = 0u; o < RI_LEVI_NOPS; o++)
-        if (v->live[o])
-            op_reset(&v->op[o], f * v->op[o].ratio, 1.0f);
+    for (b = 0u; b < 2u; b++) {
+        uint8_t *live = b ? v->liveB : v->live;
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            if (live[o])
+                op_state_reset(&v->st[b][o], f * v->op[o].ratio);
+    }
     v->lp1 = 0.0f;
     v->lp2 = 0.0f;
     return 0;
@@ -203,14 +222,17 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
 
 void levi_release(struct RILeviSet *s, uint32_t voice) {
     struct RILeviVoice *v;
-    uint32_t o;
+    uint32_t o, b;
     if (!s || voice >= RI_LEVI_NVOICES)
         return;
     v = &s->v[voice];
-    for (o = 0u; o < RI_LEVI_NOPS; o++) {
-        if (v->live[o] && v->op[o].env.stage != RI_LEVI_SEG_IDLE) {
-            v->op[o].env.stage = RI_LEVI_SEG_R;
-            v->op[o].env.stage_t = 0.0f;
+    for (b = 0u; b < 2u; b++) {
+        uint8_t *live = b ? v->liveB : v->live;
+        for (o = 0u; o < RI_LEVI_NOPS; o++) {
+            if (live[o] && v->st[b][o].env.stage != RI_LEVI_SEG_IDLE) {
+                v->st[b][o].env.stage = RI_LEVI_SEG_R;
+                v->st[b][o].env.stage_t = 0.0f;
+            }
         }
     }
 }
@@ -299,38 +321,38 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     }
 }
 
-float levi_voice_render(struct RILeviVoice *v, float sr) {
-    float opout[RI_LEVI_NOPS] = { 0.0f }, mix = 0.0f, out;
+/* One morph-bank pass: carriers under this bank's routing into mix.
+ * Returns the carrier mix; ORs envelope activity into *any_on. */
+static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
+    int *any_on) {
+    float opout[RI_LEVI_NOPS] = { 0.0f }, mix = 0.0f;
+    const int8_t *src = bank ? v->mod_srcB : v->mod_src;
+    const uint8_t *ord = bank ? v->orderB : v->order;
+    const uint8_t *live = bank ? v->liveB : v->live;
     uint32_t k, j;
-    int any_on = 0;
-    if (!v || !v->active || !(sr > 0.0f))
-        return 0.0f;
     for (k = 0u; k < RI_LEVI_NOPS; k++) {
-        uint32_t i = v->order[k];
-        struct RILeviOp *o;
+        uint32_t i = ord[k];
+        struct RILeviOp *p = &v->op[i];
+        struct RILeviOpState *o = &v->st[bank][i];
         float m, osc;
         int on;
-        if (i >= RI_LEVI_NOPS || !v->live[i]) {
+        if (i >= RI_LEVI_NOPS || !live[i]) {
             opout[k & (RI_LEVI_NOPS - 1u)] = 0.0f;
             continue;
         }
-        o = &v->op[i];
         on = env_tick(&o->env, sr);
-        any_on |= on;
+        *any_on |= on;
         if (!on) {
             opout[i] = 0.0f;
             continue;
         }
-        /* Modulator output carries its envelope (v1 modsig law); a
-         * voice sums every feeder into its target (target semantics:
-         * mod_src[i] is who i feeds, -1 the mix). Feeders render
-         * first by topological order, so their slots are filled. */
+        /* Feeders render first by topological order, so their slots
+         * are filled (zero-init covers custom edits mid-flight). */
         m = 0.0f;
         for (j = 0u; j < RI_LEVI_NOPS; j++)
-            if (v->mod_src[j] == (int)i)
+            if (src[j] == (int)i)
                 m += opout[j];
-        /* Modulator always runs at its ratio; envelope gates depth. */
-        if (o->mode == RI_LEVI_FM)
+        if (p->mode == RI_LEVI_FM)
             o->phase += (o->freq + o->freq * RI_LEVI_MOD_INDEX * m) / sr;
         else
             o->phase += o->freq / sr;
@@ -338,7 +360,7 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
             o->phase -= 1.0f;
         if (o->phase < 0.0f)
             o->phase += 1.0f;
-        switch (o->mode) {
+        switch (p->mode) {
         case RI_LEVI_PM:
             osc = ri_sin((o->phase + RI_LEVI_MOD_INDEX * m) * 6.2831853f);
             break;
@@ -361,9 +383,9 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
         }
         case RI_LEVI_PDSQ: {
             float ph = ri_sin(o->phase * 6.2831853f);
-            float k = 2.0f * (m < 0.0f ? -m : m);
-            float a = ph < 0.0f ? -ph : ph;
-            osc = ph * (1.0f + k) / (1.0f + k * a);
+            float kk = 2.0f * (m < 0.0f ? -m : m);
+            float aa = ph < 0.0f ? -ph : ph;
+            osc = ph * (1.0f + kk) / (1.0f + kk * aa);
             break;
         }
         case RI_LEVI_PDPULSE: {
@@ -378,10 +400,28 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
             break;
         }
         o->ps = m;
-        opout[i] = osc * o->level * o->env.value;
-        if (v->mod_src[i] < 0)
+        opout[i] = osc * p->level * o->env.value;
+        if (src[i] < 0)
             mix += opout[i];
     }
+    return mix;
+}
+
+float levi_voice_render(struct RILeviVoice *v, float sr) {
+    float mixA, mixB, mix, out;
+    int any_on = 0;
+    if (!v || !v->active || !(sr > 0.0f))
+        return 0.0f;
+    mixA = voice_pass(v, 0u, sr, &any_on);
+    mixB = voice_pass(v, 1u, sr, &any_on);
+    /* Exact endpoints (bit-identity with no-morph / pure-B voices);
+     * the slide blends between them. */
+    if (v->morph == 0u)
+        mix = mixA;
+    else if (v->morph >= 100u)
+        mix = mixB;
+    else
+        mix = mixA + (mixB - mixA) * ((float)v->morph / 100.0f);
     if (!any_on) {
         v->active = 0u;
         v->lp1 = 0.0f;
@@ -441,7 +481,7 @@ int levi_set_route(struct RILeviSet *s, uint32_t voice, uint32_t op,
     v->mod_src[op] = (int8_t)src;
     v->live[op] = 1u;
     v->algo = RI_LEVI_ALGO_CUSTOM;
-    order_compute(v);
+    order_compute_src(v->mod_src, v->order);
     return 0;
 }
 
@@ -460,4 +500,27 @@ int levi_set_op_mode(struct RILeviSet *s, uint32_t voice, uint32_t op,
         return 2;
     s->v[voice].op[op].mode = (uint8_t)mode;
     return 0;
+}
+
+int levi_set_morph(struct RILeviSet *s, uint32_t voice, uint32_t algoB,
+    uint32_t pos) {
+    struct RILeviVoice *v;
+    uint32_t o;
+    if (!s || voice >= RI_LEVI_NVOICES || algoB >= RI_LEVI_ALGO_N)
+        return 2;
+    if (pos > 100u)
+        return 2;
+    v = &s->v[voice];
+    bank_preset(v, 1u, algoB);
+    v->algoB = (uint8_t)algoB;
+    for (o = 0u; o < RI_LEVI_NOPS; o++)
+        v->st[1][o] = v->st[0][o];
+    v->morph = (uint8_t)pos;
+    return 0;
+}
+
+int levi_morph_get(const struct RILeviSet *s, uint32_t voice) {
+    if (!s || voice >= RI_LEVI_NVOICES)
+        return -1;
+    return (int)s->v[voice].morph;
 }
