@@ -37,6 +37,32 @@ int main(void) {
             hits++;
     RI_ASSERT(hits >= 8u, "drum hits %u", hits);
     RI_ASSERT(c.banks[0].pat[0].row.r303[0].key == 0u, "step0 key");
+    /* Levi demo part (owner 2026-09-28: full part, Bm-G-D-A quarters
+     * under the Zombie drive; 3-note triads, lanes 3-5 rest). */
+    RI_ASSERT(c.banks[4].kind == RI_PATTERN_KIND_LEVI, "levi kind");
+    for (i = 0u; i < 32u; i++)
+        RI_ASSERT(c.banks[4].pat[i].length == 16u, "levi len %u", i);
+    {
+        static const uint8_t want[4][3] = {
+            { 59u, 62u, 66u }, { 55u, 59u, 62u }, { 62u, 66u, 69u }, { 57u, 61u, 64u }
+        };
+        static const uint32_t steps[4] = { 0u, 4u, 8u, 12u };
+        uint32_t q, lane;
+        for (q = 0u; q < 4u; q++)
+            for (lane = 0u; lane < 6u; lane++) {
+                int on = ri_levi_on(&c.banks[4].pat[0], steps[q], lane);
+                uint32_t note = ri_levi_get(&c.banks[4].pat[0], steps[q], lane);
+                if (lane < 3u) {
+                    RI_ASSERT(on == 1, "levi q%u lane%u on", q, lane);
+                    RI_ASSERT(note == want[q][lane], "levi q%u lane%u note %u", q, lane, note);
+                } else {
+                    RI_ASSERT(on == 0, "levi q%u lane%u rest", q, lane);
+                }
+            }
+        for (i = 1u; i < 4u; i++)
+            for (lane = 0u; lane < 6u; lane++)
+                RI_ASSERT(ri_levi_on(&c.banks[4].pat[0], i, lane) == 0, "levi step%u rest", i);
+    }
     /* Transport + render through the owned session. */
     ri_core_play(&c);
     {

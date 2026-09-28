@@ -49,8 +49,10 @@ void ri_core_demo(struct RIAppCore *c) {
     ri_bank_init(bb, 1u, RI_PATTERN_KIND_303, 0u);
     ri_bank_init(b808, 2u, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_808);
     ri_bank_init(b909, 3u, RI_PATTERN_KIND_DRUM, RI_DRUM_CLASS_909);
-    /* Levi: silent until programmed (303B precedent, owner taste later). */
     ri_bank_init(blevi, 4u, RI_PATTERN_KIND_LEVI, 0u);
+    /* Levi demo part (owner 2026-09-28: full part). Bm-G-D-A quarter
+     * triads under the Zombie drive; 3-note voicings, lanes 3-5 rest.
+     * Supports the 303A line, never fights the drums. */
     for (i = 0u; i < 32u; i++) {
         ri_pattern_set_length(&ba->pat[i], 16u);
         ri_pattern_set_length(&bb->pat[i], 16u);
@@ -85,6 +87,21 @@ void ri_core_demo(struct RIAppCore *c) {
     ri_pdrum_set_ac(&b909->pat[0], 12u, 1);
     ri_pdrum_set(&b909->pat[0], 14u, RI_L909_HT, RI_HIT_LOW);
     ri_pdrum_set(&b909->pat[0], 15u, RI_L909_OH, RI_HIT_LOW);
+    /* Levi demo part (owner 2026-09-28: full part). Bm-G-D-A quarter
+     * triads under the Zombie drive; 3-note voicings, lanes 3-5 rest.
+     * Supports the 303A line, never fights the drums. */
+    ri_levi_set(&blevi->pat[0], 0u, 0u, 59u, 1);
+    ri_levi_set(&blevi->pat[0], 0u, 1u, 62u, 1);
+    ri_levi_set(&blevi->pat[0], 0u, 2u, 66u, 1);
+    ri_levi_set(&blevi->pat[0], 4u, 0u, 55u, 1);
+    ri_levi_set(&blevi->pat[0], 4u, 1u, 59u, 1);
+    ri_levi_set(&blevi->pat[0], 4u, 2u, 62u, 1);
+    ri_levi_set(&blevi->pat[0], 8u, 0u, 62u, 1);
+    ri_levi_set(&blevi->pat[0], 8u, 1u, 66u, 1);
+    ri_levi_set(&blevi->pat[0], 8u, 2u, 69u, 1);
+    ri_levi_set(&blevi->pat[0], 12u, 0u, 57u, 1);
+    ri_levi_set(&blevi->pat[0], 12u, 1u, 61u, 1);
+    ri_levi_set(&blevi->pat[0], 12u, 2u, 64u, 1);
     ri_track_init(&c->track);
 }
 
