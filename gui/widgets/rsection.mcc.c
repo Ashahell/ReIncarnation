@@ -23,17 +23,21 @@
 #endif
 
 #include <exec/types.h>
+#include <exec/devices.h>
+#include <stdint.h>
 #include <intuition/classes.h>
 #include <intuition/classusr.h>
 #include <intuition/intuition.h>
 #include <graphics/rastport.h>
 #include <graphics/view.h>
 #include <devices/inputevent.h>
+#include <devices/timer.h>
 #include <utility/tagitem.h>
 #include <libraries/mui.h>
 #include <proto/exec.h>
 #include <proto/intuition.h>
 #include <proto/graphics.h>
+#include <proto/timer.h>
 #define __CYBERGRAPHICS_LIBBASE s_rcyber
 #include <cybergraphx/cybergraphics.h>
 #include <inline/cybergraphics.h>
@@ -73,7 +77,39 @@ struct RSectionData {
     struct RastPort brp;
     int bw, bh;
     char help[64];             /* bubble text for the control under the pointer */
+    int dmg_x0, dmg_y0, dmg_x1, dmg_y1; /* S3: canvas-local damage box */
+    BOOL dmg_valid;
 };
+
+/* EClock draw timing (S3 Dell proof): UNIT_ECLOCK opened once, GUI side.
+ * TimerBase is weak: RIAPP already defines it strong (audio task side);
+ * standalone links (RISECT) resolve to this zero fallback. */
+__attribute__((weak)) struct Device *TimerBase;
+static struct MsgPort *s_tport;
+static struct timerequest *s_treq;
+static ULONG s_efreq;
+
+static void eclock_open(void) {
+    struct EClockVal t0;
+    if (TimerBase)
+        return;
+    s_tport = CreateMsgPort();
+    if (s_tport)
+        s_treq = (struct timerequest *)CreateIORequest(s_tport, sizeof *s_treq);
+    if (s_treq && OpenDevice((STRPTR)"timer.device", UNIT_ECLOCK,
+        (struct IORequest *)s_treq, 0) == 0) {
+        TimerBase = s_treq->tr_node.io_Device;
+        s_efreq = ReadEClock(&t0);
+    }
+}
+
+static ULONG eclock_us(const struct EClockVal *a, const struct EClockVal *b) {
+    uint64_t x = ((uint64_t)a->ev_hi << 32) | (uint64_t)a->ev_lo;
+    uint64_t y = ((uint64_t)b->ev_hi << 32) | (uint64_t)b->ev_lo;
+    if (y < x || !s_efreq)
+        return 0u;
+    return (ULONG)((y - x) * 1000000ULL / s_efreq);
+}
 
 /* Own cybergraphics base for exact-colour fills (never the knob_blit global). */
 static struct Library *s_rcyber;
@@ -114,9 +150,14 @@ static void buf_free(struct RSectionData *d) {
     d->bw = d->bh = 0;
 }
 
+static const struct RIGeoSection *geo(const struct RSectionData *d);
+
 static void draw_frame(Object *obj, struct RSectionData *d) {
     struct RastPort *wrp = _rp(obj);
     int w = _mwidth(obj), h = _mheight(obj);
+    struct EClockVal t0, t1;
+    int timed = 0;
+    ULONG us;
     if (w <= 0 || h <= 0)
         return;
     if (!d->bm || d->bw != w || d->bh != h) {
@@ -128,20 +169,80 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
             d->bw = w;
             d->bh = h;
         }
+        d->dmg_valid = FALSE; /* fresh bitmap: full paint below */
     }
     if (!d->bm) {
         draw_section(wrp, d, _mleft(obj), _mtop(obj));
         return;
     }
     SetFont(&d->brp, wrp->Font);
+    eclock_open();
+    if (TimerBase && s_efreq) {
+        ReadEClock(&t0);
+        timed = 1;
+    }
+    if (d->dmg_valid) {
+        struct ri_dlist dl;
+        int x0 = d->dmg_x0, y0 = d->dmg_y0, x1 = d->dmg_x1, y1 = d->dmg_y1;
+        d->dmg_valid = FALSE;
+        if (x0 < 0) x0 = 0;
+        if (y0 < 0) y0 = 0;
+        if (x1 >= w) x1 = w - 1;
+        if (y1 >= h) y1 = h - 1;
+        if (x1 >= x0 && y1 >= y0) {
+            build_dl(&d->brp, d, 0, 0, &dl); /* CPU only; cheap vs blits */
+            if (replay_dl_dmg(&d->brp, &dl, x0, y0, x1, y1)) {
+                BltBitMapRastPort(d->bm, x0, y0, wrp, _mleft(obj) + x0, _mtop(obj) + y0,
+                    x1 - x0 + 1, y1 - y0 + 1, 0xC0);
+                if (timed) {
+                    ReadEClock(&t1);
+                    us = eclock_us(&t0, &t1);
+                    if (us > d->diag.dp_max)
+                        d->diag.dp_max = us;
+                    d->diag.dp_sum += us;
+                    d->diag.dp_n++;
+                }
+                return;
+            }
+            /* bail-out (system text / imageless skin): full below */
+        }
+    }
     draw_section(&d->brp, d, 0, 0);
     BltBitMapRastPort(d->bm, 0, 0, wrp, _mleft(obj), _mtop(obj), w, h, 0xC0);
+    if (timed) {
+        ReadEClock(&t1);
+        us = eclock_us(&t0, &t1);
+        if (us > d->diag.df_max)
+            d->diag.df_max = us;
+        d->diag.df_sum += us;
+        d->diag.df_n++;
+    }
+}
+
+static void changed_id(Object *obj, struct RSectionData *d, uint16_t hit) {
+    d->changes++;
+    SetAttrs(obj, MUIA_RSection_Changes, d->changes, TAG_DONE);
+    /* S3: a damage-box id repaints its box (DRAWUPDATE); wide controls,
+     * unknown boxes and keys (panel routing may touch any canvas) go full. */
+    if (hit != 0xFFFFu && !ri_geo_wide(hit) && d->bm) {
+        const struct RIGeoSection *g = geo(d);
+        int x0, y0, x1, y1;
+        if (g && ri_geo_bbox(g, hit, (int)d->zoom, &x0, &y0, &x1, &y1) == 0) {
+            d->dmg_x0 = x0;
+            d->dmg_y0 = y0;
+            d->dmg_x1 = x1;
+            d->dmg_y1 = y1;
+            d->dmg_valid = TRUE;
+            MUI_Redraw(obj, MADF_DRAWUPDATE);
+            return;
+        }
+    }
+    d->dmg_valid = FALSE;
+    MUI_Redraw(obj, MADF_DRAWOBJECT);
 }
 
 static void changed(Object *obj, struct RSectionData *d) {
-    d->changes++;
-    SetAttrs(obj, MUIA_RSection_Changes, d->changes, TAG_DONE);
-    MUI_Redraw(obj, MADF_DRAWOBJECT);
+    changed_id(obj, d, d->diag.last_hit);
 }
 
 static const struct RIGeoSection *geo(const struct RSectionData *d) {
@@ -170,6 +271,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
         d->changes = 0;
         ri_cev_init(&d->cev);
         d->shown = FALSE;
+        d->dmg_valid = FALSE;
         d->panel = (struct RIPanelUI *)GetTagData(MUIA_RSection_Panel, 0, s->ops_AttrList);
         d->key_owner = (BOOL)GetTagData(MUIA_RSection_KeyOwner, FALSE, s->ops_AttrList);
         return (IPTR)o;
@@ -280,7 +382,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             return (IPTR)0;
         if (im->Class == IDCMP_INTUITICKS) {   /* held arrow repeats (p. 18) */
             if (ri_cev_tick(&d->cev, &d->ui) & RI_CEV_CHANGED)
-                changed(obj, d);
+                changed_id(obj, d, d->cev.rep_idx);
             return (IPTR)0;
         }
         d->diag.events++;
@@ -288,7 +390,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             uint32_t r = ri_cev_key(&d->cev, &d->ui, d->panel,
                 d->key_owner ? 1 : 0, im->Code, im->Qualifier);
             if (r & RI_CEV_CHANGED)
-                changed(obj, d);
+                changed_id(obj, d, 0xFFFFu); /* panel routing: full */
             return (r & RI_CEV_EAT) ? (IPTR)MUI_EventHandlerRC_Eat : (IPTR)0;
         }
         if (im->Class == IDCMP_MOUSEBUTTONS) {
@@ -312,7 +414,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             int fine = (im->Qualifier & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) != 0;
             uint32_t r = ri_cev_move(&d->cev, &d->ui, im->MouseX, im->MouseY, fine);
             if (r & RI_CEV_CHANGED)
-                changed(obj, d);
+                changed_id(obj, d, d->cev.drag_id);
             return (r & RI_CEV_EAT) ? (IPTR)MUI_EventHandlerRC_Eat : (IPTR)0;
         }
         return (IPTR)0;
@@ -338,6 +440,18 @@ void ri_rsection_dispose_class(void) {
         s_rsection_class = NULL;
     }
     face_templates_free();
+    if (TimerBase && s_treq) {
+        CloseDevice((struct IORequest *)s_treq);
+        TimerBase = NULL;
+    }
+    if (s_treq) {
+        DeleteIORequest((struct IORequest *)s_treq);
+        s_treq = NULL;
+    }
+    if (s_tport) {
+        DeleteMsgPort(s_tport);
+        s_tport = NULL;
+    }
     if (s_rcyber) {
         CloseLibrary(s_rcyber);
         s_rcyber = NULL;
@@ -359,4 +473,37 @@ APTR ri_rsection_create(ULONG section, LONG zoom) {
 void ri_rsection_refresh(APTR obj) {
     if (obj)
         MUI_Redraw((Object *)obj, MADF_DRAWOBJECT);
+}
+
+void ri_rsection_refresh_box(APTR obj, int x0, int y0, int x1, int y1) {
+    Object *o = (Object *)obj;
+    struct RSectionData *d;
+    int w, h;
+    if (!o)
+        return;
+    if (!s_rsection_class || x1 < x0 || y1 < y0) {
+        MUI_Redraw(o, MADF_DRAWOBJECT);
+        return;
+    }
+    d = (struct RSectionData *)INST_DATA(s_rsection_class->mcc_Class, o);
+    w = _mwidth(o);
+    h = _mheight(o);
+    if (w <= 0 || h <= 0 || !d->bm) {
+        MUI_Redraw(o, MADF_DRAWOBJECT);
+        return;
+    }
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x1 >= w) x1 = w - 1;
+    if (y1 >= h) y1 = h - 1;
+    if (x1 < x0 || y1 < y0) {
+        MUI_Redraw(o, MADF_DRAWOBJECT);
+        return;
+    }
+    d->dmg_x0 = x0;
+    d->dmg_y0 = y0;
+    d->dmg_x1 = x1;
+    d->dmg_y1 = y1;
+    d->dmg_valid = TRUE;
+    MUI_Redraw(o, MADF_DRAWUPDATE);
 }

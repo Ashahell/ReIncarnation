@@ -20,6 +20,9 @@ void ri_raster_init(struct ri_raster *r, uint32_t *backing, uint32_t w, uint32_t
 void ri_raster_clear(struct ri_raster *r, uint32_t rgb);
 void ri_raster_replay(struct ri_raster *r, const struct ri_dlist *dl,
     const struct RISkin *skin);
+/* S3 partial replay: skip commands missing the box, clip the rest to it. */
+void ri_raster_replay_box(struct ri_raster *r, const struct ri_dlist *dl,
+    const struct RISkin *skin, int x0, int y0, int x1, int y1);
 uint32_t ri_raster_hash(const struct ri_raster *r);
 /* 5x7 face metrics (matches the replay centering). */
 #define RI_RASTER_GLYPH_W 5u

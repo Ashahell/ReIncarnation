@@ -228,16 +228,234 @@ static char s_dl_spool[32768];
 
 static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl);
 
-static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, int oy) {
-    struct ri_dlist dl;
+/* Display-list backing: one GUI task draws at a time (MUI app task). */
+static struct ri_dcmd s_dl_back[24576]; /* shaded art: ~8k cmds per 909 at 2x */
+static char s_dl_spool[32768];
+
+static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl);
+
+/* S3 damage replay into an off-screen bitmap: only commands hitting the
+ * box paint, clipped to it. Rects/spans intersect; lines clip
+ * (Cohen–Sutherland, integer); face glyphs take BltTemplate when fully
+ * inside, else per-pixel exact fills; skin parts sub-blit. Returns 1 ok,
+ * 0 = bail to a full redraw (system-font text, or an image straddling
+ * the box with no cybergraphics). Sections always carry a face (S2), and
+ * Classic has no images, so bailouts stay off the hot path. */
+static int dmg_empty(int x0, int y0, int x1, int y1) {
+    return x1 < x0 || y1 < y0;
+}
+
+static void dmg_rect(int *x0, int *y0, int *x1, int *y1, int dx0, int dy0, int dx1, int dy1) {
+    if (*x0 < dx0) *x0 = dx0;
+    if (*y0 < dy0) *y0 = dy0;
+    if (*x1 > dx1) *x1 = dx1;
+    if (*y1 > dy1) *y1 = dy1;
+}
+
+static int dmg_clip_line(int *x0, int *y0, int *x1, int *y1, int dx0, int dy0, int dx1, int dy1) {
+    int c0, c1;
+    for (;;) {
+        c0 = (*x0 < dx0 ? 1 : *x0 > dx1 ? 2 : 0) | (*y0 < dy0 ? 4 : *y0 > dy1 ? 8 : 0);
+        c1 = (*x1 < dx0 ? 1 : *x1 > dx1 ? 2 : 0) | (*y1 < dy0 ? 4 : *y1 > dy1 ? 8 : 0);
+        if (!(c0 | c1))
+            return 1;
+        if (c0 & c1)
+            return 0;
+        {
+            int c = c0 ? c0 : c1, *x = c0 ? x0 : x1, *y = c0 ? y0 : y1;
+            if (c & 1)
+                *y = *y0 + (*y1 - *y0) * (dx0 - *x0) / (*x1 != *x0 ? *x1 - *x0 : 1), *x = dx0;
+            else if (c & 2)
+                *y = *y0 + (*y1 - *y0) * (dx1 - *x0) / (*x1 != *x0 ? *x1 - *x0 : 1), *x = dx1;
+            else if (c & 4)
+                *x = *x0 + (*x1 - *x0) * (dy0 - *y0) / (*y1 != *y0 ? *y1 - *y0 : 1), *y = dy0;
+            else
+                *x = *x0 + (*x1 - *x0) * (dy1 - *y0) / (*y1 != *y0 ? *y1 - *y0 : 1), *y = dy1;
+        }
+    }
+}
+
+static void rrect_dmg(struct RastPort *rp, int x0, int y0, int x1, int y1, uint32_t rgb,
+    int dx0, int dy0, int dx1, int dy1) {
+    dmg_rect(&x0, &y0, &x1, &y1, dx0, dy0, dx1, dy1);
+    if (!dmg_empty(x0, y0, x1, y1))
+        rrect(rp, x0, y0, x1, y1, rgb);
+}
+
+static void rline_dmg(struct RastPort *rp, int x0, int y0, int x1, int y1, uint32_t rgb,
+    int dx0, int dy0, int dx1, int dy1) {
+    if (dmg_clip_line(&x0, &y0, &x1, &y1, dx0, dy0, dx1, dy1))
+        rline(rp, x0, y0, x1, y1, rgb);
+}
+
+static void rcircle_dmg(struct RastPort *rp, int cx, int cy, int r, uint32_t rgb,
+    int dx0, int dy0, int dx1, int dy1) {
+    int dy;
+    if (r < 0)
+        return;
+    rpen(rp, rgb);
+    for (dy = -r; dy <= r; dy++) {
+        int dx = r, y = cy + dy, x0, x1;
+        while (dx > 0 && dx * dx + dy * dy > r * r)
+            dx--;
+        if (y < dy0 || y > dy1)
+            continue;
+        x0 = cx - dx;
+        x1 = cx + dx;
+        dmg_rect(&x0, &y, &x1, &y, dx0, dy0, dx1, dy1);
+        if (!dmg_empty(x0, y, x1, y)) {
+            if (!rfill_rgb(rp, x0, y, x1, y, rgb))
+                RectFill(rp, x0, y, x1, y);
+        }
+    }
+}
+
+/* Face glyph at (x, top), w x hh: template when fully inside, per-pixel
+ * exact fills when straddling (glyphs are tiny; straddles are rare). */
+static void rglyph_dmg(struct RastPort *rp, const struct ri_glyph *gl, int x, int top, int hh,
+    uint32_t rgb, int face_id, int off, int dx0, int dy0, int dx1, int dy1) {
+    int r, cc;
+    if (gl->w <= 0)
+        return;
+    if (x >= dx0 && top >= dy0 && x + gl->w - 1 <= dx1 && top + hh - 1 <= dy1 &&
+        s_face_plane[face_id - 1]) {
+        BltTemplate(s_face_plane[face_id - 1] + (off / 16) * 2, (WORD)(off % 16),
+            (WORD)s_face_rb[face_id - 1], rp, (WORD)x, (WORD)top, (WORD)gl->w, (WORD)hh);
+        return;
+    }
+    for (r = 0; r < hh; r++) {
+        int y = top + r;
+        if (y < dy0 || y > dy1)
+            continue;
+        for (cc = 0; cc < gl->w; cc++) {
+            int px = x + cc;
+            if ((gl->rows[r] & (0x8000u >> cc)) && px >= dx0 && px <= dx1)
+                rrect(rp, px, y, px, y, rgb);
+        }
+    }
+}
+
+static int rtext_face_dmg(struct RastPort *rp, int cx, int cy, const char *s, uint32_t rgb,
+    int face_id, int dx0, int dy0, int dx1, int dy1) {
+    const struct ri_face *f = ri_face_by_id(face_id);
+    int w, x0, base, top, hh, x, i;
+    if (!rp || !f || !s || !s[0])
+        return 1;
+    w = 0;
+    for (i = 0; s[i]; i++) {
+        unsigned c = (unsigned char)s[i];
+        if (c >= 32u && c <= 126u)
+            w += (int)f->g[c - 32u].w + (int)f->adv_gap;
+    }
+    if (!w)
+        return 1;
+    x0 = cx - w / 2;
+    base = cy + (int)f->cap / 2;
+    top = base - (int)f->asc;
+    hh = (int)f->asc + (int)f->desc;
+    rpen(rp, rgb);
+    SetDrMd(rp, JAM1);
+    if (!s_face_built && !s_face_failed)
+        face_templates_build();
+    x = x0;
+    for (i = 0; s[i]; i++) {
+        unsigned c = (unsigned char)s[i];
+        if (c < 32u || c > 126u)
+            continue;
+        rglyph_dmg(rp, &f->g[c - 32u], x, top, hh, rgb, face_id,
+            (int)s_face_off[face_id - 1][c - 32u], dx0, dy0, dx1, dy1);
+        x += (int)f->g[c - 32u].w + (int)f->adv_gap;
+    }
+    return 1;
+}
+
+/* Skin part sub-blit clipped to the damage box (WritePixelArrayAlpha takes
+ * source offsets). 1 ok (incl. nothing to do), 0 = bail to full redraw. */
+static int image_dmg(struct RastPort *rp, const struct RISkin *skin, int idx, uint32_t frame,
+    int dx, int dy, int dx0, int dy0, int dx1, int dy1) {
+    const uint32_t *px;
+    uint32_t w, h, fh;
+    int ix0, iy0, ix1, iy1;
+    ULONG rc;
+    if (!skin)
+        return 1;
+    if (idx < 0 || idx >= (int)RI_SKIN_MAX_PARTS)
+        return 1;
+    px = skin->parts[idx].zrgba;
+    w = skin->parts[idx].zw;
+    h = skin->parts[idx].zh;
+    if (!px || !w || !h || skin->parts[idx].frames == 0u)
+        return 1;
+    fh = h / skin->parts[idx].frames;
+    if (!fh)
+        return 1;
+    if (frame >= skin->parts[idx].frames)
+        frame = skin->parts[idx].frames - 1u;
+    ix0 = dx > dx0 ? dx : dx0;
+    iy0 = dy > dy0 ? dy : dy0;
+    ix1 = dx + (int)w - 1 < dx1 ? dx + (int)w - 1 : dx1;
+    iy1 = dy + (int)fh - 1 < dy1 ? dy + (int)fh - 1 : dy1;
+    if (ix1 < ix0 || iy1 < iy0)
+        return 1;
+    if (!s_rcyber)
+        return 0;
+    rc = WritePixelArrayAlpha((APTR)(px + frame * fh * w), (WORD)(ix0 - dx), (WORD)(iy0 - dy),
+        (UWORD)(w * 4u), rp, (WORD)ix0, (WORD)iy0, (UWORD)(ix1 - ix0 + 1), (UWORD)(iy1 - iy0 + 1),
+        0xffffffffUL);
+    return rc ? 1 : 1;
+}
+
+static int replay_dl_dmg(struct RastPort *rp, const struct ri_dlist *dl,
+    int dx0, int dy0, int dx1, int dy1) {
+    uint32_t i;
+    for (i = 0u; i < dl->n; i++) {
+        const struct ri_dcmd *c = &dl->cmd[i];
+        if (!ri_dcmd_hits_box(c, dx0, dy0, dx1, dy1))
+            continue;
+        switch (c->op) {
+        case RI_D_RECT:
+            rrect_dmg(rp, c->x0, c->y0, c->x1, c->y1, c->rgb, dx0, dy0, dx1, dy1);
+            break;
+        case RI_D_LINE:
+            rline_dmg(rp, c->x0, c->y0, c->x1, c->y1, c->rgb, dx0, dy0, dx1, dy1);
+            break;
+        case RI_D_CIRCLE:
+            rcircle_dmg(rp, c->x0, c->y0, c->x1, c->rgb, dx0, dy0, dx1, dy1);
+            break;
+        case RI_D_TEXT:
+            if (!c->pad[0])
+                return 0; /* system text: bail to full */
+            rtext_face_dmg(rp, c->x0, c->y0, c->text, c->rgb, c->pad[0], dx0, dy0, dx1, dy1);
+            break;
+        case RI_D_IMAGE:
+            if (!image_dmg(rp, ri_skin_aros_active(), (int)c->img, c->frame, c->x0, c->y0,
+                dx0, dy0, dx1, dy1))
+                return 0;
+            break;
+        case RI_D_CLIP:
+            break;
+        default:
+            break;
+        }
+    }
+    return 1;
+}
+
+static void build_dl(struct RastPort *rp, struct RSectionData *dd, int ox, int oy,
+    struct ri_dlist *dl) {
     struct ri_text_metrics tm;
     tm.width = rtext_width;
     tm.height = rp ? rp->TxHeight : 8;
     tm.baseline = rp ? rp->TxBaseline : 6;
     tm.ctx = rp;
-    ri_dlist_init(&dl, s_dl_back, 24576u, s_dl_spool, sizeof s_dl_spool);
-    ri_draw_section(&dl, &dd->ui, dd->ui.section, (int)dd->zoom, ox, oy, &tm,
+    ri_dlist_init(dl, s_dl_back, 24576u, s_dl_spool, sizeof s_dl_spool);
+    ri_draw_section(dl, &dd->ui, dd->ui.section, (int)dd->zoom, ox, oy, &tm,
         ri_skin_aros_active(), dd->panel);
+}
+
+static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, int oy) {
+    struct ri_dlist dl;
+    build_dl(rp, dd, ox, oy, &dl);
     replay_dl(rp, &dl);
 }
 

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <png.h>
 #include "gui/draw/font_legend.h"
+#include "gui/draw/canvas.h"
 
 /* Clean-room 5x7 face (bit0 = left pixel). Uppercase + digits + marks. */
 static const uint8_t RI_FONT[43][7] = {
@@ -96,6 +97,10 @@ void ri_raster_init(struct ri_raster *r, uint32_t *backing, uint32_t w, uint32_t
     r->h = (backing && h) ? h : 0u;
 }
 
+/* S3 damage clip: when on, every op is confined to the box (inclusive). */
+static int s_clip_on;
+static int s_cx0, s_cy0, s_cx1, s_cy1;
+
 void ri_raster_clear(struct ri_raster *r, uint32_t rgb) {
     uint32_t i, n;
     uint32_t argb;
@@ -110,6 +115,8 @@ void ri_raster_clear(struct ri_raster *r, uint32_t rgb) {
 static void put(struct ri_raster *r, int x, int y, uint32_t argb) {
     if (!r || !r->px || x < 0 || y < 0 || (uint32_t)x >= r->w || (uint32_t)y >= r->h)
         return;
+    if (s_clip_on && (x < s_cx0 || x > s_cx1 || y < s_cy0 || y > s_cy1))
+        return;
     r->px[(uint32_t)y * r->w + (uint32_t)x] = argb;
 }
 
@@ -118,6 +125,14 @@ static void fill_rect(struct ri_raster *r, int x0, int y0, int x1, int y1, uint3
     uint32_t argb;
     if (!r || !r->px || x1 < x0 || y1 < y0)
         return;
+    if (s_clip_on) {
+        if (x0 < s_cx0) x0 = s_cx0;
+        if (y0 < s_cy0) y0 = s_cy0;
+        if (x1 > s_cx1) x1 = s_cx1;
+        if (y1 > s_cy1) y1 = s_cy1;
+        if (x1 < x0 || y1 < y0)
+            return;
+    }
     argb = 0xFF000000u | (rgb & 0xFFFFFFu);
     if (x0 < 0)
         x0 = 0;
@@ -219,12 +234,16 @@ static void blit_part(struct ri_raster *r, const uint32_t *px, uint32_t w, uint3
         int y = dy + (int)sy;
         if (y < 0 || (uint32_t)y >= r->h)
             continue;
+        if (s_clip_on && (y < s_cy0 || y > s_cy1))
+            continue;
         for (sx = 0u; sx < w; sx++) {
             int x = dx + (int)sx;
             uint32_t s = px[sy * w + sx];
             uint32_t sa = (s >> 24) & 255u;
             uint32_t d;
             if (x < 0 || (uint32_t)x >= r->w)
+                continue;
+            if (s_clip_on && (x < s_cx0 || x > s_cx1))
                 continue;
             if (sa == 0u)
                 continue;
@@ -243,15 +262,10 @@ static void blit_part(struct ri_raster *r, const uint32_t *px, uint32_t w, uint3
     }
 }
 
-void ri_raster_replay(struct ri_raster *r, const struct ri_dlist *dl,
+static void replay_one(struct ri_raster *r, const struct ri_dcmd *c,
     const struct RISkin *skin) {
-    uint32_t i;
-    if (!r || !dl)
-        return;
-    for (i = 0u; i < dl->n; i++) {
-        const struct ri_dcmd *c = &dl->cmd[i];
-        int k;
-        switch (c->op) {
+    int k;
+    switch (c->op) {
         case RI_D_RECT:
             fill_rect(r, c->x0, c->y0, c->x1, c->y1, c->rgb);
             break;
@@ -289,7 +303,34 @@ void ri_raster_replay(struct ri_raster *r, const struct ri_dlist *dl,
         default:
             break;
         }
-    }
+}
+
+void ri_raster_replay(struct ri_raster *r, const struct ri_dlist *dl,
+    const struct RISkin *skin) {
+    uint32_t i;
+    if (!r || !dl)
+        return;
+    s_clip_on = 0;
+    for (i = 0u; i < dl->n; i++)
+        replay_one(r, &dl->cmd[i], skin);
+}
+
+/* S3 partial replay: commands missing the box are skipped, the rest are
+ * clipped to it — the same contract as the AROS damage path. */
+void ri_raster_replay_box(struct ri_raster *r, const struct ri_dlist *dl,
+    const struct RISkin *skin, int x0, int y0, int x1, int y1) {
+    uint32_t i;
+    if (!r || !dl)
+        return;
+    s_clip_on = 1;
+    s_cx0 = x0;
+    s_cy0 = y0;
+    s_cx1 = x1;
+    s_cy1 = y1;
+    for (i = 0u; i < dl->n; i++)
+        if (ri_dcmd_hits_box(&dl->cmd[i], x0, y0, x1, y1))
+            replay_one(r, &dl->cmd[i], skin);
+    s_clip_on = 0;
 }
 
 uint32_t ri_raster_hash(const struct ri_raster *r) {

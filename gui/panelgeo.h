@@ -57,6 +57,21 @@ int ri_geo_px(int q, int zoom);
  * *opt (may be NULL) receives the option value for RI_GEO_OPTION hits,
  * RI_GEO_HIT_UP / RI_GEO_HIT_DOWN for RI_GEO_STEPPER hits and -1 otherwise. */
 uint16_t ri_geo_hit(const struct RIGeoSection *s, int x, int y, int zoom);
+/* Damage box (S3 dirty-rect): union of every damage-relevant item (knob,
+ * rect, option, stepper hit shapes plus LEDs whose state follows the
+ * control) carrying (reg_id & 0xFF), in window px at zoom, grown by
+ * RI_GEO_BBOX_MARGIN for knob shadows, LED glow and tick-dot overhang.
+ * Legends/dividers are static and excluded (adjacent ones sit inside the
+ * margin). Returns 0 ok, 2 when no item carries the id. */
+#define RI_GEO_BBOX_MARGIN 3
+int ri_geo_bbox(const struct RIGeoSection *g, uint16_t reg_id, int zoom,
+    int *x0, int *y0, int *x1, int *y1);
+/* Wide controls (S3): changing them repaints beyond their own box, so the
+ * canvas repaints whole (no damage shortcut). SELECTORs re-label/re-light
+ * whole sections (pattern bank swaps the length readout, Levi Algo swaps
+ * the voice UI, 909 Select re-lamps every step); transport Loop Start
+ * drags Loop Len with it (ri_loop_clamp). Everything else takes damage. */
+int ri_geo_wide(uint16_t reg_id);
 /* Focus bar (p. 22: "the vertical orange bar, to the right of the Pattern
  * selectors") of a pattern section, as a RECT item (reg_id 0). Returns 0
  * with *out filled, 2 when the section carries no focus bar. */

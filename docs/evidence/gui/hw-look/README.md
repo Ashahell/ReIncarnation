@@ -157,3 +157,40 @@ and AROS.
   (`open=1 rack=1 tabs=5`): `dell-s2-303.png`, `dell-s2-mix.png` (Mix via
   page-open variant) and crop-zoom `dell-s2-legends.png`. Half-scale text
   is unreadable in captures — the owner reads the Dell.
+
+## S3: Dirty-rectangle redraw (2026-09-29, GUI round 3)
+
+Owner ask (round-3 prompt §7 S3): knob drags repaint only the knob's box
+(~8k commands on the 909 today), meters/chase stop refreshing every canvas.
+
+- **Pure** (`gui/panelgeo.{h,c}`, `gui/draw/canvas.{h,c}`):
+  - `ri_geo_bbox(g, reg_id, zoom, …)` (+3 margin): union of the knob/rect/
+    option/stepper hit shapes plus value-following LEDs carrying the low
+    byte; static legends/dividers excluded. `ri_geo_wide(reg_id)`: selectors
+    repaint whole sections (bank swaps content, Algo swaps the voice UI),
+    transport Loop Start drags Loop Len (`ri_loop_clamp`); 21 wide in all.
+  - `ri_dcmd_bbox`/`ri_dcmd_hits_box`: per-op extents (face-aware TEXT,
+    IMAGE hits everything, CLIP never); host `ri_raster_replay_box` skips
+    misses and clips the rest to the box (same contract as AROS).
+- **AROS** (`gui/widgets/rsection.{h,mcc.c,_replay.inc}`): damage state per
+  canvas; drag/arrow ids go `DRAWUPDATE`, keys/wide/unknown go full;
+  partial path rebuilds the list (cheap), replays clipped into the
+  off-screen bitmap (`BltTemplate` only when fully inside, else 1-px
+  exact fills; skin sub-blits), blits the box; EClock max/mean per path in
+  the diag. `ri_rsection_refresh_box` for meters/chase (old+new step boxes
+  with shadows, full fallback).
+- **App** (`app/riapp.c`): mixer meters via meter boxes; 808/909 chase via
+  step boxes; heartbeat logs `RIAPP draw: full/part max+avg+n` every ~30 s
+  (live or not).
+- **Tests:** t61 (resolve-all, section containment, +3 literal law, MX
+  coverage, wide classification); new t112 parity: 189 controls min→max,
+  F0 + box-replay == F1 whole-frame (RED: stubbed bbox → `tested 0
+  controls`; margin 0 → 909 + mixer fails; zeroed/widened glyph-adjacent
+  mutants in t61/t112). t92/t93 pins unmoved (no art change).
+- **Dell:** ABIv11 `RAM:RIAPPS3` (`open=1 rack=1 tabs=5`, AROS link clean
+  for RIAPP + RISECT). Idle windows report n=0; window-open full draws
+  ~2.2 ms avg / 3.9 ms max (z0). Owner drag of 909 TUNE pending for the
+  part-side numbers + feel verdict.
+- **Note:** `fba990e` carried the panelgeo/riapp/t61 S3 hunks verbatim
+  (sibling sweep, acknowledged there); this commit lands the remainder
+  (decls, canvas, raster, AROS shell, audit, t112, evidence).

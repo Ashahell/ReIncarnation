@@ -28,6 +28,14 @@ void ri_dlist_set_face(struct ri_dlist *dl, int face);
 int ri_draw_image(struct ri_dlist *dl, int x, int y, uint16_t img, uint16_t frame);
 int ri_draw_clip(struct ri_dlist *dl, int x0, int y0, int x1, int y1);
 
+/* Command extent in canvas px (S3 dirty-rect culling). TEXT uses the
+ * legend-face metrics when the command carries a face, else a generous
+ * system-font estimate; IMAGE is backend-sized, so it hits everything;
+ * CLIP is a no-op and never hits. Returns 0 ok, 2 when empty/unknown. */
+int ri_dcmd_bbox(const struct ri_dcmd *c, int *x0, int *y0, int *x1, int *y1);
+/* 1 when the command paints inside the box (inclusive edges). */
+int ri_dcmd_hits_box(const struct ri_dcmd *c, int x0, int y0, int x1, int y1);
+
 /* FNV-1a hash over the command stream (golden pin per section/zoom/skin). */
 uint32_t ri_dlist_hash(const struct ri_dlist *dl);
 

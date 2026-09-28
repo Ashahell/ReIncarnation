@@ -38,6 +38,10 @@ struct RSectionDiag {
     LONG last_x, last_y;  /* last button position, canvas-local px */
     ULONG last_hit;       /* reg_id hit, 0xFFFF none */
     LONG setups, shows;   /* lifecycle calls seen */
+    ULONG df_max, df_sum; /* S3: full-draw us, max + window sum */
+    LONG df_n;            /* ... and count */
+    ULONG dp_max, dp_sum; /* S3: partial-draw us, max + window sum */
+    LONG dp_n;            /* ... and count */
 };
 
 struct MUI_CustomClass *ri_rsection_class(void);
@@ -46,6 +50,10 @@ void ri_rsection_dispose_class(void);
 APTR ri_rsection_create(ULONG section, LONG zoom);
 /* Redraw after the state was changed from outside (demo / automation). */
 void ri_rsection_refresh(APTR obj);
+/* S3: redraw a canvas-local box after a meter/chase change (meters, lamps);
+ * anything invalid falls back to a full redraw. Coordinates are canvas px
+ * (sections are exactly canvas-sized). */
+void ri_rsection_refresh_box(APTR obj, int x0, int y0, int x1, int y1);
 /* Replay an app-built display list (rack furniture) with the canvas
  * colour path; needs a section canvas set up on the same screen. */
 struct ri_dlist;

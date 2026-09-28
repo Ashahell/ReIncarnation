@@ -2,6 +2,7 @@
 #include "gui/draw/canvas.h"
 
 #include <string.h>
+#include "gui/draw/font_legend.h"
 
 void ri_dlist_init(struct ri_dlist *dl, struct ri_dcmd *backing, uint32_t cap,
     char *spool, uint32_t spcap) {
@@ -93,6 +94,78 @@ void ri_dlist_set_face(struct ri_dlist *dl, int face) {
     if (!dl)
         return;
     dl->cur_face = (uint8_t)(face >= 1 && face <= 3 ? face : 0);
+}
+
+int ri_dcmd_bbox(const struct ri_dcmd *c, int *x0, int *y0, int *x1, int *y1) {
+    if (!c || !x0 || !y0 || !x1 || !y1)
+        return 2;
+    switch (c->op) {
+    case RI_D_RECT:
+        *x0 = c->x0 < c->x1 ? c->x0 : c->x1;
+        *y0 = c->y0 < c->y1 ? c->y0 : c->y1;
+        *x1 = c->x0 < c->x1 ? c->x1 : c->x0;
+        *y1 = c->y0 < c->y1 ? c->y1 : c->y0;
+        return 0;
+    case RI_D_LINE:
+        /* 1-px strokes on both backends; grow one for raster rounding. */
+        *x0 = (c->x0 < c->x1 ? c->x0 : c->x1) - 1;
+        *y0 = (c->y0 < c->y1 ? c->y0 : c->y1) - 1;
+        *x1 = (c->x0 < c->x1 ? c->x1 : c->x0) + 1;
+        *y1 = (c->y0 < c->y1 ? c->y1 : c->y0) + 1;
+        return 0;
+    case RI_D_CIRCLE:
+        *x0 = (int)c->x0 - (int)c->x1;
+        *y0 = (int)c->y0 - (int)c->x1;
+        *x1 = (int)c->x0 + (int)c->x1;
+        *y1 = (int)c->y0 + (int)c->x1;
+        return 0;
+    case RI_D_TEXT: {
+        uint32_t len = 0u;
+        int w, top, bot;
+        if (!c->text)
+            return 2;
+        while (c->text[len] && len < 64u)
+            len++;
+        if (!len)
+            return 2;
+        if (c->pad[0] >= 1 && c->pad[0] <= 3) {
+            const struct ri_face *f = ri_face_by_id(c->pad[0]);
+            int base;
+            if (!f)
+                return 2;
+            w = ri_face_width(f, c->text);
+            base = (int)c->y0 + (int)f->cap / 2;
+            top = base - (int)f->asc;
+            bot = base + (int)f->desc - 1;
+        } else {
+            /* System font (AROS TextLength / host 5x7): generous box. */
+            w = (int)len * 8;
+            top = (int)c->y0 - 8;
+            bot = (int)c->y0 + 8;
+        }
+        *x0 = (int)c->x0 - w / 2;
+        *y0 = top;
+        *x1 = (int)c->x0 + (w - 1) / 2;
+        *y1 = bot;
+        return 0;
+    }
+    case RI_D_IMAGE:
+        /* Backend-sized skin part: always repaint (one blit, still cheap). */
+        *x0 = *y0 = -30000;
+        *x1 = *y1 = 30000;
+        return 0;
+    default:
+        return 2;
+    }
+}
+
+int ri_dcmd_hits_box(const struct ri_dcmd *c, int x0, int y0, int x1, int y1) {
+    int a0, b0, a1, b1;
+    if (!c || x1 < x0 || y1 < y0)
+        return 0;
+    if (ri_dcmd_bbox(c, &a0, &b0, &a1, &b1) != 0)
+        return 0;
+    return a0 <= x1 && a1 >= x0 && b0 <= y1 && b1 >= y0;
 }
 
 int ri_draw_image(struct ri_dlist *dl, int x, int y, uint16_t img, uint16_t frame) {
