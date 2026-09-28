@@ -50,6 +50,13 @@
 #define RI_LEVI_RATIO 3u  /* modulator ratio 0.25..64 */
 #define RI_LEVI_FTYPE 4u  /* RI_LEVI_FTYPE_* */
 #define RI_LEVI_DRIVE 5u  /* 0..1 pre-drive saturation */
+#define RI_LEVI_CUTOFF2 6u        /* stage-2 LP Hz, 40..18000 */
+#define RI_LEVI_RESO2 7u  /* stage-2 reso 0..1 */
+#define RI_LEVI_ATTACK 8u /* s, 0.001..2 */
+#define RI_LEVI_DECAY 9u  /* s, 0.001..2 (second decay) */
+#define RI_LEVI_SUSTAIN 10u       /* 0..1 hold level */
+#define RI_LEVI_RELEASE 11u       /* s, 0.001..2 */
+#define RI_LEVI_LOOP 12u  /* 0/1 sustain loops back to attack */
 /* Control-block ids (0x0E, recorded in the requirement before code). */
 #define RI_CTL_LEVI_CUTOFF 0x0E00u
 #define RI_CTL_LEVI_RESO 0x0E01u
@@ -61,6 +68,13 @@
 #define RI_CTL_LEVI_ALGOB 0x0E07u /* morph-target algorithm 0..7 */
 #define RI_CTL_LEVI_FTYPE 0x0E08u /* filter type 0..3 */
 #define RI_CTL_LEVI_DRIVE 0x0E09u /* drive 0..127 */
+#define RI_CTL_LEVI_CUTOFF2 0x0E0Au       /* stage-2 cutoff */
+#define RI_CTL_LEVI_RESO2 0x0E0Bu /* stage-2 reso */
+#define RI_CTL_LEVI_ATTACK 0x0E0Cu       /* attack time */
+#define RI_CTL_LEVI_DECAY 0x0E0Du /* decay time */
+#define RI_CTL_LEVI_SUSTAIN 0x0E0Eu       /* sustain level */
+#define RI_CTL_LEVI_RELEASE 0x0E0Fu       /* release time */
+#define RI_CTL_LEVI_LOOP 0x0E10u  /* envelope loop 0/1 */
 
 /* E0 defaults (ledgered here; panel exposes later slices). */
 #define RI_LEVI_DEF_CUTOFF 12000.0f
@@ -82,7 +96,8 @@ struct RILeviEnv {
     float sustain;  /* 0..1 hold level */
     float value;    /* current 0..1 */
     uint8_t stage;  /* RI_LEVI_SEG_* */
-    uint8_t pad[3];
+    uint8_t loop;   /* sustain loops back to attack (contour loop) */
+    uint8_t pad[2];
     float stage_t;  /* seconds in stage */
 };
 
@@ -119,6 +134,8 @@ struct RILeviVoice {
     float reso;   /* 0..1 */
     float level;  /* voice trim */
     float drive;  /* 0..1 pre-drive saturation */
+    float cutoff2;        /* stage-2 LP Hz */
+    float reso2;  /* stage-2 reso 0..1 */
     uint8_t ftype;        /* RI_LEVI_FTYPE_* */
     uint8_t padlp[3];
     float lp1, lp2; /* stage-1 SVF state */

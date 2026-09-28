@@ -589,9 +589,11 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
         return;
     }
     if (blk == RI_AUTO_BLK_LEVI) {
-        /* Section-wide (panel model): every voice follows the knob. */
+        /* Section-wide (panel model): every voice follows the knob.
+         * Full low byte (voice params share 0x00-0x09 with the nibble;
+         * LOOP lives at 0x10). */
         for (v = 0u; v < RI_LEVI_NVOICES; v++)
-            levi_set_param_ui(&e->slevi, v, key & 0xFu, val);
+            levi_set_param_ui(&e->slevi, v, key & 0xFFu, val);
         return;
     }
     if (blk == RI_AUTO_BLK_MIX && hi >= 1u && hi <= RI_AUTO_STRIP_LEVI + 1u) {

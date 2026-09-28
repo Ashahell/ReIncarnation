@@ -60,5 +60,8 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
         n[1] = 0;
         ri_art_text_c(dl, ox + PX(450 + 62 * (int)i), oy + PX(188), n, C_CREAM);
     }
+    /* Bottom voice-strip block titles (hardware order). */
+    ri_art_text_c(dl, ox + PX(190), oy + PX(452), "ANALOG", C_CREAM);
+    ri_art_text_c(dl, ox + PX(600), oy + PX(452), "ENVELOPE", C_CREAM);
 #undef PX
 }

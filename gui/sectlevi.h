@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 44u
+#define RI_SLEVI_NCTL 51u
 #define RI_SLEVI_SELECT 4u      /* Lane Selection: 0..5 */
 #define RI_SLEVI_MODE 2u          /* FM/PM toggle */
 #define RI_SLEVI_ALGO 37u         /* Algorithm select 0..7 */
@@ -20,6 +20,13 @@
 #define RI_SLEVI_OPMODE 41u       /* Op Mode 0..6 (packed op*16+mode) */
 #define RI_SLEVI_FTYPE 42u        /* Filter type 0..3 */
 #define RI_SLEVI_DRIVE 43u        /* Drive 0..127 */
+#define RI_SLEVI_CUTOFF2 44u      /* Analog cutoff */
+#define RI_SLEVI_RESO2 45u        /* Analog reso */
+#define RI_SLEVI_ATTACK 46u       /* Attack time */
+#define RI_SLEVI_DECAY 47u        /* Decay time */
+#define RI_SLEVI_SUSTAIN 48u      /* Sustain level */
+#define RI_SLEVI_RELEASE 49u      /* Release time */
+#define RI_SLEVI_LOOP 50u /* Envelope loop */
 #define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
 #define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */
 #define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */

@@ -42,7 +42,7 @@ int main(void) {
     RI_ASSERT(ri_ctl_pending(&q) == 0u, "drained empty");
 
     /* Refused keys: never stored, counted. */
-    RI_ASSERT(ri_ctl_send(&q, 0x0E0Au, 5u) == 2, "refuse unbound levi id");
+    RI_ASSERT(ri_ctl_send(&q, 0x0E11u, 5u) == 2, "refuse unbound levi id");
     RI_ASSERT(ri_ctl_send(&q, 0x0B00u, 5u) == 2, "refuse legacy panel id");
     RI_ASSERT(ri_ctl_pending(&q) == 0u, "refused stores nothing");
     RI_ASSERT(q.refused == 2u, "refused counted %u", q.refused);

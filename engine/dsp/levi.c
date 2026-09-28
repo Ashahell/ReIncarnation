@@ -44,8 +44,16 @@ static int env_tick(struct RILeviEnv *e, float sr) {
         return 0;
     if (e->stage == RI_LEVI_SEG_IDLE)
         return 0;
-    if (e->stage == RI_LEVI_SEG_S)
-        return 1;
+    if (e->stage == RI_LEVI_SEG_S) {
+        if (e->loop) {
+            /* Contour loop: sustain falls back to attack (own loop
+             * law; release still rests via R). */
+            e->stage = RI_LEVI_SEG_A;
+            e->stage_t = 0.0f;
+        } else {
+            return 1;
+        }
+    }
     dt = 1.0f / sr;
     e->stage_t += dt;
     span = e->times[e->stage];
@@ -88,7 +96,11 @@ static void op_state_reset(struct RILeviOpState *st, float freq) {
     st->phase = 0.0f;
     st->freq = freq;
     st->ps = 0.0f;
-    env_reset(&st->env);
+    /* Runtime only: times/sustain/loop are voice params (set_param),
+     * preserved across triggers (unlike v1 constants). */
+    st->env.value = 0.0f;
+    st->env.stage = RI_LEVI_SEG_D;
+    st->env.stage_t = 0.0f;
 }
 
 /* Own preset topologies (functional shapes; mod_src per op, -1 = carrier).
@@ -188,6 +200,7 @@ void levi_init_set(struct RILeviSet *s) {
                 v->st[b][o].ps = 0.0f;
                 env_reset(&v->st[b][o].env);
                 v->st[b][o].env.stage = RI_LEVI_SEG_IDLE;
+                v->st[b][o].env.loop = 0u;
             }
         }
         voice_preset(v, RI_LEVI_ALGO_DUO);
@@ -196,6 +209,8 @@ void levi_init_set(struct RILeviSet *s) {
         v->level = 1.0f;
         v->drive = 0.0f;
         v->ftype = RI_LEVI_FTYPE_LP;
+        v->cutoff2 = RI_LEVI_DEF_CUTOFF;
+        v->reso2 = RI_LEVI_DEF_RESO;
         v->lp1 = 0.0f;
         v->lp2 = 0.0f;
         v->lp3 = 0.0f;
@@ -286,6 +301,42 @@ int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
             return 2;
         v->drive = value;
         return 0;
+    case RI_LEVI_CUTOFF2:
+        if (!(value >= 40.0f && value <= 18000.0f))
+            return 2;
+        v->cutoff2 = value;
+        return 0;
+    case RI_LEVI_RESO2:
+        if (!(value >= 0.0f && value <= 1.0f))
+            return 2;
+        v->reso2 = value;
+        return 0;
+    case RI_LEVI_ATTACK:
+    case RI_LEVI_DECAY:
+    case RI_LEVI_RELEASE: {
+        uint32_t tt = id == RI_LEVI_ATTACK ? RI_LEVI_SEG_A
+            : id == RI_LEVI_DECAY ? RI_LEVI_SEG_D2 : RI_LEVI_SEG_R;
+        if (!(value >= 0.001f && value <= 2.0f))
+            return 2;
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            if (v->live[o])
+                v->st[0][o].env.times[tt] = v->st[1][o].env.times[tt] = value;
+        return 0;
+    }
+    case RI_LEVI_SUSTAIN:
+        if (!(value >= 0.0f && value <= 1.0f))
+            return 2;
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            if (v->live[o])
+                v->st[0][o].env.sustain = v->st[1][o].env.sustain = value;
+        return 0;
+    case RI_LEVI_LOOP:
+        if (value != 0.0f && value != 1.0f)
+            return 2;
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            if (v->live[o])
+                v->st[0][o].env.loop = v->st[1][o].env.loop = (uint8_t)value;
+        return 0;
     default:
         return 2;
     }
@@ -325,8 +376,18 @@ static float lp_step(struct RILeviVoice *v, float x, float sr) {
         tap = lp + hp;
     else
         tap = lp;
-    hp2 = tap - v->lp3 * q - v->lp4;
-    bp2 = v->lp3 + f * hp2;
+    {
+        float f2 = 2.0f * ri_sin(3.14159265f * v->cutoff2 / sr);
+        float q2 = 1.0f - v->reso2 * 0.85f;
+        if (f2 > 1.0f)
+            f2 = 1.0f;
+        if (f2 < 0.02f)
+            f2 = 0.02f;
+        if (q2 < 0.05f)
+            q2 = 0.05f;
+        hp2 = tap - v->lp3 * q2 - v->lp4;
+        bp2 = v->lp3 + f2 * hp2;
+    }
     lp2 = v->lp4 + f * bp2;
     v->lp3 = ftz(bp2);
     v->lp4 = ftz(lp2);
@@ -351,9 +412,9 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case RI_LEVI_RATIO:
         return levi_set_param(s, voice, id,
             0.25f * ri_pow2(((float)val / 127.0f) * 8.0f));
-    case (RI_CTL_LEVI_ALGO & 0xFu): /* ALGO */
+    case (RI_CTL_LEVI_ALGO & 0xFFu): /* ALGO */
         return levi_set_algo(s, voice, val <= 7u ? val : (uint32_t)(val >> 4));
-    case (RI_CTL_LEVI_ALGOB & 0xFu): /* ALGOB */ {
+    case (RI_CTL_LEVI_ALGOB & 0xFFu): /* ALGOB */ {
         uint32_t a = val <= 7u ? val : (uint32_t)(val >> 4);
         struct RILeviVoice *v;
         if (a >= RI_LEVI_ALGO_N)
@@ -363,19 +424,40 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
         v->algoB = (uint8_t)a;
         return 0;
     }
-    case (RI_CTL_LEVI_MORPH & 0xFu): /* MORPH */
+    case (RI_CTL_LEVI_MORPH & 0xFFu): /* MORPH */
         return levi_set_morph(s, voice, s->v[voice].algoB, val > 100u ? 100u : val);
-    case (RI_CTL_LEVI_OPMODE & 0xFu): /* OPMODE */ {
+    case (RI_CTL_LEVI_OPMODE & 0xFFu): /* OPMODE */ {
         uint32_t op = (uint32_t)val >> 4u, mode = (uint32_t)val & 0xFu;
         if (op >= RI_LEVI_NOPS || mode >= RI_LEVI_NMODES)
             return 2;
         return levi_set_op_mode(s, voice, op, mode);
     }
-    case (RI_CTL_LEVI_FTYPE & 0xFu): /* FTYPE */
+    case (RI_CTL_LEVI_FTYPE & 0xFFu): /* FTYPE */
         return levi_set_param(s, voice, RI_LEVI_FTYPE,
             val <= 3u ? (float)val : (float)(val >> 5));
-    case (RI_CTL_LEVI_DRIVE & 0xFu): /* DRIVE */
+    case (RI_CTL_LEVI_DRIVE & 0xFFu): /* DRIVE */
         return levi_set_param(s, voice, RI_LEVI_DRIVE, (float)val / 127.0f);
+    case (RI_CTL_LEVI_CUTOFF2 & 0xFFu): /* CUTOFF2 */
+        f = 40.0f * ri_pow2(((float)val / 127.0f) * 8.5f);
+        if (f > 18000.0f)
+            f = 18000.0f;
+        return levi_set_param(s, voice, RI_LEVI_CUTOFF2, f);
+    case (RI_CTL_LEVI_RESO2 & 0xFFu): /* RESO2 */
+        return levi_set_param(s, voice, RI_LEVI_RESO2, (float)val / 127.0f);
+    case (RI_CTL_LEVI_ATTACK & 0xFFu): /* ATTACK */
+    case (RI_CTL_LEVI_DECAY & 0xFFu): /* DECAY */
+    case (RI_CTL_LEVI_RELEASE & 0xFFu): { /* RELEASE */
+        float t = 0.001f * ri_pow2(((float)val / 127.0f) * 11.0f);
+        uint32_t pid = id == (RI_CTL_LEVI_ATTACK & 0xFFu) ? RI_LEVI_ATTACK
+            : id == (RI_CTL_LEVI_DECAY & 0xFFu) ? RI_LEVI_DECAY : RI_LEVI_RELEASE;
+        if (t > 2.0f)
+            t = 2.0f;
+        return levi_set_param(s, voice, pid, t);
+    }
+    case (RI_CTL_LEVI_SUSTAIN & 0xFFu): /* SUSTAIN */
+        return levi_set_param(s, voice, RI_LEVI_SUSTAIN, (float)val / 127.0f);
+    case (RI_CTL_LEVI_LOOP & 0xFFu): /* LOOP */
+        return levi_set_param(s, voice, RI_LEVI_LOOP, val != 0u ? 1.0f : 0.0f);
     default:
         return 2;
     }

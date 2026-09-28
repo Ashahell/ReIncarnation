@@ -265,6 +265,22 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
     { SL(42), RI_GEO_OPTION, 3, 636, 170, 55, 24 },
     { SL(43), RI_GEO_KNOB, 0, 110, 320, 44, 52 },
     { SL(43), RI_GEO_LEGEND, 0, 110, 280, 0, 0 },
+    /* bottom voice strip (owner 2026-09-28, hardware block order):
+     * analog filter + envelope, below the chord rows */
+    { SL(44), RI_GEO_KNOB, 0, 150, 510, 44, 52 },
+    { SL(44), RI_GEO_LEGEND, 0, 150, 470, 0, 0 },
+    { SL(45), RI_GEO_KNOB, 0, 230, 510, 44, 52 },
+    { SL(45), RI_GEO_LEGEND, 0, 230, 470, 0, 0 },
+    { SL(46), RI_GEO_KNOB, 0, 450, 510, 44, 52 },
+    { SL(46), RI_GEO_LEGEND, 0, 450, 470, 0, 0 },
+    { SL(47), RI_GEO_KNOB, 0, 530, 510, 44, 52 },
+    { SL(47), RI_GEO_LEGEND, 0, 530, 470, 0, 0 },
+    { SL(48), RI_GEO_KNOB, 0, 610, 510, 44, 52 },
+    { SL(48), RI_GEO_LEGEND, 0, 610, 470, 0, 0 },
+    { SL(49), RI_GEO_KNOB, 0, 690, 510, 44, 52 },
+    { SL(49), RI_GEO_LEGEND, 0, 690, 470, 0, 0 },
+    { SL(50), RI_GEO_RECT, 0, 790, 505, 60, 30 },
+    { SL(50), RI_GEO_LEGEND, 0, 790, 470, 0, 0 },
 };
 static const struct RIGeoItem RI_GEO_909[] = {
     { S9(0), RI_GEO_KNOB, 0, 60, 140, 44, 52 },
@@ -544,7 +560,7 @@ static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_PAT_SYNTH2, 0, 284, 464, RI_GEO_PAT2, (uint32_t)(sizeof(RI_GEO_PAT2) / sizeof(RI_GEO_PAT2[0])) },
     { RI_SEC_PAT_808, 0, 284, 464, RI_GEO_PAT8, (uint32_t)(sizeof(RI_GEO_PAT8) / sizeof(RI_GEO_PAT8[0])) },
     { RI_SEC_PAT_909, 0, 284, 464, RI_GEO_PAT9, (uint32_t)(sizeof(RI_GEO_PAT9) / sizeof(RI_GEO_PAT9[0])) },
-    { RI_SEC_LEVI, 0, 1464, 460, RI_GEO_LEVI, (uint32_t)(sizeof(RI_GEO_LEVI) / sizeof(RI_GEO_LEVI[0])) },
+    { RI_SEC_LEVI, 0, 1464, 560, RI_GEO_LEVI, (uint32_t)(sizeof(RI_GEO_LEVI) / sizeof(RI_GEO_LEVI[0])) },
     { RI_SEC_PAT_LEVI, 0, 284, 464, RI_GEO_PATL, (uint32_t)(sizeof(RI_GEO_PATL) / sizeof(RI_GEO_PATL[0])) },
 };
 

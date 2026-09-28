@@ -29,6 +29,14 @@ static uint32_t energy(const float *b, uint32_t n) {
     return k;
 }
 
+static int finite(const float *b, uint32_t n) {
+    uint32_t i;
+    for (i = 0u; i < n; i++)
+        if (!(b[i] > -1e30f && b[i] < 1e30f))
+            return 0;
+    return 1;
+}
+
 int main(void) {
     static struct RILeviSet a, b;
     static float oa[4096], ob[4096];
@@ -176,6 +184,79 @@ int main(void) {
         RI_ASSERT(memcmp(fo, lp, sizeof fo) != 0, "drive differs");
         RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_DRIVE, 2.0f) == 2, "drive range");
         RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_DRIVE, -0.5f) == 2, "drive neg");
+    }
+    /* Stage-2 + envelope params (owner 2026-09-28, v2 slice 2b). */
+    {
+        static float oe[4800], oo[4800];
+        /* Fresh reference: init + trigger + one window. */
+        levi_init_set(&a);
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, oo, 4800u);
+        levi_init_set(&a);
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_CUTOFF, 18000.0f) == 0, "open");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_CUTOFF2, 18000.0f) == 0, "open2");
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, oo, 4800u);
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_CUTOFF2, 40.0f) == 0, "dark2");
+        levi_init_set(&a);
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_CUTOFF, 18000.0f) == 0, "open");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_CUTOFF2, 40.0f) == 0, "dark2");
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, oe, 4800u);
+        RI_ASSERT(finite(oe, 4800u), "stage2 finite");
+        RI_ASSERT(memcmp(oe, oo, sizeof oe) != 0, "cutoff2 moves");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_CUTOFF2, 19.0f) == 2, "cutoff2 range");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_CUTOFF2, 20000.0f) == 2, "cutoff2 range");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_RESO2, 0.9f) == 0, "reso2");
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, oe, 4800u);
+        RI_ASSERT(finite(oe, 4800u) && memcmp(oe, oo, sizeof oe) != 0, "reso2 moves");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_RESO2, 2.0f) == 2, "reso2 range");
+        /* Envelope times move sound; loop re-cycles sustain. */
+        levi_init_set(&a);
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_ATTACK, 0.5f) == 0, "attack");
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, oe, 4800u);
+        RI_ASSERT(energy(oe, 4800u) > 0u && memcmp(oe, oo, sizeof oe) != 0, "attack moves");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_ATTACK, 0.0f) == 2, "attack range");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_ATTACK, 3.0f) == 2, "attack range");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_DECAY, 1.0f) == 0, "decay");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_SUSTAIN, 0.3f) == 0, "sustain");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_SUSTAIN, 2.0f) == 2, "sustain range");
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, oe, 4800u);
+        RI_ASSERT(finite(oe, 4800u) && memcmp(oe, oo, sizeof oe) != 0, "decay/sustain move");
+        /* Release tail: default rests after ~7k samples, 2 s persists. */
+        levi_init_set(&a);
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_RELEASE, 2.0f) == 0, "release");
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, oe, 1000u);
+        levi_release(&a, 0u);
+        render_set(&a, oe, 4800u);
+        render_set(&a, oe, 4800u);
+        RI_ASSERT(energy(oe, 4800u) > 0u, "long release persists");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_RELEASE, 0.0f) == 2, "release range");
+        /* Loop re-cycles: differs from flat sustain, stays alive.
+         * Sustain arrives after D2 (300 ms): skip there first. */
+        levi_init_set(&a);
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_LOOP, 1.0f) == 0, "loop");
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, oe, 4800u);
+        render_set(&a, oe, 4800u);
+        render_set(&a, oe, 4800u);
+        render_set(&a, oe, 4800u);
+        render_set(&a, oe, 4800u);
+        RI_ASSERT(finite(oe, 4800u) && energy(oe, 4800u) > 0u, "loop alive");
+        RI_ASSERT(a.v[0].active == 1u, "loop holds voice");
+        RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_LOOP, 2.0f) == 2, "loop range");
+        levi_init_set(&a);
+        RI_ASSERT(levi_trigger(&a, 0u, 59u) == 0, "trig");
+        render_set(&a, oo, 4800u);
+        render_set(&a, oo, 4800u);
+        render_set(&a, oo, 4800u);
+        render_set(&a, oo, 4800u);
+        render_set(&a, oo, 4800u);
+        RI_ASSERT(memcmp(oe, oo, sizeof oe) != 0, "loop differs from flat");
     }
     /* Params move sound; bad args fail closed. */
     levi_init_set(&a);

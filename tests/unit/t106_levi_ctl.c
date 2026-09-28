@@ -62,7 +62,7 @@ int main(void) {
     RI_ASSERT(ri_ctlreg_auto_id(d) == RI_CTL_LEVI_CUTOFF, "key = engine id");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_CUTOFF), "allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_MODE), "allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0E0Au), "unbound refused");
+    RI_ASSERT(!ri_auto_allowed(0x0E11u), "unbound refused");
     /* Algo block rows (owner 2026-09-28, v2 slice 1d). */
     d = find_leg(RI_SEC_LEVI, "Algorithm");
     RI_ASSERT(d && d->kind == RI_CK_SELECTOR, "algo kind");
@@ -94,6 +94,15 @@ int main(void) {
     RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_LEVI, "Type")) == RI_CTL_LEVI_FTYPE, "ftype key");
     RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_LEVI, "Drive")) == RI_CTL_LEVI_DRIVE, "drive key");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_FTYPE) && ri_auto_allowed(RI_CTL_LEVI_DRIVE), "filter keys allowed");
+    /* Bottom strip rows: analog + envelope, keys, engine apply. */
+    d = find_leg(RI_SEC_LEVI, "Attack");
+    RI_ASSERT(d && d->kind == RI_CK_KNOB, "attack kind");
+    RI_ASSERT(d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_ATTACK, "attack bind");
+    RI_ASSERT(ri_ctlreg_auto_id(d) == RI_CTL_LEVI_ATTACK, "attack key");
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_CUTOFF2) && ri_auto_allowed(RI_CTL_LEVI_RESO2) &&
+        ri_auto_allowed(RI_CTL_LEVI_ATTACK) && ri_auto_allowed(RI_CTL_LEVI_DECAY) &&
+        ri_auto_allowed(RI_CTL_LEVI_SUSTAIN) && ri_auto_allowed(RI_CTL_LEVI_RELEASE) &&
+        ri_auto_allowed(RI_CTL_LEVI_LOOP), "strip keys allowed");
     /* Engine applies section-wide to every voice. */
     ri_engine_init(&e);
     memset(&ev, 0, sizeof ev);
@@ -112,6 +121,19 @@ int main(void) {
     ev.flags = 127u;
     ri_engine_apply_event(&e, &ev);
     RI_ASSERT(e.slevi.v[3].op[1].mode == RI_LEVI_PM, "mode set");
+    ev.value = RI_CTL_LEVI_CUTOFF2;
+    ev.flags = 96u;
+    ri_engine_apply_event(&e, &ev);
+    RI_ASSERT(e.slevi.v[3].cutoff2 < RI_LEVI_DEF_CUTOFF, "cutoff2 applied");
+    ev.value = RI_CTL_LEVI_ATTACK;
+    ev.flags = 27u;
+    ri_engine_apply_event(&e, &ev);
+    RI_ASSERT(e.slevi.v[3].st[0][1].env.times[RI_LEVI_SEG_A] > 0.004f &&
+        e.slevi.v[3].st[0][1].env.times[RI_LEVI_SEG_A] < 0.006f, "attack applied");
+    ev.value = RI_CTL_LEVI_LOOP;
+    ev.flags = 1u;
+    ri_engine_apply_event(&e, &ev);
+    RI_ASSERT(e.slevi.v[3].st[0][1].env.loop == 1u, "loop applied");
     /* Algo/morph/opmode keys apply section-wide (packed opmode). */
     ev.value = RI_CTL_LEVI_ALGO;
     ev.flags = 5u;

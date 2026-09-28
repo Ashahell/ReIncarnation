@@ -234,7 +234,7 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 114u, "mapped count %u", mapped);
+            RI_ASSERT(mapped == 121u, "mapped count %u", mapped);
             RI_ASSERT(listed == 31u, "listed count %u", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
@@ -254,7 +254,7 @@ int main(void) {
                         owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 116u, "allow-list size %u (114 controls + 2 VOLUME)", nallow);
+                RI_ASSERT(nallow == 123u, "allow-list size %u (121 controls + 2 VOLUME)", nallow);
             }
         }
     }

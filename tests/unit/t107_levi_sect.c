@@ -78,6 +78,15 @@ int main(void) {
     RI_ASSERT(s.val[RI_SLEVI_FTYPE] == 3, "ftype max");
     RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_DRIVE, 200) == 1, "drive clamp");
     RI_ASSERT(s.val[RI_SLEVI_DRIVE] == 127, "drive max");
+    /* Bottom strip: analog + envelope knobs ride the generic law. */
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_CUTOFF2, 100) == 1, "cutoff2");
+    RI_ASSERT(s.val[RI_SLEVI_CUTOFF2] == 100, "cutoff2 stored");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ATTACK, 200) == 1, "attack clamp");
+    RI_ASSERT(s.val[RI_SLEVI_ATTACK] == 127, "attack max");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_LOOP, 1) == 1, "loop");
+    RI_ASSERT(s.val[RI_SLEVI_LOOP] == 1, "loop stored");
+    RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_LOOP, 1) == 0, "loop same");
+    RI_ASSERT(ri_slevi_reset(&s, RI_SLEVI_LOOP) == 1, "loop reset");
     RI_ASSERT(ri_slevi_set_value(&s, 0u, 200) == 1, "knob clamp");
     RI_ASSERT(s.val[0] == 127, "knob max");
     RI_ASSERT(ri_slevi_set_value(&s, 0u, -5) == 1, "knob floor");
