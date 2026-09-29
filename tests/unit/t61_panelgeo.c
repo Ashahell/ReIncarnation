@@ -298,6 +298,11 @@ int main(void) {
             prev = it->cx;
             RI_ASSERT(black[i] ? it->cy < 330 : it->cy > 330, "key %u row", i);
         }
+        /* Owner 2026-09-29: the Note/Pause toggle reads narrower. */
+        {
+            const struct RIGeoItem *it = value_item(s, ID(RI_SEC_SYNTH1, 24));
+            RI_ASSERT(it && it->shape == RI_GEO_RECT && it->w == 110, "note/pause width");
+        }
     }
 
     /* ---- 808 (p. 148) ---- */
@@ -348,7 +353,7 @@ int main(void) {
     s = ri_geo_section(RI_SEC_909);
     if (s) {
         int prev = -1;
-        RI_ASSERT(s->w == 1460 && s->h == 468, "909 section = p. 151 figure");
+        RI_ASSERT(s->w == 1472 && s->h == 468, "909 row matches 808 (owner 2026-09-29)");
         for (i = 0; i < 16; i++) {
             const struct RIGeoItem *it = value_item(s, ID(RI_SEC_909, 30 + i));
             RI_ASSERT(it != 0, "909 step %u", i + 1);

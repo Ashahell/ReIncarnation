@@ -43,6 +43,10 @@ void ri_art_circle(struct ri_dlist *dl, int cx, int cy, int r, int col);
 void ri_art_bevel(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int face);
 /* Centred upper-cased legend (text_c equivalent). */
 void ri_art_text_c(struct ri_dlist *dl, int cx, int cy, const char *s0, int col);
+/* Centred upper-cased legend in an explicit face (S2 headers that read
+ * above the section face, e.g. mixer strip names). Face outside 1..3
+ * falls back to the list state (ri_draw_text_face clamps). */
+void ri_art_text_c_face(struct ri_dlist *dl, int cx, int cy, const char *s0, int col, int face);
 /* Hardware-look finish (2026-09-28 GUI review): colour math, shaded
  * discs, panels, screws, LEDs. Colours here are RGB (0xRRGGBB); backends
  * replay any RGB (AROS: direct colour on hi/truecolor screens, nearest

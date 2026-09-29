@@ -43,8 +43,9 @@ static const struct RIGeoItem RI_GEO_303[] = {
     BKEY(17, 687), WKEY(18, 730), WKEY(19, 812),
     /* right of the keyboard: +20 Q from the figure so nothing touches the
      * keyboard block's rim (owner, Dell 2026-09-26) */
-    /* Note/Pause toggle with its two state LEDs */
-    { S1(24), RI_GEO_RECT, 0, 1094, 252, 132, 27 },
+    /* Note/Pause toggle with its two state LEDs (owner 2026-09-29: reads
+     * narrower at 110 Q; LEDs stand clear on both sides). */
+    { S1(24), RI_GEO_RECT, 0, 1094, 252, 110, 27 },
     { S1(24), RI_GEO_LEGEND, 0, 1094, 225, 0, 0 },
     { S1(24), RI_GEO_LED, 0, 1016, 250, 12, 12 },
     { S1(24), RI_GEO_LED, 0, 1172, 250, 12, 12 },
@@ -163,6 +164,8 @@ static const struct RIGeoItem RI_GEO_808[] = {
 };
 
 /* 909 section: Owner's Manual p. 151 figure (365 x 117 px = 1460 x 468 Q).
+ * Owner 2026-09-29: pad the row right to the 808 width (1472 Q) so the
+ * Drums rows align; content stays left-anchored at manual positions.
  * Steps at 84 Q pitch; instruments grouped over their step columns as on
  * the TR-909 (BD 1-2, SD 3-4, LT 5-6, MT 7-8, HT 9-10, RS 11, CP 12, CH 13,
  * OH 14, CC 15, RC 16); knob rows at y 140 / 238; instrument-select legend
@@ -581,7 +584,7 @@ static const struct RIGeoSection RI_GEO_SECTIONS[] = {
       (uint32_t)(sizeof(RI_GEO_303) / sizeof(RI_GEO_303[0])) },
     { RI_SEC_808, 0, 1472, 468, RI_GEO_808,
       (uint32_t)(sizeof(RI_GEO_808) / sizeof(RI_GEO_808[0])) },
-    { RI_SEC_909, 0, 1460, 468, RI_GEO_909,
+    { RI_SEC_909, 0, 1472, 468, RI_GEO_909,
       (uint32_t)(sizeof(RI_GEO_909) / sizeof(RI_GEO_909[0])) },
     { RI_SEC_MIX_SYNTH1, 0, 284, 464, RI_GEO_MIX1, (uint32_t)(sizeof(RI_GEO_MIX1) / sizeof(RI_GEO_MIX1[0])) },
     { RI_SEC_MIX_SYNTH2, 0, 284, 464, RI_GEO_MIX2, (uint32_t)(sizeof(RI_GEO_MIX2) / sizeof(RI_GEO_MIX2[0])) },

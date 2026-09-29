@@ -144,42 +144,42 @@ static int load_skin(const char *dir, int zoom, struct RISkin *skin) {
 }
 
 static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
-    { 0u, 0u, 0xfd171d42u },
-    { 0u, 1u, 0x0bfc844du },
-    { 0u, 2u, 0x0526d286u },
-    { 0u, 3u, 0x8b2a46bbu },
-    { 1u, 0u, 0xfd171d42u },
-    { 1u, 1u, 0x0bfc844du },
-    { 1u, 2u, 0x0526d286u },
-    { 1u, 3u, 0x8b2a46bbu },
+    { 0u, 0u, 0xdfb9963eu },
+    { 0u, 1u, 0xf517804du },
+    { 0u, 2u, 0xf3fab28eu },
+    { 0u, 3u, 0x54b69548u },
+    { 1u, 0u, 0xdfb9963eu },
+    { 1u, 1u, 0xf517804du },
+    { 1u, 2u, 0xf3fab28eu },
+    { 1u, 3u, 0x54b69548u },
     { 2u, 0u, 0xe7967b1du },
     { 2u, 1u, 0x30f72db9u },
     { 2u, 2u, 0x22ead32cu },
     { 2u, 3u, 0xfcc63febu },
-    { 3u, 0u, 0x2ac69cd4u },
-    { 3u, 1u, 0xfd1d8edeu },
-    { 3u, 2u, 0x487005c5u },
-    { 3u, 3u, 0xd4586ea3u },
-    { 4u, 0u, 0x497f2b5au },
-    { 4u, 1u, 0x0a60141eu },
+    { 3u, 0u, 0x3a945fa4u },
+    { 3u, 1u, 0x773857edu },
+    { 3u, 2u, 0x1ebd33b5u },
+    { 3u, 3u, 0xdab4ad43u },
+    { 4u, 0u, 0x75b9e822u },
+    { 4u, 1u, 0x13eb76cfu },
     { 4u, 2u, 0x48da0083u },
-    { 4u, 3u, 0x0cf70d76u },
-    { 5u, 0u, 0x54a2ae6au },
-    { 5u, 1u, 0x58452691u },
+    { 4u, 3u, 0xd4a95c86u },
+    { 5u, 0u, 0x1a589940u },
+    { 5u, 1u, 0xafd03416u },
     { 5u, 2u, 0x9b2c46fbu },
-    { 5u, 3u, 0xa1d32a0bu },
-    { 6u, 0u, 0x82219366u },
-    { 6u, 1u, 0x58400b2cu },
+    { 5u, 3u, 0x0f4f7b98u },
+    { 6u, 0u, 0x2e26ea20u },
+    { 6u, 1u, 0xde310c72u },
     { 6u, 2u, 0xea87d93bu },
-    { 6u, 3u, 0x787c10bfu },
-    { 7u, 0u, 0x6b9d1296u },
-    { 7u, 1u, 0x58e33bf0u },
+    { 6u, 3u, 0x06ed109du },
+    { 7u, 0u, 0x74ae20e4u },
+    { 7u, 1u, 0x5ffd3716u },
     { 7u, 2u, 0xb1bf0e0fu },
-    { 7u, 3u, 0x3ab24493u },
-    { 8u, 0u, 0xfd034267u },
-    { 8u, 1u, 0xbb15da0bu },
+    { 7u, 3u, 0xaf0e30adu },
+    { 8u, 0u, 0xd0898aedu },
+    { 8u, 1u, 0x3f39a759u },
     { 8u, 2u, 0x2e6c04e2u },
-    { 8u, 3u, 0x0de6a9b9u },
+    { 8u, 3u, 0xdf8e9b9au },
     { 9u, 0u, 0x61a7cb09u },
     { 9u, 1u, 0x30abc0fau },
     { 9u, 2u, 0xd410477fu },
@@ -224,10 +224,10 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 19u, 1u, 0x854d5ab5u },
     { 19u, 2u, 0xecbfc991u },
     { 19u, 3u, 0x54d512dau },
-    { 20u, 0u, 0x4338a710u },
-    { 20u, 1u, 0x9b4b846au },
+    { 20u, 0u, 0xa603fae0u },
+    { 20u, 1u, 0x1cf076e3u },
     { 20u, 2u, 0x0c328674u },
-    { 20u, 3u, 0x4eaee113u },
+    { 20u, 3u, 0x8dff2147u },
 };
 static const uint32_t T_SKIN_PIN = 0x1237847fu;
 
@@ -269,6 +269,39 @@ static void p_power(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
 }
 static void p_tab(struct ri_dlist *dl, uint32_t w, uint32_t h, int a) {
     ri_art_tab(dl, 0, 0, (int)w - 1, (int)h - 1, "SYNTHS", a & 1, (a >> 1) & 1);
+}
+
+/* Strip headers (owner 2026-09-29) read one face above the section face:
+ * face M at z0 for every mixer strip and the master header. */
+static void headerface_checks(void) {
+    static const uint8_t secs[6] = { 4u, 5u, 6u, 7u, 8u, 20u };
+    static const char *const want[6] =
+        { "TB-303 A", "TB-303 B", "TR-808", "TR-909", "MASTER", "LEVI" };
+    uint32_t s;
+    for (s = 0u; s < 6u; s++) {
+        struct RISectUI ui;
+        struct ri_dlist dl;
+        struct ri_text_metrics tm;
+        uint32_t i;
+        int found = 0;
+        if (ri_sui_init(&ui, secs[s]) != 0)
+            continue;
+        if (ri_smix_strip(secs[s]) >= 0 || secs[s] == RI_SEC_MASTER)
+            ri_sui_bind_board(&ui, &T_BOARD);
+        ri_dlist_init(&dl, T_BACK, 24576u, T_SPOOL, sizeof T_SPOOL);
+        tm.width = ri_raster_text_width;
+        tm.height = 7;
+        tm.baseline = 5;
+        tm.ctx = 0;
+        ri_draw_section(&dl, &ui, secs[s], 0, 0, 0, &tm, 0, 0);
+        for (i = 0u; i < dl.n; i++)
+            if (dl.cmd[i].op == RI_D_TEXT && dl.cmd[i].text &&
+                !strcmp(dl.cmd[i].text, want[s])) {
+                RI_ASSERT(dl.cmd[i].pad[0] == RI_FACE_M, "header face sec=%u", secs[s]);
+                found = 1;
+            }
+        RI_ASSERT(found, "header text sec=%u", secs[s]);
+    }
 }
 
 /* Legend-face parity (S2): a face-M line centres by ri_face_width with
@@ -429,5 +462,6 @@ int main(void) {
     rack_checks(px);
     tab_checks(px);
     textface_checks(px);
+    headerface_checks();
     RI_RESULT("raster_goldens");
 }

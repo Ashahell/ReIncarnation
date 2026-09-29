@@ -194,6 +194,21 @@ void ri_art_text_c(struct ri_dlist *dl, int cx, int cy, const char *s0, int col)
         ri_draw_text(dl, cx, cy, 1u, ri_art_rgb(col), s);
 }
 
+void ri_art_text_c_face(struct ri_dlist *dl, int cx, int cy, const char *s0, int col, int face) {
+    char s[24];
+    int n = 0;
+    if (!s0)
+        return;
+    while (s0[n] && n < 23) {
+        s[n] = (char)((s0[n] >= 'a' && s0[n] <= 'z') ? s0[n] - 32 : s0[n]);
+        n++;
+    }
+    s[n] = 0;
+    if (!n)
+        return;
+    ri_draw_text_face(dl, cx, cy, 1u, ri_art_rgb(col), face, s);
+}
+
 static void art_polar(int cx, int cy, float deg, float r, int *x, int *y) {
     float a = (deg - 90.0f) * 0.0174533f; /* 0 deg = up, clockwise */
     *x = cx + (int)(ri_sin(a + 1.5707963f) * r);

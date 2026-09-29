@@ -58,6 +58,9 @@ span 658 Q / 5 = 131.6 Q).
 
 ## 909 section (Q units, p. 151 figure 365 × 117 px = 1460 × 468 Q)
 
+Owner 2026-09-29: row padded right to 1472 Q (the 808 width) so the Drums
+rows align; all content stays at the measured positions above.
+
 | Element | Position | Size | Note |
 |---------|----------|------|------|
 | Steps 1–16 | x = 148 + 84·k, y 378 | pitch 84 Q | numbered keys; lamp: low orange, high red, flam green |
