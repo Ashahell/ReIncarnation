@@ -609,3 +609,19 @@ int ri_pdrum_alter_lane(struct RIPattern *p, uint32_t lane, uint32_t seed) {
         ri_pdrum_set(p, i, lane, st[i]);
     return 0;
 }
+
+/* Levi SEQ phrase window (v2 feature 3c-i): occurrence pre-pass, out[i]
+ * carries step (i % n) over the stored length. Struct copy first so
+ * kind/length/payload travel; rows past length stay as stored. */
+uint32_t ri_levi_seq_window(const struct RIPattern *in, uint32_t n,
+    struct RIPattern *out) {
+    uint32_t i;
+    if (!in || !out || n == 0u || n > RI_PATTERN_STEPS ||
+        in->kind != RI_PATTERN_KIND_LEVI || in->length < 1u ||
+        in->length > RI_PATTERN_STEPS)
+        return 0u;
+    *out = *in;
+    for (i = 0u; i < in->length; i++)
+        out->row.levi[i] = in->row.levi[i % n];
+    return in->length;
+}

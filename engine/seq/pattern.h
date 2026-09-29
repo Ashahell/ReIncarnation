@@ -125,6 +125,11 @@ uint32_t ri_sched_emit_pattern(const struct RIPattern *p, uint16_t device,
     const struct RISchedOpts *opts,
     const struct RISchedCarry *carry_in, struct RISchedCarry *carry_out,
     struct RIEvent *out, uint32_t cap);
+/* Levi SEQ phrase window (v2 feature 3c-i): out[i] = in[i % n] over
+ * the occurrence length. Returns steps written (in->length), 0 on bad
+ * input (NULL / n outside 1..16 / wrong kind). */
+uint32_t ri_levi_seq_window(const struct RIPattern *in, uint32_t n,
+    struct RIPattern *out);
 /* Levi arp rewrite (v2 feature 3b): post-pass over a Levi event window
  * (NOTE_ON groups = chord steps). Off (or sub-audible rate) copies the
  * window bit-identically; on subdivides each group into stepper strikes
