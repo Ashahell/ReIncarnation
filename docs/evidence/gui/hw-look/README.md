@@ -237,6 +237,11 @@ output level. Unblocked: the Levi mixer/engine WIP has landed.
   (shipped, this round); zoom Fit default + menu + ENVARC persist (S5);
   font licence, skins gesture/chunk, agent rebuild, furniture skins
   still open.
+- **Owner approvals 2026-09-29 (all approved):** zoom-clamp stands
+  (overflowing picks clamp to Fit); RMB View menu works; S4b
+  record → save → reload carries master moves; MASTER moves the whole
+  mix by ear; tempo follows audibly; 909-drag smooth; legends sharp; no
+  grey left; click/pop on Ctrl+keys resolved. GUI round 3 CLOSED.
 
 ## Owner visual + wiring pass (2026-09-29, Dell verdicts)
 
