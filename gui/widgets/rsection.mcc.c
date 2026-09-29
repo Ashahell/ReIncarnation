@@ -191,7 +191,8 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
         if (y1 >= h) y1 = h - 1;
         if (x1 >= x0 && y1 >= y0) {
             build_dl(&d->brp, d, 0, 0, &dl); /* CPU only; cheap vs blits */
-            if (replay_dl_dmg(&d->brp, &dl, x0, y0, x1, y1)) {
+            if (replay_dl_dmg(&d->brp, &dl, ri_skin_aros_for(d->ui.section),
+                x0, y0, x1, y1)) {
                 BltBitMapRastPort(d->bm, x0, y0, wrp, _mleft(obj) + x0, _mtop(obj) + y0,
                     x1 - x0 + 1, y1 - y0 + 1, 0xC0);
                 if (timed) {

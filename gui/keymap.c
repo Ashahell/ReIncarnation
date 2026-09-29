@@ -72,6 +72,10 @@ struct RIKeyAction ri_key_decode(uint32_t raw, uint32_t qual, const struct RIKey
          * are below every menu chord and pattern row start. */
         if (code >= 0x01u && code <= 0x04u)
             return act(RI_KA_TAB, 0, (int)(code - 0x01u));
+        /* S7: Shift+Ctrl+M = whole-panel skin choice (owner 2026-09-29);
+         * other chords ignore Shift. */
+        if (code == 0x37u && shift)
+            return act(RI_KA_MENU, 0, RI_KM_SELECT_MOD_ALL);
         for (i = 0; i < sizeof(RI_KEY_MENU) / sizeof(RI_KEY_MENU[0]); i++)
             if (RI_KEY_MENU[i].raw == code)
                 return act(RI_KA_MENU, 0, RI_KEY_MENU[i].cmd);

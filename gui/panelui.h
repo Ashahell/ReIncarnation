@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include "gui/keymap.h"
 #include "gui/sectui.h"
+#include "gui/skinsect.h"
 
 struct RIPanelUI {
     uint8_t focus;                              /* RI_FOCUS_* */
@@ -34,6 +35,7 @@ struct RIPanelUI {
     const char *const *skin_installed;          /* app-owned installed mod names */
     uint32_t skin_n;
     char skin_current[64];                      /* selected mod name */
+    struct RISkinAssign skin_assign;            /* S7 per-section mods */
     int8_t tab_req;                             /* keyboard tab request 0..3, -1 none */
 };
 

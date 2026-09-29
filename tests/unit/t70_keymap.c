@@ -99,6 +99,12 @@ int main(void) {
             k(0x03, RI_QUAL_CONTROL, 0, 0, 2).arg == 2, "ctrl-3 tab 2");
         RI_ASSERT(k(0x04, RI_QUAL_CONTROL, 1, 1, 0).kind == RI_KA_TAB &&
             k(0x04, RI_QUAL_CONTROL, 1, 1, 0).arg == 3, "ctrl-4 tab 3");
+        /* S7: Shift+Ctrl+M = whole-panel skin choice; plain Ctrl+M unchanged. */
+        RI_ASSERT(k(0x37, RI_QUAL_CONTROL, 1, 1, 0).arg == RI_KM_SELECT_MOD, "ctrl-m mod");
+        a = k(0x37, RI_QUAL_CONTROL | RI_QUAL_LSHIFT, 1, 1, 0);
+        RI_ASSERT(a.kind == RI_KA_MENU && a.arg == RI_KM_SELECT_MOD_ALL, "shift-ctrl-m all");
+        RI_ASSERT(k(0x36, RI_QUAL_CONTROL | RI_QUAL_LSHIFT, 1, 1, 0).arg == RI_KM_NEW,
+            "shift does not leak to other chords");
         RI_ASSERT(k(0x05, RI_QUAL_CONTROL, 1, 1, 0).kind == RI_KA_NONE, "ctrl-5 nothing");
         RI_ASSERT(k(0x01, RI_QUAL_RCOMMAND, 0, 0, 0).kind == RI_KA_TAB, "amiga-1 tab");
         RI_ASSERT(k(0x01, 0, 1, 1, RI_FOCUS_SYNTH1).kind == RI_KA_PATTERN, "plain 1 still pattern");

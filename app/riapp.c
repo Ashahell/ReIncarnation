@@ -84,6 +84,7 @@
 #include "gui/visdev.h"
 #include "gui/tabpages.h"
 #include "gui/zoomfit.h"
+#include "gui/skin_aros.h"
 #include "gui/panelui.h"
 #include "gui/panelctl.h"
 #include "gui/panelgeo.h"
@@ -148,6 +149,13 @@ static int s_live; /* AHI backend up (render task owns the session) */
 static struct RIPanelUI s_panel;
 static Object *s_canvas[C_N];
 static int s_zoom[C_N]; /* content zoom per canvas (transport: compact) */
+static int s_skin_zoom; /* content zoom mirrored into the skin registry */
+/* S7 installed mods (Classic always entry 0, no files) + loader sync. */
+static char s_moddir[96];
+static char s_modnames[15][64];
+static const char *s_modptrs[16];
+static uint32_t s_nmods;
+static struct RISkinAssign s_skin_shadow; /* repaint only on real change */
 static struct RISectUI *s_ui[C_N];
 static const struct RSectionDiag *s_dg[C_N];
 
@@ -1260,6 +1268,16 @@ static void app_set_zoom(int mode) {
     }
     DoMethod(s_root, MUIM_Group_ExitChange);
     s_zoom_mode = mode;
+    if (z != s_skin_zoom) {
+        /* Skin zoom caches follow the canvas zoom (S7 registry). The
+         * zoom attribute already freed every canvas bitmap, so the
+         * relayout repaints with the new caches. */
+        s_skin_zoom = z;
+        if (DOSBase)
+            evlog("SKIN", "sync=%d zoom=%d",
+                ri_skin_aros_sync(&s_panel.skin_assign, s_moddir, s_skin_zoom),
+                s_skin_zoom);
+    }
     for (k = 0; k < 4; k++)
         if (s_zoomitems[k])
             SetAttrs(s_zoomitems[k], MUIA_Menuitem_Checked,
@@ -1267,6 +1285,31 @@ static void app_set_zoom(int mode) {
                 TAG_DONE);
     zoom_persist_write(mode);
     evlog("ZOOM", "mode=%d zoom=%d", mode, z);
+}
+
+/* S7 installed-mod scan (Classic always entry 0): PAL dir walk,
+ * bounded, skips a Classic directory like sectproof. */
+static int skin_scan_cb(void *u, const char *name) {
+    uint32_t *n = (uint32_t *)u, k;
+    if (!u || !name || !name[0] || *n >= 15u)
+        return 0;
+    if (!strcmp(name, "Classic"))
+        return 0;
+    for (k = 0u; k < 63u && name[k]; k++)
+        s_modnames[*n][k] = name[k];
+    s_modnames[*n][k] = '\0';
+    s_modptrs[1u + *n] = s_modnames[*n];
+    (*n)++;
+    return 0;
+}
+
+/* Mirror the panel assignment into the loader (S7 registry). */
+static void skin_sync_current(void) {
+    int n;
+    if (!DOSBase)
+        return;
+    n = ri_skin_aros_sync(&s_panel.skin_assign, s_moddir, s_skin_zoom);
+    evlog("SKIN", "sync=%d zoom=%d", n, s_skin_zoom);
 }
 
 /* Rail toggle: flip the visible bit, ShowMe the row, mirror the LED —
@@ -1313,7 +1356,6 @@ int main(int argc, char **argv) {
     struct MsgPort *tport = 0;
     struct timerequest *treq = 0;
     int timer_ok = 0, timer_armed = 0;
-    static const char *installed[1] = { "Classic" };
 
     ri_core_demo(&s_core);
     evlog_open();
@@ -1356,7 +1398,12 @@ int main(int argc, char **argv) {
      * Fit (default) measures the frontmost public screen; a bad read or a
      * stored explicit zoom skips the measure. */
     ri_panel_init(&s_panel);
-    ri_panel_skins(&s_panel, installed, 0u, "Classic"); /* skins ride later work */
+    s_modptrs[0] = "Classic";
+    s_nmods = 0u;
+    s_moddir[0] = '\0';
+    if (DOSBase && ri_pal_path(RI_PATH_MODS, s_moddir, sizeof s_moddir) == 0)
+        ri_pal_list_dirs(s_moddir, skin_scan_cb, &s_nmods);
+    ri_panel_skins(&s_panel, s_modptrs, 1u + s_nmods, "Classic");
     s_zoom_mode = zoom_persist_read();
     {
         /* Clamped like the runtime path: a persisted overflow zoom (e.g.
@@ -1372,6 +1419,9 @@ int main(int argc, char **argv) {
                 0);
         for (i = 0; i < C_N; i++)
             s_zoom[i] = (i == C_TR) ? RI_GEO_ZOOM_COMPACT : z;
+        s_skin_zoom = z;
+        s_skin_shadow = s_panel.skin_assign; /* registry starts uniform */
+        skin_sync_current();
     }
     for (i = 0; i < C_N; i++) {
         LONG zoom = (LONG)s_zoom[i];
@@ -1730,6 +1780,16 @@ int main(int argc, char **argv) {
             uint32_t g = (uint32_t)s_panel.tab_req;
             s_panel.tab_req = -1;
             tab_switch(g);
+        }
+        /* S7: Ctrl+M reassigns section skins in the panel; repaint only
+         * on a real assignment change (memcmp is 1.3 KB, trivial). */
+        if (memcmp(&s_panel.skin_assign, &s_skin_shadow,
+            sizeof s_skin_shadow) != 0) {
+            s_skin_shadow = s_panel.skin_assign;
+            skin_sync_current();
+            for (i = 0; i < C_N; i++)
+                if (s_canvas[i])
+                    MUI_Redraw(s_canvas[i], MADF_DRAWOBJECT);
         }
         meter_round(s_live ? s_lv.mix_freq : 48000u);
         /* Wedge diagnostic (2026-09-27 Dell freeze under interaction):

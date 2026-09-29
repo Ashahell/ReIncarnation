@@ -1,5 +1,6 @@
 /* gui/panelui.c — front panel focus + keyboard dispatch (§12.10 G5). */
 #include "gui/panelui.h"
+#include <string.h>
 #include "gui/ctlreg.h"
 #include "gui/livestate.h"
 #include "gui/skin.h"
@@ -32,6 +33,7 @@ void ri_panel_init(struct RIPanelUI *p) {
     p->skin_installed = 0;
     p->skin_n = 0;
     p->skin_current[0] = '\0';
+    ri_skinassign_init(&p->skin_assign);
     p->del_arg = 0;
     p->play_start_ticks = 0;
     p->tab_req = -1;
@@ -190,16 +192,40 @@ int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {    struct R
         } else if (a.arg == RI_KM_SELECT_PATTERNS) {
             p->opts.select_patterns = (uint8_t)!p->opts.select_patterns;
             ch = 1;
-        } else if (a.arg == RI_KM_SELECT_MOD) {   /* Ctrl+M: cycle mods (G8.1) */
+        } else if (a.arg == RI_KM_SELECT_MOD || a.arg == RI_KM_SELECT_MOD_ALL) {
+            /* S7: Ctrl+M cycles the focused device's voice section;
+             * Shift+Ctrl+M sets the whole panel to the same next mod.
+             * Empty effective reads Classic; a cycled Classic reseats it. */
+            static const uint8_t focus_sec[RI_FOCUS_COUNT] = {
+                RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909
+            };
+            const char *cur;
             char next[64];
-            if (ri_skin_cycle(p->skin_current, p->skin_installed,
-                              p->skin_n, next) == 0) {
-                uint32_t k;
-                for (k = 0u; k < 63u && next[k]; k++)
-                    p->skin_current[k] = next[k];
-                p->skin_current[k] = '\0';
-                ch = 1;
+            uint32_t k, s;
+            if (!p->skin_installed || p->skin_n == 0u ||
+                p->focus >= RI_FOCUS_COUNT)
+                break;
+            cur = ri_skinassign_get(&p->skin_assign,
+                focus_sec[p->focus]);
+            if (ri_skin_cycle(cur[0] ? cur : "Classic", p->skin_installed,
+                              p->skin_n, next) != 0)
+                break;
+            if (a.arg == RI_KM_SELECT_MOD_ALL) {
+                for (s = 0u; s < RI_SEC_COUNT; s++)
+                    if (ri_skinassign_set(&p->skin_assign, s,
+                        strcmp(next, "Classic") ? next : "") != 0)
+                        break;
+                if (s < RI_SEC_COUNT)
+                    break;
+            } else if (ri_skinassign_set(&p->skin_assign,
+                focus_sec[p->focus],
+                strcmp(next, "Classic") ? next : "") != 0) {
+                break;
             }
+            for (k = 0u; k < 63u && next[k]; k++)
+                p->skin_current[k] = next[k];
+            p->skin_current[k] = '\0';
+            ch = 1;
         }
         break;
     default:

@@ -1,6 +1,7 @@
 /* t71_panelui — front panel focus + keyboard dispatch (§12.10 G5),
  * ReBirth manual p. 20, 22, 224–225. */
 #include <stdio.h>
+#include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include "gui/panelui.h"
 #include "gui/ctlreg.h"
@@ -68,5 +69,20 @@ int main(void) {
     pu.focus = RI_FOCUS_SYNTH1;
     RI_ASSERT(ri_panel_key(&pu, RI_RAW_RETURN, 0) == 0, "no synth: no crash, no change");
     RI_ASSERT(ri_panel_key(0, RI_RAW_UP, 0) == 0, "null panel");
+    /* S7: Ctrl+M cycles the focused section's skin; Shift+Ctrl+M the panel. */
+    {
+        static const char *const inst[3] = { "Classic", "808-RI", "Template" };
+        pu.skin_installed = inst;
+        pu.skin_n = 3u;
+        pu.focus = RI_FOCUS_808;
+        RI_ASSERT(ri_panel_key(&pu, 0x37, RI_QUAL_CONTROL) == 1, "ctrl-m applies");
+        RI_ASSERT(!strcmp(ri_skinassign_get(&pu.skin_assign, RI_SEC_808), "808-RI"), "808 skinned");
+        RI_ASSERT(!strcmp(ri_skinassign_get(&pu.skin_assign, RI_SEC_SYNTH1), ""), "303 untouched");
+        RI_ASSERT(!strcmp(pu.skin_current, "808-RI"), "current mirrors focus");
+        RI_ASSERT(ri_panel_key(&pu, 0x37, RI_QUAL_CONTROL | RI_QUAL_LSHIFT) == 1, "shift-ctrl-m applies");
+        RI_ASSERT(!strcmp(ri_skinassign_get(&pu.skin_assign, RI_SEC_SYNTH1), "Template"), "panel follows");
+        RI_ASSERT(!strcmp(ri_skinassign_get(&pu.skin_assign, RI_SEC_MASTER), "Template"), "master follows");
+        RI_ASSERT(!strcmp(pu.skin_current, "Template"), "current mirrors all");
+    }
     RI_RESULT("panelui");
 }

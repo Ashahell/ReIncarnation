@@ -78,7 +78,6 @@ static ULONG s_camd_got, s_camd_last;   /* raw CAMD diagnostics: messages taken,
 
 /* G8.1 mod selection: installed list scanned from the Mods dir, the loaded
  * skin, and the name the panel currently asks for (Ctrl+M cycles it). */
-static struct RISkin s_skin;
 static char s_loaded[64];
 static const char *s_installed[17];
 static char s_installed_buf[16][64];
@@ -86,6 +85,7 @@ static int s_installed_n;
 static char s_mod_arg[64];
 static int s_mod_pending; /* mod= arg seen but not applied yet */
 static int s_zoom; /* zoom= index 0..3 for the proof canvases (G8.2) */
+static struct RIPanelUI s_panel; /* S7: skin_apply/sync work the assignment */
 
 /* One MOD-log line per selection event (evidence for the G8.1 proof):
  * appends (seek to end), creating the file on first use. */
@@ -116,120 +116,101 @@ static void mod_log(const char *line) {
     }
 }
 
-static void skin_apply(const char *name) {
-    char dir[192], note[160];
+static void skin_sync_all(void) {
+    /* Whole assignment -> loader registry, then log like before: mod=
+     * lines plus one stale line per loaded skin with wrong-size parts
+     * (drawn Classic, never cropped). s_loaded mirrors the focused
+     * section for the Ctrl+M change detector below. */
     char mbase[96];
-    int i, n;
-    dir[0] = '\0';
-    i = 0;
-    if (ri_pal_path(RI_PATH_MODS, mbase, sizeof mbase) == 0) {
-        while (mbase[i] && i < 160) {
-            dir[i] = mbase[i];
-            i++;
-        }
-    }
-    n = 0;
-    while (name[n] && i < 190) {
-        dir[i++] = name[n++];
-    }
-    dir[i] = '\0';
-    ri_skin_aros_free(&s_skin);
-    memset(&s_skin, 0, sizeof s_skin);
-    s_loaded[0] = '\0';
-    ri_skin_aros_set_active(0);
-    if (!strcmp(name, "Classic") || name[0] == '\0') {
-        for (i = 0; name[i] && i < 63; i++)
-            s_loaded[i] = name[i];
-        s_loaded[i] = '\0';
+    const struct RISkin *seen[8];
+    const char *cur;
+    unsigned nseen = 0, s, i;
+    int n;
+    if (ri_pal_path(RI_PATH_MODS, mbase, sizeof mbase) != 0)
+        mbase[0] = '\0';
+    n = ri_skin_aros_sync(&s_panel.skin_assign, mbase, s_zoom);
+    if (n <= 0) {
         mod_log("mod=Classic: procedural (no files)");
-        return;
-    }
-    n = ri_skin_aros_load(dir, &s_skin);
-    if (n < 0) {
-        /* §17 row 3: warn, default mod, never substitute silently. */
-        int rc = n;
-        i = 0;
-        {
-            static const char pre[] = "mod='";
-            while (pre[i] && i < 150) {
-                note[i] = pre[i];
-                i++;
-            }
-        }
-        n = 0;
-        while (name[n] && i < 120) {
-            note[i++] = name[n++];
-        }
-        {
-            static const char post[] = "' not loaded (rc=";
-            int k = 0;
-            while (post[k] && i < 150) {
-                note[i++] = post[k++];
-            }
-            if (i < 156) {
-                note[i++] = (char)('0' - rc);
-            }
+    } else {
+        for (s = 0u; s < (unsigned)RI_SEC_COUNT; s++) {
+            const struct RISkin *sk = ri_skin_aros_for((uint8_t)s);
+            char note[160];
+            unsigned a = 0, b;
+            if (!sk)
+                continue;
+            for (b = 0u; b < nseen; b++)
+                if (seen[b] == sk)
+                    break;
+            if (b < nseen)
+                continue;
+            if (nseen < 8)
+                seen[nseen++] = sk;
             {
-                static const char post2[] = ") — Classic, song dirty";
-                k = 0;
-                while (post2[k] && i < 158) {
-                    note[i++] = post2[k++];
-                }
+                static const char pre[] = "mod='";
+                for (a = 0; pre[a] && a < 150; a++)
+                    note[a] = pre[a];
+            }
+            b = 0;
+            while (sk->name[b] && a < 120)
+                note[a++] = sk->name[b++];
+            {
+                static const char post[] = "' active";
+                unsigned c = 0;
+                while (post[c] && a < 158)
+                    note[a++] = post[c++];
+            }
+            note[a] = '\0';
+            mod_log(note);
+            if (sk->nstale && sk->stale_idx >= 0) {
+                char key[96];
+                const char *seg[5];
+                unsigned m;
+                if (ri_skin_key(sk, (uint32_t)sk->stale_idx, key, sizeof key) != 0)
+                    key[0] = '\0';
+                seg[0] = "mod='";
+                seg[1] = sk->name;
+                seg[2] = "': part(s) wrong size for the panel, first ";
+                seg[3] = key;
+                seg[4] = " - drawn Classic";
+                a = 0;
+                for (m = 0; m < 5; m++)
+                    for (b = 0; seg[m][b] && a < 158; b++)
+                        note[a++] = seg[m][b];
+                note[a] = '\0';
+                mod_log(note);
             }
         }
-        note[i] = '\0';
-        mod_log(note);
-        for (i = 0; name[i] && i < 63; i++)
-            s_loaded[i] = name[i];
-        s_loaded[i] = '\0';
-        return;
     }
-    ri_skin_aros_zoom(&s_skin, s_zoom);
-    ri_skin_aros_set_active(&s_skin);
-    for (i = 0; name[i] && i < 63; i++)
-        s_loaded[i] = name[i];
+    cur = ri_skinassign_get(&s_panel.skin_assign,
+        s_panel.focus < RI_FOCUS_COUNT ?
+        (uint8_t)(s_panel.focus == 0 ? RI_SEC_SYNTH1 :
+                  s_panel.focus == 1 ? RI_SEC_SYNTH2 :
+                  s_panel.focus == 2 ? RI_SEC_808 : RI_SEC_909) : RI_SEC_SYNTH1);
+    if (!cur)
+        cur = "";
+    for (i = 0; cur[i] && i < 63; i++)
+        s_loaded[i] = cur[i];
     s_loaded[i] = '\0';
+    for (i = 0; s_panel.skin_current[i] && i < 63; i++)
+        ;
+}
+
+static void skin_apply(const char *name) {
+    /* Whole-panel selection (mod= arg, startup): every section takes it
+     * ("" reseats Classic); single-section modes have no panel to cycle,
+     * so the arg is their only skin path. */
+    uint32_t s;
+    if (!name)
+        return;
+    for (s = 0u; s < (uint32_t)RI_SEC_COUNT; s++)
+        ri_skinassign_set(&s_panel.skin_assign, s, name);
     {
-        static const char pre[] = "mod='";
-        i = 0;
-        while (pre[i] && i < 150) {
-            note[i] = pre[i];
-            i++;
-        }
-        n = 0;
-        while (name[n] && i < 120) {
-            note[i++] = name[n++];
-        }
-        {
-            static const char post[] = "' active";
-            int k = 0;
-            while (post[k] && i < 158) {
-                note[i++] = post[k++];
-            }
-        }
-        note[i] = '\0';
-        mod_log(note);
+        uint32_t k;
+        for (k = 0u; k < 63u && name[k]; k++)
+            s_panel.skin_current[k] = name[k];
+        s_panel.skin_current[k] = '\0';
     }
-    if (s_skin.nstale && s_skin.stale_idx >= 0) {
-        /* format 1: art whose size no longer matches the panel is drawn
-         * Classic and SAID so, never cropped or stretched */
-        char key[96];
-        const char *seg[5];
-        int k;
-        if (ri_skin_key(&s_skin, (uint32_t)s_skin.stale_idx, key, sizeof key) != 0)
-            key[0] = '\0';
-        seg[0] = "mod='";
-        seg[1] = s_skin.name;
-        seg[2] = "': part(s) wrong size for the panel, first ";
-        seg[3] = key;
-        seg[4] = " - drawn Classic";
-        i = 0;
-        for (k = 0; k < 5; k++)
-            for (n = 0; seg[k][n] && i < 158; n++)
-                note[i++] = seg[k][n];
-        note[i] = '\0';
-        mod_log(note);
-    }
+    skin_sync_all();
 }
 
 /* Scan the Mods dir for installed skins (Classic always first). */
@@ -290,7 +271,7 @@ static void skin_scan(void) {
     UnLock(lock);
     s_installed[n] = 0;
 }
-static struct RIPanelUI s_panel;
+/* (s_panel lives with the other statics near the top for skin_sync_all) */
 
 /* PAL MIDI callback (T5): Standard Mapping onto the panel. */
 static void sect_midi_in(void *u, const uint8_t *msg, uint32_t len, uint64_t t) {
@@ -949,7 +930,7 @@ int main(int argc, char **argv) {
         SetAttrs(readout, MUIA_Text_Contents, (IPTR)s_readout, TAG_DONE);
         if (keys && strcmp(s_panel.skin_current, s_loaded) != 0) {  /* Ctrl+M cycled */
             int k;                                                     /* (panel modes only: */
-            skin_apply(s_panel.skin_current);                          /* single sections have */
+            skin_sync_all();                                           /* single sections have */
             for (k = 0; k < s_nall; k++)                               /* no panel to cycle) */
                 ri_rsection_refresh(s_mix[k]);
         }

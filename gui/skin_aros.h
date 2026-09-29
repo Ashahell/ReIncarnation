@@ -17,19 +17,18 @@
 #include <exec/types.h>
 #include <graphics/rastport.h>
 #include "gui/skin.h"
+#include "gui/skinsect.h"
 
-/* Load dir/Skin.manifest + every part image. Returns parts bound (>= 0),
- * or -1 bad arg, -2 manifest unreadable, -3 manifest rejected, -4 manifest
- * NAME differs from the directory name. A missing, undecodable or
- * wrong-size part image is NOT an error (Classic fallback per part; wrong
- * sizes are counted in skin->nstale / stale_idx for the caller to report).
- * The loaded skin is NOT made active (see set_active). A successful load
- * also builds the zoom-0 cache, so blits work without a zoom() call. */
-int ri_skin_aros_load(const char *dir, struct RISkin *skin);
-/* (Re)build the zoom-scaled cache for zoom index 0..3 (panelgeo factors
- * 4/8, 6/8, 8/8, 3/8 of the 2x masters). Returns parts scaled, or -1 bad
- * arg, -2 bad zoom. Idempotent per (skin, zoom). */
-int ri_skin_aros_zoom(struct RISkin *skin, int zoom);
+/* S7 shared-load registry (at most RI_SKIN_AROS_SLOTS distinct mods).
+ * sync() reconciles the loader with the assignment: loads misses (idle
+ * path; a failed load stays slotted-but-empty so its sections fall back
+ * to Classic), releases dropped mods, and (re)builds zoom caches.
+ * Returns loaded mod count, -1 bad arg, -2 bad zoom (no changes).
+ * for() answers the canvas every draw (NULL = Classic). */
+#define RI_SKIN_AROS_SLOTS 8u
+int ri_skin_aros_sync(const struct RISkinAssign *a, const char *mods_dir,
+                      int zoom);
+const struct RISkin *ri_skin_aros_for(uint8_t section);
 /* Blit part frame (0-based) top-left at (dx, dy) in the RastPort.
  * Returns 1 drawn, 0 fallback (caller renders procedurally), -1 bad
  * arg or no cybergraphics. Reads the zoom cache built at load / zoom
@@ -41,10 +40,4 @@ int ri_skin_aros_blit(struct RastPort *rp, const struct RISkin *skin,
  * blit() without the name lookup. Returns 1 drawn, 0 fallback, -1 bad arg. */
 int ri_skin_aros_blit_idx(struct RastPort *rp, const struct RISkin *skin,
     int idx, uint32_t frame, int dx, int dy);
-/* Release every loader-owned pixel buffer of this skin and clear its
- * bindings (manifest/lookup survive). Deactivates it when active. */
-void ri_skin_aros_free(struct RISkin *skin);
-/* NULL = Classic (no skin). The canvas reads this every MUIM_Draw. */
-void ri_skin_aros_set_active(struct RISkin *skin);
-const struct RISkin *ri_skin_aros_active(void);
 #endif

@@ -226,13 +226,15 @@ static void rtext_face(struct RastPort *rp, int cx, int cy, const char *s, uint3
 static struct ri_dcmd s_dl_back[24576]; /* shaded art: ~8k cmds per 909 at 2x */
 static char s_dl_spool[32768];
 
-static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl);
+static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl,
+    const struct RISkin *skin);
 
 /* Display-list backing: one GUI task draws at a time (MUI app task). */
 static struct ri_dcmd s_dl_back[24576]; /* shaded art: ~8k cmds per 909 at 2x */
 static char s_dl_spool[32768];
 
-static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl);
+static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl,
+    const struct RISkin *skin);
 
 /* S3 damage replay into an off-screen bitmap: only commands hitting the
  * box paint, clipped to it. Rects/spans intersect; lines clip
@@ -406,7 +408,7 @@ static int image_dmg(struct RastPort *rp, const struct RISkin *skin, int idx, ui
 }
 
 static int replay_dl_dmg(struct RastPort *rp, const struct ri_dlist *dl,
-    int dx0, int dy0, int dx1, int dy1) {
+    const struct RISkin *skin, int dx0, int dy0, int dx1, int dy1) {
     uint32_t i;
     for (i = 0u; i < dl->n; i++) {
         const struct ri_dcmd *c = &dl->cmd[i];
@@ -428,7 +430,7 @@ static int replay_dl_dmg(struct RastPort *rp, const struct ri_dlist *dl,
             rtext_face_dmg(rp, c->x0, c->y0, c->text, c->rgb, c->pad[0], dx0, dy0, dx1, dy1);
             break;
         case RI_D_IMAGE:
-            if (!image_dmg(rp, ri_skin_aros_active(), (int)c->img, c->frame, c->x0, c->y0,
+            if (!image_dmg(rp, skin, (int)c->img, c->frame, c->x0, c->y0,
                 dx0, dy0, dx1, dy1))
                 return 0;
             break;
@@ -450,13 +452,13 @@ static void build_dl(struct RastPort *rp, struct RSectionData *dd, int ox, int o
     tm.ctx = rp;
     ri_dlist_init(dl, s_dl_back, 24576u, s_dl_spool, sizeof s_dl_spool);
     ri_draw_section(dl, &dd->ui, dd->ui.section, (int)dd->zoom, ox, oy, &tm,
-        ri_skin_aros_active(), dd->panel);
+        ri_skin_aros_for(dd->ui.section), dd->panel);
 }
 
 static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, int oy) {
     struct ri_dlist dl;
     build_dl(rp, dd, ox, oy, &dl);
-    replay_dl(rp, &dl);
+    replay_dl(rp, &dl, ri_skin_aros_for(dd->ui.section));
 }
 
 /* Rack furniture and other app-side art (riapp: bay, rails, power
@@ -465,10 +467,11 @@ static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, i
  * must be set up on the same screen (RIAPP always has the transport). */
 void ri_rsection_replay(struct RastPort *rp, const struct ri_dlist *dl) {
     if (rp && dl)
-        replay_dl(rp, dl);
+        replay_dl(rp, dl, 0); /* app furniture is procedural (unskinned) */
 }
 
-static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl) {
+static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl,
+    const struct RISkin *skin) {
     uint32_t i;
     for (i = 0u; i < dl->n; i++) {
         const struct ri_dcmd *c = &dl->cmd[i];
@@ -489,7 +492,7 @@ static void replay_dl(struct RastPort *rp, const struct ri_dlist *dl) {
                 rtext(rp, c->x0, c->y0, c->text, c->rgb);
             break;
         case RI_D_IMAGE:
-            ri_skin_aros_blit_idx(rp, ri_skin_aros_active(), (int)c->img, c->frame, c->x0, c->y0);
+            ri_skin_aros_blit_idx(rp, skin, (int)c->img, c->frame, c->x0, c->y0);
             break;
         case RI_D_CLIP:
             break; /* art never emits clips today */
