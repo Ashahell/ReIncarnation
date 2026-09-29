@@ -1483,3 +1483,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-09-29-s6-closed-s7-proven.md
 
 ## [2026-09-29] lint | 0 issues found, 0 auto-fixed
+
+## [2026-09-29] ingest | ExAll fix + acceptance numbers + key forensics
+- Disposition: New (companion; close-out record)
+- Raw: llm-wiki/raw/articles/2026-09-29-exall-acceptance-forensics.md
+
+## [2026-09-29] lint | 0 issues found, 0 auto-fixed
