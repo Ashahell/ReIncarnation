@@ -116,7 +116,7 @@ int main(void) {
         RI_ASSERT(ri_auto_allowed(0x0C51u) == 0, "808 accent is section-wide only");
         RI_ASSERT(ri_auto_allowed(0x0D1Fu) == 1 && ri_auto_allowed(0x0D1Eu) == 0, "909 hat pair key");
         RI_ASSERT(ri_auto_allowed(0x0B30u) == 1 && ri_auto_allowed(0x0B00u) == 0, "mixer key; legacy panel ids refused");
-        RI_ASSERT(ri_auto_allowed(0x0B50u) == 0, "master level not automatable (p. 72)");
+        RI_ASSERT(ri_auto_allowed(0x0B50u) == 1, "master level song data (S4b owner deviation)");
         RI_ASSERT(ri_auto_allowed(0x0B60u) == 1 && ri_auto_allowed(0x0B65u) == 1 &&
             ri_auto_allowed(0x0B66u) == 0, "levi strip keys 0x0B60-65");
         RI_ASSERT(ri_auto_touch(&lane, &pass, 2u, 72u, 96u, 0x0401u, 64u) == 2,
@@ -234,7 +234,7 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 133u, "mapped count %u", mapped);
+            RI_ASSERT(mapped == 134u, "mapped count %u", mapped);
             RI_ASSERT(listed == 31u, "listed count %u", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
@@ -254,7 +254,7 @@ int main(void) {
                         owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 135u, "allow-list size %u (133 controls + 2 VOLUME)", nallow);
+                RI_ASSERT(nallow == 136u, "allow-list size %u (134 controls + 2 VOLUME)", nallow);
             }
         }
     }

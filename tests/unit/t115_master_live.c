@@ -1,9 +1,11 @@
-/* t115_master_live — S4 master monitoring fader (2026-09-29).
- * Master strip level rides the control plane as a live-only key (no lane
- * can hold it): the render task applies it to the post-master gain, the
- * recorder never writes it. Unity is bit-neutral; other values scale by
+/* t115_master_live — S4b master as song data (2026-09-29, owner reversal).
+ * Owner 2026-09-29 reverses the S4 monitoring E0: master strip level is
+ * song data on lane key 0x0B50 (deviation from the manual p. 72-73). The
+ * render task applies it to the post-master gain, RECORD writes lane
+ * events, ATRK carries it. Unity is bit-neutral; other values scale by
  * the P-17 square law; post-master L/R peaks publish (mono twins).
- * RED-first: stub plane/engine ignore master (send refused, gain flat).
+ * RED-first: stub plane refuses master (send == 2, allow-list shut,
+ * touch writes no lane, ATRK rejects the ID).
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -15,6 +17,8 @@
 #include "engine/seq/pattern.h"
 #include "engine/seq/songtrack.h"
 #include "engine/seq/ctlplane.h"
+#include "engine/seq/autolane.h"
+#include "project/rbng.h"
 
 #define SR 48000.0f
 #define BPM 120.0f
@@ -50,7 +54,7 @@ static void banks4(const struct RIPatternBank **out) {
     out[4] = 0;
 }
 
-/* Live render of the fixture; master < 0 means no monitoring moves. */
+/* Live render of the fixture; master < 0 means no master moves. */
 static uint32_t render_master(uint32_t chunk, int master, float *ol, float *or_) {
     struct RILiveSession s;
     struct RIControlPlane ctl;
@@ -62,7 +66,7 @@ static uint32_t render_master(uint32_t chunk, int master, float *ol, float *or_)
     ri_live_set_banks(&s, b4, &TR, 0);
     ri_live_set_ctl(&s, &ctl);
     if (master >= 0)
-        RI_ASSERT(ri_ctl_send_live(&ctl, RI_CTL_MASTER_LEVEL, (uint8_t)master) == 0,
+        RI_ASSERT(ri_ctl_send(&ctl, RI_CTL_MASTER_LEVEL, (uint8_t)master) == 0,
             "master send %d", master);
     ri_live_play(&s);
     while (done < TOTAL) {
@@ -95,17 +99,14 @@ int main(void) {
     uint32_t i;
     fixture();
 
-    /* Plane: master is live-only (admitted live, refused normal, no lane). */
+    /* Plane: master is song data (admitted like any lane key). */
     {
         struct RIControlPlane p;
         struct RIEvent ev[8];
         uint32_t seq = 0u, n;
         ri_ctl_init(&p);
-        RI_ASSERT(ri_ctl_live_only(RI_CTL_MASTER_LEVEL), "master live-only");
-        RI_ASSERT(!ri_ctl_live_only(0x0B55u), "comp not live-only");
-        RI_ASSERT(ri_ctl_send(&p, RI_CTL_MASTER_LEVEL, 100u) == 2, "normal refuses master");
-        RI_ASSERT(ri_ctl_send_live(&p, RI_CTL_MASTER_LEVEL, 100u) == 0, "live admits master");
-        RI_ASSERT(ri_ctl_send_live(&p, 0x0B5Fu, 100u) == 2, "live refuses junk");
+        RI_ASSERT(ri_auto_allowed(RI_CTL_MASTER_LEVEL), "master allowed (S4b)");
+        RI_ASSERT(ri_ctl_send(&p, RI_CTL_MASTER_LEVEL, 100u) == 0, "send admits master");
         n = ri_ctl_drain(&p, ev, 8u, 0u, &seq);
         RI_ASSERT(n == 1u, "drain one");
         RI_ASSERT(ev[0].type == RI_EV_AUTOMATION && ev[0].value == RI_CTL_MASTER_LEVEL &&
@@ -168,7 +169,8 @@ int main(void) {
         }
     }
 
-    /* Recorder: master moves sound now but write no lane events. */
+    /* Recorder: RECORD writes a master lane event; PLAY sounds but writes
+     * nothing (touch refuses off-record, the plane send still lands). */
     {
         static struct RIAutoEv ev0[16], ev1[16];
         static struct RIAutoPub pub;
@@ -191,11 +193,51 @@ int main(void) {
         ri_live_record(&s);
         bk = ri_auto_pub_back(&pub);
         RI_ASSERT(ri_live_record_touch(&s, RI_CTL_MASTER_LEVEL, 64u) == 0, "master touch sends");
-        RI_ASSERT(ri_auto_value(bk, (uint32_t)s.cursor_ticks, RI_CTL_MASTER_LEVEL, &v) == 0,
-            "master writes no lane");
+        RI_ASSERT(ri_auto_value(bk, (uint32_t)s.cursor_ticks, RI_CTL_MASTER_LEVEL, &v) == 1 &&
+            v == 64u, "master records");
         RI_ASSERT(ri_live_record_touch(&s, RI_CTL_303A_CUTOFF, 100u) == 0, "cutoff touch sends");
         RI_ASSERT(ri_auto_value(bk, (uint32_t)s.cursor_ticks, RI_CTL_303A_CUTOFF, &v) == 1 &&
             v == 100u, "cutoff records");
+        ri_live_play(&s);
+        {
+            /* Advance past the recorded tick so the PLAY touch below
+             * cannot hide behind the RECORD event it must not repeat. */
+            static float dL[192], dR[192];
+            RI_ASSERT(ri_live_render(&s, dL, dR, 192u) == 192u, "advance");
+            RI_ASSERT(s.cursor_ticks > 0u, "cursor advanced");
+        }
+        RI_ASSERT(ri_live_record_touch(&s, RI_CTL_MASTER_LEVEL, 32u) == 0, "play touch sends");
+        RI_ASSERT(ri_auto_value(bk, (uint32_t)s.cursor_ticks, RI_CTL_MASTER_LEVEL, &v) == 1 &&
+            v == 64u, "play writes no lane (carried record)");
+    }
+
+    /* ATRK carries the master key through a song round trip. */
+    {
+        static struct RISong s, r;
+        static struct RBAutoEv wbuf[4], rbuf[4];
+        static char err[256];
+        uint32_t st;
+        rbng_song_init(&s);
+        rbng_song_init(&r);
+        s.nsteps = 16u;
+        for (st = 0u; st < 16u; st++) {
+            s.steps[st].note = (uint8_t)(45 + (st % 8));
+            s.steps[st].flags = 0u;
+        }
+        wbuf[0].tick = 96u;
+        wbuf[0].ctl = RI_CTL_MASTER_LEVEL;
+        wbuf[0].val = 90u;
+        s.atrk = wbuf;
+        s.atrk_cap = 4u;
+        s.natrk = 1u;
+        r.atrk = rbuf;
+        r.atrk_cap = 4u;
+        RI_ASSERT(rbng_write_song("/tmp/ri/run/t115-m.rbng", &s, err,
+            sizeof err) == 0, "write master atrk: %s", err);
+        RI_ASSERT(rbng_read_song("/tmp/ri/run/t115-m.rbng", &r, err,
+            sizeof err) == 0, "read master atrk: %s", err);
+        RI_ASSERT(r.natrk == 1u && r.atrk[0].ctl == RI_CTL_MASTER_LEVEL &&
+            r.atrk[0].val == 90u, "atrk carries master");
     }
     RI_RESULT("master_live");
 }

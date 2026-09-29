@@ -55,7 +55,7 @@ void ri_engine_init(struct RIEngine *e) {
         e->level[i] = 127u; /* unity: the pre-fader engine, bit-identical */
         e->lvl_applied[i] = 1.0f;
     }
-    e->master = 127u; /* unity monitoring fader (S4, stubbed until GREEN) */
+    e->master = 127u; /* unity song-data fader (S4b), 127 = unity */
     e->master_applied = 1.0f;
     e->tempo = RI_ENGINE_TEMPO_DEFAULT;
     e->dline = 0;
@@ -520,7 +520,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                     mr[i] = (double)tr[i];
                 }
             }
-            /* Master fader (S4 monitoring gain): post-everything P-17 law
+            /* Master fader (S4b song-data gain): post-everything P-17 law
              * with the strip zipless slew. Unity at rest skips the
              * multiply so the neutral path stays bit-identical; the meter
              * taps the post-master buses (mono path: L/R twins). */
@@ -596,7 +596,7 @@ int ri_engine_set_level(struct RIEngine *e, uint32_t section, uint8_t v) {
     return 0;
 }
 
-/* S4 master monitoring fader (P-17 law, unity default). */
+/* S4b master song-data fader (P-17 law, unity default). */
 int ri_engine_set_master(struct RIEngine *e, uint8_t v) {
     if (!e)
         return 2;
@@ -660,7 +660,7 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
         }
         if (strip == RI_AUTO_STRIP_MASTER) {
             /* Master strip: Comp rides the unit branch above; Level is the
-             * live-only monitoring fader (p. 72 keeps it off the lanes). */
+             * S4b song-data fader (owner deviation from manual p. 72). */
             if (lo == RI_AUTO_MIX_LEVEL)
                 ri_engine_set_master(e, val);
             return;

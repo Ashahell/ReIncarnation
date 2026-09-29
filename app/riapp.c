@@ -1485,7 +1485,7 @@ int main(int argc, char **argv) {
                 ri_smix_value(mu->u.mix.board, (uint32_t)RI_SEC_MIX_LEVI,
                     (uint32_t)k));
     }
-    {   /* MASTER monitoring fader adopts the panel (registry def 100):
+    {   /* MASTER song-data fader adopts the panel (registry def 100):
          * the engine default is unity, so without this the fader would
          * show 100 while the mix plays at 127. */
         struct RISectUI *mu = s_ui[C_MIX];

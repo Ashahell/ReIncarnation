@@ -27,12 +27,14 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     RI_FXID_DELAY_STEPS, RI_FXID_DELAY_TRIPLET, RI_FXID_PCF_DECAY,
     RI_FXID_COMP_RATIO, RI_FXID_DELAY_RETPAN,
     /* Task 5c: channel strips 0x0Bsp (level, pan, delay send, dist/pcf/comp
-     * inserts per 303A/303B/808/909; master comp). Master level is not
-     * automatable (p. 72), on/off is the mute (never recorded). */
+     * inserts per 303A/303B/808/909; master comp + S4b master level).
+     * Master level is song data per owner 2026-09-29 (deviation from the
+     * manual p. 72); on/off is the mute (never recorded). */
     0x0B10u, 0x0B11u, 0x0B12u, 0x0B13u, 0x0B14u, 0x0B15u,
     0x0B20u, 0x0B21u, 0x0B22u, 0x0B23u, 0x0B24u, 0x0B25u,
     0x0B30u, 0x0B31u, 0x0B32u, 0x0B33u, 0x0B34u, 0x0B35u,
     0x0B40u, 0x0B41u, 0x0B42u, 0x0B43u, 0x0B44u, 0x0B45u,
+    0x0B50u,
     0x0B55u,
     0x0B60u, 0x0B61u, 0x0B62u, 0x0B63u, 0x0B64u, 0x0B65u,
     /* Task 5b: 808 per-voice keys 0x0Cpv (exactly the registry's knobs) */

@@ -232,9 +232,11 @@ output level. Unblocked: the Levi mixer/engine WIP has landed.
 - **E0 ledger:** master level is monitoring, not song data (no live-only
   history exists offline); default 100 (registry def).
 - **Owner decisions 2026-09-29** (supersede above where noted): master
-  becomes song data (S4b pending); tab keys Ctrl+1..4 (shipped, this
-  round); zoom Fit default + menu + ENVARC persist (S5); font licence,
-  skins gesture/chunk, agent rebuild, furniture skins still open.
+  is song data (S4b landed: allow-list `0x0B50`, recorder writes, ATRK
+  carries; deviation from the manual p. 72-73); tab keys Ctrl+1..4
+  (shipped, this round); zoom Fit default + menu + ENVARC persist (S5);
+  font licence, skins gesture/chunk, agent rebuild, furniture skins
+  still open.
 
 ## Owner visual + wiring pass (2026-09-29, Dell verdicts)
 

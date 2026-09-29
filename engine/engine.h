@@ -66,7 +66,7 @@ struct RIEngine {
     uint8_t send[RI_ROUTE_NSECTIONS]; /* 0..127 post-insert mono send */
     uint8_t level[RI_ROUTE_NSECTIONS]; /* strip fader 0..127, 127 = unity */
     float lvl_applied[RI_ROUTE_NSECTIONS]; /* zipless slew state */
-    uint8_t master; /* S4 monitoring fader 0..127, 127 = unity */
+    uint8_t master; /* S4b song-data fader 0..127, 127 = unity */
     float master_applied; /* zipless slew state */
     float tempo; /* delay clock, 20..500 BPM */
     float *dline; /* caller-owned delay line, NULL = dry */
@@ -107,7 +107,7 @@ int ri_engine_set_send(struct RIEngine *e, uint32_t section, uint8_t v);
  * Post-insert, pre-meter/send/pan; zipless slew over RI_MIX_RAMP_SMP.
  * Returns 0 ok, 2 bad arg. */
 int ri_engine_set_level(struct RIEngine *e, uint32_t section, uint8_t v);
-/* S4 master monitoring fader (P-17 law, unity default = bit-identical
+/* S4b master song-data fader (P-17 law, unity default = bit-identical
  * neutral path). Post-everything gain + L/R meter taps. Returns 0 ok. */
 int ri_engine_set_master(struct RIEngine *e, uint8_t v);
 void ri_engine_set_tempo(struct RIEngine *e, float bpm);

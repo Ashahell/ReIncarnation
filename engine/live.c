@@ -170,12 +170,6 @@ int ri_live_record_touch(struct RILiveSession *s, uint16_t key, uint8_t val) {
     int rc_t = 2, rc_c = 2;
     if (!s)
         return 2;
-    /* S4: live-only monitoring keys sound now but never touch a lane. */
-    if (ri_ctl_live_only(key)) {
-        if (s->ctl)
-            rc_c = ri_ctl_send_live(s->ctl, key, val);
-        return rc_c == 0 ? 0 : 2;
-    }
     if (s->pub) {
         struct RIAutoLane *bk = ri_auto_pub_back(s->pub);
         if (bk && s->pass)

@@ -224,7 +224,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MIX_LEVI, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 4),
     R(MIX_LEVI, 6, SWITCH, "", "PCF", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_PCF, 4),
     R(MIX_LEVI, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 4),
-    R(MASTER, 0, FADER, "", "Level", 0, 127, 100, 7, 0, NONE, 0, 0),
+    R(MASTER, 0, FADER, "", "Level", 0, 127, 100, 7, 1, LEVEL, 0, RI_ROUTE_MASTER),
     R(MASTER, 1, METER, "", "Meter L", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MASTER, 2, METER, "", "Meter R", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MASTER, 3, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, RI_ROUTE_MASTER),

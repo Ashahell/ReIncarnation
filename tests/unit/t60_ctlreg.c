@@ -112,10 +112,14 @@ int main(void) {
             APPX_C[i].group, APPX_C[i].legend);
     }
 
-    /* Song automation exclusions (p. 72-73): Tempo, Mute x4, Master Level, Shuffle */
+    /* Song automation exclusions (p. 72-73): Tempo, Mute x4, Shuffle.
+     * Master Level is an OWNER deviation (2026-09-29, S4b): song data,
+     * lane key 0x0B50, against the manual. */
     RI_ASSERT(!find_leg(RI_SEC_TRANSPORT, "", "Tempo")->automatable, "Tempo automatable");
     RI_ASSERT(!find_leg(RI_SEC_TRANSPORT, "", "Shuffle")->automatable, "Shuffle automatable");
-    RI_ASSERT(!find_leg(RI_SEC_MASTER, "", "Level")->automatable, "Master Level automatable");
+    RI_ASSERT(find_leg(RI_SEC_MASTER, "", "Level")->automatable, "Master Level must be automatable (S4b)");
+    RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MASTER, "", "Level")) == 0x0B50u,
+        "Master Level key 0x0B50");
     for (s = RI_SEC_MIX_SYNTH1; s <= RI_SEC_MIX_909; s++) {
         RI_ASSERT(!find_leg((uint8_t)s, "", "On/Off")->automatable, "mute automatable (sec %u)", s);
         RI_ASSERT(find_leg((uint8_t)s, "", "Level")->automatable, "mixer level must be automatable");
@@ -168,8 +172,13 @@ int main(void) {
             RI_ASSERT(d->engine_id >= 0x0E00u && d->engine_id <= 0x0E1Cu, "levi id %04x", d->engine_id);
             RI_ASSERT(d->voice == 0u, "levi section-wide voice %u", d->voice);
             break;
-        case RI_BIND_PAN: case RI_BIND_SEND: case RI_BIND_LEVEL:
+        case RI_BIND_PAN: case RI_BIND_SEND:
             RI_ASSERT(d->voice < RI_ROUTE_NSECTIONS, "route section %u", d->voice);
+            break;
+        case RI_BIND_LEVEL:
+            /* S4b: the MASTER strip level rides voice RI_ROUTE_MASTER. */
+            RI_ASSERT(d->voice < RI_ROUTE_NSECTIONS || d->voice == RI_ROUTE_MASTER,
+                "route section %u", d->voice);
             break;
         case RI_BIND_INSERT:
             RI_ASSERT(d->engine_id < RI_ROUTE_NUNITS, "insert unit %u", d->engine_id);
