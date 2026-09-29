@@ -4,6 +4,7 @@
  * envelopes end exact).
  */
 #include "engine/dsp/levi.h"
+#include "engine/dsp/levi_matrix.h"
 #include "engine/dsp/kernels.h"
 
 /* E0 DAHDSR shape: fast pluck (delays/holds 0, attack 5 ms, decay
@@ -220,6 +221,7 @@ void levi_init_set(struct RILeviSet *s) {
     s->arprate = 64u;
     s->seqon = 0u;
     s->seqlen = 16u;
+    ri_levi_matrix_init(&s->mx);
 }
 
 int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
@@ -353,19 +355,20 @@ int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
  * modulate per render; states flushed (denormal-safe). f is clamped to
  * 1.0 (Dell 2026-09-28: the 1.8 ceiling admitted tunings past the
  * stability limit — inf/NaN ~300 samples after trigger, latched). */
-static float lp_step(struct RILeviVoice *v, float x, float sr) {
+static float lp_step(struct RILeviVoice *v, float x, float sr,
+    float cutoff, float reso, float drive) {
     float f, q, hp, bp, lp, tap, k, xd, hp2, bp2, lp2;
     if (!(sr > 0.0f))
         return 0.0f;
-    f = 2.0f * ri_sin(3.14159265f * v->cutoff / sr);
+    f = 2.0f * ri_sin(3.14159265f * cutoff / sr);
     if (f > 1.0f)
         f = 1.0f;
     if (f < 0.02f)
         f = 0.02f;
-    q = 1.0f - v->reso * 0.85f;
+    q = 1.0f - reso * 0.85f;
     if (q < 0.05f)
         q = 0.05f;
-    k = v->drive < 0.0f ? 0.0f : v->drive > 1.0f ? 1.0f : v->drive;
+    k = drive < 0.0f ? 0.0f : drive > 1.0f ? 1.0f : drive;
     xd = x * (1.0f + 4.0f * k) / (1.0f + 4.0f * k * (x < 0.0f ? -x : x));
     hp = xd - v->lp1 * q - v->lp2;
     bp = v->lp1 + f * hp;
@@ -565,21 +568,74 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
     return mix;
 }
 
-float levi_voice_render(struct RILeviVoice *v, float sr) {
+float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
+    float sr) {
     float mixA, mixB, mix, out;
+    /* Effective params: base copies when the matrix is absent, so the
+     * legacy path below stays bit-identical (x*1.0 and x+0.0 are exact;
+     * morph keeps its integer branches through emorph). */
+    float ecut, ereso, edrive, emorph, eoplevel, evlevel;
     int any_on = 0;
     if (!v || !v->active || !(sr > 0.0f))
         return 0.0f;
     mixA = voice_pass(v, 0u, sr, &any_on);
     mixB = voice_pass(v, 1u, sr, &any_on);
+    ecut = v->cutoff;
+    ereso = v->reso;
+    edrive = v->drive;
+    emorph = (float)v->morph;
+    eoplevel = 1.0f;
+    evlevel = 1.0f;
+    if (mx) {
+        float openv[RI_LEVI_NOPS], dst[RI_LEVI_MD_N];
+        uint32_t o;
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            openv[o] = v->st[0][o].env.value;
+        if (ri_levi_matrix_eval(mx, openv, v->note, dst) == 0) {
+            /* Own scaling laws (clean-room): cutoff ±2 octaves
+             * full-scale, reso/drive linear, morph in blend units,
+             * oplevel pre-filter (drives the timbre), vlevel post. */
+            ecut = v->cutoff * ri_pow2(dst[RI_LEVI_MD_CUTOFF] * 2.0f);
+            if (ecut < 40.0f)
+                ecut = 40.0f;
+            if (ecut > 18000.0f)
+                ecut = 18000.0f;
+            ereso = v->reso + dst[RI_LEVI_MD_RESO] * 0.5f;
+            if (ereso < 0.0f)
+                ereso = 0.0f;
+            if (ereso > 1.0f)
+                ereso = 1.0f;
+            edrive = v->drive + dst[RI_LEVI_MD_DRIVE];
+            if (edrive < 0.0f)
+                edrive = 0.0f;
+            if (edrive > 1.0f)
+                edrive = 1.0f;
+            emorph = (float)v->morph + dst[RI_LEVI_MD_MORPH] * 100.0f;
+            if (emorph < 0.0f)
+                emorph = 0.0f;
+            if (emorph > 100.0f)
+                emorph = 100.0f;
+            eoplevel = 1.0f + dst[RI_LEVI_MD_OPLEVEL];
+            if (eoplevel < 0.0f)
+                eoplevel = 0.0f;
+            if (eoplevel > 2.0f)
+                eoplevel = 2.0f;
+            evlevel = 1.0f + dst[RI_LEVI_MD_VLEVEL];
+            if (evlevel < 0.0f)
+                evlevel = 0.0f;
+            if (evlevel > 2.0f)
+                evlevel = 2.0f;
+        }
+    }
     /* Exact endpoints (bit-identity with no-morph / pure-B voices);
      * the slide blends between them. */
-    if (v->morph == 0u)
+    if (emorph <= 0.0f)
         mix = mixA;
-    else if (v->morph >= 100u)
+    else if (emorph >= 100.0f)
         mix = mixB;
     else
-        mix = mixA + (mixB - mixA) * ((float)v->morph / 100.0f);
+        mix = mixA + (mixB - mixA) * (emorph / 100.0f);
+    mix *= eoplevel;
     if (!any_on) {
         v->active = 0u;
         v->lp1 = 0.0f;
@@ -588,7 +644,7 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
         v->lp4 = 0.0f;
         return 0.0f;
     }
-    out = lp_step(v, mix, sr);
+    out = lp_step(v, mix, sr, ecut, ereso, edrive);
     if (!(out > -1e20f && out < 1e20f)) {
         /* Non-finite latch guard (Dell 2026-09-28): a poisoned filter
          * state must self-heal to silence, never mute the mix. */
@@ -598,7 +654,7 @@ float levi_voice_render(struct RILeviVoice *v, float sr) {
         v->lp4 = 0.0f;
         return 0.0f;
     }
-    return out * v->level;
+    return out * v->level * evlevel;
 }
 
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
@@ -609,7 +665,7 @@ void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
     for (i = 0u; i < n; i++) {
         float m = 0.0f;
         for (v = 0u; v < RI_LEVI_NVOICES; v++)
-            m += levi_voice_render(&s->v[v], sr);
+            m += levi_voice_render(&s->v[v], &s->mx, sr);
         out[i] = m;
     }
 }

@@ -16,7 +16,7 @@ static void render_sum(struct RILeviSet *s, float *out, uint32_t n) {
         float m = 0.0f;
         uint32_t v;
         for (v = 0u; v < RI_LEVI_NVOICES; v++)
-            m += levi_voice_render(&s->v[v], 48000.0f);
+            m += levi_voice_render(&s->v[v], 0, 48000.0f);
         out[i] = m;
     }
 }

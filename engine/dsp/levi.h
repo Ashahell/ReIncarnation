@@ -11,6 +11,7 @@
 #ifndef RI_LEVI_H
 #define RI_LEVI_H
 #include <stdint.h>
+#include "engine/dsp/levi_matrix.h"
 
 #define RI_LEVI_NVOICES 6u
 #define RI_LEVI_NOPS 8u
@@ -152,6 +153,7 @@ struct RILeviSet {
     uint8_t arprate; /* device arp rate 0..127 */
     uint8_t seqon;   /* device seq gate (v2 feature 3; UI/automation truth) */
     uint8_t seqlen;  /* device seq length 1..16 */
+    struct RILeviMatrix mx; /* device matrix program (v2 feature 4) */
 };
 
 void levi_init_set(struct RILeviSet *s);
@@ -164,8 +166,10 @@ void levi_release(struct RILeviSet *s, uint32_t voice);
  * voice; returns 0 ok, 2 bad. */
 int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     uint8_t val);
-/* Render one sample; idle voices return exact 0. */
-float levi_voice_render(struct RILeviVoice *v, float sr);
+/* Render one sample; idle voices return exact 0. mx NULL (or an
+ * empty program) renders the legacy path bit-identically. */
+float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
+    float sr);
 /* Sum all voices into out (render mix, rb909 pattern). */
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
     float sr);
