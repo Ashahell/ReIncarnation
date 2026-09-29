@@ -79,6 +79,18 @@ void ri_live_set_sections(struct RILiveSession *s, uint32_t sections) {
     ri_atomic_store_rel(&s->sections, sections);
 }
 
+void ri_live_set_bpm(struct RILiveSession *s, float bpm) {
+    uint64_t nspq;
+    if (!s || bpm < 20.0f || bpm > 500.0f)
+        return;
+    nspq = (uint64_t)(60000000000.0 / (double)bpm);
+    if (nspq == 0u)
+        nspq = 500000000ULL;
+    s->nspq = nspq;
+    s->seg.ns_per_quarter = nspq;
+    s->bpm = bpm;
+}
+
 uint32_t ri_live_sections(struct RILiveSession *s) {
     if (!s)
         return 0u;

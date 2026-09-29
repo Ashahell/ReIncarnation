@@ -31,9 +31,10 @@
  *   that tick, never blocked on). This closes G6b on the device.
  *
  * Placeholders (canvas responds visually; no engine route yet — see the
- * evidence file, never silent-by-design): transport tempo/shuffle/loop/
+ * evidence file, never silent-by-design): transport shuffle/loop/
  * rewind/FF/song-mode, record lamp, pattern shuffle switches, mixer
- * on/off switches, 303 programming buttons (pending state: they shape the
+ * on/off switches (the tempo knob drives the session since 2026-09-29),
+ * 303 programming buttons (pending state: they shape the
  * next stepped note, which does reach the engine), skins (Classic
  * procedural), capture keys (recording UX is Step 5).
  * Startup: built-in demo song (the G9.2 t81 fixture); AHI missing ->
@@ -354,6 +355,13 @@ static void rlog(const char *fmt, ...) {
 /* Transport state edge -> the render task (or the null session). */
 static void sync_transport(void) {
     int st = s_ui[C_TR]->u.tr.tr.state;
+    /* Owner 2026-09-29: the tempo knob drives the session (was
+     * display-only); the live render adopts bpm into the engine. */
+    {
+        int tempo = ri_sui_value(s_ui[C_TR], RI_STR_TEMPO);
+        if (tempo >= 20 && tempo <= 500 && (float)tempo != s_core.session.bpm)
+            ri_live_set_bpm(&s_core.session, (float)tempo);
+    }
     if (st == s_tr_state)
         return;
     s_tr_state = st;

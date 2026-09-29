@@ -72,6 +72,11 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
  * (set ignores, get returns 0). */
 void ri_live_set_sections(struct RILiveSession *s, uint32_t sections);
 uint32_t ri_live_sections(struct RILiveSession *s);
+/* GUI-side tempo follow (owner 2026-09-29: the transport knob was
+ * display-only). Plain words, same tolerance class as the live-read
+ * banks/track; the render task adopts s->bpm into the engine every
+ * buffer. Out-of-range and NULL fail closed. */
+void ri_live_set_bpm(struct RILiveSession *s, float bpm);
 void ri_live_set_banks(struct RILiveSession *s,
     const struct RIPatternBank *const banks[RI_SONGTRACK_INSTANCES],
     const struct RISongTrack *track, const struct RILoop *loop);
