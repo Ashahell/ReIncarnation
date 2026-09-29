@@ -213,6 +213,33 @@ static uint32_t modr_len(const struct RISong *s) {
     return n;
 }
 
+/* S7: SKAS body bytes (without the pad): u16 n + per u8/u8/name. */
+static uint32_t skas_len(const struct RISong *s) {
+    uint32_t n = 2u, k;
+    for (k = 0u; k < s->nskin; k++)
+        n += 1u + 1u + (uint32_t)strlen(s->skin[k].name);
+    return n;
+}
+
+static int skin_name_ok(const char *name, uint32_t *len_out) {
+    uint32_t n = 0u;
+    if (!name)
+        return 0;
+    while (name[n]) {
+        unsigned char c = (unsigned char)name[n];
+        int ok = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+            (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';
+        if (!ok || n >= RI_RBNG_MAX_MOD_NAME)
+            return 0;
+        n++;
+    }
+    if (n == 0u)
+        return 0;
+    if (len_out)
+        *len_out = n;
+    return 1;
+}
+
 static int song_valid(const struct RISong *s, char *err, uint32_t errcap) {
     uint32_t k;
     if (!s || s->tempo < 30u || s->tempo > 300u || s->ppq < 24u ||
@@ -347,6 +374,22 @@ static int song_valid(const struct RISong *s, char *err, uint32_t errcap) {
             return 1;
         }
     }
+    if (s->nskin > RI_SEC_COUNT) {
+        put_err(err, errcap, "SKAS count out of range");
+        return 1;
+    }
+    for (k = 0; k < s->nskin; k++) {
+        uint32_t nl = 0u;
+        if (s->skin[k].section >= RI_SEC_COUNT ||
+            !skin_name_ok(s->skin[k].name, &nl)) {
+            put_err(err, errcap, "SKAS section/name bad");
+            return 1;
+        }
+        if (k > 0u && s->skin[k].section <= s->skin[k - 1u].section) {
+            put_err(err, errcap, "SKAS sections not ascending");
+            return 1;
+        }
+    }
     if (strlen(s->cprg) > RI_RBNG_MAX_CPRG) {
         put_err(err, errcap, "CPRG too long");
         return 1;
@@ -385,7 +428,7 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     uint32_t errcap) {
     FILE *f;
     uint32_t total, k, tb, ti;
-    uint32_t cprg_n, patt_n, auto_n, modr_n, atrk_n;
+    uint32_t cprg_n, patt_n, auto_n, modr_n, atrk_n, skas_n;
     if (song_valid(s, err, errcap) != 0)
         return 2;
     cprg_n = 1u + (uint32_t)strlen(s->cprg);
@@ -393,6 +436,7 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     auto_n = auto_len(s);
     modr_n = modr_len(s);
     atrk_n = 4u + s->natrk * 8u;
+    skas_n = skas_len(s);
     total = 4u; /* 'RBNG' */
     total += 8u + 8u; /* VERS (8 data bytes, even) */
     total += 8u + 6u; /* SONG */
@@ -410,6 +454,8 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     else
         total += 8u + auto_n + (auto_n & 1u);
     total += 8u + modr_n + (modr_n & 1u);
+    if (s->nskin > 0u)
+        total += 8u + skas_n + (skas_n & 1u);
     total += 8u + cprg_n + (cprg_n & 1u);
     if (!ri_track_is_empty(&s->track)) {
         uint32_t w = song_uses_levi(s) ? RI_RBNG_STRK_BYTES : RI_RBNG_STRK_BYTES_V1;
@@ -431,8 +477,8 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
      * and remain byte-identical v1.0 files; banks OR a track make it 1.1,
      * automation ATRK makes it 1.2. Instance-4 (Levi) track usage makes
      * it 1.4 with a 5-wide STRK; anything else keeps the old bytes. */
-    wr16be(f, (s->natrk > 0u) ? 2u : (song_uses_levi(s) ? 4u :
-        ((s->nbanks > 0u || !ri_track_is_empty(&s->track)) ? 1u : 0u)));
+    wr16be(f, (s->natrk > 0u) ? 2u : (song_uses_levi(s) ? 4u : (s->nskin > 0u ? 3u :
+        ((s->nbanks > 0u || !ri_track_is_empty(&s->track)) ? 1u : 0u))));
     wr32be(f, 0u);
     chunk_head(f, "SONG", 6u);
     wr16be(f, s->tempo);
@@ -495,6 +541,18 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     }
     if (modr_n & 1u)
         fputc(0, f);
+    if (s->nskin > 0u) {
+        chunk_head(f, "SKAS", skas_n);
+        wr16be(f, s->nskin);
+        for (k = 0u; k < s->nskin; k++) {
+            uint32_t nl = (uint32_t)strlen(s->skin[k].name);
+            fputc((int)s->skin[k].section, f);
+            fputc((int)nl, f);
+            fwrite(s->skin[k].name, 1, nl, f);
+        }
+        if (skas_n & 1u)
+            fputc(0, f);
+    }
     chunk_head(f, "CPRG", cprg_n);
     fputc((int)strlen(s->cprg), f);
     if (cprg_n > 1u)
@@ -691,7 +749,7 @@ static int parse_image(const unsigned char *img, uint32_t n, struct RISong *s,
     char *err, uint32_t errcap) {
     uint32_t off, total;
     int saw_vers = 0, saw_song = 0, saw_patt = 0, saw_auto = 0, saw_modr = 0,
-        saw_cprg = 0, saw_strk = 0, saw_atrk = 0;
+        saw_cprg = 0, saw_strk = 0, saw_atrk = 0, saw_skas = 0;
     uint16_t file_minor = 0u;
     uint32_t patt_expect = 0;
     struct RBAutoEv *keep_atrk;
@@ -997,6 +1055,77 @@ static int parse_image(const unsigned char *img, uint32_t n, struct RISong *s,
                 return 1;
             }
             s->nmods = (uint16_t)nm;
+        } else if (memcmp(cid, "SKAS", 4) == 0) {
+            const unsigned char *q = img + doff;
+            uint32_t left = size, nn, k;
+            uint8_t prev = 0u;
+            int have_prev = 0;
+            if (saw_skas) {
+                ck_err(err, errcap, cid, off, "duplicate SKAS");
+                return 1;
+            }
+            saw_skas = 1;
+            if (left < 2u) {
+                ck_err(err, errcap, cid, off, "SKAS too short");
+                return 1;
+            }
+            nn = rd16be(q);
+            q += 2;
+            left -= 2u;
+            if (nn == 0u || nn > RI_SEC_COUNT) {
+                ck_err(err, errcap, cid, off, "SKAS bad count");
+                return 1;
+            }
+            /* Validate the whole body BEFORE storing anything. */
+            for (k = 0u; k < nn; k++) {
+                uint32_t nl, c;
+                if (left < 2u) {
+                    ck_err(err, errcap, cid, off, "SKAS entry truncated");
+                    return 1;
+                }
+                if (q[0] >= RI_SEC_COUNT) {
+                    ck_err(err, errcap, cid, off, "SKAS bad section");
+                    return 1;
+                }
+                if (have_prev && q[0] <= prev) {
+                    ck_err(err, errcap, cid, off, "SKAS not ascending");
+                    return 1;
+                }
+                nl = q[1];
+                if (nl == 0u || nl > RI_RBNG_MAX_MOD_NAME || nl + 2u > left) {
+                    ck_err(err, errcap, cid, off, "SKAS bad name length");
+                    return 1;
+                }
+                for (c = 0u; c < nl; c++) {
+                    unsigned char ch = q[2u + c];
+                    int ok = (ch >= 'A' && ch <= 'Z') ||
+                        (ch >= 'a' && ch <= 'z') ||
+                        (ch >= '0' && ch <= '9') || ch == '.' ||
+                        ch == '_' || ch == '-';
+                    if (!ok) {
+                        ck_err(err, errcap, cid, off, "SKAS bad name byte");
+                        return 1;
+                    }
+                }
+                prev = q[0];
+                have_prev = 1;
+                q += 2u + nl;
+                left -= 2u + nl;
+            }
+            if (left != 0u) {
+                ck_err(err, errcap, cid, off, "SKAS trailing bytes");
+                return 1;
+            }
+            q = img + doff + 2u;
+            for (k = 0u; k < nn; k++) {
+                uint32_t nl = q[1], c;
+                s->skin[k].section = q[0];
+                for (c = 0u; c < nl; c++)
+                    s->skin[k].name[c] = (char)q[2u + c];
+                s->skin[k].name[nl] = '\0';
+                q += 2u + nl;
+            }
+            s->nskin = (uint16_t)nn;
         } else if (memcmp(cid, "CPRG", 4) == 0) {
             uint32_t ln;
             if (saw_cprg) {

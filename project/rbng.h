@@ -40,6 +40,10 @@
  *           caller buffer holds events; raises minor to 2.
  *   'MODR': u16 n (0..16); per: u8 namelen, name[namelen],
  *           u8 shalen(=64 hex), sha[64], u16 vers
+ *   'SKAS' (v1.3, S7): u16 n; per: u8 section, u8 namelen, name[namelen].
+ *           Sections strictly ascending, names in manifest class, no
+ *           duplicates. Written only when the skin choice is non-uniform;
+ *           readers without it take the first MODR mod everywhere.
  *   'CPRG': u8 len, text[len] (UTF-8 copyright notice, 0..127)
  *   unknown optional: ID[0] 'A'..'Z' → skip + preserve verbatim;
  *           anything else → reject ("unknown chunk id").
@@ -56,6 +60,7 @@
 #include <stdint.h>
 #include "engine/seq/pattern.h"
 #include "engine/seq/songtrack.h"   /* RI_SONGTRACK_*: the song owns a track */
+#include "gui/ctlreg.h"             /* RI_SEC_COUNT: SKAS address space */
 
 #define RI_RBNG_MAJOR 1u
 #define RI_RBNG_MINOR 1u
@@ -101,6 +106,12 @@ struct RBModRef {
     uint16_t vers;
 };
 
+/* S7 per-section skin assignment (section id -> mod name). */
+struct RBSkinAssign {
+    uint8_t section;
+    char name[RI_RBNG_MAX_MOD_NAME + 1u];
+};
+
 struct RBUnknown {
     char id[5]; /* 4 chars + NUL */
     uint32_t len;
@@ -116,6 +127,11 @@ struct RISong {
     struct RBAutoEv auto_ev[RI_RBNG_MAX_AUTO];
     uint16_t nmods;
     struct RBModRef mods[RI_RBNG_MAX_MODS];
+    /* S7: effective non-Classic section mods (ascending section order).
+     * Empty when uniform (no SKAS chunk); readers without SKAS take
+     * mods[0] everywhere (or Classic when nmods == 0). */
+    uint16_t nskin;
+    struct RBSkinAssign skin[RI_SEC_COUNT];
     char cprg[RI_RBNG_MAX_CPRG + 1u];
     uint16_t nunknown;
     struct RBUnknown unknown[RI_RBNG_MAX_UNK];

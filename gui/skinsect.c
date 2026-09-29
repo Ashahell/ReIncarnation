@@ -126,3 +126,69 @@ int ri_skinuse_release(struct RISkinUse *u, uint32_t n, const char *mod) {
         u[s].mod[0] = '\0';
     return 0;
 }
+
+int skinassign_to_song(const struct RISkinAssign *a, struct RISong *s) {
+    uint32_t sec, k;
+    if (!a || !s)
+        return 2;
+    s->nskin = 0u;
+    /* Raw entries (not the SYNTH2 follow: it re-derives on load), so a
+     * SYNTH1-only choice stores one entry, not two. */
+    for (sec = 0u; sec < RI_SEC_COUNT; sec++) {
+        const char *m = a->sec[sec].mod;
+        if (!m || m[0] == '\0')
+            continue;
+        if (s->nskin >= RI_SEC_COUNT)
+            return 2;
+        s->skin[s->nskin].section = (uint8_t)sec;
+        for (k = 0u; k < RI_RBNG_MAX_MOD_NAME && m[k]; k++)
+            s->skin[s->nskin].name[k] = m[k];
+        s->skin[s->nskin].name[k] = '\0';
+        s->nskin++;
+    }
+    return 0;
+}
+
+int ri_skinassign_from_song(struct RISkinAssign *a, const struct RISong *s,
+    const char *const *installed, uint32_t n, int *dirty) {
+    uint32_t k;
+    if (!a || !s)
+        return 2;
+    ri_skinassign_init(a);
+    if (dirty)
+        *dirty = 0;
+    if (s->nskin > 0u) {
+        for (k = 0u; k < s->nskin; k++) {
+            uint32_t j;
+            int known = 0;
+            if (s->skin[k].section >= RI_SEC_COUNT)
+                continue; /* codec-validated files never carry this */
+            if (ri_skinassign_set(a, s->skin[k].section, s->skin[k].name) != 0)
+                continue;
+            for (j = 0u; j < n; j++) {
+                uint32_t c = 0u;
+                const char *have = installed ? installed[j] : 0;
+                if (!have)
+                    break;
+                while (have[c] == s->skin[k].name[c]) {
+                    if (have[c] == '\0')
+                        break;
+                    c++;
+                }
+                if (have[c] == '\0' && s->skin[k].name[c] == '\0') {
+                    known = 1;
+                    break;
+                }
+            }
+            if (!known && dirty)
+                *dirty = 1;
+        }
+        return 0;
+    }
+    if (s->nmods > 0u) {
+        for (k = 0u; k < RI_SEC_COUNT; k++)
+            if (ri_skinassign_set(a, k, s->mods[0].name) != 0)
+                return 2;
+    }
+    return 0;
+}

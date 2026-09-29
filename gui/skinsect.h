@@ -10,6 +10,7 @@
 #define RI_SKINSECT_H
 #include <stdint.h>
 #include "gui/ctlreg.h" /* RI_SEC_COUNT, RI_SEC_SYNTH1/2 */
+#include "project/rbng.h" /* song SKAS persistence */
 
 #define RI_SKINSECT_NAME 63u
 #define RI_SKINSECT_MAX_USERS 8u /* sections sharing one loaded mod */
@@ -42,5 +43,14 @@ int ri_skinassign_uniform_classic(const struct RISkinAssign *a);
  * 0 ok, 2 bad arg/unknown/empty. */
 int ri_skinuse_acquire(struct RISkinUse *u, uint32_t n, const char *mod);
 int ri_skinuse_release(struct RISkinUse *u, uint32_t n, const char *mod);
+/* Assignment -> song struct: effective non-Classic entries, ascending
+ * section order. 0 ok, 2 bad arg. */
+int skinassign_to_song(const struct RISkinAssign *a, struct RISong *s);
+/* Song struct -> assignment: SKAS verbatim (+dirty on mods missing from
+ * installed, NULL installed = every name missing); no SKAS + nmods > 0
+ * takes mods[0] everywhere; else all Classic. NULL dirty = no store.
+ * 0 ok, 2 bad song/assign. */
+int ri_skinassign_from_song(struct RISkinAssign *a, const struct RISong *s,
+    const char *const *installed, uint32_t n, int *dirty);
 
 #endif
