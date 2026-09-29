@@ -176,6 +176,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t112_partial_redraw >/dev/null || { e
 bash "$ROOT/scripts/ri_build_host.sh" test t115_master_live >/dev/null || { echo "FAIL: t115_master_live (S4 master live)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t116_panel_wiring >/dev/null || { echo "FAIL: t116_panel_wiring (panel wiring audit)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t121_zoomfit >/dev/null || { echo "FAIL: t121_zoomfit (S5 auto-fit zoom)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t124_skinsect >/dev/null || { echo "FAIL: t124_skinsect (S7 section assignment)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t94_pal_fpu >/dev/null || { echo "FAIL: t94_pal_fpu (portability T9)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t95_riapp_core >/dev/null || { echo "FAIL: t95_riapp_core (portability T8)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t96_pattern_change >/dev/null || { echo "FAIL: t96_pattern_change (pattern changeover)"; exit 1; }
