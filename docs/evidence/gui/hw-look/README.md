@@ -273,7 +273,16 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   (`open=1 rack=1 tabs=5`) and `RIAPP zoom: View menu built
   (1x/1.5x/2x/Fit)`; a 29,236-buffer run closed with 0 xruns
   (`render_max=66 us`). `dell-s5b4-synths.png`: Synths at Fit fills the
-  screen. Correction: the View menu is a RMB pull-down (stock MUI —
+  screen. `dell-s5b4-mix-fit.png`: Mix at Fit (page-open check-build)
+  renders all six strips with headers + MASTER meters.
+- **z2 overflow finding (2026-09-29, check-builds, not committed):**
+  explicit zoom 2 on 1366x768 (`mode=2 zoom=2` logged, Mix page) opens
+  the window screen-clipped (1366x768 per `ui-windows`) and drops
+  rail/strip/pages — transport only (`dell-s5z2-mix-broken.png`). The
+  Mix-at-Fit capture above exonerates pre-open `tab_switch`: zoom-2
+  overflow is the cause. This validates Fit-default; explicit 2x on a
+  small screen needs an owner decision (cap at Fit vs ledgered
+  overflow), not silent broken controls. Correction: the View menu is a RMB pull-down (stock MUI —
   there is no visible menu bar, so captures can never show it); menu
   construction now follows the canonical nested `MUIA_Family_Child`
   pattern (the `test.c` shape) after `OM_ADDMEMBER` left the strip
