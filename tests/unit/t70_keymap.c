@@ -91,7 +91,17 @@ int main(void) {
             RI_ASSERT(a.kind == RI_KA_MENU && a.arg == (int)i, "menu %u", i);
             RI_ASSERT(k(raw[i], RI_QUAL_RCOMMAND, 0, 0, 0).arg == (int)i, "amiga menu %u", i);
         }
-        RI_ASSERT(k(0x01, RI_QUAL_CONTROL, 1, 1, 0).kind == RI_KA_NONE, "ctrl-1 is nothing");
+        RI_ASSERT(k(0x01, RI_QUAL_CONTROL, 1, 1, 0).kind == RI_KA_TAB &&
+            k(0x01, RI_QUAL_CONTROL, 1, 1, 0).arg == 0, "ctrl-1 tab 0");
+        RI_ASSERT(k(0x02, RI_QUAL_CONTROL, 1, 1, 0).kind == RI_KA_TAB &&
+            k(0x02, RI_QUAL_CONTROL, 1, 1, 0).arg == 1, "ctrl-2 tab 1");
+        RI_ASSERT(k(0x03, RI_QUAL_CONTROL, 0, 0, 2).kind == RI_KA_TAB &&
+            k(0x03, RI_QUAL_CONTROL, 0, 0, 2).arg == 2, "ctrl-3 tab 2");
+        RI_ASSERT(k(0x04, RI_QUAL_CONTROL, 1, 1, 0).kind == RI_KA_TAB &&
+            k(0x04, RI_QUAL_CONTROL, 1, 1, 0).arg == 3, "ctrl-4 tab 3");
+        RI_ASSERT(k(0x05, RI_QUAL_CONTROL, 1, 1, 0).kind == RI_KA_NONE, "ctrl-5 nothing");
+        RI_ASSERT(k(0x01, RI_QUAL_RCOMMAND, 0, 0, 0).kind == RI_KA_TAB, "amiga-1 tab");
+        RI_ASSERT(k(0x01, 0, 1, 1, RI_FOCUS_SYNTH1).kind == RI_KA_PATTERN, "plain 1 still pattern");
     }
     RI_ASSERT(k(0x10 | 0x80, 0, 1, 1, 0).kind == RI_KA_NONE, "key-up of a pattern key");
     RI_ASSERT(k(0x10, 0, 1, 1, 4).kind == RI_KA_NONE && ri_key_decode(0x10, 0, 0, 0).kind == RI_KA_NONE,

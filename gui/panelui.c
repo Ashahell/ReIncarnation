@@ -34,6 +34,7 @@ void ri_panel_init(struct RIPanelUI *p) {
     p->skin_current[0] = '\0';
     p->del_arg = 0;
     p->play_start_ticks = 0;
+    p->tab_req = -1;
 }
 
 void ri_panel_skins(struct RIPanelUI *p, const char *const *installed,
@@ -153,6 +154,10 @@ int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {    struct R
     switch (a.kind) {
     case RI_KA_FOCUS:   /* p. 22: up/down arrows; stops at the first/last section */
         ch = set_focus(p, (int)p->focus + a.arg);
+        break;
+    case RI_KA_TAB:   /* owner 2026-09-29: Ctrl+1..4; the app polls tab_req */
+        if (a.arg >= 0 && a.arg <= 3)
+            p->tab_req = (int8_t)a.arg;
         break;
     case RI_KA_PATTERN:  /* p. 20/224: pattern 1-8 of the current bank; focus follows */
         if (p->pat[a.section])

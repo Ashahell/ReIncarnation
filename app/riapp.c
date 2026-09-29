@@ -1541,6 +1541,12 @@ int main(int argc, char **argv) {
         sync_drumv(1u);
         sync_leviv();
         sync_values();
+        /* Owner 2026-09-29: Ctrl+1..4 tab keys arrive via the panel. */
+        if (s_panel.tab_req >= 0 && s_panel.tab_req < (int8_t)RI_TAB_COUNT) {
+            uint32_t g = (uint32_t)s_panel.tab_req;
+            s_panel.tab_req = -1;
+            tab_switch(g);
+        }
         meter_round(s_live ? s_lv.mix_freq : 48000u);
         /* Wedge diagnostic (2026-09-27 Dell freeze under interaction):
          * ~30 s heartbeat while live (10 Hz timer ticks the loop).

@@ -34,6 +34,7 @@ struct RIPanelUI {
     const char *const *skin_installed;          /* app-owned installed mod names */
     uint32_t skin_n;
     char skin_current[64];                      /* selected mod name */
+    int8_t tab_req;                             /* keyboard tab request 0..3, -1 none */
 };
 
 void ri_panel_init(struct RIPanelUI *p);

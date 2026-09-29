@@ -67,6 +67,11 @@ struct RIKeyAction ri_key_decode(uint32_t raw, uint32_t qual, const struct RIKey
         return act(RI_KA_NONE, 0, 0);
     }
     if (qual & (RI_QUAL_CONTROL | RI_QUAL_RCOMMAND)) {
+        /* Owner 2026-09-29: Ctrl+1..4 (and RAmiga+1..4) switch the tab
+         * strip (Synths/Drums/Levi/Mix); FX stays mouse-only. These raws
+         * are below every menu chord and pattern row start. */
+        if (code >= 0x01u && code <= 0x04u)
+            return act(RI_KA_TAB, 0, (int)(code - 0x01u));
         for (i = 0; i < sizeof(RI_KEY_MENU) / sizeof(RI_KEY_MENU[0]); i++)
             if (RI_KEY_MENU[i].raw == code)
                 return act(RI_KA_MENU, 0, RI_KEY_MENU[i].cmd);

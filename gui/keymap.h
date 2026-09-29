@@ -59,7 +59,8 @@ enum RIKeyKind {
     RI_KA_TAP,          /* section = focus; synth: arg 0 (Tab); drums: arg = instrument 0..11 */
     RI_KA_TAP_DELETE,   /* Shift+Tab (synth) / Shift+key (drums) held; key-up ends it */
     RI_KA_TAP_END,      /* key-up of a delete-tap */
-    RI_KA_MENU          /* arg = RI_KM_* (p. 222–223) */
+    RI_KA_MENU,         /* arg = RI_KM_* (p. 222–223) */
+    RI_KA_TAB           /* owner 2026-09-29: Ctrl+1..4 switch tabs, arg = tab 0..3 (FX stays mouse-only) */
 };
 
 /* Transport commands (keypad, p. 224). */

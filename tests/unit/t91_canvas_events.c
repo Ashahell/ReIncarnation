@@ -72,6 +72,11 @@ int main(void) {
     /* Space = transport stop/play: eaten, and it flips transport state. */
     r = ri_cev_key(&T_ST, &T_UI, &T_PANEL, 1, RI_KEY_SPACE, 0u);
     RI_ASSERT(r & RI_CEV_EAT, "space eaten");
+    /* Ctrl+2 = tab request 1: eaten, no canvas state change. */
+    T_PANEL.tab_req = -1;
+    r = ri_cev_key(&T_ST, &T_UI, &T_PANEL, 1, 0x02u, RI_QUAL_CONTROL);
+    RI_ASSERT((r & RI_CEV_EAT) && !(r & RI_CEV_CHANGED), "tab eaten");
+    RI_ASSERT(T_PANEL.tab_req == 1, "tab request");
     /* Focus click on background: changed (focus), not eaten. */
     {
         struct RISectUI ui808;
