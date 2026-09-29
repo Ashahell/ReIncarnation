@@ -165,7 +165,7 @@ int main(void) {
             RI_ASSERT(d->engine_id >= 0x0A00u && d->engine_id <= 0x0A0Fu, "fx id %04x", d->engine_id);
             break;
         case RI_BIND_LEVI:
-            RI_ASSERT(d->engine_id >= 0x0E00u && d->engine_id <= 0x0E10u, "levi id %04x", d->engine_id);
+            RI_ASSERT(d->engine_id >= 0x0E00u && d->engine_id <= 0x0E12u, "levi id %04x", d->engine_id);
             RI_ASSERT(d->voice == 0u, "levi section-wide voice %u", d->voice);
             break;
         case RI_BIND_PAN: case RI_BIND_SEND: case RI_BIND_LEVEL:
