@@ -1453,3 +1453,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 
 ## [2026-09-29] lint | 1 issue found, 0 auto-fixed
 - Note: the S4–S5 article's pending-captures line is superseded by this ingest (repo convention: no retro-edits, same as the S1–S3 S4-in-progress line).
+
+## [2026-09-29] ingest | Zoom-guard proof + spooler fix
+- Disposition: New (companion; guard proof, persist mystery, spooler lesson)
+- Raw: llm-wiki/raw/articles/2026-09-29-zoom-guard-proof-spooler-fix.md
+
+## [2026-09-29] lint | 0 issues found, 0 auto-fixed
