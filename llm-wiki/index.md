@@ -45,6 +45,7 @@ Seeded 2026-09-20 by ingesting audio material from Vulkan4AROS `llm-wiki`.
 
 ## Live app (§12.11)
 
+- [raw/articles/2026-09-29-lane-reboot-recovery.md](raw/articles/2026-09-29-lane-reboot-recovery.md) — **2026-09-29 — Post-reboot lane recovery record.** What survives (enabled units, pairs masters outside `/tmp`) vs what doesn't (worktrees — recover from object store; uncommitted work; Dell RAM:); agent never self-redials; S6 tooling state.
 - [raw/articles/2026-09-29-s7abc-s6-research.md](raw/articles/2026-09-29-s7abc-s6-research.md) — **2026-09-29 — S7a–c + S6 research (`ea11f38`…`eb81381`, v4 `72a3fe4a` unpushed).** Assignment core, registry + canvas + Ctrl+M, SKAS minor 3; click suspects ranked from official input.device docs (timestamps sequence events, buttons tracked in qualifiers); `--ui-press/--ui-release` server-side; RMB menu finding.
 - [raw/articles/2026-09-29-font-decision-in-house.md](raw/articles/2026-09-29-font-decision-in-house.md) — **2026-09-29 — Owner font decision: keep the in-house face.** Closes round-3 §9 item 1 with the E0 standing; no third-party face licensed.
 - [raw/articles/2026-09-29-gui-round3-approval-close.md](raw/articles/2026-09-29-gui-round3-approval-close.md) — **2026-09-29 — GUI round 3 CLOSED by owner approval.** Clamp stands, RMB menu works, S4b record/reload carries, MASTER by ear, tempo/drag/legends/grey approved, click/pop resolved. Still open: font licence, skins gesture/chunk, S6 lane clicks, S7 per-section skins.
