@@ -6,6 +6,7 @@
  * Ledger: docs/evidence/gui/panel-geometry.md.
  */
 #include "gui/panelgeo.h"
+#include "gui/sectlevi.h"
 #include "gui/ctlreg.h"
 #include "gui/secttr.h"
 
@@ -173,156 +174,113 @@ static const struct RIGeoItem RI_GEO_808[] = {
  * No selector knob: the 909 selects instruments by clicking legends (p. 151). */
 #define S9(i) (uint16_t)((RI_SEC_909 << 8) | (i))
 #define SL(i) (uint16_t)((RI_SEC_LEVI << 8) | (i))
-#define LKNOB(i, x) { SL(i), RI_GEO_KNOB, 0, (x), 130, 44, 52 }, \
-                    { SL(i), RI_GEO_LEGEND, 0, (x), 70, 0, 0 }
-#define LWKEY(i, x) { SL(i), RI_GEO_RECT, 0, (x), 380, 34, 90 }, \
-                    { SL(i), RI_GEO_LED, 0, (x), 320, 12, 12 }
-#define LBKEY(i, x) { SL(i), RI_GEO_RECT, 0, (x), 335, 30, 60 }, \
-                    { SL(i), RI_GEO_LED, 0, (x), 290, 12, 12 }
 static const struct RIGeoItem RI_GEO_LEVI[] = {
-    /* Top band (owner 2026-09-28 photo verdict, row locked 2026-09-29):
-     * hardware block order left to right — MODULE (lane/op select +
-     * op mode), OSC (mode + ratio), ALGORITHM (algo + target + morph),
-     * DIGITAL FILTER (type + cutoff/reso/drive). Every top-band knob
-     * shares cy=130 with its legend above at y=70 (909-bar idiom);
-     * titles + dividers painted by art_levi; per-control legends sit
-     * above their controls. */
-    { SL(0), RI_GEO_KNOB, 0, 1030, 130, 44, 52 },
-    { SL(0), RI_GEO_LEGEND, 0, 1030, 70, 0, 0 },
-    { SL(1), RI_GEO_KNOB, 0, 1100, 130, 44, 52 },
-    { SL(1), RI_GEO_LEGEND, 0, 1100, 70, 0, 0 },
-    { SL(2), RI_GEO_RECT, 0, 420, 130, 44, 52 },
-    { SL(2), RI_GEO_LED, 0, 420, 72, 12, 12 },
-    { SL(2), RI_GEO_LEGEND, 0, 420, 70, 0, 0 },
-    { SL(3), RI_GEO_KNOB, 0, 540, 130, 44, 52 },
-    { SL(3), RI_GEO_LEGEND, 0, 540, 70, 0, 0 },
-    /* MODULE: lane + op select + op mode option rows */
-    { SL(4), RI_GEO_OPTION, 0, 60, 70, 36, 24 },
-    { SL(4), RI_GEO_OPTION, 1, 102, 70, 36, 24 },
-    { SL(4), RI_GEO_OPTION, 2, 144, 70, 36, 24 },
-    { SL(4), RI_GEO_OPTION, 3, 186, 70, 36, 24 },
-    { SL(4), RI_GEO_OPTION, 4, 228, 70, 36, 24 },
-    { SL(4), RI_GEO_OPTION, 5, 270, 70, 36, 24 },
-    { SL(40), RI_GEO_OPTION, 0, 56, 105, 30, 24 },
-    { SL(40), RI_GEO_OPTION, 1, 90, 105, 30, 24 },
-    { SL(40), RI_GEO_OPTION, 2, 124, 105, 30, 24 },
-    { SL(40), RI_GEO_OPTION, 3, 158, 105, 30, 24 },
-    { SL(40), RI_GEO_OPTION, 4, 192, 105, 30, 24 },
-    { SL(40), RI_GEO_OPTION, 5, 226, 105, 30, 24 },
-    { SL(40), RI_GEO_OPTION, 6, 260, 105, 30, 24 },
-    { SL(40), RI_GEO_OPTION, 7, 294, 105, 30, 24 },
-    { SL(41), RI_GEO_OPTION, 0, 56, 140, 34, 24 },
-    { SL(41), RI_GEO_OPTION, 1, 95, 140, 34, 24 },
-    { SL(41), RI_GEO_OPTION, 2, 134, 140, 34, 24 },
-    { SL(41), RI_GEO_OPTION, 3, 173, 140, 34, 24 },
-    { SL(41), RI_GEO_OPTION, 4, 212, 140, 34, 24 },
-    { SL(41), RI_GEO_OPTION, 5, 251, 140, 34, 24 },
-    { SL(41), RI_GEO_OPTION, 6, 290, 140, 34, 24 },
-    /* step / back / display */
-    { SL(5), RI_GEO_RECT, 0, 1240, 100, 60, 30 },
-    { SL(5), RI_GEO_LEGEND, 0, 1240, 70, 0, 0 },
-    { SL(6), RI_GEO_RECT, 0, 1310, 100, 60, 30 },
-    { SL(6), RI_GEO_LEGEND, 0, 1310, 70, 0, 0 },
-    { SL(7), RI_GEO_RECT, 0, 1380, 100, 60, 30 },
-    { SL(7), RI_GEO_LEGEND, 0, 1380, 70, 0, 0 },
-    /* 16 steps, 2 rows of 8 (state reads off the rect fill) */
-    { SL(8), RI_GEO_RECT, 0, 900, 200, 60, 60 },
-    { SL(9), RI_GEO_RECT, 0, 970, 200, 60, 60 },
-    { SL(10), RI_GEO_RECT, 0, 1040, 200, 60, 60 },
-    { SL(11), RI_GEO_RECT, 0, 1110, 200, 60, 60 },
-    { SL(12), RI_GEO_RECT, 0, 1180, 200, 60, 60 },
-    { SL(13), RI_GEO_RECT, 0, 1250, 200, 60, 60 },
-    { SL(14), RI_GEO_RECT, 0, 1320, 200, 60, 60 },
-    { SL(15), RI_GEO_RECT, 0, 1390, 200, 60, 60 },
-    { SL(16), RI_GEO_RECT, 0, 900, 300, 60, 60 },
-    { SL(17), RI_GEO_RECT, 0, 970, 300, 60, 60 },
-    { SL(18), RI_GEO_RECT, 0, 1040, 300, 60, 60 },
-    { SL(19), RI_GEO_RECT, 0, 1110, 300, 60, 60 },
-    { SL(20), RI_GEO_RECT, 0, 1180, 300, 60, 60 },
-    { SL(21), RI_GEO_RECT, 0, 1250, 300, 60, 60 },
-    { SL(22), RI_GEO_RECT, 0, 1320, 300, 60, 60 },
-    { SL(23), RI_GEO_RECT, 0, 1390, 300, 60, 60 },
-    /* piano keyboard (303 block positions) */
-    LWKEY(24, 222), LBKEY(25, 267), LWKEY(26, 307), LBKEY(27, 349), LWKEY(28, 392),
-    LWKEY(29, 476), LBKEY(30, 518), LWKEY(31, 560), LBKEY(32, 602), LWKEY(33, 645),
-    LBKEY(34, 687), LWKEY(35, 730), LWKEY(36, 812),
-    /* ALGORITHM: algo + target rows, morph knob right */
-    { SL(37), RI_GEO_OPTION, 0, 680, 70, 30, 24 },
-    { SL(37), RI_GEO_OPTION, 1, 714, 70, 30, 24 },
-    { SL(37), RI_GEO_OPTION, 2, 748, 70, 30, 24 },
-    { SL(37), RI_GEO_OPTION, 3, 782, 70, 30, 24 },
-    { SL(37), RI_GEO_OPTION, 4, 816, 70, 30, 24 },
-    { SL(37), RI_GEO_OPTION, 5, 850, 70, 30, 24 },
-    { SL(37), RI_GEO_OPTION, 6, 884, 70, 30, 24 },
-    { SL(37), RI_GEO_OPTION, 7, 918, 70, 30, 24 },
-    { SL(38), RI_GEO_OPTION, 0, 680, 105, 30, 24 },
-    { SL(38), RI_GEO_OPTION, 1, 714, 105, 30, 24 },
-    { SL(38), RI_GEO_OPTION, 2, 748, 105, 30, 24 },
-    { SL(38), RI_GEO_OPTION, 3, 782, 105, 30, 24 },
-    { SL(38), RI_GEO_OPTION, 4, 816, 105, 30, 24 },
-    { SL(38), RI_GEO_OPTION, 5, 850, 105, 30, 24 },
-    { SL(38), RI_GEO_OPTION, 6, 884, 105, 30, 24 },
-    { SL(38), RI_GEO_OPTION, 7, 918, 105, 30, 24 },
-    { SL(39), RI_GEO_KNOB, 0, 962, 130, 44, 52 },
-    { SL(39), RI_GEO_LEGEND, 0, 962, 70, 0, 0 },
-    { SL(51), RI_GEO_RECT, 0, 962, 70, 56, 30 },
-    /* DIGITAL FILTER: type row, cutoff/reso/drive knobs */
-    { SL(42), RI_GEO_OPTION, 0, 1030, 70, 40, 24 },
-    { SL(42), RI_GEO_OPTION, 1, 1080, 70, 40, 24 },
-    { SL(42), RI_GEO_OPTION, 2, 1130, 70, 40, 24 },
-    { SL(42), RI_GEO_OPTION, 3, 1180, 70, 40, 24 },
-    { SL(43), RI_GEO_KNOB, 0, 1170, 130, 44, 52 },
-    { SL(43), RI_GEO_LEGEND, 0, 1170, 70, 0, 0 },
-    /* bottom voice strip (owner 2026-09-28, hardware block order):
-     * analog filter under digital, envelope right of analog */
-    { SL(44), RI_GEO_KNOB, 0, 1060, 510, 44, 52 },
-    { SL(44), RI_GEO_LEGEND, 0, 1060, 470, 0, 0 },
-    { SL(45), RI_GEO_KNOB, 0, 1130, 510, 44, 52 },
-    { SL(45), RI_GEO_LEGEND, 0, 1130, 470, 0, 0 },
-    { SL(46), RI_GEO_KNOB, 0, 1200, 510, 44, 52 },
-    { SL(46), RI_GEO_LEGEND, 0, 1200, 470, 0, 0 },
-    { SL(47), RI_GEO_KNOB, 0, 1264, 510, 44, 52 },
-    { SL(47), RI_GEO_LEGEND, 0, 1264, 470, 0, 0 },
-    { SL(48), RI_GEO_KNOB, 0, 1328, 510, 44, 52 },
-    { SL(48), RI_GEO_LEGEND, 0, 1328, 470, 0, 0 },
-    { SL(49), RI_GEO_KNOB, 0, 1392, 510, 44, 52 },
-    { SL(49), RI_GEO_LEGEND, 0, 1392, 470, 0, 0 },
-    { SL(50), RI_GEO_RECT, 0, 1440, 510, 30, 30 },
-    { SL(50), RI_GEO_LEGEND, 0, 1440, 470, 0, 0 },
-    /* disabled blocks (owner photo verdict): ARP/SEQ/MATRIX/FX ride the
-     * free bottom-left band; UI-only until their engines land */
-    { SL(52), RI_GEO_RECT, 0, 110, 500, 48, 30 },
-    { SL(52), RI_GEO_LEGEND, 0, 110, 470, 0, 0 },
-    { SL(53), RI_GEO_KNOB, 0, 200, 510, 44, 52 },
-    { SL(53), RI_GEO_LEGEND, 0, 200, 470, 0, 0 },
-    { SL(54), RI_GEO_RECT, 0, 330, 500, 48, 30 },
-    { SL(54), RI_GEO_LEGEND, 0, 330, 470, 0, 0 },
-    { SL(55), RI_GEO_KNOB, 0, 420, 510, 44, 52 },
-    { SL(55), RI_GEO_LEGEND, 0, 420, 470, 0, 0 },
-    { SL(56), RI_GEO_RECT, 0, 510, 500, 36, 28 },
-    { SL(56), RI_GEO_LEGEND, 0, 510, 470, 0, 0 },
-    { SL(57), RI_GEO_RECT, 0, 556, 500, 36, 28 },
-    { SL(57), RI_GEO_LEGEND, 0, 556, 470, 0, 0 },
-    { SL(58), RI_GEO_RECT, 0, 602, 500, 36, 28 },
-    { SL(58), RI_GEO_LEGEND, 0, 602, 470, 0, 0 },
-    { SL(59), RI_GEO_RECT, 0, 648, 500, 36, 28 },
-    { SL(59), RI_GEO_LEGEND, 0, 648, 470, 0, 0 },
-    { SL(60), RI_GEO_RECT, 0, 694, 500, 36, 28 },
-    { SL(60), RI_GEO_LEGEND, 0, 694, 470, 0, 0 },
-    { SL(61), RI_GEO_RECT, 0, 740, 500, 36, 28 },
-    { SL(61), RI_GEO_LEGEND, 0, 740, 470, 0, 0 },
-    { SL(62), RI_GEO_RECT, 0, 786, 500, 36, 28 },
-    { SL(62), RI_GEO_LEGEND, 0, 786, 470, 0, 0 },
-    { SL(63), RI_GEO_RECT, 0, 832, 500, 36, 28 },
-    { SL(63), RI_GEO_LEGEND, 0, 832, 470, 0, 0 },
-    { SL(64), RI_GEO_RECT, 0, 880, 500, 36, 28 },
-    { SL(64), RI_GEO_LEGEND, 0, 880, 470, 0, 0 },
-    { SL(65), RI_GEO_RECT, 0, 924, 500, 36, 28 },
-    { SL(65), RI_GEO_LEGEND, 0, 924, 470, 0, 0 },
-    { SL(66), RI_GEO_RECT, 0, 968, 500, 36, 28 },
-    { SL(66), RI_GEO_LEGEND, 0, 968, 470, 0, 0 },
-    { SL(67), RI_GEO_RECT, 0, 1012, 500, 36, 28 },
-    { SL(67), RI_GEO_LEGEND, 0, 1012, 470, 0, 0 },
+    /* Hardware top panel (fidelity plan P1, owner 2026-09-30): positions
+     * measured on the manual cover render, mapped xQ = (x-75)*0.6245,
+     * yQ = (y-48)*0.6245; keybed band (y 350..555) is laid out in Q.
+     * Black keys precede white keys: first hit wins. Art-only (dim)
+     * hardware controls live in art_levi.c, not here. */
+    { SL(46), RI_GEO_KNOB, 0, 1108, 64, 30, 38 },  /* OSC ENV: ATTACK */
+    { SL(47), RI_GEO_KNOB, 0, 1164, 64, 30, 38 },  /* DECAY */
+    { SL(49), RI_GEO_KNOB, 0, 1220, 64, 30, 38 },  /* RELEASE */
+    { SL(0), RI_GEO_KNOB, 0, 1296, 64, 30, 38 },  /* DIGITAL FILTER: CUTOFF */
+    { SL(1), RI_GEO_KNOB, 0, 1351, 64, 30, 38 },  /* RESONANCE */
+    { SL(44), RI_GEO_KNOB, 0, 1539, 64, 30, 38 },  /* ANALOG FILTER: CUTOFF */
+    { SL(45), RI_GEO_KNOB, 0, 1595, 64, 30, 38 },  /* RESONANCE */
+    { SL(43), RI_GEO_KNOB, 0, 1650, 64, 30, 38 },  /* PRE-DRIVE */
+    { SL(69), RI_GEO_KNOB, 0, 715, 64, 44, 44 },  /* MASTER CONTROL encoder 1 */
+    { SL(70), RI_GEO_KNOB, 0, 780, 64, 44, 44 },  /* MASTER CONTROL encoder 2 */
+    { SL(71), RI_GEO_KNOB, 0, 844, 64, 44, 44 },  /* MASTER CONTROL encoder 3 */
+    { SL(72), RI_GEO_KNOB, 0, 909, 64, 44, 44 },  /* MASTER CONTROL encoder 4 */
+    { SL(73), RI_GEO_KNOB, 0, 715, 264, 44, 44 },  /* encoder 5 */
+    { SL(74), RI_GEO_KNOB, 0, 780, 264, 44, 44 },  /* encoder 6 */
+    { SL(75), RI_GEO_KNOB, 0, 844, 264, 44, 44 },  /* encoder 7 */
+    { SL(76), RI_GEO_KNOB, 0, 909, 264, 44, 44 },  /* encoder 8 */
+    { SL(77), RI_GEO_RECT, 0, 812, 164, 197, 129 },  /* display */
+    { SL(51), RI_GEO_RECT, 0, 1053, 168, 55, 43 },  /* ALGORITHM display */
+    { SL(37), RI_GEO_KNOB, 0, 1053, 220, 40, 40 },  /* ALGORITHM encoder */
+    { SL(68), RI_GEO_OPTION, 30, 1053, 264, 30, 20 },  /* ALGO EDIT */
+    { SL(52), RI_GEO_RECT, 0, 216, 218, 30, 20 },  /* ARP ON */
+    { SL(54), RI_GEO_RECT, 0, 308, 264, 30, 20 },  /* SEQ PLAY */
+    { SL(68), RI_GEO_OPTION, 32, 216, 149, 30, 20 },  /* SEQ (page) */
+    { SL(68), RI_GEO_OPTION, 31, 216, 176, 30, 20 },  /* ARP (page) */
+    { SL(68), RI_GEO_OPTION, 34, 968, 107, 30, 20 },  /* VOICE */
+    { SL(68), RI_GEO_OPTION, 33, 968, 264, 30, 20 },  /* MOD MATRIX */
+    { SL(68), RI_GEO_OPTION, 1, 1138, 182, 30, 20 },  /* MODE */
+    { SL(68), RI_GEO_OPTION, 7, 1138, 209, 30, 20 },  /* DELAY */
+    { SL(68), RI_GEO_OPTION, 2, 1184, 182, 30, 20 },  /* WAVE */
+    { SL(68), RI_GEO_OPTION, 8, 1184, 209, 30, 20 },  /* ATTACK */
+    { SL(68), RI_GEO_OPTION, 3, 1230, 182, 30, 20 },  /* PITCH */
+    { SL(68), RI_GEO_OPTION, 9, 1230, 209, 30, 20 },  /* HOLD */
+    { SL(68), RI_GEO_OPTION, 4, 1276, 182, 30, 20 },  /* FINE */
+    { SL(68), RI_GEO_OPTION, 10, 1276, 209, 30, 20 },  /* DECAY */
+    { SL(68), RI_GEO_OPTION, 5, 1323, 182, 30, 20 },  /* FEEDBK */
+    { SL(68), RI_GEO_OPTION, 11, 1323, 209, 30, 20 },  /* SUSTAIN */
+    { SL(68), RI_GEO_OPTION, 6, 1369, 182, 30, 20 },  /* LEVEL */
+    { SL(68), RI_GEO_OPTION, 12, 1369, 209, 30, 20 },  /* RELEASE */
+    { SL(68), RI_GEO_OPTION, 13, 1434, 156, 30, 20 },  /* ENV 1 */
+    { SL(68), RI_GEO_OPTION, 25, 1434, 209, 30, 20 },  /* LFO 1 */
+    { SL(68), RI_GEO_OPTION, 14, 1481, 156, 30, 20 },  /* ENV 2 */
+    { SL(68), RI_GEO_OPTION, 26, 1481, 209, 30, 20 },  /* LFO 2 */
+    { SL(68), RI_GEO_OPTION, 15, 1527, 156, 30, 20 },  /* ENV 3 */
+    { SL(68), RI_GEO_OPTION, 27, 1527, 209, 30, 20 },  /* LFO 3 */
+    { SL(68), RI_GEO_OPTION, 16, 1573, 156, 30, 20 },  /* ENV 4 */
+    { SL(68), RI_GEO_OPTION, 28, 1573, 209, 30, 20 },  /* LFO 4 */
+    { SL(68), RI_GEO_OPTION, 17, 1619, 156, 30, 20 },  /* ENV 5 */
+    { SL(68), RI_GEO_OPTION, 29, 1619, 209, 30, 20 },  /* LFO 5 */
+    { SL(68), RI_GEO_OPTION, 18, 1434, 182, 30, 20 },  /* DIGITAL FILTER */
+    { SL(68), RI_GEO_OPTION, 19, 1481, 182, 30, 20 },  /* ANALOG FILTER */
+    { SL(68), RI_GEO_OPTION, 20, 1527, 182, 30, 20 },  /* VCA */
+    { SL(68), RI_GEO_OPTION, 21, 1573, 182, 30, 20 },  /* PRE-FX */
+    { SL(68), RI_GEO_OPTION, 22, 1619, 182, 30, 20 },  /* DELAY */
+    { SL(68), RI_GEO_OPTION, 23, 1666, 182, 30, 20 },  /* REVERB */
+    { SL(68), RI_GEO_OPTION, 24, 1712, 182, 30, 20 },  /* POST-FX */
+    { SL(40), RI_GEO_OPTION, 0, 1138, 264, 30, 20 },  /* OSC 1 */
+    { SL(40), RI_GEO_OPTION, 1, 1184, 264, 30, 20 },  /* OSC 2 */
+    { SL(40), RI_GEO_OPTION, 2, 1230, 264, 30, 20 },  /* OSC 3 */
+    { SL(40), RI_GEO_OPTION, 3, 1276, 264, 30, 20 },  /* OSC 4 */
+    { SL(40), RI_GEO_OPTION, 4, 1323, 264, 30, 20 },  /* OSC 5 */
+    { SL(40), RI_GEO_OPTION, 5, 1369, 264, 30, 20 },  /* OSC 6 */
+    { SL(40), RI_GEO_OPTION, 6, 1415, 264, 30, 20 },  /* OSC 7 */
+    { SL(40), RI_GEO_OPTION, 7, 1461, 264, 30, 20 },  /* OSC 8 */
+    { SL(8), RI_GEO_RECT, 0, 229, 320, 73, 24 },  /* ribbon step 1 */
+    { SL(9), RI_GEO_RECT, 0, 306, 320, 73, 24 },  /* ribbon step 2 */
+    { SL(10), RI_GEO_RECT, 0, 383, 320, 73, 24 },  /* ribbon step 3 */
+    { SL(11), RI_GEO_RECT, 0, 461, 320, 73, 24 },  /* ribbon step 4 */
+    { SL(12), RI_GEO_RECT, 0, 538, 320, 73, 24 },  /* ribbon step 5 */
+    { SL(13), RI_GEO_RECT, 0, 615, 320, 73, 24 },  /* ribbon step 6 */
+    { SL(14), RI_GEO_RECT, 0, 693, 320, 73, 24 },  /* ribbon step 7 */
+    { SL(15), RI_GEO_RECT, 0, 770, 320, 73, 24 },  /* ribbon step 8 */
+    { SL(16), RI_GEO_RECT, 0, 847, 320, 73, 24 },  /* ribbon step 9 */
+    { SL(17), RI_GEO_RECT, 0, 924, 320, 73, 24 },  /* ribbon step 10 */
+    { SL(18), RI_GEO_RECT, 0, 1002, 320, 73, 24 },  /* ribbon step 11 */
+    { SL(19), RI_GEO_RECT, 0, 1079, 320, 73, 24 },  /* ribbon step 12 */
+    { SL(20), RI_GEO_RECT, 0, 1156, 320, 73, 24 },  /* ribbon step 13 */
+    { SL(21), RI_GEO_RECT, 0, 1234, 320, 73, 24 },  /* ribbon step 14 */
+    { SL(22), RI_GEO_RECT, 0, 1311, 320, 73, 24 },  /* ribbon step 15 */
+    { SL(23), RI_GEO_RECT, 0, 1388, 320, 73, 24 },  /* ribbon step 16 */
+    { SL(4), RI_GEO_OPTION, 0, 205, 408, 42, 24 },  /* lane 1 */
+    { SL(4), RI_GEO_OPTION, 1, 255, 408, 42, 24 },  /* lane 2 */
+    { SL(4), RI_GEO_OPTION, 2, 305, 408, 42, 24 },  /* lane 3 */
+    { SL(4), RI_GEO_OPTION, 3, 205, 442, 42, 24 },  /* lane 4 */
+    { SL(4), RI_GEO_OPTION, 4, 255, 442, 42, 24 },  /* lane 5 */
+    { SL(4), RI_GEO_OPTION, 5, 305, 442, 42, 24 },  /* lane 6 */
+    { SL(6), RI_GEO_RECT, 0, 215, 486, 52, 24 },  /* BACK */
+    { SL(5), RI_GEO_RECT, 0, 285, 486, 52, 24 },  /* STEP */
+    { SL(7), RI_GEO_RECT, 0, 368, 486, 56, 30 },  /* step readout */
+    { SL(25), RI_GEO_RECT, 0, 912, 412, 36, 116 },  /* black key */
+    { SL(27), RI_GEO_RECT, 0, 971, 412, 36, 116 },  /* black key */
+    { SL(30), RI_GEO_RECT, 0, 1089, 412, 36, 116 },  /* black key */
+    { SL(32), RI_GEO_RECT, 0, 1148, 412, 36, 116 },  /* black key */
+    { SL(34), RI_GEO_RECT, 0, 1207, 412, 36, 116 },  /* black key */
+    { SL(24), RI_GEO_RECT, 0, 882, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
+    { SL(26), RI_GEO_RECT, 0, 941, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
+    { SL(28), RI_GEO_RECT, 0, 1000, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
+    { SL(29), RI_GEO_RECT, 0, 1059, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
+    { SL(31), RI_GEO_RECT, 0, 1118, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
+    { SL(33), RI_GEO_RECT, 0, 1177, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
+    { SL(35), RI_GEO_RECT, 0, 1236, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
+    { SL(36), RI_GEO_RECT, 0, 1295, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
 };
 static const struct RIGeoItem RI_GEO_909[] = {
     { S9(0), RI_GEO_KNOB, 0, 60, 140, 44, 52 },
@@ -602,7 +560,7 @@ static const struct RIGeoSection RI_GEO_SECTIONS[] = {
     { RI_SEC_PAT_SYNTH2, 0, 284, 464, RI_GEO_PAT2, (uint32_t)(sizeof(RI_GEO_PAT2) / sizeof(RI_GEO_PAT2[0])) },
     { RI_SEC_PAT_808, 0, 284, 464, RI_GEO_PAT8, (uint32_t)(sizeof(RI_GEO_PAT8) / sizeof(RI_GEO_PAT8[0])) },
     { RI_SEC_PAT_909, 0, 284, 464, RI_GEO_PAT9, (uint32_t)(sizeof(RI_GEO_PAT9) / sizeof(RI_GEO_PAT9[0])) },
-    { RI_SEC_LEVI, 0, 1464, 560, RI_GEO_LEVI, (uint32_t)(sizeof(RI_GEO_LEVI) / sizeof(RI_GEO_LEVI[0])) },
+    { RI_SEC_LEVI, 0, 1756, 560, RI_GEO_LEVI, (uint32_t)(sizeof(RI_GEO_LEVI) / sizeof(RI_GEO_LEVI[0])) },
     { RI_SEC_PAT_LEVI, 0, 284, 464, RI_GEO_PATL, (uint32_t)(sizeof(RI_GEO_PATL) / sizeof(RI_GEO_PATL[0])) },
 };
 
@@ -727,6 +685,15 @@ int ri_geo_wide(uint16_t reg_id) {
      * 1->999 re-lamps the Len digits); Len never touches Start. */
     if (d->section == RI_SEC_TRANSPORT && (d->reg_id & 0xFFu) == RI_STR_LOOP_START)
         return 1;
+    /* Levi page UI (fidelity P1): encoders and every page-reachable
+     * control also repaint the LCD page and the encoder LED rings; the
+     * algorithm encoder relights the 7-segment readout. */
+    if (d->section == RI_SEC_LEVI) {
+        uint32_t idx = d->reg_id & 0xFFu;
+        if ((idx >= RI_SLEVI_ENC0 && idx < RI_SLEVI_ENC0 + RI_SLEVI_NENC) || idx == RI_SLEVI_ALGO ||
+            ri_slevi_page_reaches(idx))
+            return 1;
+    }
     return 0;
 }
 

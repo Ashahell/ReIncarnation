@@ -133,8 +133,11 @@ int main(void) {
         }
     }
     RI_ASSERT(ntested >= 100u, "tested %u controls", ntested);
-    /* 21 today (20 selectors + Loop Start); trips on silent widening. */
-    RI_ASSERT(nwide <= 28u && nwide >= 7u, "wide controls %u", nwide);
+    /* 35 today: selectors + Loop Start, plus the Levi page UI (fidelity P1,
+     * 2026-09-30): 8 master-control encoders, the algorithm encoder and
+     * the page-linked panel knobs repaint the LCD page and encoder rings.
+     * Trips on silent widening. */
+    RI_ASSERT(nwide <= 38u && nwide >= 7u, "wide controls %u", nwide);
     for (sec = 0u; sec < RI_SEC_COUNT; sec++) {
         const struct RIGeoSection *g =
             ri_geo_section(sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec);

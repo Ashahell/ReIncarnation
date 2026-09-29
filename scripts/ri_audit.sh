@@ -678,6 +678,14 @@ done
 test "$(ls "$ROOT/scripts" | wc -l)" = "5" || { echo "FAIL: scripts/ holds non-shared files"; exit 1; }
 if git -C "$ROOT" status --porcelain | grep -E "\.o$|\.library$"; then echo "FAIL: build artifacts in tree"; exit 1; fi
 if grep -rnw "TODO\|TBD\|FIXME" "$ROOT/docs/ReIncarnation.guide" "$ROOT/docs/autodoc" "$ROOT/locale" "$ROOT/Install" 2>/dev/null; then echo "FAIL: placeholder in REL docs"; exit 1; fi
+echo "-- clean-room: no maker or product marks in panel strings (Leviasynth fidelity P1) --"
+# The Levi panel follows the hardware arrangement (owner 2026-09-30) but
+# never its trade dress: no maker logo/name, product wordmark or keybed
+# trade mark in any drawn or registered string (spec §1; plan
+# docs/superpowers/plans/2026-09-30-leviasynth-fidelity-plan.md §2).
+if grep -rnE '"[^"]*(LEVIASYNTH|Leviasynth|ASHUN|Ashun|POLYTOUCH|Polytouch|\bASM\b)[^"]*"' \
+  "$ROOT/gui" "$ROOT/app" "$ROOT/skins" --include="*.c" --include="*.h" --include="*.manifest" 2>/dev/null; then
+  echo "FAIL: maker/product mark in a panel string"; exit 1; fi
 echo "-- portability T10: confinement gates (PAL draws the line) --"
 # AROS system includes live only in AROS shells (explicit list) — never in
 # the portable core, the PAL, the host backends, the draw layer, app/core,

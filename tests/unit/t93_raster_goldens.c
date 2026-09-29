@@ -14,6 +14,7 @@
 #include "gui/ctlreg.h"
 #include "gui/sectui.h"
 #include "gui/sectmix.h"
+#include "gui/sectlevi.h"
 #include "gui/skin.h"
 #include "platform/host/raster.h"
 #include "platform/pal/ri_pal_image.h"
@@ -216,10 +217,10 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 17u, 1u, 0xf040cea0u },
     { 17u, 2u, 0xfc368a9bu },
     { 17u, 3u, 0x0376ba78u },
-    { 18u, 0u, 0xc0ef7507u },
-    { 18u, 1u, 0xc7e087c0u },
-    { 18u, 2u, 0x1793990du },
-    { 18u, 3u, 0x3bbdf6c9u },
+    { 18u, 0u, 0xb99f3c6fu },
+    { 18u, 1u, 0x6be8bcf1u },
+    { 18u, 2u, 0x79191fb1u },
+    { 18u, 3u, 0x43067d9bu },
     { 19u, 0u, 0xc663c06au },
     { 19u, 1u, 0x854d5ab5u },
     { 19u, 2u, 0xecbfc991u },
@@ -429,6 +430,70 @@ static void rack_checks(uint32_t *px) {
     RI_ASSERT(hash_dn != hash_up, "pressed cap looks unpressed");
 }
 
+/* Levi hardware panel (fidelity plan P1, 2026-09-30): property checks at
+ * 1.5x (the Dell's Levi zoom). Teal section titles, legends printed on
+ * every live cap, a dark LCD page with teal text, encoder rings lit only
+ * on live slots. */
+static int t_is_teal(uint32_t c) {
+    return (c & 0xFFFFFFu) == 0x22BCB9u;
+}
+
+static void levi_checks(uint32_t *px) {
+    const struct RIGeoSection *g = ri_geo_section(RI_SEC_LEVI);
+    uint32_t w, h, i, n, x, y, teal = 0u;
+    uint32_t hash = render_one(RI_SEC_LEVI, 1, 0, px, 2048u * 1024u, 0);
+    RI_ASSERT(g && hash != 0u, "levi render");
+    if (!g || !hash)
+        return;
+    w = (uint32_t)ri_geo_px(g->w, 1);
+    h = (uint32_t)ri_geo_px(g->h, 1);
+    for (y = 0u; y < (uint32_t)ri_geo_px(40, 1); y++)
+        for (x = 0u; x < w; x++)
+            teal += t_is_teal(px[y * w + x]);
+    RI_ASSERT(teal >= 200u, "levi teal titles: %u px", teal);
+    for (i = 0u; i < g->nitems; i++) {
+        const struct RIGeoItem *it = &g->items[i];
+        uint32_t idx = it->reg_id & 0xFFu, bright = 0u;
+        int cx = ri_geo_px(it->cx, 1), cy = ri_geo_px(it->cy, 1);
+        int hw = ri_geo_px(it->w, 1) / 2, hh = ri_geo_px(it->h, 1) / 2, xx, yy;
+        int cap = it->shape == RI_GEO_OPTION || (it->shape == RI_GEO_RECT &&
+            (idx == RI_SLEVI_ARPON || idx == RI_SLEVI_SEQON || idx == RI_SLEVI_STEP || idx == RI_SLEVI_BACK));
+        if (!cap)
+            continue;
+        for (yy = cy - hh + 1; yy < cy + hh; yy++)
+            for (xx = cx - hw + 1; xx < cx + hw; xx++) {
+                uint32_t c = px[(uint32_t)yy * w + (uint32_t)xx];
+                int l = (int)(((c >> 16) & 0xFF) + ((c >> 8) & 0xFF) + (c & 0xFF)) / 3;
+                bright += l > 70;
+            }
+        RI_ASSERT(bright >= 3u, "levi cap %u/%d has no legend (%u px)", idx, it->opt, bright);
+    }
+    for (i = 0u; i < g->nitems; i++) {
+        const struct RIGeoItem *it = &g->items[i];
+        uint32_t idx = it->reg_id & 0xFFu, lum = 0u, cnt = 0u, tl = 0u, white = 0u;
+        int cx = ri_geo_px(it->cx, 1), cy = ri_geo_px(it->cy, 1);
+        int hw = ri_geo_px(it->w, 1) / 2, hh = ri_geo_px(it->h, 1) / 2, xx, yy;
+        if (idx != RI_SLEVI_PAGE && !(idx >= RI_SLEVI_ENC0 && idx < RI_SLEVI_ENC0 + 3u))
+            continue;
+        for (yy = cy - hh; yy <= cy + hh; yy++)
+            for (xx = cx - hw; xx <= cx + hw; xx++) {
+                uint32_t c = px[(uint32_t)yy * w + (uint32_t)xx];
+                lum += (((c >> 16) & 0xFF) + ((c >> 8) & 0xFF) + (c & 0xFF)) / 3;
+                cnt++;
+                tl += t_is_teal(c);
+                white += (c & 0xFFFFFFu) == 0xF2F3F3u;
+            }
+        if (idx == RI_SLEVI_PAGE)
+            RI_ASSERT(lum / (cnt ? cnt : 1u) < 60u && tl >= 20u, "levi lcd dark %u teal %u", lum / (cnt ? cnt : 1u), tl);
+        else if (idx == RI_SLEVI_ENC0 + 1u)                 /* OSC page slot 2 (WAVE): later phase */
+            RI_ASSERT(white == 0u, "levi dead encoder ring lit (%u px)", white);
+        else if (idx == RI_SLEVI_ENC0 + 2u)                 /* OSC page slot 3 (RATIO 32/127) */
+            RI_ASSERT(white >= 4u, "levi live encoder ring dark (%u px)", white);
+    }
+    (void)h;
+    (void)n;
+}
+
 int main(void) {
     /* Max raster: 909 z2-ish bounds; 2048x1024 covers every section. */
     static uint32_t px[2048u * 1024u];
@@ -460,6 +525,7 @@ int main(void) {
         RI_ASSERT(h == T_SKIN_PIN, "pin skin got %08x", h);
     }
     rack_checks(px);
+    levi_checks(px);
     tab_checks(px);
     textface_checks(px);
     headerface_checks();

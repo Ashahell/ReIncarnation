@@ -570,9 +570,10 @@ static void sync_values(void) {
              * the SYNTH1 geometry table, so raw hit ids arrive as 303A.
              * (All other value canvases own their tables; no-op for them.
              * Owner 2026-09-27: 303B knobs drove 303A params.) */
-            uint16_t reg = (uint16_t)((uint16_t)c_sections[c] << 8) |
-                (uint16_t)(s_dg[c]->last_hit & 0xFFu);
             struct RISectUI *u = s_ui[c];
+            /* Levi page encoders send their target (fidelity P1). */
+            uint16_t reg = (uint16_t)((uint16_t)c_sections[c] << 8) |
+                (uint16_t)(ri_sui_ctl_idx(u, s_dg[c]->last_hit & 0xFFu) & 0xFFu);
             int val = ri_sui_value(u, reg & 0xFFu);
             ri_panel_ctl_send(&s_core.ctl, reg, val);
             evlog("CTL", "%04x=%d", reg, val);
@@ -1262,7 +1263,9 @@ static void app_set_zoom(int mode) {
         return;
     DoMethod(s_root, MUIM_Group_InitChange);
     for (i = 0; i < C_N; i++) {
-        LONG cz = (LONG)(i == C_TR ? RI_GEO_ZOOM_COMPACT : z);
+        /* Levi (dense hardware panel) takes a zoom step when it fits. */
+        LONG cz = (LONG)(i == C_TR ? RI_GEO_ZOOM_COMPACT
+            : i == C_LEVI ? ri_zoom_levi(z, sw, sh, RIAPP_CHROME_W, RIAPP_CHROME_H) : z);
         s_zoom[i] = (int)cz;
         SetAttrs(s_canvas[i], MUIA_RSection_Zoom, (IPTR)cz, TAG_DONE);
     }
@@ -1423,7 +1426,10 @@ int main(int argc, char **argv) {
             rlog("RIAPP zoom: mode=%d zoom=%d screen=%dx%d\n", s_zoom_mode, z, sw, sh,
                 0);
         for (i = 0; i < C_N; i++)
-            s_zoom[i] = (i == C_TR) ? RI_GEO_ZOOM_COMPACT : z;
+            s_zoom[i] = (i == C_TR) ? RI_GEO_ZOOM_COMPACT
+                : (i == C_LEVI) ? ri_zoom_levi(z, sw, sh, RIAPP_CHROME_W, RIAPP_CHROME_H) : z;
+        if (DOSBase)
+            rlog("RIAPP zoom: levi=%d\n", s_zoom[C_LEVI], 0, 0, 0, 0);
         s_skin_zoom = z;
         s_skin_shadow = s_panel.skin_assign; /* registry starts uniform */
         skin_sync_current();

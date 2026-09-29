@@ -106,6 +106,10 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
         int v;
         if (!d)
             continue;
+        if (islevi) {                 /* hardware panel controls (fidelity P1) */
+            ri_art_levi_item(out, it, d, ui, cx, cy, hw, hh, z);
+            continue;
+        }
         v = ri_sui_value(ui, idx);
         switch (it->shape) {
         case RI_GEO_KNOB:
@@ -247,18 +251,6 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
                 ri_art_rect(out, cx - hw + 1, cy - hh + 1, cx + hw - 1, cy + hh - 1, C_909_PANEL);
                 ri_art_led(out, cx - hw + PX(12), cy, PX(5), lit ? C_LED_ON : C_LED_OFF, lit, ri_art_rgb(C_909_PANEL));
                 ri_art_text_c(out, cx + PX(8), cy, t, C_BLACK);
-                break;
-            }
-            if (islevi) {                                 /* module-grid key: ruled box, LED left,
-                                                             * value numeral in head amber when on */
-                char t[3];
-                t[0] = (char)('0' + (it->opt > 9 ? 9 : it->opt));
-                t[1] = 0;
-                ri_art_rect(out, cx - hw, cy - hh, cx + hw, cy + hh, C_LEVI_RULE);
-                ri_art_rect(out, cx - hw + 1, cy - hh + 1, cx + hw - 1, cy + hh - 1, C_LEVI_PANEL);
-                ri_art_led(out, cx - hw + PX(10), cy, PX(4), lit ? C_LED_ON : C_LED_OFF, lit,
-                    ri_art_rgb(C_LEVI_PANEL));
-                ri_art_text_c(out, cx + PX(6), cy, t, lit ? C_LEVI_HEAD : C_CREAM);
                 break;
             }
             ri_art_bevel(out, cx - hw, cy - hh, cx + hw, cy + hh, lit ? C_CREAM_LIT : C_CREAM);

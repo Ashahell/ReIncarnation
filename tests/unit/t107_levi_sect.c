@@ -130,6 +130,65 @@ int main(void) {
     RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_FXPOST) == 1, "fxpost toggle");
     RI_ASSERT(s.val[RI_SLEVI_FXPOST] == 1, "fxpost on");
     RI_ASSERT(ri_slevi_reset(&s, RI_SLEVI_FXPOST) == 1, "fxpost reset");
+    /* ---- Hardware page UI (fidelity plan P1, 2026-09-30) ---- */
+    {
+        struct RISectLevi p;
+        char t[16];
+        ri_slevi_init(&p);
+        RI_ASSERT(ri_slevi_value(&p, RI_SLEVI_PAGE) == (int)RI_SLEVI_M_OSC, "page starts on OSC");
+        RI_ASSERT(!strcmp(ri_slevi_page_title(&p), "OSC 1"), "title osc 1");
+        /* Digital filter page: slot 3 = CUTOFF, slot 1 = TYPE, slot 2 dead. */
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_DFILT) == 1, "module dfilt");
+        RI_ASSERT(!strcmp(ri_slevi_page_title(&p), "DIGITAL FILTER"), "title dfilt");
+        RI_ASSERT(ri_slevi_enc_live(&p, 2u) && !strcmp(ri_slevi_enc_name(&p, 2u), "CUTOFF"), "enc3 cutoff");
+        RI_ASSERT(ri_slevi_ctl_idx(&p, RI_SLEVI_ENC0 + 2u) == RI_SLEVI_CUTOFF, "enc3 sends cutoff");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 2u, 127) == 1, "enc3 turn");
+        RI_ASSERT(p.val[RI_SLEVI_CUTOFF] == 127 && ri_slevi_value(&p, RI_SLEVI_ENC0 + 2u) == 127, "cutoff max via enc");
+        ri_slevi_enc_text(&p, 2u, t, sizeof t);
+        RI_ASSERT(!strcmp(t, "127"), "cutoff text %s", t);
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 2u, 64) == 1 && p.val[RI_SLEVI_CUTOFF] == 64, "cutoff mid");
+        RI_ASSERT(ri_slevi_reset(&p, RI_SLEVI_ENC0 + 2u) == 1 && p.val[RI_SLEVI_CUTOFF] == 96, "enc reset -> target default");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 127) == 1 && p.val[RI_SLEVI_FTYPE] == 3, "type max");
+        ri_slevi_enc_text(&p, 0u, t, sizeof t);
+        RI_ASSERT(!strcmp(t, "NOTCH"), "type text %s", t);
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 0) == 1 && p.val[RI_SLEVI_FTYPE] == 0, "type min");
+        RI_ASSERT(!ri_slevi_enc_live(&p, 1u) && ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 1u, 99) == 0, "dead slot inert");
+        RI_ASSERT(ri_slevi_ctl_idx(&p, RI_SLEVI_ENC0 + 1u) == RI_SLEVI_ENC0 + 1u, "dead slot sends itself");
+        ri_slevi_enc_text(&p, 1u, t, sizeof t);
+        RI_ASSERT(t[0] == 0, "dead slot blank");
+        /* OSC n opens its page; slot 1 is that op's mode (packed on the wire). */
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_OPSEL, 3) == 1, "osc 4");
+        RI_ASSERT(ri_slevi_value(&p, RI_SLEVI_PAGE) == (int)RI_SLEVI_M_OSC && !strcmp(ri_slevi_page_title(&p), "OSC 4"),
+            "osc key opens osc page");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 127) == 1, "osc mode turn");
+        RI_ASSERT(p.opmode[3] == 6u && p.val[RI_SLEVI_OPMODE] == 3 * 16 + 6, "osc 4 mode 6 packed");
+        RI_ASSERT(ri_slevi_ctl_idx(&p, RI_SLEVI_ENC0) == RI_SLEVI_OPMODE, "osc mode sends opmode");
+        ri_slevi_enc_text(&p, 0u, t, sizeof t);
+        RI_ASSERT(!strcmp(t, "PD SAW PLS"), "mode text %s", t);
+        /* Group MODE: encoder k edits op k. */
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_GMODE) == 1, "group mode");
+        RI_ASSERT(!strcmp(ri_slevi_enc_name(&p, 5u), "OSC 6"), "group slot names op");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 5u, 64) == 1, "group turn");
+        RI_ASSERT(p.opmode[5] == 3u && p.val[RI_SLEVI_OPMODE] == 5 * 16 + 3 && p.opmode[3] == 6u,
+            "op 6 only, packed for op 6");
+        RI_ASSERT(ri_slevi_ctl_idx(&p, RI_SLEVI_ENC0 + 5u) == RI_SLEVI_OPMODE, "group sends opmode");
+        RI_ASSERT(ri_slevi_reset(&p, RI_SLEVI_ENC0 + 5u) == 1 && p.opmode[5] == RI_LEVI_FM, "group reset");
+        /* Switch slots flip at the encoder midpoint. */
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_MATRIX) == 1, "matrix page");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 63) == 0 && p.val[RI_SLEVI_ROUTE0] == 0, "route below mid");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 64) == 1 && p.val[RI_SLEVI_ROUTE0] == 1, "route at mid");
+        ri_slevi_enc_text(&p, 0u, t, sizeof t);
+        RI_ASSERT(!strcmp(t, "ON"), "route text %s", t);
+        /* Algorithm page: 0..127 spans the 8 presets, shown 1-based. */
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_ALGO) == 1, "algo page");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 1u, 127) == 1 && p.val[RI_SLEVI_ALGO] == 7, "algo max");
+        ri_slevi_enc_text(&p, 1u, t, sizeof t);
+        RI_ASSERT(!strcmp(t, "8"), "algo text %s", t);
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, 99) == 1 && p.val[RI_SLEVI_MODULE] == 34, "module clamp");
+        RI_ASSERT(ri_slevi_page_reaches(RI_SLEVI_CUTOFF) && ri_slevi_page_reaches(RI_SLEVI_ARPRATE) &&
+            ri_slevi_page_reaches(RI_SLEVI_OPMODE) && !ri_slevi_page_reaches(RI_SLEVI_KEY0) &&
+            !ri_slevi_page_reaches(RI_SLEVI_STEP0), "page reach table");
+    }
     /* Fail-closed. */
     RI_ASSERT(ri_slevi_press(0, RI_SLEVI_STEP0) == 0, "press null");
     RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_NCTL) == 0, "press bad");

@@ -47,4 +47,7 @@ int ri_sui_value(const struct RISectUI *s, uint32_t idx);
 int ri_sui_led(const struct RISectUI *s, uint32_t idx, uint32_t which);
 /* numeric readout of a DISPLAY control (303 EDIT STEP 1..16); 0 otherwise */
 int ri_sui_display(const struct RISectUI *s, uint32_t idx);
+/* Control index to send for a hit on idx: a page encoder (Levi master
+ * control) sends its target parameter; everything else sends idx. */
+uint32_t ri_sui_ctl_idx(const struct RISectUI *s, uint32_t idx);
 #endif

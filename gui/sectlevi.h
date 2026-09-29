@@ -10,7 +10,10 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 68u
+#define RI_SLEVI_NCTL 78u
+#define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
+#define RI_SLEVI_RESO 1u        /* digital filter resonance */
+#define RI_SLEVI_RATIO 3u       /* modulator ratio */
 #define RI_SLEVI_SELECT 4u      /* Lane Selection: 0..5 */
 #define RI_SLEVI_MODE 2u          /* FM/PM toggle */
 #define RI_SLEVI_ALGO 37u         /* Algorithm select 0..7 */
@@ -37,6 +40,46 @@
 #define RI_SLEVI_FXDLY 65u        /* Delay (UI-only) */
 #define RI_SLEVI_FXREV 66u        /* Reverb (UI-only) */
 #define RI_SLEVI_FXPOST 67u       /* PostFX (UI-only) */
+/* Hardware page UI (fidelity plan P1, owner 2026-09-30): MODULE SELECT
+ * keys pick a page, the 8 MASTER CONTROL encoders edit that page's
+ * slots, the display shows the page. Encoders are UI controls: the
+ * app sends the TARGET parameter (ri_slevi_ctl_idx), so automation
+ * keys and the control plane are unchanged. */
+#define RI_SLEVI_MODULE 68u       /* selected module/page 0..RI_SLEVI_NMOD-1 */
+#define RI_SLEVI_ENC0 69u         /* 8 encoders: 69..76 */
+#define RI_SLEVI_NENC 8u
+#define RI_SLEVI_PAGE 77u         /* display (value = module) */
+/* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
+ * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
+ * pages behind their own buttons. */
+#define RI_SLEVI_M_OSC 0u
+#define RI_SLEVI_M_GMODE 1u
+#define RI_SLEVI_M_GWAVE 2u
+#define RI_SLEVI_M_GPITCH 3u
+#define RI_SLEVI_M_GFINE 4u
+#define RI_SLEVI_M_GFEEDBK 5u
+#define RI_SLEVI_M_GLEVEL 6u
+#define RI_SLEVI_M_GDELAY 7u
+#define RI_SLEVI_M_GATTACK 8u
+#define RI_SLEVI_M_GHOLD 9u
+#define RI_SLEVI_M_GDECAY 10u
+#define RI_SLEVI_M_GSUSTAIN 11u
+#define RI_SLEVI_M_GRELEASE 12u
+#define RI_SLEVI_M_ENV1 13u       /* ENV 1..5: 13..17 */
+#define RI_SLEVI_M_DFILT 18u
+#define RI_SLEVI_M_AFILT 19u
+#define RI_SLEVI_M_VCA 20u
+#define RI_SLEVI_M_PREFX 21u
+#define RI_SLEVI_M_DELAY 22u
+#define RI_SLEVI_M_REVERB 23u
+#define RI_SLEVI_M_POSTFX 24u
+#define RI_SLEVI_M_LFO1 25u       /* LFO 1..5: 25..29 */
+#define RI_SLEVI_M_ALGO 30u
+#define RI_SLEVI_M_ARP 31u
+#define RI_SLEVI_M_SEQ 32u
+#define RI_SLEVI_M_MATRIX 33u
+#define RI_SLEVI_M_VOICE 34u
+#define RI_SLEVI_NMOD 35u
 #define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
 #define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */
 #define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */
@@ -66,5 +109,23 @@ int ri_slevi_led(const struct RISectLevi *s, uint32_t idx);
 int ri_slevi_display(const struct RISectLevi *s);
 /* Central algorithm readout 1..8 (panel truth); 0 on NULL. */
 int ri_slevi_algo_display(const struct RISectLevi *s);
+
+/* Page UI (P1). Value of any control as drawn (encoders read their
+ * target, scaled to 0..127). */
+int ri_slevi_value(const struct RISectLevi *s, uint32_t idx);
+/* Control index the app sends for a hit: an encoder's live target,
+ * else idx itself. */
+uint32_t ri_slevi_ctl_idx(const struct RISectLevi *s, uint32_t idx);
+/* Encoder k (0..7) on the current page: 1 when it edits a live
+ * parameter, 0 for a slot whose engine lands in a later phase. */
+int ri_slevi_enc_live(const struct RISectLevi *s, uint32_t k);
+/* 1 when some module page slot edits idx (the control needs no panel
+ * item of its own: the encoders reach it). Pure, table-only. */
+int ri_slevi_page_reaches(uint32_t idx);
+/* Page title and slot name (static strings, never NULL). */
+const char *ri_slevi_page_title(const struct RISectLevi *s);
+const char *ri_slevi_enc_name(const struct RISectLevi *s, uint32_t k);
+/* Slot value text into buf (always NUL-terminated; "" for dead slots). */
+void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32_t cap);
 
 #endif

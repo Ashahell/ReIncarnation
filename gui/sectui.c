@@ -99,7 +99,7 @@ int ri_sui_value(const struct RISectUI *s, uint32_t idx) {
     if (s->section == RI_SEC_909)
         return idx < RI_S909_NCTL ? s->u.s909.val[idx] : 0;
     if (s->section == RI_SEC_LEVI)
-        return idx < RI_SLEVI_NCTL ? s->u.slevi.val[idx] : 0;
+        return ri_slevi_value(&s->u.slevi, idx); /* encoders read their page target */
     if (ismix(s))
         return ri_smix_value(s->u.mix.board, s->section, idx);
     if (isfx(s))
@@ -137,5 +137,11 @@ int ri_sui_display(const struct RISectUI *s, uint32_t idx) {
         return ri_slevi_display(&s->u.slevi);
     if (s && s->section == RI_SEC_LEVI && idx == RI_SLEVI_ALGODISP)
         return ri_slevi_algo_display(&s->u.slevi);
+    if (s && s->section == RI_SEC_LEVI && idx == RI_SLEVI_PAGE)
+        return ri_slevi_value(&s->u.slevi, idx);
     return 0;
+}
+
+uint32_t ri_sui_ctl_idx(const struct RISectUI *s, uint32_t idx) {
+    return (s && s->section == RI_SEC_LEVI) ? ri_slevi_ctl_idx(&s->u.slevi, idx) : idx;
 }

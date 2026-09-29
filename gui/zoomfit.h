@@ -25,5 +25,9 @@ int ri_zoom_clamp(int scr_w, int scr_h, int chrome_w, int chrome_h, int want);
  * Format writes the word (no NUL counted); 0 on bad zoom/buffer. */
 int ri_zoom_parse(const char *s, unsigned n);
 int ri_zoom_format(int zoom, char *out, unsigned cap);
+/* Levi canvas zoom (fidelity plan P1): the largest zoom >= the app zoom
+ * whose window (Levi page at that zoom, all else at the app zoom) fits;
+ * the app zoom when nothing larger fits or the screen is unknown. */
+int ri_zoom_levi(int zoom, int scr_w, int scr_h, int chrome_w, int chrome_h);
 
 #endif

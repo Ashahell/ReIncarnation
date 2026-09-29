@@ -109,17 +109,24 @@ static void tab_page_size(uint32_t tab, int zoom, int *w, int *h) {
     *h = 0;
 }
 
+/* Content with the Levi page at its own zoom lz (fidelity plan P1). */
+static int content_lz(int zoom, int lz, int *w, int *h);
+
 int ri_zoomfit_content(int zoom, int *w, int *h) {
+    return content_lz(zoom, zoom, w, h);
+}
+
+static int content_lz(int zoom, int lz, int *w, int *h) {
     int trw, trh, pw = 0, ph = 0, t;
     uint32_t tab;
-    if ((zoom != 0 && zoom != 1 && zoom != 2) || !w || !h)
+    if ((zoom != 0 && zoom != 1 && zoom != 2) || (lz != 0 && lz != 1 && lz != 2) || !w || !h)
         return 2;
     /* Transport stays compact (S5 preview decision). */
     trw = sec_w(RI_SEC_TRANSPORT, RI_GEO_ZOOM_COMPACT) + 2 * RI_ART_SEAM_W;
     trh = sec_h(RI_SEC_TRANSPORT, RI_GEO_ZOOM_COMPACT);
     for (tab = 0u; tab < RI_TAB_COUNT; tab++) {
         int tw = 0, th = 0;
-        tab_page_size(tab, zoom, &tw, &th);
+        tab_page_size(tab, tab == RI_TAB_LEVI ? lz : zoom, &tw, &th);
         pw = imax(pw, tw);
         ph = imax(ph, th);
     }
@@ -197,4 +204,21 @@ int ri_zoom_clamp(int scr_w, int scr_h, int chrome_w, int chrome_h, int want) {
         return want;
     fit = ri_zoom_fit(scr_w, scr_h, chrome_w, chrome_h);
     return fit;
+}
+
+/* Levi canvas zoom (fidelity plan P1, owner 2026-09-30): the hardware
+ * panel is dense, so the Levi page takes the largest zoom >= the app
+ * zoom whose whole window still fits the screen. Unknown screen or a bad
+ * zoom keeps the app zoom (0 when that is invalid too). */
+int ri_zoom_levi(int zoom, int scr_w, int scr_h, int chrome_w, int chrome_h) {
+    int lz, w, h, best;
+    if (zoom < 0 || zoom > 2)
+        return 0;
+    best = zoom;
+    if (scr_w <= 0 || scr_h <= 0 || chrome_w < 0 || chrome_h < 0)
+        return best;
+    for (lz = zoom + 1; lz <= 2; lz++)
+        if (content_lz(zoom, lz, &w, &h) == 0 && w + chrome_w <= scr_w && h + chrome_h <= scr_h)
+            best = lz;
+    return best;
 }

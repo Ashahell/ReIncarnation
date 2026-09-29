@@ -320,6 +320,19 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 65, SWITCH, "Fx", "Dly", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 66, SWITCH, "Fx", "Rev", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 67, SWITCH, "Fx", "Post", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    /* Hardware page UI (fidelity plan P1, 2026-09-30): module select, the
+     * 8 MASTER CONTROL encoders (they send their page target) and the
+     * display. UI-only rows: never automated themselves. */
+    R(LEVI, 68, SELECTOR, "Module", "Module", 0, 34, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 69, KNOB, "Master", "Control 1", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 70, KNOB, "Master", "Control 2", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 71, KNOB, "Master", "Control 3", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 72, KNOB, "Master", "Control 4", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 73, KNOB, "Master", "Control 5", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 74, KNOB, "Master", "Control 6", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 75, KNOB, "Master", "Control 7", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 76, KNOB, "Master", "Control 8", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 77, DISPLAY, "Master", "Display", 0, 34, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

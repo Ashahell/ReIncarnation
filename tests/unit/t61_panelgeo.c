@@ -11,6 +11,7 @@
 #include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include "gui/panelgeo.h"
+#include "gui/sectlevi.h"
 #include "gui/ctlreg.h"
 #include "gui/sectmix.h"
 
@@ -115,6 +116,17 @@ static void check_section(uint32_t sec) {
                 nsec--;
         }
     }
+    /* Levi hardware page UI (fidelity plan P1, 2026-09-30): a control
+     * the MASTER CONTROL encoders reach through a module page needs no
+     * panel item of its own (as on the instrument). */
+    if (sec == RI_SEC_LEVI) {
+        uint32_t n = ri_ctlreg_section_count(sec, 0), k;
+        for (k = 0u; k < n; k++) {
+            const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((sec << 8) | k));
+            if (d && d->kind != RI_CK_SELECTOR && !value_item(s, d->reg_id) && ri_slevi_page_reaches(k))
+                nsec--;
+        }
+    }
     RI_ASSERT(nval == nsec, "%s value items %u, registry controls %u", ri_ctlreg_section_name(sec), nval, nsec);
     /* every selector value reachable by an option */
     for (i = 0; i < s->nitems; i++) {
@@ -123,11 +135,20 @@ static void check_section(uint32_t sec) {
         if (!d || d->kind != RI_CK_SELECTOR || (!is_value(&s->items[i]) && s->items[i].shape != RI_GEO_OPTION) ||
             has_steppers(s, d->reg_id))
             continue;
+        /* an endless rotary (Levi ALGORITHM encoder) reaches every value */
+        if (sec == RI_SEC_LEVI && s->items[i].shape == RI_GEO_KNOB)
+            continue;
         for (v = d->min_v; v <= d->max_v; v++) {
             int found = 0;
             for (j = 0; j < s->nitems; j++)
                 if (s->items[j].shape == RI_GEO_OPTION && s->items[j].reg_id == d->reg_id && s->items[j].opt == v)
                     found = 1;
+            /* Levi module 0 (OSC page) is opened by the OSC 1..8 keys */
+            if (d->reg_id == (uint16_t)((RI_SEC_LEVI << 8) | RI_SLEVI_MODULE) && v == (int)RI_SLEVI_M_OSC)
+                for (j = 0; j < s->nitems; j++)
+                    if (s->items[j].shape == RI_GEO_OPTION &&
+                        s->items[j].reg_id == (uint16_t)((RI_SEC_LEVI << 8) | RI_SLEVI_OPSEL))
+                        found = 1;
             RI_ASSERT(found, "%s value %d has no option", d->legend, v);
         }
     }
@@ -349,7 +370,8 @@ int main(void) {
     check_legends(RI_SEC_909);
     /* ---- Levi voice (owner 2026-09-28): knobs + select + steps + keys ---- */
     check_section(RI_SEC_LEVI);
-    check_legends(RI_SEC_LEVI);
+    /* Levi caps carry their legend printed on the cap (hardware; art_levi),
+     * not as a LEGEND item: the raster check in t93 pins legend pixels. */
     s = ri_geo_section(RI_SEC_909);
     if (s) {
         int prev = -1;
@@ -493,17 +515,35 @@ int main(void) {
         RI_ASSERT(has_steppers(s, ID(RI_SEC_TRANSPORT, 1)) && has_steppers(s, ID(RI_SEC_TRANSPORT, 3)) &&
             has_steppers(s, ID(RI_SEC_TRANSPORT, 10)) && has_steppers(s, ID(RI_SEC_TRANSPORT, 11)), "display arrows");
     }
-    /* ---- Levi voice (owner 2026-09-29 photo verdict): top-band knobs
-     * share one row, legends above; piano keys form a labeled bottom
-     * section (black row above white row). ---- */
+    /* ---- Levi hardware panel (fidelity plan P1, 2026-09-30): the
+     * measured hardware rows hold. Filter/osc-env knobs share one row;
+     * encoders 1-4 over 5-8 in the same columns; the 16 ribbon steps
+     * are one row of equal ascending segments; OSC 1-8 one row; black
+     * keys over white keys. ---- */
     s = ri_geo_section(RI_SEC_LEVI);
+    RI_ASSERT(s && s->w == 1756 && s->h == 560, "levi hardware figure");
     if (s) {
-        static const uint32_t knobs[] = { 0u, 1u, 3u, 39u, 43u };
+        static const uint32_t knobs[] = { 46u, 47u, 49u, 0u, 1u, 44u, 45u, 43u };
         static const int black[13] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0 };
         const struct RIGeoItem *k0 = value_item(s, ID(RI_SEC_LEVI, knobs[0]));
+        const struct RIGeoItem *st0 = value_item(s, ID(RI_SEC_LEVI, RI_SLEVI_STEP0));
         for (i = 1; i < sizeof(knobs) / sizeof(knobs[0]); i++) {
             const struct RIGeoItem *k = value_item(s, ID(RI_SEC_LEVI, knobs[i]));
-            RI_ASSERT(k && k0 && k->shape == RI_GEO_KNOB && k->cy == k0->cy, "levi top knob %u off-row", knobs[i]);
+            RI_ASSERT(k && k0 && k->shape == RI_GEO_KNOB && k->cy == k0->cy && k->cx > k0->cx,
+                "levi top knob %u off-row", knobs[i]);
+        }
+        for (i = 0; i < 4; i++) {
+            const struct RIGeoItem *a = value_item(s, ID(RI_SEC_LEVI, RI_SLEVI_ENC0 + i));
+            const struct RIGeoItem *b = value_item(s, ID(RI_SEC_LEVI, RI_SLEVI_ENC0 + 4 + i));
+            const struct RIGeoItem *e0 = value_item(s, ID(RI_SEC_LEVI, RI_SLEVI_ENC0));
+            RI_ASSERT(a && b && e0 && a->cx == b->cx && a->cy == e0->cy && b->cy > a->cy,
+                "levi encoder %u/%u column", i + 1, i + 5);
+        }
+        for (i = 1; i < 16; i++) {
+            const struct RIGeoItem *st = value_item(s, ID(RI_SEC_LEVI, RI_SLEVI_STEP0 + i));
+            const struct RIGeoItem *sp = value_item(s, ID(RI_SEC_LEVI, RI_SLEVI_STEP0 + i - 1));
+            RI_ASSERT(st && sp && st0 && st->cy == st0->cy && st->w == st0->w && st->cx > sp->cx,
+                "levi ribbon step %u", i + 1);
         }
         for (i = 0; i < 13; i++) {
             const struct RIGeoItem *it = value_item(s, ID(RI_SEC_LEVI, 24 + i));
@@ -511,9 +551,21 @@ int main(void) {
             if (!it)
                 continue;
             if (black[i])
-                RI_ASSERT(it->cy == 335 && it->h == 60, "levi black key %u row", i);
+                RI_ASSERT(it->cy == 412 && it->h == 116, "levi black key %u row", i);
             else
-                RI_ASSERT(it->cy == 380 && it->h == 90, "levi white key %u row", i);
+                RI_ASSERT(it->cy == 510 && it->h == 80, "levi white key %u row", i);
+        }
+        {   /* OSC 1-8 keys: one row, ascending */
+            int prev = -1, row = -1, n = 0;
+            for (i = 0; i < s->nitems; i++)
+                if (s->items[i].reg_id == ID(RI_SEC_LEVI, RI_SLEVI_OPSEL) && s->items[i].shape == RI_GEO_OPTION) {
+                    RI_ASSERT(row < 0 || s->items[i].cy == row, "levi osc key %d row", s->items[i].opt);
+                    RI_ASSERT(s->items[i].cx > prev, "levi osc key %d order", s->items[i].opt);
+                    row = s->items[i].cy;
+                    prev = s->items[i].cx;
+                    n++;
+                }
+            RI_ASSERT(n == 8, "levi osc keys %d", n);
         }
     }
     RI_RESULT("panelgeo");

@@ -29,6 +29,12 @@ enum {
     C_LEVI_PANEL,
     C_LEVI_HEAD,
     C_LEVI_RULE,
+    /* Leviasynth hardware panel (fidelity plan P1, 2026-09-30): graphite
+     * boxes, teal legends on black caps, aluminium knobs, per-osc cap
+     * colours (1 teal .. 8 blue), LCD. Own values, measured by eye. */
+    C_LEVI_BOX, C_LEVI_EDGE, C_LEVI_TEAL, C_LEVI_CAP, C_LEVI_SILVER, C_LEVI_LABEL, C_LEVI_LCD,
+    C_LEVI_O2, C_LEVI_O3, C_LEVI_O4, C_LEVI_O5, C_LEVI_O6, C_LEVI_O7, C_LEVI_O8, C_LEVI_REDTX,
+    C_LEVI_DIM, C_LEVI_TEALDIM, C_LEVI_LABELDIM, C_LEVI_REDDIM,
     C_NCOL
 };
 
@@ -108,6 +114,11 @@ void ri_art_tab(struct ri_dlist *dl, int x0, int y0, int x1, int y1, const char 
 void ri_art_bg_303(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
 void ri_art_bg_808(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
 void ri_art_bg_909(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
+/* Levi controls (fidelity plan P1): every geometry item of the Levi
+ * section is drawn here (caps, knobs, encoders with LED rings, display
+ * page, 7-segment algorithm readout, ribbon steps, keybed keys). */
+void ri_art_levi_item(struct ri_dlist *dl, const struct RIGeoItem *it, const struct RICtlDef *d,
+    const struct RISectUI *ui, int cx, int cy, int hw, int hh, int z);
 void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
 void ri_art_bg_mix(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, int master);
 void ri_art_bg_fx(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, uint8_t sec);

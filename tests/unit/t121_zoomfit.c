@@ -58,5 +58,20 @@ int main(void) {
         RI_ASSERT(ri_zoom_format(9, b, sizeof b) == 0, "format bad");
         RI_ASSERT(ri_zoom_format(0, 0, 0) == 0, "format null");
     }
+    /* Levi canvas zoom step (fidelity plan P1, 2026-09-30): the dense
+     * hardware panel takes the largest zoom >= the app zoom that still
+     * fits. Dell: app 1x (Mix is too wide at 1.5x) but the Levi page fits
+     * at 1.5x: 1317 + 12 + 32 <= 1366. */
+    RI_ASSERT(ri_zoom_levi(0, 1366, 768, 32, 72) == 1, "dell levi 1.5x");
+    RI_ASSERT(ri_zoom_levi(2, 4000, 3000, 32, 72) == 2, "levi never above 2x");
+    RI_ASSERT(ri_zoom_levi(0, 4000, 3000, 32, 72) == 2, "big screen levi 2x");
+    RI_ASSERT(ri_zoom_levi(0, 800, 600, 32, 72) == 0, "small screen stays");
+    RI_ASSERT(ri_zoom_levi(1, 0, 0, 32, 72) == 1, "unknown screen keeps app zoom");
+    RI_ASSERT(ri_zoom_levi(7, 1366, 768, 32, 72) == 0 && ri_zoom_levi(-1, 1366, 768, 32, 72) == 0, "bad zoom");
+    {
+        int z;
+        for (z = 0; z <= 2; z++)
+            RI_ASSERT(ri_zoom_levi(z, 1366, 768, 32, 72) >= z, "levi never below app zoom %d", z);
+    }
     RI_RESULT("zoomfit");
 }
