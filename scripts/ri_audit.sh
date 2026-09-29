@@ -194,6 +194,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t115_levi_arp_player >/dev/null || { 
 bash "$ROOT/scripts/ri_build_host.sh" test t117_levi_seq_phrase >/dev/null || { echo "FAIL: t117_levi_seq_phrase (levi seq phrase)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t119_levi_matrix >/dev/null || { echo "FAIL: t119_levi_matrix (levi matrix core)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t120_levi_matrix_render >/dev/null || { echo "FAIL: t120_levi_matrix_render (levi matrix render)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t123_reverb >/dev/null || { echo "FAIL: t123_reverb (reverb core)"; exit 1; }
 grep '^  CF9=' "$ROOT/scripts/ri_build_aros.sh" | grep -q '\-O0' || { echo "FAIL: RIAPP must build -O0 (owner 2026-09-28 debug-only rule)"; exit 1; }
 echo "-- portability T8: headless core runs without AROS (WAV; PNG after T2) --"
 gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I"$ROOT" -o "$OUT/headless" "$ROOT/platform/host/main_headless.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: headless build"; exit 1; }
