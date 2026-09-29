@@ -1574,42 +1574,49 @@ int main(int argc, char **argv) {
     s_root = row;
     {
         /* S5 View menu: explicit zooms plus Fit (menu bar works by mouse;
-         * keys stay scarce, t70). Checkmarks mirror s_zoom_mode. Children
-         * join by OM_ADDMEMBER (Family classes); a failed menu falls back
+         * keys stay scarce, t70). Checkmarks mirror s_zoom_mode. Nested
+         * MUIA_Family_Child creation (the Zune test.c pattern):
+         * OM_ADDMEMBER after the fact leaves the strip empty (Dell
+         * 2026-09-29: no menu bar rendered). A failed menu falls back
          * to no menustrip (logged) while the panel still opens. */
         static const char *const zt[4] = { "Zoom 1x", "Zoom 1.5x", "Zoom 2x", "Zoom Fit" };
         Object *menu = 0, *menustrip = 0;
+        LONG checked = (LONG)(s_zoom_mode == RI_ZOOMFIT_FIT ? 3 : s_zoom_mode);
         int k, ok = 1;
-        for (k = 0; k < 4; k++)
-            s_zoomitems[k] = 0;
-        menu = (Object *)MUI_NewObject(MUIC_Menu,
-            MUIA_Menu_Title, (IPTR)"View",
-            TAG_DONE);
-        if (!menu)
-            ok = 0;
-        for (k = 0; k < 4 && ok; k++) {
+        for (k = 0; k < 4; k++) {
             s_zoomitems[k] = (Object *)MUI_NewObject(MUIC_Menuitem,
                 MUIA_Menuitem_Title, (IPTR)zt[k],
                 MUIA_Menuitem_Checkit, TRUE,
-                MUIA_Menuitem_Checked, (IPTR)(LONG)(k == (s_zoom_mode == RI_ZOOMFIT_FIT ? 3 : s_zoom_mode) ? TRUE : FALSE),
+                MUIA_Menuitem_Checked, (IPTR)(LONG)(k == checked ? TRUE : FALSE),
                 TAG_DONE);
             if (!s_zoomitems[k])
                 ok = 0;
-            else
-                DoMethod(menu, OM_ADDMEMBER, (IPTR)s_zoomitems[k]);
         }
         if (ok) {
-            menustrip = (Object *)MUI_NewObject(MUIC_Menustrip, TAG_DONE);
+            menu = (Object *)MUI_NewObject(MUIC_Menu,
+                MUIA_Menu_Title, (IPTR)"View",
+                MUIA_Family_Child, (IPTR)s_zoomitems[0],
+                MUIA_Family_Child, (IPTR)s_zoomitems[1],
+                MUIA_Family_Child, (IPTR)s_zoomitems[2],
+                MUIA_Family_Child, (IPTR)s_zoomitems[3],
+                TAG_DONE);
+            if (!menu)
+                ok = 0;
+        }
+        if (ok) {
+            menustrip = (Object *)MUI_NewObject(MUIC_Menustrip,
+                MUIA_Family_Child, (IPTR)menu,
+                TAG_DONE);
             if (!menustrip)
                 ok = 0;
-            else
-                DoMethod(menustrip, OM_ADDMEMBER, (IPTR)menu);
         }
         if (!ok) {
             for (k = 0; k < 4; k++)
                 s_zoomitems[k] = 0;
             if (DOSBase)
                 rlog("RIAPP zoom: no menu strip (panel still opens)\n", 0, 0, 0, 0, 0);
+        } else if (DOSBase) {
+            rlog("RIAPP zoom: View menu built (1x/1.5x/2x/Fit)\n", 0, 0, 0, 0, 0);
         }
         win = (Object *)MUI_NewObject(MUIC_Window,
             MUIA_Window_Title, (IPTR)"RIAPP live panel",

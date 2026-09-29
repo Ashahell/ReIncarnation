@@ -268,9 +268,16 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   mutation, parse/format). Mutants killed (ascending loop; dropped root
   inner — the latter was a real model bug the test caught). t92/t93 pins
   unmoved (S5 paints no pixels). t60/t61/t70/t76 green.
-- **Dell (partial, lane flaky):** ABIv11 `RAM:RIAPPZ5` booted live-audio
+- **Dell:** ABIv11 `RAM:RIAPPZ5` then `RAM:RIAPPB4` boot live-audio
   clean, log proves `RIAPP zoom: mode=-1 zoom=0 screen=1366x768`
-  (`open=1 rack=1 tabs=5`). Captures (all pages at Fit, z2 Mix, menu bar)
-  and owner menu/persist try pending lane recovery.
+  (`open=1 rack=1 tabs=5`) and `RIAPP zoom: View menu built
+  (1x/1.5x/2x/Fit)`; a 29,236-buffer run closed with 0 xruns
+  (`render_max=66 us`). `dell-s5b4-synths.png`: Synths at Fit fills the
+  screen. Correction: the View menu is a RMB pull-down (stock MUI —
+  there is no visible menu bar, so captures can never show it); menu
+  construction now follows the canonical nested `MUIA_Family_Child`
+  pattern (the `test.c` shape) after `OM_ADDMEMBER` left the strip
+  empty. Owner proof pending: right-click the window → View → a zoom;
+  persist try across restart; z2 Mix look.
 - **E0 ledger:** chrome 32x72 fail-safe generous; furniture width
   estimates never bind; explicit zooms may overflow small screens.
