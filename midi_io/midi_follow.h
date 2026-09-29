@@ -70,4 +70,33 @@ int midi_follow_poll(struct RIFollow *f, uint64_t now_us,
 float midi_follow_bpm(const struct RIFollow *f);
 int midi_follow_locked(const struct RIFollow *f);
 
+/* Sync-source state (R1 settings core): Internal vs MIDI clock, measured
+ * tempo latch, read-only law, dropout fallback. Pure; the caller owns
+ * the tempo knob and the transport. */
+#define RI_SYNC_INTERNAL 0u
+#define RI_SYNC_MIDI 1u
+
+struct RIFollowSync {
+    uint8_t source;    /* RI_SYNC_* */
+    uint8_t following; /* 1 while locked to MIDI clock */
+    uint8_t pad[2];
+    float measured_bpm; /* latched while following */
+    float held_bpm;     /* frozen on dropout (display keeps reading) */
+};
+
+void midi_sync_init(struct RIFollowSync *s);
+/* 0 ok, 2 bad source/NULL. Switching source clears following. */
+int midi_sync_set_source(struct RIFollowSync *s, uint32_t source);
+/* Latch the follower reading (call per block): locked MIDI clock
+ * starts/keeps following with the measured tempo. 0 ok, 2 bad. */
+int midi_sync_update(struct RIFollowSync *s, uint32_t locked, float bpm);
+/* Dropout STOP observed: following ends, held tempo frozen. 0/2. */
+int midi_sync_note_drop(struct RIFollowSync *s);
+/* 1 when the tempo knob must read the measured value (locked MIDI
+ * following); 0 (internal, or MIDI idle) leaves the knob live. */
+int midi_sync_knob_locked(const struct RIFollowSync *s);
+/* Display tempo: measured while following, held after dropout, 0.0f
+ * when internal or never locked (knob owns it). Negative on bad. */
+float midi_sync_tempo(const struct RIFollowSync *s);
+
 #endif

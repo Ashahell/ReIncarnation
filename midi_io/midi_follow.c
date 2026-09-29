@@ -163,6 +163,60 @@ int midi_follow_rt(struct RIFollow *f, uint8_t byte, uint64_t now_us,
     return 0; /* channel voice bytes: G7 owns notes/CC */
 }
 
+void midi_sync_init(struct RIFollowSync *s) {
+    if (!s)
+        return;
+    s->source = RI_SYNC_INTERNAL;
+    s->following = 0u;
+    s->pad[0] = s->pad[1] = 0u;
+    s->measured_bpm = 0.0f;
+    s->held_bpm = 0.0f;
+}
+
+int midi_sync_set_source(struct RIFollowSync *s, uint32_t source) {
+    if (!s || (source != RI_SYNC_INTERNAL && source != RI_SYNC_MIDI))
+        return 2;
+    s->source = (uint8_t)source;
+    s->following = 0u;
+    return 0;
+}
+
+int midi_sync_update(struct RIFollowSync *s, uint32_t locked, float bpm) {
+    if (!s)
+        return 2;
+    if (s->source == RI_SYNC_MIDI && locked) {
+        s->following = 1u;
+        s->measured_bpm = bpm;
+        s->held_bpm = bpm;
+    } else {
+        s->following = 0u;
+    }
+    return 0;
+}
+
+int midi_sync_note_drop(struct RIFollowSync *s) {
+    if (!s)
+        return 2;
+    s->following = 0u;
+    return 0;
+}
+
+int midi_sync_knob_locked(const struct RIFollowSync *s) {
+    if (!s)
+        return 0;
+    return (s->source == RI_SYNC_MIDI && s->following) ? 1 : 0;
+}
+
+float midi_sync_tempo(const struct RIFollowSync *s) {
+    if (!s)
+        return -1.0f;
+    if (s->source == RI_SYNC_MIDI && s->following)
+        return s->measured_bpm;
+    if (s->source == RI_SYNC_MIDI)
+        return s->held_bpm;
+    return 0.0f;
+}
+
 float midi_follow_bpm(const struct RIFollow *f) {    uint64_t avg;
     if (!f || f->n == 0u)
         return 0.0f;
