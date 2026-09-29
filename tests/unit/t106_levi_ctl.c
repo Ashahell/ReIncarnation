@@ -62,7 +62,22 @@ int main(void) {
     RI_ASSERT(ri_ctlreg_auto_id(d) == RI_CTL_LEVI_CUTOFF, "key = engine id");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_CUTOFF), "allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_MODE), "allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0E11u), "unbound refused");
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_ARPON), "arpon allowed");
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_ARPRATE), "arprate allowed");
+    d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 52u));
+    RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_ARPON, "arpon bind");
+    d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 53u));
+    RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_ARPRATE, "arprate bind");
+    {
+        struct RILeviSet set;
+        levi_init_set(&set);
+        RI_ASSERT(set.arpon == 0u && set.arprate == 64u, "arp defaults");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_ARPON & 0xFFu, 1u) == 0 &&
+            set.arpon == 1u, "arpon ui");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_ARPRATE & 0xFFu, 100u) == 0 &&
+            set.arprate == 100u, "arprate ui");
+        RI_ASSERT(levi_set_param_ui(0, 0u, RI_CTL_LEVI_ARPON & 0xFFu, 1u) == 2, "arp null");
+    }
     /* Algo block rows (owner 2026-09-28, v2 slice 1d). */
     d = find_leg(RI_SEC_LEVI, "Algorithm");
     RI_ASSERT(d && d->kind == RI_CK_SELECTOR, "algo kind");
