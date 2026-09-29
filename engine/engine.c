@@ -33,6 +33,8 @@ void ri_engine_init(struct RIEngine *e) {
         ri_meter_init(&e->sec_meter[i], 48000.0f); /* display ballistics rate */
     for (i = 0; i < RI_ENGINE_FX_COUNT; i++)
         ri_meter_init(&e->fx_meter[i], 48000.0f);
+    ri_meter_init(&e->master_meter[0], 48000.0f);
+    ri_meter_init(&e->master_meter[1], 48000.0f);
     for (i = 0; i < RI_ENGINE_BLOCK; i++)
         e->scratch[i] = 0.0f;
     /* Routing neutral: no owners, sends 0, pans centre, delay dry. */
@@ -53,6 +55,8 @@ void ri_engine_init(struct RIEngine *e) {
         e->level[i] = 127u; /* unity: the pre-fader engine, bit-identical */
         e->lvl_applied[i] = 1.0f;
     }
+    e->master = 127u; /* unity monitoring fader (S4, stubbed until GREEN) */
+    e->master_applied = 1.0f;
     e->tempo = RI_ENGINE_TEMPO_DEFAULT;
     e->dline = 0;
     e->dcap = 0;
@@ -297,6 +301,13 @@ float ri_engine_fx_peak(const struct RIEngine *e, uint32_t unit) {
     return ri_meter_peak(&e->fx_meter[unit]);
 }
 
+/* S4 master meter taps: held linear peak of the post-master bus. */
+float ri_engine_master_peak(const struct RIEngine *e, uint32_t ch) {
+    if (!e || ch > 1u)
+        return 0.0f;
+    return ri_meter_peak(&e->master_meter[ch]);
+}
+
 int ri_engine_909_bind(struct RIEngine *e, uint32_t voice,
     const struct RISampleLayer *layers, uint32_t n) {
     if (!e)
@@ -509,6 +520,35 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                     mr[i] = (double)tr[i];
                 }
             }
+            /* Master fader (S4 monitoring gain): post-everything P-17 law
+             * with the strip zipless slew. Unity at rest skips the
+             * multiply so the neutral path stays bit-identical; the meter
+             * taps the post-master buses (mono path: L/R twins). */
+            {
+                float target = ri_fader_gain(e->master);
+                float a = e->master_applied;
+                if (a != target || a != 1.0f) {
+                    float step = 1.0f / (float)RI_MIX_RAMP_SMP;
+                    for (i = 0; i < cc; i++) {
+                        if (a < target)
+                            a = (target - a > step) ? a + step : target;
+                        else if (a > target)
+                            a = (a - target > step) ? a - step : target;
+                        ml[i] *= (double)a;
+                        mr[i] *= (double)a;
+                    }
+                    e->master_applied = a;
+                }
+            }
+            {
+                float tl[RI_ENGINE_BLOCK], tr[RI_ENGINE_BLOCK];
+                for (i = 0; i < cc; i++) {
+                    tl[i] = (float)ml[i];
+                    tr[i] = (float)mr[i];
+                }
+                ri_meter_feed(&e->master_meter[0], tl, cc);
+                ri_meter_feed(&e->master_meter[1], tr, cc);
+            }
             for (i = 0; i < cc; i++) {
                 out_l[done + c + i] = (float)ml[i];
                 out_r[done + c + i] = (float)mr[i];
@@ -553,6 +593,14 @@ int ri_engine_set_level(struct RIEngine *e, uint32_t section, uint8_t v) {
     if (!e || section >= RI_ROUTE_NSECTIONS)
         return 2;
     e->level[section] = v > 127u ? 127u : v;
+    return 0;
+}
+
+/* S4 master monitoring fader (P-17 law, unity default). */
+int ri_engine_set_master(struct RIEngine *e, uint8_t v) {
+    if (!e)
+        return 2;
+    e->master = v > 127u ? 127u : v;
     return 0;
 }
 
@@ -610,8 +658,13 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
                 ri_route_assign(&e->route, unit, RI_ROUTE_NONE);
             return;
         }
-        if (strip == RI_AUTO_STRIP_MASTER)
-            return; /* master level: not automatable (p. 72) */
+        if (strip == RI_AUTO_STRIP_MASTER) {
+            /* Master strip: Comp rides the unit branch above; Level is the
+             * live-only monitoring fader (p. 72 keeps it off the lanes). */
+            if (lo == RI_AUTO_MIX_LEVEL)
+                ri_engine_set_master(e, val);
+            return;
+        }
         if (lo == RI_AUTO_MIX_LEVEL)
             ri_engine_set_level(e, (uint32_t)owner, val);
         else if (lo == RI_AUTO_MIX_PAN)

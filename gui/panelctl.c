@@ -13,9 +13,13 @@ int ri_panel_ctl_send(struct RIControlPlane *ctl, uint16_t reg_id, int value) {
     d = ri_ctlreg_find(reg_id);
     if (!d)
         return 1;
+    v = (value < 0) ? 0u : (value > 127) ? 127u : (uint8_t)value;
+    /* S4: the master monitoring fader (the only FADER on MASTER) has no
+     * lane (E1 p. 72); it rides the live-only key to the post-master gain. */
+    if (d->section == RI_SEC_MASTER && d->kind == RI_CK_FADER)
+        return (ri_ctl_send_live(ctl, RI_CTL_MASTER_LEVEL, v) == 0) ? 0 : 1;
     key = ri_ctlreg_auto_id(d);
     if (key == 0u)
         return 1;
-    v = (value < 0) ? 0u : (value > 127) ? 127u : (uint8_t)value;
     return (ri_ctl_send(ctl, key, v) == 0) ? 0 : 1;
 }

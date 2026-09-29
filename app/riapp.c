@@ -119,18 +119,18 @@ extern struct DosLibrary *DOSBase;
  * keyboard-focus slot (s_panel stays 4-focus; mouse path is direct). */
 enum {
     C_TR, C_P0, C_P1, C_P2, C_P3, C_P4, C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX,
-    C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_MXL, C_N
+    C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_MXL, C_MST, C_N
 };
 static const ULONG c_sections[C_N] = {
     RI_SEC_TRANSPORT,
     RI_SEC_PAT_SYNTH1, RI_SEC_PAT_SYNTH2, RI_SEC_PAT_808, RI_SEC_PAT_909, RI_SEC_PAT_LEVI,
     RI_SEC_SYNTH1, RI_SEC_SYNTH2, RI_SEC_808, RI_SEC_909, RI_SEC_LEVI, RI_SEC_MIX_808,
     RI_SEC_PCF, RI_SEC_DELAY, RI_SEC_DIST, RI_SEC_COMP,
-    RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_909, RI_SEC_MIX_LEVI
+    RI_SEC_MIX_SYNTH1, RI_SEC_MIX_SYNTH2, RI_SEC_MIX_909, RI_SEC_MIX_LEVI, RI_SEC_MASTER
 };
 /* Pattern instance (bank + track slot) behind each PAT/voice canvas. */
 static const uint32_t c_pat_instance[C_N] = {
-    0u, 0u, 1u, 2u, 3u, 4u, 0u, 1u, 2u, 3u, 4u, 2u, 0u, 0u, 0u, 0u, 0u, 1u, 3u, 4u
+    0u, 0u, 1u, 2u, 3u, 4u, 0u, 1u, 2u, 3u, 4u, 2u, 0u, 0u, 0u, 0u, 0u, 1u, 3u, 4u, 0u
 };
 /* Mix tab (owner 2026-09-28): one strip per device, device order; C_MIX
  * (the 808 strip) owns the shared board, the others bind to it. */
@@ -201,6 +201,7 @@ static struct RIPattern s_levi_pat; /* Levi voice-canvas shadow (bank 4 slot) */
 static uint8_t s_levi_slot;
 static IPTR s_changes[C_N];
 static int s_meter_shown[5];
+static int s_mst_shown[2]; /* MASTER strip L/R meter shadows */
 
 /* Demo song, bank table, transport and meters live in app/core (T8).
  * Status lines also go to the TEMP log, opened, appended and closed per
@@ -527,11 +528,11 @@ static void sync_leviv(void) {
  * nonzero (the bridge owns that law, t83). Transport and PAT canvases
  * travel their state paths above. */
 static void sync_values(void) {
-    static const int val_canvas[14] = {
-        C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_MXL
+    static const int val_canvas[15] = {
+        C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_MXL, C_MST
     };
     int i;
-    for (i = 0; i < 14; i++) {
+    for (i = 0; i < 15; i++) {
         int c = val_canvas[i];
         IPTR ch = 0;
         GetAttr(MUIA_RSection_Changes, s_canvas[c], &ch);
@@ -589,6 +590,28 @@ static void meter_round(ULONG mix_freq) {
                 ri_rsection_refresh(s_canvas[c_mix_canvas[k]]);
         }
     }
+    /* S4 MASTER L/R meters from the post-master snapshot taps. */
+    {
+        struct RISectUI *u = s_ui[C_MST];
+        int ch;
+        for (ch = 0; ch < 2; ch++) {
+            int lvl = 0;
+            const struct RIGeoSection *g;
+            int x0, y0, x1, y1;
+            if (ri_live_meters_read(&s_core.session, &mm) == 0)
+                lvl = ri_live_meter_level(mm.master_peak[ch]);
+            if (lvl == s_mst_shown[ch] || !u || !u->u.mix.board)
+                continue;
+            s_mst_shown[ch] = lvl;
+            ri_smix_meter_set(u->u.mix.board, RI_SEC_MASTER, (uint32_t)ch, lvl);
+            g = ri_geo_section(RI_SEC_MASTER);
+            if (g && ri_geo_bbox(g, (uint16_t)(((uint32_t)RI_SEC_MASTER << 8) | (1u + (uint32_t)ch)),
+                0, &x0, &y0, &x1, &y1) == 0)
+                ri_rsection_refresh_box(s_canvas[C_MST], x0, y0, x1, y1);
+            else
+                ri_rsection_refresh(s_canvas[C_MST]);
+        }
+    }
     playing = (s_tr_state != RI_TR_STOPPED);
     if (ri_panel_live(&s_panel, playing, sixteenths)) {
         /* S3: 808/909 chase lamps repaint old+new step boxes (the lamps
@@ -604,6 +627,8 @@ static void meter_round(ULONG mix_freq) {
         }
         for (k = 0; k < C_N; k++) {
             int is_chase = (k == C_808 || k == C_909);
+            if (k == C_MST)
+                continue; /* MASTER art is static; meters ride their own path */
             if (!is_chase) {
                 ri_rsection_refresh(s_canvas[k]);
                 continue;
@@ -933,9 +958,10 @@ static Object *rack_slot(Object *mod) {
 
 /* Rack bay page: rail | bay | modules (touching, tops aligned, centred)
  * | bay | rail, all on the brushed bay. slots[] (optional) gets each
- * module's slot for ShowMe. */
-static Object *rack_page(Object *const *mods, uint32_t n, Object **slots) {
-    Object *row, *col, *l, *r, *sp[4];
+ * module's slot for ShowMe; gap_after inserts a 6 px double-seam gap
+ * after that module index (S4: the MASTER strip stands apart). */
+static Object *rack_page_gap(Object *const *mods, uint32_t n, Object **slots, uint32_t gap_after) {
+    Object *row, *col, *l, *r, *sp[4], *gap = 0;
     struct TagItem tags[8];
     uint32_t i;
     /* Weight 1 against the spacers' 100: the row stays at the tallest
@@ -951,6 +977,12 @@ static Object *rack_page(Object *const *mods, uint32_t n, Object **slots) {
         if (slots)
             slots[i] = slot;
         DoMethod(row, OM_ADDMEMBER, (IPTR)slot);
+        if (i == gap_after) {
+            gap = (Object *)MUI_NewObject(MUIC_Rectangle, MUIA_FixWidth, 6, TAG_DONE);
+            if (!gap)
+                return 0;
+            DoMethod(row, OM_ADDMEMBER, (IPTR)gap);
+        }
     }
     for (i = 0u; i < 4u; i++)
         sp[i] = (Object *)MUI_NewObject(MUIC_Rectangle, TAG_DONE);
@@ -979,6 +1011,7 @@ static Object *rack_page(Object *const *mods, uint32_t n, Object **slots) {
         return page;
     }
 }
+#define rack_page(mods, n, slots) rack_page_gap(mods, n, slots, 99u)
 
 /* Mirror each device's active bit into its power glyph (the class redraws
  * itself when the state changes). */
@@ -1251,6 +1284,8 @@ int main(int argc, char **argv) {
             s_panel.mix[3] = u;
         else if (i == C_MXL)
             s_panel.mix[5] = u;
+        else if (i == C_MST)
+            s_panel.mix[4] = u;
         else if (i >= C_FX0 && i <= C_FX3)
             s_panel.fx[i - C_FX0] = u;
         SetAttrs(s_canvas[i], MUIA_RSection_Panel, (IPTR)&s_panel,
@@ -1259,6 +1294,7 @@ int main(int argc, char **argv) {
     for (i = 0; i < 5; i++)                 /* one mixer board, five strips */
         if (c_mix_canvas[i] != C_MIX)
             ri_sui_bind_board(s_ui[c_mix_canvas[i]], s_ui[C_MIX]->u.mix.board);
+    ri_sui_bind_board(s_ui[C_MST], s_ui[C_MIX]->u.mix.board); /* MASTER shares it */
     /* The panel shows the demo: 303A/B steps mirror bank slots 0;
      * 808/909 canvases mirror their bank slot 0 (empty until programmed). */
     for (i = 0; i < 16; i++) {
@@ -1326,6 +1362,13 @@ int main(int argc, char **argv) {
                 ri_smix_value(mu->u.mix.board, (uint32_t)RI_SEC_MIX_LEVI,
                     (uint32_t)k));
     }
+    {   /* MASTER monitoring fader adopts the panel (registry def 100):
+         * the engine default is unity, so without this the fader would
+         * show 100 while the mix plays at 127. */
+        struct RISectUI *mu = s_ui[C_MIX];
+        ri_panel_ctl_send(&s_core.ctl, (uint16_t)((uint16_t)RI_SEC_MASTER << 8),
+            ri_smix_value(mu->u.mix.board, (uint32_t)RI_SEC_MASTER, 0u));
+    }
     s_tr_state = s_ui[C_TR]->u.tr.tr.state;
     for (i = 0; i < C_N; i++) {
         IPTR ch = 0;
@@ -1333,6 +1376,7 @@ int main(int argc, char **argv) {
         s_changes[i] = ch;
     }
     s_meter_shown[0] = s_meter_shown[1] = s_meter_shown[2] = s_meter_shown[3] = s_meter_shown[4] = -1;
+    s_mst_shown[0] = s_mst_shown[1] = -1;
     if (!s_live)
         ri_live_render(&s_core.session, s_fl, s_fr, RIAPP_FRAMES); /* drain the burst */
 
@@ -1362,10 +1406,14 @@ int main(int argc, char **argv) {
         for (r = 0u; r < nrows; r++)
             s_devrow[rowdev[r]] = rowobj[r];
         {
-            Object *mx[5];
+            Object *mx[6];
+            Object *mslots[6];
             for (r = 0u; r < 5u; r++)
                 mx[r] = s_canvas[c_mix_canvas[r]];
-            mix_page = rack_page(mx, 5u, s_mixslot);
+            mx[5] = s_canvas[C_MST];
+            mix_page = rack_page_gap(mx, 6u, mslots, 4u);
+            for (r = 0u; r < 5u; r++)
+                s_mixslot[r] = mslots[r];
         }
         fx_page = rack_page(&s_canvas[C_FX0], 4u, 0);
         rail = tab_rail();

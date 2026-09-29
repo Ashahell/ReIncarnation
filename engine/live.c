@@ -66,6 +66,8 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     for (i = 0u; i < 4u; i++)
         s->meters.fx_peak[i] = 0.0f;
     s->meters.comp_gr = 0.0f;
+    s->meters.master_peak[0] = 0.0f;
+    s->meters.master_peak[1] = 0.0f;
     s->meters.samples = 0u;
     s->meters.cursor_ticks = 0u;
     s->meters.xruns = 0u;
@@ -156,6 +158,12 @@ int ri_live_record_touch(struct RILiveSession *s, uint16_t key, uint8_t val) {
     int rc_t = 2, rc_c = 2;
     if (!s)
         return 2;
+    /* S4: live-only monitoring keys sound now but never touch a lane. */
+    if (ri_ctl_live_only(key)) {
+        if (s->ctl)
+            rc_c = ri_ctl_send_live(s->ctl, key, val);
+        return rc_c == 0 ? 0 : 2;
+    }
     if (s->pub) {
         struct RIAutoLane *bk = ri_auto_pub_back(s->pub);
         if (bk && s->pass)
@@ -178,6 +186,8 @@ static void live_meters_update(struct RILiveSession *s) {
     for (i = 0u; i < 4u; i++)
         s->meters.fx_peak[i] = ri_engine_fx_peak(&s->eng, i);
     s->meters.comp_gr = ri_engine_comp_gr(&s->eng);
+    s->meters.master_peak[0] = ri_engine_master_peak(&s->eng, 0u);
+    s->meters.master_peak[1] = ri_engine_master_peak(&s->eng, 1u);
     s->meters.samples = s->sample_cursor;
     s->meters.cursor_ticks = s->cursor_ticks;
     s->meters.xruns = s->xruns;
@@ -215,6 +225,8 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         for (k = 0u; k < 4u; k++)
             s->meters.fx_peak[k] = 0.0f;
         s->meters.comp_gr = 0.0f;
+        s->meters.master_peak[0] = 0.0f;
+        s->meters.master_peak[1] = 0.0f;
         s->meters.samples = s->sample_cursor;
         s->meters.cursor_ticks = s->cursor_ticks;
         s->meters.xruns = s->xruns;

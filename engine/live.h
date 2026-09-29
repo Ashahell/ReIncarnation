@@ -22,6 +22,7 @@ struct RILiveMeters {
     float sec_peak[RI_ROUTE_NSECTIONS];
     float fx_peak[4];
     float comp_gr;
+    float master_peak[2]; /* S4: post-master L/R (mono path: twins) */
     uint64_t samples;
     uint64_t cursor_ticks;
     uint32_t xruns;

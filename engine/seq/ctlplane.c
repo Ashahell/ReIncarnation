@@ -32,14 +32,13 @@ void ri_ctl_init(struct RIControlPlane *p) {
     p->refused = 0u;
 }
 
-int ri_ctl_send(struct RIControlPlane *p, uint16_t key, uint8_t val) {
+/* Master strip level key spelling (S4 live-only): must equal the lane
+ * table's RI_AUTO_ID_MIX(MASTER, LEVEL); C99 array-size check. */
+typedef char ri_ctl_master_key_check[(RI_CTL_MASTER_LEVEL ==
+    RI_AUTO_ID_MIX(RI_AUTO_STRIP_MASTER, RI_AUTO_MIX_LEVEL)) ? 1 : -1];
+
+static int send_inner(struct RIControlPlane *p, uint16_t key, uint8_t val) {
     uint32_t pending, i, h, t;
-    if (!p)
-        return 2;
-    if (!ri_auto_allowed(key)) {
-        p->refused++;
-        return 2;
-    }
     h = ri_atomic_load_acq(&p->head);
     t = ri_atomic_load_acq(&p->tail);
     pending = h - t;
@@ -68,6 +67,16 @@ int ri_ctl_send(struct RIControlPlane *p, uint16_t key, uint8_t val) {
     return 0;
 }
 
+int ri_ctl_send(struct RIControlPlane *p, uint16_t key, uint8_t val) {
+    if (!p)
+        return 2;
+    if (!ri_auto_allowed(key)) {
+        p->refused++;
+        return 2;
+    }
+    return send_inner(p, key, val);
+}
+
 uint32_t ri_ctl_pending(const struct RIControlPlane *p) {
     uint32_t h, t;
     if (!p)
@@ -77,6 +86,23 @@ uint32_t ri_ctl_pending(const struct RIControlPlane *p) {
     if (h < t)
         return 0u;
     return h - t;
+}
+
+/* S4 live-only monitoring controls: keys with no automation lane that
+ * still reach the engine (master strip level first). The recorder never
+ * records them: ri_auto_allowed stays shut, so no lane can hold them. */
+int ri_ctl_live_only(uint16_t key) {
+    return key == RI_CTL_MASTER_LEVEL;
+}
+
+int ri_ctl_send_live(struct RIControlPlane *p, uint16_t key, uint8_t val) {
+    if (!p)
+        return 2;
+    if (!ri_ctl_live_only(key)) {
+        p->refused++;
+        return 2;
+    }
+    return send_inner(p, key, val);
 }
 
 uint32_t ri_ctl_drain(struct RIControlPlane *p, struct RIEvent *out,

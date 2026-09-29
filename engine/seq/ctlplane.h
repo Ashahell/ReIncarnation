@@ -35,4 +35,13 @@ uint32_t ri_ctl_pending(const struct RIControlPlane *p);
  * caller's insertion counter, bumped per event. NULL/0-cap drains nothing. */
 uint32_t ri_ctl_drain(struct RIControlPlane *p, struct RIEvent *out,
     uint32_t cap, uint64_t sample, uint32_t *seq);
+/* Live-only monitoring controls (S4): keys with no automation lane that
+ * still reach the engine (master strip level first). The render task
+ * applies them exactly like automated ones; the recorder never records
+ * them (no lane can hold them: ri_auto_allowed stays shut). */
+#define RI_CTL_MASTER_LEVEL 0x0B50u /* RI_AUTO_ID_MIX(MASTER, LEVEL), spelled out */
+int ri_ctl_live_only(uint16_t key); /* 1 iff monitoring-only (master level) */
+/* Enqueue a monitoring move. 0 ok, 2 refused (not a live-only key;
+ * counted in `refused`, never stored). Same coalescing as ri_ctl_send. */
+int ri_ctl_send_live(struct RIControlPlane *p, uint16_t key, uint8_t val);
 #endif

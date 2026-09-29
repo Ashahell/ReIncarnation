@@ -66,6 +66,8 @@ struct RIEngine {
     uint8_t send[RI_ROUTE_NSECTIONS]; /* 0..127 post-insert mono send */
     uint8_t level[RI_ROUTE_NSECTIONS]; /* strip fader 0..127, 127 = unity */
     float lvl_applied[RI_ROUTE_NSECTIONS]; /* zipless slew state */
+    uint8_t master; /* S4 monitoring fader 0..127, 127 = unity */
+    float master_applied; /* zipless slew state */
     float tempo; /* delay clock, 20..500 BPM */
     float *dline; /* caller-owned delay line, NULL = dry */
     uint32_t dcap;
@@ -76,6 +78,7 @@ struct RIEngine {
      * P-16 20 dB/s ballistics at the init rate (48 kHz default). */
     struct RiMeter sec_meter[RI_ROUTE_NSECTIONS];
     struct RiMeter fx_meter[RI_ENGINE_FX_COUNT];
+    struct RiMeter master_meter[2]; /* S4: post-master L/R peaks */
 };
 
 void ri_engine_init(struct RIEngine *e);
@@ -104,6 +107,9 @@ int ri_engine_set_send(struct RIEngine *e, uint32_t section, uint8_t v);
  * Post-insert, pre-meter/send/pan; zipless slew over RI_MIX_RAMP_SMP.
  * Returns 0 ok, 2 bad arg. */
 int ri_engine_set_level(struct RIEngine *e, uint32_t section, uint8_t v);
+/* S4 master monitoring fader (P-17 law, unity default = bit-identical
+ * neutral path). Post-everything gain + L/R meter taps. Returns 0 ok. */
+int ri_engine_set_master(struct RIEngine *e, uint8_t v);
 void ri_engine_set_tempo(struct RIEngine *e, float bpm);
 /* Delay line (caller-owned, cap >= 64; NULL buf detaches = dry).
  * Returns 0 ok, 2 bad arg. Attaching syncs time + forces wet. */
@@ -115,6 +121,8 @@ float ri_engine_comp_gr(const struct RIEngine *e);
  * render, 0 on bad index/NULL. Render-contract safe (read-only). */
 float ri_engine_section_peak(const struct RIEngine *e, uint32_t section);
 float ri_engine_fx_peak(const struct RIEngine *e, uint32_t unit);
+/* S4: held linear peak of the post-master bus (ch 0 = L, 1 = R). */
+float ri_engine_master_peak(const struct RIEngine *e, uint32_t ch);
 /* Bind 909 sample layers (non-owning, idle-swap; the pack loader owns
  * the data). Unbound voices render silence. Returns 0 ok, 2 bad. */
 int ri_engine_909_bind(struct RIEngine *e, uint32_t voice,

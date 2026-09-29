@@ -194,3 +194,40 @@ Owner ask (round-3 prompt §7 S3): knob drags repaint only the knob's box
 - **Note:** `fba990e` carried the panelgeo/riapp/t61 S3 hunks verbatim
   (sibling sweep, acknowledged there); this commit lands the remainder
   (decls, canvas, raster, AROS shell, audit, t112, evidence).
+
+## S4: Master fader on the Mix tab (2026-09-29, GUI round 3)
+
+Owner ask (round-3 prompt §7 S4): a MASTER strip at the right end of the
+Mix row — level fader, L/R meters, Comp switch — that really changes the
+output level. Unblocked: the Levi mixer/engine WIP has landed.
+
+- **Live-only path (no format churn):** master strip level rides lane key
+  `0x0B50` (`RI_CTL_MASTER_LEVEL`, compile-checked against the lane
+  table), a key no lane can ever hold (`ri_auto_allowed` stays shut, t60
+  keeps asserting non-automatable). `ri_ctl_send_live` admits exactly the
+  live-only set (today: master only); the render task applies it like any
+  automation; `ri_live_record_touch` sounds it now but writes no lane.
+- **Engine** (`engine/engine.{h,c}`): `master` (default 127) +
+  `master_applied` slew + `master_meter[2]`; post-everything P-17 stage
+  that skips the multiply at unity (neutral path bit-identical, t81 +
+  goldens green); post-master L/R taps (mono twins).
+- **Meters** (`engine/live.{h,c}`): `master_peak[2]` in the snapshot
+  (init/stop/update paths); GUI feeds both MASTER meter channels.
+- **Bridge** (`gui/panelctl.c`): MASTER FADER reg → live-only key (only
+  FADER on MASTER; meters/comp ride their old paths).
+- **GUI** (`app/riapp.c`): `C_MST` canvas on the shared board
+  (`s_panel.mix[4]`), in `val_canvas`, sixth Mix module after a 6 px
+  double-seam gap (`rack_page_gap`), never hidden; startup burst adopts
+  the panel def (100); MASTER L/R meter boxes + chase skip.
+- **Tests:** new `t115_master_live` (plane admit/refuse/drain; unity
+  bit-neutral; 64 scales by (64/127)^2 ±0.02 RMS; master peaks publish as
+  twins; master touch sounds but writes no lane; cutoff still records).
+  Mutants killed (automation drop → ratio 1.0; lane touch → no-send;
+  open gate → comp/junk admitted). t60/t81/t82/t83/t92/t93 green.
+- **Dell:** ABIv11 `RAM:RIAPPS4` (`open=1 rack=1 tabs=5`, AROS link clean,
+  0 UND): MASTER strip renders (fader at 100, meters dark at rest).
+  On-device WAV comparison rode the host RMS test + ear proof: no `W`
+  key is wired (capture facility exists, no GUI binding — ledgered).
+  Owner moves MASTER and judges loudness.
+- **E0 ledger:** master level is monitoring, not song data (no live-only
+  history exists offline); default 100 (registry def).
