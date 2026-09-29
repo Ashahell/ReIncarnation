@@ -15,7 +15,8 @@ void midi_follow_init(struct RIFollow *f) {
     f->streak = 0u;
     f->have_tick = 0u;
     f->stop_latched = 0u;
-    f->pad[0] = f->pad[1] = 0u;
+    f->spp_pend = 0u;
+    f->spp_lsb = 0u;
 }
 
 static void intent_none(struct RIFollowIntent *it) {
@@ -124,8 +125,45 @@ int midi_follow_poll(struct RIFollow *f, uint64_t now_us,
     return 0;
 }
 
-float midi_follow_bpm(const struct RIFollow *f) {
-    uint64_t avg;
+int midi_follow_rt(struct RIFollow *f, uint8_t byte, uint64_t now_us,
+    struct RIFollowIntent *it) {
+    if (!f || !it)
+        return 2;
+    intent_none(it);
+    switch (byte) {
+    case 0xF8u:
+        return midi_follow_tick(f, now_us, it);
+    case 0xFAu:
+        return midi_follow_start(f, it);
+    case 0xFBu:
+        return midi_follow_continue(f, it);
+    case 0xFCu:
+        return midi_follow_stop(f, it);
+    case 0xFEu: /* active sense */
+    case 0xF6u: /* tune request */
+        return 0;
+    case 0xF2u:
+        f->spp_pend = 1u;
+        return 0;
+    default:
+        break;
+    }
+    if (byte < 0x80u && f->spp_pend == 1u) {
+        f->spp_lsb = byte & 0x7Fu;
+        f->spp_pend = 2u;
+        return 0;
+    }
+    if (byte < 0x80u && f->spp_pend == 2u) {
+        uint32_t beats = (uint32_t)f->spp_lsb + ((uint32_t)(byte & 0x7Fu) << 7);
+        f->spp_pend = 0u;
+        return midi_follow_spp(f, beats, it);
+    }
+    if (byte >= 0x80u)
+        f->spp_pend = 0u; /* status aborts a pending SPP */
+    return 0; /* channel voice bytes: G7 owns notes/CC */
+}
+
+float midi_follow_bpm(const struct RIFollow *f) {    uint64_t avg;
     if (!f || f->n == 0u)
         return 0.0f;
     avg = f->sum_us / f->n;

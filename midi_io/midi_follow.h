@@ -40,7 +40,8 @@ struct RIFollow {
     uint32_t streak; /* consecutive in-tolerance ticks */
     uint8_t have_tick;
     uint8_t stop_latched;
-    uint8_t pad[2];
+    uint8_t spp_pend; /* 0 idle, 1 want lsb, 2 want msb */
+    uint8_t spp_lsb;
 };
 
 void midi_follow_init(struct RIFollow *f);
@@ -53,6 +54,13 @@ int midi_follow_start(struct RIFollow *f, struct RIFollowIntent *it);
 int midi_follow_continue(struct RIFollow *f, struct RIFollowIntent *it);
 int midi_follow_stop(struct RIFollow *f, struct RIFollowIntent *it);
 int midi_follow_spp(struct RIFollow *f, uint32_t spp_beats,
+    struct RIFollowIntent *it);
+/* Realtime byte parser (R1 wire format): F8 tick, FA/FB/FC
+ * transport, F2 + lsb + msb song position; FE/tune ignored; channel
+ * voice bytes ignored (G7 owns notes/CC). Realtime lands even inside
+ * an SPP pair (MIDI law); other status aborts a pending SPP. 0 ok
+ * (intent may be NONE), 2 bad. */
+int midi_follow_rt(struct RIFollow *f, uint8_t byte, uint64_t now_us,
     struct RIFollowIntent *it);
 /* Dropout poll: STOP once when silent past the law, else NONE.
  * 0 ok, 2 bad. */
