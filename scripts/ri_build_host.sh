@@ -17,7 +17,7 @@ MOD_fx="engine/fx/fx.c engine/fx/route.c engine/fx/reverb.c"
 MOD_mixer="engine/mixer/mixer.c engine/framework/ridevice.c"
 MOD_audio="audio_io/audio.c audio_io/backend_null.c platform/host/audio_null.c platform/host/fpu_host.c"
 MOD_gui="gui/knob_logic.c gui/panels.c gui/visdev.c gui/tabpages.c gui/catalog.c gui/knob_art.c gui/ctlreg.c gui/panelctl.c gui/panelgeo.c gui/zoomfit.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectlevi.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/midimap.c gui/skin.c project/sha256.c platform/host/key_tables.c platform/host/fs_host.c platform/host/log_host.c platform/host/image_host.c"
-MOD_formats="project/sha256.c project/rbng.c project/arexx.c project/arexx_dispatch.c project/undo.c midi_io/midi.c platform/host/midi_host.c"
+MOD_formats="project/sha256.c project/rbng.c project/arexx.c project/arexx_dispatch.c project/undo.c midi_io/midi.c midi_io/midi_follow.c platform/host/midi_host.c"
 MOD_core="app/core/live_driver.c app/core/canvas_events.c app/core/riapp_core.c"
 MOD_draw="gui/draw/canvas.c gui/draw/font_legend.c gui/draw/art_shared.c gui/draw/art_303.c gui/draw/art_808.c gui/draw/art_909.c gui/draw/art_levi.c gui/draw/art_mix.c gui/draw/art_fx.c gui/draw/art_pat.c gui/draw/art_tr.c gui/draw/art_section.c platform/host/raster.c"
 # Later tasks APPEND paths to MOD_dsp808, MOD_fx, ... and add matching case lines.
