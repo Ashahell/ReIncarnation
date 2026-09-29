@@ -1489,3 +1489,7 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-09-29-exall-acceptance-forensics.md
 
 ## [2026-09-29] lint | 0 issues found, 0 auto-fixed
+
+## [2026-09-29] ingest | GUI round 3 close-out verified; audit fixes
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-09-29-round3-verification-audit-fixes.md
