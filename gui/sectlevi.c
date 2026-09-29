@@ -50,6 +50,12 @@ int ri_slevi_press(struct RISectLevi *s, uint32_t idx) {
         s->val[RI_SLEVI_SEQON] = (int16_t)(s->val[RI_SLEVI_SEQON] ? 0 : 1);
         return 1;
     }
+    if (idx >= RI_SLEVI_ROUTE0 && idx < RI_SLEVI_ROUTE0 + 8u) {
+        /* Bound route gates (v2 feature 4c): panel truth toggles like
+         * MODE; automation emit travels app-side via the knob syncs. */
+        s->val[idx] = (int16_t)(s->val[idx] ? 0 : 1);
+        return 1;
+    }
     if (idx < RI_SLEVI_NCTL) {
         /* Generic front-panel truth for UI-only switches (ARP/SEQ/
          * MATRIX/FX ride here until their engines land; bound controls

@@ -80,6 +80,14 @@
 #define RI_CTL_LEVI_ARPRATE 0x0E12u     /* arp rate 0..127 (v2 feature 3) */
 #define RI_CTL_LEVI_SEQON 0x0E13u       /* seq gate 0/1 (v2 feature 3) */
 #define RI_CTL_LEVI_SEQLEN 0x0E14u      /* seq length 1..16 (v2 feature 3) */
+#define RI_CTL_LEVI_ROUTE0 0x0E15u      /* matrix slot 0 gate (v2 feature 4) */
+#define RI_CTL_LEVI_ROUTE1 0x0E16u
+#define RI_CTL_LEVI_ROUTE2 0x0E17u
+#define RI_CTL_LEVI_ROUTE3 0x0E18u
+#define RI_CTL_LEVI_ROUTE4 0x0E19u
+#define RI_CTL_LEVI_ROUTE5 0x0E1Au
+#define RI_CTL_LEVI_ROUTE6 0x0E1Bu
+#define RI_CTL_LEVI_ROUTE7 0x0E1Cu
 
 /* E0 defaults (ledgered here; panel exposes later slices). */
 #define RI_LEVI_DEF_CUTOFF 12000.0f

@@ -477,6 +477,13 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case (RI_CTL_LEVI_SEQLEN & 0xFFu): /* SEQLEN (device seq length) */
         s->seqlen = val < 1u ? 1u : val > 16u ? 16u : val;
         return 0;
+    case (RI_CTL_LEVI_ROUTE0 & 0xFFu): case (RI_CTL_LEVI_ROUTE1 & 0xFFu):
+    case (RI_CTL_LEVI_ROUTE2 & 0xFFu): case (RI_CTL_LEVI_ROUTE3 & 0xFFu):
+    case (RI_CTL_LEVI_ROUTE4 & 0xFFu): case (RI_CTL_LEVI_ROUTE5 & 0xFFu):
+    case (RI_CTL_LEVI_ROUTE6 & 0xFFu): case (RI_CTL_LEVI_ROUTE7 & 0xFFu):
+        /* Matrix slot gates (v2 feature 4c): program stays put. */
+        s->mx.slot[id - (RI_CTL_LEVI_ROUTE0 & 0xFFu)].on = val != 0u ? 1u : 0u;
+        return 0;
     default:
         return 2;
     }

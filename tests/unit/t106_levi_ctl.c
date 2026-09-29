@@ -72,6 +72,12 @@ int main(void) {
     RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_SEQON, "seqon bind");
     d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 55u));
     RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_SEQLEN, "seqlen bind");
+    d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 56u));
+    RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_ROUTE0, "route0 bind");
+    d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 63u));
+    RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_ROUTE7, "route7 bind");
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_ROUTE0), "route0 allowed");
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_ROUTE7), "route7 allowed");
     {
         struct RILeviSet set;
         levi_init_set(&set);
@@ -92,6 +98,12 @@ int main(void) {
             set.seqlen == 1u, "seqlen clamp lo");
         RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_SEQLEN & 0xFFu, 99u) == 0 &&
             set.seqlen == 16u, "seqlen clamp hi");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_ROUTE0 & 0xFFu, 1u) == 0 &&
+            set.mx.slot[0].on == 1u, "route0 ui");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_ROUTE7 & 0xFFu, 1u) == 0 &&
+            set.mx.slot[7].on == 1u, "route7 ui");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_ROUTE7 & 0xFFu, 0u) == 0 &&
+            set.mx.slot[7].on == 0u && set.mx.slot[0].on == 1u, "route7 off keeps 0");
     }
     /* Algo block rows (owner 2026-09-28, v2 slice 1d). */
     d = find_leg(RI_SEC_LEVI, "Algorithm");

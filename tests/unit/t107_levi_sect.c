@@ -99,9 +99,10 @@ int main(void) {
     RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGO, 5) == 1, "algo set");
     RI_ASSERT(ri_slevi_algo_display(&s) == 6, "algo display tracks");
     RI_ASSERT(ri_slevi_algo_display(0) == 0, "algo display null");
-    /* Disabled blocks (owner photo verdict): MATRIX/FX ride the
-     * generic KNOB/SWITCH paths (UI-only, bind NONE); switches toggle
-     * on press like MODE. ARPON/SEQON are bound since 3b/3c
+    /* Disabled blocks (owner photo verdict): MATRIX routes are bound
+     * since 4c (slot gates) with MODE-style toggles above; FX rides
+     * the generic KNOB/SWITCH paths (UI-only, bind NONE); switches
+     * toggle on press like MODE. ARPON/SEQON are bound since 3b/3c
      * (automation gates) with their own MODE-style toggles above. */
     RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ARPON, 1) == 1, "arpon");
     RI_ASSERT(s.val[RI_SLEVI_ARPON] == 1, "arpon stored");
