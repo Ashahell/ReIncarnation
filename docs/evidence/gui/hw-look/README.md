@@ -248,3 +248,27 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
 - Ctrl+1..4 switch tabs (owner-confirmed); a click/pop on the keypress is
   under diagnosis (prime suspect: xrun in the tab-show relayout; evlog
   buffer counts + xruns will confirm).
+
+## S5: auto-fit zoom + zoom choice (2026-09-29, code complete, Dell partial)
+
+- **Fit:** new pure `gui/zoomfit.c` — largest 2/1/0 whose geometry-derived
+  content (widest page per tab via `ri_tab_devices`, transport compact,
+  rail/tab/root furniture) plus chrome fits the screen; fail-closed 0.
+  Hand-computed pins: Mix binds width everywhere (954 content at z0);
+  Dell 1366x768 → 0, riqemu1 1280x1024 → 0, 800x600 → 0 fallback,
+  1920x1080 → 1 (height-bound), 2560x1440 → 2.
+- **App:** Fit measures the frontmost public screen at startup (transport
+  stays compact); View menu (1x/1.5x/2x/Fit, checkmarked, fail-soft);
+  InitChange + `MUIA_RSection_Zoom` per canvas + ExitChange; choice
+  persists in `ENVARC:ReIncarnation/zoom` (PAL PREFS path, ledgered
+  deviation from the literal `ENVARC:RIAPP/zoom`); S2 legends follow zoom.
+- **Tests:** new `t121_zoomfit` (content sizes, five screens, chrome
+  mutation, parse/format). Mutants killed (ascending loop; dropped root
+  inner — the latter was a real model bug the test caught). t92/t93 pins
+  unmoved (S5 paints no pixels). t60/t61/t70/t76 green.
+- **Dell (partial, lane flaky):** ABIv11 `RAM:RIAPPZ5` booted live-audio
+  clean, log proves `RIAPP zoom: mode=-1 zoom=0 screen=1366x768`
+  (`open=1 rack=1 tabs=5`). Captures (all pages at Fit, z2 Mix, menu bar)
+  and owner menu/persist try pending lane recovery.
+- **E0 ledger:** chrome 32x72 fail-safe generous; furniture width
+  estimates never bind; explicit zooms may overflow small screens.

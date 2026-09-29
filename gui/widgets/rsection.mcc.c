@@ -284,6 +284,18 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             d->panel = (struct RIPanelUI *)tag->ti_Data;
         if ((tag = FindTagItem(MUIA_RSection_KeyOwner, os->ops_AttrList)) != NULL)
             d->key_owner = (BOOL)(tag->ti_Data != 0);
+        if ((tag = FindTagItem(MUIA_RSection_Zoom, os->ops_AttrList)) != NULL) {
+            LONG z = (LONG)tag->ti_Data;
+            /* Transport lives compact; content canvases take 0..2. */
+            if ((d->ui.section == RI_SEC_TRANSPORT) ? (z == RI_GEO_ZOOM_COMPACT)
+                : (z >= 0 && z <= 2)) {
+                if (z != d->zoom) {
+                    d->zoom = z;
+                    buf_free(d);
+                    d->dmg_valid = FALSE;
+                }
+            }
+        }
         return DoSuperMethodA(cl, obj, msg);
     }
     case OM_GET: {

@@ -83,6 +83,7 @@
 #include "gui/panels.h"
 #include "gui/visdev.h"
 #include "gui/tabpages.h"
+#include "gui/zoomfit.h"
 #include "gui/panelui.h"
 #include "gui/panelctl.h"
 #include "gui/panelgeo.h"
@@ -146,6 +147,7 @@ static int s_live; /* AHI backend up (render task owns the session) */
 
 static struct RIPanelUI s_panel;
 static Object *s_canvas[C_N];
+static int s_zoom[C_N]; /* content zoom per canvas (transport: compact) */
 static struct RISectUI *s_ui[C_N];
 static const struct RSectionDiag *s_dg[C_N];
 
@@ -189,6 +191,14 @@ static char s_devlbl[5][16];
 static char s_tablbl[5][16];
 #define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
 #define RIAPP_ID_TAB0 1020u /* + tab: hardware tab keys */
+#define RIAPP_ID_ZOOM0 1030u /* + zoom: 0 = 1x, 1 = 1.5x, 2 = 2x, 3 = Fit */
+/* Window chrome estimate for Fit (S5, fail-safe generous: borders +
+ * title + menu strip + slack; overestimating can only pick smaller). */
+#define RIAPP_CHROME_W 32
+#define RIAPP_CHROME_H 72
+static Object *s_root;          /* window root group (zoom InitChange) */
+static Object *s_zoomitems[4];  /* View menu items (zoom checkmarks) */
+static int s_zoom_mode = RI_ZOOMFIT_FIT; /* -1 Fit, else content zoom */
 
 /* Sync shadows (state-compare: the panel is the truth, the session follows). */
 static int s_tr_state;
@@ -1168,6 +1178,92 @@ static void tab_switch(uint32_t g) {
     evlog("TAB", "page=%d", g);
 }
 
+/* S5 zoom choice: persisted mode (Fit default) in ENVARC: prefs. */
+static int zoom_persist_read(void) {
+    char base[64], path[80], buf[8];
+    uint32_t got = 0u;
+    if (!DOSBase)
+        return RI_ZOOMFIT_FIT;
+    if (ri_pal_path(RI_PATH_PREFS, base, sizeof base) != 0)
+        return RI_ZOOMFIT_FIT;
+    if (ri_pal_path_join(path, sizeof path, base, "zoom") != 0)
+        return RI_ZOOMFIT_FIT;
+    if (ri_pal_read_file(path, buf, sizeof buf - 1u, &got) != 0 || got == 0u)
+        return RI_ZOOMFIT_FIT;
+    if (got > sizeof buf - 1u)
+        got = (uint32_t)sizeof buf - 1u;
+    buf[got] = 0;
+    return ri_zoom_parse(buf, got);
+}
+
+static void zoom_persist_write(int mode) {
+    char base[64], path[80], buf[8];
+    int n;
+    if (!DOSBase)
+        return;
+    n = ri_zoom_format(mode, buf, sizeof buf);
+    if (n <= 0)
+        return;
+    if (ri_pal_path(RI_PATH_PREFS, base, sizeof base) != 0)
+        return;
+    if (ri_pal_path_join(path, sizeof path, base, "zoom") != 0)
+        return;
+    if (ri_pal_write_file(path, buf, (uint32_t)n) != 0) {
+        /* Prefs dir may not exist yet (fresh install): create and retry. */
+        (void)CreateDir((STRPTR)base);
+        if (ri_pal_write_file(path, buf, (uint32_t)n) != 0)
+            rlog("RIAPP zoom: cannot persist choice\n", 0, 0, 0, 0, 0);
+    }
+}
+
+/* Frontmost public screen size; 0 on failure (caller fails closed). */
+static int zoom_screen_size(int *w, int *h) {
+    struct Screen *sc;
+    if (!w || !h)
+        return 2;
+    *w = 0;
+    *h = 0;
+    sc = LockPubScreen(NULL);
+    if (!sc)
+        return 2;
+    *w = (int)sc->Width;
+    *h = (int)sc->Height;
+    UnlockPubScreen(NULL, sc);
+    return 0;
+}
+
+/* Apply a zoom mode (-1 Fit, else 0..2): relayout the window around the
+ * new canvas minima, latch the menu checkmarks, persist the choice. */
+static void app_set_zoom(int mode) {
+    int z = mode, i, k;
+    int sw = 0, sh = 0;
+    if (mode == RI_ZOOMFIT_FIT) {
+        if (zoom_screen_size(&sw, &sh) != 0 || sw <= 0 || sh <= 0)
+            z = 0;
+        else
+            z = ri_zoom_fit(sw, sh, RIAPP_CHROME_W, RIAPP_CHROME_H);
+    } else if (mode < 0 || mode > 2) {
+        return;
+    }
+    if (!s_root)
+        return;
+    DoMethod(s_root, MUIM_Group_InitChange);
+    for (i = 0; i < C_N; i++) {
+        LONG cz = (LONG)(i == C_TR ? RI_GEO_ZOOM_COMPACT : z);
+        s_zoom[i] = (int)cz;
+        SetAttrs(s_canvas[i], MUIA_RSection_Zoom, (IPTR)cz, TAG_DONE);
+    }
+    DoMethod(s_root, MUIM_Group_ExitChange);
+    s_zoom_mode = mode;
+    for (k = 0; k < 4; k++)
+        if (s_zoomitems[k])
+            SetAttrs(s_zoomitems[k], MUIA_Menuitem_Checked,
+                (IPTR)(LONG)(k == (mode == RI_ZOOMFIT_FIT ? 3 : mode) ? TRUE : FALSE),
+                TAG_DONE);
+    zoom_persist_write(mode);
+    evlog("ZOOM", "mode=%d zoom=%d", mode, z);
+}
+
 /* Rail toggle: flip the visible bit, ShowMe the row, mirror the LED —
  * and flip the engine bit with it (ACTIVE, rack requirement
  * 2026-09-24). */
@@ -1251,11 +1347,30 @@ int main(int argc, char **argv) {
                 (IPTR)s_lv.err, 0, 0, 0, 0);
     }
 
-    /* Panel: transport (compact) + 4 pattern sections + 303A + 808 mixer. */
+    /* Panel: content canvases at the persisted/Fit zoom, transport compact.
+     * Fit (default) measures the frontmost public screen; a bad read or a
+     * stored explicit zoom skips the measure. */
     ri_panel_init(&s_panel);
     ri_panel_skins(&s_panel, installed, 0u, "Classic"); /* skins ride later work */
+    s_zoom_mode = zoom_persist_read();
+    {
+        int sw = 0, sh = 0, z = s_zoom_mode;
+        if (z == RI_ZOOMFIT_FIT) {
+            if (zoom_screen_size(&sw, &sh) != 0 || sw <= 0 || sh <= 0)
+                z = 0;
+            else
+                z = ri_zoom_fit(sw, sh, RIAPP_CHROME_W, RIAPP_CHROME_H);
+        } else if (z < 0 || z > 2) {
+            z = 0;
+        }
+        if (DOSBase)
+            rlog("RIAPP zoom: mode=%d zoom=%d screen=%dx%d\n", s_zoom_mode, z, sw, sh,
+                0);
+        for (i = 0; i < C_N; i++)
+            s_zoom[i] = (i == C_TR) ? RI_GEO_ZOOM_COMPACT : z;
+    }
     for (i = 0; i < C_N; i++) {
-        LONG zoom = (i == C_TR) ? RI_GEO_ZOOM_COMPACT : 0;
+        LONG zoom = (LONG)s_zoom[i];
         struct RISectUI *u = 0;
         s_canvas[i] = (Object *)ri_rsection_create(c_sections[i], zoom);
         if (!s_canvas[i]) {
@@ -1456,15 +1571,57 @@ int main(int argc, char **argv) {
         }
         return 5;
     }
-    win = (Object *)MUI_NewObject(MUIC_Window,
-        MUIA_Window_Title, (IPTR)"RIAPP live panel",
-        MUIA_Window_LeftEdge, 0,
-        MUIA_Window_TopEdge, 0,
-        MUIA_Window_CloseGadget, TRUE,
-        MUIA_Window_DepthGadget, TRUE,
-        MUIA_Window_DragBar, TRUE,
-        MUIA_Window_RootObject, (IPTR)row,
-        TAG_DONE);
+    s_root = row;
+    {
+        /* S5 View menu: explicit zooms plus Fit (menu bar works by mouse;
+         * keys stay scarce, t70). Checkmarks mirror s_zoom_mode. Children
+         * join by OM_ADDMEMBER (Family classes); a failed menu falls back
+         * to no menustrip (logged) while the panel still opens. */
+        static const char *const zt[4] = { "Zoom 1x", "Zoom 1.5x", "Zoom 2x", "Zoom Fit" };
+        Object *menu = 0, *menustrip = 0;
+        int k, ok = 1;
+        for (k = 0; k < 4; k++)
+            s_zoomitems[k] = 0;
+        menu = (Object *)MUI_NewObject(MUIC_Menu,
+            MUIA_Menu_Title, (IPTR)"View",
+            TAG_DONE);
+        if (!menu)
+            ok = 0;
+        for (k = 0; k < 4 && ok; k++) {
+            s_zoomitems[k] = (Object *)MUI_NewObject(MUIC_Menuitem,
+                MUIA_Menuitem_Title, (IPTR)zt[k],
+                MUIA_Menuitem_Checkit, TRUE,
+                MUIA_Menuitem_Checked, (IPTR)(LONG)(k == (s_zoom_mode == RI_ZOOMFIT_FIT ? 3 : s_zoom_mode) ? TRUE : FALSE),
+                TAG_DONE);
+            if (!s_zoomitems[k])
+                ok = 0;
+            else
+                DoMethod(menu, OM_ADDMEMBER, (IPTR)s_zoomitems[k]);
+        }
+        if (ok) {
+            menustrip = (Object *)MUI_NewObject(MUIC_Menustrip, TAG_DONE);
+            if (!menustrip)
+                ok = 0;
+            else
+                DoMethod(menustrip, OM_ADDMEMBER, (IPTR)menu);
+        }
+        if (!ok) {
+            for (k = 0; k < 4; k++)
+                s_zoomitems[k] = 0;
+            if (DOSBase)
+                rlog("RIAPP zoom: no menu strip (panel still opens)\n", 0, 0, 0, 0, 0);
+        }
+        win = (Object *)MUI_NewObject(MUIC_Window,
+            MUIA_Window_Title, (IPTR)"RIAPP live panel",
+            MUIA_Window_LeftEdge, 0,
+            MUIA_Window_TopEdge, 0,
+            MUIA_Window_CloseGadget, TRUE,
+            MUIA_Window_DepthGadget, TRUE,
+            MUIA_Window_DragBar, TRUE,
+            MUIA_Window_Menustrip, (IPTR)menustrip,
+            MUIA_Window_RootObject, (IPTR)row,
+            TAG_DONE);
+    }
     if (!win) {
         if (s_live)
             au_live_close(&s_lv);
@@ -1488,6 +1645,10 @@ int main(int argc, char **argv) {
     for (i = 0; i < (int)RI_TAB_COUNT; i++)
         DoMethod(s_tabs[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
             MUIM_Application_ReturnID, RIAPP_ID_TAB0 + (ULONG)i);
+    for (i = 0; i < 4; i++)
+        if (s_zoomitems[i])
+            DoMethod(s_zoomitems[i], MUIM_Notify, MUIA_Menuitem_Trigger, MUIV_EveryTime,
+                (IPTR)app, 3, MUIM_Application_ReturnID, RIAPP_ID_ZOOM0 + (ULONG)i);
     rail_for_tab();
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
     rail_leds_show();
@@ -1527,6 +1688,10 @@ int main(int argc, char **argv) {
             dev_visibility_toggle((uint32_t)ret - RIAPP_ID_DEV0);
         if (ret >= (LONG)RIAPP_ID_TAB0 && ret < (LONG)(RIAPP_ID_TAB0 + RI_TAB_COUNT))
             tab_switch((uint32_t)ret - RIAPP_ID_TAB0);
+        if (ret >= (LONG)RIAPP_ID_ZOOM0 && ret < (LONG)(RIAPP_ID_ZOOM0 + 4u)) {
+            int m = (int)ret - (int)RIAPP_ID_ZOOM0;
+            app_set_zoom(m >= 3 ? RI_ZOOMFIT_FIT : m);
+        }
         if (timer_armed && CheckIO((struct IORequest *)treq)) {
             WaitIO((struct IORequest *)treq);
             treq->tr_node.io_Command = TR_ADDREQUEST;

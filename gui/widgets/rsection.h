@@ -31,6 +31,12 @@ struct MUI_CustomClass;
 /* Settable BOOL: this canvas takes the window's raw keys for the panel
  * (exactly one canvas per window). */
 #define MUIA_RSection_KeyOwner (TAG_USER + 0x52534305u)
+/* Settable LONG zoom index (S5): 0 = 1x, 1 = 1.5x, 2 = 2x,
+ * RI_GEO_ZOOM_COMPACT = transport strip. Stores the index and frees the
+ * off-screen bitmap (reallocated at the new size on the next draw);
+ * out-of-range values are ignored. Set inside InitChange/ExitChange so
+ * the window relayouts around the new minima. */
+#define MUIA_RSection_Zoom (TAG_USER + 0x52534306u)
 
 struct RSectionDiag {
     LONG events;          /* MUIM_HandleEvent calls with a message */
