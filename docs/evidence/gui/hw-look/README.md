@@ -288,8 +288,15 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   keeps, bad want → 0) wired into both the menu path and startup, so an
   overflowing zoom can never break the window again — including a
   persisted one. `ri_zoom_parse` tolerates trailing newline
-  (shell-written persist files). Host + audit + ABIv1/ABIv11 green;
-  Dell deploy pending lane recovery.
+  (shell-written persist files). Host + audit + ABIv1/ABIv11 green.
+- **Guard Dell proof (2026-09-29, `RAM:RIAPPB4`):** persist round-trip
+  works (`ENVARC:ReIncarnation/zoom` holds `1`, owner's 1.5x); startup
+  logs `RIAPP zoom: mode=1 zoom=0 screen=1366x768` and
+  `dell-s5guard-clamp.png` shows a healthy Fit window. Earlier mystery
+  solved: the persist dir never existed (app crashed/wedged in
+  `ExitChange` before first persist); the lane `MakeDir` fixed it.
+  Note: the owner's 1.5x choice stays stored — every boot clamps it to
+  Fit until they pick otherwise.
 - **Correction:** the View menu is a RMB pull-down (stock MUI —
   there is no visible menu bar, so captures can never show it); menu
   construction now follows the canonical nested `MUIA_Family_Child`
