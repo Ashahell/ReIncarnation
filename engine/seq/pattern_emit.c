@@ -183,7 +183,7 @@ static uint32_t levi_emit(const struct RIPattern *p, uint16_t device,
  * rate falls back to passthrough. Seed = group sample: deterministic. */
 uint32_t ri_levi_arp_rewrite(const struct RIEvent *in, uint32_t nin,
     struct RIEvent *out, uint32_t cap, const struct RILeviArpCfg *cfg,
-    uint64_t end_sample) {
+    uint64_t end_sample, uint64_t step_samples) {
     uint64_t gsamp[RI_SCHED_MAX_EVENTS];
     uint8_t gnote[RI_SCHED_MAX_EVENTS][RI_LEVI_ARP_MAXNOTES];
     uint8_t gcount[RI_SCHED_MAX_EVENTS];
@@ -224,15 +224,20 @@ uint32_t ri_levi_arp_rewrite(const struct RIEvent *in, uint32_t nin,
     }
     if (ng == 0u)
         return 0u;
-    /* Step duration = smallest positive group gap (16th grid). */
+    /* Step duration: caller grid when given, else the smallest
+     * positive group gap (16th grid); single-group windows fall back
+     * to one step per group. Strikes spread over [group, end) —
+     * exclusive end so every strike survives the block window filter;
+     * the tail releases the final voice just before the end. */
     {
-        uint64_t step_dur = 0u;
+        uint64_t step_dur = step_samples;
         uint32_t nstr = 0u;
-        for (g = 1u; g < ng; g++) {
-            uint64_t d = gsamp[g] - gsamp[g - 1u];
-            if (d > 0u && (step_dur == 0u || d < step_dur))
-                step_dur = d;
-        }
+        if (!step_dur)
+            for (g = 1u; g < ng; g++) {
+                uint64_t d = gsamp[g] - gsamp[g - 1u];
+                if (d > 0u && (step_dur == 0u || d < step_dur))
+                    step_dur = d;
+            }
         for (g = 0u; g < ng; g++) {
             uint64_t span = (g + 1u < ng ? gsamp[g + 1u] : end_sample > gsamp[g] ? end_sample : gsamp[g]) - gsamp[g];
             uint64_t steps = step_dur ? span / step_dur : 1u;
@@ -250,7 +255,7 @@ uint32_t ri_levi_arp_rewrite(const struct RIEvent *in, uint32_t nin,
                     (uint32_t)(gsamp[g] & 0xFFFFFFFFu)) != 0)
                 return 0u;
             for (k = 0u; k < strikes; k++) {
-                uint64_t at = strikes > 1u ? gsamp[g] + span * k / (strikes - 1u) : gsamp[g];
+                uint64_t at = gsamp[g] + (strikes > 0u ? span * k / strikes : 0u);
                 uint8_t note, v;
                 if (n + 2u > cap)
                     return 0u;
@@ -283,10 +288,13 @@ uint32_t ri_levi_arp_rewrite(const struct RIEvent *in, uint32_t nin,
         }
         /* Tail: only the final strike voice is still held (every
          * earlier strike was released by the next strike's legato);
-         * release it at end_sample. */
+         * release it one sample before the end so it survives the
+         * block window filter ([s0, s1) drops end-exact events).
+         * Cross-block occurrences re-articulate (documented: no arp
+         * carry yet, v1 carry philosophy applies when needed). */
         {
             uint8_t lv = (uint8_t)((nstr - 1u) % RI_LEVI_LANES);
-            uint64_t tail = end_sample > gsamp[ng - 1u] ? end_sample : gsamp[ng - 1u];
+            uint64_t tail = end_sample > gsamp[ng - 1u] + 1u ? end_sample - 1u : gsamp[ng - 1u];
             if (n + 1u > cap)
                 return 0u;
             out[n].sample = tail;

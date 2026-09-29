@@ -2,6 +2,7 @@
  * State advance is tick-domain; samples come only from ri_map_tick
  * inside the emitters. No alloc, no IO, no mutable static state. */
 #include "engine/seq/player.h"
+#include "engine/dsp/levi_arp.h"
 #include <stddef.h> /* NULL (player.h is stdint.h-only by layer law) */
 
 void ri_player_init(struct RIPlayer *p,
@@ -28,6 +29,17 @@ void ri_player_init(struct RIPlayer *p,
     p->track_carry.known = 0u;
     for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
         p->track_carry.prev[i] = 0u;
+    p->levi_arp.on = 0u;
+    p->levi_arp.mode = 0u;
+    p->levi_arp.rate = 64u;
+    p->levi_arp.pad = 0u;
+}
+
+int ri_player_levi_arp(struct RIPlayer *p, const struct RILeviArpCfg *cfg) {
+    if (!p || !cfg || cfg->mode >= RI_LEVI_ARP_NMODES)
+        return 2;
+    p->levi_arp = *cfg;
+    return 0;
 }
 
 void ri_player_refresh_banks(struct RIPlayer *p,
@@ -91,6 +103,8 @@ static uint32_t player_emit_occurrence(const struct RIPattern *pat, uint16_t dev
     const struct RITempoMap *map, uint64_t occ_tick, uint32_t ppq,
     const struct RISchedCarry *cin, struct RISchedCarry *cout,
     uint64_t s0, uint64_t s1,
+    const struct RILeviArpCfg *arp,
+    uint32_t step_ticks,
     struct RIEvent *out, uint32_t *n, uint32_t cap, uint32_t *seq) {
     struct RIEvent scratch[RI_SCHED_MAX_EVENTS];
     struct RISchedCarry ci, co;
@@ -102,6 +116,32 @@ static uint32_t player_emit_occurrence(const struct RIPattern *pat, uint16_t dev
     m = ri_sched_emit_pattern(pat, device, map, occ_tick, ppq, NULL,
         &ci, &co, scratch, RI_SCHED_MAX_EVENTS);
     *cout = co;
+    if (pat->kind == RI_PATTERN_KIND_LEVI && arp && arp->on) {
+        /* v2 feature 3: arp subdivision of the Levi window (rewrite
+         * is passthrough-safe; off never reaches here). Temp costs
+         * 256 events (~6 KB) on this frame only; the audio task owns
+         * 32 KB and this path is near-leaf (emit done, rewrite calls
+         * only the stepper). Fail-closed: rewrite refusal (cap) drops
+         * to the plain window below, never partial. */
+        struct RIEvent rw[RI_SCHED_MAX_EVENTS];
+        uint64_t step_samp = step_ticks ?
+            ri_map_tick(map, occ_tick + step_ticks) - ri_map_tick(map, occ_tick) : 0u;
+        uint32_t r = ri_levi_arp_rewrite(scratch, m, rw, RI_SCHED_MAX_EVENTS,
+            arp, s1, step_samp);
+        if (r > 0u) {
+            for (k = 0u; k < r; k++) {
+                if (rw[k].sample < s0 || rw[k].sample >= s1)
+                    continue;
+                if (*n >= cap)
+                    break;
+                out[*n] = rw[k];
+                out[*n].seq = (*seq)++;
+                (*n)++;
+                added++;
+            }
+            return added;
+        }
+    }
     for (k = 0u; k < m; k++) {
         if (scratch[k].sample < s0 || scratch[k].sample >= s1)
             continue; /* outside this block */
@@ -164,7 +204,7 @@ static void player_advance_instance(struct RIPlayer *p, uint32_t i,
                 seg_end = tick_end;
             pat = player_slot_pat(b, snd);
             player_emit_occurrence(pat, (uint16_t)i, map, cur - phase, ppq,
-                &cin, &cout, s0, s1, out, n, cap, seq);
+                &cin, &cout, s0, s1, &p->levi_arp, step_ticks, out, n, cap, seq);
             last_b = b;
             last_slot = snd;
             last_cout = cout;

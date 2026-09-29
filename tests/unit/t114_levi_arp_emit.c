@@ -55,21 +55,21 @@ int main(void) {
     RI_ASSERT(n > 0u, "have events");
     end_sample = OB[n - 1u].sample;
     /* Fail-closed. */
-    RI_ASSERT(ri_levi_arp_rewrite(0, n, RB, 512u, &up, end_sample) == 0u, "null in");
-    RI_ASSERT(ri_levi_arp_rewrite(OB, n, 0, 512u, &up, end_sample) == 0u, "null out");
-    RI_ASSERT(ri_levi_arp_rewrite(OB, n, RB, 512u, 0, end_sample) == 0u, "null cfg");
+    RI_ASSERT(ri_levi_arp_rewrite(0, n, RB, 512u, &up, end_sample, 0u) == 0u, "null in");
+    RI_ASSERT(ri_levi_arp_rewrite(OB, n, 0, 512u, &up, end_sample, 0u) == 0u, "null out");
+    RI_ASSERT(ri_levi_arp_rewrite(OB, n, RB, 512u, 0, end_sample, 0u) == 0u, "null cfg");
     /* Off = bit-identical passthrough (demo safety). */
-    m = ri_levi_arp_rewrite(OB, n, RB, 512u, &off, end_sample);
+    m = ri_levi_arp_rewrite(OB, n, RB, 512u, &off, end_sample, 0u);
     RI_ASSERT(m == n, "off count %u/%u", m, n);
     RI_ASSERT(!memcmp(OB, RB, (size_t)n * sizeof OB[0]), "off identical");
     /* Sub-audible rate = passthrough too (knob accident never silences). */
     {
         struct RILeviArpCfg slow = { 1u, RI_LEVI_ARP_UP, 0u, 0u };
-        m = ri_levi_arp_rewrite(OB, n, RB, 512u, &slow, end_sample);
+        m = ri_levi_arp_rewrite(OB, n, RB, 512u, &slow, end_sample, 0u);
         RI_ASSERT(m == n && !memcmp(OB, RB, (size_t)n * sizeof OB[0]), "slow passthrough");
     }
     /* On: strikes cycle the chord notes, voices rotate, gates balance. */
-    m = ri_levi_arp_rewrite(OB, n, RB, 512u, &up, end_sample);
+    m = ri_levi_arp_rewrite(OB, n, RB, 512u, &up, end_sample, 0u);
     RI_ASSERT(m > 0u && m <= 512u, "on emits %u", m);
     for (i = 0u; i < m; i++)
         if (RB[i].type == RI_EV_NOTE_ON)
@@ -77,9 +77,9 @@ int main(void) {
                 "strike in chord");
     gates_balanced(RB, m);
     /* Deterministic: same window twice, byte-identical. */
-    m2 = ri_levi_arp_rewrite(OB, n, RB2, 512u, &up, end_sample);
+    m2 = ri_levi_arp_rewrite(OB, n, RB2, 512u, &up, end_sample, 0u);
     RI_ASSERT(m2 == m && !memcmp(RB, RB2, (size_t)m * sizeof RB[0]), "deterministic");
     /* No output capacity: fail-closed, never partial. */
-    RI_ASSERT(ri_levi_arp_rewrite(OB, n, RB, 0u, &up, end_sample) == 0u, "no cap");
+    RI_ASSERT(ri_levi_arp_rewrite(OB, n, RB, 0u, &up, end_sample, 0u) == 0u, "no cap");
     RI_RESULT("leviarpemit");
 }

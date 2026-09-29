@@ -18,10 +18,14 @@ struct RIPlayer {
     struct RITrackCarry track_carry;
     struct RISchedCarry sched_carry[RI_SONGTRACK_INSTANCES];
     const struct RIPatternBank *banks[RI_SONGTRACK_INSTANCES];
+    struct RILeviArpCfg levi_arp; /* v2 feature 3: off = passthrough */
 };
 void ri_player_init(struct RIPlayer *p,
     const struct RIPatternBank * const banks[RI_SONGTRACK_INSTANCES],
     const struct RISongTrack *t, uint64_t start_bar);
+/* Levi arp cfg (v2 feature 3): latched per block; default off.
+ * Returns 0 ok, 2 bad (NULL / bad mode). */
+int ri_player_levi_arp(struct RIPlayer *p, const struct RILeviArpCfg *cfg);
 void ri_player_refresh_banks(struct RIPlayer *p,
     const struct RIPatternBank * const banks[RI_SONGTRACK_INSTANCES]);
 uint32_t ri_player_block(struct RIPlayer *p, const struct RISongTrack *t,

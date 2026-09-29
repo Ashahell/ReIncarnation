@@ -139,5 +139,5 @@ struct RILeviArpCfg {
 };
 uint32_t ri_levi_arp_rewrite(const struct RIEvent *in, uint32_t nin,
     struct RIEvent *out, uint32_t cap, const struct RILeviArpCfg *cfg,
-    uint64_t end_sample);
+    uint64_t end_sample, uint64_t step_samples);
 #endif
