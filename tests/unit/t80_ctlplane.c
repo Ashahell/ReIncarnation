@@ -9,6 +9,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "engine/seq/ctlplane.h"
 #include "engine/seq/autolane.h"
+#include "engine/dsp/levi.h"
 #include "engine/engine.h"
 
 #define SR 48000.0f
@@ -41,11 +42,12 @@ int main(void) {
     RI_ASSERT(ev[0].seq == 7u && ev[2].seq == 9u && seq == 10u, "seq chain");
     RI_ASSERT(ri_ctl_pending(&q) == 0u, "drained empty");
 
-    /* Refused keys: never stored, counted. */
-    RI_ASSERT(ri_ctl_send(&q, 0x0E11u, 5u) == 2, "refuse unbound levi id");
+    /* Refused keys: never stored, counted. 0x0E11 (arp gate) went
+     * allowed with the v2-feature-3b binding, so it sends now. */
+    RI_ASSERT(ri_ctl_send(&q, RI_CTL_LEVI_ARPON, 5u) == 0, "arp gate sends");
     RI_ASSERT(ri_ctl_send(&q, 0x0B00u, 5u) == 2, "refuse legacy panel id");
-    RI_ASSERT(ri_ctl_pending(&q) == 0u, "refused stores nothing");
-    RI_ASSERT(q.refused == 2u, "refused counted %u", q.refused);
+    RI_ASSERT(ri_ctl_pending(&q) == 1u, "allowed stores one");
+    RI_ASSERT(q.refused == 1u, "refused counted %u", q.refused);
 
     /* Wrap-around: 600 sends with periodic drains never lose order. */
     ri_ctl_init(&q);
