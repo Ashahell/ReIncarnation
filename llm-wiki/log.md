@@ -1477,3 +1477,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-09-29-s7abc-s6-research.md
 
 ## [2026-09-29] lint | 0 issues found, 0 auto-fixed
+
+## [2026-09-29] ingest | S6 closed + S7 proven on the Dell
+- Disposition: New (click root causes + acceptance + rendering proof)
+- Raw: llm-wiki/raw/articles/2026-09-29-s6-closed-s7-proven.md
+
+## [2026-09-29] lint | 0 issues found, 0 auto-fixed
