@@ -4,6 +4,7 @@
  */
 #include "engine/seq/pattern.h"
 #include "engine/seq/clock.h"
+#include "engine/dsp/levi_arp.h"
 
 uint32_t ri_pattern303_to_steps(const struct RIPattern *p, int cyclic,
     struct RIStep out[RI_PATTERN_STEPS]) {
@@ -168,6 +169,134 @@ static uint32_t levi_emit(const struct RIPattern *p, uint16_t device,
                 b--;
             }
             out[b] = key;
+        }
+    }
+    return n;
+}
+
+/* Levi arp rewrite (v2 feature 3b): post-pass over a Levi event window.
+ * Groups NOTE_ONs by sample (one chord step each); input NOTE_OFFs are
+ * subsumed by the legato chain (each strike releases the previous
+ * voice, the tail releases all struck voices at end_sample), so gates
+ * balance on the output alone. Strike density from the STEPSQ map
+ * (4/quarter = every step, 2 = every 2nd, 1 = every 4th); sub-audible
+ * rate falls back to passthrough. Seed = group sample: deterministic. */
+uint32_t ri_levi_arp_rewrite(const struct RIEvent *in, uint32_t nin,
+    struct RIEvent *out, uint32_t cap, const struct RILeviArpCfg *cfg,
+    uint64_t end_sample) {
+    uint64_t gsamp[RI_SCHED_MAX_EVENTS];
+    uint8_t gnote[RI_SCHED_MAX_EVENTS][RI_LEVI_ARP_MAXNOTES];
+    uint8_t gcount[RI_SCHED_MAX_EVENTS];
+    uint16_t gdev = 0u;
+    uint32_t ng = 0u, i, g, n = 0u;
+    uint32_t stepsq, every;
+    if (!in || !out || !cfg || cap == 0u)
+        return 0u;
+    stepsq = RI_LEVI_ARP_STEPSQ(cfg->rate);
+    if (!cfg->on || stepsq == 0u || nin == 0u) {
+        /* Passthrough (bit-identical when it fits, never partial). */
+        if (nin > cap)
+            return 0u;
+        for (i = 0u; i < nin; i++)
+            out[i] = in[i];
+        return nin;
+    }
+    if (cfg->mode >= RI_LEVI_ARP_NMODES)
+        return 0u;
+    every = 4u / stepsq; /* steps between strikes: 1, 2, 4 */
+    /* Group NOTE_ONs by sample (input is §8-sorted: same-sample ONs
+     * are adjacent). */
+    for (i = 0u; i < nin; i++) {
+        if (in[i].type != RI_EV_NOTE_ON)
+            continue;
+        if (ng > 0u && gsamp[ng - 1u] == in[i].sample &&
+            gcount[ng - 1u] < RI_LEVI_ARP_MAXNOTES) {
+            gnote[ng - 1u][gcount[ng - 1u]++] = (uint8_t)(in[i].value & 127u);
+            continue;
+        }
+        if (ng >= RI_SCHED_MAX_EVENTS)
+            return 0u;
+        gsamp[ng] = in[i].sample;
+        gnote[ng][0] = (uint8_t)(in[i].value & 127u);
+        gcount[ng] = 1u;
+        gdev = in[i].device;
+        ng++;
+    }
+    if (ng == 0u)
+        return 0u;
+    /* Step duration = smallest positive group gap (16th grid). */
+    {
+        uint64_t step_dur = 0u;
+        uint32_t nstr = 0u;
+        for (g = 1u; g < ng; g++) {
+            uint64_t d = gsamp[g] - gsamp[g - 1u];
+            if (d > 0u && (step_dur == 0u || d < step_dur))
+                step_dur = d;
+        }
+        for (g = 0u; g < ng; g++) {
+            uint64_t span = (g + 1u < ng ? gsamp[g + 1u] : end_sample > gsamp[g] ? end_sample : gsamp[g]) - gsamp[g];
+            uint64_t steps = step_dur ? span / step_dur : 1u;
+            uint64_t strikes = steps / every + 1u;
+            struct RILeviArp arp;
+            uint64_t k;
+            uint8_t chord[RI_LEVI_ARP_MAXNOTES];
+            uint32_t cn;
+            for (cn = 0u; cn < gcount[g]; cn++)
+                chord[cn] = gnote[g][cn];
+            ri_levi_arp_init(&arp);
+            arp.on = 1u;
+            arp.rate = cfg->rate;
+            if (ri_levi_arp_start(&arp, chord, gcount[g], cfg->mode,
+                    (uint32_t)(gsamp[g] & 0xFFFFFFFFu)) != 0)
+                return 0u;
+            for (k = 0u; k < strikes; k++) {
+                uint64_t at = strikes > 1u ? gsamp[g] + span * k / (strikes - 1u) : gsamp[g];
+                uint8_t note, v;
+                if (n + 2u > cap)
+                    return 0u;
+                if (ri_levi_arp_step(&arp, &note) != 0)
+                    return 0u;
+                v = (uint8_t)(nstr % RI_LEVI_LANES);
+                if (nstr > 0u) {
+                    /* Legato: release the previous strike voice first
+                     * (same-sample OFF+ON mirrors the v1 gate shape). */
+                    uint8_t pv = (uint8_t)((nstr - 1u) % RI_LEVI_LANES);
+                    out[n].sample = at;
+                    out[n].type = RI_EV_NOTE_OFF;
+                    out[n].device = gdev;
+                    out[n].voice = pv;
+                    out[n].value = 0u;
+                    out[n].flags = 0u;
+                    out[n].seq = n;
+                    n++;
+                }
+                out[n].sample = at;
+                out[n].type = RI_EV_NOTE_ON;
+                out[n].device = gdev;
+                out[n].voice = v;
+                out[n].value = note;
+                out[n].flags = 0u;
+                out[n].seq = n;
+                n++;
+                nstr++;
+            }
+        }
+        /* Tail: only the final strike voice is still held (every
+         * earlier strike was released by the next strike's legato);
+         * release it at end_sample. */
+        {
+            uint8_t lv = (uint8_t)((nstr - 1u) % RI_LEVI_LANES);
+            uint64_t tail = end_sample > gsamp[ng - 1u] ? end_sample : gsamp[ng - 1u];
+            if (n + 1u > cap)
+                return 0u;
+            out[n].sample = tail;
+            out[n].type = RI_EV_NOTE_OFF;
+            out[n].device = gdev;
+            out[n].voice = lv;
+            out[n].value = 0u;
+            out[n].flags = 0u;
+            out[n].seq = n;
+            n++;
         }
     }
     return n;

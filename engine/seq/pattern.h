@@ -125,4 +125,19 @@ uint32_t ri_sched_emit_pattern(const struct RIPattern *p, uint16_t device,
     const struct RISchedOpts *opts,
     const struct RISchedCarry *carry_in, struct RISchedCarry *carry_out,
     struct RIEvent *out, uint32_t cap);
+/* Levi arp rewrite (v2 feature 3b): post-pass over a Levi event window
+ * (NOTE_ON groups = chord steps). Off (or sub-audible rate) copies the
+ * window bit-identically; on subdivides each group into stepper strikes
+ * (seed = group sample, deterministic), voices rotate 0..5 legato with
+ * balanced gates, tail released at end_sample. Returns events written,
+ * 0 on bad input or no capacity (never partial). */
+struct RILeviArpCfg {
+    uint8_t on;   /* gate */
+    uint8_t mode; /* RI_LEVI_ARP_* (engine/dsp/levi_arp.h) */
+    uint8_t rate; /* 0..127 UI value (STEPSQ map) */
+    uint8_t pad;
+};
+uint32_t ri_levi_arp_rewrite(const struct RIEvent *in, uint32_t nin,
+    struct RIEvent *out, uint32_t cap, const struct RILeviArpCfg *cfg,
+    uint64_t end_sample);
 #endif
