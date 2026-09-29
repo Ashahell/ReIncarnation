@@ -1430,3 +1430,13 @@ Register (same visibility-only bit); activation later. t98 reverts to
 ## [2026-09-28] ingest | Rack pass 2 and GUI round-3 plan
 - Disposition: New
 - Raw: llm-wiki/raw/articles/2026-09-28-rack-pass-2-and-gui-round3-plan.md
+
+## [2026-09-29] ingest | GUI round 3 S1–S3 and interoperability requirement
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-09-29-gui-round3-s1-s3-and-interop-requirement.md
+
+## [2026-09-29] ingest | Leviasynth v2 arp/seq/matrix/LFO/reverb
+- Disposition: New (device lane; complements the v1 implementation article)
+- Raw: llm-wiki/raw/articles/2026-09-29-leviasynth-v2-arp-seq-matrix-lfo-reverb.md
+
+## [2026-09-29] lint | v2 ingest self-check: 0 issues (links resolve, hashes verified in git, index row placed)
