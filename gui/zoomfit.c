@@ -152,6 +152,10 @@ int ri_zoom_fit(int scr_w, int scr_h, int chrome_w, int chrome_h) {
 }
 
 int ri_zoom_parse(const char *s, unsigned n) {
+    /* Tolerate trailing whitespace/newline (shell-written files). */
+    while (n > 0u && (s[n - 1u] == '\n' || s[n - 1u] == '\r' ||
+        s[n - 1u] == ' ' || s[n - 1u] == '\t'))
+        n--;
     if (!s || n == 0u)
         return RI_ZOOMFIT_FIT;
     if (n == 3u && s[0] == 'f' && s[1] == 'i' && s[2] == 't')
@@ -177,4 +181,20 @@ int ri_zoom_format(int zoom, char *out, unsigned cap) {
         return 1;
     }
     return 0;
+}
+
+/* Guard (owner breakage 2026-09-29: 1.5x on 1366x768 drops rail/tabs):
+ * explicit want clamped to what fits; FIT re-fits. Unknown screen
+ * (non-positive) keeps a valid want, 0 otherwise. */
+int ri_zoom_clamp(int scr_w, int scr_h, int chrome_w, int chrome_h, int want) {
+    int w, h, fit;
+    if (want != RI_ZOOMFIT_FIT && (want < 0 || want > 2))
+        return 0;
+    if (scr_w <= 0 || scr_h <= 0 || chrome_w < 0 || chrome_h < 0)
+        return (want == RI_ZOOMFIT_FIT) ? 0 : want;
+    if (want != RI_ZOOMFIT_FIT && ri_zoomfit_content(want, &w, &h) == 0 &&
+        w + chrome_w <= scr_w && h + chrome_h <= scr_h)
+        return want;
+    fit = ri_zoom_fit(scr_w, scr_h, chrome_w, chrome_h);
+    return fit;
 }

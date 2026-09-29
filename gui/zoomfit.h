@@ -17,6 +17,10 @@ int ri_zoom_fit(int scr_w, int scr_h, int chrome_w, int chrome_h);
 /* Content window (canvases + furniture + root gaps, no window chrome) at
  * zoom 0..2. 0 ok, 2 on bad zoom/NULL. Transport stays compact (S5). */
 int ri_zoomfit_content(int zoom, int *w, int *h);
+/* Guard (owner breakage 2026-09-29: 1.5x on 1366x768 drops rail/tabs):
+ * explicit want clamped to what fits; FIT re-fits. Unknown screen
+ * (non-positive) keeps a valid want, 0 otherwise. */
+int ri_zoom_clamp(int scr_w, int scr_h, int chrome_w, int chrome_h, int want);
 /* Persisted choice: "fit"/"0"/"1"/"2" -> -1/0/1/2, anything else -> -1.
  * Format writes the word (no NUL counted); 0 on bad zoom/buffer. */
 int ri_zoom_parse(const char *s, unsigned n);

@@ -1234,17 +1234,22 @@ static int zoom_screen_size(int *w, int *h) {
 
 /* Apply a zoom mode (-1 Fit, else 0..2): relayout the window around the
  * new canvas minima, latch the menu checkmarks, persist the choice. */
+/* Apply a zoom mode (-1 Fit, else 0..2), clamped to what fits the
+ * screen (owner breakage 2026-09-29: an overflowing zoom drops
+ * rail/strip/pages): relayout the window around the new canvas minima,
+ * latch the menu checkmarks, persist the requested choice. */
 static void app_set_zoom(int mode) {
-    int z = mode, i, k;
+    int z, i, k;
     int sw = 0, sh = 0;
-    if (mode == RI_ZOOMFIT_FIT) {
-        if (zoom_screen_size(&sw, &sh) != 0 || sw <= 0 || sh <= 0)
-            z = 0;
-        else
-            z = ri_zoom_fit(sw, sh, RIAPP_CHROME_W, RIAPP_CHROME_H);
-    } else if (mode < 0 || mode > 2) {
+    if (mode != RI_ZOOMFIT_FIT && (mode < 0 || mode > 2))
         return;
+    if (zoom_screen_size(&sw, &sh) != 0 || sw <= 0 || sh <= 0) {
+        sw = 0;
+        sh = 0;
     }
+    z = ri_zoom_clamp(sw, sh, RIAPP_CHROME_W, RIAPP_CHROME_H, mode);
+    if (DOSBase && z != (mode == RI_ZOOMFIT_FIT ? z : mode))
+        rlog("RIAPP zoom: want %d clamped to %d on %dx%d\n", mode, z, sw, sh, 0);
     if (!s_root)
         return;
     DoMethod(s_root, MUIM_Group_InitChange);
@@ -1354,15 +1359,14 @@ int main(int argc, char **argv) {
     ri_panel_skins(&s_panel, installed, 0u, "Classic"); /* skins ride later work */
     s_zoom_mode = zoom_persist_read();
     {
-        int sw = 0, sh = 0, z = s_zoom_mode;
-        if (z == RI_ZOOMFIT_FIT) {
-            if (zoom_screen_size(&sw, &sh) != 0 || sw <= 0 || sh <= 0)
-                z = 0;
-            else
-                z = ri_zoom_fit(sw, sh, RIAPP_CHROME_W, RIAPP_CHROME_H);
-        } else if (z < 0 || z > 2) {
-            z = 0;
+        /* Clamped like the runtime path: a persisted overflow zoom (e.g.
+         * 1.5x stored before the guard) opens fitting, never broken. */
+        int sw = 0, sh = 0, z;
+        if (zoom_screen_size(&sw, &sh) != 0 || sw <= 0 || sh <= 0) {
+            sw = 0;
+            sh = 0;
         }
+        z = ri_zoom_clamp(sw, sh, RIAPP_CHROME_W, RIAPP_CHROME_H, s_zoom_mode);
         if (DOSBase)
             rlog("RIAPP zoom: mode=%d zoom=%d screen=%dx%d\n", s_zoom_mode, z, sw, sh,
                 0);

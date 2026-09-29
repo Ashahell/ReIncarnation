@@ -34,8 +34,20 @@ int main(void) {
     RI_ASSERT(ri_zoom_fit(1920, 1080, 600, 64) == 0, "chrome binds");
     RI_ASSERT(ri_zoom_fit(0, 768, 24, 64) == 0, "bad screen");
     RI_ASSERT(ri_zoom_fit(1366, 768, -5, 64) == 0, "bad chrome");
+    /* Guard (owner breakage 2026-09-29): explicit want clamped to fit. */
+    RI_ASSERT(ri_zoom_clamp(1366, 768, 32, 72, 1) == 0, "dell 1.5 clamps");
+    RI_ASSERT(ri_zoom_clamp(1366, 768, 32, 72, 2) == 0, "dell 2 clamps");
+    RI_ASSERT(ri_zoom_clamp(1366, 768, 32, 72, 0) == 0, "dell 1 keeps");
+    RI_ASSERT(ri_zoom_clamp(1920, 1080, 32, 72, 1) == 1, "hd 1.5 keeps");
+    RI_ASSERT(ri_zoom_clamp(1920, 1080, 32, 72, 2) == 1, "hd 2 clamps to fit");
+    RI_ASSERT(ri_zoom_clamp(2560, 1440, 32, 72, 2) == 2, "qhd 2 keeps");
+    RI_ASSERT(ri_zoom_clamp(1366, 768, 32, 72, RI_ZOOMFIT_FIT) == 0, "fit refits");
+    RI_ASSERT(ri_zoom_clamp(0, 0, 32, 72, 1) == 1, "unknown screen keeps");
+    RI_ASSERT(ri_zoom_clamp(1366, 768, 32, 72, 9) == 0, "bad want");
     RI_ASSERT(ri_zoom_parse("fit", 3) == RI_ZOOMFIT_FIT, "parse fit");
     RI_ASSERT(ri_zoom_parse("2", 1) == 2, "parse 2");
+    RI_ASSERT(ri_zoom_parse("1\n", 2) == 1, "parse newline");
+    RI_ASSERT(ri_zoom_parse("fit\n", 4) == RI_ZOOMFIT_FIT, "parse fit newline");
     RI_ASSERT(ri_zoom_parse("9", 1) == RI_ZOOMFIT_FIT, "parse bad");
     RI_ASSERT(ri_zoom_parse(0, 0) == RI_ZOOMFIT_FIT, "parse null");
     {

@@ -282,7 +282,15 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   Mix-at-Fit capture above exonerates pre-open `tab_switch`: zoom-2
   overflow is the cause. This validates Fit-default; explicit 2x on a
   small screen needs an owner decision (cap at Fit vs ledgered
-  overflow), not silent broken controls. Correction: the View menu is a RMB pull-down (stock MUI —
+  overflow), not silent broken controls.
+- **Guard (owner 1.5x breakage, same day):** new pure `ri_zoom_clamp`
+  (t121 pins: Dell 1.5/2 → 0, HD 2 → 1, QHD 2 keeps, unknown screen
+  keeps, bad want → 0) wired into both the menu path and startup, so an
+  overflowing zoom can never break the window again — including a
+  persisted one. `ri_zoom_parse` tolerates trailing newline
+  (shell-written persist files). Host + audit + ABIv1/ABIv11 green;
+  Dell deploy pending lane recovery.
+- **Correction:** the View menu is a RMB pull-down (stock MUI —
   there is no visible menu bar, so captures can never show it); menu
   construction now follows the canonical nested `MUIA_Family_Child`
   pattern (the `test.c` shape) after `OM_ADDMEMBER` left the strip
