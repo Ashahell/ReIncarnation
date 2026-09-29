@@ -88,6 +88,16 @@
 #define RI_CTL_LEVI_ROUTE5 0x0E1Au
 #define RI_CTL_LEVI_ROUTE6 0x0E1Bu
 #define RI_CTL_LEVI_ROUTE7 0x0E1Cu
+#define RI_CTL_LEVI_LFO0RATE 0x0E1Du   /* LFO rate 0..127 (v2 feature 4d) */
+#define RI_CTL_LEVI_LFO1RATE 0x0E1Eu
+#define RI_CTL_LEVI_LFO2RATE 0x0E1Fu
+#define RI_CTL_LEVI_LFO3RATE 0x0E20u
+#define RI_CTL_LEVI_LFO4RATE 0x0E21u
+#define RI_CTL_LEVI_LFO0SHAPE 0x0E22u  /* LFO shape 0/1 (v2 feature 4d) */
+#define RI_CTL_LEVI_LFO1SHAPE 0x0E23u
+#define RI_CTL_LEVI_LFO2SHAPE 0x0E24u
+#define RI_CTL_LEVI_LFO3SHAPE 0x0E25u
+#define RI_CTL_LEVI_LFO4SHAPE 0x0E26u
 
 /* E0 defaults (ledgered here; panel exposes later slices). */
 #define RI_LEVI_DEF_CUTOFF 12000.0f
@@ -112,6 +122,22 @@ struct RILeviEnv {
     uint8_t loop;   /* sustain loops back to attack (contour loop) */
     uint8_t pad[2];
     float stage_t;  /* seconds in stage */
+};
+
+/* LFOs (v2 feature 4d, owner order): 5 per voice, trigger-reset
+ * phases (deterministic, no RNG). Rate 0.01..30 Hz exp-mapped
+ * (100 s/cycle floor per spec); shape 0 smooth sine, 1 quantized
+ * 3-step {-1,0,+1} (own interpretation of "quantized to 3 steps"). */
+#define RI_LEVI_NLFO 5u
+#define RI_LEVI_LFO_SMOOTH 0u
+#define RI_LEVI_LFO_STEPS 1u
+
+struct RILeviLFO {
+    float rate;    /* Hz */
+    uint8_t shape; /* RI_LEVI_LFO_* */
+    uint8_t pad[3];
+    float phase;   /* 0..1 */
+    float value;   /* last stepped value */
 };
 
 struct RILeviOp {
@@ -153,6 +179,7 @@ struct RILeviVoice {
     uint8_t padlp[3];
     float lp1, lp2; /* stage-1 SVF state */
     float lp3, lp4; /* stage-2 LP state (24 dB cascade) */
+    struct RILeviLFO lfo[RI_LEVI_NLFO]; /* per-voice LFOs (4d) */
 };
 
 struct RILeviSet {
@@ -209,5 +236,10 @@ int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
  * Returns 0 ok, 2 bad. */
 int levi_set_op_mode(struct RILeviSet *s, uint32_t voice, uint32_t op,
     uint32_t mode);
+/* LFO UI map (0..127 -> 0.01..30 Hz exp). Pure. */
+float ri_levi_lfo_rate(uint8_t ui);
+/* Advance one LFO a sample (wraps phase 0..1); returns its value
+ * (smooth sine, or quantized {-1,0,+1}). 0.0f on bad. */
+float ri_levi_lfo_step(struct RILeviLFO *l, float sr);
 
 #endif

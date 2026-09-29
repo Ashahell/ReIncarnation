@@ -20,7 +20,8 @@ int ri_levi_matrix_set(struct RILeviMatrix *m, uint32_t slot, uint32_t src,
     uint32_t dst, int depth) {
     if (!m || slot >= RI_LEVI_MX_NSLOTS || depth < -100 || depth > 100)
         return 2;
-    if ((src > RI_LEVI_MS_OPENV7 && src != RI_LEVI_MS_NOTE) || dst >= RI_LEVI_MD_N)
+    if ((src > RI_LEVI_MS_OPENV7 && (src < RI_LEVI_MS_LFO0 || src > RI_LEVI_MS_LFO4) &&
+        src != RI_LEVI_MS_NOTE) || dst >= RI_LEVI_MD_N)
         return 2;
     m->slot[slot].src = (uint8_t)src;
     m->slot[slot].dst = (uint8_t)dst;
@@ -37,9 +38,9 @@ int ri_levi_matrix_enable(struct RILeviMatrix *m, uint32_t slot, uint32_t on) {
 }
 
 int ri_levi_matrix_eval(const struct RILeviMatrix *m, const float *openv,
-    uint32_t note, float *dst_out) {
+    const float *lfo5, uint32_t note, float *dst_out) {
     uint32_t s, d;
-    if (!m || !openv || !dst_out)
+    if (!m || !openv || !lfo5 || !dst_out)
         return 2;
     for (d = 0u; d < RI_LEVI_MD_N; d++)
         dst_out[d] = 0.0f;
@@ -50,6 +51,8 @@ int ri_levi_matrix_eval(const struct RILeviMatrix *m, const float *openv,
             continue;
         if (sl->src <= RI_LEVI_MS_OPENV7)
             src = openv[sl->src];
+        else if (sl->src >= RI_LEVI_MS_LFO0 && sl->src <= RI_LEVI_MS_LFO4)
+            src = lfo5[sl->src - RI_LEVI_MS_LFO0];
         else if (sl->src == RI_LEVI_MS_NOTE)
             src = ((float)(note > 127u ? 127u : note) - 60.0f) / 60.0f;
         else

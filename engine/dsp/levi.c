@@ -216,12 +216,44 @@ void levi_init_set(struct RILeviSet *s) {
         v->lp2 = 0.0f;
         v->lp3 = 0.0f;
         v->lp4 = 0.0f;
+        for (o = 0u; o < RI_LEVI_NLFO; o++) {
+            v->lfo[o].rate = ri_levi_lfo_rate(64u);
+            v->lfo[o].shape = RI_LEVI_LFO_SMOOTH;
+            v->lfo[o].pad[0] = v->lfo[o].pad[1] = v->lfo[o].pad[2] = 0u;
+            v->lfo[o].phase = 0.0f;
+            v->lfo[o].value = 0.0f;
+        }
     }
     s->arpon = 0u;
     s->arprate = 64u;
     s->seqon = 0u;
     s->seqlen = 16u;
     ri_levi_matrix_init(&s->mx);
+}
+
+float ri_levi_lfo_rate(uint8_t ui) {
+    /* 0.01 Hz floor (100 s/cycle, spec) to 30 Hz ceiling, exp-mapped. */
+    float f = 0.01f * ri_pow2(((float)ui / 127.0f) * 11.5500f);
+    if (f < 0.01f)
+        f = 0.01f;
+    if (f > 30.0f)
+        f = 30.0f;
+    return f;
+}
+
+float ri_levi_lfo_step(struct RILeviLFO *l, float sr) {
+    float v;
+    if (!l || !(sr > 0.0f) || !(l->rate > 0.0f))
+        return 0.0f;
+    l->phase += l->rate / sr;
+    if (l->phase >= 1.0f)
+        l->phase -= 1.0f;
+    if (l->shape == RI_LEVI_LFO_STEPS)
+        v = l->phase < 1.0f / 3.0f ? -1.0f : l->phase < 2.0f / 3.0f ? 0.0f : 1.0f;
+    else
+        v = ri_sin(2.0f * 3.14159265f * l->phase);
+    l->value = v;
+    return v;
 }
 
 int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
@@ -244,6 +276,10 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
     v->lp2 = 0.0f;
     v->lp3 = 0.0f;
     v->lp4 = 0.0f;
+    for (o = 0u; o < RI_LEVI_NLFO; o++) {
+        v->lfo[o].phase = 0.0f;
+        v->lfo[o].value = 0.0f;
+    }
     return 0;
 }
 
@@ -484,6 +520,20 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
         /* Matrix slot gates (v2 feature 4c): program stays put. */
         s->mx.slot[id - (RI_CTL_LEVI_ROUTE0 & 0xFFu)].on = val != 0u ? 1u : 0u;
         return 0;
+    case (RI_CTL_LEVI_LFO0RATE & 0xFFu): case (RI_CTL_LEVI_LFO1RATE & 0xFFu):
+    case (RI_CTL_LEVI_LFO2RATE & 0xFFu): case (RI_CTL_LEVI_LFO3RATE & 0xFFu):
+    case (RI_CTL_LEVI_LFO4RATE & 0xFFu):
+        /* LFO rate (v2 feature 4d, automation-only: no panel knob yet,
+         * 303-VOLUME precedent). */
+        s->v[voice].lfo[id - (RI_CTL_LEVI_LFO0RATE & 0xFFu)].rate =
+            ri_levi_lfo_rate(val > 127u ? 127u : val);
+        return 0;
+    case (RI_CTL_LEVI_LFO0SHAPE & 0xFFu): case (RI_CTL_LEVI_LFO1SHAPE & 0xFFu):
+    case (RI_CTL_LEVI_LFO2SHAPE & 0xFFu): case (RI_CTL_LEVI_LFO3SHAPE & 0xFFu):
+    case (RI_CTL_LEVI_LFO4SHAPE & 0xFFu):
+        s->v[voice].lfo[id - (RI_CTL_LEVI_LFO0SHAPE & 0xFFu)].shape =
+            val != 0u ? RI_LEVI_LFO_STEPS : RI_LEVI_LFO_SMOOTH;
+        return 0;
     default:
         return 2;
     }
@@ -594,11 +644,13 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     eoplevel = 1.0f;
     evlevel = 1.0f;
     if (mx) {
-        float openv[RI_LEVI_NOPS], dst[RI_LEVI_MD_N];
+        float openv[RI_LEVI_NOPS], dst[RI_LEVI_MD_N], lfo5[RI_LEVI_NLFO];
         uint32_t o;
         for (o = 0u; o < RI_LEVI_NOPS; o++)
             openv[o] = v->st[0][o].env.value;
-        if (ri_levi_matrix_eval(mx, openv, v->note, dst) == 0) {
+        for (o = 0u; o < RI_LEVI_NLFO; o++)
+            lfo5[o] = ri_levi_lfo_step(&v->lfo[o], sr);
+        if (ri_levi_matrix_eval(mx, openv, lfo5, v->note, dst) == 0) {
             /* Own scaling laws (clean-room): cutoff ±2 octaves
              * full-scale, reso/drive linear, morph in blend units,
              * oplevel pre-filter (drives the timbre), vlevel post. */

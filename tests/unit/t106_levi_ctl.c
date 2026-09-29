@@ -104,6 +104,12 @@ int main(void) {
             set.mx.slot[7].on == 1u, "route7 ui");
         RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_ROUTE7 & 0xFFu, 0u) == 0 &&
             set.mx.slot[7].on == 0u && set.mx.slot[0].on == 1u, "route7 off keeps 0");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_LFO0RATE & 0xFFu, 127u) == 0 &&
+            set.v[0].lfo[0].rate > 29.0f && set.v[0].lfo[0].rate <= 30.0f, "lfo rate ui");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_LFO0SHAPE & 0xFFu, 1u) == 0 &&
+            set.v[0].lfo[0].shape == RI_LEVI_LFO_STEPS, "lfo shape ui");
+        RI_ASSERT(!ri_auto_allowed(RI_CTL_LEVI_LFO0RATE), "lfo rate engine-internal");
+        RI_ASSERT(!ri_auto_allowed(RI_CTL_LEVI_LFO4SHAPE), "lfo shape engine-internal");
     }
     /* Algo block rows (owner 2026-09-28, v2 slice 1d). */
     d = find_leg(RI_SEC_LEVI, "Algorithm");
