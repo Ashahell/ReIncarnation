@@ -218,7 +218,8 @@ void levi_init_set(struct RILeviSet *s) {
     }
     s->arpon = 0u;
     s->arprate = 64u;
-    s->padarp[0] = s->padarp[1] = 0u;
+    s->seqon = 0u;
+    s->seqlen = 16u;
 }
 
 int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
@@ -466,6 +467,12 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
         return 0;
     case (RI_CTL_LEVI_ARPRATE & 0xFFu): /* ARPRATE (device arp rate) */
         s->arprate = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQON & 0xFFu): /* SEQON (device seq gate) */
+        s->seqon = val != 0u ? 1u : 0u;
+        return 0;
+    case (RI_CTL_LEVI_SEQLEN & 0xFFu): /* SEQLEN (device seq length) */
+        s->seqlen = val < 1u ? 1u : val > 16u ? 16u : val;
         return 0;
     default:
         return 2;

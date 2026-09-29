@@ -130,6 +130,13 @@ uint32_t ri_sched_emit_pattern(const struct RIPattern *p, uint16_t device,
  * input (NULL / n outside 1..16 / wrong kind). */
 uint32_t ri_levi_seq_window(const struct RIPattern *in, uint32_t n,
     struct RIPattern *out);
+/* Levi SEQ phrase cfg (v2 feature 3c-ii): on loops the first len steps
+ * of the slot (pre-pass via ri_levi_seq_window); len 1..16. */
+struct RILeviSeqCfg {
+    uint8_t on;
+    uint8_t len;
+    uint8_t pad[2];
+};
 /* Levi arp rewrite (v2 feature 3b): post-pass over a Levi event window
  * (NOTE_ON groups = chord steps). Off (or sub-audible rate) copies the
  * window bit-identically; on subdivides each group into stepper strikes

@@ -45,8 +45,9 @@ int main(void) {
     /* Refused keys: never stored, counted. 0x0E11 (arp gate) went
      * allowed with the v2-feature-3b binding, so it sends now. */
     RI_ASSERT(ri_ctl_send(&q, RI_CTL_LEVI_ARPON, 5u) == 0, "arp gate sends");
+    RI_ASSERT(ri_ctl_send(&q, RI_CTL_LEVI_SEQON, 5u) == 0, "seq gate sends");
     RI_ASSERT(ri_ctl_send(&q, 0x0B00u, 5u) == 2, "refuse legacy panel id");
-    RI_ASSERT(ri_ctl_pending(&q) == 1u, "allowed stores one");
+    RI_ASSERT(ri_ctl_pending(&q) == 2u, "allowed store two");
     RI_ASSERT(q.refused == 1u, "refused counted %u", q.refused);
 
     /* Wrap-around: 600 sends with periodic drains never lose order. */

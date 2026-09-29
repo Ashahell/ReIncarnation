@@ -45,6 +45,11 @@ int ri_slevi_press(struct RISectLevi *s, uint32_t idx) {
         s->val[RI_SLEVI_ARPON] = (int16_t)(s->val[RI_SLEVI_ARPON] ? 0 : 1);
         return 1;
     }
+    if (idx == RI_SLEVI_SEQON) {
+        /* Bound seq gate (v2 feature 3c): same MODE-style toggle. */
+        s->val[RI_SLEVI_SEQON] = (int16_t)(s->val[RI_SLEVI_SEQON] ? 0 : 1);
+        return 1;
+    }
     if (idx < RI_SLEVI_NCTL) {
         /* Generic front-panel truth for UI-only switches (ARP/SEQ/
          * MATRIX/FX ride here until their engines land; bound controls

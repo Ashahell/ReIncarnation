@@ -68,6 +68,10 @@ int main(void) {
     RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_ARPON, "arpon bind");
     d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 53u));
     RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_ARPRATE, "arprate bind");
+    d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 54u));
+    RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_SEQON, "seqon bind");
+    d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 55u));
+    RI_ASSERT(d && d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_SEQLEN, "seqlen bind");
     {
         struct RILeviSet set;
         levi_init_set(&set);
@@ -77,6 +81,17 @@ int main(void) {
         RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_ARPRATE & 0xFFu, 100u) == 0 &&
             set.arprate == 100u, "arprate ui");
         RI_ASSERT(levi_set_param_ui(0, 0u, RI_CTL_LEVI_ARPON & 0xFFu, 1u) == 2, "arp null");
+        RI_ASSERT(set.seqon == 0u && set.seqlen == 16u, "seq defaults");
+        RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_SEQON), "seqon allowed");
+        RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_SEQLEN), "seqlen allowed");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_SEQON & 0xFFu, 1u) == 0 &&
+            set.seqon == 1u, "seqon ui");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_SEQLEN & 0xFFu, 4u) == 0 &&
+            set.seqlen == 4u, "seqlen ui");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_SEQLEN & 0xFFu, 0u) == 0 &&
+            set.seqlen == 1u, "seqlen clamp lo");
+        RI_ASSERT(levi_set_param_ui(&set, 0u, RI_CTL_LEVI_SEQLEN & 0xFFu, 99u) == 0 &&
+            set.seqlen == 16u, "seqlen clamp hi");
     }
     /* Algo block rows (owner 2026-09-28, v2 slice 1d). */
     d = find_leg(RI_SEC_LEVI, "Algorithm");

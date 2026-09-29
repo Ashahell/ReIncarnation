@@ -77,6 +77,8 @@
 #define RI_CTL_LEVI_LOOP 0x0E10u  /* envelope loop 0/1 */
 #define RI_CTL_LEVI_ARPON 0x0E11u       /* arp gate 0/1 (v2 feature 3) */
 #define RI_CTL_LEVI_ARPRATE 0x0E12u     /* arp rate 0..127 (v2 feature 3) */
+#define RI_CTL_LEVI_SEQON 0x0E13u       /* seq gate 0/1 (v2 feature 3) */
+#define RI_CTL_LEVI_SEQLEN 0x0E14u      /* seq length 1..16 (v2 feature 3) */
 
 /* E0 defaults (ledgered here; panel exposes later slices). */
 #define RI_LEVI_DEF_CUTOFF 12000.0f
@@ -148,7 +150,8 @@ struct RILeviSet {
     struct RILeviVoice v[RI_LEVI_NVOICES];
     uint8_t arpon;   /* device arp gate (v2 feature 3; UI/automation truth) */
     uint8_t arprate; /* device arp rate 0..127 */
-    uint8_t padarp[2];
+    uint8_t seqon;   /* device seq gate (v2 feature 3; UI/automation truth) */
+    uint8_t seqlen;  /* device seq length 1..16 */
 };
 
 void levi_init_set(struct RILeviSet *s);

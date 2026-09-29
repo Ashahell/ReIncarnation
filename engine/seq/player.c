@@ -33,12 +33,22 @@ void ri_player_init(struct RIPlayer *p,
     p->levi_arp.mode = 0u;
     p->levi_arp.rate = 64u;
     p->levi_arp.pad = 0u;
+    p->levi_seq.on = 0u;
+    p->levi_seq.len = 16u;
+    p->levi_seq.pad[0] = p->levi_seq.pad[1] = 0u;
 }
 
 int ri_player_levi_arp(struct RIPlayer *p, const struct RILeviArpCfg *cfg) {
     if (!p || !cfg || cfg->mode >= RI_LEVI_ARP_NMODES)
         return 2;
     p->levi_arp = *cfg;
+    return 0;
+}
+
+int ri_player_levi_seq(struct RIPlayer *p, const struct RILeviSeqCfg *cfg) {
+    if (!p || !cfg || cfg->len < 1u || cfg->len > RI_PATTERN_STEPS)
+        return 2;
+    p->levi_seq = *cfg;
     return 0;
 }
 
@@ -104,6 +114,7 @@ static uint32_t player_emit_occurrence(const struct RIPattern *pat, uint16_t dev
     const struct RISchedCarry *cin, struct RISchedCarry *cout,
     uint64_t s0, uint64_t s1,
     const struct RILeviArpCfg *arp,
+    const struct RILeviSeqCfg *seqcfg,
     uint32_t step_ticks,
     struct RIEvent *out, uint32_t *n, uint32_t cap, uint32_t *seq) {
     struct RIEvent scratch[RI_SCHED_MAX_EVENTS];
@@ -113,8 +124,19 @@ static uint32_t player_emit_occurrence(const struct RIPattern *pat, uint16_t dev
         return 0u;
     ci = *cin;
     co = ci;
-    m = ri_sched_emit_pattern(pat, device, map, occ_tick, ppq, NULL,
-        &ci, &co, scratch, RI_SCHED_MAX_EVENTS);
+    if (pat && pat->kind == RI_PATTERN_KIND_LEVI && seqcfg && seqcfg->on) {
+        /* v2 feature 3c: phrase window first (struct copy, ~100 B on
+         * this frame); a window refusal (never on valid songs) falls
+         * back to the stored pattern, never silence. */
+        struct RIPattern phr;
+        if (ri_levi_seq_window(pat, seqcfg->len, &phr) != 0u)
+            pat = &phr;
+        m = ri_sched_emit_pattern(pat, device, map, occ_tick, ppq, NULL,
+            &ci, &co, scratch, RI_SCHED_MAX_EVENTS);
+    } else {
+        m = ri_sched_emit_pattern(pat, device, map, occ_tick, ppq, NULL,
+            &ci, &co, scratch, RI_SCHED_MAX_EVENTS);
+    }
     *cout = co;
     if (pat->kind == RI_PATTERN_KIND_LEVI && arp && arp->on) {
         /* v2 feature 3: arp subdivision of the Levi window (rewrite
@@ -204,7 +226,7 @@ static void player_advance_instance(struct RIPlayer *p, uint32_t i,
                 seg_end = tick_end;
             pat = player_slot_pat(b, snd);
             player_emit_occurrence(pat, (uint16_t)i, map, cur - phase, ppq,
-                &cin, &cout, s0, s1, &p->levi_arp, step_ticks, out, n, cap, seq);
+                &cin, &cout, s0, s1, &p->levi_arp, &p->levi_seq, step_ticks, out, n, cap, seq);
             last_b = b;
             last_slot = snd;
             last_cout = cout;
