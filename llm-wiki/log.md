@@ -1465,3 +1465,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-09-29-gui-round3-approval-close.md
 
 ## [2026-09-29] lint | 0 issues found, 0 auto-fixed
+
+## [2026-09-29] ingest | Owner font decision (in-house face kept)
+- Disposition: New (closes round-3 §9 item 1)
+- Raw: llm-wiki/raw/articles/2026-09-29-font-decision-in-house.md
+
+## [2026-09-29] lint | 0 issues found, 0 auto-fixed

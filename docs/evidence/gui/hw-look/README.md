@@ -235,13 +235,15 @@ output level. Unblocked: the Levi mixer/engine WIP has landed.
   is song data (S4b landed: allow-list `0x0B50`, recorder writes, ATRK
   carries; deviation from the manual p. 72-73); tab keys Ctrl+1..4
   (shipped, this round); zoom Fit default + menu + ENVARC persist (S5);
-  font licence, skins gesture/chunk, agent rebuild, furniture skins
+  font licence DECIDED 2026-09-29 (in-house face kept, below), skins gesture/chunk, agent rebuild, furniture skins
   still open.
 - **Owner approvals 2026-09-29 (all approved):** zoom-clamp stands
   (overflowing picks clamp to Fit); RMB View menu works; S4b
   record → save → reload carries master moves; MASTER moves the whole
   mix by ear; tempo follows audibly; 909-drag smooth; legends sharp; no
   grey left; click/pop on Ctrl+keys resolved. GUI round 3 CLOSED.
+- **Owner decision 2026-09-29: font.** Keep the in-house clean-room face
+  (§9 item 1 closed, E0 stands); no third-party face licensed.
 
 ## Owner visual + wiring pass (2026-09-29, Dell verdicts)
 
