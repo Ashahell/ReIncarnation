@@ -312,3 +312,32 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   persist try across restart; z2 Mix look.
 - **E0 ledger:** chrome 32x72 fail-safe generous; furniture width
   estimates never bind; explicit zooms may overflow small screens.
+
+## S6 lane clicks + S7 skin proof (2026-09-29, Dell)
+
+- **Cause (probe RED):** the click chain sent pointerpos inside
+  `IND_ADDEVENT` (which ignores every class but RAWMOUSE/RAWKEY —
+  pointer never moved), omitted the button qualifier (Intuition
+  delivered code 0, dropped the release), and serialized releases as
+  JSON `true` (digit-only parser read `up=0`: every release a second
+  press). Fixed in the agent (moves via `IND_WRITEEVENT`, qualifier
+  mirrored, both bool parsers); server gained `--ui-press/--ui-release`
+  and a `qQ` qualifier on `--ui-rawkey` (Vulkan4AROS `72a3fe4a`…`4f03fd7d`).
+- **Probe GREEN:** press `0x68` + release `0xE8` at the targeted
+  position (`log-bool.txt` pattern).
+- **Acceptance, no owner input:** tab clicks switch pages (Synths→Drums
+  `TAB page=1`, Mix→Synths single click); rail power toggles 303B
+  (`VIS dev=1 show=0 mask=1d` / `show=1 mask=1f`); knob drag emits
+  `CTL 0104=0 → 25`. Clicks need the window active (first click
+  activates); tab x-map (evlog-grounded): 70/130/194/250.
+- **S7 rendering** (seeded whole-panel 808-RI check-build, uncommitted):
+  `dell-s7-808ri-synths/mix/drums.png` — dark 808-style strips with
+  amber headers where bound; Classic Levi/MASTER (no `mix-levi` part,
+  stale `bg08`) and Classic 909 (`bg03` stale, t75) beside them =
+  per-part fallback visibly working. Ctrl+M mechanics proven via evlog
+  (`SKIN sync=` lines) + host t70/t71.
+- **Lane notes:** two agents on one pair ping-pong every ~30s (mutual
+  redial); `--bye` the holder to drain to one; Break won't kill agents;
+  `RAM:CLICK.LOG`-style files lock while open (Break/close first, then
+  get); e6320 needs a manual redial after every reboot; a private
+  pair+port (`e6320x`/9294, `spike-s6.service`) isolates proof traffic.
