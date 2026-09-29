@@ -231,3 +231,20 @@ output level. Unblocked: the Levi mixer/engine WIP has landed.
   Owner moves MASTER and judges loudness.
 - **E0 ledger:** master level is monitoring, not song data (no live-only
   history exists offline); default 100 (registry def).
+- **Owner decisions 2026-09-29** (supersede above where noted): master
+  becomes song data (S4b pending); tab keys Ctrl+1..4 (shipped, this
+  round); zoom Fit default + menu + ENVARC persist (S5); font licence,
+  skins gesture/chunk, agent rebuild, furniture skins still open.
+
+## Owner visual + wiring pass (2026-09-29, Dell verdicts)
+
+Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
+- Mixer strip names + MASTER read one face above (`dell-v2-mix.png`).
+- 909 row padded to the 808 width; right edges coincide
+  (`dell-v2-drums.png`, crop-zoom `dell-v2-drums-edge.png`).
+- 303 Note/Pause toggle narrowed 132 → 110 Q (`dell-v2-synths.png`).
+- t116 proves 189 controls wired end-to-end (21 wide classified);
+  transport tempo was display-only and now drives the session.
+- Ctrl+1..4 switch tabs (owner-confirmed); a click/pop on the keypress is
+  under diagnosis (prime suspect: xrun in the tab-show relayout; evlog
+  buffer counts + xruns will confirm).
