@@ -1440,3 +1440,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-09-29-leviasynth-v2-arp-seq-matrix-lfo-reverb.md
 
 ## [2026-09-29] lint | v2 ingest self-check: 0 issues (links resolve, hashes verified in git, index row placed)
+
+## [2026-09-29] ingest | GUI round 3 S4–S5 master + zoomfit
+- Disposition: New (companion to the S1–S3 article; S4/S5 + visual/wiring/lane findings)
+- Raw: llm-wiki/raw/articles/2026-09-29-gui-round3-s4-s5-master-zoomfit.md
+
+## [2026-09-29] lint | 1 issue found, 0 auto-fixed
