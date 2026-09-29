@@ -1309,7 +1309,10 @@ static void skin_sync_current(void) {
     if (!DOSBase)
         return;
     n = ri_skin_aros_sync(&s_panel.skin_assign, s_moddir, s_skin_zoom);
-    evlog("SKIN", "sync=%d zoom=%d", n, s_skin_zoom);
+    evlog("SKIN", "sync=%d zoom=%d current=%s", n, s_skin_zoom,
+        s_panel.skin_current);
+    rlog("RIAPP skin: sync=%d zoom=%d current=%s\n", n, s_skin_zoom,
+        s_panel.skin_current, 0, 0);
 }
 
 /* Rail toggle: flip the visible bit, ShowMe the row, mirror the LED —
@@ -1403,6 +1406,8 @@ int main(int argc, char **argv) {
     s_moddir[0] = '\0';
     if (DOSBase && ri_pal_path(RI_PATH_MODS, s_moddir, sizeof s_moddir) == 0)
         ri_pal_list_dirs(s_moddir, skin_scan_cb, &s_nmods);
+    evlog("SKIN", "installed=%u dir=%s", 1u + s_nmods, s_moddir);
+    rlog("RIAPP skin: installed=%u dir=%s\n", 1u + s_nmods, s_moddir, 0, 0, 0);
     ri_panel_skins(&s_panel, s_modptrs, 1u + s_nmods, "Classic");
     s_zoom_mode = zoom_persist_read();
     {

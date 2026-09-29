@@ -68,7 +68,9 @@ int ri_pal_path_join(char *out, uint32_t cap, const char *dir, const char *leaf)
 int ri_pal_list_dirs(const char *dir, int (*cb)(void *u, const char *name), void *u) {
     BPTR lock;
     struct ExAllControl *eac;
-    static UBYTE buf[1024];
+    /* ULONG-aligned ExAll buffer (sectproof's proven shape): a UBYTE
+     * array risks unaligned ExAllData access on the device. */
+    static ULONG exbuf[256];
     struct ExAllData *ead;
     int rc = 0;
     if (!dir || !cb)
@@ -82,29 +84,35 @@ int ri_pal_list_dirs(const char *dir, int (*cb)(void *u, const char *name), void
         return 1;
     }
     eac->eac_LastKey = 0;
-    do {
-        if (!ExAll(lock, (struct ExAllData *)buf, sizeof(buf), ED_TYPE, eac)) {
-            LONG err = IoErr();
-            if (err != ERROR_NO_MORE_ENTRIES) {
+    /* Process entries BEFORE testing the return: ExAll returns FALSE
+     * with entries pending + IoErr 0 when nothing more follows (seen on
+     * device: FALSE + 3 entries). Same shape as sectproof's walker. */
+    {
+        int more;
+        do {
+            more = ExAll(lock, (struct ExAllData *)exbuf, sizeof(exbuf),
+                ED_TYPE, eac);
+            if (!more && IoErr() != ERROR_NO_MORE_ENTRIES) {
                 rc = 1;
                 break;
             }
-            break;
-        }
-        ead = (struct ExAllData *)buf;
-        while (ead) {
-            if (ead->ed_Type > 0) {
-                rc = cb(u, ead->ed_Name);
-                if (rc != 0) {
-                    ExAllEnd(lock, (struct ExAllData *)buf, sizeof(buf), ED_TYPE, eac);
-                    FreeDosObject(DOS_EXALLCONTROL, eac);
-                    UnLock(lock);
-                    return rc;
+            if (eac->eac_Entries == 0)
+                continue;
+            ead = (struct ExAllData *)exbuf;
+            while (ead) {
+                if (ead->ed_Type > 0) {
+                    rc = cb(u, ead->ed_Name);
+                    if (rc != 0) {
+                        ExAllEnd(lock, (struct ExAllData *)exbuf, sizeof(exbuf), ED_TYPE, eac);
+                        FreeDosObject(DOS_EXALLCONTROL, eac);
+                        UnLock(lock);
+                        return rc;
+                    }
                 }
+                ead = ead->ed_Next;
             }
-            ead = ead->ed_Next;
-        }
-    } while (eac->eac_Entries > 0);
+        } while (more);
+    }
     FreeDosObject(DOS_EXALLCONTROL, eac);
     UnLock(lock);
     return rc;
