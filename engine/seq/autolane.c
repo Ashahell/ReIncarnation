@@ -59,7 +59,9 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     0x0E33u, 0x0E34u, 0x0E35u, 0x0E36u, 0x0E37u,
     /* Filters + VCA (fidelity P4). */
     0x0E38u, 0x0E39u, 0x0E3Au, 0x0E3Bu, 0x0E3Cu, 0x0E3Du, 0x0E3Eu, 0x0E3Fu,
-    0x0E40u, 0x0E41u, 0x0E42u, 0x0E43u, 0x0E44u
+    0x0E40u, 0x0E41u, 0x0E42u, 0x0E43u, 0x0E44u,
+    /* ENV 1/2 amounts, VCA initial level (fidelity P5). */
+    0x0E45u, 0x0E46u, 0x0E47u
 };
 
 int ri_auto_allowed(uint16_t ctl) {
@@ -68,6 +70,14 @@ int ri_auto_allowed(uint16_t ctl) {
      * param key; the panel reaches them through the module pages. */
     if ((ctl & 0xFF00u) == RI_AUTO_BLK_LEVIOP)
         return (ctl & 31u) < RI_AUTO_LEVIOP_NPARAM;
+    if ((ctl & 0xFF00u) == RI_AUTO_BLK_LEVIMOD) {
+        uint32_t k = ctl & 0xFFu, p;
+        if (k < 0xA0u) {
+            p = k & 31u;
+            return p <= 3u || p == 6u || (p >= 12u && p <= 29u);
+        }
+        return k < 0xF0u && (k & 15u) < 14u;
+    }
     while (lo < hi) {
         uint32_t mid = lo + ((hi - lo) >> 1u);
         if (RI_AUTO_ALLOW[mid] == ctl)

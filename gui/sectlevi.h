@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 110u
+#define RI_SLEVI_NCTL 113u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -82,6 +82,11 @@
 #define RI_SLEVI_VCALVL 107u
 #define RI_SLEVI_PATCHLVL 108u
 #define RI_SLEVI_VLFO3 109u
+/* Pre-wired envelope amounts and VCA initial level (fidelity P5), keys
+ * 0x0E45..0x0E47; the ENV 1 / ENV 2 top-panel knobs bind here. */
+#define RI_SLEVI_DENV1 110u
+#define RI_SLEVI_AENV2 111u
+#define RI_SLEVI_VINIT 112u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */
@@ -131,6 +136,8 @@ struct RISectLevi {
     uint8_t page;                      /* page within the module (0-based) */
     uint8_t pad[3];
     uint8_t opv[RI_LEVI_NOPS][RI_LEVI_OP_NPARAM]; /* per-op UI values (P2) */
+    uint8_t mev[RI_LEVI_NMENV][RI_LEVI_OP_NPARAM];   /* ENV 1-5 UI values (P5) */
+    uint8_t lfv[RI_LEVI_NLFO][16];                   /* LFO 1-5 UI values (P5) */
     struct RIPattern pat;      /* chord kind, class Levi */
 };
 
@@ -152,9 +159,10 @@ int ri_slevi_value(const struct RISectLevi *s, uint32_t idx);
 /* Control index the app sends for a hit: an encoder's live target,
  * else idx itself. */
 uint32_t ri_slevi_ctl_idx(const struct RISectLevi *s, uint32_t idx);
-/* Per-oscillator key for a hit (fidelity P2): 1 (key and val set) when the
- * encoder edits an oscillator param (key 0x0F00 | op << 5 | param, val
- * in the param's range), else 0 (send ri_slevi_ctl_idx as usual). */
+/* Explicit key for a hit: 1 (key and val set) when the encoder edits an
+ * oscillator param (P2: 0x0F00 | op << 5 | param) or an ENV / LFO param
+ * (P5: block 0x10), val in the param's range; else 0 (send
+ * ri_slevi_ctl_idx as usual). */
 int ri_slevi_ctl_key(const struct RISectLevi *s, uint32_t idx, uint16_t *key, int *val);
 /* Pages in the current module (1.. ; OSC has 5) and the current page. */
 uint32_t ri_slevi_page_count(const struct RISectLevi *s);

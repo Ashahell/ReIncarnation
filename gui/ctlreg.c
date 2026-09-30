@@ -369,6 +369,10 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 107, KNOB, "VCA", "VCA Level", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VCALVL, 0),
     R(LEVI, 108, KNOB, "VCA", "Patch Level", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PATCHLVL, 0),
     R(LEVI, 109, KNOB, "VCA", "LFO3 Amt", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VLFO3, 0),
+    /* Pre-wired envelope amounts + VCA initial level (fidelity P5). */
+    R(LEVI, 110, KNOB, "Filter", "ENV1 Amt", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DENV1, 0),
+    R(LEVI, 111, KNOB, "Analog", "ENV2 Amt", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_AENV2, 0),
+    R(LEVI, 112, KNOB, "VCA", "Init Level", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VINIT, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

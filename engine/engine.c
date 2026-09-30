@@ -643,6 +643,17 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
             levi_set_op_ui(&e->slevi, v, (key >> 5) & 7u, key & 31u, val);
         return;
     }
+    if (blk == RI_AUTO_BLK_LEVIMOD) {
+        /* ENV 1-5 / LFO 1-5 params (fidelity P5), section-wide. */
+        uint32_t k = key & 0xFFu;
+        for (v = 0u; v < RI_LEVI_NVOICES; v++) {
+            if (k < 0xA0u)
+                levi_set_menv_ui(&e->slevi, v, k >> 5, k & 31u, val);
+            else
+                levi_set_lfo_ui(&e->slevi, v, (k - 0xA0u) >> 4, k & 15u, val);
+        }
+        return;
+    }
     if (blk == RI_AUTO_BLK_LEVI) {
         /* Section-wide (panel model): every voice follows the knob.
          * Full low byte (voice params share 0x00-0x09 with the nibble;

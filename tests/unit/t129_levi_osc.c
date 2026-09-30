@@ -249,6 +249,8 @@ int main(void) {
         plain(&A);
         levi_set_op_ui(&A, 0u, 0u, RI_LEVI_OP_ATTACK, 40u);
         levi_set_op_ui(&A, 0u, 0u, RI_LEVI_OP_FREERUN, 1u);
+        /* P5: ENV 3 (the VCA) would close the voice at note-off; hold it open. */
+        levi_set_param_ui(&A, 0u, RI_CTL_LEVI_VINIT & 0xFFu, 127u);
         levi_trigger(&A, 0u, 69u);
         render(&A, oa, 480u);
         levi_release(&A, 0u);
@@ -276,7 +278,7 @@ int main(void) {
 
     /* ---- Keys: 0x0F block allowed and applied by the engine. ---- */
     RI_ASSERT(ri_auto_allowed(RI_LEVI_OPKEY(7u, RI_LEVI_OP_VELENV)) && ri_auto_allowed(RI_LEVI_OPKEY(0u, RI_LEVI_OP_TGT3)) &&
-        !ri_auto_allowed(0x1000u) &&
+        !ri_auto_allowed(0x1100u) &&
         ri_auto_allowed(RI_CTL_LEVI_BIAS_REL), "op keys allowed");
     {
         static struct RIEngine E;

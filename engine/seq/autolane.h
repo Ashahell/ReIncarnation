@@ -43,6 +43,10 @@ struct RIAutoPass {
 #define RI_AUTO_BLK_LEVI 0x0E00u /* section-wide voice params (owner 2026-09-28) */
 #define RI_AUTO_BLK_LEVIOP 0x0F00u /* per-oscillator params: op << 5 | param (owner 2026-09-30) */
 #define RI_AUTO_LEVIOP_NPARAM 32u  /* params 0..31 per op (the Levi voice RI_LEVI_OP_* list) */
+/* Levi modulation block (fidelity P5): ENV 1-5 at env << 5 | param
+ * (0x00-0x9F: triggers 0-3, level 6, envelope 12-28, vel curve 29),
+ * LFO 1-5 at 0xA0 | lfo << 4 | param (params 0-13). */
+#define RI_AUTO_BLK_LEVIMOD 0x1000u
 #define RI_AUTO_MIX_LEVEL 0u
 #define RI_AUTO_MIX_PAN 1u
 #define RI_AUTO_MIX_SEND 2u

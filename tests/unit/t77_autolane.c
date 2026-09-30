@@ -234,7 +234,7 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 164u, "mapped count %u (+4 Levi bias P2, +13 algo P3, +13 filters/VCA P4)", mapped);
+            RI_ASSERT(mapped == 167u, "mapped count %u (+4 Levi bias P2, +13 algo P3, +13 filters/VCA P4, +3 env amounts P5)", mapped);
             RI_ASSERT(listed == 31u, "listed count %u", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
@@ -257,9 +257,14 @@ int main(void) {
                      * module pages (one registry row per page encoder). */
                     if ((key & 0xFF00u) == RI_AUTO_BLK_LEVIOP && (key & 31u) < RI_AUTO_LEVIOP_NPARAM)
                         owned = 1;
+                    /* Levi mod block 0x10 (fidelity P5): ENV 1-5 and LFO
+                     * 1-5 params, reached through their module pages. */
+                    if ((key & 0xFF00u) == RI_AUTO_BLK_LEVIMOD)
+                        owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 422u, "allow-list size %u (164 controls + 2 VOLUME + 8 x 32 Levi op keys)", nallow);
+                RI_ASSERT(nallow == 610u,
+                    "allow-list size %u (167 controls + 2 VOLUME + 8 x 32 op keys + 5 x 23 env + 5 x 14 LFO keys)", nallow);
             }
         }
     }

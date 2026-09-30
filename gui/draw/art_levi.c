@@ -25,7 +25,7 @@
 #include "gui/sectui.h"
 
 struct LeviBox { int x0, y0, x1, y1, tx; const char *title; };
-struct LeviKnob { int x, y, style; };      /* 0 plain, 1 ring, 2 bipolar, 3 big encoder */
+struct LeviKnob { int x, y, style; };      /* 0 plain, 1 ring, 2 bipolar, 3 big encoder, 4 bipolar legend only */
 struct LeviText { int x, y; const char *full, *brief; int col, maxw; };
 struct LeviCap { int x, y, w; const char *l1, *l2; int col; };
 
@@ -47,8 +47,8 @@ static const struct LeviKnob DKNOB[] = {
     { 332, 164, 0 },
     { 390, 164, 0 },
     { 447, 164, 0 },
-    { 1463, 64, 2 },
-    { 1706, 64, 2 },
+    { 1463, 64, 4 },       /* ENV 1 / ENV 2: live knobs since P5, legend only here */
+    { 1706, 64, 4 },
     { 606, 134, 3 },
 };
 static const struct LeviText KLABEL[] = {
@@ -337,12 +337,13 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
         } else if (DKNOB[i].style == 1) {
             levi_encoder(dl, cx, cy, PX(15), 0, 0, pan);
         } else {
-            if (DKNOB[i].style == 2) {                 /* bipolar legend: 0 above, -/+ at the ends */
+            if (DKNOB[i].style == 2 || DKNOB[i].style == 4) {  /* bipolar legend: 0 above, -/+ at the ends */
                 levi_text(dl, cx, cy - PX(26), "0", C_LEVI_LABEL, RI_FACE_S);
                 levi_text(dl, cx - PX(22), cy + PX(14), "-", C_LEVI_LABEL, RI_FACE_S);
                 levi_text(dl, cx + PX(22), cy + PX(14), "+", C_LEVI_LABEL, RI_FACE_S);
             }
-            ri_art_knob(dl, cx, cy, PX(30), PX(38), C_LEVI_DIM, C_LEVI_EDGE, 0, 0.0f, pan);
+            if (DKNOB[i].style != 4)
+                ri_art_knob(dl, cx, cy, PX(30), PX(38), C_LEVI_DIM, C_LEVI_EDGE, 0, 0.0f, pan);
         }
     }
     for (i = 0u; i < sizeof(KLABEL) / sizeof(KLABEL[0]); i++)
@@ -530,7 +531,7 @@ void ri_art_levi_item(struct ri_dlist *dl, const struct RIGeoItem *it, const str
     }
     if (it->shape == RI_GEO_KNOB) {                 /* aluminium knob (algorithm: encoder) */
         if (idx == RI_SLEVI_ALGO) {
-            levi_encoder(dl, cx, cy, hw * 3 / 4, v * 127 / 7, 1, pan);
+            levi_encoder(dl, cx, cy, hw * 3 / 4, v * 127 / 63, 1, pan);   /* 64 algorithms (P3) */
             return;
         }
         ri_art_knob(dl, cx, cy, PX(it->w), PX(it->h), C_LEVI_SILVER, C_BLACK, 0,

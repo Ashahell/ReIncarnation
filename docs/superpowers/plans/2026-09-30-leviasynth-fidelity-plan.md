@@ -170,6 +170,14 @@ Each phase lands as TDD slices:
 - LFO 1–5 full: 11 waves including Step, trig sync, delay/fade, quantize, one-shot, phase stagger.
 - The matrix, grown to the manual's source and destination lists.
 - 8 macros.
+- **P5a status: done 2026-09-30** (ENV 1-5, pre-wires, full LFOs):
+  - ENV 1-5 per voice share the oscillator DAHDSR law (curves, quantize, loops over a stage range, freerun, speed ranges); four trigger sources each (Note On, LFO 1-5 cycle start; ribbon/pedal stored for P8/P9), level.
+  - Pre-wires: ENV 1 > digital cutoff and ENV 2 > analog cutoff (amounts ±8 octaves full scale, keys `0x0E45/46`, the ENV 1 / ENV 2 top-panel knobs are live); ENV 3 is the VCA contour with Initial Level (`0x0E47`); ENV 3 closing ends the voice.
+  - LFO 1-5: 11 own waves (sine, triangle, saw up/down, square, pulse 27/13, S&H, noise, smooth random, step), slow 0-25 Hz / fast 5-150 Hz, trig sync poly/single/off with phase stagger, delay and fade-in, quantize, level, smooth, one-shot on/step, start phase. Deterministic per-LFO noise (xorshift).
+  - Keys: block `0x10` (ENV `env << 5 | param`, LFO `0xA0 | lfo << 4 | param`); pages ENV n 1/4-4/4 and LFO n 1/2-2/2 (steps and stagger shown only where they apply).
+  - The v1 LFO keys stay (rate, shape 0/1 = sine / 3-step), bit for bit.
+- **P5a E0 ledger:** ENV 3 default release 34 (a little longer than the oscillators'); ENV amounts ±8 octaves; step values are a default ramp until the step editor (P8); BPM sync waits for the clock (P8); velocity/PolyAT for P9; legato/reset stored for P6; Mod In trigger sources omitted (no CV, owner 2026-09-30).
+- **Tests:** t132 (32 mutants killed); t129 freerun law holds the VCA open (ENV 3 now closes voices); t77/t79/t107/t131 deliberate moves; sec 18 re-pinned (live ENV knobs, algorithm ring now spans 64).
 
 ### P6: voice
 

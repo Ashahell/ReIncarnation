@@ -4,6 +4,8 @@
  * envelopes end exact).
  */
 #include "engine/dsp/levi.h"
+
+#include <string.h>
 #include "engine/dsp/levi_matrix.h"
 #include "engine/dsp/kernels.h"
 
@@ -346,11 +348,126 @@ float ri_levi_env_time(uint32_t param, uint8_t val, uint32_t speed) {
 
 static const uint8_t QUANT_STEPS[16] = { 0, 2, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32, 48, 64, 96, 128 };
 
+/* One envelope UI param (oscillator and mod envelopes share the law). */
+static void env_ui_apply(struct RILeviEnv *e, const uint8_t *u, uint32_t p) {
+    uint32_t spd = u[RI_LEVI_OP_SPEED] ? 1u : 0u;
+    if (p == RI_LEVI_OP_DELAY || p == RI_LEVI_OP_SPEED)
+        e->times[RI_LEVI_SEG_D] = ri_levi_env_time(RI_LEVI_OP_DELAY, u[RI_LEVI_OP_DELAY], spd);
+    if (p == RI_LEVI_OP_ATTACK || p == RI_LEVI_OP_SPEED)
+        e->times[RI_LEVI_SEG_A] = ri_levi_env_time(RI_LEVI_OP_ATTACK, u[RI_LEVI_OP_ATTACK], spd);
+    if (p == RI_LEVI_OP_HOLD || p == RI_LEVI_OP_SPEED)
+        e->times[RI_LEVI_SEG_H] = ri_levi_env_time(RI_LEVI_OP_HOLD, u[RI_LEVI_OP_HOLD], spd);
+    if (p == RI_LEVI_OP_DECAY || p == RI_LEVI_OP_SPEED)
+        e->times[RI_LEVI_SEG_D2] = ri_levi_env_time(RI_LEVI_OP_DECAY, u[RI_LEVI_OP_DECAY], spd);
+    if (p == RI_LEVI_OP_RELEASE || p == RI_LEVI_OP_SPEED)
+        e->times[RI_LEVI_SEG_R] = ri_levi_env_time(RI_LEVI_OP_RELEASE, u[RI_LEVI_OP_RELEASE], spd);
+    if (p == RI_LEVI_OP_SUSTAIN)
+        e->sustain = (float)u[p] / 127.0f;
+    e->curve[0] = (int8_t)((int)u[RI_LEVI_OP_ACURVE] - 64);
+    e->curve[1] = (int8_t)((int)u[RI_LEVI_OP_DCURVE] - 64);
+    e->curve[2] = (int8_t)((int)u[RI_LEVI_OP_RCURVE] - 64);
+    e->quant = QUANT_STEPS[u[RI_LEVI_OP_QUANT] & 15u];
+    e->loopn = u[RI_LEVI_OP_LOOP] == 0u ? 0u : u[RI_LEVI_OP_LOOP] >= 50u ? 255u
+        : (uint8_t)(u[RI_LEVI_OP_LOOP] + 1u);
+    e->loopend = u[RI_LEVI_OP_STAGELOOP] == 0u ? RI_LEVI_SEG_A
+        : u[RI_LEVI_OP_STAGELOOP] == 1u ? RI_LEVI_SEG_H : RI_LEVI_SEG_D2;
+    e->freerun = u[RI_LEVI_OP_FREERUN] ? 1u : 0u;
+}
+
+/* ---- Modulation envelopes ENV 1-5 (fidelity P5, pp. 71-75) ---- */
+int ri_levi_menv_range(uint32_t param, int *lo, int *hi) {
+    if (!lo || !hi)
+        return 2;
+    *lo = 0;
+    if (param <= 3u)
+        *hi = (int)RI_LEVI_TS_N - 1;
+    else if (param == RI_LEVI_ME_LEVEL || param == RI_LEVI_ME_VELCRV)
+        *hi = 127;
+    else if (param >= RI_LEVI_OP_DELAY && param <= RI_LEVI_OP_VELENV)
+        return ri_levi_op_range(param, lo, hi);
+    else
+        return 2;
+    return 0;
+}
+
+int ri_levi_menv_default(uint32_t env, uint32_t param) {
+    switch (param) {
+    case RI_LEVI_ME_TRIG1: return RI_LEVI_TS_NOTE;
+    case RI_LEVI_ME_LEVEL: return 127;
+    case RI_LEVI_ME_VELCRV: return 64;
+    /* ENV 3 is the VCA contour: instant, full sustain, a release a
+     * little longer than the oscillator default so the oscillators
+     * still shape the tail (E0). */
+    case RI_LEVI_OP_ATTACK: return env == 2u ? 0 : ri_levi_op_default(0u, param);
+    case RI_LEVI_OP_SUSTAIN: return env == 2u ? 127 : ri_levi_op_default(0u, param);
+    case RI_LEVI_OP_RELEASE: return env == 2u ? 34 : ri_levi_op_default(0u, param);
+    default:
+        return param >= RI_LEVI_OP_DELAY && param <= RI_LEVI_OP_VELENV ? ri_levi_op_default(0u, param) : 0;
+    }
+}
+
+static void menv_start(struct RILeviEnv *e) {
+    e->relpend = 0u;
+    e->loopleft = e->loopn == 255u ? 0u : (uint8_t)(e->loopn > 1u ? e->loopn - 1u : 0u);
+    e->seg_from = e->value;          /* a retrigger ramps from where it is */
+    e->stage = RI_LEVI_SEG_D;
+    e->stage_t = 0.0f;
+}
+
+static void menv_release(struct RILeviEnv *e) {
+    if (e->stage == RI_LEVI_SEG_IDLE)
+        return;
+    if (e->freerun && e->stage < RI_LEVI_SEG_S) {
+        e->relpend = 1u;
+        return;
+    }
+    e->stage = RI_LEVI_SEG_R;
+    e->stage_t = 0.0f;
+    e->seg_from = e->value;
+}
+
+static int menv_has(const struct RILeviVoice *v, uint32_t e, uint32_t src) {
+    uint32_t k;
+    for (k = 0u; k < 4u; k++)
+        if (v->meui[e][RI_LEVI_ME_TRIG1 + k] == src)
+            return 1;
+    return 0;
+}
+
+int levi_set_menv_ui(struct RILeviSet *s, uint32_t voice, uint32_t env, uint32_t param, uint8_t val) {
+    struct RILeviVoice *v;
+    int lo, hi;
+    if (!s || voice >= RI_LEVI_NVOICES || env >= RI_LEVI_NMENV || ri_levi_menv_range(param, &lo, &hi))
+        return 2;
+    v = &s->v[voice];
+    v->meui[env][param] = (uint8_t)(val < lo ? lo : val > hi ? hi : val);
+    if (param <= 3u) {
+        uint32_t e, k;
+        v->melfo = 0u;
+        for (e = 0u; e < RI_LEVI_NMENV; e++)
+            for (k = 0u; k < 4u; k++)
+                if (v->meui[e][k] >= RI_LEVI_TS_LFO1 && v->meui[e][k] < RI_LEVI_TS_LFO1 + RI_LEVI_NLFO)
+                    v->melfo = 1u;
+    }
+    if (param == RI_LEVI_ME_LEVEL)
+        v->melevel[env] = (float)v->meui[env][param] / 127.0f;
+    else if (param >= RI_LEVI_OP_DELAY && param <= RI_LEVI_OP_FREERUN)
+        env_ui_apply(&v->menv[env], v->meui[env], param);
+    return 0;
+}
+
+float levi_menv_value(const struct RILeviVoice *v, uint32_t env) {
+    if (!v || env >= RI_LEVI_NMENV)
+        return 0.0f;
+    return env_out(&v->menv[env]) * v->melevel[env];
+}
+
 /* Recompute an op's derived values after a UI change; env params go
  * into both bank states of the voice. */
 static int reaches(const uint8_t *feeds, uint32_t from, uint32_t to);
 static void bank_load(struct RILeviVoice *v, uint32_t bank, uint32_t algo);
 static void filt_clear(struct RILeviVoice *v);
+static void lfo_init(struct RILeviLFO *l, uint32_t seed);
 static void kt_update(struct RILeviVoice *v);
 
 static void op_apply(struct RILeviVoice *v, uint32_t o, uint32_t p) {
@@ -409,31 +526,8 @@ static void op_apply(struct RILeviVoice *v, uint32_t o, uint32_t p) {
     default:
         if (p == RI_LEVI_OP_SPEED && (u[p] ? 1u : 0u) == op->speed)
             break;                                /* same range: times stand */
-        for (b = 0u; b < 2u; b++) {
-            struct RILeviEnv *e = &v->st[b][o].env;
-            uint32_t spd = u[RI_LEVI_OP_SPEED] ? 1u : 0u;
-            if (p == RI_LEVI_OP_DELAY || p == RI_LEVI_OP_SPEED)
-                e->times[RI_LEVI_SEG_D] = ri_levi_env_time(RI_LEVI_OP_DELAY, u[RI_LEVI_OP_DELAY], spd);
-            if (p == RI_LEVI_OP_ATTACK || p == RI_LEVI_OP_SPEED)
-                e->times[RI_LEVI_SEG_A] = ri_levi_env_time(RI_LEVI_OP_ATTACK, u[RI_LEVI_OP_ATTACK], spd);
-            if (p == RI_LEVI_OP_HOLD || p == RI_LEVI_OP_SPEED)
-                e->times[RI_LEVI_SEG_H] = ri_levi_env_time(RI_LEVI_OP_HOLD, u[RI_LEVI_OP_HOLD], spd);
-            if (p == RI_LEVI_OP_DECAY || p == RI_LEVI_OP_SPEED)
-                e->times[RI_LEVI_SEG_D2] = ri_levi_env_time(RI_LEVI_OP_DECAY, u[RI_LEVI_OP_DECAY], spd);
-            if (p == RI_LEVI_OP_RELEASE || p == RI_LEVI_OP_SPEED)
-                e->times[RI_LEVI_SEG_R] = ri_levi_env_time(RI_LEVI_OP_RELEASE, u[RI_LEVI_OP_RELEASE], spd);
-            if (p == RI_LEVI_OP_SUSTAIN)
-                e->sustain = (float)u[p] / 127.0f;
-            e->curve[0] = (int8_t)((int)u[RI_LEVI_OP_ACURVE] - 64);
-            e->curve[1] = (int8_t)((int)u[RI_LEVI_OP_DCURVE] - 64);
-            e->curve[2] = (int8_t)((int)u[RI_LEVI_OP_RCURVE] - 64);
-            e->quant = QUANT_STEPS[u[RI_LEVI_OP_QUANT] & 15u];
-            e->loopn = u[RI_LEVI_OP_LOOP] == 0u ? 0u : u[RI_LEVI_OP_LOOP] >= 50u ? 255u
-                : (uint8_t)(u[RI_LEVI_OP_LOOP] + 1u);
-            e->loopend = u[RI_LEVI_OP_STAGELOOP] == 0u ? RI_LEVI_SEG_A
-                : u[RI_LEVI_OP_STAGELOOP] == 1u ? RI_LEVI_SEG_H : RI_LEVI_SEG_D2;
-            e->freerun = u[RI_LEVI_OP_FREERUN] ? 1u : 0u;
-        }
+        for (b = 0u; b < 2u; b++)
+            env_ui_apply(&v->st[b][o].env, u, p);
         op->speed = u[RI_LEVI_OP_SPEED] ? 1u : 0u;
         break;
     }
@@ -741,14 +835,27 @@ void levi_init_set(struct RILeviSet *s) {
         v->dlevel = v->osclvl = v->vcalvl = v->patchlvl = 1.0f;
         kt_update(v);
         filt_clear(v);
-        for (o = 0u; o < RI_LEVI_NLFO; o++) {
-            v->lfo[o].rate = ri_levi_lfo_rate(64u);
-            v->lfo[o].shape = RI_LEVI_LFO_SMOOTH;
-            v->lfo[o].pad[0] = v->lfo[o].pad[1] = v->lfo[o].pad[2] = 0u;
-            v->lfo[o].phase = 0.0f;
-            v->lfo[o].value = 0.0f;
+        for (o = 0u; o < RI_LEVI_NLFO; o++)
+            lfo_init(&v->lfo[o], i * RI_LEVI_NLFO + o + 1u);
+        for (o = 0u; o < RI_LEVI_NMENV; o++) {
+            uint32_t pp;
+            memset(&v->menv[o], 0, sizeof v->menv[o]);
+            env_reset(&v->menv[o]);
+            v->menv[o].stage = RI_LEVI_SEG_IDLE;
+            v->menv[o].loop = 0u;
+            v->menv[o].loopend = RI_LEVI_SEG_D2;
+            for (pp = 0u; pp < RI_LEVI_OP_NPARAM; pp++)
+                v->meui[o][pp] = (uint8_t)ri_levi_menv_default(o, pp);
+            for (pp = RI_LEVI_OP_DELAY; pp <= RI_LEVI_OP_FREERUN; pp++)
+                env_ui_apply(&v->menv[o], v->meui[o], pp);
+            v->melevel[o] = 1.0f;
         }
+        v->melfo = 0u;
+        v->mepad[0] = v->mepad[1] = 0u;
+        v->denv = v->aenv = v->vinit = 0.0f;
     }
+    for (o = 0u; o < RI_LEVI_NLFO; o++)
+        lfo_init(&s->glfo[o], 97u + o);
     s->bias[0] = s->bias[1] = s->bias[2] = s->bias[3] = 64u;
     s->arpon = 0u;
     s->arprate = 64u;
@@ -767,19 +874,195 @@ float ri_levi_lfo_rate(uint8_t ui) {
     return f;
 }
 
-float ri_levi_lfo_step(struct RILeviLFO *l, float sr) {
-    float v;
-    if (!l || !(sr > 0.0f) || !(l->rate > 0.0f))
-        return 0.0f;
-    l->phase += l->rate / sr;
-    if (l->phase >= 1.0f)
-        l->phase -= 1.0f;
-    if (l->shape == RI_LEVI_LFO_STEPS)
-        v = l->phase < 1.0f / 3.0f ? -1.0f : l->phase < 2.0f / 3.0f ? 0.0f : 1.0f;
-    else
-        v = ri_sin(2.0f * 3.14159265f * l->phase);
-    l->value = v;
+/* ---- Full LFOs (fidelity P5, manual pp. 76-82; own laws) ---- */
+static const char *const LFO_WAVE_NAME[RI_LEVI_NLW] = {
+    "SINE", "TRIANGLE", "SAW UP", "SAW DOWN", "SQUARE", "PULSE 27", "PULSE 13", "S&H", "NOISE", "RANDOM", "STEP"
+};
+static const uint8_t LFO_HI[RI_LEVI_LP_N] = { 10, 127, 1, 2, 127, 127, 15, 127, 64, 127, 1, 2, 127, 127 };
+
+const char *ri_levi_lfo_wave_name(uint32_t w) {
+    return w < RI_LEVI_NLW ? LFO_WAVE_NAME[w] : "";
+}
+
+int ri_levi_lfo_range(uint32_t param, int *lo, int *hi) {
+    if (param >= RI_LEVI_LP_N || !lo || !hi)
+        return 2;
+    *lo = param == RI_LEVI_LP_STEPS ? 2 : 0;
+    *hi = LFO_HI[param];
+    return 0;
+}
+
+int ri_levi_lfo_default(uint32_t param) {
+    switch (param) {
+    case RI_LEVI_LP_RATE: return 36;          /* ~0.57 Hz, the v1 default rate */
+    case RI_LEVI_LP_LEVEL: return 127;
+    case RI_LEVI_LP_STEPS: return 3;          /* the v1 3-step shape */
+    default: return 0;
+    }
+}
+
+float ri_levi_lfo_hz(uint32_t fast, uint8_t ui) {
+    float u = (float)(ui > 127u ? 127u : ui) / 127.0f;
+    if (fast)
+        return 5.0f * ri_pow2(u * 4.9068906f);   /* 5 .. 150 Hz (x30) */
+    return 25.0f * u * u * u;                   /* 0 .. 25 Hz */
+}
+
+static uint32_t xrng(uint32_t *r) {
+    uint32_t x = *r ? *r : 0x9E3779B9u;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *r = x;
+    return x;
+}
+
+static float xrnd(uint32_t *r) {                /* -1 .. 1 */
+    return (float)(xrng(r) >> 8) * (2.0f / 16777216.0f) - 1.0f;
+}
+
+static float lfo_step_value(const struct RILeviLFO *l, uint32_t k) {
+    uint32_t n = l->steps < 2u ? 2u : l->steps;
+    return -1.0f + 2.0f * (float)(k % n) / (float)(n - 1u);
+}
+
+/* Raw wave at phase p (0..1). */
+static float lfo_wave(struct RILeviLFO *l, float p) {
+    switch (l->wave) {
+    case RI_LEVI_LW_TRI: return p < 0.25f ? 4.0f * p : p < 0.75f ? 2.0f - 4.0f * p : 4.0f * p - 4.0f;
+    case RI_LEVI_LW_SAWUP: return 2.0f * p - 1.0f;
+    case RI_LEVI_LW_SAWDN: return 1.0f - 2.0f * p;
+    case RI_LEVI_LW_SQUARE: return p < 0.5f ? 1.0f : -1.0f;
+    case RI_LEVI_LW_PULSE27: return p < 0.27f ? 1.0f : -1.0f;
+    case RI_LEVI_LW_PULSE13: return p < 0.13f ? 1.0f : -1.0f;
+    case RI_LEVI_LW_SH: return l->held;
+    case RI_LEVI_LW_NOISE: return xrnd(&l->rng);
+    case RI_LEVI_LW_RANDOM: {
+        float x = p * p * (3.0f - 2.0f * p);
+        return l->from + (l->held - l->from) * x;
+    }
+    case RI_LEVI_LW_STEP: {
+        uint32_t n = l->steps < 2u ? 2u : l->steps;
+        uint32_t k = l->oneshot == 2u ? (l->stepk == 0xFFu ? 0u : l->stepk) : (uint32_t)(p * (float)n);
+        return lfo_step_value(l, k >= n ? n - 1u : k);
+    }
+    default: return ri_sin(2.0f * 3.14159265f * p);
+    }
+}
+
+/* Level, delay/fade, quantize, smooth (all bypassed at their defaults:
+ * the v1 value exactly). sy: smoother state. */
+static float lfo_post(const struct RILeviLFO *l, float v, float *sy) {
+    static const uint8_t Q[16] = { 0, 2, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32, 48, 64, 96, 128 };
+    if (l->level != 1.0f)
+        v *= l->level;
+    if (l->delay > 0.0f || l->fade > 0.0f) {
+        float g = l->t < l->delay ? 0.0f : l->fade > 0.0f ? (l->t - l->delay) / l->fade : 1.0f;
+        v *= g > 1.0f ? 1.0f : g;
+    }
+    if (l->quant) {
+        float q = (float)Q[l->quant & 15u] * 0.5f;
+        v = (float)(int)(v * q + (v < 0.0f ? -0.5f : 0.5f)) / q;
+    }
+    if (l->smooth > 0.0f && l->oneshot != 2u) {
+        *sy += (v - *sy) * (1.0f - l->smooth);
+        v = *sy;
+    }
     return v;
+}
+
+/* Advance phase / time one sample; sets wrapped on a new cycle. */
+static void lfo_advance(struct RILeviLFO *l, float sr) {
+    l->t += 1.0f / sr;
+    l->wrapped = 0u;
+    if (l->oneshot == 2u || l->done)
+        return;
+    l->phase += l->rate / sr;
+    if (l->phase >= 1.0f) {
+        l->phase -= (float)(int)l->phase;
+        l->wrapped = 1u;
+        l->from = l->held;
+        l->held = xrnd(&l->rng);
+        if (l->oneshot == 1u) {
+            l->done = 1u;                         /* one cycle, then hold its end */
+            l->phase = 0.9999999f;
+        }
+    }
+}
+
+float ri_levi_lfo_step(struct RILeviLFO *l, float sr) {
+    if (!l || !(sr > 0.0f))
+        return 0.0f;
+    if (l->shared)
+        return l->value;
+    if (!(l->rate > 0.0f) && l->oneshot != 2u && l->wave != RI_LEVI_LW_NOISE)
+        return l->value;
+    lfo_advance(l, sr);
+    l->value = lfo_post(l, lfo_wave(l, l->phase), &l->sy);
+    return l->value;
+}
+
+/* Note-on for one LFO (poly: every voice; single: the shared one). */
+static void lfo_trigger(struct RILeviLFO *l) {
+    l->phase = l->phase0;
+    l->t = 0.0f;
+    l->done = 0u;
+    l->value = 0.0f;
+    l->sy = 0.0f;
+    l->from = l->held;
+    l->held = xrnd(&l->rng);
+    if (l->oneshot == 2u)                         /* the first note plays step 1 */
+        l->stepk = l->stepk == 0xFFu ? 0u : (uint8_t)((l->stepk + 1u) % (l->steps < 2u ? 2u : l->steps));
+}
+
+static void lfo_apply(struct RILeviLFO *l, uint32_t p) {
+    const uint8_t *u = l->ui;
+    uint32_t slow = u[RI_LEVI_LP_SPEED] ? 0u : 1u;   /* env-time speed flag: 1 = the long range */
+    switch (p) {
+    case RI_LEVI_LP_WAVE: l->wave = u[p]; l->shape = u[p] == RI_LEVI_LW_STEP ? RI_LEVI_LFO_STEPS : RI_LEVI_LFO_SMOOTH; break;
+    case RI_LEVI_LP_RATE: case RI_LEVI_LP_SPEED: case RI_LEVI_LP_DELAY: case RI_LEVI_LP_FADE:
+        /* the speed range sets the rate range and the delay/fade ranges */
+        if (p == RI_LEVI_LP_RATE || p == RI_LEVI_LP_SPEED)
+            l->rate = ri_levi_lfo_hz(u[RI_LEVI_LP_SPEED], u[RI_LEVI_LP_RATE]);
+        l->delay = ri_levi_env_time(RI_LEVI_OP_DELAY, u[RI_LEVI_LP_DELAY], slow);
+        l->fade = ri_levi_env_time(RI_LEVI_OP_ATTACK, u[RI_LEVI_LP_FADE], slow);
+        break;
+    case RI_LEVI_LP_TRIG: l->trig = u[p]; l->shared = u[p] ? 1u : 0u; break;
+    case RI_LEVI_LP_QUANT: l->quant = u[p]; break;
+    case RI_LEVI_LP_LEVEL: l->level = (float)u[p] / 127.0f; break;
+    case RI_LEVI_LP_STEPS: l->steps = u[p]; break;
+    case RI_LEVI_LP_SMOOTH: l->smooth = u[p] ? 1.0f - ri_pow2(-12.0f + 11.0f * (1.0f - (float)u[p] / 127.0f)) : 0.0f; break;
+    case RI_LEVI_LP_ONESHOT: l->oneshot = u[p]; l->done = 0u; l->stepk = 0xFFu; break;
+    case RI_LEVI_LP_PHASE: l->phase0 = (float)u[p] / 128.0f; break;
+    default: break;                               /* BPM, stagger: read where used */
+    }
+}
+
+static void lfo_init(struct RILeviLFO *l, uint32_t seed) {
+    uint32_t p;
+    memset(l, 0, sizeof *l);
+    for (p = 0u; p < RI_LEVI_LP_N; p++)
+        l->ui[p] = (uint8_t)ri_levi_lfo_default(p);
+    for (p = 0u; p < RI_LEVI_LP_N; p++)
+        lfo_apply(l, p);
+    l->rate = ri_levi_lfo_rate(64u);              /* the v1 rate exactly */
+    l->rng = 0x9E3779B9u ^ (seed * 2654435761u);
+}
+
+int levi_set_lfo_ui(struct RILeviSet *s, uint32_t voice, uint32_t lfo, uint32_t param, uint8_t val) {
+    struct RILeviLFO *l;
+    uint32_t k;
+    int lo, hi;
+    if (!s || voice >= RI_LEVI_NVOICES || lfo >= RI_LEVI_NLFO || ri_levi_lfo_range(param, &lo, &hi))
+        return 2;
+    val = (uint8_t)(val < lo ? lo : val > hi ? hi : val);
+    for (k = 0u; k < 2u; k++) {                   /* the voice's own and the shared copy */
+        l = k ? &s->glfo[lfo] : &s->v[voice].lfo[lfo];
+        l->ui[param] = val;
+        lfo_apply(l, param);
+    }
+    s->glfo[lfo].shared = 0u;                     /* the set steps the shared copy itself */
+    return 0;
 }
 
 int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
@@ -810,9 +1093,14 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
     filt_clear(v);
     kt_update(v);
     for (o = 0u; o < RI_LEVI_NLFO; o++) {
-        v->lfo[o].phase = 0.0f;
-        v->lfo[o].value = 0.0f;
+        if (v->lfo[o].trig == 0u)
+            lfo_trigger(&v->lfo[o]);          /* poly: every note restarts its LFO */
+        else if (v->lfo[o].trig == 1u)
+            lfo_trigger(&s->glfo[o]);         /* single: every note restarts the shared one */
     }
+    for (o = 0u; o < RI_LEVI_NMENV; o++)
+        if (menv_has(v, o, RI_LEVI_TS_NOTE))
+            menv_start(&v->menv[o]);
     return 0;
 }
 
@@ -837,6 +1125,8 @@ void levi_release(struct RILeviSet *s, uint32_t voice) {
             }
         }
     }
+    for (o = 0u; o < RI_LEVI_NMENV; o++)
+        menv_release(&v->menv[o]);
 }
 
 int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
@@ -1320,8 +1610,26 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case (RI_CTL_LEVI_LFO0SHAPE & 0xFFu): case (RI_CTL_LEVI_LFO1SHAPE & 0xFFu):
     case (RI_CTL_LEVI_LFO2SHAPE & 0xFFu): case (RI_CTL_LEVI_LFO3SHAPE & 0xFFu):
     case (RI_CTL_LEVI_LFO4SHAPE & 0xFFu):
-        s->v[voice].lfo[id - (RI_CTL_LEVI_LFO0SHAPE & 0xFFu)].shape =
-            val != 0u ? RI_LEVI_LFO_STEPS : RI_LEVI_LFO_SMOOTH;
+    {
+        /* v1 shape key: 0 sine, 1 = the 3-step wave (P5: STEP, 3 steps). */
+        uint32_t l = id - (RI_CTL_LEVI_LFO0SHAPE & 0xFFu);
+        if (val != 0u)
+            levi_set_lfo_ui(s, voice, l, RI_LEVI_LP_STEPS, 3u);
+        levi_set_lfo_ui(s, voice, l, RI_LEVI_LP_WAVE, val != 0u ? RI_LEVI_LW_STEP : RI_LEVI_LW_SINE);
+        return 0;
+    }
+    case (RI_CTL_LEVI_DENV1 & 0xFFu): case (RI_CTL_LEVI_AENV2 & 0xFFu): {
+        float a = ((float)(val > 127u ? 127u : val) - 64.0f) / 63.0f;
+        if (a < -1.0f)
+            a = -1.0f;
+        if (id == (RI_CTL_LEVI_DENV1 & 0xFFu))
+            s->v[voice].denv = a;
+        else
+            s->v[voice].aenv = a;
+        return 0;
+    }
+    case (RI_CTL_LEVI_VINIT & 0xFFu):
+        s->v[voice].vinit = (float)(val > 127u ? 127u : val) / 127.0f;
         return 0;
     default:
         return 2;
@@ -1449,7 +1757,7 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     float ecut, ereso, edrive, emorph, eoplevel, evlevel, amp, lfo5[RI_LEVI_NLFO];
     /* LFOs step once per sample when the matrix or a pre-wired amount
      * (LFO 1 > digital, 2 > analog, 3 > VCA; P4) listens. */
-    int any_on = 0, lfo_on = mx || v->dlfo != 0.0f || v->alfo != 0.0f || v->vlfo != 0.0f;
+    int any_on = 0, lfo_on = mx || v->dlfo != 0.0f || v->alfo != 0.0f || v->vlfo != 0.0f || v->melfo;
     if (!v || !v->active || !(sr > 0.0f))
         return 0.0f;
     mixA = voice_pass(v, 0u, sr, &any_on);
@@ -1464,6 +1772,22 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
         uint32_t o;
         for (o = 0u; o < RI_LEVI_NLFO; o++)
             lfo5[o] = ri_levi_lfo_step(&v->lfo[o], sr);
+    }
+    {
+        /* Mod envelopes (P5): LFO cycle starts retrigger where chosen. */
+        uint32_t e, k;
+        for (e = 0u; e < RI_LEVI_NMENV; e++) {
+            if (lfo_on)
+                for (k = 0u; k < 4u; k++) {
+                    uint32_t src = v->meui[e][RI_LEVI_ME_TRIG1 + k];
+                    if (src >= RI_LEVI_TS_LFO1 && src < RI_LEVI_TS_LFO1 + RI_LEVI_NLFO &&
+                        v->lfo[src - RI_LEVI_TS_LFO1].wrapped) {
+                        menv_start(&v->menv[e]);
+                        break;
+                    }
+                }
+            (void)env_tick_b(&v->menv[e], sr, 0);
+        }
     }
     if (mx) {
         float openv[RI_LEVI_NOPS], dst[RI_LEVI_MD_N];
@@ -1515,6 +1839,8 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     else
         mix = mixA + (mixB - mixA) * (emorph / 100.0f);
     mix *= eoplevel * v->osclvl;
+    if (v->menv[2].stage == RI_LEVI_SEG_IDLE && v->vinit == 0.0f && v->menv[2].value == 0.0f)
+        any_on = 0;                                    /* the VCA has closed */
     if (!any_on) {
         v->active = 0u;
         filt_clear(v);
@@ -1528,11 +1854,16 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
             dc *= ri_pow2(4.0f * v->dlfo * lfo5[0]);   /* +/-4 octaves full scale */
         if (lfo_on && v->alfo != 0.0f)
             ac *= ri_pow2(4.0f * v->alfo * lfo5[1]);
+        if (v->denv != 0.0f)                           /* ENV 1 > digital, +/-8 octaves */
+            dc *= ri_pow2(8.0f * v->denv * levi_menv_value(v, 0u));
+        if (v->aenv != 0.0f)                           /* ENV 2 > analog */
+            ac *= ri_pow2(8.0f * v->aenv * levi_menv_value(v, 1u));
         dc = dc < 20.0f ? 20.0f : dc > 20000.0f ? 20000.0f : dc;
         ac = ac < 20.0f ? 20.0f : ac > 20000.0f ? 20000.0f : ac;
         out = dfilt_step(v, mix, sr, dc, ereso) * v->dlevel;
         out = afilt_step(v, out, sr, ac, v->reso2, edrive);
-        amp = v->vcalvl;
+        /* ENV 3 > VCA, opened to Initial Level at rest (p. 69). */
+        amp = v->vcalvl * (v->vinit + (1.0f - v->vinit) * levi_menv_value(v, 2u));
         if (lfo_on && v->vlfo != 0.0f) {
             amp *= 1.0f + v->vlfo * lfo5[2];
             if (amp < 0.0f)
@@ -1555,6 +1886,27 @@ void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
         return;
     for (i = 0u; i < n; i++) {
         float m = 0.0f;
+        uint32_t o;
+        /* Shared LFOs (trig sync single / off, P5): stepped once, read by
+         * every voice; Off staggers each voice's phase. */
+        for (o = 0u; o < RI_LEVI_NLFO; o++) {
+            struct RILeviLFO *g = &s->glfo[o];
+            if (!g->trig)
+                continue;
+            lfo_advance(g, sr);
+            for (v = 0u; v < RI_LEVI_NVOICES; v++) {
+                struct RILeviLFO *l = &s->v[v].lfo[o];
+                float ph = g->phase;
+                if (!l->shared)
+                    continue;
+                if (g->trig == 2u && g->ui[RI_LEVI_LP_STAGGER]) {
+                    ph += (float)v * (float)g->ui[RI_LEVI_LP_STAGGER] / 128.0f;
+                    ph -= (float)(int)ph;
+                }
+                l->value = lfo_post(g, lfo_wave(g, ph), &l->sy);
+                l->wrapped = g->wrapped;
+            }
+        }
         for (v = 0u; v < RI_LEVI_NVOICES; v++)
             m += levi_voice_render(&s->v[v], &s->mx, sr);
         out[i] = m;
