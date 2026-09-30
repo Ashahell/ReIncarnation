@@ -36,7 +36,7 @@ void ri_engine_init(struct RIEngine *e) {
     ri_meter_init(&e->master_meter[0], 48000.0f);
     ri_meter_init(&e->master_meter[1], 48000.0f);
     for (i = 0; i < RI_ENGINE_BLOCK; i++)
-        e->scratch[i] = 0.0f;
+        e->scratch[i] = e->scratchR[i] = 0.0f;
     /* Routing neutral: no owners, sends 0, pans centre, delay dry. */
     ri_route_init(&e->route);
     ri_fxdist_init(&e->dist);
@@ -118,6 +118,62 @@ static void engine_pan_gains(uint8_t v, double *gl, double *gr) {
 
 /* One section bus: inserts (Dist->PCF->Comp) in series, post-insert mono
  * send tap, pan into the f64 master. No allocation; scratch is the bus. */
+/* Stereo section (fidelity P6c, Levi only): inserts run per channel,
+ * meter/send read the mid, the strip pan acts as balance. Center
+ * balance renders bit-identical to the mono section. */
+static void engine_section_stereo(struct RIEngine *e, uint32_t section,
+    double *ml, double *mr, float *sendbus, uint32_t cc, float sr) {
+    uint32_t i;
+    double gl, gr, t, sg;
+    uint32_t mask = ri_route_section_mask(&e->route, section);
+    if (mask & (1u << RI_ROUTE_DIST)) {
+        ri_fxdist_render(&e->dist, e->scratch, e->scratch, cc);
+        ri_fxdist_render(&e->dist, e->scratchR, e->scratchR, cc);
+        ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_DIST], e->scratch, cc);
+    }
+    if (mask & (1u << RI_ROUTE_PCF)) {
+        pcf_render(&e->pcf, e->scratch, e->scratch, cc, sr);
+        pcf_render(&e->pcf, e->scratchR, e->scratchR, cc, sr);
+        ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_PCF], e->scratch, cc);
+    }
+    if (mask & (1u << RI_ROUTE_COMP)) {
+        ri_fxcomp_render(&e->comp, e->scratch, e->scratch, cc);
+        ri_fxcomp_render(&e->comp, e->scratchR, e->scratchR, cc);
+        ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_COMP], e->scratch, cc);
+    }
+    {
+        float target = ri_fader_gain(e->level[section]);
+        float a = e->lvl_applied[section];
+        if (a != target || a != 1.0f) {
+            float step = 1.0f / (float)RI_MIX_RAMP_SMP;
+            for (i = 0u; i < cc; i++) {
+                if (a < target)
+                    a = (target - a > step) ? a + step : target;
+                else if (a > target)
+                    a = (a - target > step) ? a - step : target;
+                e->scratch[i] *= a;
+                e->scratchR[i] *= a;
+            }
+            e->lvl_applied[section] = a;
+        }
+    }
+    if (section < RI_ROUTE_NSECTIONS) {
+        float mid[RI_ENGINE_BLOCK];
+        for (i = 0u; i < cc; i++)
+            mid[i] = 0.5f * (e->scratch[i] + e->scratchR[i]);
+        ri_meter_feed(&e->sec_meter[section], mid, cc);
+    }
+    t = (double)e->send[section] / 127.0;
+    sg = t * t;
+    engine_pan_gains(e->pan[section], &gl, &gr);
+    for (i = 0u; i < cc; i++) {
+        double s = 0.5 * ((double)e->scratch[i] + (double)e->scratchR[i]);
+        sendbus[i] += (float)(s * sg);
+        ml[i] += (double)e->scratch[i] * gl;
+        mr[i] += (double)e->scratchR[i] * gr;
+    }
+}
+
 static void engine_section(struct RIEngine *e, uint32_t section,
     double *ml, double *mr, float *sendbus, uint32_t cc, float sr) {
     uint32_t i, mask;
@@ -489,8 +545,8 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 engine_section(e, 3, ml, mr, sendbus, cc, sr);
             }
             if (e->sections & RI_ENGINE_SLEVI) {
-                levi_voice_render_sum(&e->slevi, e->scratch, cc, sr);
-                engine_section(e, 4, ml, mr, sendbus, cc, sr);
+                levi_voice_render_sum_stereo(&e->slevi, e->scratch, e->scratchR, cc, sr);
+                engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr);
             }
             /* Shared delay send: one line over the summed post-insert
              * sends; stereo return with its own pan (NULL = dry). */

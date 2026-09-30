@@ -54,6 +54,7 @@ struct RIEngine {
     uint64_t cursor, total;
     uint32_t sections; /* RI_ENGINE_S* bits */
     float scratch[RI_ENGINE_BLOCK]; /* section bus: storage lives here */
+    float scratchR[RI_ENGINE_BLOCK]; /* Levi stereo right bus (P6c) */
     /* Insert routing (§12.8): radio-exclusivity owners + one voice each.
      * Neutral (no owners, sends 0, pans centre, delay detached) renders
      * bit-identical with the pre-routing engine. */

@@ -340,7 +340,9 @@ struct RILeviVoice {
     uint8_t ftype;        /* RI_LEVI_FTYPE_* */
     uint8_t padlp[3];
     float df[12];   /* digital filter state (model-dependent) */
+    float dfR[12];  /* right channel (P6c stereo; dual-mono filters) */
     float af[5];    /* analog ladder: 4 stages + last output */
+    float afR[5];
     struct RILeviLFO lfo[RI_LEVI_NLFO]; /* per-voice LFOs (4d) */
     float bias_envl;  /* Osc Env Level bias, -1..1 (device knob, P2) */
     float bias_t[4];  /* attack/decay/release/hold time scales (1 = none; hold has no knob) */
@@ -389,6 +391,18 @@ struct RILeviVoice {
     uint8_t vpad[3];
     float vom[RI_LEVI_DVO_N]; /* DM_VOICE offsets (P6b); -1..1 */
     uint8_t vom_on;
+    /* Stereo + scales (fidelity P6c, manual pp. 87-96). Pan/width/mode
+     * went live with the stereo sum; bend with the P9 MIDI data. */
+    float vspread;  /* 0..1 unison stereo spread (static ordinal) */
+    float oppan[RI_LEVI_NOPS]; /* per-oscillator pan -1..1 */
+    uint8_t vscale; /* 0..15 scale map */
+    uint8_t vmicro; /* 0..7 microtuning table */
+    uint8_t vkeylock; /* scale quantize on/off */
+    uint8_t vint_bits; /* 1..16 bit depth */
+    uint8_t vint_dec;  /* 1..32 sample-rate decimation */
+    uint8_t vpad2[3];
+    float vhold[2]; /* vintage hold values L/R */
+    uint32_t vcount; /* vintage decimation counter */
 };
 
 /* Osc Env Level & Bias (manual p. 54): device-wide offsets over every
@@ -455,6 +469,16 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_VGLIDE 0x0E65u
 #define RI_CTL_LEVI_VGLTIME 0x0E66u
 #define RI_CTL_LEVI_VGLCURVE 0x0E67u
+/* Stereo + scales (fidelity P6c): vintage, scale map, microtuning
+ * table, key lock, unison spread, per-oscillator pans. */
+#define RI_CTL_LEVI_VINTAGE 0x0E68u
+#define RI_CTL_LEVI_VSCALE 0x0E69u
+#define RI_CTL_LEVI_VMICRO 0x0E6Au
+#define RI_CTL_LEVI_VKEYLOCK 0x0E6Bu
+#define RI_CTL_LEVI_VSPREAD 0x0E6Cu
+#define RI_CTL_LEVI_VOSCPAN1 0x0E6Du  /* .. 0x0E74 = OSCPAN8 */
+#define RI_LEVI_NSCALES 16u
+#define RI_LEVI_NMICRO 8u
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u
@@ -533,9 +557,20 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
  * empty program) renders the legacy path bit-identically. */
 float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     float sr);
+/* Stereo render (fidelity P6c): per-oscillator pans through dual-mono
+ * filters. Center pans render dual-mono, bit-identical to the mono sum
+ * per channel. Idle voices write exact 0. */
+void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *mx,
+    float sr, float *l, float *r);
 /* Sum all voices into out (render mix, rb909 pattern). */
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
     float sr);
+/* Stereo sum (fidelity P6c): per-voice stereo into out_l/out_r. */
+void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
+    float *out_r, uint32_t n, float sr);
+/* Scale / microtuning names (own, upper case, never NULL). */
+const char *ri_levi_scale_name(uint32_t w);
+const char *ri_levi_micro_name(uint32_t w);
 /* Algorithm select (preset 0..63; 64/custom is readable, not settable).
  * Returns 0 ok, 2 bad. Selecting a preset replaces custom routing. */
 int levi_set_algo(struct RILeviSet *s, uint32_t voice, uint32_t algo);

@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 145u
+#define RI_SLEVI_NCTL 158u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -108,6 +108,13 @@
 #define RI_SLEVI_VGLIDE 142u
 #define RI_SLEVI_VGLTIME 143u
 #define RI_SLEVI_VGLCURVE 144u
+/* Stereo + scales (fidelity P6c): 145..158. */
+#define RI_SLEVI_VINTAGE 145u
+#define RI_SLEVI_VSCALE 146u
+#define RI_SLEVI_VMICRO 147u
+#define RI_SLEVI_VKEYLOCK 148u
+#define RI_SLEVI_VSPREAD 149u
+#define RI_SLEVI_VOSCPAN1 150u   /* 8 osc pans: 150..157 */
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */

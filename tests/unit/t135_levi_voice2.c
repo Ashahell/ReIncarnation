@@ -278,7 +278,7 @@ int main(void) {
     /* Keys / allow-list / pages. */
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_VDETUNE), "detune allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_VGLCURVE), "glcurve allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0E68u), "0x0E68 refused");
+    RI_ASSERT(!ri_auto_allowed(0x0E75u), "0x0E75 refused (P6c)");
     {
         const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 132u));
         RI_ASSERT(d && d->engine_id == RI_CTL_LEVI_VDETUNE, "reg detune");
@@ -288,7 +288,7 @@ int main(void) {
         memset(&lv, 0, sizeof lv);
         ri_slevi_init(&lv);
         RI_ASSERT(ri_slevi_set_value(&lv, RI_SLEVI_MODULE, (int)RI_SLEVI_M_VOICE) == 1, "voice module");
-        RI_ASSERT(ri_slevi_page_count(&lv) == 2u, "voice 2 pages");
+        RI_ASSERT(ri_slevi_page_count(&lv) == 4u, "voice 4 pages (P6c)");
         RI_ASSERT(ri_slevi_enc_live(&lv, 3u) && !strcmp(ri_slevi_enc_name(&lv, 3u), "DETUNE"), "slot3 detune");
         RI_ASSERT(ri_slevi_ctl_idx(&lv, RI_SLEVI_ENC0 + 3u) == RI_SLEVI_VDETUNE, "detune idx");
         RI_ASSERT(ri_slevi_press(&lv, RI_SLEVI_PAGEDN) == 1, "page 2");

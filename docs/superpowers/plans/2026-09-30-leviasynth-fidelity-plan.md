@@ -206,7 +206,22 @@ Each phase lands as TDD slices:
   - Keys `0x0E58..5A` (polymode 0..8 clamped, density 1..8, limit 1..6 clamped); registry rows 129..131 (Voice/Polyphony/Density/Poly Limit); VOICE page slots 0..2 live with texts (ROTATE/REASSIGN/MONO/MONO LO/MONO HI/UNISON/UNIS LO/UNIS HI/UNISPLY, density/limit counts); engine section-wide apply rides the existing 0x0E branch (no `engine.c` change).
 - **P6a E0 ledger:** legato = retune-only; reset wins over legato; reusable = silent or released-ringing (note no longer held); density maps `val*8/127+1`, limit `val*6/127+1`; unison density above the limit clamps (return counts applied voices); polymode UI value above 8 clamps to UnisonPoly.
 - **Tests:** t134 (allocator laws, legato vs reset incl. retune==trigger pitch law, bit-identical direct path, finite/bounded storm over all 9 modes, keys/allow-list/pages; 18 mutants killed incl. steal-advance, reset-inversion, want-clamp, retune-ratio); t60 (0x0E range to 0x0E5A), t77 (mapped 186, allow 1013) deliberate moves; t92/t93 unchanged (no art change, LCD text only).
-- Owner calls 2026-09-30: **8 voices, stereo.** P6b = voice params mono (detune, feel, vibrato, glide, bend range, pan/width stored, VoiceMod, Voice matrix module); P6c = stereo + scales/microtuning/vintage; P6d = 6→8 voices (pattern lanes stay 6, songs identical; allocator serves the extra voices).
+- Owner calls 2026-09-30: **8 voices, stereo.** Split: P6a allocator (done), P6b params mono (done), P6c stereo + scales/microtuning/vintage (below), P6d 6→8 voices (pattern lanes stay 6).
+
+#### P6c plan (stereo + scales/microtuning/vintage; before code 2026-09-30)
+
+- Keys `0x0E68..74` (13): VINTAGE, SCALE, MICRO, KEYLOCK, SPREAD, OSCPAN1..8. Registry rows 145..157 (`Voice` group), allow-list + engine section-wide apply, VOICE pages 3/4 and 4/4 (page 3: 8 osc pans; page 4: VINTAGE/SCALE/MICRO/KEYLOCK/SPREAD + 3 dead reserved).
+- Stereo: `levi_voice_render_stereo` + `sum_stereo`; per-op pan = clamp(vpan + oppan×width + spread×ordinal (+ matrix DO_PAN / DM_VOICE PAN+PANWIDTH)); modes BALANCE linear (default, center l=r=1 → dual mono, bit-identical through the strip), POWER equal-power via ri_sin, WIDE 150% law; engine section-4 stereo branch (inserts per channel, meter/send on mid, strip pan as balance reusing `engine_pan_gains`); new `scratchR` bus. P5b DO_PAN goes live.
+- Scales (own 16: chromatic + theory-standard names, masks authored): KEYLOCK quantizes trigger notes to nearest degree (ties lower), in trigger + legato retune (both engine paths).
+- Microtuning (own 8×12 cent tables, table 0 = equal): pitch mult 2^(c/1200) at trigger/retune.
+- Vintage (own law): bits = 16−floor(15a), decim = 1+floor(31a²), a = val/127; quantize + hold; exact bypass at val 0. Post-pan per voice.
+- E0: SPREAD static per voice index (unison spreads, poly static image); width 0 collapses ops to voice pan; keylock off = chromatic; micro table 0 inert; vintage default inert.
+- **Status: P6c done 2026-09-30** (engine, keys, UI, tests):
+  - Stereo: per-op pan = clamp(vpan + (oppan + matrix DO_PAN) × width + spread×ordinal) through BALANCE (linear, default, center l=r=1)/POWER (equal-power ri_sin)/WIDE (150% law); dual-mono filters (state parameterized, verified identical); `sum_stereo` + section-4 stereo branch (inserts per channel, meter/send on mid, strip pan as balance — center renders bit-identical, t104 unchanged green). P5b DO_PAN live. `voice_pass` takes optional R accumulation (NULL = legacy path exactly); mono render + mono sum frozen as the bit-identity reference (vintage/stereo live in the stereo path only).
+  - Scales (own 16 masks, computed not hand-rolled) + quantize (nearest, ties lower) in trigger + legato retune; microtuning (own 8×12 cent tables, 2^(c/1200)); vintage (bits 16−15a linear, decim 1+31a², exact bypass at 0, post-gain output degradation).
+  - Keys `0x0E68..74` (13); rows 145..157; VOICE 4 pages (3: 8 OSCPAN, 4: VINTAGE/SCALE/MICRO/KEYLOCK/SPREAD + 3 dead reserved).
+  - Proof deviation as P6b (Dell crash-loops everything): audit 0/0 clean worktree, Dell 0 UND + 0 r12, ASan/UBSan clean, riqemu1 window opens no crash; VOICE page pixels still deferred (tab nav failed: keys need focus, 2 click misses — same module, still pending).
+- **Tests:** t136 (dual-mono identity, hard-pan isolate, width collapse, 3 modes differ, spread, DO_PAN + DM_VOICE PAN routes, vintage bypass/degrade/1-bit quanta law, scale snap + whole-tone tie + clamp, micro move + 114 c ratio law, panmode clamp, keys/pages incl. 4 VOICE pages, null guards, extremes; 19 mutants killed); t135 page count 2→4 and `0x0E75` boundary, t60 range to `0x0E74`, t77 mapped 212 / allow 1039 deliberate moves.
 
 #### P6b plan (voice params, mono; before code 2026-09-30)
 
