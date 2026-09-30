@@ -206,7 +206,16 @@ Each phase lands as TDD slices:
   - Keys `0x0E58..5A` (polymode 0..8 clamped, density 1..8, limit 1..6 clamped); registry rows 129..131 (Voice/Polyphony/Density/Poly Limit); VOICE page slots 0..2 live with texts (ROTATE/REASSIGN/MONO/MONO LO/MONO HI/UNISON/UNIS LO/UNIS HI/UNISPLY, density/limit counts); engine section-wide apply rides the existing 0x0E branch (no `engine.c` change).
 - **P6a E0 ledger:** legato = retune-only; reset wins over legato; reusable = silent or released-ringing (note no longer held); density maps `val*8/127+1`, limit `val*6/127+1`; unison density above the limit clamps (return counts applied voices); polymode UI value above 8 clamps to UnisonPoly.
 - **Tests:** t134 (allocator laws, legato vs reset incl. retune==trigger pitch law, bit-identical direct path, finite/bounded storm over all 9 modes, keys/allow-list/pages; 18 mutants killed incl. steal-advance, reset-inversion, want-clamp, retune-ratio); t60 (0x0E range to 0x0E5A), t77 (mapped 186, allow 1013) deliberate moves; t92/t93 unchanged (no art change, LCD text only).
-- Owner calls 2026-09-30: **8 voices, stereo.** Split: P6a allocator (done), P6b params mono (done), P6c stereo + scales/microtuning/vintage (below), P6d 6→8 voices (pattern lanes stay 6).
+#### P6d plan (8 voices; before code 2026-09-30)
+
+- `RI_LEVI_NVOICES` 6→8 (owner call 2026-09-30). Pattern lanes stay 6 (`PAT_LEVI` 6 lanes, `SELECT` 0..5, `LSTEP`): songs bit-identical (lanes 0..5 direct, voices 6–7 idle); lanes 6–7 are live/allocator-only; engine lane guard admits 0..7.
+- Allocator follows automatically (rotate/reassign/unison over `NVOICES`, steal oldest); `ulimit` default 8; UDENSITY still ≤8; VoiceMod VMOD+/detune/spread ordinals recenter via the `(N-1)/2` macros (P6a–c code already macro-based).
+- E0: ulimit UI map scales with N (`val*N/127+1`) — a stored ULIMIT value from a 6-voice song maps higher under 8 voices (deliberate, minor; the key is two phases old and defaults dominate).
+- Tests: new t137 (8-voice rotate fill + steal, unison 8, reassign, mono voice 0, pattern-lane compat incl. lane 8 refused, default limit 8, init/active of voices 6–7); deliberate constant moves in t103 (`NVOICES` 8, bad-voice 8), t108/t109 (bad 8), t134 (loops + counts to 8).
+- **Status: P6d done 2026-09-30** (one-line count change + tests):
+  - Allocator/limits/ordinals all macro-driven — no DSP edits. Songs bit-identical (lanes 0..5 direct; t95-style twin renders in t137).
+  - Proof: audit 0/0 clean worktree, Dell 0 UND + 0 r12, ASan clean; riaudio lane (Dell still crash-loops everything): Levi tab live capture, PLAY/STOP ink, host wav peak 0.855 with 0 xruns over 5199 buffers.
+- **Tests:** t137 (7 targeted mutants: count pin via full rebuild, ulimit default, unison bound, steal origin, reassign-reuse, upoly clamp, set_param bound; allocator laws re-verified at 8 via t134); t129 bad-voice 8 (caught by the audit, not by me — noted).
 
 #### P6c plan (stereo + scales/microtuning/vintage; before code 2026-09-30)
 

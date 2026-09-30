@@ -35,7 +35,7 @@ int main(void) {
     levi_init_set(&s);
     /* Default: pos 0, target DUO. */
     RI_ASSERT(levi_morph_get(&s, 0u) == 0, "pos default");
-    RI_ASSERT(levi_morph_get(&s, 6u) < 0, "bad voice neg");
+    RI_ASSERT(levi_morph_get(&s, 8u) < 0, "bad voice neg");
     RI_ASSERT(levi_morph_get(0, 0u) < 0, "null neg");
     /* Render reference, then an identically-reset voice morphed at
      * sample 0: pos 0 must be bit-identical (B contributes x0). */
@@ -66,7 +66,7 @@ int main(void) {
     /* Fail-closed edges. */
     RI_ASSERT(levi_set_morph(&s, 0u, RI_LEVI_ALGO_ALLPAR, 101u) == 2, "pos range");
     RI_ASSERT(levi_set_morph(&s, 0u, RI_LEVI_ALGO_N, 50u) == 2, "bad target");
-    RI_ASSERT(levi_set_morph(&s, 6u, RI_LEVI_ALGO_ALLPAR, 50u) == 2, "bad voice");
+    RI_ASSERT(levi_set_morph(&s, 8u, RI_LEVI_ALGO_ALLPAR, 50u) == 2, "bad voice");
     RI_ASSERT(levi_set_morph(0, 0u, RI_LEVI_ALGO_ALLPAR, 50u) == 2, "null set");
     RI_RESULT("levimorph");
 }

@@ -72,7 +72,7 @@ int main(void) {
     render(&B, ob, 9600u);
     RI_ASSERT(memcmp(oa, ob, 9600u * sizeof(float)) == 0, "re-sent defaults are the v1 voice");
     RI_ASSERT(levi_set_op_ui(&B, 0u, 8u, 0u, 0u) == 2 && levi_set_op_ui(&B, 0u, 0u, RI_LEVI_OP_NPARAM, 0u) == 2 &&
-        levi_set_op_ui(0, 0u, 0u, 0u, 0u) == 2 && levi_set_op_ui(&B, 6u, 0u, 0u, 0u) == 2, "fail-closed");
+        levi_set_op_ui(0, 0u, 0u, 0u, 0u) == 2 && levi_set_op_ui(&B, 8u, 0u, 0u, 0u) == 2, "fail-closed (P6d)");
 
     /* ---- Own wave set. ---- */
     for (w = 0u; w < RI_LEVI_NWAVES; w++) {

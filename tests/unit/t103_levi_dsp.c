@@ -40,7 +40,7 @@ static int finite(const float *b, uint32_t n) {
 int main(void) {
     static struct RILeviSet a, b;
     static float oa[4096], ob[4096];
-    RI_ASSERT(RI_LEVI_NVOICES == 6u, "6 voices");
+    RI_ASSERT(RI_LEVI_NVOICES == 8u, "8 voices (P6d)");
     levi_init_set(&a);
     levi_init_set(&b);
     render_set(&a, oa, 4096u);
@@ -146,7 +146,7 @@ int main(void) {
         RI_ASSERT(energy(om, 4800u) > 1000u && memcmp(om, fm, sizeof om) != 0, "op mode sounds");
         RI_ASSERT(levi_set_op_mode(&a, 0u, 1u, 7u) == 2, "bad op mode");
         RI_ASSERT(levi_set_op_mode(&a, 0u, 8u, RI_LEVI_PWM) == 2, "bad op");
-        RI_ASSERT(levi_set_op_mode(&a, 6u, 0u, RI_LEVI_PWM) == 2, "bad voice");
+        RI_ASSERT(levi_set_op_mode(&a, 8u, 0u, RI_LEVI_PWM) == 2, "bad voice (P6d)");
         RI_ASSERT(levi_set_op_mode(0, 0u, 0u, RI_LEVI_PWM) == 2, "null set");
     }
     /* Filter types + drive (owner 2026-09-28, v2 slice 2a: SVF taps,
@@ -265,13 +265,13 @@ int main(void) {
     RI_ASSERT(levi_set_param(&a, 0u, RI_LEVI_CUTOFF, 400.0f) == 0, "param rc");
     render_set(&a, ob, 2048u);
     RI_ASSERT(memcmp(oa, ob, 2048u * sizeof(float)) != 0, "cutoff moves");
-    RI_ASSERT(levi_trigger(&a, 6u, 60u) == 2, "bad voice");
+    RI_ASSERT(levi_trigger(&a, 8u, 60u) == 2, "bad voice (P6d)");
     RI_ASSERT(levi_trigger(0, 0u, 60u) == 2, "null trig");
     RI_ASSERT(levi_trigger(&a, 0u, 128u) == 2, "bad note");
-    RI_ASSERT(levi_set_param(&a, 6u, RI_LEVI_CUTOFF, 400.0f) == 2, "bad param voice");
+    RI_ASSERT(levi_set_param(&a, 8u, RI_LEVI_CUTOFF, 400.0f) == 2, "bad param voice (P6d)");
     RI_ASSERT(levi_set_param(&a, 0u, 99u, 400.0f) == 2, "bad param id");
     RI_ASSERT(levi_set_param(0, 0u, RI_LEVI_CUTOFF, 400.0f) == 2, "null param");
-    levi_release(&a, 6u);
+    levi_release(&a, 8u);
     levi_release(0, 0u);
     RI_RESULT("levidsp");
 }

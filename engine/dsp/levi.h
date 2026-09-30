@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include "engine/dsp/levi_matrix.h"
 
-#define RI_LEVI_NVOICES 6u
+#define RI_LEVI_NVOICES 8u
 #define RI_LEVI_NOPS 8u
 /* Algorithm ids (own presets; 8 = custom routing, readable not settable). */
 #define RI_LEVI_ALGO_DUO 0u     /* one 2-op pair (v1 sound), rest idle */

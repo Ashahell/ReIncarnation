@@ -18,7 +18,7 @@ static int active_notes(struct RILeviSet *s, int v) {
 }
 static int active_count(struct RILeviSet *s) {
     int n = 0, v;
-    for (v = 0; v < 6; v++)
+    for (v = 0; v < (int)RI_LEVI_NVOICES; v++)
         n += active_notes(s, v);
     return n;
 }
@@ -30,7 +30,7 @@ int main(void) {
     /* Defaults. */
     levi_init_set(&s);
     RI_ASSERT(levi_alloc_mode(&s) == 0u, "default rotate");
-    RI_ASSERT(s.udensity == 8u && s.ulimit == 6u, "default density 8 limit 6");
+    RI_ASSERT(s.udensity == 8u && s.ulimit == RI_LEVI_NVOICES, "default density 8 limit 8 (P6d)");
     RI_ASSERT(levi_set_param_ui(&s, 0u, RI_CTL_LEVI_POLYMODE & 0xFFu, 0u) == 0, "polymode set");
     RI_ASSERT(levi_set_param_ui(&s, 0u, RI_CTL_LEVI_POLYMODE & 0xFFu, 8u) == 0, "polymode max");
     RI_ASSERT(levi_set_param_ui(&s, 0u, RI_CTL_LEVI_POLYMODE & 0xFFu, 9u) == 0, "polymode clamp");
@@ -47,14 +47,14 @@ int main(void) {
         RI_ASSERT(a == b, "direct bit-identical");
     }
 
-    /* Rotate: 6 notes fill 0..5, 7th steals voice 0. */
+    /* Rotate: 8 notes fill 0..7, 9th steals voice 0. */
     levi_init_set(&s);
     levi_set_alloc_ui(&s, 0u);
-    for (v = 0; v < 6; v++) {
+    for (v = 0; v < 8; v++) {
         n = levi_note_on(&s, (uint8_t)(60 + v));
         RI_ASSERT(n == 1, "rotate one %d", v);
     }
-    RI_ASSERT(active_count(&s) == 6, "rotate full");
+    RI_ASSERT(active_count(&s) == 8, "rotate full");
     RI_ASSERT(s.v[0].note == 60, "rotate order");
     n = levi_note_on(&s, 70u);
     RI_ASSERT(n == 1, "rotate steal one");
@@ -96,8 +96,8 @@ int main(void) {
     levi_init_set(&s);
     levi_set_alloc_ui(&s, 5u);
     n = levi_note_on(&s, 60u);
-    RI_ASSERT(n == 6, "unison all %d", n);
-    for (v = 0; v < 6; v++)
+    RI_ASSERT(n == 8, "unison all %d", n);
+    for (v = 0; v < 8; v++)
         RI_ASSERT(s.v[v].active && s.v[v].note == 60, "unison same %d", v);
     /* Unison legato: voice 0 retunes, others full-retrigger. */
     levi_set_op_ui(&s, 0u, 0u, RI_LEVI_OP_LEGATO, 1u);
@@ -118,7 +118,7 @@ int main(void) {
     levi_init_set(&s);
     levi_set_alloc_ui(&s, 8u);
     levi_set_param_ui(&s, 0u, RI_CTL_LEVI_UDENSITY & 0xFFu, 16u); /* 2 stacked */
-    levi_set_param_ui(&s, 0u, RI_CTL_LEVI_ULIMIT & 0xFFu, 64u);   /* 4 voices */
+    levi_set_param_ui(&s, 0u, RI_CTL_LEVI_ULIMIT & 0xFFu, 48u);   /* 4 voices (P6d) */
     levi_note_on(&s, 60u);
     RI_ASSERT(active_count(&s) == 2, "upoly density");
     levi_note_on(&s, 64u);
@@ -133,7 +133,7 @@ int main(void) {
     n = levi_note_on(&s, 60u);
     RI_ASSERT(n == 2, "upoly clamp %d", n);
     levi_set_param_ui(&s, 0u, RI_CTL_LEVI_ULIMIT & 0xFFu, 127u);
-    RI_ASSERT(s.ulimit == 6u, "limit clamp 6");
+    RI_ASSERT(s.ulimit == RI_LEVI_NVOICES, "limit clamp 8 (P6d)");
 
     /* Legato retune vs reset restart (mono, op legato flag). */
     levi_init_set(&s);
@@ -203,7 +203,7 @@ int main(void) {
             for (i = 0; i < 40; i++)
                 levi_note_on(&s, (uint8_t)(30 + (i * 7) % 90));
             for (i = 0; i < 4800; i++) {
-                float x = levi_voice_render(&s.v[i % 6], 0, SR);
+                float x = levi_voice_render(&s.v[i % RI_LEVI_NVOICES], 0, SR);
                 if (!(x > -8.0f && x < 8.0f))
                     bad = 1;
             }

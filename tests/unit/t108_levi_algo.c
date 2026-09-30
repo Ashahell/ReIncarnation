@@ -53,9 +53,9 @@ int main(void) {
         RI_ASSERT(levi_set_algo(&s, 0u, v) == 0, "preset %u", v);
     RI_ASSERT(levi_algo_get(&s, 0u) == 7, "algo reads back");
     RI_ASSERT(levi_set_algo(&s, 0u, RI_LEVI_ALGO_CUSTOM) == 2, "custom not settable");
-    RI_ASSERT(levi_set_algo(&s, 6u, 0u) == 2, "bad voice");
+    RI_ASSERT(levi_set_algo(&s, 8u, 0u) == 2, "bad voice");
     RI_ASSERT(levi_set_algo(0, 0u, 0u) == 2, "null set");
-    RI_ASSERT(levi_algo_get(&s, 6u) < 0, "bad voice reads negative");
+    RI_ASSERT(levi_algo_get(&s, 8u) < 0, "bad voice reads negative");
     RI_ASSERT(levi_algo_get(0, 0u) < 0, "null reads negative");
     /* Every preset sounds finite with a triad held. */
     for (v = 0u; v < 8u; v++) {
@@ -87,12 +87,12 @@ int main(void) {
     RI_ASSERT(levi_set_route(&s, 0u, 3u, 3) == 2, "self refused");
     RI_ASSERT(levi_set_route(&s, 0u, 8u, -1) == 2, "bad op");
     RI_ASSERT(levi_set_route(&s, 0u, 2u, 8) == 2, "bad src");
-    RI_ASSERT(levi_set_route(&s, 6u, 0u, -1) == 2, "bad voice");
+    RI_ASSERT(levi_set_route(&s, 8u, 0u, -1) == 2, "bad voice");
     RI_ASSERT(levi_set_route(0, 0u, 0u, -1) == 2, "null set");
     RI_ASSERT(levi_route_get(&s, 0u, 1u) == 0, "route reads back");
     RI_ASSERT(levi_route_get(&s, 0u, 7u) == -1, "unset reads carrier");
     RI_ASSERT(levi_route_get(&s, 0u, 8u) == -2, "bad op reads -2");
-    RI_ASSERT(levi_route_get(&s, 6u, 0u) == -2, "bad voice reads -2");
+    RI_ASSERT(levi_route_get(&s, 8u, 0u) == -2, "bad voice reads -2");
     RI_ASSERT(levi_algo_get(&s, 0u) == (int)RI_LEVI_ALGO_CUSTOM, "custom reads 64");
     RI_RESULT("levialgo");
 }
