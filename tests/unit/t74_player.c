@@ -139,8 +139,10 @@ int main(void) {
         ri_track_init(&tr);
         ri_player_init(&pl, c4, &tr, 0u);
         n = ri_player_block(&pl, &tr, 0, &MAP, 96u, 0u, bar, ev, 256u);
-        RI_ASSERT(pl.phase_ticks[0] == 0u, "len16 wraps in 1 bar");
-        RI_ASSERT(pl.phase_ticks[1] == 0u, "len8 wraps twice in 1 bar");
+        /* An end exactly at the block edge stays unwrapped (phase == len)
+         * until the next block samples that downbeat (2026-09-30 fix). */
+        RI_ASSERT(pl.phase_ticks[0] == 384u, "len16 ends at the block edge, unwrapped");
+        RI_ASSERT(pl.phase_ticks[1] == 192u, "len8 wraps once inside, ends at the edge");
         RI_ASSERT(pl.sounding_slot[0] == 0u, "no change, no flip");
         /* p.20 deferral (R-DEFERRAL): BB len 6 ends at 144/288/432 —
          * none a downbeat. Selection at bar 1 fires its
@@ -220,7 +222,7 @@ int main(void) {
         ri_track_init(&tr);
         ri_player_init(&pl, c4, &tr, 5u);
         n = ri_player_block(&pl, &tr, 0, &MAP, 96u, 5u * bar, 6u * bar, ev, 256u);
-        RI_ASSERT(pl.phase_ticks[0] == 0u && pl.phase_ticks[2] == 0u, "edits wrap even");
+        RI_ASSERT(pl.phase_ticks[0] == 384u && pl.phase_ticks[2] == 96u, "edits wrap even (edge end unwrapped)");
         /* Bank content mutation sounds with NO refresh (live read). */
         ri_p303_set(&BA.pat[0], 1u, 4u, 0u);
         {
@@ -243,7 +245,7 @@ int main(void) {
         n = ri_player_block(&pl, &tr, 0, &MAP, 96u, 0u, 192u, ev, 256u);
         RI_ASSERT(pl.phase_ticks[0] == 192u, "half pattern, phase 192");
         n = ri_player_block(&pl, &tr, 0, &MAP, 96u, 5000u, 5000u + 192u, ev, 256u);
-        RI_ASSERT(pl.phase_ticks[0] == 0u, "seek jumps tick, phase still wraps even");
+        RI_ASSERT(pl.phase_ticks[0] == 384u, "seek jumps tick, phase still wraps even (edge end unwrapped)");
         RI_ASSERT(pl.sounding_slot[0] == 0u, "seek moves no changeover");
         /* Corrupt length: silent, no hang. R-CORRUPT: the pre-check
          * also freezes sounding (the trip-count alone would flip it

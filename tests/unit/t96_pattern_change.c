@@ -76,14 +76,15 @@ int main(void) {
             done += gotA;
         }
         RI_ASSERT(done == 96000u * 4u, "rendered %u", done);
-        for (i = 0u; i < 3u; i++)
+        for (i = 0u; i < 2u; i++)
             RI_ASSERT(!memcmp(aL + barlen * i, bL + barlen * i, barlen * sizeof(float)),
                 "pre-flip same bar %u", i);
-        /* One-shot capture at bar 2 sounds during bar 3, then reverts to
-         * the grid (bar 4 = slot 0). Persistence is the shell's sticky
-         * re-capture (proven below), not the player. */
-        RI_ASSERT(memcmp(aL + barlen * 3u, bL + barlen * 3u, barlen * sizeof(float)) != 0,
-            "one-shot sounds bar 3");
+        /* One-shot capture at bar 2 sounds during bar 2 (sample-before-flip
+         * at its downbeat; 2026-09-30: here every bar line met a block
+         * edge, so it used to land one bar late). Persistence is the
+         * shell's sticky re-capture (proven below), not the player. */
+        RI_ASSERT(memcmp(aL + barlen * 2u, bL + barlen * 2u, barlen * sizeof(float)) != 0,
+            "one-shot sounds bar 2");
     }
     /* Sticky: re-captured selections persist (what the shell does). */
     {

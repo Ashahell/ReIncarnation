@@ -1498,3 +1498,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (phase record; continues the v2 record)
 - Raw: llm-wiki/raw/articles/2026-09-30-leviasynth-fidelity-p1-p5.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-09-30] ingest | Songs & playlists + Zombie Nation demo
+- Disposition: New (feature record; two owner decisions: local-only cover, RBNG Levi bank v1.5)
+- Raw: llm-wiki/raw/articles/2026-09-30-songs-playlists-zombie-nation.md
+- Updated: llm-wiki/index.md (Live app entry list)

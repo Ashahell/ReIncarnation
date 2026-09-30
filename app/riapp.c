@@ -63,6 +63,8 @@
 #include <proto/muimaster.h>
 #include <proto/timer.h>
 #include <proto/utility.h>
+#include <proto/asl.h>
+#include <libraries/asl.h>
 #include <utility/tagitem.h>
 #include <clib/alib_protos.h>
 #include "engine/live.h"
@@ -94,6 +96,8 @@
 #include "audio_io/audio_ahi_live.h"
 #include "app/core/riapp_core.h"
 #include "platform/aros/pack_909.h"
+#include "project/rbng.h"
+#include "project/playlist.h"
 #include "platform/pal/ri_pal_fs.h"
 #include "platform/pal/ri_pal_log.h"
 
@@ -200,6 +204,7 @@ static char s_tablbl[5][16];
 #define RIAPP_ID_DEV0 1001u /* + device: Devices-tab toggle buttons */
 #define RIAPP_ID_TAB0 1020u /* + tab: hardware tab keys */
 #define RIAPP_ID_ZOOM0 1030u /* + zoom: 0 = 1x, 1 = 1.5x, 2 = 2x, 3 = Fit */
+#define RIAPP_ID_SONG0 1040u /* + Songs menu: 0 load song, 1 load playlist, 2 next, 3 previous, 4 pattern mode */
 /* Window chrome estimate for Fit (S5, fail-safe generous: borders +
  * title + menu strip + slack; overestimating can only pick smaller). */
 #define RIAPP_CHROME_W 32
@@ -207,6 +212,7 @@ static char s_tablbl[5][16];
 static Object *s_root;          /* window root group (zoom InitChange) */
 static Object *s_zoomitems[4];  /* View menu items (zoom checkmarks) */
 static int s_zoom_mode = RI_ZOOMFIT_FIT; /* -1 Fit, else content zoom */
+static Object *s_songitems[5]; /* Songs menu items (NULL when the menu failed) */
 
 /* Sync shadows (state-compare: the panel is the truth, the session follows). */
 static int s_tr_state;
@@ -420,7 +426,10 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
     if (u->u.pat.bank != s_pat_bank[c] || u->u.pat.pattern != s_pat_pat[c]) {
         s_pat_bank[c] = u->u.pat.bank;
         s_pat_pat[c] = u->u.pat.pattern;
-        ri_core_capture_sel(&s_core, bar, inst, (uint8_t)sel);
+        /* Song mode (songs & playlists 2026-09-30): the song track owns
+         * the selections; the panel only shows the chosen slot. */
+        if (!s_ui[C_TR]->u.tr.song_mode)
+            ri_core_capture_sel(&s_core, bar, inst, (uint8_t)sel);
         evlog("PAT", "c=%d inst=%d sel=%d", c, inst, sel);
         if (c == C_P0 || c == C_P1) {
             /* 303A/B show the selected slot: refresh steps from the bank. */
@@ -453,7 +462,8 @@ static void sync_pat(int c, uint64_t cursor_ticks) {
     }
     /* Sticky live selection (E1 pattern mode): re-assert the panel selection
      * at the snapshot bar every round (no-op when stored, silent). */
-    ri_core_capture_sel(&s_core, bar, inst, (uint8_t)sel);
+    if (!s_ui[C_TR]->u.tr.song_mode)
+        ri_core_capture_sel(&s_core, bar, inst, (uint8_t)sel);
     if (u->u.pat.length[sel] != s_pat_len[c][sel]) {
         s_pat_len[c][sel] = u->u.pat.length[sel];
         evlog("PATLEN", "c=%d sel=%d len=%d", c, sel, u->u.pat.length[sel]);
@@ -587,6 +597,251 @@ static void sync_values(void) {
             }
         }
     }
+}
+
+/* ---- Songs & playlists (owner 2026-09-30) -------------------------------
+ * Load an RBNG song (or a playlist of them) into the core, show it on the
+ * panels, play it in Song mode and move to the next playlist entry when a
+ * song has played through its last sounding bar. The song track owns the
+ * pattern selections in Song mode (sync_pat stops capturing). */
+static struct RISong s_song;
+static struct RBAutoEv s_song_ev[RI_CORE_AUTO_CAP];
+static uint32_t s_song_tk[RI_CORE_AUTO_CAP];
+static uint16_t s_song_ct[RI_CORE_AUTO_CAP];
+static uint8_t s_song_vl[RI_CORE_AUTO_CAP];
+static struct RIPlaylist s_pl;
+static int s_pl_on;
+static uint32_t s_pl_cur;
+static int s_song_on;             /* a song is loaded (Song mode) */
+
+/* Stop the transport and wait until the render task has applied it: the
+ * load below rewrites banks/track/automation it reads while playing. */
+static void song_transport_stop(void) {
+    struct RISectUI *t = s_ui[C_TR];
+    int n;
+    if (t->u.tr.tr.state != RI_TR_STOPPED) {
+        ri_str_press(&t->u.tr, RI_STR_STOP);
+        sync_transport();
+    }
+    for (n = 0; n < 50 && s_core.session.tr.state != RI_TR_STOPPED; n++)
+        Delay(1);
+}
+
+/* Tick-0 automation onto the panels (knobs show the song's sound). */
+static void song_ui_apply(void) {
+    uint32_t i, k, c;
+    struct RISectLevi *lv = &s_ui[C_LEVI]->u.slevi;
+    for (i = 0u; i < s_song.natrk && s_song.atrk[i].tick == 0u; i++) {
+        uint16_t key = s_song.atrk[i].ctl;
+        uint8_t val = s_song.atrk[i].val;
+        uint32_t blk = key & 0xFF00u, lo = key & 0xFFu;
+        if (blk == 0x0F00u) {                        /* Levi oscillator params */
+            lv->opv[(lo >> 5) & 7u][lo & 31u] = val;
+            if ((lo & 31u) == RI_LEVI_OP_MODE)
+                lv->opmode[(lo >> 5) & 7u] = val;
+            continue;
+        }
+        if (blk == 0x1000u) {                        /* ENV 1-5 / LFO 1-5 */
+            if (lo < 0xA0u && (lo >> 5) < RI_LEVI_NMENV)
+                lv->mev[lo >> 5][lo & 31u] = val;
+            else if (lo >= 0xA0u && lo < 0xF0u)
+                lv->lfv[(lo - 0xA0u) >> 4][lo & 15u] = val;
+            continue;
+        }
+        if (blk == 0x1100u && lo < 0x80u) {          /* matrix route fields */
+            lv->mxv[lo >> 2][lo & 3u] = val;
+            continue;
+        }
+        if (blk == 0x1200u) {                        /* macro route fields */
+            lv->mrv[lo >> 5][(lo >> 2) & 7u][lo & 3u] = val;
+            continue;
+        }
+        for (k = 0u; k < ri_ctlreg_count(); k++) {
+            const struct RICtlDef *d = ri_ctlreg_at(k);
+            if (!d || !d->automatable || ri_ctlreg_auto_id(d) != key)
+                continue;
+            for (c = 0u; c < C_N; c++)
+                if (s_ui[c] && c_sections[c] == d->section) {
+                    ri_sui_set(s_ui[c], d->reg_id & 0xFFu, val);
+                    break;
+                }
+            break;
+        }
+    }
+    for (c = 0u; c < C_N; c++)
+        if (s_canvas[c])
+            ri_rsection_refresh(s_canvas[c]);
+}
+
+/* Pattern panels: lengths from the banks, selection = the bar-0 slot,
+ * voice canvases refreshed through sync_pat's selection branch. */
+static void song_ui_sync(void) {
+    int c;
+    for (c = C_P0; c <= C_P4; c++) {
+        struct RISectUI *u = s_ui[c];
+        uint32_t inst = c_pat_instance[c], k;
+        const struct RIPatternBank *b = ri_core_bank_ro(&s_core, inst);
+        uint8_t sel = ri_track_selected(&s_core.track, 0u, inst);
+        for (k = 0u; k < 32u; k++) {
+            uint8_t len = b->pat[k].length ? b->pat[k].length : 16u;
+            u->u.pat.length[k] = len;
+            s_pat_len[c][k] = len;
+        }
+        u->u.pat.off = 0u;
+        s_pat_off[c] = 0u;
+        u->u.pat.bank = (uint8_t)(sel / 8u);
+        u->u.pat.pattern = (uint8_t)(sel % 8u);
+        s_pat_bank[c] = 0xFFu;                        /* force the refresh branch */
+        sync_pat(c, 0u);
+        ri_rsection_refresh(s_canvas[c]);
+    }
+}
+
+static int song_load_path(const char *path) {
+    static char err[160];
+    struct RICoreSong cs;
+    struct RISectUI *t = s_ui[C_TR];
+    uint32_t i, k;
+    song_transport_stop();
+    rbng_song_init(&s_song);
+    s_song.atrk = s_song_ev;
+    s_song.atrk_cap = RI_CORE_AUTO_CAP;
+    if (rbng_read_song(path, &s_song, err, sizeof err) != 0) {
+        rlog("RIAPP song %s: %s\n", path, err);
+        evlog("SONG", "fail %s", path);
+        return 2;
+    }
+    memset(&cs, 0, sizeof cs);
+    for (k = 0u; k < s_song.nbanks; k++)
+        if (s_song.bank[k].instance < RI_SONGTRACK_INSTANCES)
+            cs.bank[s_song.bank[k].instance] = &s_song.bank[k];
+    cs.track = &s_song.track;
+    cs.bpm = (float)s_song.tempo;
+    cs.ppq = s_song.ppq;
+    for (i = 0u; i < s_song.natrk; i++) {
+        s_song_tk[i] = s_song.atrk[i].tick;
+        s_song_ct[i] = s_song.atrk[i].ctl;
+        s_song_vl[i] = s_song.atrk[i].val;
+    }
+    cs.auto_tick = s_song_tk;
+    cs.auto_ctl = s_song_ct;
+    cs.auto_val = s_song_vl;
+    cs.nauto = s_song.natrk;
+    if (ri_core_load_song(&s_core, &cs) != 0)
+        rlog("RIAPP song %s: automation refused (%ld events)\n", path, (long)cs.nauto);
+    s_core.session.cursor_ticks = 0u;                 /* from the top */
+    s_core.session.tr.clicks = 0u;
+    ri_live_set_sections(&s_core.session, ri_live_sections(&s_core.session) | s_core.song_sections);
+    if (!t->u.tr.song_mode)
+        ri_str_press(&t->u.tr, RI_STR_MODE);
+    ri_str_set_value(&t->u.tr, RI_STR_TEMPO, (int)s_song.tempo);
+    t->u.tr.cursor = 0u;
+    s_song_on = 1;
+    song_ui_sync();
+    song_ui_apply();
+    rlog("RIAPP song %s: %ld bars at %ld BPM\n", path, (long)s_core.song_bars, (long)s_song.tempo);
+    evlog("SONG", "load %s bars=%lu bpm=%lu", path, (unsigned long)s_core.song_bars, (unsigned long)s_song.tempo);
+    ri_str_press(&t->u.tr, RI_STR_PLAY);
+    sync_transport();
+    return 0;
+}
+
+static int playlist_load_path(const char *path) {
+    static char text[16384], err[160], dir[RI_PLAYLIST_PATH];
+    BPTR fh = Open((CONST_STRPTR)path, MODE_OLDFILE);
+    LONG n;
+    if (!fh) {
+        rlog("RIAPP playlist %s: cannot open\n", path);
+        return 2;
+    }
+    n = Read(fh, text, (LONG)sizeof text - 1);
+    Close(fh);
+    text[n > 0 ? n : 0] = '\0';
+    ri_playlist_dirname(path, dir, sizeof dir);
+    if (ri_playlist_parse(text, dir, &s_pl, err, sizeof err) != 0) {
+        rlog("RIAPP playlist %s: %s\n", path, err);
+        return 2;
+    }
+    s_pl_on = 1;
+    s_pl_cur = 0u;
+    rlog("RIAPP playlist %s: %ld songs\n", path, (long)s_pl.n);
+    return song_load_path(s_pl.e[0].path);
+}
+
+static void playlist_step(int dir) {
+    uint32_t k;
+    if (!s_pl_on)
+        return;
+    for (k = 0u; k < s_pl.n; k++) {                   /* skip entries that fail to load */
+        s_pl_cur = dir > 0 ? ri_playlist_next(&s_pl, s_pl_cur) : ri_playlist_prev(&s_pl, s_pl_cur);
+        if (song_load_path(s_pl.e[s_pl_cur].path) == 0)
+            return;
+    }
+}
+
+/* ASL file requester; 0 ok with path filled. */
+static int song_pick(const char *title, const char *pattern, char *path, ULONG cap) {
+    struct FileRequester *fr;
+    int ok = 0;
+    if (!AslBase)
+        return 2;
+    fr = (struct FileRequester *)AllocAslRequestTags(ASL_FileRequest,
+        ASLFR_TitleText, (IPTR)title,
+        ASLFR_InitialPattern, (IPTR)pattern,
+        ASLFR_DoPatterns, TRUE,
+        TAG_DONE);
+    if (!fr)
+        return 2;
+    if (AslRequest(fr, 0) && fr->fr_File && fr->fr_File[0]) {
+        strncpy(path, (const char *)fr->fr_Drawer, cap - 1u);
+        path[cap - 1u] = '\0';
+        ok = AddPart((STRPTR)path, fr->fr_File, cap) ? 1 : 0;
+    }
+    FreeAslRequest(fr);
+    return ok ? 0 : 2;
+}
+
+static void song_menu(ULONG id) {
+    static char path[256];
+    switch (id) {
+    case 0u:
+        if (song_pick("Load song", "#?.rbng", path, sizeof path) == 0) {
+            s_pl_on = 0;
+            song_load_path(path);
+        }
+        break;
+    case 1u:
+        if (song_pick("Load playlist", "#?.rbpl", path, sizeof path) == 0)
+            playlist_load_path(path);
+        break;
+    case 2u:
+        playlist_step(1);
+        break;
+    case 3u:
+        playlist_step(-1);
+        break;
+    default:                                          /* back to Pattern mode */
+        s_song_on = 0;
+        s_pl_on = 0;
+        if (s_ui[C_TR]->u.tr.song_mode)
+            ri_str_press(&s_ui[C_TR]->u.tr, RI_STR_MODE);
+        break;
+    }
+}
+
+/* End of song: one bar of tail after the last sounding bar, then the next
+ * playlist entry (wrapping), or stop for a single song. */
+static void song_poll_end(int have_cursor, uint64_t cursor) {
+    if (!s_song_on || !have_cursor || !s_core.song_bars || s_core.session.tr.state == RI_TR_STOPPED)
+        return;
+    if (cursor / RIAPP_TICKS_BAR < (uint64_t)s_core.song_bars + 1u)
+        return;
+    if (s_pl_on && s_pl.n > 1u)
+        playlist_step(1);
+    else if (s_pl_on)
+        song_load_path(s_pl.e[s_pl_cur].path);        /* one-song playlist: again */
+    else
+        song_transport_stop();
 }
 
 /* Meters + position from the published snapshot only (G6b). Levels feed
@@ -1653,7 +1908,10 @@ int main(int argc, char **argv) {
          * 2026-09-29: no menu bar rendered). A failed menu falls back
          * to no menustrip (logged) while the panel still opens. */
         static const char *const zt[4] = { "Zoom 1x", "Zoom 1.5x", "Zoom 2x", "Zoom Fit" };
-        Object *menu = 0, *menustrip = 0;
+        /* Songs menu (songs & playlists 2026-09-30). */
+        static const char *const st[5] = { "Load Song...", "Load Playlist...", "Next Song", "Previous Song",
+            "Pattern Mode" };
+        Object *menu = 0, *menustrip = 0, *smenu = 0;
         LONG checked = (LONG)(s_zoom_mode == RI_ZOOMFIT_FIT ? 3 : s_zoom_mode);
         int k, ok = 1;
         for (k = 0; k < 4; k++) {
@@ -1677,7 +1935,26 @@ int main(int argc, char **argv) {
                 ok = 0;
         }
         if (ok) {
-            menustrip = (Object *)MUI_NewObject(MUIC_Menustrip,
+            for (k = 0; k < 5; k++)
+                s_songitems[k] = (Object *)MUI_NewObject(MUIC_Menuitem,
+                    MUIA_Menuitem_Title, (IPTR)st[k],
+                    TAG_DONE);
+            smenu = (Object *)MUI_NewObject(MUIC_Menu,
+                MUIA_Menu_Title, (IPTR)"Songs",
+                MUIA_Family_Child, (IPTR)s_songitems[0],
+                MUIA_Family_Child, (IPTR)s_songitems[1],
+                MUIA_Family_Child, (IPTR)s_songitems[2],
+                MUIA_Family_Child, (IPTR)s_songitems[3],
+                MUIA_Family_Child, (IPTR)s_songitems[4],
+                TAG_DONE);
+            if (!smenu && DOSBase)
+                rlog("RIAPP songs: no Songs menu (SONG=/PLAYLIST= still work)\n");
+        }
+        if (ok) {
+            menustrip = smenu ? (Object *)MUI_NewObject(MUIC_Menustrip,
+                MUIA_Family_Child, (IPTR)smenu,
+                MUIA_Family_Child, (IPTR)menu,
+                TAG_DONE) : (Object *)MUI_NewObject(MUIC_Menustrip,
                 MUIA_Family_Child, (IPTR)menu,
                 TAG_DONE);
             if (!menustrip)
@@ -1729,6 +2006,10 @@ int main(int argc, char **argv) {
         if (s_zoomitems[i])
             DoMethod(s_zoomitems[i], MUIM_Notify, MUIA_Menuitem_Trigger, MUIV_EveryTime,
                 (IPTR)app, 3, MUIM_Application_ReturnID, RIAPP_ID_ZOOM0 + (ULONG)i);
+    for (i = 0; i < 5; i++)
+        if (s_songitems[i])
+            DoMethod(s_songitems[i], MUIM_Notify, MUIA_Menuitem_Trigger, MUIV_EveryTime,
+                (IPTR)app, 3, MUIM_Application_ReturnID, RIAPP_ID_SONG0 + (ULONG)i);
     rail_for_tab();
     SetAttrs(win, MUIA_Window_Open, TRUE, TAG_DONE);
     rail_leds_show();
@@ -1739,6 +2020,16 @@ int main(int argc, char **argv) {
             tabs += s_tabs[i] ? 1 : 0;
         rlog("RIAPP panel: tabbed Synths/Drums/Levi/Mix/FX + transport, rack bay (open=%ld rack=%ld tabs=%ld)\n",
             (long)open, (long)(s_art_mcc && s_bay_mcc), (long)tabs, 0, 0);
+    }
+
+    /* Songs & playlists from the command line: SONG=<file> PLAYLIST=<file>
+     * (any argument position; the first numeric argument stays the buffer
+     * size). */
+    for (i = 1; i < argc; i++) {
+        if (argv[i] && !strncmp(argv[i], "PLAYLIST=", 9))
+            playlist_load_path(argv[i] + 9);
+        else if (argv[i] && !strncmp(argv[i], "SONG=", 5))
+            song_load_path(argv[i] + 5);
     }
 
     /* 100 ms tick: meter chase + null-backend advance. */
@@ -1768,6 +2059,8 @@ int main(int argc, char **argv) {
             dev_visibility_toggle((uint32_t)ret - RIAPP_ID_DEV0);
         if (ret >= (LONG)RIAPP_ID_TAB0 && ret < (LONG)(RIAPP_ID_TAB0 + RI_TAB_COUNT))
             tab_switch((uint32_t)ret - RIAPP_ID_TAB0);
+        if (ret >= (LONG)RIAPP_ID_SONG0 && ret < (LONG)(RIAPP_ID_SONG0 + 5u))
+            song_menu((ULONG)ret - RIAPP_ID_SONG0);
         if (ret >= (LONG)RIAPP_ID_ZOOM0 && ret < (LONG)(RIAPP_ID_ZOOM0 + 4u)) {
             int m = (int)ret - (int)RIAPP_ID_ZOOM0;
             app_set_zoom(m >= 3 ? RI_ZOOMFIT_FIT : m);
@@ -1786,6 +2079,7 @@ int main(int argc, char **argv) {
             have_cursor = 1;
         }
         sync_transport();
+        song_poll_end(have_cursor, cursor);
         for (i = C_P0; i <= C_P4; i++)
             sync_pat(i, have_cursor ? cursor : 0u);
         sync_303v(0u);

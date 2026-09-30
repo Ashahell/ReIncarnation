@@ -138,9 +138,34 @@ void ri_live_set_ctl(struct RILiveSession *s, struct RIControlPlane *ctl) {
 }
 
 void ri_live_play(struct RILiveSession *s) {
+    int was_stopped;
     if (!s)
         return;
+    was_stopped = s->tr.state == RI_TR_STOPPED;
     ri_tr_play(&s->tr, &s->cursor_ticks);
+    /* A start from STOPPED plays the cursor bar's selections from their
+     * first step (songs & playlists 2026-09-30: the player kept the state
+     * it had when the banks were set or the transport stopped, so a
+     * loaded song sounded one bar late). */
+    if (was_stopped) {
+        uint64_t bar = ri_seq_bar_at_tick(s->cursor_ticks, s->ppq);
+        uint64_t off = s->cursor_ticks - ri_seq_tick_of_bar(s->ppq, bar);
+        uint32_t i;
+        ri_player_init(&s->player, s->banks, s->track, bar);
+        /* A resume inside a bar (the first Stop pauses) picks every
+         * pattern up at the cursor, not at its first step. */
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES && off; i++)
+            if (s->banks[i]) {
+                uint64_t len = (uint64_t)s->banks[i]->pat[s->player.sounding_slot[i] & 31u].length *
+                    (uint64_t)(s->ppq / 4u);
+                if (len)
+                    s->player.phase_ticks[i] = off % len;
+            }
+        /* Event samples come from the tempo map (tick 0 = sample 0): the
+         * sample cursor must stand where the tick cursor is, or a restart
+         * after a stop drops the first bars (songs & playlists 2026-09-30). */
+        s->sample_cursor = ri_map_tick(&s->map, s->cursor_ticks);
+    }
     s->need_chase = 1;
 }
 
@@ -352,6 +377,7 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
     if (wrap) {
         uint64_t ls = (uint64_t)s->loop.start_bar * live_bar_ticks(s->ppq);
         s->cursor_ticks = ls;
+        s->sample_cursor = ri_map_tick(&s->map, ls);   /* same anchor rule as a restart */
         s->need_chase = 1;
         if (s->pass)
             ri_auto_punch_out_all(s->pass);

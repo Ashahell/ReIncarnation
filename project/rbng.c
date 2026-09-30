@@ -170,6 +170,14 @@ static void write_bank_record(FILE *f, const struct RIPattern *p,
             fputc((int)p->row.r303[i].key, f);
             fputc((int)p->row.r303[i].flags, f);
         }
+    } else if (p->kind == RI_PATTERN_KIND_LEVI) {
+        /* v1.5 (owner 2026-09-30): 6 lane notes + the on mask per step. */
+        for (i = 0; i < RI_PATTERN_STEPS; i++) {
+            uint32_t L;
+            for (L = 0u; L < RI_LEVI_LANES; L++)
+                fputc((int)p->row.levi[i].note[L], f);
+            fputc((int)p->row.levi[i].on, f);
+        }
     } else {
         for (i = 0; i < RI_PATTERN_STEPS; i++) {
             wr16le(f, p->row.drum[i].on);
@@ -333,11 +341,11 @@ static int song_valid(const struct RISong *s, char *err, uint32_t errcap) {
     for (k = 0; k < s->nbanks; k++) {
         uint32_t slot;
         const struct RIPatternBank *b = &s->bank[k];
-        if (b->kind > RI_PATTERN_KIND_DRUM) {
+        if (b->kind > RI_PATTERN_KIND_LEVI) {
             put_err(err, errcap, "BANK kind out of range");
             return 1;
         }
-        if (b->kind == RI_PATTERN_KIND_303 && b->drum_class != 0u) {
+        if ((b->kind == RI_PATTERN_KIND_303 || b->kind == RI_PATTERN_KIND_LEVI) && b->drum_class != 0u) {
             put_err(err, errcap, "BANK 303 with drum class");
             return 1;
         }
@@ -412,6 +420,15 @@ static void chunk_head(FILE *f, const char *id, uint32_t len) {
     wr32be(f, len);
 }
 
+/* A Levi pattern bank (kind 2): the v1.5 file marker (owner 2026-09-30). */
+static int song_levi_bank(const struct RISong *s) {
+    uint32_t k;
+    for (k = 0u; s && k < s->nbanks; k++)
+        if (s->bank[k].kind == RI_PATTERN_KIND_LEVI)
+            return 1;
+    return 0;
+}
+
 /* Instance-4 (Levi) track usage: the v1.4 file marker (shared by the
  * VERS minor choice, the total, and the STRK width below). */
 static int song_uses_levi(const struct RISong *s) {
@@ -476,8 +493,11 @@ int rbng_write_song(const char *path, const struct RISong *s, char *err,
     /* Legacy-shaped songs (no banks, empty track, no ATRK) stay minor 0
      * and remain byte-identical v1.0 files; banks OR a track make it 1.1,
      * automation ATRK makes it 1.2. Instance-4 (Levi) track usage makes
-     * it 1.4 with a 5-wide STRK; anything else keeps the old bytes. */
-    wr16be(f, (s->natrk > 0u) ? 2u : (song_uses_levi(s) ? 4u : (s->nskin > 0u ? 3u :
+     * it 1.4 with a 5-wide STRK; anything else keeps the old bytes.
+     * The minor is the highest level any carried feature needs (songs &
+     * playlists 2026-09-30: a Levi song with ATRK wrote minor 2 next to a
+     * 5-wide STRK, which the reader rightly refused). */
+    wr16be(f, song_levi_bank(s) ? 5u : song_uses_levi(s) ? 4u : (s->nskin > 0u ? 3u : ((s->natrk > 0u) ? 2u :
         ((s->nbanks > 0u || !ri_track_is_empty(&s->track)) ? 1u : 0u))));
     wr32be(f, 0u);
     chunk_head(f, "SONG", 6u);
@@ -613,8 +633,16 @@ static int parse_bank(const unsigned char *cid, uint32_t off,
         ck_err(err, errcap, cid, off, "BANK instance out of range");
         return 1;
     }
-    if (kind > RI_PATTERN_KIND_DRUM) {
+    if (kind > RI_PATTERN_KIND_LEVI) {
         ck_err(err, errcap, cid, off, "BANK kind out of range");
+        return 1;
+    }
+    if (kind == RI_PATTERN_KIND_LEVI && file_minor < 5u) {
+        ck_err(err, errcap, cid, off, "BANK Levi needs v1.5+");
+        return 1;
+    }
+    if (kind == RI_PATTERN_KIND_LEVI && dclass != 0u) {
+        ck_err(err, errcap, cid, off, "BANK Levi with drum class");
         return 1;
     }
     if (kind == RI_PATTERN_KIND_303 && dclass != 0u) {
@@ -678,6 +706,14 @@ static int parse_bank(const unsigned char *cid, uint32_t off,
             for (r = 0; r < RI_PATTERN_STEPS; r++) {
                 tmp.row.r303[r].key = img[pos + 4u + 2u * r];
                 tmp.row.r303[r].flags = img[pos + 4u + 2u * r + 1u];
+            }
+        } else if (kind == RI_PATTERN_KIND_LEVI) {
+            for (r = 0; r < RI_PATTERN_STEPS; r++) {
+                uint32_t L;
+                for (L = 0u; L < RI_LEVI_LANES; L++)
+                    tmp.row.levi[r].note[L] = img[pos + 4u + 7u * r + L];
+                tmp.row.levi[r].on = img[pos + 4u + 7u * r + 6u];
+                tmp.row.levi[r].pad = 0u;
             }
         } else {
             for (r = 0; r < RI_PATTERN_STEPS; r++) {

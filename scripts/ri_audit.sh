@@ -195,6 +195,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t130_levi_algo_modes >/dev/null || { 
 bash "$ROOT/scripts/ri_build_host.sh" test t131_levi_filters >/dev/null || { echo "FAIL: t131_levi_filters (levi filters + VCA)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t132_levi_mod >/dev/null || { echo "FAIL: t132_levi_mod (levi ENV 1-5 + LFOs)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t133_levi_matrix2 >/dev/null || { echo "FAIL: t133_levi_matrix2 (levi matrix + macros)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t140_songs >/dev/null || { echo "FAIL: t140_songs (song scripts, Levi banks, playlists, song playback)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t134_levi_voice >/dev/null || { echo "FAIL: t134_levi_voice (levi voice allocator P6a)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t104_levi_engine >/dev/null || { echo "FAIL: t104_levi_engine (levi instance)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t105_rbng_levi >/dev/null || { echo "FAIL: t105_rbng_levi (levi song compat)"; exit 1; }
@@ -534,6 +535,17 @@ for k in 01 02 03 04 05 06 07 08 09 10; do
   "$OUT/mksong" --resave "$ROOT/tests/golden/songs/corpus/s$k.rbng" "$T13/rs/s$k.rbng" >/dev/null || exit 1
   cmp -s "$ROOT/tests/golden/songs/corpus/s$k.rbng" "$T13/rs/s$k.rbng" || { echo "FAIL: corpus s$k serialize-parse-serialize differs"; exit 1; }
 done
+echo "-- songs & playlists: demo songs compile byte-identically and play clean --"
+gcc $CFLAGS -o "$OUT/rbsc" "$ROOT/tools/rbsc.c" "$OUT"/*.o -lm -lpng -pthread || { echo "FAIL: rbsc build"; exit 1; }
+gcc $CFLAGS -o "$OUT/songplay" "$ROOT/tools/songplay.c" "$OUT"/*.o -lm -lpng -pthread || { echo "FAIL: songplay build"; exit 1; }
+mkdir -p "$T13/songs"
+for f in "$ROOT"/songs/demo/*.rbs; do
+  b=$(basename "$f" .rbs)
+  "$OUT/rbsc" "$f" "$T13/songs/$b.rbng" >/dev/null || { echo "FAIL: song $b does not compile"; exit 1; }
+  cmp -s "$T13/songs/$b.rbng" "$ROOT/songs/demo/$b.rbng" || { echo "FAIL: songs/demo/$b.rbng is not what $b.rbs compiles to"; exit 1; }
+  (cd "$ROOT" && "$OUT/songplay" "songs/demo/$b.rbng" "$T13/songs/$b.wav") | grep -q "clipped 0, xruns 0" || { echo "FAIL: song $b clips or xruns"; exit 1; }
+done
+"$OUT/songplay" --playlist "$ROOT/songs/demo/demos.rbpl" >/dev/null || { echo "FAIL: demo playlist entry missing or invalid"; exit 1; }
 echo "-- audibility floor on corpus renders (peak>=1000, rms>=100) --"
 for k in 01 02 03 04 05 06 07 08 09 10; do
   od -An -t d2 -v -j44 "$T13/c1/s$k.wav" | awk 'BEGIN { m=0; s=0; n=0 }

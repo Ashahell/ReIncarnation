@@ -25,6 +25,77 @@ void ri_core_init(struct RIAppCore *c, uint32_t ppq, float sr, float bpm,
     }
     ri_live_set_ctl(&c->session, &c->ctl);
     ri_engine_set_delay(&c->session.eng, c->dline, RI_CORE_DLINE);
+    ri_auto_pub_init(&c->pub, c->autoev[0], RI_CORE_AUTO_CAP, c->autoev[1], RI_CORE_AUTO_CAP);
+    c->carry.next = 0u;
+    c->pass.npunched = c->pass.ntouched = 0u;
+    ri_live_set_auto(&c->session, &c->pub, &c->carry, &c->pass);
+    c->song_bars = 0u;
+    c->song_sections = engine;
+    c->song_bpm = bpm;
+}
+
+int ri_core_pattern_silent(const struct RIPatternBank *b, uint32_t slot) {
+    const struct RIPattern *p;
+    uint32_t i;
+    if (!b || slot >= RI_PATTERN_BANK_PATTERNS)
+        return 1;
+    p = &b->pat[slot];
+    for (i = 0u; i < p->length && i < RI_PATTERN_STEPS; i++) {
+        if (p->kind == RI_PATTERN_KIND_303 && !(p->row.r303[i].flags & RI_STEP_REST))
+            return 0;
+        if (p->kind == RI_PATTERN_KIND_DRUM && p->row.drum[i].on)
+            return 0;
+        if (p->kind == RI_PATTERN_KIND_LEVI && p->row.levi[i].on)
+            return 0;
+    }
+    return 1;
+}
+
+int ri_core_load_song(struct RIAppCore *c, const struct RICoreSong *s) {
+    static const uint8_t KIND[RI_SONGTRACK_INSTANCES] = { RI_PATTERN_KIND_303, RI_PATTERN_KIND_303,
+        RI_PATTERN_KIND_DRUM, RI_PATTERN_KIND_DRUM, RI_PATTERN_KIND_LEVI };
+    static const uint8_t DCLS[RI_SONGTRACK_INSTANCES] = { 0u, 0u, RI_DRUM_CLASS_808, RI_DRUM_CLASS_909, 0u };
+    static uint32_t tk[RI_CORE_AUTO_CAP];
+    uint32_t i, bar, rc = 0u;
+    if (!c || !s || !s->track || s->nauto > RI_CORE_AUTO_CAP || (s->nauto && (!s->auto_tick || !s->auto_ctl ||
+        !s->auto_val)))
+        return 2;
+    for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++) {
+        if (s->bank[i])
+            c->banks[i] = *s->bank[i];
+        else
+            ri_bank_init(&c->banks[i], (uint8_t)i, KIND[i], DCLS[i]);
+        c->banks[i].instance = (uint8_t)i;
+    }
+    c->track = *s->track;
+    if (s->bpm >= 30.0f && s->bpm <= 300.0f) {
+        ri_live_set_bpm(&c->session, s->bpm);
+        c->song_bpm = s->bpm;
+    }
+    /* Automation: song-ppq ticks onto the session ppq, then publish. */
+    for (i = 0u; i < s->nauto; i++)
+        tk[i] = s->ppq && s->ppq != c->session.ppq
+            ? (uint32_t)(((uint64_t)s->auto_tick[i] * c->session.ppq + s->ppq / 2u) / s->ppq) : s->auto_tick[i];
+    if (ri_auto_load_triples(ri_auto_pub_back(&c->pub), tk, s->auto_ctl, s->auto_val, s->nauto) != 0) {
+        (void)ri_auto_load_triples(ri_auto_pub_back(&c->pub), tk, s->auto_ctl, s->auto_val, 0u);
+        rc = 2u;
+    }
+    ri_auto_pub_request(&c->pub);
+    ri_auto_pub_apply(&c->pub);
+    ri_auto_pub_resync(&c->pub);
+    ri_auto_carry_reindex(&c->carry, ri_auto_pub_front(&c->pub), 0u);
+    ri_live_set_auto(&c->session, &c->pub, &c->carry, &c->pass);
+    /* (the player re-arms on the new track at play: ri_live_play) */
+    /* Length and devices: through the last bar anything sounds. */
+    c->song_bars = 0u;
+    c->song_sections = 0u;
+    for (bar = 0u; bar < RI_SONGTRACK_BARS; bar++)
+        for (i = 0u; i < RI_SONGTRACK_INSTANCES; i++)
+            if (!ri_core_pattern_silent(&c->banks[i], ri_track_selected(&c->track, bar, i))) {
+                c->song_bars = bar + 1u;
+                c->song_sections |= (uint32_t)RI_ENGINE_S303A << i;
+            }
+    return (int)rc;
 }
 
 void ri_core_demo(struct RIAppCore *c) {

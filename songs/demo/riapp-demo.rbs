@@ -1,0 +1,47 @@
+RBS 1
+# The built-in RIAPP demo (app/core/riapp_core.c) as a song: our own
+# material. Compile: rbsc songs/demo/riapp-demo.rbs songs/demo/riapp-demo.rbng
+TEMPO 140
+CPRG ReIncarnation demo song, own material (CC0)
+# 303A: the drive line (accents on the beats, a breath at the end)
+P303 0 1 36a 36 39 36 41a 39 36 39 36a 36 39 36 42 41 39 -
+# 808 floor: kick on the beat, closed hats on the off-beats, snare backbeat
+PDRUM 2 1 BD x...x...x...x...
+PDRUM 2 1 CH ..x...x...x...x.
+PDRUM 2 1 SD ....x.......x...
+PACC 2 1 x.......x.......
+# 909 colour: crash on the one, rim + clap on the backbeat, toms, open hats
+PDRUM 3 1 CC X...............
+PDRUM 3 1 RS ....X.......X...
+PDRUM 3 1 CP ....X.......X...
+PDRUM 3 1 LT ......x.........
+PDRUM 3 1 OH .......x.......x
+PDRUM 3 1 MT ..........x.....
+PDRUM 3 1 HT ..............x.
+PACC 3 1 x...x.......x...
+# 909 without the crash for the following bars
+PDRUM 3 2 RS ....X.......X...
+PDRUM 3 2 CP ....X.......X...
+PDRUM 3 2 LT ......x.........
+PDRUM 3 2 OH .......x.......x
+PDRUM 3 2 MT ..........x.....
+PDRUM 3 2 HT ..............x.
+PACC 3 2 ....x.......x...
+# Levi: Bm - G - D - A quarter triads
+PLEVI 1 16 0 59,62,66
+PLEVI 1 16 4 55,59,62
+PLEVI 1 16 8 62,66,69
+PLEVI 1 16 12 57,61,64
+# Arrangement: 2 bars 303 + 808, then 909, then the Levi; 16 bars
+TRACK 0 1 1 0 1 0 0
+TRACK 2 3 1 0 1 1 0
+TRACK 4 7 1 0 1 2 1
+TRACK 8 8 1 0 1 1 1
+TRACK 9 15 1 0 1 2 1
+# Mix (the app's demo levels)
+SET 0 mix-303a.Level 72
+SET 0 mix-909.Level 62
+SET 0 mix-808.Level 96
+SET 0 mix-levi.Level 90
+SET 0 levi.Patch_Level 14
+SET 0 master.Level 120

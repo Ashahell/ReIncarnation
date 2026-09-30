@@ -25,8 +25,10 @@
  *           (1..32); then count x { u8 slot (0..31), u8 kind, u8 length
  *           (1..16), u8 payload_ver (=1), 16 rows: 303 -> {u8 key,
  *           u8 flags} (32 B); drum -> {LE16 on, LE16 high, LE16 flam,
- *           u8 flags} (112 B) }. Slots ascend; missing slots load
- *           cleared; per-pattern kind must equal the bank kind.
+ *           u8 flags} (112 B); Levi (kind 2, v1.5, owner 2026-09-30) ->
+ *           {u8 note[6], u8 on mask} (112 B) }. Slots ascend; missing
+ *           slots load cleared; per-pattern kind must equal the bank kind.
+ *           A Levi bank makes the file v1.5; readers before 1.5 refuse it.
  *   'STRK' (v1.1): RI_SONGTRACK_BARS x RI_SONGTRACK_INSTANCES = 3996 slot
  *           bytes (u8 each), row-major (bar, then instance); even, no pad.
  *           Written only when the track is not all-zero; minor 0 never

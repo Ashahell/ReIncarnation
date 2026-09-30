@@ -232,7 +232,13 @@ static void player_advance_instance(struct RIPlayer *p, uint32_t i,
             last_cout = cout;
             phase += seg_end - cur;
             cur = seg_end;
-            if (phase >= len) { /* pattern end inside this block */
+            /* Pattern end strictly inside this block: adopt the pending
+             * selection now. An end exactly at tick_end waits for the next
+             * block, whose STEP 1 samples that downbeat first (songs &
+             * playlists 2026-09-30: adopting here took the stale pending,
+             * so every pattern change landed one bar late whenever a
+             * block edge met a bar line). */
+            if (phase >= len && cur < tick_end) {
                 snd = p->pending_slot[i];
                 phase -= len;
                 player_wrap_carry(&cin, last_b, last_slot, &last_cout, b, snd);
