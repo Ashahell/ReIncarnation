@@ -1503,3 +1503,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (feature record; two owner decisions: local-only cover, RBNG Levi bank v1.5)
 - Raw: llm-wiki/raw/articles/2026-09-30-songs-playlists-zombie-nation.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-09-30] ingest | Method findings from the songs session
+- Disposition: New (companion to the songs & playlists record)
+- Raw: llm-wiki/raw/articles/2026-09-30-method-findings-songs-session.md
+- Updated: llm-wiki/index.md (Live app entry list)
