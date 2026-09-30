@@ -1508,3 +1508,13 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (companion to the songs & playlists record)
 - Raw: llm-wiki/raw/articles/2026-09-30-method-findings-songs-session.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-09-30] ingest | Leviasynth fidelity P6a + P6b (voice)
+- Disposition: New (continues the P1–P5 phase record)
+- Raw: llm-wiki/raw/articles/2026-09-30-leviasynth-fidelity-p6a-p6b.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-09-30] ingest | riqemu1 wide modes + parked audio
+- Disposition: New (lane record; extends the sb128-open-hang record)
+- Raw: llm-wiki/raw/articles/2026-09-30-riqemu1-wide-modes-parked-audio.md
+- Updated: llm-wiki/index.md (Lane infrastructure entry list)

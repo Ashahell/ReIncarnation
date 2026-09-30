@@ -1,0 +1,41 @@
+# riqemu1: wide modes proven; QEMU sound parked on AROS driver faults (owner 2026-09-30)
+
+- Source: ReIncarnation session, 2026-09-30 (opencode lane; owner asked for QEMU sound + wider screen, then to park sound)
+- Collected: 2026-09-30
+- Published: 2026-09-30
+- Prior: [2026-09-25-riqemu1-dh0-boot-v1j-rtl8139.md](2026-09-25-riqemu1-dh0-boot-v1j-rtl8139.md), [2026-09-26-riqemu1-sb128-open-hang.md](2026-09-26-riqemu1-sb128-open-hang.md) (sb128 movaps root cause; this session independently reproduces it)
+- Lane: riqemu1 (private, ABIv1), spool `/tmp/spike_spool_priv`, serve `:9295` (started this session, background), monitor `:4477`, launcher `~/Work/vms/start_riqemu1.sh` (edited, see below)
+
+## Wide screen: DONE (proven, owner picks the mode)
+
+- Root cause: GRUB pinned `vesa=1280x1024x32` **plus `nomonitors`** (both in the default entry's `ARGS:` per `ShowConfig`); `nomonitors` keeps every monitor driver out, so the mode walk finds exactly **1 mode (1280x1024x24)**. DEVS:Monitors ships VMWare/NVidia/IntelGMA/ATI but none can load.
+- Fix (lane, reversible): `DH0:Boot/grub/grub.cfg` default → `"AROS64 with native Gfx"` (backup `grub.cfg.mine`; one-line diff, byte-verified round trip). Native boot ARGS: `ATA=32bit debug=serial`.
+- Result: 23 modes, all avail, incl. 1366x768, 1600x900, 1680x1050, **1920x1080 (0x00101000)**, 1920x1200, 2560x1600/1440 (probed with a scratch `BestModeID`/`FindDisplayInfo` tool over the agent channel; `BestModeID`-only probing returns INVALID throughout — walk the IDs).
+- Pixel proof: `OPEN 0x00101000 OK 1920x1080`, capture 960x540 (= 1920x1080 screen), clean close.
+- Owner step: pick the mode in `Prefs/ScreenMode` (persists in ENVARC). Deliberately NOT forced at boot (a `vesa=1920x1080` single-mode entry needs unproven VBE support — bricking risk, SFS unwritable from host).
+- Side lesson: guest `argc/argv` did not arrive in a minimal `-nostartfiles` tool (fell back to a `SetEnv` trigger); AmigaShell rejects double redirects (`too many levels`); `Run >file prog` is the form.
+
+## Sound: PARKED on AROS audio-driver faults (not ReIncarnation code)
+
+- Host + QEMU side are fine: PulseAudio/PipeWire present, `pa`/`pipewire` audiodevs available, QEMU `pa0` stream exists uncorked at 44100 Hz — but carries digital zeros.
+- `sb128.audio` DriverInit faults (`movaps (%rdx),%xmm0`, unaligned source) when AHI's `_AHI_LoadModeFile` scan loads it — independent repro of the 09-21/09-26/09-27 findings (same module, same function; stack: probe → `ahi.device` → `_AHI_LoadModeFile` → `_LibInit` → `DriverInit`). Quarantined (reversible): `DEVS:AHI/sb128.audio` → `.bak`, `DEVS:AudioModes/SB128` → `SYS:Storage/SB128.bak`.
+- `hdaudio.audio` Segment 4 illegal-address fault with real HDA hardware (`intel-hda` + `hda-output` and `hda-duplex` codecs; `msi=off` tried) — same driver-init class, Reaper-confirmed.
+- AC97 (`-device AC97`, `ac97.audio` present): loads, never ticks. Still silent with a single `ac97` mode file left, and still hanging with the driver removed too — the stall is in `OpenDevice("ahi.device")` / the mode scan, not one file. RIAPP's bounded open reports `err 7` → null fallback (the design works as intended: app lives, silent).
+- Transport proven working (`sendkey spc` → evlog `TR PLAY/STOP`; 22 s PLAY recorded zeros on the host monitor → silent path, not a control problem).
+- evlog volume requester: `evlog_vol()` Locks `Vk4aros:` et al. with requesters enabled — modal block on volume-less machines (seen on riqemu1). A `pr_WindowPtr = -1` suppression is in the uncommitted P6b tree but **unverified**; the working lane instead persists `RIAPP_EVLOG=RAM:` in ENVARC (proven: clean unattended boots since).
+- Dell cross-evidence: P6a, P6b and a clean-tree P5b rebuild all take Software Failure at startup on the post-reboot Dell — lane state, not the diff (host audit green, ASan/UBSan clean, Dell builds 0 UND). Owner investigating on their side ("yet again").
+- Next (unblocks sound): AROS-side audio driver work (upstream scope) or Dell-first; AC97 tick root cause still open. `probe_ahi` wedges unkillably in a hung driver — always prefer RIAPP's 10 s bounded open as the audio probe.
+
+## Lane state parked (2026-09-30)
+
+- GRUB default = native (wide-capable); backup `grub.cfg.mine` on DH0.
+- Quarantined on DH0: `sb128.audio`→`.bak`, mode files `SB128`/`VIA-AC97`/`HDAUDIO`/`CMI8738`/`NVHDMI`→`SYS:Storage/*.bak`, `ac97.audio`→`.bak` (only `DEVS:AudioModes/ac97` left; restore order is the reverse).
+- `ENVARC:RIAPP_EVLOG=RAM:` persists; `start_riqemu1.sh` now `-vga vmware` + `-audiodev pa` + `-device intel-hda,msi=off -device hda-duplex` (AC97 stanza superseded; HDA still silent — see above).
+- Scratch guest tools (in `/tmp`, not the repo): `MODES` (list + `SetEnv MODES_OPEN` screen proof), `BESTMODE`, `AHANG` (ahidevice hang pinpointer, unkillable when wedged — reboot to clear).
+- Disclosures: a GrimReaper cleanup click aimed at Kill hit Reboot instead (only the session's own crashed process present; apologized); a two-instance AHI-contention freeze followed (never run two RIAPPs — known freeze).
+
+## Open owner items
+
+- Dell crash (theirs to diagnose; offer: compare Reaper Module line against `hdaudio.audio` here).
+- Pick the wide Workbench mode in ScreenMode prefs (lane ready).
+- Voice count 8 + stereo approved 2026-09-30 (P6c/P6d continue on host; P6b held uncommitted for Dell proof).
