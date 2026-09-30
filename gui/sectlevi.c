@@ -173,12 +173,9 @@ int ri_slevi_set_value(struct RISectLevi *s, uint32_t idx, int v) {
         s->sel = sel;
         return 1;
     }
-    if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_FTYPE || idx == RI_SLEVI_AMODE ||
-        idx == RI_SLEVI_DTYPE || idx == RI_SLEVI_VORDER) {
-        /* Plain selectors (selector idiom, like Lane). FTYPE clamps 0..3. */
-        int hi = idx == RI_SLEVI_FTYPE ? 3 : idx == RI_SLEVI_AMODE ? 2 : idx == RI_SLEVI_DTYPE ? 17
-            : idx == RI_SLEVI_VORDER ? 7 : 63;
-        int w = v < 0 ? 0 : v > hi ? hi : v;
+    if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB) {
+        /* Algorithm select with the slot-1 mirror (engine does the same). */
+        int w = v < 0 ? 0 : v > 63 ? 63 : v;
         if (s->val[idx] == w)
             return 0;
         s->val[idx] = (int16_t)w;
@@ -221,7 +218,7 @@ int ri_slevi_set_value(struct RISectLevi *s, uint32_t idx, int v) {
         s->val[idx] = (int16_t)packed;
         return 1;
     }
-    if (d->kind != RI_CK_KNOB && d->kind != RI_CK_SWITCH)
+    if (d->kind != RI_CK_KNOB && d->kind != RI_CK_SWITCH && d->kind != RI_CK_SELECTOR)
         return 0;
     if (v < d->min_v)
         v = d->min_v;
@@ -363,8 +360,8 @@ static const struct LeviSlot P_POSTFX[8] = {
     { SLOT_DEAD, "PARAM 3" }, { SLOT_DEAD, "PARAM 4" }, { SLOT_DEAD, "PARAM 5" }, { SLOT_DEAD, "DRY/WET" }
 };
 static const struct LeviSlot P_DELAY[8] = {
-    { RI_SLEVI_FXDLY, "ON" }, { SLOT_DEAD, "TIME" }, { SLOT_DEAD, "FEEDBACK" }, { SLOT_DEAD, "WET TONE" },
-    { SLOT_DEAD, "TYPE" }, { SLOT_DEAD, "BPM SYNC" }, { SLOT_DEAD, "FB TONE" }, { SLOT_DEAD, "DRY/WET" }
+    { RI_SLEVI_FXDLY, "ON" }, { RI_SLEVI_DLYTYPE, "TYPE" }, { RI_SLEVI_DLYTIME, "TIME" }, { RI_SLEVI_DLYFB, "FEEDBACK" },
+    { RI_SLEVI_DLYWTONE, "WET TONE" }, { RI_SLEVI_DLYBPM, "BPM SYNC" }, { RI_SLEVI_DLYFBTONE, "FB TONE" }, { RI_SLEVI_DLYDRYWET, "DRY/WET" }
 };
 static const struct LeviSlot P_REVERB[8] = {
     { RI_SLEVI_FXREV, "ON" }, { SLOT_DEAD, "PRE-DLY" }, { SLOT_DEAD, "TIME" }, { SLOT_DEAD, "TONE" },
@@ -1202,6 +1199,54 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
             put_str(buf, cap, "R");
             cat_num(buf, cap, p);
         }
+        return;
+    }
+    if (t == (int)RI_SLEVI_DLYTYPE) {
+        static const char *const DT[4] = { "CLEAN", "ANALOG", "TAPE", "PINGPONG" };
+        int m = s->val[t];
+        put_str(buf, cap, DT[m >= 0 && m < 4 ? m : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_DLYTIME) {
+        float s_ = ri_levi_delay_time((uint8_t)(s->val[t] < 0 ? 0 : s->val[t] > 127 ? 127 : s->val[t]));
+        if (s_ < 1.0f) {
+            put_num(buf, cap, (int)(s_ * 1000.0f + 0.5f));
+            cat_str(buf, cap, "MS");
+        } else {
+            put_num(buf, cap, (int)(s_ * 100.0f + 0.5f) / 100);
+            cat_str(buf, cap, ".");
+            cat_num(buf, cap, (int)(s_ * 100.0f + 0.5f) % 100 / 10);
+            cat_str(buf, cap, "S");
+        }
+        return;
+    }
+    if (t == (int)RI_SLEVI_DLYFB) {
+        put_num(buf, cap, s->val[t] * 95 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_DLYWTONE || t == (int)RI_SLEVI_DLYFBTONE) {
+        float hz = t == (int)RI_SLEVI_DLYWTONE
+            ? 200.0f * ri_pow2((float)s->val[t] / 127.0f * 6.4919f)
+            : 100.0f * ri_pow2((float)s->val[t] / 127.0f * 6.3219f);
+        if (hz < 1000.0f) {
+            put_num(buf, cap, (int)(hz + 0.5f));
+            cat_str(buf, cap, "HZ");
+        } else {
+            put_num(buf, cap, (int)(hz / 100.0f + 0.5f) / 10);
+            cat_str(buf, cap, ".");
+            cat_num(buf, cap, (int)(hz / 100.0f + 0.5f) % 10);
+            cat_str(buf, cap, "KHZ");
+        }
+        return;
+    }
+    if (t == (int)RI_SLEVI_DLYDRYWET) {
+        put_num(buf, cap, s->val[t] * 100 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_DLYBPM) {
+        put_str(buf, cap, s->val[t] ? "SYNC" : "FREE");
         return;
     }
     if (t >= (int)RI_SLEVI_SLOT0 && t < (int)RI_SLEVI_SLOT0 + 8) {

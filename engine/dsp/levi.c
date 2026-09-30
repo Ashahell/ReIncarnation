@@ -955,6 +955,8 @@ void levi_init_set(struct RILeviSet *s) {
         v->vpad[0] = v->vpad[1] = v->vpad[2] = 0u;
         memset(v->vom, 0, sizeof v->vom);
         v->vom_on = 0u;
+        memset(v->dfxm, 0, sizeof v->dfxm);
+        v->dfxm_on = 0u;
         v->vspread = 0.0f;
         {
             uint32_t q;
@@ -978,6 +980,15 @@ void levi_init_set(struct RILeviSet *s) {
     s->seqon = 0u;
     s->seqlen = 16u;
     ri_levi_matrix_init(&s->mx);
+    s->fx.dtype = RI_LEVI_DT_CLEAN;
+    s->fx.dbypass = 1u;   /* bypassed by default: songs bit-identical */
+    s->fx.dbpm = 0u;
+    s->fx.dtime = ri_levi_delay_time(64u);
+    s->fx.dfb = 64.0f / 127.0f * 0.95f;
+    s->fx.dwtone = 18000.0f;
+    s->fx.dfbtone = 8000.0f;
+    s->fx.ddrywet = 32.0f / 127.0f;
+    levi_fx_clear(&s->fx);
     s->polymode = RI_LEVI_POLY_ROTATE;
     s->udensity = 8u;
     s->ulimit = RI_LEVI_NVOICES;
@@ -2200,6 +2211,30 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
             p < -1.0f ? -1.0f : p > 1.0f ? 1.0f : p;
         return 0;
     }
+    case (RI_CTL_LEVI_DLYTYPE & 0xFFu):
+        s->fx.dtype = val > RI_LEVI_DT_N - 1u ? RI_LEVI_DT_N - 1u : val;
+        return 0;
+    case (RI_CTL_LEVI_DLYTIME & 0xFFu):
+        s->fx.dtime = ri_levi_delay_time(val);
+        return 0;
+    case (RI_CTL_LEVI_DLYFB & 0xFFu):
+        s->fx.dfb = (float)(val > 127u ? 127u : val) / 127.0f * 0.95f;
+        return 0;
+    case (RI_CTL_LEVI_DLYWTONE & 0xFFu):
+        s->fx.dwtone = 200.0f * ri_pow2((float)(val > 127u ? 127u : val) / 127.0f * 6.4919f);
+        return 0;
+    case (RI_CTL_LEVI_DLYFBTONE & 0xFFu):
+        s->fx.dfbtone = 100.0f * ri_pow2((float)(val > 127u ? 127u : val) / 127.0f * 6.3219f);
+        return 0;
+    case (RI_CTL_LEVI_DLYDRYWET & 0xFFu):
+        s->fx.ddrywet = (float)(val > 127u ? 127u : val) / 127.0f;
+        return 0;
+    case (RI_CTL_LEVI_DLYBPM & 0xFFu):
+        s->fx.dbpm = val ? 1u : 0u;   /* stored; sync goes live with the P8 clock */
+        return 0;
+    case (RI_CTL_LEVI_DBYPASS & 0xFFu):
+        s->fx.dbypass = val ? 0u : 1u;  /* panel ON (FXDLY) vs engine bypass */
+        return 0;
     default:
         return 2;
     }
@@ -2407,7 +2442,7 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     float *eaenv, float *ealfo, float *evlevel, float *evlfo, float *eoplevel, float *emorph) {
     float src[RI_LEVI_MS_N];
     struct RILeviModOut out[RI_LEVI_MODOUT_MAX];
-    uint32_t n, i, o, touch_op = 0u, touch_me = 0u, touch_vo = 0u;
+    uint32_t n, i, o, touch_op = 0u, touch_me = 0u, touch_vo = 0u, touch_fx = 0u;
     for (i = 0u; i < RI_LEVI_MS_N; i++)
         src[i] = 0.0f;
     for (o = 0u; o < RI_LEVI_NOPS; o++)
@@ -2447,6 +2482,8 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     }
     if (v->vom_on)
         memset(v->vom, 0, sizeof v->vom);
+    if (v->dfxm_on)
+        memset(v->dfxm, 0, sizeof v->dfxm);
     for (i = 0u; i < n; i++) {
         uint32_t dm = out[i].dmod, dp = out[i].dpar;
         float x = out[i].x;
@@ -2503,11 +2540,17 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
                 v->vom[dp] += x;
                 touch_vo = 1u;
             }
+        } else if (dm == RI_LEVI_DM_DELAY) {
+            if (dp < RI_LEVI_DD_N) {
+                v->dfxm[dp] += x;
+                touch_fx = 1u;
+            }
         }
     }
     v->opm_on = (uint8_t)touch_op;
     v->mem_on = (uint8_t)touch_me;
     v->vom_on = (uint8_t)touch_vo;
+    v->dfxm_on = (uint8_t)touch_fx;
     for (o = 0u; o < RI_LEVI_NMENV && touch_me; o++)
         v->melmod[o] = v->mem[o][RI_LEVI_DE_LEVEL];
     if (!touch_me)
@@ -2968,6 +3011,25 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
             levi_voice_render_stereo(&s->v[v], &s->mx, sr, &vl, &vr);
             ml += vl;
             mr += vr;
+        }
+        /* Per-device FX chain (fidelity P7): delay now, reverb + pre/post
+         * in P7b/c on the same insert point. Bypassed == bit-identical. */
+        if (!s->fx.dbypass) {
+            /* Matrix delay modulation follows the lead (first active) voice. */
+            uint32_t lv, q;
+            for (lv = 0u; lv < RI_LEVI_NVOICES; lv++)
+                if (s->v[lv].active)
+                    break;
+            if (lv >= RI_LEVI_NVOICES)
+                lv = 0u;
+            if (s->v[lv].dfxm_on) {
+                for (q = 0u; q < RI_LEVI_DD_N; q++)
+                    s->fx.dfxm[q] = s->v[lv].dfxm[q];
+                s->fx.dfxm_on = 1u;
+            } else {
+                s->fx.dfxm_on = 0u;
+            }
+            levi_fx_delay(&s->fx, sr, ml, mr, &ml, &mr);
         }
         out_l[i] = ml;
         out_r[i] = mr;

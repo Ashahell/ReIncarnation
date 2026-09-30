@@ -12,6 +12,7 @@
 #define RI_LEVI_H
 #include <stdint.h>
 #include "engine/dsp/levi_matrix.h"
+#include "engine/dsp/levi_fx.h"
 
 #define RI_LEVI_NVOICES 8u
 #define RI_LEVI_NOPS 8u
@@ -391,6 +392,8 @@ struct RILeviVoice {
     uint8_t vpad[3];
     float vom[RI_LEVI_DVO_N]; /* DM_VOICE offsets (P6b); -1..1 */
     uint8_t vom_on;
+    float dfxm[RI_LEVI_DD_N]; /* DM_DELAY offsets (P7a, lead voice); -1..1 */
+    uint8_t dfxm_on;
     /* Stereo + scales (fidelity P6c, manual pp. 87-96). Pan/width/mode
      * went live with the stereo sum; bend with the P9 MIDI data. */
     float vspread;  /* 0..1 unison stereo spread (static ordinal) */
@@ -479,6 +482,16 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_VOSCPAN1 0x0E6Du  /* .. 0x0E74 = OSCPAN8 */
 #define RI_LEVI_NSCALES 16u
 #define RI_LEVI_NMICRO 8u
+/* Delay (fidelity P7a, manual pp. 83-86). FXDLY (0x0E.. row 65) is the
+ * panel on/off, bound here; the rest ride 0x0E76..7C. */
+#define RI_CTL_LEVI_DLYTYPE 0x0E76u
+#define RI_CTL_LEVI_DLYTIME 0x0E77u
+#define RI_CTL_LEVI_DLYFB 0x0E78u
+#define RI_CTL_LEVI_DLYWTONE 0x0E79u
+#define RI_CTL_LEVI_DLYFBTONE 0x0E7Au
+#define RI_CTL_LEVI_DLYDRYWET 0x0E7Bu
+#define RI_CTL_LEVI_DLYBPM 0x0E7Cu
+#define RI_CTL_LEVI_DBYPASS 0x0E7Du
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u
@@ -513,6 +526,7 @@ struct RILeviSet {
     uint8_t arprate; /* device arp rate 0..127 */
     uint8_t seqon;   /* device seq gate (v2 feature 3; UI/automation truth) */
     uint8_t seqlen;  /* device seq length 1..16 */
+    struct RILeviFx fx;     /* per-device FX chain (fidelity P7) */
     struct RILeviMatrix mx; /* device matrix program (v2 feature 4) */
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */

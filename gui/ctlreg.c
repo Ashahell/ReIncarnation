@@ -317,7 +317,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 62, SWITCH, "Matrix", "R7", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_ROUTE6, 0),
     R(LEVI, 63, SWITCH, "Matrix", "R8", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_ROUTE7, 0),
     R(LEVI, 64, SWITCH, "Fx", "Pre", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
-    R(LEVI, 65, SWITCH, "Fx", "Dly", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 65, SWITCH, "Fx", "Dly", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DBYPASS, 0),
     R(LEVI, 66, SWITCH, "Fx", "Rev", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 67, SWITCH, "Fx", "Post", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     /* Hardware page UI (fidelity plan P1, 2026-09-30): module select, the
@@ -422,6 +422,14 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 155, KNOB, "Voice", "OscPan 6", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VOSCPAN1 + 5u, 0),
     R(LEVI, 156, KNOB, "Voice", "OscPan 7", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VOSCPAN1 + 6u, 0),
     R(LEVI, 157, KNOB, "Voice", "OscPan 8", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VOSCPAN1 + 7u, 0),
+    /* Delay (fidelity P7a, manual pp. 83-86). */
+    R(LEVI, 158, SELECTOR, "Delay", "Type", 0, 3, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYTYPE, 0),
+    R(LEVI, 159, KNOB, "Delay", "Time", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYTIME, 0),
+    R(LEVI, 160, KNOB, "Delay", "Feedback", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYFB, 0),
+    R(LEVI, 161, KNOB, "Delay", "Wet Tone", 0, 127, 127, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYWTONE, 0),
+    R(LEVI, 162, KNOB, "Delay", "FB Tone", 0, 127, 127, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYFBTONE, 0),
+    R(LEVI, 163, KNOB, "Delay", "Dry/Wet", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYDRYWET, 0),
+    R(LEVI, 164, SWITCH, "Delay", "BPM Sync", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYBPM, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

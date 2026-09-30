@@ -73,7 +73,15 @@
 #define RI_LEVI_DM_MACRO 26u   /* macro 1..8 */
 #define RI_LEVI_DM_ALGO 27u    /* algorithm morph */
 #define RI_LEVI_DM_VOICE 28u   /* voice params (fidelity P6b) */
-#define RI_LEVI_DM_N 29u
+#define RI_LEVI_DM_DELAY 29u   /* delay params (fidelity P7a) */
+#define RI_LEVI_DM_N 30u
+/* DM_DELAY params. */
+#define RI_LEVI_DD_TIME 0u
+#define RI_LEVI_DD_FEEDBACK 1u
+#define RI_LEVI_DD_WETTONE 2u
+#define RI_LEVI_DD_FBTONE 3u
+#define RI_LEVI_DD_DRYWET 4u
+#define RI_LEVI_DD_N 5u
 /* Voice params (P6b): detune, pan, analog feel, bend range, vibrato
  * amt/rate, glide toggle/time/curve, panner width. */
 #define RI_LEVI_DVO_DETUNE 0u

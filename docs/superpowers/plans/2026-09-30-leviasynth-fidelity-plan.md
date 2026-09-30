@@ -248,6 +248,20 @@ Each phase lands as TDD slices:
 ### P7: FX
 
 Pre-FX and Post-FX with 9 types, delay types, reverb types with freeze, and the send wiring into the engine (the reverb core exists).
+- Split (2026-09-30): P7a delay + chain framework (this slice); P7b reverb types + freeze; P7c pre/post 9-type engines; P7d BPM-sync wiring (needs the P8 clock — flags stored until then).
+
+#### P7a plan (delay + framework; before code 2026-09-30)
+
+- New files `engine/dsp/levi_fx.{h,c}` (own code; registered in `ri_build_host.sh`, `ri_build_aros.sh`, `portable.mk` or the audit fails the build): `RILeviFx` chain state living in `RILeviSet` (no allocation, render-safe): stereo delay lines (2 s max, static, cleared in `levi_init_set`), delay params, pre/post/reverb param slots (DSP in P7b/c).
+- Insert point: end of `levi_voice_render_sum_stereo` (per-device, post-vintage, pre-strip). No shared mixer/engine-structure change (route owners, t51 untouched) — no owner question.
+- Delay DSP (own 4 types: CLEAN digital, ANALOG dark, TAPE dark + wow, PINGPONG cross-stereo): time 1 ms..2 s (UI map; BPM flag stored, sync arrives with the P8 clock), feedback 0..95 % bounded (no runaway at any corner), wet tone + feedback tone (one-pole lows), dry/wet, bypass (exact dry). Denormal flush on every loop read.
+- Matrix `DM_DELAY` (29): TIME, FEEDBACK, WETTONE, FBTONE, DRYWET.
+- Keys `0x0E76..7D` (8): DTYPE, DTIME, DFEEDBACK, DWETTONE, DFBTONE, DDRYWET, DBYPASS, DBPM. Registry rows 158..165 (`Delay` group), allow-list + engine section-wide apply, DELAY page (all 8 slots).
+- E0: 2 s lines (768 KB static BSS in the set; explicit clear); bypassed by default (songs bit-identical); feedback clamp 0.95; tones are one-pole lows (wet 200..18k, loop 100..8k); BPM flag inert until P8; pingpong crosses L→R/R→L with centered dry.
+- **Status: P7a done 2026-10-01** (engine, keys, UI, tests):
+  - `levi_fx.{h,c}` (new; all 3 build lists); device insert at the end of `sum_stereo`; `DM_DELAY` (5 params) folded per-voice, lead-voice drives the device; FXDLY row rebound as the panel ON/engine bypass (no mirror state).
+  - Proof: audit 0/0 clean worktree, Dell 0 UND + 0 r12, ASan/UBSan clean; riaudio lane: window opens, PLAY inks, host wav peak 0.855, 0 xruns. DELAY page pixels deferred (same standing gap).
+- **Tests:** t138 (bypass/dry identity, late tail, max-fb bound, single echo, wet+loop darken, 3 mono topologies differ, pingpong cross laws, BPM inert, dtype clamp, DM TIME route, matrix-fb bound, keys/pages/texts, time-map range, null passthrough, extremes; 16 mutants killed); t60 range to `0x0E7D`, t77 mapped 220 / allow 1047, t133 last module DELAY, t136 `0x0E7E` boundary deliberate moves.
 
 ### P8: arp, sequencer, ribbon
 

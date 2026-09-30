@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 158u
+#define RI_SLEVI_NCTL 165u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -115,6 +115,14 @@
 #define RI_SLEVI_VKEYLOCK 148u
 #define RI_SLEVI_VSPREAD 149u
 #define RI_SLEVI_VOSCPAN1 150u   /* 8 osc pans: 150..157 */
+/* Delay (fidelity P7a, manual pp. 83-86): 158..164. */
+#define RI_SLEVI_DLYTYPE 158u
+#define RI_SLEVI_DLYTIME 159u
+#define RI_SLEVI_DLYFB 160u
+#define RI_SLEVI_DLYWTONE 161u
+#define RI_SLEVI_DLYFBTONE 162u
+#define RI_SLEVI_DLYDRYWET 163u
+#define RI_SLEVI_DLYBPM 164u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */

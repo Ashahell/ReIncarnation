@@ -241,11 +241,11 @@ int main(void) {
     RI_ASSERT(!strcmp(t, "---"), "empty source %s", t);
     ri_slevi_set_value(&u, RI_SLEVI_ENC0 + 5u, 127);                /* route 2 module: last */
     ri_slevi_enc_text(&u, 5u, t, sizeof t);
-    RI_ASSERT(!strcmp(t, "VOICE"), "module text %s", t);
+    RI_ASSERT(!strcmp(t, "DELAY"), "module text %s", t);
     ri_slevi_enc_text(&u, 6u, t, sizeof t);
-    RI_ASSERT(!strcmp(t, "DETUNE"), "param follows module %s", t);
+    RI_ASSERT(!strcmp(t, "TIME"), "param follows module %s", t);
     RI_ASSERT(ri_slevi_ctl_key(&u, RI_SLEVI_ENC0 + 5u, &key, &val) == 1 && key == RI_LEVI_MXKEY(1u, 1u) &&
-        val == (int)RI_LEVI_DM_VOICE, "route 2 module key %04x=%d", key, val);
+        val == (int)RI_LEVI_DM_DELAY, "route 2 module key %04x=%d", key, val);
     ri_slevi_set_value(&u, RI_SLEVI_ENC0, 4);                          /* 4/127 of 40 sources = the first */
     ri_slevi_enc_text(&u, 0u, t, sizeof t);
     RI_ASSERT(!strcmp(t, "ENV 1"), "source text %s", t);
