@@ -234,7 +234,7 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 134u, "mapped count %u", mapped);
+            RI_ASSERT(mapped == 138u, "mapped count %u (+4 Levi bias knobs, fidelity P2)", mapped);
             RI_ASSERT(listed == 31u, "listed count %u", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
@@ -252,9 +252,14 @@ int main(void) {
                      * Level is the volume); kept allowed for legacy AUTO data. */
                     if (key == RI_CTL_303A_VOLUME || key == RI_CTL_303B_VOLUME)
                         owned = 1;
+                    /* Levi per-oscillator block 0x0F (fidelity P2, owner
+                     * 2026-09-30): op x param keys, reached through the
+                     * module pages (one registry row per page encoder). */
+                    if ((key & 0xFF00u) == RI_AUTO_BLK_LEVIOP && (key & 31u) < RI_AUTO_LEVIOP_NPARAM)
+                        owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 136u, "allow-list size %u (134 controls + 2 VOLUME)", nallow);
+                RI_ASSERT(nallow == 372u, "allow-list size %u (138 controls + 2 VOLUME + 8 x 29 Levi op keys)", nallow);
             }
         }
     }

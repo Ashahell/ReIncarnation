@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 78u
+#define RI_SLEVI_NCTL 84u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -49,6 +49,14 @@
 #define RI_SLEVI_ENC0 69u         /* 8 encoders: 69..76 */
 #define RI_SLEVI_NENC 8u
 #define RI_SLEVI_PAGE 77u         /* display (value = module) */
+/* Osc Env Level & Bias knobs (fidelity P2, manual p. 54): offsets over
+ * every oscillator envelope, 64 = none. Keys 0x0E27..0x0E2A. */
+#define RI_SLEVI_BIAS_ENVL 78u
+#define RI_SLEVI_BIAS_ATK 79u
+#define RI_SLEVI_BIAS_DEC 80u
+#define RI_SLEVI_BIAS_REL 81u
+#define RI_SLEVI_PAGEUP 82u       /* PAGE up / down (page within module) */
+#define RI_SLEVI_PAGEDN 83u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */
@@ -95,6 +103,9 @@ struct RISectLevi {
     uint8_t opsel;             /* selected operator 0..7 */
     int16_t val[RI_SLEVI_NCTL];
     uint8_t opmode[RI_LEVI_NOPS];      /* panel truth per op (engine follows) */
+    uint8_t page;                      /* page within the module (0-based) */
+    uint8_t pad[3];
+    uint8_t opv[RI_LEVI_NOPS][RI_LEVI_OP_NPARAM]; /* per-op UI values (P2) */
     struct RIPattern pat;      /* chord kind, class Levi */
 };
 
@@ -116,12 +127,22 @@ int ri_slevi_value(const struct RISectLevi *s, uint32_t idx);
 /* Control index the app sends for a hit: an encoder's live target,
  * else idx itself. */
 uint32_t ri_slevi_ctl_idx(const struct RISectLevi *s, uint32_t idx);
+/* Per-oscillator key for a hit (fidelity P2): 1 (key and val set) when the
+ * encoder edits an oscillator param (key 0x0F00 | op << 5 | param, val
+ * in the param's range), else 0 (send ri_slevi_ctl_idx as usual). */
+int ri_slevi_ctl_key(const struct RISectLevi *s, uint32_t idx, uint16_t *key, int *val);
+/* Pages in the current module (1.. ; OSC has 5) and the current page. */
+uint32_t ri_slevi_page_count(const struct RISectLevi *s);
 /* Encoder k (0..7) on the current page: 1 when it edits a live
  * parameter, 0 for a slot whose engine lands in a later phase. */
 int ri_slevi_enc_live(const struct RISectLevi *s, uint32_t k);
 /* 1 when some module page slot edits idx (the control needs no panel
  * item of its own: the encoders reach it). Pure, table-only. */
 int ri_slevi_page_reaches(uint32_t idx);
+/* 1 for the v1 section-wide rows superseded by the per-oscillator
+ * params (fidelity P2): global ratio, packed op mode, all-op envelope.
+ * They stay registered and automatable (old songs) with no panel item. */
+int ri_slevi_legacy(uint32_t idx);
 /* Page title and slot name (static strings, never NULL). */
 const char *ri_slevi_page_title(const struct RISectLevi *s);
 const char *ri_slevi_enc_name(const struct RISectLevi *s, uint32_t k);

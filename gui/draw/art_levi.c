@@ -46,7 +46,6 @@ static const struct LeviKnob DKNOB[] = {
     { 332, 164, 0 },
     { 390, 164, 0 },
     { 447, 164, 0 },
-    { 1054, 64, 0 },
     { 1407, 64, 0 },
     { 1463, 64, 2 },
     { 1706, 64, 2 },
@@ -104,8 +103,6 @@ static const struct LeviCap DCAP[] = {
     { 629, 220, 29, ">", "", 1 },
     { 606, 264, 74, "HOME", "", 1 },
     { 968, 61, 29, "EXIT", "", 1 },
-    { 968, 143, 29, "^", "", 1 },
-    { 968, 169, 29, "v", "", 1 },
     { 968, 220, 29, "MACRO", "ASSIGN", 0 },
 };
 static const struct LeviText DTEXT[] = {
@@ -381,10 +378,6 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
     /* PAGE up/down well; own mark (no maker logo or product wordmark). */
     ri_art_rect(dl, ox + PX(LEVI_PAGEBOX_X - LEVI_PAGEBOX_W / 2), oy + PX(LEVI_PAGEBOX_Y - LEVI_PAGEBOX_H / 2),
         ox + PX(LEVI_PAGEBOX_X + LEVI_PAGEBOX_W / 2), oy + PX(LEVI_PAGEBOX_Y + LEVI_PAGEBOX_H / 2), C_LEVI_CAP);
-    for (i = 0u; i < sizeof(DCAP) / sizeof(DCAP[0]); i++)
-        if (DCAP[i].x == LEVI_PAGEBOX_X && (DCAP[i].l1[0] == '^' || DCAP[i].l1[0] == 'v'))
-            levi_cap(dl, ox + PX(DCAP[i].x), oy + PX(DCAP[i].y), PX(DCAP[i].w) / 2, PX(10), DCAP[i].l1, "",
-                C_LEVI_LABELDIM, 0);
     levi_text(dl, ox + PX(LEVI_MARK_X), oy + PX(LEVI_MARK_Y), "LEVI", C_LEVI_TEAL, RI_FACE_L);
     levi_text(dl, ox + PX(LEVI_MARK_X), oy + PX(LEVI_MARK_Y + 22), "8 OPERATORS  2 FILTERS", C_LEVI_LABEL, 0);
     /* Ribbon strip. */
@@ -589,7 +582,8 @@ void ri_art_levi_item(struct ri_dlist *dl, const struct RIGeoItem *it, const str
     }
     if (it->shape == RI_GEO_RECT) {                  /* live caps */
         const char *l1 = idx == RI_SLEVI_ARPON ? "ARP" : idx == RI_SLEVI_SEQON ? "SEQ" :
-            idx == RI_SLEVI_STEP ? "STEP" : idx == RI_SLEVI_BACK ? "BACK" : "";
+            idx == RI_SLEVI_STEP ? "STEP" : idx == RI_SLEVI_BACK ? "BACK" :
+            idx == RI_SLEVI_PAGEUP ? "^" : idx == RI_SLEVI_PAGEDN ? "v" : "";
         const char *l2 = idx == RI_SLEVI_ARPON ? "ON" : idx == RI_SLEVI_SEQON ? ">" : "";
         levi_cap(dl, cx, cy, hw, hh, l1, l2, idx == RI_SLEVI_SEQON ? C_LEVI_LABEL : C_LEVI_TEAL,
             (idx == RI_SLEVI_ARPON || idx == RI_SLEVI_SEQON) && v != 0);

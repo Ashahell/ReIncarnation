@@ -180,9 +180,10 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
      * yQ = (y-48)*0.6245; keybed band (y 350..555) is laid out in Q.
      * Black keys precede white keys: first hit wins. Art-only (dim)
      * hardware controls live in art_levi.c, not here. */
-    { SL(46), RI_GEO_KNOB, 0, 1108, 64, 30, 38 },  /* OSC ENV: ATTACK */
-    { SL(47), RI_GEO_KNOB, 0, 1164, 64, 30, 38 },  /* DECAY */
-    { SL(49), RI_GEO_KNOB, 0, 1220, 64, 30, 38 },  /* RELEASE */
+    { SL(78), RI_GEO_KNOB, 0, 1054, 64, 30, 38 },  /* OSC ENV LEVEL & BIAS: ENV LEVEL */
+    { SL(79), RI_GEO_KNOB, 0, 1108, 64, 30, 38 },  /* ATTACK bias */
+    { SL(80), RI_GEO_KNOB, 0, 1164, 64, 30, 38 },  /* DECAY bias */
+    { SL(81), RI_GEO_KNOB, 0, 1220, 64, 30, 38 },  /* RELEASE bias */
     { SL(0), RI_GEO_KNOB, 0, 1296, 64, 30, 38 },  /* DIGITAL FILTER: CUTOFF */
     { SL(1), RI_GEO_KNOB, 0, 1351, 64, 30, 38 },  /* RESONANCE */
     { SL(44), RI_GEO_KNOB, 0, 1539, 64, 30, 38 },  /* ANALOG FILTER: CUTOFF */
@@ -205,6 +206,8 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
     { SL(68), RI_GEO_OPTION, 32, 216, 149, 30, 20 },  /* SEQ (page) */
     { SL(68), RI_GEO_OPTION, 31, 216, 176, 30, 20 },  /* ARP (page) */
     { SL(68), RI_GEO_OPTION, 34, 968, 107, 30, 20 },  /* VOICE */
+    { SL(82), RI_GEO_RECT, 0, 968, 143, 29, 20 },  /* PAGE up */
+    { SL(83), RI_GEO_RECT, 0, 968, 169, 29, 20 },  /* PAGE down */
     { SL(68), RI_GEO_OPTION, 33, 968, 264, 30, 20 },  /* MOD MATRIX */
     { SL(68), RI_GEO_OPTION, 1, 1138, 182, 30, 20 },  /* MODE */
     { SL(68), RI_GEO_OPTION, 7, 1138, 209, 30, 20 },  /* DELAY */

@@ -3,6 +3,7 @@
 #include "gui/panelctl.h"
 #include "gui/ctlreg.h"
 #include "engine/seq/ctlplane.h"
+#include "engine/seq/autolane.h"
 
 int ri_panel_ctl_send(struct RIControlPlane *ctl, uint16_t reg_id, int value) {
     const struct RICtlDef *d;
@@ -19,5 +20,15 @@ int ri_panel_ctl_send(struct RIControlPlane *ctl, uint16_t reg_id, int value) {
     key = ri_ctlreg_auto_id(d);
     if (key == 0u)
         return 1;
+    return (ri_ctl_send(ctl, key, v) == 0) ? 0 : 1;
+}
+
+int ri_panel_ctl_send_key(struct RIControlPlane *ctl, uint16_t key, int value) {
+    uint8_t v;
+    if (!ctl)
+        return 2;
+    if (!ri_auto_allowed(key))
+        return 1;
+    v = (value < 0) ? 0u : (value > 127) ? 127u : (uint8_t)value;
     return (ri_ctl_send(ctl, key, v) == 0) ? 0 : 1;
 }

@@ -16,4 +16,7 @@ struct RIControlPlane;
  * and its key is 0, or the key was refused), 2 bad args (NULL plane).
  * value is clamped to 0..127. */
 int ri_panel_ctl_send(struct RIControlPlane *ctl, uint16_t reg_id, int value);
+/* An explicit lane key (Levi per-oscillator params 0x0F.., fidelity P2):
+ * sent when allow-listed. 0 sent, 1 refused/full, 2 NULL. */
+int ri_panel_ctl_send_key(struct RIControlPlane *ctl, uint16_t key, int value);
 #endif

@@ -571,12 +571,20 @@ static void sync_values(void) {
              * (All other value canvases own their tables; no-op for them.
              * Owner 2026-09-27: 303B knobs drove 303A params.) */
             struct RISectUI *u = s_ui[c];
-            /* Levi page encoders send their target (fidelity P1). */
-            uint16_t reg = (uint16_t)((uint16_t)c_sections[c] << 8) |
-                (uint16_t)(ri_sui_ctl_idx(u, s_dg[c]->last_hit & 0xFFu) & 0xFFu);
-            int val = ri_sui_value(u, reg & 0xFFu);
-            ri_panel_ctl_send(&s_core.ctl, reg, val);
-            evlog("CTL", "%04x=%d", reg, val);
+            uint16_t okey = 0u;
+            int oval = 0;
+            if (ri_sui_ctl_key(u, s_dg[c]->last_hit & 0xFFu, &okey, &oval)) {
+                /* Levi per-oscillator param (fidelity P2): explicit key. */
+                ri_panel_ctl_send_key(&s_core.ctl, okey, oval);
+                evlog("CTL", "%04x=%d", okey, oval);
+            } else {
+                /* Levi page encoders send their target (fidelity P1). */
+                uint16_t reg = (uint16_t)((uint16_t)c_sections[c] << 8) |
+                    (uint16_t)(ri_sui_ctl_idx(u, s_dg[c]->last_hit & 0xFFu) & 0xFFu);
+                int val = ri_sui_value(u, reg & 0xFFu);
+                ri_panel_ctl_send(&s_core.ctl, reg, val);
+                evlog("CTL", "%04x=%d", reg, val);
+            }
         }
     }
 }

@@ -51,11 +51,17 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     0x0E00u, 0x0E01u, 0x0E02u, 0x0E03u, 0x0E04u, 0x0E05u, 0x0E06u, 0x0E07u,
     0x0E08u, 0x0E09u, 0x0E0Au, 0x0E0Bu, 0x0E0Cu, 0x0E0Du, 0x0E0Eu, 0x0E0Fu,
     0x0E10u, 0x0E11u, 0x0E12u, 0x0E13u, 0x0E14u, 0x0E15u, 0x0E16u,
-    0x0E17u, 0x0E18u, 0x0E19u, 0x0E1Au, 0x0E1Bu, 0x0E1Cu
+    0x0E17u, 0x0E18u, 0x0E19u, 0x0E1Au, 0x0E1Bu, 0x0E1Cu,
+    /* Osc Env Level & Bias knobs (fidelity P2). */
+    0x0E27u, 0x0E28u, 0x0E29u, 0x0E2Au
 };
 
 int ri_auto_allowed(uint16_t ctl) {
     uint32_t lo = 0u, hi = sizeof RI_AUTO_ALLOW / sizeof RI_AUTO_ALLOW[0];
+    /* Per-oscillator block (fidelity P2, owner 2026-09-30): every op x
+     * param key; the panel reaches them through the module pages. */
+    if ((ctl & 0xFF00u) == RI_AUTO_BLK_LEVIOP)
+        return (ctl & 31u) < RI_AUTO_LEVIOP_NPARAM;
     while (lo < hi) {
         uint32_t mid = lo + ((hi - lo) >> 1u);
         if (RI_AUTO_ALLOW[mid] == ctl)

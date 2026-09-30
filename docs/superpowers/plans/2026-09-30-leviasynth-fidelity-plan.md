@@ -101,6 +101,32 @@ Each phase lands as TDD slices:
 - **New control ids** in the 0x0E block. A per-op block needs an **id-space decision:** 8 ops × ~24 params does not fit 256 ids with everything else, so the owner is asked to choose a second block (e.g. 0x0F) for Levi ops.
 - **Tests:** per-mode spectra laws (e.g. PM vs FM differ with a triangle modulator; HTE Sync resets; PD modes change the carrier only), envelope timing laws, bit-identical legacy path until switched.
 
+**P2 status (2026-09-30): done.**
+- The owner approved block `0x0F` for per-oscillator keys: `0x0F00 | op << 5 | param`, 29 params per op.
+- Delivered:
+  - per-op wave, invert, pitch mode (Semitone/Ratio/Frequency) with coarse and fine;
+  - Initial Level and Env Level;
+  - feedback (Freq/Phase Mod only);
+  - keytrack, start phase and Direct Out;
+  - per-op DAHDSR with Fast/Slow ranges, attack/decay/release curves, quantize, loops (2–50 or infinite) over the Delay>Attack/Hold/Decay range, and freerun;
+  - legato and reset are stored for P6; velocity>env is stored for P9;
+  - the Osc Env Level & Bias knobs (`0x0E27..2A`);
+  - OSC pages 1–5 and the Group Edit pages; PAGE ▲▼ and a repeated OSC press step the pages; Page Recall.
+- **Behaviour fixed to the manual:**
+  - A mode belongs to the MODULATOR (p. 35): Freq/Phase Mod feeders move the carrier's frequency or phase; PW/HTE Sync/PD feeders warp its phase trajectory, n = modulator/carrier pitch per cycle.
+  - Envelope segments are true ramps. The v1 law re-read the running value each sample, so segments collapsed early. This changes the v1 envelope timing, deliberately.
+- **E0 ledger** (tune by ear):
+  - **Waves:** 128 own waves (8 families × 16), not 300+, because control values are 7-bit. A bank key can extend this later.
+  - **Modulation depth:** index 4 at full level. Default modulator env level is +16, which keeps the v1 index of 0.5, bit for bit.
+  - **Envelope times:** quartic map onto the manual's maxima.
+  - **Frequency mode:** 10 kHz × c³ + 0–0.99 Hz fine.
+  - **Keytrack:** 64 = 0 %, 32 steps per 100 %.
+  - **Loops:** a loop restarts the contour from 0.
+  - **Quantize:** a 15-entry step table.
+  - **Bias:** env level ±1; times ±4 octaves.
+- **Legacy rows:** the v1 section-wide rows (global ratio, packed op mode, all-op envelope) stay registered and automatable for old songs, with no panel item (`ri_slevi_legacy`).
+- **Tests:** t129 (13 laws, 6 mutants killed), t107 (page UI), t110 (hardware layout, now in the audit), t60/t77/t79 (deliberate key and count moves).
+
 ### P3: algorithms
 
 - A bank of own topologies (target ≥ 64 authored; the hardware's 140+ are theirs and are not copied).
@@ -150,10 +176,10 @@ Init/random/browse/save/favourites, stored in a Levi patch chunk. **The chunk ID
 
 ## 5. Open owner decisions
 
-1. The control-id space for per-oscillator parameters (P2): a second block for Levi (0x0F…)?
+1. ~~The control-id space for per-oscillator parameters (P2)~~ — approved 2026-09-30: block 0x0F.
 2. Voice count on the Dell after measurement (P6).
 3. RBNG chunk IDs for Levi patches (P10; already open in the requirement).
-4. Whether the drawn CV/Gate jacks stay (decorative) or are omitted.
+4. Whether the drawn CV/Gate jacks stay (decorative) or are omitted. (Panel look approved 2026-09-30.)
 
 ## 6. Risks
 

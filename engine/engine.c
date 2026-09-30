@@ -636,6 +636,13 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
             rb909_set_param(&e->s909.v[lo], RI_CTL_909_TUNE + hi, val);
         return;
     }
+    if (blk == RI_AUTO_BLK_LEVIOP) {
+        /* Per-oscillator params (fidelity P2): 0x0F | op << 5 | param,
+         * section-wide like the 0x0E block. */
+        for (v = 0u; v < RI_LEVI_NVOICES; v++)
+            levi_set_op_ui(&e->slevi, v, (key >> 5) & 7u, key & 31u, val);
+        return;
+    }
     if (blk == RI_AUTO_BLK_LEVI) {
         /* Section-wide (panel model): every voice follows the knob.
          * Full low byte (voice params share 0x00-0x09 with the nibble;

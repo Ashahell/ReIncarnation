@@ -41,6 +41,8 @@ struct RIAutoPass {
 #define RI_AUTO_BLK_808 0x0C00u
 #define RI_AUTO_BLK_909 0x0D00u
 #define RI_AUTO_BLK_LEVI 0x0E00u /* section-wide voice params (owner 2026-09-28) */
+#define RI_AUTO_BLK_LEVIOP 0x0F00u /* per-oscillator params: op << 5 | param (owner 2026-09-30) */
+#define RI_AUTO_LEVIOP_NPARAM 29u  /* params 0..28 per op (the Levi voice RI_LEVI_OP_* list) */
 #define RI_AUTO_MIX_LEVEL 0u
 #define RI_AUTO_MIX_PAN 1u
 #define RI_AUTO_MIX_SEND 2u

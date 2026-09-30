@@ -38,19 +38,44 @@ static void env_reset(struct RILeviEnv *e) {
     e->stage_t = 0.0f;
 }
 
-/* One envelope sample; returns 1 while sounding, 0 at rest end. */
-static int env_tick(struct RILeviEnv *e, float sr) {
+/* Segment shape (curve c -64..+63; 0 = the v1 linear ramp exactly).
+ * Rising segments: exp (c < 0) starts slow, log (c > 0) starts fast.
+ * Falling segments: exp (c > 0) drops fast first, log (c < 0) slow. */
+static float seg_shape(float x, int c, int rising) {
+    float p;
+    if (c == 0)
+        return x;
+    if (x <= 0.0f)
+        return 0.0f;
+    if (x >= 1.0f)
+        return 1.0f;
+    p = ri_pow2((float)(rising ? -c : c) / 32.0f);
+    if (rising)
+        return ri_pow2(p * ri_log2(x));
+    return 1.0f - ri_pow2(p * ri_log2(1.0f - x));
+}
+
+/* One envelope sample; returns 1 while sounding, 0 at rest end.
+ * tscale: device time bias for this segment's family (1 = none). */
+static int env_tick_b(struct RILeviEnv *e, float sr, const float *tscale) {
     float dt, span, from, to;
+    int c = 0, rising = 0;
     if (!e || sr <= 0.0f)
         return 0;
     if (e->stage == RI_LEVI_SEG_IDLE)
         return 0;
     if (e->stage == RI_LEVI_SEG_S) {
-        if (e->loop) {
+        if (e->relpend) {                    /* freerun: held release now */
+            e->relpend = 0u;
+            e->stage = RI_LEVI_SEG_R;
+            e->stage_t = 0.0f;
+            e->seg_from = e->value;
+        } else if (e->loop && !e->loopn) {
             /* Contour loop: sustain falls back to attack (own loop
              * law; release still rests via R). */
             e->stage = RI_LEVI_SEG_A;
             e->stage_t = 0.0f;
+            e->seg_from = e->value;
         } else {
             return 1;
         }
@@ -58,6 +83,14 @@ static int env_tick(struct RILeviEnv *e, float sr) {
     dt = 1.0f / sr;
     e->stage_t += dt;
     span = e->times[e->stage];
+    if (tscale) {
+        if (e->stage == RI_LEVI_SEG_A)
+            span *= tscale[0];
+        else if (e->stage == RI_LEVI_SEG_D2)
+            span *= tscale[1];
+        else if (e->stage == RI_LEVI_SEG_R)
+            span *= tscale[2];
+    }
     from = e->value;
     switch (e->stage) {
     case RI_LEVI_SEG_D:
@@ -65,18 +98,23 @@ static int env_tick(struct RILeviEnv *e, float sr) {
         break;
     case RI_LEVI_SEG_A:
         to = 1.0f;
+        c = e->curve[0];
+        rising = 1;
         break;
     case RI_LEVI_SEG_H:
         to = 1.0f;
         break;
     case RI_LEVI_SEG_D2:
         to = e->sustain;
+        c = e->curve[1];
         break;
     default: /* RI_LEVI_SEG_R */
         to = 0.0f;
+        c = e->curve[2];
         break;
     }
     if (span <= 0.0f || e->stage_t >= span) {
+        uint8_t done = e->stage;
         e->value = to;
         e->stage_t = 0.0f;
         if (e->stage == RI_LEVI_SEG_R) {
@@ -84,24 +122,309 @@ static int env_tick(struct RILeviEnv *e, float sr) {
             e->value = 0.0f;
             return 0;
         }
+        if (e->loopn && done == e->loopend && !e->relpend &&
+            (e->loopn == 255u || e->loopleft > 0u)) {
+            /* Counted/infinite loop over the stage range (manual p. 74):
+             * back to Delay (or Attack when Delay is 0). */
+            if (e->loopn != 255u)
+                e->loopleft--;
+            e->stage = e->times[RI_LEVI_SEG_D] > 0.0f ? RI_LEVI_SEG_D : RI_LEVI_SEG_A;
+            e->value = 0.0f;                  /* the loop restarts the contour */
+            e->seg_from = 0.0f;
+            return 1;
+        }
         e->stage++;
+        e->seg_from = e->value;
         if (e->stage == RI_LEVI_SEG_S)
             e->value = e->sustain;
         return 1;
     }
-    e->value = from + (to - from) * (e->stage_t / span);
+    /* True segment ramp from the segment's start value (fidelity P2: the
+     * v1 law re-read the running value every sample, so segments
+     * collapsed long before their set time). */
+    (void)from;
+    {
+        float x = e->stage_t / span, y = c == 0 ? x : seg_shape(x, c, rising);
+        e->value = e->seg_from + (to - e->seg_from) * y;
+    }
     return 1;
+}
+
+/* Quantized envelope output (Quantize, manual p. 72): value snapped to
+ * q steps; 0 = continuous (the v1 value). */
+static float env_out(const struct RILeviEnv *e) {
+    if (!e->quant)
+        return e->value;
+    return (float)(int)(e->value * (float)e->quant + 0.5f) / (float)e->quant;
 }
 
 static void op_state_reset(struct RILeviOpState *st, float freq) {
     st->phase = 0.0f;
     st->freq = freq;
     st->ps = 0.0f;
+    st->last = 0.0f;
+    st->amp = 0.0f;
+    st->env.relpend = 0u;
+    st->env.loopleft = st->env.loopn == 255u ? 0u : (uint8_t)(st->env.loopn > 1u ? st->env.loopn - 1u : 0u);
+    st->env.seg_from = 0.0f;
     /* Runtime only: times/sustain/loop are voice params (set_param),
      * preserved across triggers (unlike v1 constants). */
     st->env.value = 0.0f;
     st->env.stage = RI_LEVI_SEG_D;
     st->env.stage_t = 0.0f;
+}
+
+
+/* ---- Own wave set (fidelity P2; clean-room: authored formulas, own
+ * names, none of the hardware's tables). 8 families x 16. Discontinuous
+ * shapes carry a PolyBLEP correction (dt = cycles per sample). ---- */
+static const char *const WAVE_FAMILY[8] = {
+    "CLASSIC", "PULSE", "HARM", "FOLD", "WARP", "SYNC", "RING", "CHEBY"
+};
+static const char *const WAVE_CLASSIC[16] = {
+    "SINE", "TRIANGLE", "TRISAW", "SAW", "SQUARE", "HALF SINE", "ABS SINE", "QTR SINE",
+    "SINE CUBE", "OCTAVE", "ORGAN", "SOFT SQUARE", "SOFT SAW", "PULSE 25", "PULSE 12", "TRAPEZOID"
+};
+
+static float blep(float t, float dt) {
+    if (dt <= 0.0f)
+        return 0.0f;
+    if (t < dt) {
+        t /= dt;
+        return t + t - t * t - 1.0f;
+    }
+    if (t > 1.0f - dt) {
+        t = (t - 1.0f) / dt;
+        return t * t + t + t + 1.0f;
+    }
+    return 0.0f;
+}
+
+static float frac1(float x) {
+    x -= (float)(int)x;
+    return x < 0.0f ? x + 1.0f : x;
+}
+
+static float w_saw(float ph, float dt) {
+    return (2.0f * ph - 1.0f) - blep(ph, dt);
+}
+
+static float w_pulse(float ph, float dt, float w) {
+    float v = ph < w ? 1.0f : -1.0f;
+    return v + blep(ph, dt) - blep(frac1(ph + 1.0f - w), dt);
+}
+
+static float w_tri(float ph) {
+    float t = 4.0f * ph;
+    return ph < 0.25f ? t : ph < 0.75f ? 2.0f - t : t - 4.0f;
+}
+
+const char *ri_levi_wave_name(uint32_t w) {
+    if (w >= RI_LEVI_NWAVES)
+        return "";
+    if (w < 16u)
+        return WAVE_CLASSIC[w];
+    return WAVE_FAMILY[w >> 4];   /* the UI appends the number (w & 15) + 1 */
+}
+
+float ri_levi_wave(uint32_t w, float ph, float dt) {
+    const float TAU = 6.2831853f;
+    uint32_t f = w >> 4, k = w & 15u;
+    float s = ri_sin(ph * TAU);
+    if (w == 0u)
+        return s;
+    switch (f) {
+    case 0u:
+        switch (k) {
+        case 1u: return w_tri(ph);
+        case 2u: return 0.5f * (w_tri(ph) + w_saw(ph, dt));
+        case 3u: return w_saw(ph, dt);
+        case 4u: return w_pulse(ph, dt, 0.5f);
+        case 5u: return ph < 0.5f ? 2.0f * s - 1.0f : -1.0f;
+        case 6u: return 2.0f * (s < 0.0f ? -s : s) - 1.0f;
+        case 7u: return ph < 0.25f || (ph >= 0.5f && ph < 0.75f) ? (s < 0.0f ? -s : s) * 2.0f - 1.0f : -1.0f;
+        case 8u: return s * s * s;
+        case 9u: return 0.6f * s + 0.4f * ri_sin(2.0f * ph * TAU);
+        case 10u: return 0.5f * s + 0.3f * ri_sin(2.0f * ph * TAU) + 0.2f * ri_sin(3.0f * ph * TAU);
+        case 11u: return ri_tanh(3.0f * s) / ri_tanh(3.0f);
+        case 12u: return ri_tanh(2.0f * w_saw(ph, dt)) / ri_tanh(2.0f);
+        case 13u: return w_pulse(ph, dt, 0.25f);
+        case 14u: return w_pulse(ph, dt, 0.125f);
+        default: {
+            float t = 3.0f * w_tri(ph);
+            return t > 1.0f ? 1.0f : t < -1.0f ? -1.0f : t;
+        }
+        }
+    case 1u: /* PULSE: widths 4..49 % */
+        return w_pulse(ph, dt, 0.04f + 0.03f * (float)k);
+    case 2u: { /* HARM: fundamental + one partial (2..9), two weights */
+        float h = (float)(2u + (k >> 1)), a = (k & 1u) ? 0.7f : 0.35f;
+        return (s + a * ri_sin(h * ph * TAU)) / (1.0f + a);
+    }
+    case 3u: { /* FOLD: triangle-folded sine, gain 1.2..4.2 */
+        float y = frac1(0.25f * s * (1.2f + 0.2f * (float)k) + 0.25f);
+        return 4.0f * (y < 0.5f ? 0.5f - y : y - 0.5f) - 1.0f;
+    }
+    case 4u: { /* WARP: phase knee 0.05..0.95 (phase-distorted sine) */
+        float kn = 0.05f + 0.06f * (float)k;
+        float q = ph < kn ? 0.5f * ph / kn : 0.5f + 0.5f * (ph - kn) / (1.0f - kn);
+        return ri_sin(q * TAU);
+    }
+    case 5u: { /* SYNC: slave saw at 1.25..5x, reset each cycle */
+        float r = 1.25f + 0.25f * (float)k;
+        return 2.0f * frac1(ph * r) - 1.0f;
+    }
+    case 6u: /* RING: sine x sine(k+2) */
+        return s * ri_sin((float)(k + 2u) * ph * TAU);
+    default: { /* CHEBY: T_n(sin) mixed with sine, n = 2..17 */
+        float t0 = 1.0f, t1 = s, tn = s;
+        uint32_t n;
+        for (n = 2u; n <= k + 2u; n++) {
+            tn = 2.0f * s * t1 - t0;
+            t0 = t1;
+            t1 = tn;
+        }
+        return 0.5f * (s + tn);
+    }
+    }
+}
+
+/* ---- Per-op parameter laws (UI 0..127 -> values; own E0 maps) ---- */
+static const uint8_t OP_LO[RI_LEVI_OP_NPARAM] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+static const uint8_t OP_HI[RI_LEVI_OP_NPARAM] = {
+    127, 1, 2, 127, 127, 127, 127, 127, 127, 127, 1, 6,
+    127, 127, 127, 127, 127, 127, 1, 127, 127, 127, 15, 50, 2, 1, 1, 1, 127
+};
+
+int ri_levi_op_range(uint32_t param, int *lo, int *hi) {
+    if (param >= RI_LEVI_OP_NPARAM || !lo || !hi)
+        return 2;
+    *lo = OP_LO[param];
+    *hi = OP_HI[param];
+    return 0;
+}
+
+float ri_levi_ratio(uint8_t idx) {
+    if (idx == 0u)
+        return 0.25f;
+    if (idx == 1u)
+        return 0.5f;
+    return (float)(idx > 65u ? 64u : idx - 1u);
+}
+
+int ri_levi_op_default(uint32_t op, uint32_t param) {
+    switch (param) {
+    case RI_LEVI_OP_PMODE: return 1;
+    case RI_LEVI_OP_COARSE: return 2;             /* ratio 1.00 */
+    case RI_LEVI_OP_FINE: return 64;
+    case RI_LEVI_OP_ENVL: return op == 0u ? 127 : 72; /* +128 / +16 */
+    case RI_LEVI_OP_KEYTRK: return 96;            /* 100 % */
+    case RI_LEVI_OP_ATTACK: return 14;            /* ~5 ms, the v1 attack */
+    case RI_LEVI_OP_DECAY: return 34;             /* ~0.3 s */
+    case RI_LEVI_OP_SUSTAIN: return 102;
+    case RI_LEVI_OP_RELEASE: return 28;           /* ~0.15 s */
+    case RI_LEVI_OP_ACURVE: case RI_LEVI_OP_DCURVE: case RI_LEVI_OP_RCURVE: return 64;
+    case RI_LEVI_OP_STAGELOOP: return 2;
+    default: return 0;
+    }
+}
+
+float ri_levi_env_time(uint32_t param, uint8_t val, uint32_t speed) {
+    /* Manual ranges (p. 38): Fast D 32 s, A/H 36 s, D/R 60 s;
+     * Slow D 60 s, A/H 600 s, D/R 900 s. Own quartic map (fine short
+     * times). */
+    float mx, u = (float)(val > 127u ? 127u : val) / 127.0f;
+    switch (param) {
+    case RI_LEVI_OP_DELAY: mx = speed ? 60.0f : 32.0f; break;
+    case RI_LEVI_OP_ATTACK: case RI_LEVI_OP_HOLD: mx = speed ? 600.0f : 36.0f; break;
+    default: mx = speed ? 900.0f : 60.0f; break;
+    }
+    return mx * u * u * u * u;
+}
+
+static const uint8_t QUANT_STEPS[16] = { 0, 2, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32, 48, 64, 96, 128 };
+
+/* Recompute an op's derived values after a UI change; env params go
+ * into both bank states of the voice. */
+static void op_apply(struct RILeviVoice *v, uint32_t o, uint32_t p) {
+    struct RILeviOp *op = &v->op[o];
+    const uint8_t *u = op->ui;
+    uint32_t b;
+    switch (p) {
+    case RI_LEVI_OP_WAVE: op->wave = u[p]; break;
+    case RI_LEVI_OP_INVERT: op->invert = u[p] ? 1u : 0u; break;
+    case RI_LEVI_OP_PMODE: case RI_LEVI_OP_COARSE: case RI_LEVI_OP_FINE: {
+        int fine = (int)u[RI_LEVI_OP_FINE] - 64;
+        op->pmode = u[RI_LEVI_OP_PMODE] > 2u ? 2u : u[RI_LEVI_OP_PMODE];
+        if (op->pmode == 0u) {                    /* semitone + cent */
+            int semi = (int)u[RI_LEVI_OP_COARSE] - 64;
+            if (semi < -36) semi = -36;
+            if (semi > 36) semi = 36;
+            if (fine < -50) fine = -50;
+            if (fine > 50) fine = 50;
+            op->pitchmul = ri_pow2(((float)semi + (float)fine / 100.0f) / 12.0f);
+        } else if (op->pmode == 1u) {             /* ratio x (1 + fine %) */
+            float r = ri_levi_ratio(u[RI_LEVI_OP_COARSE]);
+            float fp = fine < 0 ? (float)fine * 50.0f / 64.0f : (float)fine * 100.0f / 63.0f;
+            op->ratio = fine == 0 ? r : r * (1.0f + fp / 100.0f);
+        } else {                                  /* fixed Hz + fraction */
+            float c = (float)u[RI_LEVI_OP_COARSE] / 127.0f;
+            op->hz = 10000.0f * c * c * c + (float)u[RI_LEVI_OP_FINE] * 0.99f / 127.0f;
+        }
+        break;
+    }
+    case RI_LEVI_OP_INIT: op->init = (float)u[p] / 127.0f; break;
+    case RI_LEVI_OP_ENVL: op->envl = u[p] >= 127u ? 1.0f : ((float)u[p] - 64.0f) * 2.0f / 128.0f; break;
+    case RI_LEVI_OP_FEEDBACK: op->fb = (float)u[p] / 127.0f; break;
+    case RI_LEVI_OP_KEYTRK: op->kt = ((float)u[p] - 64.0f) / 32.0f; break;
+    case RI_LEVI_OP_PHASE: op->phase0 = (float)u[p] / 128.0f; break;
+    case RI_LEVI_OP_DIRECT: op->direct = u[p] ? 1u : 0u; break;
+    case RI_LEVI_OP_MODE: op->mode = u[p] > 6u ? 6u : u[p]; break;
+    default:
+        if (p == RI_LEVI_OP_SPEED && (u[p] ? 1u : 0u) == op->speed)
+            break;                                /* same range: times stand */
+        for (b = 0u; b < 2u; b++) {
+            struct RILeviEnv *e = &v->st[b][o].env;
+            uint32_t spd = u[RI_LEVI_OP_SPEED] ? 1u : 0u;
+            if (p == RI_LEVI_OP_DELAY || p == RI_LEVI_OP_SPEED)
+                e->times[RI_LEVI_SEG_D] = ri_levi_env_time(RI_LEVI_OP_DELAY, u[RI_LEVI_OP_DELAY], spd);
+            if (p == RI_LEVI_OP_ATTACK || p == RI_LEVI_OP_SPEED)
+                e->times[RI_LEVI_SEG_A] = ri_levi_env_time(RI_LEVI_OP_ATTACK, u[RI_LEVI_OP_ATTACK], spd);
+            if (p == RI_LEVI_OP_HOLD || p == RI_LEVI_OP_SPEED)
+                e->times[RI_LEVI_SEG_H] = ri_levi_env_time(RI_LEVI_OP_HOLD, u[RI_LEVI_OP_HOLD], spd);
+            if (p == RI_LEVI_OP_DECAY || p == RI_LEVI_OP_SPEED)
+                e->times[RI_LEVI_SEG_D2] = ri_levi_env_time(RI_LEVI_OP_DECAY, u[RI_LEVI_OP_DECAY], spd);
+            if (p == RI_LEVI_OP_RELEASE || p == RI_LEVI_OP_SPEED)
+                e->times[RI_LEVI_SEG_R] = ri_levi_env_time(RI_LEVI_OP_RELEASE, u[RI_LEVI_OP_RELEASE], spd);
+            if (p == RI_LEVI_OP_SUSTAIN)
+                e->sustain = (float)u[p] / 127.0f;
+            e->curve[0] = (int8_t)((int)u[RI_LEVI_OP_ACURVE] - 64);
+            e->curve[1] = (int8_t)((int)u[RI_LEVI_OP_DCURVE] - 64);
+            e->curve[2] = (int8_t)((int)u[RI_LEVI_OP_RCURVE] - 64);
+            e->quant = QUANT_STEPS[u[RI_LEVI_OP_QUANT] & 15u];
+            e->loopn = u[RI_LEVI_OP_LOOP] == 0u ? 0u : u[RI_LEVI_OP_LOOP] >= 50u ? 255u
+                : (uint8_t)(u[RI_LEVI_OP_LOOP] + 1u);
+            e->loopend = u[RI_LEVI_OP_STAGELOOP] == 0u ? RI_LEVI_SEG_A
+                : u[RI_LEVI_OP_STAGELOOP] == 1u ? RI_LEVI_SEG_H : RI_LEVI_SEG_D2;
+            e->freerun = u[RI_LEVI_OP_FREERUN] ? 1u : 0u;
+        }
+        op->speed = u[RI_LEVI_OP_SPEED] ? 1u : 0u;
+        break;
+    }
+}
+
+int levi_set_op_ui(struct RILeviSet *s, uint32_t voice, uint32_t op, uint32_t param, uint8_t val) {
+    struct RILeviVoice *v;
+    if (!s || voice >= RI_LEVI_NVOICES || op >= RI_LEVI_NOPS || param >= RI_LEVI_OP_NPARAM)
+        return 2;
+    v = &s->v[voice];
+    if (val > OP_HI[param])
+        val = OP_HI[param];
+    v->op[op].ui[param] = val;
+    op_apply(v, op, param);
+    return 0;
 }
 
 /* Own preset topologies (functional shapes; mod_src per op, -1 = carrier).
@@ -189,9 +512,27 @@ void levi_init_set(struct RILeviSet *s) {
         v->algoB = RI_LEVI_ALGO_DUO;
         v->morph = 0u;
         for (o = 0u; o < RI_LEVI_NOPS; o++) {
-            v->op[o].ratio = RI_LEVI_DEF_RATIO;
-            v->op[o].level = 1.0f;
-            v->op[o].mode = RI_LEVI_FM;
+            uint32_t pp;
+            struct RILeviOp *op = &v->op[o];
+            op->ratio = RI_LEVI_DEF_RATIO;
+            op->level = 1.0f;
+            op->mode = RI_LEVI_FM;
+            op->wave = 0u;
+            op->invert = 0u;
+            op->pmode = 1u;
+            op->pitchmul = 1.0f;
+            op->hz = 0.0f;
+            op->init = 0.0f;
+            op->envl = o == 0u ? 1.0f : 0.125f;   /* v1: carrier full, modulator index 0.5 */
+            op->fb = 0.0f;
+            op->kt = 1.0f;
+            op->phase0 = 0.0f;
+            op->direct = 0u;
+            op->speed = 0u;
+            op->pad2[0] = op->pad2[1] = 0u;
+            op->pad3[0] = op->pad3[1] = op->pad3[2] = 0u;
+            for (pp = 0u; pp < RI_LEVI_OP_NPARAM; pp++)
+                op->ui[pp] = (uint8_t)ri_levi_op_default(o, pp);
         }
         for (b = 0u; b < 2u; b++) {
             bank_preset(v, b, RI_LEVI_ALGO_DUO);
@@ -202,9 +543,22 @@ void levi_init_set(struct RILeviSet *s) {
                 env_reset(&v->st[b][o].env);
                 v->st[b][o].env.stage = RI_LEVI_SEG_IDLE;
                 v->st[b][o].env.loop = 0u;
+                v->st[b][o].env.curve[0] = v->st[b][o].env.curve[1] = v->st[b][o].env.curve[2] = 0;
+                v->st[b][o].env.quant = 0u;
+                v->st[b][o].env.loopn = 0u;
+                v->st[b][o].env.loopleft = 0u;
+                v->st[b][o].env.loopend = RI_LEVI_SEG_D2;
+                v->st[b][o].env.freerun = 0u;
+                v->st[b][o].env.relpend = 0u;
+                v->st[b][o].env.pad2[0] = v->st[b][o].env.pad2[1] = v->st[b][o].env.pad2[2] = 0u;
+                v->st[b][o].env.seg_from = 0.0f;
+                v->st[b][o].last = 0.0f;
+                v->st[b][o].amp = 0.0f;
             }
         }
         voice_preset(v, RI_LEVI_ALGO_DUO);
+        v->bias_envl = 0.0f;
+        v->bias_t[0] = v->bias_t[1] = v->bias_t[2] = 1.0f;
         v->cutoff = RI_LEVI_DEF_CUTOFF;
         v->reso = RI_LEVI_DEF_RESO;
         v->level = 1.0f;
@@ -224,6 +578,7 @@ void levi_init_set(struct RILeviSet *s) {
             v->lfo[o].value = 0.0f;
         }
     }
+    s->bias[0] = s->bias[1] = s->bias[2] = s->bias[3] = 64u;
     s->arpon = 0u;
     s->arprate = 64u;
     s->seqon = 0u;
@@ -269,8 +624,17 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
     for (b = 0u; b < 2u; b++) {
         uint8_t *live = b ? v->liveB : v->live;
         for (o = 0u; o < RI_LEVI_NOPS; o++)
-            if (live[o])
-                op_state_reset(&v->st[b][o], f * v->op[o].ratio);
+            if (live[o]) {
+                const struct RILeviOp *op = &v->op[o];
+                /* Keytrack 100 % keeps the v1 note law exactly; others
+                 * scale the distance from C4 (manual p. 38). */
+                float base = op->kt == 1.0f ? f
+                    : note_hz(60u) * ri_pow2((((float)note - 60.0f) / 12.0f) * op->kt);
+                float fo = op->pmode == 2u ? op->hz
+                    : op->pmode == 0u ? base * op->pitchmul : base * op->ratio;
+                op_state_reset(&v->st[b][o], fo);
+                v->st[b][o].phase = op->phase0;
+            }
     }
     v->lp1 = 0.0f;
     v->lp2 = 0.0f;
@@ -293,8 +657,14 @@ void levi_release(struct RILeviSet *s, uint32_t voice) {
         uint8_t *live = b ? v->liveB : v->live;
         for (o = 0u; o < RI_LEVI_NOPS; o++) {
             if (live[o] && v->st[b][o].env.stage != RI_LEVI_SEG_IDLE) {
-                v->st[b][o].env.stage = RI_LEVI_SEG_R;
-                v->st[b][o].env.stage_t = 0.0f;
+                struct RILeviEnv *e = &v->st[b][o].env;
+                if (e->freerun && e->stage < RI_LEVI_SEG_S) {
+                    e->relpend = 1u;              /* runs to sustain first */
+                    continue;
+                }
+                e->stage = RI_LEVI_SEG_R;
+                e->stage_t = 0.0f;
+                e->seg_from = e->value;
             }
         }
     }
@@ -528,6 +898,20 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
         s->v[voice].lfo[id - (RI_CTL_LEVI_LFO0RATE & 0xFFu)].rate =
             ri_levi_lfo_rate(val > 127u ? 127u : val);
         return 0;
+    case (RI_CTL_LEVI_BIAS_ENVL & 0xFFu): case (RI_CTL_LEVI_BIAS_ATK & 0xFFu):
+    case (RI_CTL_LEVI_BIAS_DEC & 0xFFu): case (RI_CTL_LEVI_BIAS_REL & 0xFFu): {
+        /* Osc Env Level & Bias (manual p. 54): 64 = none. Level bias adds
+         * up to +/-1 to every env level; time bias scales +/-4 octaves. */
+        uint32_t bi = id - (RI_CTL_LEVI_BIAS_ENVL & 0xFFu);
+        struct RILeviVoice *v = &s->v[voice];
+        uint8_t b = val > 127u ? 127u : val;
+        s->bias[bi] = b;
+        if (bi == 0u)
+            v->bias_envl = b == 64u ? 0.0f : ((float)b - 64.0f) / 64.0f;
+        else
+            v->bias_t[bi - 1u] = b == 64u ? 1.0f : ri_pow2(((float)b - 64.0f) / 16.0f);
+        return 0;
+    }
     case (RI_CTL_LEVI_LFO0SHAPE & 0xFFu): case (RI_CTL_LEVI_LFO1SHAPE & 0xFFu):
     case (RI_CTL_LEVI_LFO2SHAPE & 0xFFu): case (RI_CTL_LEVI_LFO3SHAPE & 0xFFu):
     case (RI_CTL_LEVI_LFO4SHAPE & 0xFFu):
@@ -539,8 +923,43 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     }
 }
 
+/* Phase warp of a carrier by one non-FM/PM modulator (manual pp. 45-48,
+ * own definitions): the modulator's pitch sets how many processes per
+ * carrier cycle (n), its level the amount (a 0..1). Pure. */
+static float mod_warp(uint32_t mode, float ph, float n, float a) {
+    const float K = 0.1591549f;               /* 1 / (2 pi) */
+    float x = ph * n, cyc = (float)(int)x, s = x - cyc, sw;
+    switch (mode) {
+    case RI_LEVI_PWM: {                       /* pulse width: narrow the first half */
+        float w = 0.5f - 0.49f * a;
+        sw = s < w ? 0.5f * s / w : 0.5f + 0.5f * (s - w) / (1.0f - w);
+        break;
+    }
+    case RI_LEVI_SYNC:                        /* hard sync: slave restarts every process */
+        sw = frac1(s * (1.0f + 7.0f * a));
+        break;
+    case RI_LEVI_PDSAW:                       /* saw trajectory */
+        sw = s - a * K * ri_sin(6.2831853f * s);
+        break;
+    case RI_LEVI_PDSQ:                        /* binary (two-rate) trajectory */
+        sw = s - a * K * ri_sin(12.5663706f * s);
+        break;
+    default: {                                /* PD saw pulse: saw, then binary */
+        float t = s - a * K * ri_sin(6.2831853f * s);
+        sw = t - a * K * ri_sin(12.5663706f * t);
+        break;
+    }
+    }
+    return frac1((cyc + sw) / (n > 0.0f ? n : 1.0f));
+}
+
 /* One morph-bank pass: carriers under this bank's routing into mix.
- * Returns the carrier mix; ORs envelope activity into *any_on. */
+ * Returns the carrier mix; ORs envelope activity into *any_on.
+ * Modes belong to the MODULATOR (manual p. 35: a mode changes how an
+ * oscillator affects the ones it modulates): Freq Mod feeders move the
+ * carrier's frequency, Phase Mod feeders its phase, PW/Sync/PD feeders
+ * warp its phase trajectory. With every mode Freq Mod and the default
+ * levels this is the v1 render bit for bit. */
 static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
     int *any_on) {
     float opout[RI_LEVI_NOPS] = { 0.0f }, mix = 0.0f;
@@ -552,74 +971,63 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
         uint32_t i = ord[k];
         struct RILeviOp *p = &v->op[i];
         struct RILeviOpState *o = &v->st[bank][i];
-        float m, osc;
-        int on;
+        float fm, pm, ph, osc, amp;
+        int on, warped = 0;
         if (i >= RI_LEVI_NOPS || !live[i]) {
             opout[k & (RI_LEVI_NOPS - 1u)] = 0.0f;
             continue;
         }
-        on = env_tick(&o->env, sr);
+        on = env_tick_b(&o->env, sr, v->bias_t);
         *any_on |= on;
         if (!on) {
             opout[i] = 0.0f;
+            o->amp = 0.0f;
             continue;
         }
         /* Feeders render first by topological order, so their slots
          * are filled (zero-init covers custom edits mid-flight). */
-        m = 0.0f;
+        fm = 0.0f;
+        pm = 0.0f;
         for (j = 0u; j < RI_LEVI_NOPS; j++)
-            if (src[j] == (int)i)
-                m += opout[j];
-        if (p->mode == RI_LEVI_FM)
-            o->phase += (o->freq + o->freq * RI_LEVI_MOD_INDEX * m) / sr;
-        else
-            o->phase += o->freq / sr;
+            if (src[j] == (int)i) {
+                uint32_t md = v->op[j].mode;
+                if (md == RI_LEVI_FM)
+                    fm += opout[j];
+                else if (md == RI_LEVI_PM)
+                    pm += opout[j];
+                else
+                    warped = 1;
+            }
+        o->phase += (o->freq + o->freq * (RI_LEVI_MOD_DEPTH * fm)) / sr;
         if (o->phase >= 1.0f)
             o->phase -= 1.0f;
         if (o->phase < 0.0f)
             o->phase += 1.0f;
-        switch (p->mode) {
-        case RI_LEVI_PM:
-            osc = ri_sin((o->phase + RI_LEVI_MOD_INDEX * m) * 6.2831853f);
-            break;
-        case RI_LEVI_PWM: {
-            float w = 0.5f + 0.4f * m;
-            osc = (o->phase < w ? 1.0f : -1.0f) * 0.7f;
-            break;
-        }
-        case RI_LEVI_SYNC: {
-            if (o->ps <= 0.0f && m > 0.0f)
-                o->phase = 0.5f + 0.5f * (m > 1.0f ? 1.0f : m);
-            osc = 2.0f * o->phase - 1.0f;
-            break;
-        }
-        case RI_LEVI_PDSAW: {
-            float ph = ri_sin(o->phase * 6.2831853f);
-            float am = m < 0.0f ? -m : m;
-            osc = (ph + m * ph * ph) / (1.0f + am);
-            break;
-        }
-        case RI_LEVI_PDSQ: {
-            float ph = ri_sin(o->phase * 6.2831853f);
-            float kk = 2.0f * (m < 0.0f ? -m : m);
-            float aa = ph < 0.0f ? -ph : ph;
-            osc = ph * (1.0f + kk) / (1.0f + kk * aa);
-            break;
-        }
-        case RI_LEVI_PDPULSE: {
-            float ph = ri_sin(o->phase * 6.2831853f);
-            float depth = m < 0.0f ? -m : m;
-            float sq = o->phase < 0.25f || o->phase >= 0.75f ? 0.8f : -0.8f;
-            osc = ph + (sq - ph) * (depth > 1.0f ? 1.0f : depth);
-            break;
-        }
-        default: /* FM */
-            osc = ri_sin(o->phase * 6.2831853f);
-            break;
-        }
-        o->ps = m;
-        opout[i] = osc * p->level * o->env.value;
-        if (src[i] < 0)
+        ph = o->phase;
+        if (pm != 0.0f)
+            ph = frac1(ph + RI_LEVI_MOD_DEPTH * pm * 0.1591549f);
+        if (p->fb > 0.0f && (p->mode == RI_LEVI_FM || p->mode == RI_LEVI_PM))
+            ph = frac1(ph + p->fb * 1.2f * o->last);   /* self feedback (FM/PM only) */
+        if (warped)
+            for (j = 0u; j < RI_LEVI_NOPS; j++)
+                if (src[j] == (int)i && v->op[j].mode > RI_LEVI_PM && o->freq > 0.0f) {
+                    float n = v->st[bank][j].freq / o->freq;
+                    n = n < 0.125f ? 0.125f : n > 64.0f ? 64.0f : n;
+                    ph = mod_warp(v->op[j].mode, ph, n, v->st[bank][j].amp);
+                }
+        osc = ri_levi_wave(p->wave, ph, o->freq / sr);
+        if (p->invert)
+            osc = -osc;
+        amp = p->init + (p->envl + v->bias_envl) * env_out(&o->env);
+        if (amp < 0.0f)
+            amp = 0.0f;
+        if (amp > 1.0f)
+            amp = 1.0f;
+        o->ps = fm;
+        o->last = osc;
+        o->amp = amp;
+        opout[i] = osc * p->level * amp;
+        if (src[i] < 0 || p->direct)
             mix += opout[i];
     }
     return mix;

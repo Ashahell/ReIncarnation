@@ -167,7 +167,8 @@ int main(void) {
     autoev(&E, 0x0B0Fu, 5u, 0u);
     autoev(&E, 0x0B66u, 5u, 0u); /* strip-5 param 6 (no such param) */
     autoev(&E, 0x0B16u, 5u, 0u); /* param 6 */
-    autoev(&E, 0x0F00u, 5u, 0u); /* unknown block */
+    autoev(&E, 0x1000u, 5u, 0u); /* unknown block (0x0F is the Levi op block since P2) */
+    autoev(&E, 0x0F1Fu, 5u, 0u); /* Levi op block: no param 31 */
     autoev(&E, RI_AUTO_ID_909(RI_CTL_909_TUNE, 12u), 5u, 3u); /* no voice 12 */
     RI_ASSERT(!memcmp(E.pan, F.pan, sizeof E.pan) && !memcmp(E.send, F.send, sizeof E.send) &&
               !memcmp(E.level, F.level, sizeof E.level) && !memcmp(&E.route, &F.route, sizeof E.route) &&

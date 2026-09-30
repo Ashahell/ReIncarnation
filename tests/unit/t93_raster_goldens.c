@@ -217,10 +217,10 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 17u, 1u, 0xf040cea0u },
     { 17u, 2u, 0xfc368a9bu },
     { 17u, 3u, 0x0376ba78u },
-    { 18u, 0u, 0xb99f3c6fu },
-    { 18u, 1u, 0x6be8bcf1u },
-    { 18u, 2u, 0x79191fb1u },
-    { 18u, 3u, 0x43067d9bu },
+    { 18u, 0u, 0xa2cc5c0fu },
+    { 18u, 1u, 0x004e8c17u },
+    { 18u, 2u, 0xee8fec4cu },
+    { 18u, 3u, 0xc6a32e3eu },
     { 19u, 0u, 0xc663c06au },
     { 19u, 1u, 0x854d5ab5u },
     { 19u, 2u, 0xecbfc991u },
@@ -473,7 +473,8 @@ static void levi_checks(uint32_t *px) {
         uint32_t idx = it->reg_id & 0xFFu, lum = 0u, cnt = 0u, tl = 0u, white = 0u;
         int cx = ri_geo_px(it->cx, 1), cy = ri_geo_px(it->cy, 1);
         int hw = ri_geo_px(it->w, 1) / 2, hh = ri_geo_px(it->h, 1) / 2, xx, yy;
-        if (idx != RI_SLEVI_PAGE && !(idx >= RI_SLEVI_ENC0 && idx < RI_SLEVI_ENC0 + 3u))
+        if (idx != RI_SLEVI_PAGE && !(idx >= RI_SLEVI_ENC0 && idx < RI_SLEVI_ENC0 + 3u) &&
+            idx != RI_SLEVI_ENC0 + 5u)
             continue;
         for (yy = cy - hh; yy <= cy + hh; yy++)
             for (xx = cx - hw; xx <= cx + hw; xx++) {
@@ -485,10 +486,22 @@ static void levi_checks(uint32_t *px) {
             }
         if (idx == RI_SLEVI_PAGE)
             RI_ASSERT(lum / (cnt ? cnt : 1u) < 60u && tl >= 20u, "levi lcd dark %u teal %u", lum / (cnt ? cnt : 1u), tl);
-        else if (idx == RI_SLEVI_ENC0 + 1u)                 /* OSC page slot 2 (WAVE): later phase */
-            RI_ASSERT(white == 0u, "levi dead encoder ring lit (%u px)", white);
-        else if (idx == RI_SLEVI_ENC0 + 2u)                 /* OSC page slot 3 (RATIO 32/127) */
-            RI_ASSERT(white >= 4u, "levi live encoder ring dark (%u px)", white);
+        else if (idx == RI_SLEVI_ENC0 + 1u)                 /* OSC 1 page 1 slot 2: WAVE = sine (0) */
+            RI_ASSERT(white == 0u, "levi zero encoder ring lit (%u px)", white);
+        else if (idx == RI_SLEVI_ENC0 + 2u)                 /* slot 3 PITCH: ratio 1.00 = index 2 */
+            RI_ASSERT(white == 0u, "levi near-zero encoder ring lit (%u px)", white);
+    }
+    for (i = 0u; i < g->nitems; i++) {                     /* slot 6 ENV LVL = +128: full ring */
+        const struct RIGeoItem *it = &g->items[i];
+        uint32_t white = 0u;
+        int cx = ri_geo_px(it->cx, 1), cy = ri_geo_px(it->cy, 1);
+        int hw = ri_geo_px(it->w, 1) / 2, hh = ri_geo_px(it->h, 1) / 2, xx, yy;
+        if ((it->reg_id & 0xFFu) != RI_SLEVI_ENC0 + 5u)
+            continue;
+        for (yy = cy - hh; yy <= cy + hh; yy++)
+            for (xx = cx - hw; xx <= cx + hw; xx++)
+                white += (px[(uint32_t)yy * w + (uint32_t)xx] & 0xFFFFFFu) == 0xF2F3F3u;
+        RI_ASSERT(white >= 20u, "levi full encoder ring dark (%u px)", white);
     }
     (void)h;
     (void)n;

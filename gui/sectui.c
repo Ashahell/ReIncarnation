@@ -142,6 +142,10 @@ int ri_sui_display(const struct RISectUI *s, uint32_t idx) {
     return 0;
 }
 
+int ri_sui_ctl_key(const struct RISectUI *s, uint32_t idx, uint16_t *key, int *val) {
+    return (s && s->section == RI_SEC_LEVI) ? ri_slevi_ctl_key(&s->u.slevi, idx, key, val) : 0;
+}
+
 uint32_t ri_sui_ctl_idx(const struct RISectUI *s, uint32_t idx) {
     return (s && s->section == RI_SEC_LEVI) ? ri_slevi_ctl_idx(&s->u.slevi, idx) : idx;
 }

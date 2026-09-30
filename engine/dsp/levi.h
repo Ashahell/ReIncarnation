@@ -103,7 +103,7 @@
 #define RI_LEVI_DEF_CUTOFF 12000.0f
 #define RI_LEVI_DEF_RESO 0.15f
 #define RI_LEVI_DEF_RATIO 1.0f
-#define RI_LEVI_MOD_INDEX 0.5f /* fixed modulator depth v1 */
+#define RI_LEVI_MOD_INDEX 0.5f /* v1 modulator depth (= RI_LEVI_MOD_DEPTH x 1/8) */
 
 /* DAHDSR stages (manual: Delay Attack Hold Decay Sustain Release). */
 #define RI_LEVI_SEG_D 0u
@@ -122,6 +122,17 @@ struct RILeviEnv {
     uint8_t loop;   /* sustain loops back to attack (contour loop) */
     uint8_t pad[2];
     float stage_t;  /* seconds in stage */
+    /* Fidelity P2 (manual pp. 38-40): curves, quantize, counted loops
+     * over a stage range, freerun. Zeros = the v1 envelope exactly. */
+    int8_t curve[3];   /* attack, decay, release: -64..+63, 0 = linear */
+    uint8_t quant;     /* output steps, 0 = off */
+    uint8_t loopn;     /* 0 off (legacy loop flag above), 2..50, 255 = infinite */
+    uint8_t loopleft;  /* loops remaining this note */
+    uint8_t loopend;   /* last stage in the loop: RI_LEVI_SEG_A/H/D2 */
+    uint8_t freerun;   /* note-off waits for the sustain stage */
+    uint8_t relpend;   /* freerun: release pending */
+    uint8_t pad2[3];
+    float seg_from;    /* value at segment start (curved segments) */
 };
 
 /* LFOs (v2 feature 4d, owner order): 5 per voice, trigger-reset
@@ -140,11 +151,65 @@ struct RILeviLFO {
     float value;   /* last stepped value */
 };
 
+/* Per-oscillator parameters (fidelity plan P2, manual pp. 35-41). UI
+ * values ride control keys 0x0F00 | op << 5 | param (owner 2026-09-30:
+ * a second Levi block), 0..127 on the wire, each param in its range
+ * (ri_levi_op_range). Defaults reproduce the v1 voice bit for bit:
+ * sine, ratio 1, init 0, env level +128 on op 0 and +16 on ops 1..7
+ * (with depth 4: index 0.5, the v1 law), keytrack 100 %, phase 0. */
+#define RI_LEVI_OP_WAVE 0u
+#define RI_LEVI_OP_INVERT 1u
+#define RI_LEVI_OP_PMODE 2u      /* 0 semitone, 1 ratio, 2 frequency */
+#define RI_LEVI_OP_COARSE 3u     /* semi 28..100 (-36..+36), ratio idx 0..65, freq 0..127 */
+#define RI_LEVI_OP_FINE 4u       /* 64 = centre (cent / ratio fine); freq: +0..0.99 Hz */
+#define RI_LEVI_OP_INIT 5u       /* Initial Level 0..128 */
+#define RI_LEVI_OP_ENVL 6u       /* Env Level -128..+128, 64 = 0 */
+#define RI_LEVI_OP_FEEDBACK 7u   /* 0..100 % (Phase/Freq Mod only) */
+#define RI_LEVI_OP_KEYTRK 8u     /* -200..+200 %, 64 = 0, 96 = 100 % */
+#define RI_LEVI_OP_PHASE 9u      /* start phase 0..360 deg */
+#define RI_LEVI_OP_DIRECT 10u    /* Direct Out: a modulator also sounds */
+#define RI_LEVI_OP_MODE 11u      /* how it modulates others: RI_LEVI_FM.. */
+#define RI_LEVI_OP_DELAY 12u     /* envelope times 0..127 (speed range) */
+#define RI_LEVI_OP_ATTACK 13u
+#define RI_LEVI_OP_HOLD 14u
+#define RI_LEVI_OP_DECAY 15u
+#define RI_LEVI_OP_SUSTAIN 16u   /* 0..128 */
+#define RI_LEVI_OP_RELEASE 17u
+#define RI_LEVI_OP_SPEED 18u     /* 0 fast, 1 slow */
+#define RI_LEVI_OP_ACURVE 19u    /* curves: 64 = linear */
+#define RI_LEVI_OP_DCURVE 20u
+#define RI_LEVI_OP_RCURVE 21u
+#define RI_LEVI_OP_QUANT 22u     /* 0 off, 1..15 step tables */
+#define RI_LEVI_OP_LOOP 23u      /* 0 off, 1..49 = 2..50 loops, 50 = infinite */
+#define RI_LEVI_OP_STAGELOOP 24u /* 0 D>A, 1 D>H, 2 D>D */
+#define RI_LEVI_OP_LEGATO 25u
+#define RI_LEVI_OP_RESET 26u
+#define RI_LEVI_OP_FREERUN 27u
+#define RI_LEVI_OP_VELENV 28u    /* stored; velocity arrives with MIDI (P9) */
+#define RI_LEVI_OP_NPARAM 29u
+#define RI_LEVI_OPKEY(op, p) ((uint16_t)(0x0F00u | (((uint32_t)(op) & 7u) << 5) | ((uint32_t)(p) & 31u)))
+#define RI_LEVI_NWAVES 128u      /* own authored set: 8 families x 16 */
+#define RI_LEVI_MOD_DEPTH 4.0f   /* Phase/Freq Mod index at full level (E0) */
+
 struct RILeviOp {
     float ratio;
-    float level; /* 0..1 (Initial Level; Env Level full v1) */
+    float level; /* 0..1 legacy trim (1) */
     uint8_t mode;
-    uint8_t pad[3];
+    uint8_t wave;     /* 0..127 */
+    uint8_t invert;
+    uint8_t pmode;    /* 0 semitone, 1 ratio, 2 frequency */
+    float pitchmul;   /* semitone mode: 2^((semi+cent/100)/12) */
+    float hz;         /* frequency mode: fixed Hz */
+    float init;       /* 0..1 */
+    float envl;       /* -1..1 */
+    float fb;         /* 0..1 */
+    float kt;         /* keytrack, 1 = 100 % */
+    float phase0;     /* 0..1 */
+    uint8_t direct;
+    uint8_t speed;
+    uint8_t pad2[2];
+    uint8_t ui[RI_LEVI_OP_NPARAM]; /* last UI values (readback) */
+    uint8_t pad3[3];
 };
 
 struct RILeviOpState {
@@ -152,6 +217,8 @@ struct RILeviOpState {
     float freq;  /* Hz at trigger (note x ratio) */
     float ps;    /* previous modulator (SYNC edge detect) */
     struct RILeviEnv env;
+    float last;  /* last output (feedback) */
+    float amp;   /* last level 0..1 (modulation amount for PW/Sync/PD) */
 };
 
 struct RILeviVoice {
@@ -180,7 +247,16 @@ struct RILeviVoice {
     float lp1, lp2; /* stage-1 SVF state */
     float lp3, lp4; /* stage-2 LP state (24 dB cascade) */
     struct RILeviLFO lfo[RI_LEVI_NLFO]; /* per-voice LFOs (4d) */
+    float bias_envl;  /* Osc Env Level bias, -1..1 (device knob, P2) */
+    float bias_t[3];  /* attack/decay/release time scales (1 = none) */
 };
+
+/* Osc Env Level & Bias (manual p. 54): device-wide offsets over every
+ * oscillator envelope. 64 = no bias. Keys 0x0E27..0x0E2A. */
+#define RI_CTL_LEVI_BIAS_ENVL 0x0E27u
+#define RI_CTL_LEVI_BIAS_ATK 0x0E28u
+#define RI_CTL_LEVI_BIAS_DEC 0x0E29u
+#define RI_CTL_LEVI_BIAS_REL 0x0E2Au
 
 struct RILeviSet {
     struct RILeviVoice v[RI_LEVI_NVOICES];
@@ -189,6 +265,7 @@ struct RILeviSet {
     uint8_t seqon;   /* device seq gate (v2 feature 3; UI/automation truth) */
     uint8_t seqlen;  /* device seq length 1..16 */
     struct RILeviMatrix mx; /* device matrix program (v2 feature 4) */
+    uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
 };
 
 void levi_init_set(struct RILeviSet *s);
@@ -236,6 +313,23 @@ int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
  * Returns 0 ok, 2 bad. */
 int levi_set_op_mode(struct RILeviSet *s, uint32_t voice, uint32_t op,
     uint32_t mode);
+/* Per-oscillator parameter (fidelity P2): UI value in the param's
+ * range (ri_levi_op_range). Returns 0 ok, 2 bad voice/op/param/NULL. */
+int levi_set_op_ui(struct RILeviSet *s, uint32_t voice, uint32_t op, uint32_t param, uint8_t val);
+/* UI range of a per-op param (lo..hi, both <= 127); 2 on bad param. */
+int ri_levi_op_range(uint32_t param, int *lo, int *hi);
+/* UI default of a per-op param for op (op 0 sounds, 1..7 modulate). */
+int ri_levi_op_default(uint32_t op, uint32_t param);
+/* Envelope segment time in seconds for a UI value (param = one of the
+ * time params, speed 0 fast / 1 slow). Pure. */
+float ri_levi_env_time(uint32_t param, uint8_t val, uint32_t speed);
+/* Ratio for a ratio-mode COARSE index 0..65 (0.25, 0.5, 1..64). */
+float ri_levi_ratio(uint8_t idx);
+/* Own wave names ("SINE", "PULSE 3", ...); "" on bad index. */
+const char *ri_levi_wave_name(uint32_t wave);
+/* One sample of wave w at phase 0..1 (dt = cycles per sample, for the
+ * band-limit corrections). Pure; exact ri_sin for w = 0. */
+float ri_levi_wave(uint32_t w, float phase, float dt);
 /* LFO UI map (0..127 -> 0.01..30 Hz exp). Pure. */
 float ri_levi_lfo_rate(uint8_t ui);
 /* Advance one LFO a sample (wraps phase 0..1); returns its value

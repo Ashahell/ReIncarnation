@@ -333,6 +333,13 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 75, KNOB, "Master", "Control 7", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 76, KNOB, "Master", "Control 8", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 77, DISPLAY, "Master", "Display", 0, 34, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    /* Osc Env Level & Bias knobs (fidelity P2, manual p. 54): 64 = none. */
+    R(LEVI, 78, KNOB, "Bias", "Env Level", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_BIAS_ENVL, 0),
+    R(LEVI, 79, KNOB, "Bias", "Attack", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_BIAS_ATK, 0),
+    R(LEVI, 80, KNOB, "Bias", "Decay", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_BIAS_DEC, 0),
+    R(LEVI, 81, KNOB, "Bias", "Release", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_BIAS_REL, 0),
+    R(LEVI, 82, BUTTON, "Master", "Page Up", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 83, BUTTON, "Master", "Page Down", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

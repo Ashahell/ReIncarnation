@@ -50,4 +50,8 @@ int ri_sui_display(const struct RISectUI *s, uint32_t idx);
 /* Control index to send for a hit on idx: a page encoder (Levi master
  * control) sends its target parameter; everything else sends idx. */
 uint32_t ri_sui_ctl_idx(const struct RISectUI *s, uint32_t idx);
+/* Explicit control key for a hit (Levi per-oscillator params, fidelity
+ * P2): 1 with key and val set, else 0 (send ri_sui_ctl_idx through the
+ * registry as usual). */
+int ri_sui_ctl_key(const struct RISectUI *s, uint32_t idx, uint16_t *key, int *val);
 #endif

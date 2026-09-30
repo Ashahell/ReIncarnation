@@ -123,7 +123,8 @@ static void check_section(uint32_t sec) {
         uint32_t n = ri_ctlreg_section_count(sec, 0), k;
         for (k = 0u; k < n; k++) {
             const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((sec << 8) | k));
-            if (d && d->kind != RI_CK_SELECTOR && !value_item(s, d->reg_id) && ri_slevi_page_reaches(k))
+            if (d && d->kind != RI_CK_SELECTOR && !value_item(s, d->reg_id) &&
+                (ri_slevi_page_reaches(k) || ri_slevi_legacy(k)))
                 nsec--;
         }
     }
@@ -523,7 +524,7 @@ int main(void) {
     s = ri_geo_section(RI_SEC_LEVI);
     RI_ASSERT(s && s->w == 1756 && s->h == 560, "levi hardware figure");
     if (s) {
-        static const uint32_t knobs[] = { 46u, 47u, 49u, 0u, 1u, 44u, 45u, 43u };
+        static const uint32_t knobs[] = { 78u, 79u, 80u, 81u, 0u, 1u, 44u, 45u, 43u };
         static const int black[13] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0 };
         const struct RIGeoItem *k0 = value_item(s, ID(RI_SEC_LEVI, knobs[0]));
         const struct RIGeoItem *st0 = value_item(s, ID(RI_SEC_LEVI, RI_SLEVI_STEP0));
