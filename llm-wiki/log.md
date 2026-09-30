@@ -1518,3 +1518,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (lane record; extends the sb128-open-hang record)
 - Raw: llm-wiki/raw/articles/2026-09-30-riqemu1-wide-modes-parked-audio.md
 - Updated: llm-wiki/index.md (Lane infrastructure entry list)
+
+## [2026-09-30] ingest | riqemu1 quarantine revert + riaudio sound proof
+- Disposition: New (corrects the quarantine in the wide-modes/parked-audio record; extends the 09-28 audio-in-qemu record)
+- Raw: llm-wiki/raw/articles/2026-09-30-riqemu1-quarantine-revert-riaudio-sound.md
+- Updated: llm-wiki/index.md (Lane infrastructure entry list)
