@@ -1493,3 +1493,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 ## [2026-09-29] ingest | GUI round 3 close-out verified; audit fixes
 - Disposition: New
 - Raw: llm-wiki/raw/articles/2026-09-29-round3-verification-audit-fixes.md
+
+## [2026-09-30] ingest | Leviasynth fidelity plan P1–P5
+- Disposition: New (phase record; continues the v2 record)
+- Raw: llm-wiki/raw/articles/2026-09-30-leviasynth-fidelity-p1-p5.md
+- Updated: llm-wiki/index.md (Live app entry list)
