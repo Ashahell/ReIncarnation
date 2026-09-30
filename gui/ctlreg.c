@@ -390,6 +390,10 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 126, SWITCH, "Macro", "Button 6", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 5u, 0),
     R(LEVI, 127, SWITCH, "Macro", "Button 7", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 6u, 0),
     R(LEVI, 128, SWITCH, "Macro", "Button 8", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 7u, 0),
+    /* Voice allocator (fidelity P6a, manual pp. 87-96). */
+    R(LEVI, 129, SELECTOR, "Voice", "Polyphony", 0, 8, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_POLYMODE, 0),
+    R(LEVI, 130, KNOB, "Voice", "Density", 0, 127, 127, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_UDENSITY, 0),
+    R(LEVI, 131, KNOB, "Voice", "Poly Limit", 0, 127, 127, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_ULIMIT, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

@@ -412,6 +412,21 @@ struct RILeviVoice {
  * 2 depth 64 = 0, 3 button value). */
 #define RI_CTL_LEVI_MKNOB0 0x0E48u
 #define RI_CTL_LEVI_MBTN0 0x0E50u
+/* Voice allocator (fidelity P6a, manual pp. 87-96): polyphony mode,
+ * unison density and poly limit. Device-wide, section-wide apply. */
+#define RI_CTL_LEVI_POLYMODE 0x0E58u
+#define RI_CTL_LEVI_UDENSITY 0x0E59u
+#define RI_CTL_LEVI_ULIMIT 0x0E5Au
+#define RI_LEVI_POLY_ROTATE 0u
+#define RI_LEVI_POLY_REASSIGN 1u
+#define RI_LEVI_POLY_MONO 2u
+#define RI_LEVI_POLY_MONOLO 3u
+#define RI_LEVI_POLY_MONOHI 4u
+#define RI_LEVI_POLY_UNISON 5u
+#define RI_LEVI_POLY_UNISONLO 6u
+#define RI_LEVI_POLY_UNISONHI 7u
+#define RI_LEVI_POLY_UNISONPOLY 8u
+#define RI_LEVI_POLY_N 9u
 #define RI_LEVI_MXKEY(sl, f) ((uint16_t)(0x1100u | ((uint32_t)(sl) << 2) | (uint32_t)(f)))
 #define RI_LEVI_MRKEY(m, r, f) ((uint16_t)(0x1200u | ((uint32_t)(m) << 5) | ((uint32_t)(r) << 2) | (uint32_t)(f)))
 /* Mod envelope / LFO params (block 0x10, P5). */
@@ -439,6 +454,16 @@ struct RILeviSet {
     struct RILeviMatrix mx; /* device matrix program (v2 feature 4) */
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
+    /* Voice allocator (fidelity P6a, manual pp. 87-96): device-wide.
+     * Direct levi_trigger/release stay lane==voice for songs (bit-identical);
+     * live notes go through levi_note_on/off below. */
+    uint8_t polymode;       /* RI_LEVI_POLY_* */
+    uint8_t udensity;       /* stacked voices per note 1..8 (UnisonPoly) */
+    uint8_t ulimit;         /* poly voice cap 1..6 (Unison, UnisonPoly) */
+    uint8_t arot;           /* rotate cursor */
+    uint8_t anotes[16];     /* held notes in arrival order */
+    uint8_t an;             /* held count */
+    uint8_t apad[2];
 };
 
 /* Matrix route / macro route fields (P5b), 7-bit UI values. 0 ok, 2 bad. */
@@ -452,6 +477,14 @@ void levi_init_set(struct RILeviSet *s);
 /* Trigger (note 0..127) / release a voice. Returns 0 ok, 2 bad. */
 int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note);
 void levi_release(struct RILeviSet *s, uint32_t voice);
+/* Voice allocator (fidelity P6a): live note on/off through the poly mode.
+ * Returns the number of voices applied, -1 on bad set/note/NULL.
+ * Direct levi_trigger/release above stay lane==voice (songs, bit-identical). */
+int levi_note_on(struct RILeviSet *s, uint8_t note);
+int levi_note_off(struct RILeviSet *s, uint8_t note);
+/* Allocator mode/density/limit UI (keys 0x0E58..5A, device-wide). 0 ok, 2 bad. */
+int levi_set_alloc_ui(struct RILeviSet *s, uint32_t mode);
+uint32_t levi_alloc_mode(const struct RILeviSet *s);
 /* UI-value mapper (panel/automation 0..127 -> voice params, rb303
  * set_param shape): cutoff exponential 40..18000 Hz, reso linear,
  * mode >= 64 PM else FM, ratio 0.25..64 over 8 octaves. Applies to one

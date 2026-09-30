@@ -401,8 +401,8 @@ static const struct LeviSlot P_SEQ[8] = {
     { SLOT_DEAD, "GATE" }, { SLOT_DEAD, "PROB" }, { SLOT_DEAD, "DRIFT" }, { SLOT_DEAD, "TRANSPOSE" }
 };
 static const struct LeviSlot P_VOICE[8] = {
-    { SLOT_DEAD, "POLYPHONY" }, { SLOT_DEAD, "DENSITY" }, { SLOT_DEAD, "DETUNE" }, { SLOT_DEAD, "ANALOG FL" },
-    { SLOT_DEAD, "RND PHASE" }, { SLOT_DEAD, "PANNER" }, { SLOT_DEAD, "WIDTH" }, { SLOT_DEAD, "PAN MODE" }
+    { RI_SLEVI_POLYMODE, "POLYPHONY" }, { RI_SLEVI_UDENSITY, "DENSITY" }, { RI_SLEVI_ULIMIT, "LIMIT" }, { SLOT_DEAD, "DETUNE" },
+    { SLOT_DEAD, "ANALOG FL" }, { SLOT_DEAD, "RND PHASE" }, { SLOT_DEAD, "PANNER" }, { SLOT_DEAD, "WIDTH" }
 };
 /* Oscillator Group Edit keys -> the per-op param they show. */
 static const uint8_t GROUP_PARAM[12] = {
@@ -1061,6 +1061,21 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
     if (t == (int)RI_SLEVI_AMODE) {
         static const char *const AM[3] = { "SINGLE", "MORPH", "CUSTOM" };
         put_str(buf, cap, AM[s->val[t] > 2 ? 2 : s->val[t] < 0 ? 0 : s->val[t]]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_POLYMODE) {
+        static const char *const PM[9] = { "ROTATE", "REASSIGN", "MONO", "MONO LO", "MONO HI", "UNISON",
+            "UNIS LO", "UNIS HI", "UNISPLY" };
+        int m = s->val[t];
+        put_str(buf, cap, PM[m >= 0 && m < 9 ? m : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_UDENSITY) {
+        put_num(buf, cap, s->val[t] * 8 / 127 + 1);
+        return;
+    }
+    if (t == (int)RI_SLEVI_ULIMIT) {
+        put_num(buf, cap, s->val[t] * 6 / 127 + 1);
         return;
     }
     if (t >= (int)RI_SLEVI_SLOT0 && t < (int)RI_SLEVI_SLOT0 + 8) {

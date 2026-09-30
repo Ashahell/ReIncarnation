@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 129u
+#define RI_SLEVI_NCTL 132u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -90,6 +90,10 @@
 /* Macros (fidelity P5b): knobs 113..120, buttons 121..128. */
 #define RI_SLEVI_MKNOB0 113u
 #define RI_SLEVI_MBTN0 121u
+/* Voice allocator (fidelity P6a, manual pp. 87-96): 129..131. */
+#define RI_SLEVI_POLYMODE 129u
+#define RI_SLEVI_UDENSITY 130u
+#define RI_SLEVI_ULIMIT 131u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */

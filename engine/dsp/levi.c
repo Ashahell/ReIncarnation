@@ -947,6 +947,13 @@ void levi_init_set(struct RILeviSet *s) {
     s->seqon = 0u;
     s->seqlen = 16u;
     ri_levi_matrix_init(&s->mx);
+    s->polymode = RI_LEVI_POLY_ROTATE;
+    s->udensity = 8u;
+    s->ulimit = RI_LEVI_NVOICES;
+    s->arot = 0u;
+    s->an = 0u;
+    s->apad[0] = s->apad[1] = 0u;
+    memset(s->anotes, 0, sizeof s->anotes);
 }
 
 float ri_levi_lfo_rate(uint8_t ui) {
@@ -1228,6 +1235,210 @@ void levi_release(struct RILeviSet *s, uint32_t voice) {
     }
     for (o = 0u; o < RI_LEVI_NMENV; o++)
         menv_release(&v->menv[o]);
+}
+
+/* ---- Voice allocator (fidelity P6a, manual pp. 87-96; own laws) ---- */
+static int alloc_has_legato(const struct RILeviVoice *v) {
+    uint32_t o;
+    for (o = 0u; o < RI_LEVI_NOPS; o++)
+        if (v->op[o].ui[RI_LEVI_OP_LEGATO])
+            return 1;
+    return 0;
+}
+
+static int alloc_has_reset(const struct RILeviVoice *v) {
+    uint32_t o;
+    for (o = 0u; o < RI_LEVI_NOPS; o++)
+        if (v->op[o].ui[RI_LEVI_OP_RESET])
+            return 1;
+    return 0;
+}
+
+/* Legato retune: new pitch without restarting envelopes, LFOs, mod envs
+ * or filters (E0: retune-only; reset wins over legato). */
+static void alloc_retune(struct RILeviVoice *v, uint8_t note) {
+    float f = note_hz(note);
+    uint32_t o, b;
+    v->note = note;
+    for (b = 0u; b < 2u; b++) {
+        uint8_t *live = b ? v->liveB : v->live;
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            if (live[o]) {
+                const struct RILeviOp *op = &v->op[o];
+                float base = op->kt == 1.0f ? f
+                    : note_hz(60u) * ri_pow2((((float)note - 60.0f) / 12.0f) * op->kt);
+                v->st[b][o].freq = op->pmode == 2u ? op->hz
+                    : op->pmode == 0u ? base * op->pitchmul : base * op->ratio;
+            }
+    }
+    v->active = 1u;
+    kt_update(v);
+}
+
+static void alloc_hold_add(struct RILeviSet *s, uint8_t note) {
+    uint32_t i;
+    for (i = 0u; i < s->an; i++)
+        if (s->anotes[i] == note)
+            return;
+    if (s->an < 16u)
+        s->anotes[s->an++] = note;
+}
+
+static void alloc_hold_del(struct RILeviSet *s, uint8_t note) {
+    uint32_t i, j;
+    for (i = 0u; i < s->an; i++)
+        if (s->anotes[i] == note) {
+            for (j = i; j + 1u < s->an; j++)
+                s->anotes[j] = s->anotes[j + 1u];
+            s->an--;
+            return;
+        }
+}
+
+/* A voice is reusable when silent or when its note is no longer held
+ * (released, ringing out). */
+static int alloc_reuse(const struct RILeviSet *s, uint32_t v) {
+    uint32_t i;
+    if (!s->v[v].active)
+        return 1;
+    for (i = 0u; i < s->an; i++)
+        if (s->anotes[i] == s->v[v].note)
+            return 0;
+    return 1;
+}
+
+static uint8_t alloc_pick_mono(const struct RILeviSet *s, uint32_t mode) {
+    uint32_t i;
+    uint8_t n;
+    if (!s->an)
+        return 0u;
+    n = s->anotes[0];
+    for (i = 1u; i < s->an; i++)
+        if ((mode == RI_LEVI_POLY_MONOLO || mode == RI_LEVI_POLY_UNISONLO) ? s->anotes[i] < n : s->anotes[i] > n)
+            n = s->anotes[i];
+    return n;
+}
+
+static void alloc_fire(struct RILeviSet *s, uint32_t voice, uint8_t note, int legato_ok) {
+    struct RILeviVoice *v = &s->v[voice];
+    if (legato_ok && v->active && alloc_has_legato(v) && !alloc_has_reset(v))
+        alloc_retune(v, note);
+    else
+        levi_trigger(s, voice, note);
+}
+
+int levi_set_alloc_ui(struct RILeviSet *s, uint32_t mode) {
+    if (!s || mode >= RI_LEVI_POLY_N)
+        return 2;
+    s->polymode = (uint8_t)mode;
+    return 0;
+}
+
+uint32_t levi_alloc_mode(const struct RILeviSet *s) {
+    return s ? s->polymode : 0u;
+}
+
+int levi_note_on(struct RILeviSet *s, uint8_t note) {
+    uint32_t v, n = 0u;
+    uint32_t mode, dens, lim;
+    if (!s || note > 127u)
+        return -1;
+    mode = s->polymode;
+    dens = s->udensity < 1u ? 1u : s->udensity > 8u ? 8u : s->udensity;
+    lim = s->ulimit < 1u ? 1u : s->ulimit > RI_LEVI_NVOICES ? RI_LEVI_NVOICES : s->ulimit;
+    alloc_hold_add(s, note);
+    switch (mode) {
+    case RI_LEVI_POLY_MONO:
+    case RI_LEVI_POLY_MONOLO:
+    case RI_LEVI_POLY_MONOHI:
+        alloc_fire(s, 0u, mode == RI_LEVI_POLY_MONO ? note : alloc_pick_mono(s, mode), 1);
+        return 1;
+    case RI_LEVI_POLY_UNISON:
+    case RI_LEVI_POLY_UNISONLO:
+    case RI_LEVI_POLY_UNISONHI: {
+        uint8_t nn = mode == RI_LEVI_POLY_UNISON ? note : alloc_pick_mono(s, mode);
+        for (v = 0u; v < lim; v++) {
+            alloc_fire(s, v, nn, v == 0u);
+            n++;
+        }
+        return (int)n;
+    }
+    case RI_LEVI_POLY_UNISONPOLY: {
+        uint32_t want = dens > lim ? lim : dens;
+        uint32_t freev[RI_LEVI_NVOICES], nf = 0u;
+        for (v = 0u; v < lim; v++)
+            if (alloc_reuse(s, v))
+                freev[nf++] = v;
+        for (v = 0u; v < want; v++) {
+            uint32_t t = v < nf ? freev[v] : (uint32_t)(s->arot++ % lim);
+            alloc_fire(s, t, note, 0);
+            n++;
+        }
+        return (int)n;
+    }
+    case RI_LEVI_POLY_REASSIGN: {
+        for (v = 0u; v < RI_LEVI_NVOICES; v++)
+            if (alloc_reuse(s, v)) {
+                alloc_fire(s, v, note, 0);
+                return 1;
+            }
+        /* Steal oldest: lowest voice index sounding the longest-held note. */
+        for (v = 0u; v < RI_LEVI_NVOICES; v++)
+            if (s->v[v].note == s->anotes[0]) {
+                alloc_fire(s, v, note, 0);
+                return 1;
+            }
+        alloc_fire(s, 0u, note, 0);
+        return 1;
+    }
+    default: { /* RI_LEVI_POLY_ROTATE */
+        for (v = 0u; v < RI_LEVI_NVOICES; v++) {
+            uint32_t t = (s->arot + v) % RI_LEVI_NVOICES;
+            if (alloc_reuse(s, t)) {
+                s->arot = (uint8_t)((t + 1u) % RI_LEVI_NVOICES);
+                alloc_fire(s, t, note, 0);
+                return 1;
+            }
+        }
+        {
+            uint32_t t = s->arot % RI_LEVI_NVOICES;
+            s->arot = (uint8_t)((s->arot + 1u) % RI_LEVI_NVOICES);
+            alloc_fire(s, t, note, 0);
+            return 1;
+        }
+    }
+    }
+}
+
+int levi_note_off(struct RILeviSet *s, uint8_t note) {
+    uint32_t v;
+    uint32_t mode;
+    if (!s || note > 127u)
+        return -1;
+    alloc_hold_del(s, note);
+    mode = s->polymode;
+    if (mode == RI_LEVI_POLY_MONO || mode == RI_LEVI_POLY_MONOLO || mode == RI_LEVI_POLY_MONOHI) {
+        if (s->an)
+            alloc_fire(s, 0u, alloc_pick_mono(s, mode == RI_LEVI_POLY_MONO ? RI_LEVI_POLY_MONO : mode), 1);
+        else
+            levi_release(s, 0u);
+        return 1;
+    }
+    if (mode >= RI_LEVI_POLY_UNISON && mode <= RI_LEVI_POLY_UNISONHI) {
+        if (s->an) {
+            uint8_t nn = mode == RI_LEVI_POLY_UNISON ? s->anotes[s->an - 1u] : alloc_pick_mono(s, mode);
+            for (v = 0u; v < s->ulimit && v < RI_LEVI_NVOICES; v++)
+                alloc_fire(s, v, nn, v == 0u);
+        } else {
+            for (v = 0u; v < s->ulimit && v < RI_LEVI_NVOICES; v++)
+                levi_release(s, v);
+        }
+        return 1;
+    }
+    for (v = 0u; v < RI_LEVI_NVOICES; v++)
+        if (s->v[v].active && s->v[v].note == note)
+            levi_release(s, v);
+    return 1;
 }
 
 int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
@@ -1744,6 +1955,18 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case (RI_CTL_LEVI_VINIT & 0xFFu):
         s->v[voice].vinit = (float)(val > 127u ? 127u : val) / 127.0f;
         return 0;
+    case (RI_CTL_LEVI_POLYMODE & 0xFFu):
+        return levi_set_alloc_ui(s, val > RI_LEVI_POLY_N - 1u ? RI_LEVI_POLY_N - 1u : val);
+    case (RI_CTL_LEVI_UDENSITY & 0xFFu): {
+        uint32_t d = (uint32_t)val * 8u / 127u + 1u;
+        s->udensity = (uint8_t)(d > 8u ? 8u : d);
+        return 0;
+    }
+    case (RI_CTL_LEVI_ULIMIT & 0xFFu): {
+        uint32_t l = (uint32_t)val * (uint32_t)RI_LEVI_NVOICES / 127u + 1u;
+        s->ulimit = (uint8_t)(l > RI_LEVI_NVOICES ? RI_LEVI_NVOICES : l);
+        return 0;
+    }
     default:
         return 2;
     }
