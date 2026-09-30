@@ -65,7 +65,7 @@ int main(void) {
     RI_ASSERT(!memcmp(oa, ob, sizeof oa), "pos 100 == pure B");
     /* Fail-closed edges. */
     RI_ASSERT(levi_set_morph(&s, 0u, RI_LEVI_ALGO_ALLPAR, 101u) == 2, "pos range");
-    RI_ASSERT(levi_set_morph(&s, 0u, 8u, 50u) == 2, "bad target");
+    RI_ASSERT(levi_set_morph(&s, 0u, RI_LEVI_ALGO_N, 50u) == 2, "bad target");
     RI_ASSERT(levi_set_morph(&s, 6u, RI_LEVI_ALGO_ALLPAR, 50u) == 2, "bad voice");
     RI_ASSERT(levi_set_morph(0, 0u, RI_LEVI_ALGO_ALLPAR, 50u) == 2, "null set");
     RI_RESULT("levimorph");

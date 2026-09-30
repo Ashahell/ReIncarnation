@@ -169,9 +169,9 @@ int main(void) {
             RI_ASSERT(d->engine_id >= 0x0A00u && d->engine_id <= 0x0A0Fu, "fx id %04x", d->engine_id);
             break;
         case RI_BIND_LEVI:
-            /* 0x0E27..2A: Osc Env Level & Bias knobs (fidelity P2, 2026-09-30) */
+            /* 0x0E27..2A bias knobs (P2), 0x0E2B..37 algo modes/morph/solo/mute (P3) */
             RI_ASSERT(d->engine_id >= 0x0E00u && (d->engine_id <= 0x0E1Cu ||
-                (d->engine_id >= 0x0E27u && d->engine_id <= 0x0E2Au)), "levi id %04x", d->engine_id);
+                (d->engine_id >= 0x0E27u && d->engine_id <= 0x0E37u)), "levi id %04x", d->engine_id);
             RI_ASSERT(d->voice == 0u, "levi section-wide voice %u", d->voice);
             break;
         case RI_BIND_PAN: case RI_BIND_SEND:

@@ -52,7 +52,7 @@ int main(void) {
     for (v = 0u; v < 8u; v++)
         RI_ASSERT(levi_set_algo(&s, 0u, v) == 0, "preset %u", v);
     RI_ASSERT(levi_algo_get(&s, 0u) == 7, "algo reads back");
-    RI_ASSERT(levi_set_algo(&s, 0u, 8u) == 2, "custom not settable");
+    RI_ASSERT(levi_set_algo(&s, 0u, RI_LEVI_ALGO_CUSTOM) == 2, "custom not settable");
     RI_ASSERT(levi_set_algo(&s, 6u, 0u) == 2, "bad voice");
     RI_ASSERT(levi_set_algo(0, 0u, 0u) == 2, "null set");
     RI_ASSERT(levi_algo_get(&s, 6u) < 0, "bad voice reads negative");
@@ -93,6 +93,6 @@ int main(void) {
     RI_ASSERT(levi_route_get(&s, 0u, 7u) == -1, "unset reads carrier");
     RI_ASSERT(levi_route_get(&s, 0u, 8u) == -2, "bad op reads -2");
     RI_ASSERT(levi_route_get(&s, 6u, 0u) == -2, "bad voice reads -2");
-    RI_ASSERT(levi_algo_get(&s, 0u) == 8, "custom reads 8");
+    RI_ASSERT(levi_algo_get(&s, 0u) == (int)RI_LEVI_ALGO_CUSTOM, "custom reads 64");
     RI_RESULT("levialgo");
 }

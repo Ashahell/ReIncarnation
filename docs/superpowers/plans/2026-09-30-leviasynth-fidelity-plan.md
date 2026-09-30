@@ -51,7 +51,7 @@ Kept **out of the repo**; working copies are in the session scratchpad only.
 | Sequencer (pp. 105–119) | 2 polyphonic note tracks + 8-lane Macro track, up to 128 steps, real-time/step record, MultiTrig/Drift/Probability/Entropy per step, parallel/series play | 16-step chord lanes + phrase window | P8 |
 | Performance | Chord mode, octave buttons, Single/Multi (Upper/Lower/Both, Dual/KeySplit, balance), glide button, tap tempo | none | P9 |
 | Patches (pp. 139–146) | browse/save/favorites/init/random | song-embedded only | P10 (RBNG chunk IDs = owner review) |
-| CV/Gate, MPE, Polytouch hardware | jacks, MPE, per-key pressure | — | Out of scope for hardware parts. MIDI poly-AT/MPE are handled via the interop spec (`2026-09-29-interop-requirement.md`); the jacks are drawn but not emulated |
+| CV/Gate, MPE, Polytouch hardware | jacks, MPE, per-key pressure | — | Out of scope for hardware parts. MIDI poly-AT/MPE are handled via the interop spec (`2026-09-29-interop-requirement.md`); the CV/Gate block is omitted (owner 2026-09-30: useless in a soft synth) |
 
 ## 4. Phases
 
@@ -73,7 +73,7 @@ Each phase lands as TDD slices:
    - a black LCD with teal/white page text; a 2-digit 7-segment algorithm display;
    - Osc 1–8 caps in the hardware's per-oscillator colour order (teal, green, yellow, orange, amber, red, magenta, blue);
    - a ribbon strip and a keybed with pitch/mod wheels;
-   - CV/Gate jacks drawn (not emulated).
+   - CV/Gate jacks drawn (not emulated). Removed 2026-09-30 (owner): the Arp & Seq block takes the column.
 3. **Hardware controls with no engine yet** are drawn dim (unlit caps, dark LED rings, `C_DISABLED` knob faces) and are **not hit-testable**, so nothing pretends to work. Each later phase turns its controls live.
 4. **Live controls in P1** (today's engine parameters, moved to their hardware homes):
    - Digital Filter: Cutoff, Resonance (Drive/Morph and Env 1 stay dim until P4);
@@ -132,6 +132,15 @@ Each phase lands as TDD slices:
 - A bank of own topologies (target ≥ 64 authored; the hardware's 140+ are theirs and are not copied).
 - Single / Morph (8 slots, 100 steps per slot, OFF/Silence rules, p. 59) / Custom (grid with Direct Out, solo/mute).
 - 3-digit numbering display rule (a dot for 100+, "C" for custom).
+- **Status: done 2026-09-30** (engine, keys, UI, tests):
+  - 64 own presets as op-feeds masks (`$scratch/levi/algos.py` generator, not in the repo); presets 1–8 are the v1 eight. Every preset is loop-free (edges point to a lower op), op 1 is always a carrier, all 64 differ.
+  - Routing is a feeds mask per op (up to 8 targets); render order by topological sort.
+  - Modes (key `0x0E2B`): Single = slot 1; Morph walks the 8-slot list (`0x0E2C..33`), OFF slots skipped, SILENCE slots silent, 100 steps per slot pair, position key `0x0E34` spans the live slots; Custom starts from the sounding topology and takes up to 3 targets per oscillator (per-op params TGT1–3, keys `0x0F1D..1F` per op), dropping any target that would close a loop.
+  - Solo (`0x0E35`) auditions one oscillator, modulators too; Mute (`0x0E36/37`) drops oscillators from the mix.
+  - UI: ALGO module pages 1/5 (mode, algo, morph, PM/FM, solo, mutes, Direct Out), 2/5 (8 slots), 3–5/5 (custom grid, one target column per page, encoder k = oscillator k). The 2-digit readout shows "C" in Custom.
+  - The v1 two-algorithm morph rows (target, morph) become legacy rows.
+- **E0 ledger:** 64 presets (7-bit keys; a bank key can extend toward 140+ later); 2-digit readout (no 100+ dot needed yet); position key resolution 7-bit over up to 700 steps; no on-screen topology graph yet (the LCD shows the page values).
+- **Tests:** t130 (algorithm modes, 12 mutants killed; it caught SILENCE sharing the CUSTOM bank id); t106–t109, t129, t77, t79, t60 deliberate range and count moves.
 
 ### P4: filters + VCA
 
@@ -179,7 +188,7 @@ Init/random/browse/save/favourites, stored in a Levi patch chunk. **The chunk ID
 1. ~~The control-id space for per-oscillator parameters (P2)~~ — approved 2026-09-30: block 0x0F.
 2. Voice count on the Dell after measurement (P6).
 3. RBNG chunk IDs for Levi patches (P10; already open in the requirement).
-4. Whether the drawn CV/Gate jacks stay (decorative) or are omitted. (Panel look approved 2026-09-30.)
+4. ~~Whether the drawn CV/Gate jacks stay~~ — omitted 2026-09-30 (owner: useless in a soft synth).
 
 ## 6. Risks
 

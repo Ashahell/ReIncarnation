@@ -2,8 +2,8 @@
  * owner 2026-09-30: "look as closely like the actual hardware as
  * possible ... keep using the current font, in an appropriate
  * contrasting color"; supersedes the 2026-09-28 own-palette rule).
- * Behavioural: the measured hardware block order (left column, CV/Gate
- * and Arp & Seq, Main Systems, Master Control with the encoders around
+ * Behavioural: the measured hardware block order (left column Arp & Seq
+ * — the CV/Gate block is dropped, owner 2026-09-30, Main Systems, Master Control with the encoders around
  * the display, Osc Env Level & Bias, Digital then Analog filter; the
  * Algorithm block left of Module Select), graphite panel first, section
  * titles drawn in the teal legend colour, no maker marks in any string.
@@ -51,7 +51,7 @@ static int optcx(uint32_t idx, int opt) {
 }
 
 int main(void) {
-    static const char *const titles[] = { "CV / GATE", "ARPEGGIATOR & SEQUENCER CONTROL", "MAIN SYSTEMS",
+    static const char *const titles[] = { "ARPEGGIATOR & SEQUENCER CONTROL", "MAIN SYSTEMS",
         "MASTER CONTROL", "OSC ENV LEVEL & BIAS", "DIGITAL FILTER", "ANALOG FILTER", "ALGORITHM",
         "MODULE SELECT" };
     enum { NT = sizeof(titles) / sizeof(titles[0]) };
@@ -87,6 +87,7 @@ int main(void) {
         }
         if (dl.cmd[k].op != RI_D_TEXT || !dl.cmd[k].text)
             continue;
+        RI_ASSERT(!strstr(dl.cmd[k].text, "CV / GATE") && !strstr(dl.cmd[k].text, "INPUTS"), "no CV/Gate block");
         RI_ASSERT(!strstr(dl.cmd[k].text, "ASM") && !strstr(dl.cmd[k].text, "LEVIASYNTH"),
             "no maker mark: %s", dl.cmd[k].text);
         for (t = 0u; t < NT; t++)

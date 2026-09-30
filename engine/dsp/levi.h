@@ -24,8 +24,16 @@
 #define RI_LEVI_ALGO_PAIRS4 5u  /* four 2-op pairs */
 #define RI_LEVI_ALGO_STACK332 6u        /* 3+3+2 chains */
 #define RI_LEVI_ALGO_STACK62 7u /* 6-chain + pair */
-#define RI_LEVI_ALGO_CUSTOM 8u
-#define RI_LEVI_ALGO_N 8u
+#define RI_LEVI_ALGO_N 64u      /* own bank (fidelity P3); 0..7 = the v1 presets */
+#define RI_LEVI_ALGO_CUSTOM 64u /* custom routing: readable, not a preset */
+/* Algo modes (manual p. 58): one preset, a morph across up to 8 slots,
+ * or a custom routing grid. */
+#define RI_LEVI_AMODE_SINGLE 0u
+#define RI_LEVI_AMODE_MORPH 1u
+#define RI_LEVI_AMODE_CUSTOM 2u
+#define RI_LEVI_SLOT_SILENCE 64u /* morph slot: no oscillators */
+#define RI_LEVI_SLOT_OFF 65u     /* morph slot unused (slot 1 never) */
+#define RI_LEVI_NSLOTS 8u
 
 /* Operator modes (manual p. 43 list; own definitions below). */
 #define RI_LEVI_FM 0u     /* frequency wobble by modulator */
@@ -186,7 +194,10 @@ struct RILeviLFO {
 #define RI_LEVI_OP_RESET 26u
 #define RI_LEVI_OP_FREERUN 27u
 #define RI_LEVI_OP_VELENV 28u    /* stored; velocity arrives with MIDI (P9) */
-#define RI_LEVI_OP_NPARAM 29u
+#define RI_LEVI_OP_TGT1 29u      /* custom routing: up to 3 targets, 0 none, 1..8 = OSC 1..8 */
+#define RI_LEVI_OP_TGT2 30u
+#define RI_LEVI_OP_TGT3 31u
+#define RI_LEVI_OP_NPARAM 32u
 #define RI_LEVI_OPKEY(op, p) ((uint16_t)(0x0F00u | (((uint32_t)(op) & 7u) << 5) | ((uint32_t)(p) & 31u)))
 #define RI_LEVI_NWAVES 128u      /* own authored set: 8 families x 16 */
 #define RI_LEVI_MOD_DEPTH 4.0f   /* Phase/Freq Mod index at full level (E0) */
@@ -209,7 +220,6 @@ struct RILeviOp {
     uint8_t speed;
     uint8_t pad2[2];
     uint8_t ui[RI_LEVI_OP_NPARAM]; /* last UI values (readback) */
-    uint8_t pad3[3];
 };
 
 struct RILeviOpState {
@@ -230,8 +240,16 @@ struct RILeviVoice {
     uint8_t pad[3];
     struct RILeviOp op[RI_LEVI_NOPS]; /* params, shared by both banks */
     struct RILeviOpState st[2][RI_LEVI_NOPS]; /* render states, bank A/B */
-    int8_t mod_src[RI_LEVI_NOPS]; /* bank A: who i feeds, -1 = mix */
-    int8_t mod_srcB[RI_LEVI_NOPS];        /* bank B routing */
+    uint8_t feeds[RI_LEVI_NOPS];  /* bank A: ops op i modulates (bit t = op t); 0 = carrier */
+    uint8_t feedsB[RI_LEVI_NOPS]; /* bank B routing */
+    uint8_t amode;                /* RI_LEVI_AMODE_* */
+    uint8_t slot[RI_LEVI_NSLOTS]; /* morph list: preset, SILENCE or OFF */
+    uint8_t mslotA;               /* morph: list index loaded into bank A */
+    uint8_t mute;                 /* carriers muted (bit per op) */
+    uint8_t solo;                 /* 0 none, 1..8 soloed op */
+    uint8_t cfeeds[RI_LEVI_NOPS]; /* custom grid (Custom mode) */
+    uint16_t mpos;                /* morph position, 100 per slot step */
+    uint8_t padm[2];
     uint8_t order[RI_LEVI_NOPS];  /* bank-A render order */
     uint8_t orderB[RI_LEVI_NOPS]; /* bank-B render order */
     uint8_t live[RI_LEVI_NOPS];   /* bank A graph */
@@ -257,6 +275,15 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_BIAS_ATK 0x0E28u
 #define RI_CTL_LEVI_BIAS_DEC 0x0E29u
 #define RI_CTL_LEVI_BIAS_REL 0x0E2Au
+/* Algorithm modes, morph list and solo/mute (fidelity P3, manual pp.
+ * 58-61). Slot values 0..63 preset, 64 SILENCE, 65 OFF; morph position
+ * 0..127 spans the active slots; mute masks split op 0..6 / op 7. */
+#define RI_CTL_LEVI_AMODE 0x0E2Bu
+#define RI_CTL_LEVI_SLOT0 0x0E2Cu  /* .. 0x0E33 */
+#define RI_CTL_LEVI_MPOS 0x0E34u
+#define RI_CTL_LEVI_SOLO 0x0E35u
+#define RI_CTL_LEVI_MUTELO 0x0E36u
+#define RI_CTL_LEVI_MUTEHI 0x0E37u
 
 struct RILeviSet {
     struct RILeviVoice v[RI_LEVI_NVOICES];
@@ -285,21 +312,33 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
 /* Sum all voices into out (render mix, rb909 pattern). */
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
     float sr);
-/* Algorithm select (preset 0..7; 8/custom is readable, not settable).
+/* Algorithm select (preset 0..63; 64/custom is readable, not settable).
  * Returns 0 ok, 2 bad. Selecting a preset replaces custom routing. */
 int levi_set_algo(struct RILeviSet *s, uint32_t voice, uint32_t algo);
 /* Current algorithm id (0..8); negative on bad voice/NULL. */
 int levi_algo_get(const struct RILeviSet *s, uint32_t voice);
-/* Custom routing: op feeds src (target op index) or -1 to the mix;
+/* Custom routing (v1 single-target form): op feeds src (target op) or -1 to the mix;
  * the voice becomes custom. Acyclic only: src's forward chain must not
  * reach op (cycles/self-routes refused, returns 2, routing unchanged).
  * Returns 0 ok, 2 bad. */
 int levi_set_route(struct RILeviSet *s, uint32_t voice, uint32_t op,
     int src);
-/* Routing read: feed target op index, -1 mix; -2 on bad voice/op/NULL. */
+/* Routing read: lowest target op index, -1 carrier; -2 on bad voice/op/NULL. */
 int levi_route_get(const struct RILeviSet *s, uint32_t voice,
     uint32_t op);
-/* Morph target select (preset 0..7) + blend position 0..100. Bank-B
+/* Algorithm mode (RI_LEVI_AMODE_*), morph slot i (preset, SILENCE,
+ * OFF; slot 0 is always a preset) and morph position (0 .. 100 x
+ * (active slots - 1)). Returns 0 ok, 2 bad. */
+int levi_set_amode(struct RILeviSet *s, uint32_t voice, uint32_t mode);
+int levi_set_slot(struct RILeviSet *s, uint32_t voice, uint32_t slot, uint32_t val);
+int levi_set_mpos(struct RILeviSet *s, uint32_t voice, uint32_t pos);
+/* Active morph slots (1..8) and the op-feeds mask of a preset. */
+uint32_t levi_morph_slots(const struct RILeviSet *s, uint32_t voice);
+uint8_t ri_levi_preset_feeds(uint32_t algo, uint32_t op);
+/* Custom grid: op modulates the ops in mask (acyclic only; 2 refused).
+ * Selects Custom mode. */
+int levi_set_feeds(struct RILeviSet *s, uint32_t voice, uint32_t op, uint32_t mask);
+/* Morph target select (preset 0..63) + blend position 0..100. Bank-B
  * states start as a copy of bank A (seamless join); both banks tick
  * every sample. Returns 0 ok, 2 bad. */
 int levi_set_morph(struct RILeviSet *s, uint32_t voice, uint32_t algoB,

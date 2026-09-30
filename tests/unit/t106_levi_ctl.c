@@ -114,7 +114,7 @@ int main(void) {
     /* Algo block rows (owner 2026-09-28, v2 slice 1d). */
     d = find_leg(RI_SEC_LEVI, "Algorithm");
     RI_ASSERT(d && d->kind == RI_CK_SELECTOR, "algo kind");
-    RI_ASSERT(d->min_v == 0 && d->max_v == 7 && d->def_v == 0, "algo range");
+    RI_ASSERT(d->min_v == 0 && d->max_v == 63 && d->def_v == 0, "algo range (64 presets, P3)");
     RI_ASSERT(d->bind == RI_BIND_LEVI && d->engine_id == RI_CTL_LEVI_ALGO, "algo bind");
     d = find_leg(RI_SEC_LEVI, "Morph");
     RI_ASSERT(d && d->kind == RI_CK_KNOB, "morph kind");

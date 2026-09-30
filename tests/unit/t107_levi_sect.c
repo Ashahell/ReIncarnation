@@ -56,7 +56,7 @@ int main(void) {
     RI_ASSERT(s.val[RI_SLEVI_ALGO] == 5, "algo stored");
     RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGO, 5) == 0, "algo same");
     RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGO, 99) == 1, "algo clamp");
-    RI_ASSERT(s.val[RI_SLEVI_ALGO] == 7, "algo max");
+    RI_ASSERT(s.val[RI_SLEVI_ALGO] == 63, "algo max");
     RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_ALGOB, 3) == 1, "algob");
     RI_ASSERT(ri_slevi_set_value(&s, RI_SLEVI_MORPH, 50) == 1, "morph");
     RI_ASSERT(s.val[RI_SLEVI_MORPH] == 50, "morph stored");
@@ -203,11 +203,11 @@ int main(void) {
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_MATRIX) == 1, "matrix page");
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 63) == 0 && p.val[RI_SLEVI_ROUTE0] == 0, "route below mid");
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 64) == 1 && p.val[RI_SLEVI_ROUTE0] == 1, "route at mid");
-        /* Algorithm page: 0..127 spans the 8 presets, shown 1-based. */
+        /* Algorithm page: 0..127 spans the 64 presets, shown 1-based. */
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_ALGO) == 1, "algo page");
-        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 1u, 127) == 1 && p.val[RI_SLEVI_ALGO] == 7, "algo max");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 1u, 127) == 1 && p.val[RI_SLEVI_ALGO] == 63, "algo max");
         ri_slevi_enc_text(&p, 1u, t, sizeof t);
-        RI_ASSERT(!strcmp(t, "8"), "algo text %s", t);
+        RI_ASSERT(!strcmp(t, "64"), "algo text %s", t);
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, 99) == 1 && p.val[RI_SLEVI_MODULE] == 34, "module clamp");
         RI_ASSERT(ri_slevi_page_reaches(RI_SLEVI_CUTOFF) && ri_slevi_page_reaches(RI_SLEVI_ARPRATE) &&
             !ri_slevi_page_reaches(RI_SLEVI_KEY0) && !ri_slevi_page_reaches(RI_SLEVI_STEP0), "page reach table");

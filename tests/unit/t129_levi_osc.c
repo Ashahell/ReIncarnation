@@ -275,7 +275,8 @@ int main(void) {
     RI_ASSERT(peak(ob, 0u, 120u) < peak(oa, 0u, 120u), "positive attack bias slows the attack");
 
     /* ---- Keys: 0x0F block allowed and applied by the engine. ---- */
-    RI_ASSERT(ri_auto_allowed(RI_LEVI_OPKEY(7u, RI_LEVI_OP_VELENV)) && !ri_auto_allowed(0x0F1Du) &&
+    RI_ASSERT(ri_auto_allowed(RI_LEVI_OPKEY(7u, RI_LEVI_OP_VELENV)) && ri_auto_allowed(RI_LEVI_OPKEY(0u, RI_LEVI_OP_TGT3)) &&
+        !ri_auto_allowed(0x1000u) &&
         ri_auto_allowed(RI_CTL_LEVI_BIAS_REL), "op keys allowed");
     {
         static struct RIEngine E;

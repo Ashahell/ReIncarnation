@@ -142,13 +142,23 @@ int ri_slevi_set_value(struct RISectLevi *s, uint32_t idx, int v) {
         s->sel = sel;
         return 1;
     }
-    if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_FTYPE) {
+    if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_FTYPE || idx == RI_SLEVI_AMODE) {
         /* Plain selectors (selector idiom, like Lane). FTYPE clamps 0..3. */
-        int hi = idx == RI_SLEVI_FTYPE ? 3 : 7;
+        int hi = idx == RI_SLEVI_FTYPE ? 3 : idx == RI_SLEVI_AMODE ? 2 : 63;
         int w = v < 0 ? 0 : v > hi ? hi : v;
         if (s->val[idx] == w)
             return 0;
         s->val[idx] = (int16_t)w;
+        if (idx == RI_SLEVI_ALGO)
+            s->val[RI_SLEVI_SLOT0] = (int16_t)w;   /* ALGO is slot 1 (engine does the same) */
+        return 1;
+    }
+    if (idx == RI_SLEVI_SLOT0) {
+        int w = v < 0 ? 0 : v > 63 ? 63 : v;
+        if (s->val[idx] == w)
+            return 0;
+        s->val[idx] = (int16_t)w;
+        s->val[RI_SLEVI_ALGO] = (int16_t)w;
         return 1;
     }
     if (idx == RI_SLEVI_OPSEL) {
@@ -234,8 +244,10 @@ int ri_slevi_algo_display(const struct RISectLevi *s) {
     uint32_t a;
     if (!s)
         return 0;
+    if (s->val[RI_SLEVI_AMODE] == 2)
+        return 0;                          /* custom: the readout shows C */
     a = (uint32_t)s->val[RI_SLEVI_ALGO] + 1u;
-    return a < 1u ? 1 : (int)(a > 8u ? 8u : a);
+    return a < 1u ? 1 : (int)(a > 64u ? 64u : a);
 }
 
 /* ---- Hardware page UI (fidelity plan P1/P2, owner 2026-09-30) ----
@@ -304,9 +316,17 @@ static const struct LeviSlot P_LFO[8] = {
     { SLOT_DEAD, "WAVE" }, { SLOT_DEAD, "RATE" }, { SLOT_DEAD, "SPEED" }, { SLOT_DEAD, "TRIG SYNC" },
     { SLOT_DEAD, "DELAY" }, { SLOT_DEAD, "FADE IN" }, { SLOT_DEAD, "QUANTIZE" }, { SLOT_DEAD, "LEVEL" }
 };
-static const struct LeviSlot P_ALGO[8] = {
-    { SLOT_DEAD, "ALGO MODE" }, { RI_SLEVI_ALGO, "ALGO" }, { RI_SLEVI_ALGOB, "TARGET" }, { SLOT_DEAD, "SLOT" },
-    { RI_SLEVI_MORPH, "MORPH" }, { RI_SLEVI_MODE, "PM/FM" }, { SLOT_DEAD, "SOLO" }, { SLOT_DEAD, "CUSTOM" }
+/* Algorithm pages (P3, pp. 58-61): mode, algorithm, morph position,
+ * FM/PM, solo, mutes; the 8-slot morph list; then the custom grid, one
+ * page per target column (encoder k = oscillator k). */
+static const struct LeviSlot P_ALGO[5][8] = {
+    { { RI_SLEVI_AMODE, "MODE" }, { RI_SLEVI_ALGO, "ALGO" }, { RI_SLEVI_MPOS, "MORPH" },
+      { RI_SLEVI_MODE, "PM/FM" }, { RI_SLEVI_SOLO, "SOLO" }, { RI_SLEVI_MUTELO, "MUTE 1-7" },
+      { RI_SLEVI_MUTEHI, "MUTE 8" }, { SLOT_OP(RI_LEVI_OP_DIRECT), "DIRECT" } },
+    { { RI_SLEVI_SLOT0 + 0, "SLOT 1" }, { RI_SLEVI_SLOT0 + 1, "SLOT 2" }, { RI_SLEVI_SLOT0 + 2, "SLOT 3" },
+      { RI_SLEVI_SLOT0 + 3, "SLOT 4" }, { RI_SLEVI_SLOT0 + 4, "SLOT 5" }, { RI_SLEVI_SLOT0 + 5, "SLOT 6" },
+      { RI_SLEVI_SLOT0 + 6, "SLOT 7" }, { RI_SLEVI_SLOT0 + 7, "SLOT 8" } },
+    { { 0 } }, { { 0 } }, { { 0 } }                 /* custom grid pages: see slot() */
 };
 static const struct LeviSlot P_ARP[8] = {
     { RI_SLEVI_ARPRATE, "DIVISION" }, { SLOT_DEAD, "OCT MODE" }, { SLOT_DEAD, "OCT RANGE" }, { SLOT_DEAD, "GATE" },
@@ -337,7 +357,7 @@ static uint32_t module(const struct RISectLevi *s) {
 }
 
 uint32_t ri_slevi_page_count(const struct RISectLevi *s) {
-    return (s && module(s) == RI_SLEVI_M_OSC) ? 5u : 1u;
+    return (s && (module(s) == RI_SLEVI_M_OSC || module(s) == RI_SLEVI_M_ALGO)) ? 5u : 1u;
 }
 
 static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
@@ -353,6 +373,11 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
             *name = OSC_NAME[k];
         return SLOT_GOP(GROUP_PARAM[m - RI_SLEVI_M_GMODE]);
     }
+    if (m == RI_SLEVI_M_ALGO && s->page >= 2u && s->page < 5u) {
+        if (name)
+            *name = OSC_NAME[k];
+        return SLOT_GOP(RI_LEVI_OP_TGT1 + (uint32_t)(s->page - 2u));
+    }
     p = m == RI_SLEVI_M_OSC ? P_OSC[s->page < 5u ? s->page : 0u]
         : (m >= RI_SLEVI_M_ENV1 && m < RI_SLEVI_M_ENV1 + 5u) ? P_ENV
         : m == RI_SLEVI_M_DFILT ? P_DFILT : m == RI_SLEVI_M_AFILT ? P_AFILT
@@ -360,7 +385,7 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         : m == RI_SLEVI_M_DELAY ? P_DELAY : m == RI_SLEVI_M_REVERB ? P_REVERB
         : m == RI_SLEVI_M_POSTFX ? P_POSTFX
         : (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) ? P_LFO
-        : m == RI_SLEVI_M_ALGO ? P_ALGO : m == RI_SLEVI_M_ARP ? P_ARP
+        : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? P_ARP
         : m == RI_SLEVI_M_SEQ ? P_SEQ : m == RI_SLEVI_M_MATRIX ? P_MATRIX : P_VOICE;
     if (name) {
         *name = p[k].name;
@@ -466,7 +491,9 @@ int ri_slevi_page_reaches(uint32_t idx) {
 }
 
 int ri_slevi_legacy(uint32_t idx) {
-    return idx == RI_SLEVI_RATIO || idx == RI_SLEVI_OPMODE || (idx >= RI_SLEVI_ATTACK && idx <= RI_SLEVI_LOOP);
+    /* v1 two-algorithm morph (ALGOB/MORPH) gives way to the P3 slot list. */
+    return idx == RI_SLEVI_RATIO || idx == RI_SLEVI_OPMODE || (idx >= RI_SLEVI_ATTACK && idx <= RI_SLEVI_LOOP) ||
+        idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_MORPH;
 }
 
 int ri_slevi_enc_live(const struct RISectLevi *s, uint32_t k) {
@@ -496,6 +523,10 @@ const char *ri_slevi_page_title(const struct RISectLevi *s) {
     if (!s)
         return "";
     m = module(s);
+    static const char *const ALGO_PG[5] = { "ALGORITHM  1/5", "MORPH SLOTS  2/5", "CUSTOM TGT 1  3/5",
+        "CUSTOM TGT 2  4/5", "CUSTOM TGT 3  5/5" };
+    if (m == RI_SLEVI_M_ALGO)
+        return ALGO_PG[s->page < 5u ? s->page : 0u];
     return m == RI_SLEVI_M_OSC ? OSC_PG[s->opsel & 7u][s->page < 5u ? s->page : 0u] : T[m];
 }
 
@@ -656,6 +687,14 @@ static void op_text(const struct RISectLevi *s, uint32_t o, uint32_t p, char *bu
         return;
     case RI_LEVI_OP_STAGELOOP: put_str(buf, cap, STAGES[v > 2 ? 2 : v]); return;
     case RI_LEVI_OP_VELENV: put_num(buf, cap, v - 64); return;
+    case RI_LEVI_OP_TGT1: case RI_LEVI_OP_TGT2: case RI_LEVI_OP_TGT3:
+        if (!v) {
+            put_str(buf, cap, "---");
+            return;
+        }
+        put_str(buf, cap, "OSC ");
+        cat_num(buf, cap, v);
+        return;
     default: put_str(buf, cap, v ? "ON" : "OFF"); return;
     }
 }
@@ -686,6 +725,39 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
     }
     if (t == (int)RI_SLEVI_ALGO || t == (int)RI_SLEVI_ALGOB) {
         put_num(buf, cap, s->val[t] + 1);
+        return;
+    }
+    if (t == (int)RI_SLEVI_AMODE) {
+        static const char *const AM[3] = { "SINGLE", "MORPH", "CUSTOM" };
+        put_str(buf, cap, AM[s->val[t] > 2 ? 2 : s->val[t] < 0 ? 0 : s->val[t]]);
+        return;
+    }
+    if (t >= (int)RI_SLEVI_SLOT0 && t < (int)RI_SLEVI_SLOT0 + 8) {
+        int a = s->val[t];
+        if (a >= (int)RI_LEVI_SLOT_OFF)
+            put_str(buf, cap, "OFF");
+        else if (a == (int)RI_LEVI_SLOT_SILENCE)
+            put_str(buf, cap, "SILENCE");
+        else
+            put_num(buf, cap, a + 1);
+        return;
+    }
+    if (t == (int)RI_SLEVI_SOLO) {
+        if (!s->val[t]) {
+            put_str(buf, cap, "OFF");
+            return;
+        }
+        put_str(buf, cap, "OSC ");
+        cat_num(buf, cap, s->val[t]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_MUTELO) {                 /* one mark per oscillator 1-7 */
+        uint32_t i;
+        char m[8];
+        for (i = 0u; i < 7u; i++)
+            m[i] = (char)((s->val[t] >> i) & 1 ? (char)('1' + i) : '-');
+        m[7] = 0;
+        put_str(buf, cap, m);
         return;
     }
     d = def(s, (uint32_t)t);

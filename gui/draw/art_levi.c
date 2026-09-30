@@ -31,8 +31,9 @@ struct LeviCap { int x, y, w; const char *l1, *l2; int col; };
 
 /* Generated from the reference measurements (see RI_GEO_LEVI). */
 static const struct LeviBox BOX[] = {
-    { 189, 20, 475, 98, 332, "CV / GATE" },
-    { 189, 109, 475, 295, 332, "ARPEGGIATOR & SEQUENCER CONTROL" },
+    /* CV / Gate block dropped (owner 2026-09-30: no jacks in a soft synth);
+     * the arp & seq block takes the column. */
+    { 189, 20, 475, 295, 332, "ARPEGGIATOR & SEQUENCER CONTROL" },
     { 485, 20, 662, 295, 574, "MAIN SYSTEMS" },
     { 671, 20, 1004, 295, 838, "MASTER CONTROL" },
     { 1015, 20, 1744, 106, 1380, "" },
@@ -117,8 +118,6 @@ static const struct LeviText DTEXT[] = {
     { 262, 280, "STEP RECORD", "STEP", 0, 44 },
     { 401, 245, "SEQ REC + TRK = ARM", "REC+TRK=ARM", 1, 150 },
     { 328, 296, "RIBBON SEQ STEP MODE", "RIBBON STEPS", 1, 150 },
-    { 239, 44, "INPUTS", "IN", 1, 100 },
-    { 368, 44, "OUTPUTS", "OUT", 1, 100 },
     { 584, 236, "-10", "-10", 0, 44 },
     { 629, 236, "+10", "+10", 0, 44 },
     { 606, 280, "PANIC", "PANIC", 0, 44 },
@@ -129,15 +128,6 @@ static const struct LeviText DTEXT[] = {
     { 1254, 160, "OSCILLATOR GROUP EDIT", "OSC GROUP EDIT", 1, 300 },
     { 1300, 242, "INDIVIDUAL OSCILLATOR SETTINGS", "OSC SETTINGS", 1, 300 },
     { 1300, 280, "PAGE RECALL", "RECALL", 0, 100 },
-};
-static const struct LeviText JACK[] = {
-    { 220, 61, "MOD 1", "M1", 1, 34 },
-    { 257, 61, "MOD 2", "M2", 1, 34 },
-    { 294, 61, "PITCH", "P", 1, 34 },
-    { 331, 61, "GATE", "G", 1, 34 },
-    { 368, 61, "MOD 1", "M1", 1, 34 },
-    { 405, 61, "MOD 2", "M2", 1, 34 },
-    { 442, 61, "CLOCK", "CLK", 1, 34 },
 };
 #define LEVI_RIBBON_X0 190
 #define LEVI_RIBBON_Y0 305
@@ -165,9 +155,6 @@ static const struct LeviText JACK[] = {
 #define LEVI_MSDIV_X 556
 #define LEVI_MSDIV_Y0 39
 #define LEVI_MSDIV_Y1 282
-#define LEVI_CVDIV_X 276
-#define LEVI_CVDIV_Y0 39
-#define LEVI_CVDIV_Y1 82
 #define LEVI_PAGEBOX_X 968
 #define LEVI_PAGEBOX_Y 162
 #define LEVI_PAGEBOX_W 37
@@ -260,9 +247,10 @@ static void levi_cap(struct ri_dlist *dl, int cx, int cy, int hw, int hh, const 
 
 /* Seven-segment digit (white segments, dark unlit ghosts) in a box. */
 static void levi_seg7(struct ri_dlist *dl, int x0, int y0, int x1, int y1, int digit) {
-    static const uint8_t SEG[10] = { 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F };
+    /* 0-9, then 10 = C (custom algorithm), 11 = blank */
+    static const uint8_t SEG[12] = { 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x39, 0x00 };
     int w = x1 - x0, h = y1 - y0, t = w / 6 > 1 ? w / 6 : 1, m = (y0 + y1) / 2, k;
-    uint8_t on = SEG[digit % 10];
+    uint8_t on = SEG[digit >= 0 && digit < 12 ? digit : digit % 10];
     for (k = 0; k < 7; k++) {
         uint32_t c = (on >> k) & 1u ? ri_art_rgb(C_LEVI_LABEL) : ri_art_shade(ri_art_rgb(C_LEVI_CAP), 10);
         switch (k) {
@@ -318,15 +306,13 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
     ri_art_rect(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_LEVI_PANEL);
     for (i = 0u; i < sizeof(BOX) / sizeof(BOX[0]); i++)
         levi_box(dl, ox, oy, z, &BOX[i]);
-    /* Dashed dividers: filter groups, main systems, CV in/out. */
+    /* Dashed dividers: filter groups, main systems. */
     for (k = PX(LEVI_DIV_Y0); k < PX(LEVI_DIV_Y1); k += PX(6) > 2 ? PX(6) : 2) {
         ri_art_rect(dl, ox + PX(LEVI_DIV1_X), oy + k, ox + PX(LEVI_DIV1_X), oy + k + PX(2), C_LEVI_EDGE);
         ri_art_rect(dl, ox + PX(LEVI_DIV2_X), oy + k, ox + PX(LEVI_DIV2_X), oy + k + PX(2), C_LEVI_EDGE);
     }
     for (k = PX(LEVI_MSDIV_Y0); k < PX(LEVI_MSDIV_Y1); k += PX(6) > 2 ? PX(6) : 2)
         ri_art_rect(dl, ox + PX(LEVI_MSDIV_X), oy + k, ox + PX(LEVI_MSDIV_X), oy + k + PX(2), C_LEVI_EDGE);
-    for (k = PX(LEVI_CVDIV_Y0); k < PX(LEVI_CVDIV_Y1); k += PX(6) > 2 ? PX(6) : 2)
-        ri_art_rect(dl, ox + PX(LEVI_CVDIV_X), oy + k, ox + PX(LEVI_CVDIV_X), oy + k + PX(2), C_LEVI_LABEL);
     /* Oscillator group edit well + module chain rules (teal). */
     ri_art_rect(dl, ox + PX(LEVI_GROUP_X0), oy + PX(LEVI_GROUP_Y0), ox + PX(LEVI_GROUP_X1),
         oy + PX(LEVI_GROUP_Y1), C_LEVI_BOX);
@@ -342,7 +328,7 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
         C_LEVI_TEAL);
     ri_art_rect(dl, ox + PX(1137), oy + PX(LEVI_RECALL_Y + 4), ox + PX(1255), oy + PX(LEVI_RECALL_Y + 4), C_LEVI_TEAL);
     ri_art_rect(dl, ox + PX(1345), oy + PX(LEVI_RECALL_Y + 4), ox + PX(1462), oy + PX(LEVI_RECALL_Y + 4), C_LEVI_TEAL);
-    /* Dim (later-phase) knobs, the main systems encoder, CV/Gate jacks. */
+    /* Dim (later-phase) knobs, the main systems encoder. */
     for (i = 0u; i < sizeof(DKNOB) / sizeof(DKNOB[0]); i++) {
         int cx = ox + PX(DKNOB[i].x), cy = oy + PX(DKNOB[i].y);
         if (DKNOB[i].style == 3) {
@@ -359,12 +345,6 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
             }
             ri_art_knob(dl, cx, cy, PX(30), PX(38), C_LEVI_DIM, C_LEVI_EDGE, 0, 0.0f, pan);
         }
-    }
-    for (i = 0u; i < sizeof(JACK) / sizeof(JACK[0]); i++) {
-        int cx = ox + PX(JACK[i].x), cy = oy + PX(JACK[i].y), r = PX(10);
-        ri_art_disc_grad(dl, cx, cy, r, ri_art_rgb(C_LEVI_SILVER), ri_art_shade(ri_art_rgb(C_LEVI_SILVER), -45));
-        ri_art_disc_grad(dl, cx, cy, r * 6 / 10, ri_art_rgb(C_LEVI_CAP), ri_art_rgb(C_LEVI_CAP));
-        levi_label(dl, cx, cy + PX(16), JACK[i].full, JACK[i].brief, PX(JACK[i].maxw), C_LEVI_LABEL, RI_FACE_S);
     }
     for (i = 0u; i < sizeof(KLABEL) / sizeof(KLABEL[0]); i++)
         levi_label(dl, ox + PX(KLABEL[i].x), oy + PX(KLABEL[i].y), KLABEL[i].full, KLABEL[i].brief,
@@ -505,8 +485,9 @@ void ri_art_levi_item(struct ri_dlist *dl, const struct RIGeoItem *it, const str
     if (idx == RI_SLEVI_ALGODISP) {                 /* 2-digit readout, white segments */
         int n = ri_sui_display(ui, idx), dw = (2 * hw - PX(14)) / 2;
         ri_art_rect(dl, cx - hw, cy - hh, cx + hw, cy + hh, C_LEVI_CAP);
-        levi_seg7(dl, cx - hw + PX(5), cy - hh + PX(6), cx - hw + PX(5) + dw - PX(2), cy + hh - PX(6), n / 10);
-        levi_seg7(dl, cx + PX(2), cy - hh + PX(6), cx + PX(2) + dw - PX(2), cy + hh - PX(6), n % 10);
+        levi_seg7(dl, cx - hw + PX(5), cy - hh + PX(6), cx - hw + PX(5) + dw - PX(2), cy + hh - PX(6),
+            n ? n / 10 : 10);                        /* 0 = custom: "C " */
+        levi_seg7(dl, cx + PX(2), cy - hh + PX(6), cx + PX(2) + dw - PX(2), cy + hh - PX(6), n ? n % 10 : 11);
         return;
     }
     if (idx == RI_SLEVI_DISPLAY) {                  /* STEP EDIT readout */

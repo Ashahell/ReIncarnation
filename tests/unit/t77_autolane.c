@@ -234,7 +234,7 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 138u, "mapped count %u (+4 Levi bias knobs, fidelity P2)", mapped);
+            RI_ASSERT(mapped == 151u, "mapped count %u (+4 Levi bias knobs P2, +13 algo mode/slots/morph/solo/mute P3)", mapped);
             RI_ASSERT(listed == 31u, "listed count %u", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
@@ -259,7 +259,7 @@ int main(void) {
                         owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 372u, "allow-list size %u (138 controls + 2 VOLUME + 8 x 29 Levi op keys)", nallow);
+                RI_ASSERT(nallow == 409u, "allow-list size %u (151 controls + 2 VOLUME + 8 x 32 Levi op keys)", nallow);
             }
         }
     }

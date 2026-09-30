@@ -191,6 +191,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t102_levi_emit >/dev/null || { echo "
 bash "$ROOT/scripts/ri_build_host.sh" test t103_levi_dsp >/dev/null || { echo "FAIL: t103_levi_dsp (levi voices)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t110_levi_layout >/dev/null || { echo "FAIL: t110_levi_layout (levi hardware panel)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t129_levi_osc >/dev/null || { echo "FAIL: t129_levi_osc (levi oscillators + envelopes)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t130_levi_algo_modes >/dev/null || { echo "FAIL: t130_levi_algo_modes (levi algorithm modes)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t104_levi_engine >/dev/null || { echo "FAIL: t104_levi_engine (levi instance)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t105_rbng_levi >/dev/null || { echo "FAIL: t105_rbng_levi (levi song compat)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t106_levi_ctl >/dev/null || { echo "FAIL: t106_levi_ctl (levi controls)"; exit 1; }

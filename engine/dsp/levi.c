@@ -291,11 +291,11 @@ float ri_levi_wave(uint32_t w, float ph, float dt) {
 
 /* ---- Per-op parameter laws (UI 0..127 -> values; own E0 maps) ---- */
 static const uint8_t OP_LO[RI_LEVI_OP_NPARAM] = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 static const uint8_t OP_HI[RI_LEVI_OP_NPARAM] = {
     127, 1, 2, 127, 127, 127, 127, 127, 127, 127, 1, 6,
-    127, 127, 127, 127, 127, 127, 1, 127, 127, 127, 15, 50, 2, 1, 1, 1, 127
+    127, 127, 127, 127, 127, 127, 1, 127, 127, 127, 15, 50, 2, 1, 1, 1, 127, 8, 8, 8
 };
 
 int ri_levi_op_range(uint32_t param, int *lo, int *hi) {
@@ -348,6 +348,9 @@ static const uint8_t QUANT_STEPS[16] = { 0, 2, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32
 
 /* Recompute an op's derived values after a UI change; env params go
  * into both bank states of the voice. */
+static int reaches(const uint8_t *feeds, uint32_t from, uint32_t to);
+static void bank_load(struct RILeviVoice *v, uint32_t bank, uint32_t algo);
+
 static void op_apply(struct RILeviVoice *v, uint32_t o, uint32_t p) {
     struct RILeviOp *op = &v->op[o];
     const uint8_t *u = op->ui;
@@ -382,6 +385,25 @@ static void op_apply(struct RILeviVoice *v, uint32_t o, uint32_t p) {
     case RI_LEVI_OP_PHASE: op->phase0 = (float)u[p] / 128.0f; break;
     case RI_LEVI_OP_DIRECT: op->direct = u[p] ? 1u : 0u; break;
     case RI_LEVI_OP_MODE: op->mode = u[p] > 6u ? 6u : u[p]; break;
+    case RI_LEVI_OP_TGT1: case RI_LEVI_OP_TGT2: case RI_LEVI_OP_TGT3: {
+        /* Custom grid row (manual p. 60): up to 3 targets; a target that
+         * would close a loop (or is the op itself) is dropped. */
+        uint8_t mask = 0u, save = v->cfeeds[o];
+        uint32_t t;
+        for (t = RI_LEVI_OP_TGT1; t <= RI_LEVI_OP_TGT3; t++)
+            if (u[t] >= 1u && u[t] <= 8u && (uint32_t)(u[t] - 1u) != o)
+                mask |= (uint8_t)(1u << (u[t] - 1u));
+        v->cfeeds[o] = 0u;
+        for (t = 0u; t < RI_LEVI_NOPS; t++)
+            if (((mask >> t) & 1u) && !reaches(v->cfeeds, t, o))
+                v->cfeeds[o] |= (uint8_t)(1u << t);
+        (void)save;
+        if (v->amode == RI_LEVI_AMODE_CUSTOM) {
+            bank_load(v, 0u, RI_LEVI_ALGO_CUSTOM);
+            v->algo = RI_LEVI_ALGO_CUSTOM;
+        }
+        break;
+    }
     default:
         if (p == RI_LEVI_OP_SPEED && (u[p] ? 1u : 0u) == op->speed)
             break;                                /* same range: times stand */
@@ -427,77 +449,207 @@ int levi_set_op_ui(struct RILeviSet *s, uint32_t voice, uint32_t op, uint32_t pa
     return 0;
 }
 
-/* Own preset topologies (functional shapes; mod_src per op, -1 = carrier).
- * 0 DUO: v1 pair; 1 ALLPAR: 8 carriers; 2 STACK8: one chain into op0;
- * 3 STACK44: chains into op0/op4; 4 STACK422: chain + two pairs;
- * 5 PAIRS4: four pairs; 6 STACK332: 3+3+2; 7 STACK62: 6-chain + pair. */
-static const int8_t RI_LEVI_PRESET_SRC[RI_LEVI_ALGO_N][RI_LEVI_NOPS] = {
-    { -1, 0, -1, -1, -1, -1, -1, -1 },
-    { -1, -1, -1, -1, -1, -1, -1, -1 },
-    { -1, 0, 1, 2, 3, 4, 5, 6 },
-    { -1, 0, 1, 2, -1, 4, 5, 6 },
-    { -1, 0, 1, 2, -1, 4, -1, 6 },
-    { -1, 0, -1, 2, -1, 4, -1, 6 },
-    { -1, 0, 1, -1, 3, 4, -1, 6 },
-    { -1, 0, 1, 2, 3, 4, -1, 6 },
+/* Own algorithm bank (fidelity P3; clean-room, authored by rule in the
+ * scratch generator, none of the hardware's 140+): feeds[i] = the ops
+ * op i modulates, bit t = op t; every edge points to a lower op, so the
+ * graph is acyclic; op 0 (OSC 1) is always a carrier. 0..7 are the v1
+ * presets. */
+static const uint8_t RI_LEVI_PRESET_FEEDS[RI_LEVI_ALGO_N][RI_LEVI_NOPS] = {
+    { 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40 },
+    { 0x00, 0x01, 0x02, 0x04, 0x00, 0x10, 0x20, 0x40 },
+    { 0x00, 0x01, 0x02, 0x04, 0x00, 0x10, 0x00, 0x40 },
+    { 0x00, 0x01, 0x00, 0x04, 0x00, 0x10, 0x00, 0x40 },
+    { 0x00, 0x01, 0x02, 0x00, 0x08, 0x10, 0x00, 0x40 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x00, 0x40 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x00 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x00, 0x00 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x00, 0x20, 0x40 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x00, 0x20, 0x00 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x00, 0x00, 0x00 },
+    { 0x00, 0x01, 0x02, 0x04, 0x00, 0x10, 0x20, 0x00 },
+    { 0x00, 0x01, 0x02, 0x04, 0x00, 0x10, 0x00, 0x00 },
+    { 0x00, 0x01, 0x02, 0x04, 0x00, 0x00, 0x00, 0x00 },
+    { 0x00, 0x01, 0x02, 0x00, 0x08, 0x10, 0x00, 0x00 },
+    { 0x00, 0x01, 0x02, 0x00, 0x08, 0x00, 0x20, 0x00 },
+    { 0x00, 0x01, 0x02, 0x00, 0x08, 0x00, 0x00, 0x00 },
+    { 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00 },
+    { 0x00, 0x01, 0x00, 0x04, 0x00, 0x10, 0x00, 0x00 },
+    { 0x00, 0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 },
+    { 0x00, 0x01, 0x01, 0x04, 0x08, 0x10, 0x20, 0x40 },
+    { 0x00, 0x01, 0x01, 0x01, 0x08, 0x10, 0x20, 0x40 },
+    { 0x00, 0x01, 0x01, 0x01, 0x01, 0x10, 0x20, 0x40 },
+    { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x20, 0x40 },
+    { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x40 },
+    { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01 },
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03 },
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07 },
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F },
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1F },
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3F },
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F },
+    { 0x00, 0x01, 0x01, 0x02, 0x02, 0x04, 0x04, 0x02 },
+    { 0x00, 0x01, 0x01, 0x01, 0x02, 0x04, 0x08, 0x10 },
+    { 0x00, 0x01, 0x02, 0x02, 0x04, 0x08, 0x08, 0x01 },
+    { 0x00, 0x00, 0x01, 0x01, 0x01, 0x02, 0x02, 0x02 },
+    { 0x00, 0x00, 0x01, 0x02, 0x01, 0x02, 0x01, 0x02 },
+    { 0x00, 0x00, 0x00, 0x01, 0x02, 0x04, 0x03, 0x03 },
+    { 0x00, 0x01, 0x00, 0x04, 0x0A, 0x10, 0x20, 0x40 },
+    { 0x00, 0x01, 0x02, 0x00, 0x08, 0x12, 0x20, 0x40 },
+    { 0x00, 0x01, 0x02, 0x00, 0x08, 0x10, 0x00, 0x29 },
+    { 0x00, 0x01, 0x00, 0x04, 0x00, 0x10, 0x00, 0x15 },
+    { 0x00, 0x01, 0x01, 0x06, 0x0C, 0x18, 0x30, 0x60 },
+    { 0x00, 0x01, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x60 },
+    { 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x04, 0x08 },
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02 },
+    { 0x00, 0x00, 0x00, 0x01, 0x02, 0x04, 0x08, 0x10 },
+    { 0x00, 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x00, 0x00, 0x20 },
+    { 0x00, 0x01, 0x02, 0x04, 0x00, 0x00, 0x10, 0x40 },
+    { 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x20, 0x40 },
+    { 0x00, 0x01, 0x01, 0x02, 0x02, 0x00, 0x00, 0x40 },
+    { 0x00, 0x01, 0x03, 0x04, 0x08, 0x10, 0x00, 0x00 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x01 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x21, 0x40 },
+    { 0x00, 0x01, 0x02, 0x01, 0x08, 0x01, 0x20, 0x01 },
+    { 0x00, 0x01, 0x01, 0x02, 0x04, 0x08, 0x10, 0x04 },
+    { 0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x08 },
+    { 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x10 },
+    { 0x00, 0x01, 0x02, 0x02, 0x02, 0x02, 0x02, 0x20 },
+    { 0x00, 0x01, 0x01, 0x04, 0x04, 0x04, 0x04, 0x40 },
+    { 0x00, 0x01, 0x02, 0x01, 0x08, 0x08, 0x08, 0x01 },
+};
+static const uint8_t RI_LEVI_PRESET_LIVE[RI_LEVI_ALGO_N] = {
+    0x03, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
 
-static const uint8_t RI_LEVI_PRESET_LIVE[RI_LEVI_ALGO_N][RI_LEVI_NOPS] = {
-    { 1, 1, 0, 0, 0, 0, 0, 0 },
-    { 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 1, 1, 1, 1, 1, 1, 1, 1 },
-};
-
-/* Render order: modulators before their carriers (depth-descending).
- * Graph is acyclic by construction (presets) or validation (custom). */
-static void order_compute_src(const int8_t *src, uint8_t *order) {
-    uint8_t depth[RI_LEVI_NOPS], done[RI_LEVI_NOPS];
-    uint32_t i, k, placed = 0u;
-    for (i = 0u; i < RI_LEVI_NOPS; i++) {
-        int cur = (int)i, d = 0;
-        while (cur >= 0 && d <= (int)RI_LEVI_NOPS) {
-            cur = src[cur];
-            d++;
-        }
-        depth[i] = (uint8_t)(d - 1);
-        done[i] = 0u;
-        order[i] = (uint8_t)i;
-    }
-    for (k = 0u; k < RI_LEVI_NOPS; k++) {
-        uint32_t best = RI_LEVI_NOPS;
-        for (i = 0u; i < RI_LEVI_NOPS; i++)
-            if (!done[i] && (best == RI_LEVI_NOPS || depth[i] > depth[best]))
-                best = i;
-        if (best == RI_LEVI_NOPS)
-            break; /* unreachable: placed counts every op once */
-        order[placed++] = (uint8_t)best;
-        done[best] = 1u;
-    }
-    for (; placed < RI_LEVI_NOPS; placed++)
-        order[placed] = 0u;
+uint8_t ri_levi_preset_feeds(uint32_t algo, uint32_t op) {
+    return (algo < RI_LEVI_ALGO_N && op < RI_LEVI_NOPS) ? RI_LEVI_PRESET_FEEDS[algo][op] : 0u;
 }
 
-static void bank_preset(struct RILeviVoice *v, uint32_t bank,
-    uint32_t algo) {
+/* Render order: modulators before the ops they modulate (Kahn over the
+ * feeds masks; any leftover (a cycle) keeps index order, never loops). */
+static void order_compute(const uint8_t *feeds, uint8_t *order) {
+    uint8_t done = 0u;
+    uint32_t placed = 0u, i, j, guard;
+    for (guard = 0u; guard < RI_LEVI_NOPS && placed < RI_LEVI_NOPS; guard++) {
+        uint32_t best = RI_LEVI_NOPS;
+        /* highest ready op first (feeders are higher indexed in presets) */
+        for (i = RI_LEVI_NOPS; i-- > 0u;) {
+            int ready = !((done >> i) & 1u);
+            for (j = 0u; j < RI_LEVI_NOPS && ready; j++)
+                if (!((done >> j) & 1u) && j != i && ((feeds[j] >> i) & 1u))
+                    ready = 0;                       /* an unplaced feeder of i */
+            if (ready) {
+                best = i;
+                break;
+            }
+        }
+        if (best == RI_LEVI_NOPS)
+            break;
+        order[placed++] = (uint8_t)best;
+        done |= (uint8_t)(1u << best);
+    }
+    for (i = 0u; i < RI_LEVI_NOPS && placed < RI_LEVI_NOPS; i++)
+        if (!((done >> i) & 1u)) {
+            order[placed++] = (uint8_t)i;
+            done |= (uint8_t)(1u << i);
+        }
+}
+
+/* 1 when op reaches `to` through the feeds graph (for cycle refusal). */
+static int reaches(const uint8_t *feeds, uint32_t from, uint32_t to) {
+    uint8_t seen = 0u, front = (uint8_t)(1u << from);
+    uint32_t it, i;
+    for (it = 0u; it < RI_LEVI_NOPS && front; it++) {
+        uint8_t next = 0u;
+        for (i = 0u; i < RI_LEVI_NOPS; i++)
+            if ((front >> i) & 1u)
+                next |= feeds[i];
+        if ((next >> to) & 1u)
+            return 1;
+        seen |= front;
+        front = (uint8_t)(next & (uint8_t)~seen);
+    }
+    return 0;
+}
+
+/* Load a routing into bank A/B: a preset (0..63), SILENCE, or the
+ * custom grid (RI_LEVI_ALGO_CUSTOM). */
+/* Bank ids: presets 0..63, RI_LEVI_ALGO_CUSTOM (the grid), BANK_SILENCE.
+ * The slot value SILENCE (64) equals the CUSTOM id, so morph maps it. */
+#define BANK_SILENCE 0xFFu
+
+static void bank_load(struct RILeviVoice *v, uint32_t bank, uint32_t algo) {
     uint32_t i;
-    int8_t *src = bank ? v->mod_srcB : v->mod_src;
+    uint8_t *f = bank ? v->feedsB : v->feeds;
     uint8_t *ord = bank ? v->orderB : v->order;
     uint8_t *live = bank ? v->liveB : v->live;
     for (i = 0u; i < RI_LEVI_NOPS; i++) {
-        src[i] = RI_LEVI_PRESET_SRC[algo][i];
-        live[i] = RI_LEVI_PRESET_LIVE[algo][i];
+        if (algo == RI_LEVI_ALGO_CUSTOM) {
+            f[i] = v->cfeeds[i];
+            live[i] = 1u;
+        } else if (algo < RI_LEVI_ALGO_N) {
+            f[i] = RI_LEVI_PRESET_FEEDS[algo][i];
+            live[i] = (uint8_t)((RI_LEVI_PRESET_LIVE[algo] >> i) & 1u);
+        } else {                                      /* BANK_SILENCE */
+            f[i] = 0u;
+            live[i] = 0u;
+        }
     }
-    order_compute_src(src, ord);
+    order_compute(f, ord);
+}
+
+static void bank_preset(struct RILeviVoice *v, uint32_t bank, uint32_t algo) {
+    bank_load(v, bank, algo);
 }
 
 static void voice_preset(struct RILeviVoice *v, uint32_t algo) {
     bank_preset(v, 0u, algo);
     v->algo = (uint8_t)algo;
+}
+
+/* Active morph list (slot 0 always; OFF slots are skipped, so a later
+ * slot moves up, manual p. 59). Returns the count, list in out[]. */
+static uint32_t morph_list(const struct RILeviVoice *v, uint8_t *out) {
+    uint32_t i, n = 0u;
+    for (i = 0u; i < RI_LEVI_NSLOTS; i++)
+        if (i == 0u || v->slot[i] != RI_LEVI_SLOT_OFF)
+            out[n++] = i == 0u && v->slot[0] >= RI_LEVI_ALGO_N ? 0u : v->slot[i];
+    return n;
+}
+
+/* Morph mode: banks A/B = the list entries around the position; the
+ * blend is the position within the step (0..100). Crossing a step loads
+ * the new pair; bank states carry over (B -> A going up, A -> B going
+ * down) so voices glide. */
+static void morph_apply(struct RILeviVoice *v) {
+    uint8_t list[RI_LEVI_NSLOTS];
+    uint32_t n = morph_list(v, list), maxp, a, o;
+    maxp = (n - 1u) * 100u;
+    if (v->mpos > maxp)
+        v->mpos = (uint16_t)maxp;
+    a = v->mpos / 100u;
+    if (a >= n - 1u && n > 1u)
+        a = n - 2u;
+    if (n == 1u)
+        a = 0u;
+    if (a != v->mslotA) {
+        if (a == (uint32_t)v->mslotA + 1u)
+            for (o = 0u; o < RI_LEVI_NOPS; o++)
+                v->st[0][o] = v->st[1][o];
+        else if (a + 1u == v->mslotA)
+            for (o = 0u; o < RI_LEVI_NOPS; o++)
+                v->st[1][o] = v->st[0][o];
+        v->mslotA = (uint8_t)a;
+    }
+    bank_load(v, 0u, list[a] >= RI_LEVI_ALGO_N ? BANK_SILENCE : list[a]);
+    bank_load(v, 1u, n > 1u ? (list[a + 1u] >= RI_LEVI_ALGO_N ? BANK_SILENCE : list[a + 1u])
+        : (list[a] >= RI_LEVI_ALGO_N ? BANK_SILENCE : list[a]));
+    v->algo = list[0] < RI_LEVI_ALGO_N ? list[0] : 0u;
+    v->algoB = n > 1u ? list[a + 1u] : list[a];
+    v->morph = (uint8_t)(n > 1u ? v->mpos - a * 100u : 0u);
 }
 
 void levi_init_set(struct RILeviSet *s) {
@@ -511,6 +663,16 @@ void levi_init_set(struct RILeviSet *s) {
         v->note = 0u;
         v->algoB = RI_LEVI_ALGO_DUO;
         v->morph = 0u;
+        v->amode = RI_LEVI_AMODE_SINGLE;
+        for (o = 0u; o < RI_LEVI_NSLOTS; o++)
+            v->slot[o] = o == 0u ? RI_LEVI_ALGO_DUO : RI_LEVI_SLOT_OFF;
+        v->mslotA = 0u;
+        v->mute = 0u;
+        v->solo = 0u;
+        v->mpos = 0u;
+        v->padm[0] = v->padm[1] = 0u;
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            v->cfeeds[o] = RI_LEVI_PRESET_FEEDS[RI_LEVI_ALGO_DUO][o];
         for (o = 0u; o < RI_LEVI_NOPS; o++) {
             uint32_t pp;
             struct RILeviOp *op = &v->op[o];
@@ -530,7 +692,6 @@ void levi_init_set(struct RILeviSet *s) {
             op->direct = 0u;
             op->speed = 0u;
             op->pad2[0] = op->pad2[1] = 0u;
-            op->pad3[0] = op->pad3[1] = op->pad3[2] = 0u;
             for (pp = 0u; pp < RI_LEVI_OP_NPARAM; pp++)
                 op->ui[pp] = (uint8_t)ri_levi_op_default(o, pp);
         }
@@ -699,7 +860,7 @@ int levi_set_param(struct RILeviSet *s, uint32_t voice, uint32_t id,
         if (!(value >= 0.25f && value <= 64.0f))
             return 2;
         for (o = 0u; o < RI_LEVI_NOPS; o++)
-            if (v->live[o] && v->mod_src[o] >= 0)
+            if (v->live[o] && v->feeds[o] != 0u)
                 v->op[o].ratio = value;
         return 0;
     case RI_LEVI_FTYPE:
@@ -825,10 +986,10 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case RI_LEVI_RATIO:
         return levi_set_param(s, voice, id,
             0.25f * ri_pow2(((float)val / 127.0f) * 8.0f));
-    case (RI_CTL_LEVI_ALGO & 0xFFu): /* ALGO */
-        return levi_set_algo(s, voice, val <= 7u ? val : (uint32_t)(val >> 4));
+    case (RI_CTL_LEVI_ALGO & 0xFFu): /* ALGO: preset 0..63 */
+        return levi_set_algo(s, voice, val < RI_LEVI_ALGO_N ? val : RI_LEVI_ALGO_N - 1u);
     case (RI_CTL_LEVI_ALGOB & 0xFFu): /* ALGOB */ {
-        uint32_t a = val <= 7u ? val : (uint32_t)(val >> 4);
+        uint32_t a = val < RI_LEVI_ALGO_N ? val : RI_LEVI_ALGO_N - 1u;
         struct RILeviVoice *v;
         if (a >= RI_LEVI_ALGO_N)
             return 2;
@@ -898,6 +1059,29 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
         s->v[voice].lfo[id - (RI_CTL_LEVI_LFO0RATE & 0xFFu)].rate =
             ri_levi_lfo_rate(val > 127u ? 127u : val);
         return 0;
+    case (RI_CTL_LEVI_AMODE & 0xFFu):
+        return levi_set_amode(s, voice, val > 2u ? 2u : val);
+    case (RI_CTL_LEVI_SLOT0 & 0xFFu): case (RI_CTL_LEVI_SLOT0 & 0xFFu) + 1u:
+    case (RI_CTL_LEVI_SLOT0 & 0xFFu) + 2u: case (RI_CTL_LEVI_SLOT0 & 0xFFu) + 3u:
+    case (RI_CTL_LEVI_SLOT0 & 0xFFu) + 4u: case (RI_CTL_LEVI_SLOT0 & 0xFFu) + 5u:
+    case (RI_CTL_LEVI_SLOT0 & 0xFFu) + 6u: case (RI_CTL_LEVI_SLOT0 & 0xFFu) + 7u:
+        return levi_set_slot(s, voice, id - (RI_CTL_LEVI_SLOT0 & 0xFFu),
+            val > RI_LEVI_SLOT_OFF ? RI_LEVI_SLOT_OFF : val);
+    case (RI_CTL_LEVI_MPOS & 0xFFu): {
+        /* 0..127 spans the active slots (7-bit key; manual: 100 steps per
+         * slot pair, E0 resolution). */
+        uint32_t n = levi_morph_slots(s, voice);
+        return levi_set_mpos(s, voice, n > 1u ? ((uint32_t)val * (n - 1u) * 100u + 63u) / 127u : 0u);
+    }
+    case (RI_CTL_LEVI_SOLO & 0xFFu):
+        s->v[voice].solo = val > 8u ? 0u : val;
+        return 0;
+    case (RI_CTL_LEVI_MUTELO & 0xFFu):
+        s->v[voice].mute = (uint8_t)((s->v[voice].mute & 0x80u) | (val & 0x7Fu));
+        return 0;
+    case (RI_CTL_LEVI_MUTEHI & 0xFFu):
+        s->v[voice].mute = (uint8_t)((s->v[voice].mute & 0x7Fu) | (val ? 0x80u : 0u));
+        return 0;
     case (RI_CTL_LEVI_BIAS_ENVL & 0xFFu): case (RI_CTL_LEVI_BIAS_ATK & 0xFFu):
     case (RI_CTL_LEVI_BIAS_DEC & 0xFFu): case (RI_CTL_LEVI_BIAS_REL & 0xFFu): {
         /* Osc Env Level & Bias (manual p. 54): 64 = none. Level bias adds
@@ -963,7 +1147,7 @@ static float mod_warp(uint32_t mode, float ph, float n, float a) {
 static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
     int *any_on) {
     float opout[RI_LEVI_NOPS] = { 0.0f }, mix = 0.0f;
-    const int8_t *src = bank ? v->mod_srcB : v->mod_src;
+    const uint8_t *fd = bank ? v->feedsB : v->feeds;
     const uint8_t *ord = bank ? v->orderB : v->order;
     const uint8_t *live = bank ? v->liveB : v->live;
     uint32_t k, j;
@@ -989,7 +1173,7 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
         fm = 0.0f;
         pm = 0.0f;
         for (j = 0u; j < RI_LEVI_NOPS; j++)
-            if (src[j] == (int)i) {
+            if ((fd[j] >> i) & 1u) {
                 uint32_t md = v->op[j].mode;
                 if (md == RI_LEVI_FM)
                     fm += opout[j];
@@ -1010,7 +1194,7 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
             ph = frac1(ph + p->fb * 1.2f * o->last);   /* self feedback (FM/PM only) */
         if (warped)
             for (j = 0u; j < RI_LEVI_NOPS; j++)
-                if (src[j] == (int)i && v->op[j].mode > RI_LEVI_PM && o->freq > 0.0f) {
+                if (((fd[j] >> i) & 1u) && v->op[j].mode > RI_LEVI_PM && o->freq > 0.0f) {
                     float n = v->st[bank][j].freq / o->freq;
                     n = n < 0.125f ? 0.125f : n > 64.0f ? 64.0f : n;
                     ph = mod_warp(v->op[j].mode, ph, n, v->st[bank][j].amp);
@@ -1027,7 +1211,9 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
         o->last = osc;
         o->amp = amp;
         opout[i] = osc * p->level * amp;
-        if (src[i] < 0 || p->direct)
+        /* Carriers (feed nothing) and Direct Out reach the mix, Mute drops
+         * an op; Solo auditions one op alone, modulator or not (p. 59). */
+        if (v->solo ? v->solo == i + 1u : (fd[i] == 0u || p->direct) && !((v->mute >> i) & 1u))
             mix += opout[i];
     }
     return mix;
@@ -1141,6 +1327,7 @@ int levi_set_algo(struct RILeviSet *s, uint32_t voice, uint32_t algo) {
     if (!s || voice >= RI_LEVI_NVOICES || algo >= RI_LEVI_ALGO_N)
         return 2;
     voice_preset(&s->v[voice], algo);
+    s->v[voice].slot[0] = (uint8_t)algo;
     return 0;
 }
 
@@ -1153,28 +1340,112 @@ int levi_algo_get(const struct RILeviSet *s, uint32_t voice) {
 int levi_set_route(struct RILeviSet *s, uint32_t voice, uint32_t op,
     int src) {
     struct RILeviVoice *v;
-    int cur;
+    uint8_t save;
     if (!s || voice >= RI_LEVI_NVOICES || op >= RI_LEVI_NOPS)
         return 2;
-    if (src < -1 || src >= (int)RI_LEVI_NOPS)
+    if (src < -1 || src >= (int)RI_LEVI_NOPS || src == (int)op)
         return 2;
     v = &s->v[voice];
-    /* Acyclic only: src's chain must not reach op (self hits at once). */
-    for (cur = src; cur >= 0; cur = v->mod_src[cur])
-        if (cur == (int)op)
-            return 2;
-    v->mod_src[op] = (int8_t)src;
+    save = v->feeds[op];
+    v->feeds[op] = src < 0 ? 0u : (uint8_t)(1u << src);
+    /* Acyclic only: the target must not reach op back. */
+    if (src >= 0 && reaches(v->feeds, (uint32_t)src, op)) {
+        v->feeds[op] = save;
+        return 2;
+    }
     v->live[op] = 1u;
     v->algo = RI_LEVI_ALGO_CUSTOM;
-    order_compute_src(v->mod_src, v->order);
+    order_compute(v->feeds, v->order);
     return 0;
 }
 
 int levi_route_get(const struct RILeviSet *s, uint32_t voice,
     uint32_t op) {
+    uint32_t t;
     if (!s || voice >= RI_LEVI_NVOICES || op >= RI_LEVI_NOPS)
         return -2;
-    return (int)s->v[voice].mod_src[op];
+    for (t = 0u; t < RI_LEVI_NOPS; t++)
+        if ((s->v[voice].feeds[op] >> t) & 1u)
+            return (int)t;
+    return -1;
+}
+
+int levi_set_feeds(struct RILeviSet *s, uint32_t voice, uint32_t op, uint32_t mask) {
+    struct RILeviVoice *v;
+    uint8_t save;
+    uint32_t t;
+    if (!s || voice >= RI_LEVI_NVOICES || op >= RI_LEVI_NOPS || mask > 0xFFu || ((mask >> op) & 1u))
+        return 2;
+    v = &s->v[voice];
+    save = v->cfeeds[op];
+    v->cfeeds[op] = (uint8_t)mask;
+    for (t = 0u; t < RI_LEVI_NOPS; t++)
+        if (((mask >> t) & 1u) && reaches(v->cfeeds, t, op)) {
+            v->cfeeds[op] = save;
+            return 2;
+        }
+    v->amode = RI_LEVI_AMODE_CUSTOM;
+    bank_load(v, 0u, RI_LEVI_ALGO_CUSTOM);
+    v->algo = RI_LEVI_ALGO_CUSTOM;
+    v->morph = 0u;
+    return 0;
+}
+
+int levi_set_amode(struct RILeviSet *s, uint32_t voice, uint32_t mode) {
+    struct RILeviVoice *v;
+    uint32_t o;
+    if (!s || voice >= RI_LEVI_NVOICES || mode > RI_LEVI_AMODE_CUSTOM)
+        return 2;
+    v = &s->v[voice];
+    if (mode == RI_LEVI_AMODE_CUSTOM && v->amode != RI_LEVI_AMODE_CUSTOM)
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            v->cfeeds[o] = v->feeds[o];         /* start from what sounds now */
+    v->amode = (uint8_t)mode;
+    if (mode == RI_LEVI_AMODE_CUSTOM) {
+        bank_load(v, 0u, RI_LEVI_ALGO_CUSTOM);
+        v->algo = RI_LEVI_ALGO_CUSTOM;
+        v->morph = 0u;
+    } else if (mode == RI_LEVI_AMODE_MORPH) {
+        v->mslotA = 0u;
+        morph_apply(v);
+    } else {
+        voice_preset(v, v->slot[0] < RI_LEVI_ALGO_N ? v->slot[0] : 0u);
+        v->morph = 0u;
+    }
+    return 0;
+}
+
+int levi_set_slot(struct RILeviSet *s, uint32_t voice, uint32_t slot, uint32_t val) {
+    struct RILeviVoice *v;
+    if (!s || voice >= RI_LEVI_NVOICES || slot >= RI_LEVI_NSLOTS || val > RI_LEVI_SLOT_OFF)
+        return 2;
+    if (slot == 0u && val >= RI_LEVI_ALGO_N)
+        return 2;                                /* Algo 1 is never OFF or Silence */
+    v = &s->v[voice];
+    v->slot[slot] = (uint8_t)val;
+    if (v->amode == RI_LEVI_AMODE_MORPH)
+        morph_apply(v);
+    else if (slot == 0u && v->amode == RI_LEVI_AMODE_SINGLE)
+        voice_preset(v, val);
+    return 0;
+}
+
+int levi_set_mpos(struct RILeviSet *s, uint32_t voice, uint32_t pos) {
+    struct RILeviVoice *v;
+    if (!s || voice >= RI_LEVI_NVOICES || pos > 700u)
+        return 2;
+    v = &s->v[voice];
+    v->mpos = (uint16_t)pos;
+    if (v->amode == RI_LEVI_AMODE_MORPH)
+        morph_apply(v);
+    return 0;
+}
+
+uint32_t levi_morph_slots(const struct RILeviSet *s, uint32_t voice) {
+    uint8_t list[RI_LEVI_NSLOTS];
+    if (!s || voice >= RI_LEVI_NVOICES)
+        return 0u;
+    return morph_list(&s->v[voice], list);
 }
 
 int levi_set_op_mode(struct RILeviSet *s, uint32_t voice, uint32_t op,

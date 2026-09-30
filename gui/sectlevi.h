@@ -10,14 +10,14 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 84u
+#define RI_SLEVI_NCTL 97u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
 #define RI_SLEVI_SELECT 4u      /* Lane Selection: 0..5 */
 #define RI_SLEVI_MODE 2u          /* FM/PM toggle */
-#define RI_SLEVI_ALGO 37u         /* Algorithm select 0..7 */
-#define RI_SLEVI_ALGOB 38u        /* Morph target 0..7 */
+#define RI_SLEVI_ALGO 37u         /* Algorithm select 0..63 (P3: 64 presets) */
+#define RI_SLEVI_ALGOB 38u        /* v1 morph target 0..63 (legacy row) */
 #define RI_SLEVI_MORPH 39u        /* Morph position 0..100 */
 #define RI_SLEVI_OPSEL 40u        /* Op selection 0..7 (UI-only) */
 #define RI_SLEVI_OPMODE 41u       /* Op Mode 0..6 (packed op*16+mode) */
@@ -30,7 +30,7 @@
 #define RI_SLEVI_SUSTAIN 48u      /* Sustain level */
 #define RI_SLEVI_RELEASE 49u      /* Release time */
 #define RI_SLEVI_LOOP 50u /* Envelope loop */
-#define RI_SLEVI_ALGODISP 51u   /* Central algorithm readout 1..8 */
+#define RI_SLEVI_ALGODISP 51u   /* Central algorithm readout 1..64, 0 = custom */
 #define RI_SLEVI_ARPON 52u        /* Arp on (UI-only, binds later) */
 #define RI_SLEVI_ARPRATE 53u      /* Arp rate (UI-only) */
 #define RI_SLEVI_SEQON 54u        /* Seq on (UI-only) */
@@ -57,6 +57,15 @@
 #define RI_SLEVI_BIAS_REL 81u
 #define RI_SLEVI_PAGEUP 82u       /* PAGE up / down (page within module) */
 #define RI_SLEVI_PAGEDN 83u
+/* Algorithm modes (fidelity P3, manual pp. 58-61): Single / Morph /
+ * Custom, the 8-slot morph list, morph position, solo and mute. Keys
+ * 0x0E2B..0x0E37; the custom grid rows are per-oscillator TGT1..3. */
+#define RI_SLEVI_AMODE 84u
+#define RI_SLEVI_SLOT0 85u        /* 8 slots: 85..92 (0..63 algo, 64 silence, 65 off) */
+#define RI_SLEVI_MPOS 93u         /* morph position 0..127 across the live slots */
+#define RI_SLEVI_SOLO 94u         /* 0 off, n = osc n */
+#define RI_SLEVI_MUTELO 95u       /* osc 1-7 mute bits */
+#define RI_SLEVI_MUTEHI 96u       /* osc 8 mute */
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */
@@ -118,7 +127,7 @@ int ri_slevi_reset(struct RISectLevi *s, uint32_t idx);
 int ri_slevi_led(const struct RISectLevi *s, uint32_t idx);
 /* EDIT STEP 1..16. */
 int ri_slevi_display(const struct RISectLevi *s);
-/* Central algorithm readout 1..8 (panel truth); 0 on NULL. */
+/* Central algorithm readout 1..64 (panel truth); 0 in custom mode or on NULL. */
 int ri_slevi_algo_display(const struct RISectLevi *s);
 
 /* Page UI (P1). Value of any control as drawn (encoders read their
@@ -140,7 +149,8 @@ int ri_slevi_enc_live(const struct RISectLevi *s, uint32_t k);
  * item of its own: the encoders reach it). Pure, table-only. */
 int ri_slevi_page_reaches(uint32_t idx);
 /* 1 for the v1 section-wide rows superseded by the per-oscillator
- * params (fidelity P2): global ratio, packed op mode, all-op envelope.
+ * params (fidelity P2): global ratio, packed op mode, all-op envelope,
+ * and the v1 two-algorithm morph superseded by the slot list (P3).
  * They stay registered and automatable (old songs) with no panel item. */
 int ri_slevi_legacy(uint32_t idx);
 /* Page title and slot name (static strings, never NULL). */
