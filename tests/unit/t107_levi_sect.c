@@ -140,9 +140,9 @@ int main(void) {
         RI_ASSERT(ri_slevi_value(&p, RI_SLEVI_PAGE) == (int)RI_SLEVI_M_OSC * 8, "page starts on OSC 1/5");
         RI_ASSERT(!strcmp(ri_slevi_page_title(&p), "OSC 1  1/5"), "title osc 1 p1: %s", ri_slevi_page_title(&p));
         RI_ASSERT(ri_slevi_page_count(&p) == 5u, "osc has 5 pages");
-        /* Digital filter page: slot 3 = CUTOFF, slot 1 = TYPE, slot 2 dead. */
+        /* Digital filter page 1 (P4): slot 3 = CUTOFF, slot 1 = the 18 models, slot 5 dead until P5. */
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_DFILT) == 1, "module dfilt");
-        RI_ASSERT(!strcmp(ri_slevi_page_title(&p), "DIGITAL FILTER") && ri_slevi_page_count(&p) == 1u, "title dfilt");
+        RI_ASSERT(!strcmp(ri_slevi_page_title(&p), "DIGITAL FILTER  1/2") && ri_slevi_page_count(&p) == 2u, "title dfilt");
         RI_ASSERT(ri_slevi_enc_live(&p, 2u) && !strcmp(ri_slevi_enc_name(&p, 2u), "CUTOFF"), "enc3 cutoff");
         RI_ASSERT(ri_slevi_ctl_idx(&p, RI_SLEVI_ENC0 + 2u) == RI_SLEVI_CUTOFF, "enc3 sends cutoff");
         RI_ASSERT(ri_slevi_ctl_key(&p, RI_SLEVI_ENC0 + 2u, &key, &kv) == 0, "cutoff rides the registry");
@@ -151,11 +151,11 @@ int main(void) {
         ri_slevi_enc_text(&p, 2u, t, sizeof t);
         RI_ASSERT(!strcmp(t, "127"), "cutoff text %s", t);
         RI_ASSERT(ri_slevi_reset(&p, RI_SLEVI_ENC0 + 2u) == 1 && p.val[RI_SLEVI_CUTOFF] == 96, "enc reset -> target default");
-        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 127) == 1 && p.val[RI_SLEVI_FTYPE] == 3, "type max");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 127) == 1 && p.val[RI_SLEVI_DTYPE] == 17, "type max");
         ri_slevi_enc_text(&p, 0u, t, sizeof t);
-        RI_ASSERT(!strcmp(t, "NOTCH"), "type text %s", t);
-        RI_ASSERT(!ri_slevi_enc_live(&p, 1u) && ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 1u, 99) == 0, "dead slot inert");
-        ri_slevi_enc_text(&p, 1u, t, sizeof t);
+        RI_ASSERT(!strcmp(t, "VOWEL"), "type text %s", t);
+        RI_ASSERT(!ri_slevi_enc_live(&p, 4u) && ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 4u, 99) == 0, "dead slot inert");
+        ri_slevi_enc_text(&p, 4u, t, sizeof t);
         RI_ASSERT(t[0] == 0, "dead slot blank");
         /* OSC 4 page 1: per-oscillator keys 0x0F | op << 5 | param. */
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_OPSEL, 3) == 1, "osc 4");

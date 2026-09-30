@@ -152,6 +152,17 @@ Each phase lands as TDD slices:
 - Drive pre/post; the analog 4-pole with pre-drive and self-oscillation; keytrack centred on C2; Env/LFO/velocity/PolyAT amounts.
 - The VCA module levels.
 - Self-oscillation and NaN/inf laws (see the 2026-09-28 filter NaN record).
+- **Status: done 2026-09-30** (engine, keys, UI, tests):
+  - 18 digital models, own designs and own names (no maker or product names): SVF LP-BP-HP and LP-NO-HP (morph), HP GRIT/MOD/12, BP MOD/12, LP L12/L24 (uncompensated), F12/F24 (compensated), GATE (level follows cutoff), GRIT, MOD, 12, 6, 48, VOWEL (3 formants, 8 own orders; cutoff places the vowel, morph scales formant size).
+  - Primitives: TPT state-variable core; TPT one-pole ladders solved without the unit delay (oscillation threshold independent of cutoff); every loop soft-clipped (bounded, no inf/NaN).
+  - Drive pre/post for the non-morph models; D.Filt level; LFO 1 amount; keytrack ±200 % around C2 (digital default 0 %).
+  - Analog 4-pole: gain-compensated pre-drive (DRIVE key), self-oscillation from ~110/128 at every cutoff, pitch at the cutoff; LFO 2 amount; keytrack default 100 %.
+  - VCA: OSCs, D.Filt, VCA and Patch levels (64 = unity), LFO 3 amplitude amount.
+  - Keys `0x0E38..0x0E44`; the v1 4-way FTYPE is a legacy row mapped onto LP 12 / HP 12 / BP 12 / LP-NO-HP middle; the top-panel DRIVE / MORPH knob is live.
+  - Pages: DIGITAL FILTER 1/2 and 2/2 (vowel order only on VOWEL, drive position only where drive exists), ANALOG FILTER, VCA.
+- **Deferred:** ENV 1/2/3 amounts, velocity > env and VCA initial level need the P5 envelopes; PolyAT amounts need P9 pressure. Their page slots stay dim.
+- **E0 ledger:** LFO amounts ±4 octaves full scale; drive law own soft clip; vowel formants are generic phonetics averages; an old song that set the v1 FTYPE and no model gets the default model (FTYPE lived two days).
+- **Tests:** t131 (filters + VCA, 21 mutants killed); t107 page moves; t60/t77 count moves; sec 18 re-pinned (live DRIVE / MORPH knob).
 
 ### P5: modulation
 

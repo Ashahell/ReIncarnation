@@ -142,9 +142,11 @@ int ri_slevi_set_value(struct RISectLevi *s, uint32_t idx, int v) {
         s->sel = sel;
         return 1;
     }
-    if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_FTYPE || idx == RI_SLEVI_AMODE) {
+    if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_FTYPE || idx == RI_SLEVI_AMODE ||
+        idx == RI_SLEVI_DTYPE || idx == RI_SLEVI_VORDER) {
         /* Plain selectors (selector idiom, like Lane). FTYPE clamps 0..3. */
-        int hi = idx == RI_SLEVI_FTYPE ? 3 : idx == RI_SLEVI_AMODE ? 2 : 63;
+        int hi = idx == RI_SLEVI_FTYPE ? 3 : idx == RI_SLEVI_AMODE ? 2 : idx == RI_SLEVI_DTYPE ? 17
+            : idx == RI_SLEVI_VORDER ? 7 : 63;
         int w = v < 0 ? 0 : v > hi ? hi : v;
         if (s->val[idx] == w)
             return 0;
@@ -283,18 +285,25 @@ static const struct LeviSlot P_ENV[8] = {
     { SLOT_DEAD, "ATTACK" }, { SLOT_DEAD, "DECAY" }, { SLOT_DEAD, "SUSTAIN" }, { SLOT_DEAD, "RELEASE" },
     { SLOT_DEAD, "DELAY" }, { SLOT_DEAD, "HOLD" }, { SLOT_DEAD, "SPEED" }, { SLOT_DEAD, "BPM SYNC" }
 };
-static const struct LeviSlot P_DFILT[8] = {
-    { RI_SLEVI_FTYPE, "TYPE" }, { SLOT_DEAD, "MORPH" }, { RI_SLEVI_CUTOFF, "CUTOFF" }, { RI_SLEVI_RESO, "RESO" },
-    { SLOT_DEAD, "ENV1 AMT" }, { SLOT_DEAD, "VEL>ENV" }, { SLOT_DEAD, "POLYAT" }, { SLOT_DEAD, "KEYTRK" }
+/* Filter and VCA pages (P4, pp. 62-70). Env/velocity/PolyAT amounts and
+ * the VCA initial level wait for the P5 envelopes and P9 pressure. */
+static const struct LeviSlot P_DFILT[2][8] = {
+    { { RI_SLEVI_DTYPE, "TYPE" }, { RI_SLEVI_DMORPH, "DRIVE" }, { RI_SLEVI_CUTOFF, "CUTOFF" },
+      { RI_SLEVI_RESO, "RESO" }, { SLOT_DEAD, "ENV1 AMT" }, { SLOT_DEAD, "VEL>ENV" }, { SLOT_DEAD, "POLYAT" },
+      { RI_SLEVI_DKEYTRK, "KEYTRK" } },
+    { { SLOT_DEAD, "" }, { RI_SLEVI_DPOST, "DRV POS" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" },
+      { RI_SLEVI_VORDER, "VOW ORDER" }, { SLOT_DEAD, "" }, { RI_SLEVI_DLFO1, "LFO1 AMT" },
+      { RI_SLEVI_DLEVEL, "DFILT LVL" } }
 };
 static const struct LeviSlot P_AFILT[8] = {
-    { RI_SLEVI_DRIVE, "PRE-DRV" }, { SLOT_DEAD, "LFO2 AMT" }, { RI_SLEVI_CUTOFF2, "CUTOFF" },
+    { RI_SLEVI_DRIVE, "PRE-DRV" }, { RI_SLEVI_ALFO2, "LFO2 AMT" }, { RI_SLEVI_CUTOFF2, "CUTOFF" },
     { RI_SLEVI_RESO2, "RESO" }, { SLOT_DEAD, "ENV2 AMT" }, { SLOT_DEAD, "VEL>ENV" },
-    { SLOT_DEAD, "POLYAT" }, { SLOT_DEAD, "KEYTRK" }
+    { SLOT_DEAD, "POLYAT" }, { RI_SLEVI_AKEYTRK, "KEYTRK" }
 };
 static const struct LeviSlot P_VCA[8] = {
-    { SLOT_DEAD, "OSCS LVL" }, { SLOT_DEAD, "DFILT LVL" }, { SLOT_DEAD, "VCA LVL" }, { SLOT_DEAD, "PATCH LVL" },
-    { SLOT_DEAD, "LFO3 AMT" }, { SLOT_DEAD, "VEL>ENV" }, { SLOT_DEAD, "POLYAT" }, { SLOT_DEAD, "INIT LVL" }
+    { RI_SLEVI_OSCLVL, "OSCS LVL" }, { RI_SLEVI_DLEVEL, "DFILT LVL" }, { RI_SLEVI_VCALVL, "VCA LVL" },
+    { RI_SLEVI_PATCHLVL, "PATCH LVL" }, { RI_SLEVI_VLFO3, "LFO3 AMT" }, { SLOT_DEAD, "VEL>ENV" },
+    { SLOT_DEAD, "POLYAT" }, { SLOT_DEAD, "INIT LVL" }
 };
 static const struct LeviSlot P_PREFX[8] = {
     { RI_SLEVI_FXPRE, "ON" }, { SLOT_DEAD, "PRESET" }, { SLOT_DEAD, "PARAM 1" }, { SLOT_DEAD, "PARAM 2" },
@@ -357,7 +366,15 @@ static uint32_t module(const struct RISectLevi *s) {
 }
 
 uint32_t ri_slevi_page_count(const struct RISectLevi *s) {
-    return (s && (module(s) == RI_SLEVI_M_OSC || module(s) == RI_SLEVI_M_ALGO)) ? 5u : 1u;
+    if (!s)
+        return 1u;
+    return (module(s) == RI_SLEVI_M_OSC || module(s) == RI_SLEVI_M_ALGO) ? 5u
+        : module(s) == RI_SLEVI_M_DFILT ? 2u : 1u;
+}
+
+static int dtype_morphs(const struct RISectLevi *s) {
+    int t = s->val[RI_SLEVI_DTYPE];
+    return t == (int)RI_LEVI_DF_SVF_LBH || t == (int)RI_LEVI_DF_SVF_LNH || t == (int)RI_LEVI_DF_VOWEL;
 }
 
 static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
@@ -380,7 +397,7 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
     }
     p = m == RI_SLEVI_M_OSC ? P_OSC[s->page < 5u ? s->page : 0u]
         : (m >= RI_SLEVI_M_ENV1 && m < RI_SLEVI_M_ENV1 + 5u) ? P_ENV
-        : m == RI_SLEVI_M_DFILT ? P_DFILT : m == RI_SLEVI_M_AFILT ? P_AFILT
+        : m == RI_SLEVI_M_DFILT ? P_DFILT[s->page == 1u ? 1u : 0u] : m == RI_SLEVI_M_AFILT ? P_AFILT
         : m == RI_SLEVI_M_VCA ? P_VCA : m == RI_SLEVI_M_PREFX ? P_PREFX
         : m == RI_SLEVI_M_DELAY ? P_DELAY : m == RI_SLEVI_M_REVERB ? P_REVERB
         : m == RI_SLEVI_M_POSTFX ? P_POSTFX
@@ -394,7 +411,20 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
                 : s->opv[s->opsel][RI_LEVI_OP_PMODE] == 2u ? "FREQ" : "RATIO";
         if (p[k].idx == SLOT_OP(RI_LEVI_OP_FINE))
             *name = s->opv[s->opsel][RI_LEVI_OP_PMODE] == 0u ? "CENT" : "FINE";
+        if (p[k].idx == (int)RI_SLEVI_DMORPH)      /* p. 62: morph for SVF & vowel */
+            *name = dtype_morphs(s) ? "MORPH" : "DRIVE";
+        if (p[k].idx == (int)RI_SLEVI_CUTOFF && s->val[RI_SLEVI_DTYPE] == (int16_t)RI_LEVI_DF_VOWEL)
+            *name = "VOWEL";
+        if ((p[k].idx == (int)RI_SLEVI_VORDER && s->val[RI_SLEVI_DTYPE] != (int16_t)RI_LEVI_DF_VOWEL) ||
+            (p[k].idx == (int)RI_SLEVI_DPOST && dtype_morphs(s)))
+            *name = "";
     }
+    /* Vowel order shows only on the vowel model, drive position only
+     * where Drive exists (p. 65). */
+    if (p[k].idx == (int)RI_SLEVI_VORDER && s->val[RI_SLEVI_DTYPE] != (int16_t)RI_LEVI_DF_VOWEL)
+        return SLOT_DEAD;
+    if (p[k].idx == (int)RI_SLEVI_DPOST && dtype_morphs(s))
+        return SLOT_DEAD;
     return p[k].idx;
 }
 
@@ -471,10 +501,13 @@ int ri_slevi_ctl_key(const struct RISectLevi *s, uint32_t idx, uint16_t *key, in
 }
 
 int ri_slevi_page_reaches(uint32_t idx) {
+    static const uint8_t DT[2] = { RI_LEVI_DF_LP_12, RI_LEVI_DF_VOWEL };   /* model-dependent slots */
     struct RISectLevi t;
-    uint32_t m, k, pg;
+    uint32_t m, k, pg, d;
     ri_slevi_init(&t);
+    for (d = 0u; d < 2u; d++)
     for (m = 0u; m < RI_SLEVI_NMOD; m++) {
+        t.val[RI_SLEVI_DTYPE] = (int16_t)DT[d];
         t.val[RI_SLEVI_MODULE] = (int16_t)m;
         for (pg = 0u; pg < 5u; pg++) {
             t.page = (uint8_t)pg;
@@ -493,7 +526,7 @@ int ri_slevi_page_reaches(uint32_t idx) {
 int ri_slevi_legacy(uint32_t idx) {
     /* v1 two-algorithm morph (ALGOB/MORPH) gives way to the P3 slot list. */
     return idx == RI_SLEVI_RATIO || idx == RI_SLEVI_OPMODE || (idx >= RI_SLEVI_ATTACK && idx <= RI_SLEVI_LOOP) ||
-        idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_MORPH;
+        idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_MORPH || idx == RI_SLEVI_FTYPE;
 }
 
 int ri_slevi_enc_live(const struct RISectLevi *s, uint32_t k) {
@@ -527,6 +560,8 @@ const char *ri_slevi_page_title(const struct RISectLevi *s) {
         "CUSTOM TGT 2  4/5", "CUSTOM TGT 3  5/5" };
     if (m == RI_SLEVI_M_ALGO)
         return ALGO_PG[s->page < 5u ? s->page : 0u];
+    if (m == RI_SLEVI_M_DFILT)
+        return s->page == 1u ? "DIGITAL FILTER  2/2" : "DIGITAL FILTER  1/2";
     return m == RI_SLEVI_M_OSC ? OSC_PG[s->opsel & 7u][s->page < 5u ? s->page : 0u] : T[m];
 }
 
@@ -725,6 +760,36 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
     }
     if (t == (int)RI_SLEVI_ALGO || t == (int)RI_SLEVI_ALGOB) {
         put_num(buf, cap, s->val[t] + 1);
+        return;
+    }
+    if (t == (int)RI_SLEVI_DTYPE) {
+        put_str(buf, cap, ri_levi_df_name((uint32_t)s->val[t]));
+        return;
+    }
+    if (t == (int)RI_SLEVI_DPOST) {
+        put_str(buf, cap, s->val[t] ? "POST" : "PRE");
+        return;
+    }
+    if (t == (int)RI_SLEVI_VORDER) {                 /* the engine's own orders */
+        static const char *const VO[8] = { "AEIOU", "UOIEA", "AOUEI", "IEAOU", "EIAUO", "OAEUI", "UIOAE",
+            "EUAIO" };
+        put_str(buf, cap, VO[s->val[t] & 7]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_DKEYTRK || t == (int)RI_SLEVI_AKEYTRK) {
+        put_num(buf, cap, (s->val[t] - 64) * 100 / 32);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_DLFO1 || t == (int)RI_SLEVI_ALFO2 || t == (int)RI_SLEVI_VLFO3) {
+        if (s->val[t] > 64)
+            put_str(buf, cap, "+");
+        cat_num(buf, cap, s->val[t] - 64);
+        return;
+    }
+    if (t == (int)RI_SLEVI_DLEVEL || t == (int)RI_SLEVI_OSCLVL || t == (int)RI_SLEVI_VCALVL ||
+        t == (int)RI_SLEVI_PATCHLVL) {
+        put_num(buf, cap, s->val[t] * 128 / 127);   /* 64 = unity (p. 68) */
         return;
     }
     if (t == (int)RI_SLEVI_AMODE) {

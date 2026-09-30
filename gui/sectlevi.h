@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 97u
+#define RI_SLEVI_NCTL 110u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -66,6 +66,22 @@
 #define RI_SLEVI_SOLO 94u         /* 0 off, n = osc n */
 #define RI_SLEVI_MUTELO 95u       /* osc 1-7 mute bits */
 #define RI_SLEVI_MUTEHI 96u       /* osc 8 mute */
+/* Filters + VCA (fidelity P4, pp. 62-70), keys 0x0E38..0x0E44. FTYPE
+ * (the v1 4-way type) becomes a legacy row; DRIVE is the analog
+ * pre-drive. */
+#define RI_SLEVI_DTYPE 97u        /* digital model 0..17 */
+#define RI_SLEVI_DMORPH 98u       /* morph (SVF, vowel) / drive (others) */
+#define RI_SLEVI_DPOST 99u        /* drive position: 0 pre, 1 post */
+#define RI_SLEVI_VORDER 100u      /* vowel order 0..7 */
+#define RI_SLEVI_DKEYTRK 101u
+#define RI_SLEVI_DLFO1 102u
+#define RI_SLEVI_DLEVEL 103u
+#define RI_SLEVI_AKEYTRK 104u
+#define RI_SLEVI_ALFO2 105u
+#define RI_SLEVI_OSCLVL 106u
+#define RI_SLEVI_VCALVL 107u
+#define RI_SLEVI_PATCHLVL 108u
+#define RI_SLEVI_VLFO3 109u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */
@@ -150,7 +166,8 @@ int ri_slevi_enc_live(const struct RISectLevi *s, uint32_t k);
 int ri_slevi_page_reaches(uint32_t idx);
 /* 1 for the v1 section-wide rows superseded by the per-oscillator
  * params (fidelity P2): global ratio, packed op mode, all-op envelope,
- * and the v1 two-algorithm morph superseded by the slot list (P3).
+ * the v1 two-algorithm morph superseded by the slot list (P3), and the
+ * v1 4-way filter type superseded by the 18 models (P4).
  * They stay registered and automatable (old songs) with no panel item. */
 int ri_slevi_legacy(uint32_t idx);
 /* Page title and slot name (static strings, never NULL). */

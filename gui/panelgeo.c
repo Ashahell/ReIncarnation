@@ -189,6 +189,7 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
     { SL(44), RI_GEO_KNOB, 0, 1539, 64, 30, 38 },  /* ANALOG FILTER: CUTOFF */
     { SL(45), RI_GEO_KNOB, 0, 1595, 64, 30, 38 },  /* RESONANCE */
     { SL(43), RI_GEO_KNOB, 0, 1650, 64, 30, 38 },  /* PRE-DRIVE */
+    { SL(98), RI_GEO_KNOB, 0, 1407, 64, 30, 38 },  /* DRIVE / MORPH (P4) */
     { SL(69), RI_GEO_KNOB, 0, 715, 64, 44, 44 },  /* MASTER CONTROL encoder 1 */
     { SL(70), RI_GEO_KNOB, 0, 780, 64, 44, 44 },  /* MASTER CONTROL encoder 2 */
     { SL(71), RI_GEO_KNOB, 0, 844, 64, 44, 44 },  /* MASTER CONTROL encoder 3 */

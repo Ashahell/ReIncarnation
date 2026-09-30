@@ -45,12 +45,34 @@
 #define RI_LEVI_PDPULSE 6u        /* sine morphed to narrow pulse by |m| */
 #define RI_LEVI_NMODES 7u
 
-/* Filter types (own subset: SVF taps + driven 24 dB second stage). */
+/* v1 filter types (legacy FTYPE key; mapped onto the P4 models). */
 #define RI_LEVI_FTYPE_LP 0u
 #define RI_LEVI_FTYPE_HP 1u
 #define RI_LEVI_FTYPE_BP 2u
 #define RI_LEVI_FTYPE_NOTCH 3u
 #define RI_LEVI_NFTYPES 4u
+/* Digital filter models (fidelity P4, manual p. 62; own designs and
+ * own names): two morphing state-variable filters, 3 HP, 2 BP, 10 LP,
+ * a formant (vowel) filter. */
+#define RI_LEVI_DF_SVF_LBH 0u     /* morph LP > BP > HP */
+#define RI_LEVI_DF_SVF_LNH 1u     /* morph LP > notch > HP */
+#define RI_LEVI_DF_HP_GRIT 2u
+#define RI_LEVI_DF_HP_MOD 3u
+#define RI_LEVI_DF_HP_12 4u
+#define RI_LEVI_DF_BP_MOD 5u
+#define RI_LEVI_DF_BP_12 6u
+#define RI_LEVI_DF_LP_L12 7u      /* ladder, uncompensated */
+#define RI_LEVI_DF_LP_L24 8u
+#define RI_LEVI_DF_LP_F12 9u      /* ladder, bass-compensated */
+#define RI_LEVI_DF_LP_F24 10u
+#define RI_LEVI_DF_LP_GATE 11u
+#define RI_LEVI_DF_LP_GRIT 12u
+#define RI_LEVI_DF_LP_MOD 13u
+#define RI_LEVI_DF_LP_12 14u
+#define RI_LEVI_DF_LP_6 15u
+#define RI_LEVI_DF_LP_48 16u
+#define RI_LEVI_DF_VOWEL 17u
+#define RI_LEVI_NDF 18u
 
 /* Voice params (set_param ids). */
 #define RI_LEVI_CUTOFF 0u /* Hz, 40..18000 */
@@ -262,11 +284,20 @@ struct RILeviVoice {
     float reso2;  /* stage-2 reso 0..1 */
     uint8_t ftype;        /* RI_LEVI_FTYPE_* */
     uint8_t padlp[3];
-    float lp1, lp2; /* stage-1 SVF state */
-    float lp3, lp4; /* stage-2 LP state (24 dB cascade) */
+    float df[12];   /* digital filter state (model-dependent) */
+    float af[5];    /* analog ladder: 4 stages + last output */
     struct RILeviLFO lfo[RI_LEVI_NLFO]; /* per-voice LFOs (4d) */
     float bias_envl;  /* Osc Env Level bias, -1..1 (device knob, P2) */
     float bias_t[3];  /* attack/decay/release time scales (1 = none) */
+    /* Filters + VCA (fidelity P4, manual pp. 62-70). */
+    uint8_t dtype;    /* RI_LEVI_DF_* */
+    uint8_t dmorph;   /* morph (SVF, vowel) or drive (others), 0..127 */
+    uint8_t dpost;    /* drive after the filter */
+    uint8_t vorder;   /* vowel order 0..7 */
+    float dkt, akt;   /* keytrack, octaves per octave around C2 (-2..2) */
+    float dktm, aktm; /* keytrack cutoff multipliers for the held note */
+    float dlfo, alfo, vlfo;  /* LFO 1/2/3 amounts, -1..1 */
+    float dlevel, osclvl, vcalvl, patchlvl; /* stage gains, 1 = unity */
 };
 
 /* Osc Env Level & Bias (manual p. 54): device-wide offsets over every
@@ -284,6 +315,25 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_SOLO 0x0E35u
 #define RI_CTL_LEVI_MUTELO 0x0E36u
 #define RI_CTL_LEVI_MUTEHI 0x0E37u
+/* Filters + VCA (fidelity P4, manual pp. 62-70). 7-bit values; amounts
+ * and keytrack 64 = 0 (keytrack 32 per 100 %), levels 64 = unity. The
+ * v1 keys stay: CUTOFF/RESO digital, DRIVE = analog pre-drive,
+ * CUTOFF2/RESO2 analog, FTYPE legacy (maps onto a model). */
+#define RI_CTL_LEVI_DTYPE 0x0E38u
+#define RI_CTL_LEVI_DMORPH 0x0E39u
+#define RI_CTL_LEVI_DPOST 0x0E3Au
+#define RI_CTL_LEVI_VORDER 0x0E3Bu
+#define RI_CTL_LEVI_DKEYTRK 0x0E3Cu
+#define RI_CTL_LEVI_DLFO1 0x0E3Du
+#define RI_CTL_LEVI_DLEVEL 0x0E3Eu
+#define RI_CTL_LEVI_AKEYTRK 0x0E3Fu
+#define RI_CTL_LEVI_ALFO2 0x0E40u
+#define RI_CTL_LEVI_OSCLVL 0x0E41u
+#define RI_CTL_LEVI_VCALVL 0x0E42u
+#define RI_CTL_LEVI_PATCHLVL 0x0E43u
+#define RI_CTL_LEVI_VLFO3 0x0E44u
+/* Digital model name (own, upper case, never NULL). */
+const char *ri_levi_df_name(uint32_t t);
 
 struct RILeviSet {
     struct RILeviVoice v[RI_LEVI_NVOICES];
