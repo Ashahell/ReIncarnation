@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 113u
+#define RI_SLEVI_NCTL 129u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -87,6 +87,9 @@
 #define RI_SLEVI_DENV1 110u
 #define RI_SLEVI_AENV2 111u
 #define RI_SLEVI_VINIT 112u
+/* Macros (fidelity P5b): knobs 113..120, buttons 121..128. */
+#define RI_SLEVI_MKNOB0 113u
+#define RI_SLEVI_MBTN0 121u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */
@@ -117,7 +120,8 @@
 #define RI_SLEVI_M_SEQ 32u
 #define RI_SLEVI_M_MATRIX 33u
 #define RI_SLEVI_M_VOICE 34u
-#define RI_SLEVI_NMOD 35u
+#define RI_SLEVI_M_MACRO 35u      /* MACRO ASSIGN (P5b) */
+#define RI_SLEVI_NMOD 36u
 #define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
 #define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */
 #define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */
@@ -138,6 +142,8 @@ struct RISectLevi {
     uint8_t opv[RI_LEVI_NOPS][RI_LEVI_OP_NPARAM]; /* per-op UI values (P2) */
     uint8_t mev[RI_LEVI_NMENV][RI_LEVI_OP_NPARAM];   /* ENV 1-5 UI values (P5) */
     uint8_t lfv[RI_LEVI_NLFO][16];                   /* LFO 1-5 UI values (P5) */
+    uint8_t mxv[RI_LEVI_MX_NSLOTS][4];               /* matrix routes: source, module, param, depth (P5b) */
+    uint8_t mrv[RI_LEVI_NMACRO][RI_LEVI_MACRO_NR][4]; /* macro routes: module, param, depth, button value */
     struct RIPattern pat;      /* chord kind, class Levi */
 };
 

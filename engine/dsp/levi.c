@@ -60,7 +60,7 @@ static float seg_shape(float x, int c, int rising) {
 /* One envelope sample; returns 1 while sounding, 0 at rest end.
  * tscale: device time bias for this segment's family (1 = none). */
 static int env_tick_b(struct RILeviEnv *e, float sr, const float *tscale) {
-    float dt, span, from, to;
+    float dt, span, from, to, seff;
     int c = 0, rising = 0;
     if (!e || sr <= 0.0f)
         return 0;
@@ -79,6 +79,10 @@ static int env_tick_b(struct RILeviEnv *e, float sr, const float *tscale) {
             e->stage_t = 0.0f;
             e->seg_from = e->value;
         } else {
+            if (e->susmod != 0.0f) {          /* matrix-moved sustain level (P5b) */
+                seff = e->sustain + e->susmod;
+                e->value = seff < 0.0f ? 0.0f : seff > 1.0f ? 1.0f : seff;
+            }
             return 1;
         }
     }
@@ -92,6 +96,8 @@ static int env_tick_b(struct RILeviEnv *e, float sr, const float *tscale) {
             span *= tscale[1];
         else if (e->stage == RI_LEVI_SEG_R)
             span *= tscale[2];
+        else if (e->stage == RI_LEVI_SEG_H)
+            span *= tscale[3];
     }
     from = e->value;
     switch (e->stage) {
@@ -107,13 +113,20 @@ static int env_tick_b(struct RILeviEnv *e, float sr, const float *tscale) {
         to = 1.0f;
         break;
     case RI_LEVI_SEG_D2:
-        to = e->sustain;
+        seff = e->sustain + e->susmod;
+        to = seff < 0.0f ? 0.0f : seff > 1.0f ? 1.0f : seff;
         c = e->curve[1];
         break;
     default: /* RI_LEVI_SEG_R */
         to = 0.0f;
         c = e->curve[2];
         break;
+    }
+    if ((e->cmod[0] | e->cmod[1] | e->cmod[2]) &&        /* matrix-moved curves (P5b) */
+        (e->stage == RI_LEVI_SEG_A || e->stage == RI_LEVI_SEG_D2 || e->stage == RI_LEVI_SEG_R)) {
+        int k = e->stage == RI_LEVI_SEG_A ? 0 : e->stage == RI_LEVI_SEG_D2 ? 1 : 2;
+        c += e->cmod[k];
+        c = c < -64 ? -64 : c > 63 ? 63 : c;
     }
     if (span <= 0.0f || e->stage_t >= span) {
         uint8_t done = e->stage;
@@ -434,6 +447,68 @@ static int menv_has(const struct RILeviVoice *v, uint32_t e, uint32_t src) {
     return 0;
 }
 
+int levi_set_mx_ui(struct RILeviSet *s, uint32_t slot, uint32_t field, uint8_t val) {
+    struct RILeviMxSlot *sl;
+    uint32_t src;
+    int depth;
+    if (!s || slot >= RI_LEVI_MX_NSLOTS || field > 3u)
+        return 2;
+    sl = &s->mx.slot[slot];
+    switch (field) {
+    case 0u:
+        src = ri_levi_ms_by_ui(val);
+        sl->pad[0] = (uint8_t)(src < RI_LEVI_MS_N ? val : 0u);  /* UI truth: 0 = no source */
+        if (src < RI_LEVI_MS_N)
+            sl->src = (uint8_t)src;
+        break;
+    case 1u:
+        sl->dmod = (uint8_t)(val < RI_LEVI_DM_N ? val : RI_LEVI_DM_NONE);
+        if (sl->dpar >= ri_levi_dm_nparam(sl->dmod))
+            sl->dpar = 0u;
+        break;
+    case 2u: {
+        uint32_t np = ri_levi_dm_nparam(sl->dmod);
+        sl->dpar = (uint8_t)(np && val < np ? val : 0u);
+        break;
+    }
+    default:
+        depth = ((int)(val > 127u ? 127u : val) - 64) * 100 / 63;
+        sl->depth = (int8_t)(depth < -100 ? -100 : depth);
+        break;
+    }
+    sl->on = sl->pad[0] != 0u && sl->dmod != RI_LEVI_DM_NONE;
+    sl->dst = 0xFFu;                            /* module routes leave the v1 table */
+    return 0;
+}
+
+int levi_set_mr_ui(struct RILeviSet *s, uint32_t macro, uint32_t route, uint32_t field, uint8_t val) {
+    struct RILeviMacroRoute *r;
+    int depth;
+    if (!s || macro >= RI_LEVI_NMACRO || route >= RI_LEVI_MACRO_NR || field > 3u)
+        return 2;
+    r = &s->mx.mroute[macro][route];
+    switch (field) {
+    case 0u:
+        r->dmod = (uint8_t)(val < RI_LEVI_DM_N ? val : RI_LEVI_DM_NONE);
+        if (r->dpar >= ri_levi_dm_nparam(r->dmod))
+            r->dpar = 0u;
+        break;
+    case 1u: {
+        uint32_t np = ri_levi_dm_nparam(r->dmod);
+        r->dpar = (uint8_t)(np && val < np ? val : 0u);
+        break;
+    }
+    case 2u:
+        depth = ((int)(val > 127u ? 127u : val) - 64) * 100 / 63;
+        r->depth = (int8_t)(depth < -100 ? -100 : depth);
+        break;
+    default:
+        r->bval = val > 127u ? 127u : val;
+        break;
+    }
+    return 0;
+}
+
 int levi_set_menv_ui(struct RILeviSet *s, uint32_t voice, uint32_t env, uint32_t param, uint8_t val) {
     struct RILeviVoice *v;
     int lo, hi;
@@ -459,6 +534,10 @@ int levi_set_menv_ui(struct RILeviSet *s, uint32_t voice, uint32_t env, uint32_t
 float levi_menv_value(const struct RILeviVoice *v, uint32_t env) {
     if (!v || env >= RI_LEVI_NMENV)
         return 0.0f;
+    if (v->melmod[env] != 0.0f) {
+        float l = v->melevel[env] + v->melmod[env];
+        return env_out(&v->menv[env]) * (l < 0.0f ? 0.0f : l > 1.0f ? 1.0f : l);
+    }
     return env_out(&v->menv[env]) * v->melevel[env];
 }
 
@@ -810,7 +889,8 @@ void levi_init_set(struct RILeviSet *s) {
                 v->st[b][o].env.loopend = RI_LEVI_SEG_D2;
                 v->st[b][o].env.freerun = 0u;
                 v->st[b][o].env.relpend = 0u;
-                v->st[b][o].env.pad2[0] = v->st[b][o].env.pad2[1] = v->st[b][o].env.pad2[2] = 0u;
+                v->st[b][o].env.cmod[0] = v->st[b][o].env.cmod[1] = v->st[b][o].env.cmod[2] = 0;
+                v->st[b][o].env.susmod = 0.0f;
                 v->st[b][o].env.seg_from = 0.0f;
                 v->st[b][o].last = 0.0f;
                 v->st[b][o].amp = 0.0f;
@@ -818,7 +898,12 @@ void levi_init_set(struct RILeviSet *s) {
         }
         voice_preset(v, RI_LEVI_ALGO_DUO);
         v->bias_envl = 0.0f;
-        v->bias_t[0] = v->bias_t[1] = v->bias_t[2] = 1.0f;
+        v->bias_t[0] = v->bias_t[1] = v->bias_t[2] = v->bias_t[3] = 1.0f;
+        memset(v->opm, 0, sizeof v->opm);
+        memset(v->mem, 0, sizeof v->mem);
+        v->opm_on = v->mem_on = 0u;
+        memset(v->melmod, 0, sizeof v->melmod);
+        v->padm2[0] = v->padm2[1] = 0u;
         v->cutoff = RI_LEVI_DEF_CUTOFF;
         v->reso = RI_LEVI_DEF_RESO;
         v->level = 1.0f;
@@ -921,8 +1006,13 @@ static float xrnd(uint32_t *r) {                /* -1 .. 1 */
     return (float)(xrng(r) >> 8) * (2.0f / 16777216.0f) - 1.0f;
 }
 
-static float lfo_step_value(const struct RILeviLFO *l, uint32_t k) {
-    uint32_t n = l->steps < 2u ? 2u : l->steps;
+/* Steps in use: the Steps param plus its matrix offset (P5b), 2..64. */
+static uint32_t lfo_nsteps(const struct RILeviLFO *l) {
+    int n = (int)l->steps + (l->stmod != 0.0f ? (int)(l->stmod * 62.0f) : 0);
+    return (uint32_t)(n < 2 ? 2 : n > 64 ? 64 : n);
+}
+
+static float lfo_step_value(uint32_t n, uint32_t k) {
     return -1.0f + 2.0f * (float)(k % n) / (float)(n - 1u);
 }
 
@@ -942,9 +1032,9 @@ static float lfo_wave(struct RILeviLFO *l, float p) {
         return l->from + (l->held - l->from) * x;
     }
     case RI_LEVI_LW_STEP: {
-        uint32_t n = l->steps < 2u ? 2u : l->steps;
+        uint32_t n = lfo_nsteps(l);
         uint32_t k = l->oneshot == 2u ? (l->stepk == 0xFFu ? 0u : l->stepk) : (uint32_t)(p * (float)n);
-        return lfo_step_value(l, k >= n ? n - 1u : k);
+        return lfo_step_value(n, k >= n ? n - 1u : k);
     }
     default: return ri_sin(2.0f * 3.14159265f * p);
     }
@@ -954,8 +1044,11 @@ static float lfo_wave(struct RILeviLFO *l, float p) {
  * the v1 value exactly). sy: smoother state. */
 static float lfo_post(const struct RILeviLFO *l, float v, float *sy) {
     static const uint8_t Q[16] = { 0, 2, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32, 48, 64, 96, 128 };
-    if (l->level != 1.0f)
-        v *= l->level;
+    {
+        float lv = l->level + l->lmod;                  /* level + its matrix offset */
+        if (lv != 1.0f)
+            v *= lv < 0.0f ? 0.0f : lv > 1.0f ? 1.0f : lv;
+    }
     if (l->delay > 0.0f || l->fade > 0.0f) {
         float g = l->t < l->delay ? 0.0f : l->fade > 0.0f ? (l->t - l->delay) / l->fade : 1.0f;
         v *= g > 1.0f ? 1.0f : g;
@@ -964,9 +1057,16 @@ static float lfo_post(const struct RILeviLFO *l, float v, float *sy) {
         float q = (float)Q[l->quant & 15u] * 0.5f;
         v = (float)(int)(v * q + (v < 0.0f ? -0.5f : 0.5f)) / q;
     }
-    if (l->smooth > 0.0f && l->oneshot != 2u) {
-        *sy += (v - *sy) * (1.0f - l->smooth);
-        v = *sy;
+    {
+        float sm = l->smooth;
+        if (l->smod != 0.0f) {                          /* matrix-moved smooth (P5b) */
+            float u = (float)l->ui[RI_LEVI_LP_SMOOTH] / 127.0f + l->smod;
+            sm = u <= 0.0f ? 0.0f : 1.0f - ri_pow2(-12.0f + 11.0f * (1.0f - (u > 1.0f ? 1.0f : u)));
+        }
+        if (sm > 0.0f && l->oneshot != 2u) {
+            *sy += (v - *sy) * (1.0f - sm);
+            v = *sy;
+        }
     }
     return v;
 }
@@ -977,7 +1077,7 @@ static void lfo_advance(struct RILeviLFO *l, float sr) {
     l->wrapped = 0u;
     if (l->oneshot == 2u || l->done)
         return;
-    l->phase += l->rate / sr;
+    l->phase += l->rate * l->rmul / sr;
     if (l->phase >= 1.0f) {
         l->phase -= (float)(int)l->phase;
         l->wrapped = 1u;
@@ -1012,7 +1112,7 @@ static void lfo_trigger(struct RILeviLFO *l) {
     l->from = l->held;
     l->held = xrnd(&l->rng);
     if (l->oneshot == 2u)                         /* the first note plays step 1 */
-        l->stepk = l->stepk == 0xFFu ? 0u : (uint8_t)((l->stepk + 1u) % (l->steps < 2u ? 2u : l->steps));
+        l->stepk = l->stepk == 0xFFu ? 0u : (uint8_t)((l->stepk + 1u) % lfo_nsteps(l));
 }
 
 static void lfo_apply(struct RILeviLFO *l, uint32_t p) {
@@ -1046,6 +1146,7 @@ static void lfo_init(struct RILeviLFO *l, uint32_t seed) {
     for (p = 0u; p < RI_LEVI_LP_N; p++)
         lfo_apply(l, p);
     l->rate = ri_levi_lfo_rate(64u);              /* the v1 rate exactly */
+    l->rmul = 1.0f;
     l->rng = 0x9E3779B9u ^ (seed * 2654435761u);
 }
 
@@ -1628,6 +1729,18 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
             s->v[voice].aenv = a;
         return 0;
     }
+    case (RI_CTL_LEVI_MKNOB0 & 0xFFu): case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 1u:
+    case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 2u: case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 3u:
+    case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 4u: case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 5u:
+    case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 6u: case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 7u:
+        s->mx.mknob[id - (RI_CTL_LEVI_MKNOB0 & 0xFFu)] = val > 127u ? 127u : val;
+        return 0;
+    case (RI_CTL_LEVI_MBTN0 & 0xFFu): case (RI_CTL_LEVI_MBTN0 & 0xFFu) + 1u:
+    case (RI_CTL_LEVI_MBTN0 & 0xFFu) + 2u: case (RI_CTL_LEVI_MBTN0 & 0xFFu) + 3u:
+    case (RI_CTL_LEVI_MBTN0 & 0xFFu) + 4u: case (RI_CTL_LEVI_MBTN0 & 0xFFu) + 5u:
+    case (RI_CTL_LEVI_MBTN0 & 0xFFu) + 6u: case (RI_CTL_LEVI_MBTN0 & 0xFFu) + 7u:
+        s->mx.mbtn[id - (RI_CTL_LEVI_MBTN0 & 0xFFu)] = val ? 1u : 0u;
+        return 0;
     case (RI_CTL_LEVI_VINIT & 0xFFu):
         s->v[voice].vinit = (float)(val > 127u ? 127u : val) / 127.0f;
         return 0;
@@ -1684,13 +1797,26 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
         uint32_t i = ord[k];
         struct RILeviOp *p = &v->op[i];
         struct RILeviOpState *o = &v->st[bank][i];
-        float fm, pm, ph, osc, amp;
+        float fm, pm, ph, osc, amp, fq, fbe;
+        const float *m;
+        uint32_t wave;
         int on, warped = 0;
         if (i >= RI_LEVI_NOPS || !live[i]) {
             opout[k & (RI_LEVI_NOPS - 1u)] = 0.0f;
             continue;
         }
-        on = env_tick_b(&o->env, sr, v->bias_t);
+        m = v->opm_on ? v->opm[i] : 0;                 /* matrix / macro offsets (P5b) */
+        if (m) {
+            float tsc[4];
+            tsc[0] = v->bias_t[0] * (m[RI_LEVI_DO_ATTACK] != 0.0f ? ri_pow2(8.0f * m[RI_LEVI_DO_ATTACK]) : 1.0f);
+            tsc[1] = v->bias_t[1] * (m[RI_LEVI_DO_DECAY] != 0.0f ? ri_pow2(8.0f * m[RI_LEVI_DO_DECAY]) : 1.0f);
+            tsc[2] = v->bias_t[2] * (m[RI_LEVI_DO_RELEASE] != 0.0f ? ri_pow2(8.0f * m[RI_LEVI_DO_RELEASE]) : 1.0f);
+            tsc[3] = v->bias_t[3] * (m[RI_LEVI_DO_HOLD] != 0.0f ? ri_pow2(8.0f * m[RI_LEVI_DO_HOLD]) : 1.0f);
+            o->env.susmod = m[RI_LEVI_DO_SUSTAIN];
+            on = env_tick_b(&o->env, sr, tsc);
+        } else {
+            on = env_tick_b(&o->env, sr, v->bias_t);
+        }
         *any_on |= on;
         if (!on) {
             opout[i] = 0.0f;
@@ -1711,7 +1837,17 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
                 else
                     warped = 1;
             }
-        o->phase += (o->freq + o->freq * (RI_LEVI_MOD_DEPTH * fm)) / sr;
+        fq = o->freq;
+        if (m) {
+            /* Pitch +/-24 semitones full scale; ratio (+/-8 octaves) and
+             * fine (+/-50 cents) act in ratio mode only (p. 127 note 1). */
+            float semi = 24.0f * m[RI_LEVI_DO_PITCH];
+            if (p->pmode == 1u)
+                semi += 96.0f * m[RI_LEVI_DO_RATIO] + 0.5f * m[RI_LEVI_DO_FINE];
+            if (semi != 0.0f)
+                fq *= ri_pow2(semi / 12.0f);
+        }
+        o->phase += (fq + fq * (RI_LEVI_MOD_DEPTH * fm)) / sr;
         if (o->phase >= 1.0f)
             o->phase -= 1.0f;
         if (o->phase < 0.0f)
@@ -1719,8 +1855,15 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
         ph = o->phase;
         if (pm != 0.0f)
             ph = frac1(ph + RI_LEVI_MOD_DEPTH * pm * 0.1591549f);
-        if (p->fb > 0.0f && (p->mode == RI_LEVI_FM || p->mode == RI_LEVI_PM))
-            ph = frac1(ph + p->fb * 1.2f * o->last);   /* self feedback (FM/PM only) */
+        if (m && m[RI_LEVI_DO_PHASE] != 0.0f)
+            ph = frac1(ph + m[RI_LEVI_DO_PHASE] + 1.0f);
+        fbe = p->fb;
+        if (m && m[RI_LEVI_DO_FB] != 0.0f) {
+            fbe += m[RI_LEVI_DO_FB];
+            fbe = fbe < 0.0f ? 0.0f : fbe > 1.0f ? 1.0f : fbe;
+        }
+        if (fbe > 0.0f && (p->mode == RI_LEVI_FM || p->mode == RI_LEVI_PM))
+            ph = frac1(ph + fbe * 1.2f * o->last);     /* self feedback (FM/PM only) */
         if (warped)
             for (j = 0u; j < RI_LEVI_NOPS; j++)
                 if (((fd[j] >> i) & 1u) && v->op[j].mode > RI_LEVI_PM && o->freq > 0.0f) {
@@ -1728,10 +1871,18 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
                     n = n < 0.125f ? 0.125f : n > 64.0f ? 64.0f : n;
                     ph = mod_warp(v->op[j].mode, ph, n, v->st[bank][j].amp);
                 }
-        osc = ri_levi_wave(p->wave, ph, o->freq / sr);
+        wave = p->wave;
+        if (m && m[RI_LEVI_DO_WAVE] != 0.0f) {
+            int w = (int)p->wave + (int)(m[RI_LEVI_DO_WAVE] * 127.0f);
+            wave = (uint32_t)(w < 0 ? 0 : w > 127 ? 127 : w);
+        }
+        osc = ri_levi_wave(wave, ph, fq / sr);
         if (p->invert)
             osc = -osc;
-        amp = p->init + (p->envl + v->bias_envl) * env_out(&o->env);
+        if (m)
+            amp = p->init + m[RI_LEVI_DO_INIT] + (p->envl + 2.0f * m[RI_LEVI_DO_ENVL] + v->bias_envl) * env_out(&o->env);
+        else
+            amp = p->init + (p->envl + v->bias_envl) * env_out(&o->env);
         if (amp < 0.0f)
             amp = 0.0f;
         if (amp > 1.0f)
@@ -1748,33 +1899,144 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
     return mix;
 }
 
+/* Matrix + macro evaluation for one voice sample (fidelity P5b): builds
+ * the source vector (previous-sample oscillator contours, this sample's
+ * LFOs and envelopes, keytrack; performance sources read 0 until their
+ * data arrives), evaluates, and folds each contribution into the
+ * effective values. Own laws: a contribution x (-1..1 full scale) moves
+ * a parameter by x times its span (cutoffs 8.5 octaves, levels as a
+ * 1 + x factor, times 2^(8x)). */
+static float clampf(float x, float lo, float hi) {
+    return x < lo ? lo : x > hi ? hi : x;
+}
+
+static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx, const float *lfo5, float *ecut,
+    float *ereso, float *edm, float *edenv, float *edlfo, float *edlevel, float *eacut, float *eareso, float *edrive,
+    float *eaenv, float *ealfo, float *evlevel, float *evlfo, float *eoplevel, float *emorph) {
+    float src[RI_LEVI_MS_N];
+    struct RILeviModOut out[RI_LEVI_MODOUT_MAX];
+    uint32_t n, i, o, touch_op = 0u, touch_me = 0u;
+    for (i = 0u; i < RI_LEVI_MS_N; i++)
+        src[i] = 0.0f;
+    for (o = 0u; o < RI_LEVI_NOPS; o++)
+        src[RI_LEVI_MS_OPENV0 + o] = v->st[0][o].env.value;
+    for (o = 0u; o < RI_LEVI_NLFO; o++) {
+        src[RI_LEVI_MS_LFO0 + o] = lfo5[o];
+        src[RI_LEVI_MS_LFOP0 + o] = 0.5f * (lfo5[o] + 1.0f);
+        v->lfo[o].rmul = 1.0f;
+        v->lfo[o].lmod = v->lfo[o].smod = v->lfo[o].stmod = 0.0f;
+    }
+    for (o = 0u; o < RI_LEVI_NMENV; o++)
+        src[RI_LEVI_MS_ENV0 + o] = levi_menv_value(v, o);
+    src[RI_LEVI_MS_NOTE] = ((float)(v->note > 127u ? 127u : v->note) - 60.0f) / 60.0f;
+    n = ri_levi_matrix_eval2(mx, src, out);
+    if (v->opm_on) {
+        memset(v->opm, 0, sizeof v->opm);
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            v->st[0][o].env.susmod = v->st[1][o].env.susmod = 0.0f;
+    }
+    if (v->mem_on) {
+        memset(v->mem, 0, sizeof v->mem);
+        for (o = 0u; o < RI_LEVI_NMENV; o++) {
+            v->menv[o].susmod = 0.0f;
+            v->menv[o].cmod[0] = v->menv[o].cmod[1] = v->menv[o].cmod[2] = 0;
+        }
+    }
+    for (i = 0u; i < n; i++) {
+        uint32_t dm = out[i].dmod, dp = out[i].dpar;
+        float x = out[i].x;
+        if (dm >= RI_LEVI_DM_OSC1 && dm <= RI_LEVI_DM_MODS) {
+            for (o = 0u; o < RI_LEVI_NOPS; o++) {
+                int carrier = v->feeds[o] == 0u;
+                if ((dm <= RI_LEVI_DM_OSC1 + 7u && o != dm - RI_LEVI_DM_OSC1) ||
+                    (dm == RI_LEVI_DM_CARR && !carrier) || (dm == RI_LEVI_DM_MODS && carrier))
+                    continue;
+                v->opm[o][dp] += x;
+            }
+            touch_op = 1u;
+        } else if (dm >= RI_LEVI_DM_ENV1 && dm < RI_LEVI_DM_ENV1 + RI_LEVI_NMENV) {
+            v->mem[dm - RI_LEVI_DM_ENV1][dp] += x;
+            touch_me = 1u;
+        } else if (dm >= RI_LEVI_DM_LFO1 && dm < RI_LEVI_DM_LFO1 + RI_LEVI_NLFO) {
+            struct RILeviLFO *l = &v->lfo[dm - RI_LEVI_DM_LFO1];
+            if (dp == 0u)
+                l->rmul *= ri_pow2(4.0f * x);            /* rate +/-4 octaves */
+            else if (dp == 1u)
+                l->lmod += x;
+            else if (dp == 2u)
+                l->smod += x;
+            else
+                l->stmod += x;
+        } else if (dm == RI_LEVI_DM_DFILT) {
+            switch (dp) {
+            case 0u: *ecut *= ri_pow2(8.5f * x); break;
+            case 1u: *ereso += x; break;
+            case 2u: case 3u: *edm += 127.0f * x; break;   /* morph / drive share the knob */
+            case 4u: *edenv += 2.0f * x; break;
+            case 5u: *edlfo += 2.0f * x; break;
+            default: *edlevel *= 1.0f + x; break;
+            }
+        } else if (dm == RI_LEVI_DM_AFILT) {
+            switch (dp) {
+            case 0u: *eacut *= ri_pow2(8.5f * x); break;
+            case 1u: *eareso += x; break;
+            case 2u: *edrive += x; break;
+            case 3u: *eaenv += 2.0f * x; break;
+            default: *ealfo += 2.0f * x; break;
+            }
+        } else if (dm == RI_LEVI_DM_VCA) {
+            if (dp == 0u)
+                *evlevel += x;
+            else if (dp == 1u)
+                *evlfo += 2.0f * x;
+            else
+                *eoplevel += x;
+        } else if (dm == RI_LEVI_DM_ALGO) {
+            *emorph += 100.0f * x;
+        }
+    }
+    v->opm_on = (uint8_t)touch_op;
+    v->mem_on = (uint8_t)touch_me;
+    for (o = 0u; o < RI_LEVI_NMENV && touch_me; o++)
+        v->melmod[o] = v->mem[o][RI_LEVI_DE_LEVEL];
+    if (!touch_me)
+        for (o = 0u; o < RI_LEVI_NMENV; o++)
+            v->melmod[o] = 0.0f;
+    *ecut = clampf(*ecut, 40.0f, 18000.0f);
+    *ereso = clampf(*ereso, 0.0f, 1.0f);
+    *eareso = clampf(*eareso, 0.0f, 1.0f);
+    *edrive = clampf(*edrive, 0.0f, 1.0f);
+    *edenv = clampf(*edenv, -1.0f, 1.0f);
+    *eaenv = clampf(*eaenv, -1.0f, 1.0f);
+    *edlfo = clampf(*edlfo, -1.0f, 1.0f);
+    *ealfo = clampf(*ealfo, -1.0f, 1.0f);
+    *evlfo = clampf(*evlfo, -1.0f, 1.0f);
+    *edlevel = clampf(*edlevel, 0.0f, 4.0f);
+    *emorph = clampf(*emorph, 0.0f, 100.0f);
+    *eoplevel = clampf(*eoplevel, 0.0f, 2.0f);
+    *evlevel = clampf(*evlevel, 0.0f, 2.0f);
+}
+
 float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     float sr) {
     float mixA, mixB, mix, out;
-    /* Effective params: base copies when the matrix is absent, so the
-     * legacy path below stays bit-identical (x*1.0 and x+0.0 are exact;
-     * morph keeps its integer branches through emorph). */
+    /* Effective params: base copies when the matrix is silent, so the
+     * plain path stays bit-identical (x*1.0 and x+0.0 are exact; morph
+     * keeps its integer branches through emorph). */
     float ecut, ereso, edrive, emorph, eoplevel, evlevel, amp, lfo5[RI_LEVI_NLFO];
+    float edm, edenv, eaenv, edlfo, ealfo, evlfo, edlevel, eacut = 1.0f, eareso;
     /* LFOs step once per sample when the matrix or a pre-wired amount
      * (LFO 1 > digital, 2 > analog, 3 > VCA; P4) listens. */
-    int any_on = 0, lfo_on = mx || v->dlfo != 0.0f || v->alfo != 0.0f || v->vlfo != 0.0f || v->melfo;
+    int any_on = 0, lfo_on;
+    uint32_t o;
     if (!v || !v->active || !(sr > 0.0f))
         return 0.0f;
-    mixA = voice_pass(v, 0u, sr, &any_on);
-    mixB = voice_pass(v, 1u, sr, &any_on);
-    ecut = v->cutoff;
-    ereso = v->reso;
-    edrive = v->drive;
-    emorph = (float)v->morph;
-    eoplevel = 1.0f;
-    evlevel = 1.0f;
-    if (lfo_on) {
-        uint32_t o;
-        for (o = 0u; o < RI_LEVI_NLFO; o++)
-            lfo5[o] = ri_levi_lfo_step(&v->lfo[o], sr);
-    }
+    lfo_on = mx || v->dlfo != 0.0f || v->alfo != 0.0f || v->vlfo != 0.0f || v->melfo;
+    for (o = 0u; o < RI_LEVI_NLFO; o++)
+        lfo5[o] = lfo_on ? ri_levi_lfo_step(&v->lfo[o], sr) : 0.0f;
     {
-        /* Mod envelopes (P5): LFO cycle starts retrigger where chosen. */
+        /* Mod envelopes (P5): LFO cycle starts retrigger where chosen;
+         * matrix offsets move their times, sustain and curves (P5b). */
         uint32_t e, k;
         for (e = 0u; e < RI_LEVI_NMENV; e++) {
             if (lfo_on)
@@ -1786,50 +2048,43 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
                         break;
                     }
                 }
-            (void)env_tick_b(&v->menv[e], sr, 0);
+            if (v->mem_on) {
+                const float *m = v->mem[e];
+                float tsc[4];
+                tsc[0] = m[RI_LEVI_DE_ATTACK] != 0.0f ? ri_pow2(8.0f * m[RI_LEVI_DE_ATTACK]) : 1.0f;
+                tsc[1] = m[RI_LEVI_DE_DECAY] != 0.0f ? ri_pow2(8.0f * m[RI_LEVI_DE_DECAY]) : 1.0f;
+                tsc[2] = m[RI_LEVI_DE_RELEASE] != 0.0f ? ri_pow2(8.0f * m[RI_LEVI_DE_RELEASE]) : 1.0f;
+                tsc[3] = m[RI_LEVI_DE_HOLD] != 0.0f ? ri_pow2(8.0f * m[RI_LEVI_DE_HOLD]) : 1.0f;
+                v->menv[e].susmod = m[RI_LEVI_DE_SUSTAIN];
+                for (k = 0u; k < 3u; k++) {
+                    float c = 64.0f * m[RI_LEVI_DE_ACURVE + k];
+                    v->menv[e].cmod[k] = (int8_t)(c < -127.0f ? -127.0f : c > 127.0f ? 127.0f : c);
+                }
+                (void)env_tick_b(&v->menv[e], sr, tsc);
+            } else {
+                (void)env_tick_b(&v->menv[e], sr, 0);
+            }
         }
     }
-    if (mx) {
-        float openv[RI_LEVI_NOPS], dst[RI_LEVI_MD_N];
-        uint32_t o;
-        for (o = 0u; o < RI_LEVI_NOPS; o++)
-            openv[o] = v->st[0][o].env.value;
-        if (ri_levi_matrix_eval(mx, openv, lfo5, v->note, dst) == 0) {
-            /* Own scaling laws (clean-room): cutoff ±2 octaves
-             * full-scale, reso/drive linear, morph in blend units,
-             * oplevel pre-filter (drives the timbre), vlevel post. */
-            ecut = v->cutoff * ri_pow2(dst[RI_LEVI_MD_CUTOFF] * 2.0f);
-            if (ecut < 40.0f)
-                ecut = 40.0f;
-            if (ecut > 18000.0f)
-                ecut = 18000.0f;
-            ereso = v->reso + dst[RI_LEVI_MD_RESO] * 0.5f;
-            if (ereso < 0.0f)
-                ereso = 0.0f;
-            if (ereso > 1.0f)
-                ereso = 1.0f;
-            edrive = v->drive + dst[RI_LEVI_MD_DRIVE];
-            if (edrive < 0.0f)
-                edrive = 0.0f;
-            if (edrive > 1.0f)
-                edrive = 1.0f;
-            emorph = (float)v->morph + dst[RI_LEVI_MD_MORPH] * 100.0f;
-            if (emorph < 0.0f)
-                emorph = 0.0f;
-            if (emorph > 100.0f)
-                emorph = 100.0f;
-            eoplevel = 1.0f + dst[RI_LEVI_MD_OPLEVEL];
-            if (eoplevel < 0.0f)
-                eoplevel = 0.0f;
-            if (eoplevel > 2.0f)
-                eoplevel = 2.0f;
-            evlevel = 1.0f + dst[RI_LEVI_MD_VLEVEL];
-            if (evlevel < 0.0f)
-                evlevel = 0.0f;
-            if (evlevel > 2.0f)
-                evlevel = 2.0f;
-        }
-    }
+    ecut = v->cutoff;
+    ereso = v->reso;
+    edrive = v->drive;
+    emorph = (float)v->morph;
+    eoplevel = 1.0f;
+    evlevel = 1.0f;
+    edm = (float)v->dmorph;
+    edenv = v->denv;
+    eaenv = v->aenv;
+    edlfo = v->dlfo;
+    ealfo = v->alfo;
+    evlfo = v->vlfo;
+    edlevel = v->dlevel;
+    eareso = v->reso2;
+    if (mx)
+        levi_mod_apply(v, mx, lfo5, &ecut, &ereso, &edm, &edenv, &edlfo, &edlevel, &eacut, &eareso, &edrive, &eaenv,
+            &ealfo, &evlevel, &evlfo, &eoplevel, &emorph);
+    mixA = voice_pass(v, 0u, sr, &any_on);
+    mixB = voice_pass(v, 1u, sr, &any_on);
     /* Exact endpoints (bit-identity with no-morph / pure-B voices);
      * the slide blends between them. */
     if (emorph <= 0.0f)
@@ -1849,23 +2104,26 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     {
         /* Signal flow (p. 67): OSCs level > digital filter > D.Filt
          * level > analog pre-drive + filter > VCA level > patch level. */
-        float dc = ecut * v->dktm, ac = v->cutoff2 * v->aktm;
-        if (lfo_on && v->dlfo != 0.0f)
-            dc *= ri_pow2(4.0f * v->dlfo * lfo5[0]);   /* +/-4 octaves full scale */
-        if (lfo_on && v->alfo != 0.0f)
-            ac *= ri_pow2(4.0f * v->alfo * lfo5[1]);
-        if (v->denv != 0.0f)                           /* ENV 1 > digital, +/-8 octaves */
-            dc *= ri_pow2(8.0f * v->denv * levi_menv_value(v, 0u));
-        if (v->aenv != 0.0f)                           /* ENV 2 > analog */
-            ac *= ri_pow2(8.0f * v->aenv * levi_menv_value(v, 1u));
+        float dc = ecut * v->dktm, ac = v->cutoff2 * v->aktm * eacut;
+        uint8_t dmsave = v->dmorph;
+        if (lfo_on && edlfo != 0.0f)
+            dc *= ri_pow2(4.0f * edlfo * lfo5[0]);     /* +/-4 octaves full scale */
+        if (lfo_on && ealfo != 0.0f)
+            ac *= ri_pow2(4.0f * ealfo * lfo5[1]);
+        if (edenv != 0.0f)                             /* ENV 1 > digital, +/-8 octaves */
+            dc *= ri_pow2(8.0f * edenv * levi_menv_value(v, 0u));
+        if (eaenv != 0.0f)                             /* ENV 2 > analog */
+            ac *= ri_pow2(8.0f * eaenv * levi_menv_value(v, 1u));
         dc = dc < 20.0f ? 20.0f : dc > 20000.0f ? 20000.0f : dc;
         ac = ac < 20.0f ? 20.0f : ac > 20000.0f ? 20000.0f : ac;
-        out = dfilt_step(v, mix, sr, dc, ereso) * v->dlevel;
-        out = afilt_step(v, out, sr, ac, v->reso2, edrive);
+        v->dmorph = (uint8_t)(edm < 0.0f ? 0.0f : edm > 127.0f ? 127.0f : edm + 0.5f);
+        out = dfilt_step(v, mix, sr, dc, ereso) * edlevel;
+        v->dmorph = dmsave;
+        out = afilt_step(v, out, sr, ac, eareso, edrive);
         /* ENV 3 > VCA, opened to Initial Level at rest (p. 69). */
         amp = v->vcalvl * (v->vinit + (1.0f - v->vinit) * levi_menv_value(v, 2u));
-        if (lfo_on && v->vlfo != 0.0f) {
-            amp *= 1.0f + v->vlfo * lfo5[2];
+        if (lfo_on && evlfo != 0.0f) {
+            amp *= 1.0f + evlfo * lfo5[2];
             if (amp < 0.0f)
                 amp = 0.0f;
         }

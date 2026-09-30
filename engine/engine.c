@@ -643,6 +643,14 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
             levi_set_op_ui(&e->slevi, v, (key >> 5) & 7u, key & 31u, val);
         return;
     }
+    if (blk == RI_AUTO_BLK_LEVIMX) {           /* matrix route fields (P5b), device-wide */
+        levi_set_mx_ui(&e->slevi, (key >> 2) & 31u, key & 3u, val);
+        return;
+    }
+    if (blk == RI_AUTO_BLK_LEVIMAC) {          /* macro route fields (P5b) */
+        levi_set_mr_ui(&e->slevi, (key >> 5) & 7u, (key >> 2) & 7u, key & 3u, val);
+        return;
+    }
     if (blk == RI_AUTO_BLK_LEVIMOD) {
         /* ENV 1-5 / LFO 1-5 params (fidelity P5), section-wide. */
         uint32_t k = key & 0xFFu;

@@ -178,6 +178,15 @@ Each phase lands as TDD slices:
   - The v1 LFO keys stay (rate, shape 0/1 = sine / 3-step), bit for bit.
 - **P5a E0 ledger:** ENV 3 default release 34 (a little longer than the oscillators'); ENV amounts ±8 octaves; step values are a default ramp until the step editor (P8); BPM sync waits for the clock (P8); velocity/PolyAT for P9; legato/reset stored for P6; Mod In trigger sources omitted (no CV, owner 2026-09-30).
 - **Tests:** t132 (32 mutants killed); t129 freerun law holds the VCA open (ENV 3 now closes voices); t77/t79/t107/t131 deliberate moves; sec 18 re-pinned (live ENV knobs, algorithm ring now spans 64).
+- **P5b status: done 2026-09-30** (matrix + macros):
+  - Sources in the manual's groups (own ids; the v1 ids kept): ENV 1-5, LFO 1-5 and 1+-5+ (unipolar), OSC 1-8 ENV, keytrack (C4 centre), PolyAT/MonoAT, velocity on/off, voice mod/+, wheel, bend, ribbon abs/abs+/rel, MPE X/Y rel/Y abs, expression and sustain pedals. Performance sources read 0 until P6/P8/P9 deliver their data. CV and MIDI CC sources omitted (no CV; CC waits for the interop MIDI work).
+  - Destinations as module + parameter: OSC 1-8 / all / carriers / modulators (init, env level, pitch ±24 semitones, ratio and fine in ratio mode, feedback, phase, wave, DAHDSR times and sustain; pan stored for P6), D.Filter, A.Filter, VCA, ENV 1-5 (times, sustain, level, curves), LFO 1-5 (rate, level, smooth, steps), Mod Matrix depth 1-32, Macro 1-8, algorithm morph. FX, voice, arp and sequencer destinations arrive with P6-P8.
+  - Own laws: a contribution moves a parameter by depth x source x its span (cutoffs 8.5 octaves, levels as 1 + x, times 2^(8x)); route depths take their Mod Matrix depth modulation first.
+  - 8 macros: knob (0x0E48..4F) and button (0x0E50..57, button value while on), 8 routes each; the MACRO ASSIGN key opens its pages (knobs, buttons, 4 route pages a macro).
+  - Keys: matrix block `0x11` (slot << 2 | source, module, param, depth), macro block `0x12` (macro << 5 | route << 2 | module, param, depth, button value). The v1 route switches are legacy rows.
+  - Pages: MATRIX n|n+1 (16 pages, 2 routes each), MACRO (34 pages).
+- **P5b E0 ledger:** laws above; macro button behaves as Toggle (the System setting arrives with P10 patches); names, sort, audition, copy and randomise wait for the patch and system pages (P10); the one-sample lag of oscillator-envelope sources.
+- **Tests:** t133 (25 mutants killed); t77 (key counts, unknown key 0x1334), t79/t129 (unknown block 0x1300), t107 (module list ends at MACRO; switch law via macro buttons); sec 18 re-pinned (MACRO ASSIGN key live).
 
 ### P6: voice
 

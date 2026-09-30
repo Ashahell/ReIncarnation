@@ -19,6 +19,11 @@
 #define SLOT_IS_ME(x) ((x) <= -96 && (x) > -128)
 #define SLOT_IS_LF(x) ((x) <= -128 && (x) > -144)
 #define SLOT_MPARAM(x) ((uint32_t)(SLOT_IS_LF(x) ? -(x) - 128 : -(x) - 96))
+/* Matrix route r field f / macro m route r field f (P5b). */
+#define SLOT_MX(r, f) (-(160 + (int)(r) * 4 + (int)(f)))
+#define SLOT_MR(m, r, f) (-(288 + ((int)(m) * 8 + (int)(r)) * 4 + (int)(f)))
+#define SLOT_IS_MX(x) ((x) <= -160 && (x) > -288)
+#define SLOT_IS_MR(x) ((x) <= -288 && (x) > -544)
 
 static const struct RICtlDef *def(const struct RISectLevi *s, uint32_t idx) {
     (void)s;
@@ -53,6 +58,15 @@ int ri_slevi_init(struct RISectLevi *s) {
         for (o = 0u; o < RI_LEVI_NLFO; o++)
             for (p = 0u; p < 16u; p++)
                 s->lfv[o][p] = (uint8_t)(p < RI_LEVI_LP_N ? ri_levi_lfo_default(p) : 0);
+        for (o = 0u; o < RI_LEVI_MX_NSLOTS; o++) {
+            s->mxv[o][0] = s->mxv[o][1] = s->mxv[o][2] = 0u;
+            s->mxv[o][3] = 64u;
+        }
+        for (o = 0u; o < RI_LEVI_NMACRO; o++)
+            for (p = 0u; p < RI_LEVI_MACRO_NR; p++) {
+                s->mrv[o][p][0] = s->mrv[o][p][1] = s->mrv[o][p][3] = 0u;
+                s->mrv[o][p][2] = 64u;
+            }
     }
     ri_pattern_init(&s->pat, RI_PATTERN_KIND_LEVI, 0u);
     return 0;
@@ -133,6 +147,9 @@ static int enc_of(uint32_t idx);
 static int enc_set(struct RISectLevi *s, uint32_t k, int v);
 static uint32_t slot_op(const struct RISectLevi *s, int t, uint32_t k);
 static uint8_t *mod_val(const struct RISectLevi *s, int t, int *lo, int *hi, uint16_t *key, int *dv);
+static void put_str(char *buf, uint32_t cap, const char *src);
+static void cat_str(char *buf, uint32_t cap, const char *src);
+static void cat_num(char *buf, uint32_t cap, int v);
 
 int ri_slevi_set_value(struct RISectLevi *s, uint32_t idx, int v) {
     const struct RICtlDef *d = s && idx < RI_SLEVI_NCTL ? def(s, idx) : 0;
@@ -383,11 +400,6 @@ static const struct LeviSlot P_SEQ[8] = {
     { RI_SLEVI_SEQLEN, "LENGTH" }, { SLOT_DEAD, "RATE" }, { SLOT_DEAD, "MODE" }, { SLOT_DEAD, "SWING" },
     { SLOT_DEAD, "GATE" }, { SLOT_DEAD, "PROB" }, { SLOT_DEAD, "DRIFT" }, { SLOT_DEAD, "TRANSPOSE" }
 };
-static const struct LeviSlot P_MATRIX[8] = {
-    { RI_SLEVI_ROUTE0 + 0, "ROUTE 1" }, { RI_SLEVI_ROUTE0 + 1, "ROUTE 2" }, { RI_SLEVI_ROUTE0 + 2, "ROUTE 3" },
-    { RI_SLEVI_ROUTE0 + 3, "ROUTE 4" }, { RI_SLEVI_ROUTE0 + 4, "ROUTE 5" }, { RI_SLEVI_ROUTE0 + 5, "ROUTE 6" },
-    { RI_SLEVI_ROUTE0 + 6, "ROUTE 7" }, { RI_SLEVI_ROUTE0 + 7, "ROUTE 8" }
-};
 static const struct LeviSlot P_VOICE[8] = {
     { SLOT_DEAD, "POLYPHONY" }, { SLOT_DEAD, "DENSITY" }, { SLOT_DEAD, "DETUNE" }, { SLOT_DEAD, "ANALOG FL" },
     { SLOT_DEAD, "RND PHASE" }, { SLOT_DEAD, "PANNER" }, { SLOT_DEAD, "WIDTH" }, { SLOT_DEAD, "PAN MODE" }
@@ -409,7 +421,7 @@ uint32_t ri_slevi_page_count(const struct RISectLevi *s) {
     return (module(s) == RI_SLEVI_M_OSC || module(s) == RI_SLEVI_M_ALGO) ? 5u
         : (module(s) >= RI_SLEVI_M_ENV1 && module(s) < RI_SLEVI_M_ENV1 + 5u) ? 4u
         : module(s) == RI_SLEVI_M_DFILT || (module(s) >= RI_SLEVI_M_LFO1 && module(s) < RI_SLEVI_M_LFO1 + 5u) ? 2u
-        : 1u;
+        : module(s) == RI_SLEVI_M_MATRIX ? 16u : module(s) == RI_SLEVI_M_MACRO ? 34u : 1u;
 }
 
 static int dtype_morphs(const struct RISectLevi *s) {
@@ -430,6 +442,33 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
             *name = OSC_NAME[k];
         return SLOT_GOP(GROUP_PARAM[m - RI_SLEVI_M_GMODE]);
     }
+    if (m == RI_SLEVI_M_MATRIX) {                   /* 2 routes a page: source, module, param, depth */
+        static const char *const F[4] = { "SOURCE", "MODULE", "PARAM", "DEPTH" };
+        if (name)
+            *name = F[k & 3u];
+        return SLOT_MX((s->page % 16u) * 2u + k / 4u, k & 3u);
+    }
+    if (m == RI_SLEVI_M_MACRO) {                    /* knobs, buttons, then 4 route pages a macro */
+        static const char *const KN[8] = { "MACRO 1", "MACRO 2", "MACRO 3", "MACRO 4", "MACRO 5", "MACRO 6",
+            "MACRO 7", "MACRO 8" };
+        static const char *const BT[8] = { "BUTTON 1", "BUTTON 2", "BUTTON 3", "BUTTON 4", "BUTTON 5",
+            "BUTTON 6", "BUTTON 7", "BUTTON 8" };
+        static const char *const F[4] = { "MODULE", "PARAM", "DEPTH", "BTN VAL" };
+        uint32_t pg = s->page < 34u ? s->page : 0u;
+        if (pg == 0u) {
+            if (name)
+                *name = KN[k];
+            return (int)(RI_SLEVI_MKNOB0 + k);
+        }
+        if (pg == 1u) {
+            if (name)
+                *name = BT[k];
+            return (int)(RI_SLEVI_MBTN0 + k);
+        }
+        if (name)
+            *name = F[k & 3u];
+        return SLOT_MR((pg - 2u) / 4u, ((pg - 2u) % 4u) * 2u + k / 4u, k & 3u);
+    }
     if (m == RI_SLEVI_M_ALGO && s->page >= 2u && s->page < 5u) {
         if (name)
             *name = OSC_NAME[k];
@@ -443,7 +482,7 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         : m == RI_SLEVI_M_POSTFX ? P_POSTFX
         : (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) ? P_LFO[s->page == 1u ? 1u : 0u]
         : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? P_ARP
-        : m == RI_SLEVI_M_SEQ ? P_SEQ : m == RI_SLEVI_M_MATRIX ? P_MATRIX : P_VOICE;
+        : m == RI_SLEVI_M_SEQ ? P_SEQ : P_VOICE;
     if (name) {
         *name = p[k].name;
         if (p[k].idx == SLOT_OP(RI_LEVI_OP_COARSE))  /* label follows the pitch mode */
@@ -496,6 +535,30 @@ static uint8_t *mod_val(const struct RISectLevi *s, int t, int *lo, int *hi, uin
             *dv = ri_levi_menv_default(u, p);
         if (lo) { *lo = l0; *hi = h0; }
         return (uint8_t *)&s->mev[u][p];
+    }
+    if (SLOT_IS_MX(t)) {
+        uint32_t r = (uint32_t)(-t - 160) / 4u, f = (uint32_t)(-t - 160) % 4u;
+        l0 = 0;
+        h0 = f == 0u ? (int)RI_LEVI_MS_UI_N - 1 : f == 1u ? (int)RI_LEVI_DM_N - 1
+            : f == 2u ? (int)(ri_levi_dm_nparam(s->mxv[r][1]) ? ri_levi_dm_nparam(s->mxv[r][1]) - 1u : 0u) : 127;
+        if (key)
+            *key = RI_LEVI_MXKEY(r, f);
+        if (dv)
+            *dv = f == 3u ? 64 : 0;
+        if (lo) { *lo = l0; *hi = h0; }
+        return (uint8_t *)&s->mxv[r][f];
+    }
+    if (SLOT_IS_MR(t)) {
+        uint32_t q = (uint32_t)(-t - 288), mi = q / 32u, r = (q / 4u) % 8u, f = q % 4u;
+        l0 = 0;
+        h0 = f == 0u ? (int)RI_LEVI_DM_N - 1
+            : f == 1u ? (int)(ri_levi_dm_nparam(s->mrv[mi][r][0]) ? ri_levi_dm_nparam(s->mrv[mi][r][0]) - 1u : 0u) : 127;
+        if (key)
+            *key = RI_LEVI_MRKEY(mi, r, f);
+        if (dv)
+            *dv = f == 2u ? 64 : 0;
+        if (lo) { *lo = l0; *hi = h0; }
+        return (uint8_t *)&s->mrv[mi][r][f];
     }
     if (SLOT_IS_LF(t) && m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + RI_LEVI_NLFO) {
         u = m - RI_SLEVI_M_LFO1;
@@ -614,7 +677,8 @@ int ri_slevi_page_reaches(uint32_t idx) {
 int ri_slevi_legacy(uint32_t idx) {
     /* v1 two-algorithm morph (ALGOB/MORPH) gives way to the P3 slot list. */
     return idx == RI_SLEVI_RATIO || idx == RI_SLEVI_OPMODE || (idx >= RI_SLEVI_ATTACK && idx <= RI_SLEVI_LOOP) ||
-        idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_MORPH || idx == RI_SLEVI_FTYPE;
+        idx == RI_SLEVI_ALGOB || idx == RI_SLEVI_MORPH || idx == RI_SLEVI_FTYPE ||
+        (idx >= RI_SLEVI_ROUTE0 && idx < RI_SLEVI_ROUTE0 + 8u);
 }
 
 int ri_slevi_enc_live(const struct RISectLevi *s, uint32_t k) {
@@ -628,7 +692,7 @@ const char *ri_slevi_page_title(const struct RISectLevi *s) {
         "GROUP: SUSTAIN", "GROUP: RELEASE", "ENV 1", "ENV 2", "ENV 3", "ENV 4", "ENV 5",
         "DIGITAL FILTER", "ANALOG FILTER", "VCA", "PRE-FX", "DELAY", "REVERB", "POST-FX",
         "LFO 1", "LFO 2", "LFO 3", "LFO 4", "LFO 5", "ALGORITHM", "ARPEGGIATOR", "SEQUENCER",
-        "MOD MATRIX", "VOICE"
+        "MOD MATRIX", "VOICE", "MACRO ASSIGN"
     };
     static const char *const OSC_PG[RI_LEVI_NOPS][5] = {
         { "OSC 1  1/5", "OSC 1  2/5", "OSC 1  3/5", "OSC 1  4/5", "OSC 1  5/5" },
@@ -659,6 +723,34 @@ const char *ri_slevi_page_title(const struct RISectLevi *s) {
             { "ENV 5  1/4", "ENV 5  2/4", "ENV 5  3/4", "ENV 5  4/4" }
         };
         return EP[m - RI_SLEVI_M_ENV1][s->page < 4u ? s->page : 0u];
+    }
+    if (m == RI_SLEVI_M_MATRIX || m == RI_SLEVI_M_MACRO) {
+        /* "MATRIX 3|4  2/16", "MACRO 2 R1|2  7/34" (UI thread only). */
+        static char tb[32];
+        uint32_t pg = s->page;
+        tb[0] = 0;
+        if (m == RI_SLEVI_M_MATRIX) {
+            put_str(tb, sizeof tb, "MATRIX ");
+            cat_num(tb, sizeof tb, (int)(pg % 16u) * 2 + 1);
+            cat_str(tb, sizeof tb, "|");
+            cat_num(tb, sizeof tb, (int)(pg % 16u) * 2 + 2);
+            cat_str(tb, sizeof tb, "  ");
+            cat_num(tb, sizeof tb, (int)(pg % 16u) + 1);
+            cat_str(tb, sizeof tb, "/16");
+        } else {
+            put_str(tb, sizeof tb, pg == 0u ? "MACRO KNOBS" : pg == 1u ? "MACRO BUTTONS" : "MACRO ");
+            if (pg >= 2u && pg < 34u) {
+                cat_num(tb, sizeof tb, (int)(pg - 2u) / 4 + 1);
+                cat_str(tb, sizeof tb, " R");
+                cat_num(tb, sizeof tb, (int)((pg - 2u) % 4u) * 2 + 1);
+                cat_str(tb, sizeof tb, "|");
+                cat_num(tb, sizeof tb, (int)((pg - 2u) % 4u) * 2 + 2);
+            }
+            cat_str(tb, sizeof tb, "  ");
+            cat_num(tb, sizeof tb, (int)(pg < 34u ? pg : 0u) + 1);
+            cat_str(tb, sizeof tb, "/34");
+        }
+        return tb;
     }
     if (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) {
         static const char *const LP[5][2] = {
@@ -849,6 +941,23 @@ static void mod_text(const struct RISectLevi *s, int t, char *buf, uint32_t cap)
     uint32_t p = SLOT_MPARAM(t);
     int v = *mv;
     buf[0] = 0;
+    if (SLOT_IS_MX(t) || SLOT_IS_MR(t)) {
+        uint32_t f = SLOT_IS_MX(t) ? (uint32_t)(-t - 160) % 4u : (uint32_t)(-t - 288) % 4u;
+        const uint8_t *u = mv - f;                     /* the route's four fields */
+        if (SLOT_IS_MX(t) && f == 0u)
+            put_str(buf, cap, v ? ri_levi_ms_name(ri_levi_ms_by_ui((uint32_t)v)) : "---");
+        else if ((SLOT_IS_MX(t) && f == 1u) || (SLOT_IS_MR(t) && f == 0u))
+            put_str(buf, cap, ri_levi_dm_name((uint32_t)v));
+        else if ((SLOT_IS_MX(t) && f == 2u) || (SLOT_IS_MR(t) && f == 1u))
+            put_str(buf, cap, ri_levi_dp_name(u[SLOT_IS_MX(t) ? 1 : 0], (uint32_t)v));
+        else if ((SLOT_IS_MX(t) && f == 3u) || (SLOT_IS_MR(t) && f == 2u)) {
+            if (v > 64)
+                put_str(buf, cap, "+");
+            cat_num(buf, cap, (v - 64) * 128 / 63);   /* +/-128.0 on the manual's scale */
+        } else
+            put_num(buf, cap, v * 128 / 127);
+        return;
+    }
     if (SLOT_IS_ME(t)) {
         const uint8_t *u = mv - p;
         if (p <= 3u)

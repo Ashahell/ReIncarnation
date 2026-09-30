@@ -161,8 +161,9 @@ struct RILeviEnv {
     uint8_t loopend;   /* last stage in the loop: RI_LEVI_SEG_A/H/D2 */
     uint8_t freerun;   /* note-off waits for the sustain stage */
     uint8_t relpend;   /* freerun: release pending */
-    uint8_t pad2[3];
+    int8_t cmod[3];    /* matrix curve offsets (P5b), 0 = none */
     float seg_from;    /* value at segment start (curved segments) */
+    float susmod;      /* matrix sustain offset (P5b), 0 = none */
 };
 
 /* LFOs (v2 feature 4d, owner order): 5 per voice, trigger-reset
@@ -219,6 +220,7 @@ struct RILeviLFO {
     float phase0;  /* start phase 0..1 (+ stagger) */
     float held, from, sy;    /* S&H / random values, smoother state */
     uint32_t rng;
+    float rmul, lmod, smod, stmod; /* matrix: rate x, level/smooth/steps + (P5b) */
 };
 
 /* Modulation envelopes ENV 1-5 (fidelity P5, manual pp. 71-75): the
@@ -341,7 +343,7 @@ struct RILeviVoice {
     float af[5];    /* analog ladder: 4 stages + last output */
     struct RILeviLFO lfo[RI_LEVI_NLFO]; /* per-voice LFOs (4d) */
     float bias_envl;  /* Osc Env Level bias, -1..1 (device knob, P2) */
-    float bias_t[3];  /* attack/decay/release time scales (1 = none) */
+    float bias_t[4];  /* attack/decay/release/hold time scales (1 = none; hold has no knob) */
     /* Filters + VCA (fidelity P4, manual pp. 62-70). */
     uint8_t dtype;    /* RI_LEVI_DF_* */
     uint8_t dmorph;   /* morph (SVF, vowel) or drive (others), 0..127 */
@@ -359,6 +361,12 @@ struct RILeviVoice {
     uint8_t mepad[2];
     float melevel[RI_LEVI_NMENV];
     float denv, aenv, vinit;  /* ENV 1/2 amounts -1..1, VCA initial level 0..1 */
+    /* Matrix / macro modulation of oscillator and envelope params (P5b):
+     * RI_LEVI_DO_* per oscillator, RI_LEVI_DE_* per ENV 1-5; -1..1. */
+    float opm[RI_LEVI_NOPS][RI_LEVI_DO_N];
+    float mem[RI_LEVI_NMENV][9];
+    uint8_t opm_on, mem_on, padm2[2];
+    float melmod[RI_LEVI_NMENV];   /* ENV level offsets (P5b) */
 };
 
 /* Osc Env Level & Bias (manual p. 54): device-wide offsets over every
@@ -397,6 +405,15 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_DENV1 0x0E45u    /* 64 = 0 */
 #define RI_CTL_LEVI_AENV2 0x0E46u    /* 64 = 0 */
 #define RI_CTL_LEVI_VINIT 0x0E47u    /* 0..127 */
+/* Macros (fidelity P5b, pp. 120-123): knobs 0x0E48..4F, buttons
+ * 0x0E50..57. Matrix routes ride block 0x11 (slot << 2 | field: 0
+ * source (UI list), 1 module, 2 param, 3 depth 64 = 0); macro routes
+ * block 0x12 (macro << 5 | route << 2 | field: 0 module, 1 param,
+ * 2 depth 64 = 0, 3 button value). */
+#define RI_CTL_LEVI_MKNOB0 0x0E48u
+#define RI_CTL_LEVI_MBTN0 0x0E50u
+#define RI_LEVI_MXKEY(sl, f) ((uint16_t)(0x1100u | ((uint32_t)(sl) << 2) | (uint32_t)(f)))
+#define RI_LEVI_MRKEY(m, r, f) ((uint16_t)(0x1200u | ((uint32_t)(m) << 5) | ((uint32_t)(r) << 2) | (uint32_t)(f)))
 /* Mod envelope / LFO params (block 0x10, P5). */
 #define RI_LEVI_MEKEY(e, p) ((uint16_t)(0x1000u | ((uint32_t)(e) << 5) | (uint32_t)(p)))
 #define RI_LEVI_LFOKEY(l, p) ((uint16_t)(0x10A0u | ((uint32_t)(l) << 4) | (uint32_t)(p)))
@@ -424,6 +441,9 @@ struct RILeviSet {
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
 };
 
+/* Matrix route / macro route fields (P5b), 7-bit UI values. 0 ok, 2 bad. */
+int levi_set_mx_ui(struct RILeviSet *s, uint32_t slot, uint32_t field, uint8_t val);
+int levi_set_mr_ui(struct RILeviSet *s, uint32_t macro, uint32_t route, uint32_t field, uint8_t val);
 /* Mod envelope / LFO UI params (P5), 0..127 clamped to the param. 0 ok, 2 bad. */
 int levi_set_menv_ui(struct RILeviSet *s, uint32_t voice, uint32_t env, uint32_t param, uint8_t val);
 int levi_set_lfo_ui(struct RILeviSet *s, uint32_t voice, uint32_t lfo, uint32_t param, uint8_t val);

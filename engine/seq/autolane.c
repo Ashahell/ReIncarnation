@@ -61,7 +61,10 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     0x0E38u, 0x0E39u, 0x0E3Au, 0x0E3Bu, 0x0E3Cu, 0x0E3Du, 0x0E3Eu, 0x0E3Fu,
     0x0E40u, 0x0E41u, 0x0E42u, 0x0E43u, 0x0E44u,
     /* ENV 1/2 amounts, VCA initial level (fidelity P5). */
-    0x0E45u, 0x0E46u, 0x0E47u
+    0x0E45u, 0x0E46u, 0x0E47u,
+    /* Macro knobs and buttons (fidelity P5b). */
+    0x0E48u, 0x0E49u, 0x0E4Au, 0x0E4Bu, 0x0E4Cu, 0x0E4Du, 0x0E4Eu, 0x0E4Fu,
+    0x0E50u, 0x0E51u, 0x0E52u, 0x0E53u, 0x0E54u, 0x0E55u, 0x0E56u, 0x0E57u
 };
 
 int ri_auto_allowed(uint16_t ctl) {
@@ -78,6 +81,10 @@ int ri_auto_allowed(uint16_t ctl) {
         }
         return k < 0xF0u && (k & 15u) < 14u;
     }
+    if ((ctl & 0xFF00u) == RI_AUTO_BLK_LEVIMX)
+        return (ctl & 0xFFu) < 0x80u;
+    if ((ctl & 0xFF00u) == RI_AUTO_BLK_LEVIMAC)
+        return 1;
     while (lo < hi) {
         uint32_t mid = lo + ((hi - lo) >> 1u);
         if (RI_AUTO_ALLOW[mid] == ctl)

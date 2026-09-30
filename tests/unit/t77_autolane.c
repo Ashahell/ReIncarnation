@@ -111,7 +111,7 @@ int main(void) {
         RI_ASSERT(ri_auto_allowed(0x0300u) == 1, "cutoff allowed");
         RI_ASSERT(ri_auto_allowed(0x0312u) == 1, "303B allowed");
         RI_ASSERT(ri_auto_allowed(0x0401u) == 0, "808 refused");
-        RI_ASSERT(ri_auto_allowed(0x1234u) == 0, "unknown refused");
+        RI_ASSERT(ri_auto_allowed(0x1334u) == 0, "unknown refused");   /* 0x10-0x12: Levi mod blocks (P5) */
         RI_ASSERT(ri_auto_allowed(0x0C00u) == 1 && ri_auto_allowed(0x0C01u) == 1, "808 BD/SD level keys");
         RI_ASSERT(ri_auto_allowed(0x0C51u) == 0, "808 accent is section-wide only");
         RI_ASSERT(ri_auto_allowed(0x0D1Fu) == 1 && ri_auto_allowed(0x0D1Eu) == 0, "909 hat pair key");
@@ -234,7 +234,7 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 167u, "mapped count %u (+4 Levi bias P2, +13 algo P3, +13 filters/VCA P4, +3 env amounts P5)", mapped);
+            RI_ASSERT(mapped == 183u, "mapped count %u (+4 bias P2, +13 algo P3, +13 filters P4, +3 env P5a, +16 macros P5b)", mapped);
             RI_ASSERT(listed == 31u, "listed count %u", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
@@ -259,12 +259,13 @@ int main(void) {
                         owned = 1;
                     /* Levi mod block 0x10 (fidelity P5): ENV 1-5 and LFO
                      * 1-5 params, reached through their module pages. */
-                    if ((key & 0xFF00u) == RI_AUTO_BLK_LEVIMOD)
+                    if ((key & 0xFF00u) == RI_AUTO_BLK_LEVIMOD || (key & 0xFF00u) == RI_AUTO_BLK_LEVIMX ||
+                        (key & 0xFF00u) == RI_AUTO_BLK_LEVIMAC)   /* + matrix / macro routes (P5b) */
                         owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 610u,
-                    "allow-list size %u (167 controls + 2 VOLUME + 8 x 32 op keys + 5 x 23 env + 5 x 14 LFO keys)", nallow);
+                RI_ASSERT(nallow == 1010u, "allow-list size %u (183 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
+                    "5 x 14 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys)", nallow);
             }
         }
     }

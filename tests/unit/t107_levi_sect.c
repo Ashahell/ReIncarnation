@@ -200,15 +200,17 @@ int main(void) {
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 5u, 64) == 1 && p.opv[5][RI_LEVI_OP_MODE] == 3u &&
             p.opmode[5] == 3u, "group mode op 6");
         /* Switch slots flip at the encoder midpoint. */
-        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_MATRIX) == 1, "matrix page");
-        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 63) == 0 && p.val[RI_SLEVI_ROUTE0] == 0, "route below mid");
-        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 64) == 1 && p.val[RI_SLEVI_ROUTE0] == 1, "route at mid");
+        /* (the v1 route switches became legacy rows in P5b: macro buttons here) */
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_MACRO) == 1, "macro page");
+        RI_ASSERT(ri_slevi_press(&p, RI_SLEVI_PAGEDN) == 1, "buttons page");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 63) == 0 && p.val[RI_SLEVI_MBTN0] == 0, "button below mid");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 64) == 1 && p.val[RI_SLEVI_MBTN0] == 1, "button at mid");
         /* Algorithm page: 0..127 spans the 64 presets, shown 1-based. */
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_ALGO) == 1, "algo page");
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 1u, 127) == 1 && p.val[RI_SLEVI_ALGO] == 63, "algo max");
         ri_slevi_enc_text(&p, 1u, t, sizeof t);
         RI_ASSERT(!strcmp(t, "64"), "algo text %s", t);
-        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, 99) == 1 && p.val[RI_SLEVI_MODULE] == 34, "module clamp");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, 99) == 1 && p.val[RI_SLEVI_MODULE] == 35, "module clamp (MACRO, P5b)");
         RI_ASSERT(ri_slevi_page_reaches(RI_SLEVI_CUTOFF) && ri_slevi_page_reaches(RI_SLEVI_ARPRATE) &&
             !ri_slevi_page_reaches(RI_SLEVI_KEY0) && !ri_slevi_page_reaches(RI_SLEVI_STEP0), "page reach table");
         RI_ASSERT(ri_slevi_legacy(RI_SLEVI_RATIO) && ri_slevi_legacy(RI_SLEVI_ATTACK) &&

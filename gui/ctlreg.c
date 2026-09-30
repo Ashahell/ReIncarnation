@@ -323,7 +323,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     /* Hardware page UI (fidelity plan P1, 2026-09-30): module select, the
      * 8 MASTER CONTROL encoders (they send their page target) and the
      * display. UI-only rows: never automated themselves. */
-    R(LEVI, 68, SELECTOR, "Module", "Module", 0, 34, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 68, SELECTOR, "Module", "Module", 0, 35, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 69, KNOB, "Master", "Control 1", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 70, KNOB, "Master", "Control 2", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 71, KNOB, "Master", "Control 3", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
@@ -373,6 +373,23 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 110, KNOB, "Filter", "ENV1 Amt", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DENV1, 0),
     R(LEVI, 111, KNOB, "Analog", "ENV2 Amt", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_AENV2, 0),
     R(LEVI, 112, KNOB, "VCA", "Init Level", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VINIT, 0),
+    /* Macro knobs + buttons (fidelity P5b, pp. 120-123). */
+    R(LEVI, 113, KNOB, "Macro", "Macro 1", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MKNOB0 + 0u, 0),
+    R(LEVI, 114, KNOB, "Macro", "Macro 2", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MKNOB0 + 1u, 0),
+    R(LEVI, 115, KNOB, "Macro", "Macro 3", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MKNOB0 + 2u, 0),
+    R(LEVI, 116, KNOB, "Macro", "Macro 4", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MKNOB0 + 3u, 0),
+    R(LEVI, 117, KNOB, "Macro", "Macro 5", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MKNOB0 + 4u, 0),
+    R(LEVI, 118, KNOB, "Macro", "Macro 6", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MKNOB0 + 5u, 0),
+    R(LEVI, 119, KNOB, "Macro", "Macro 7", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MKNOB0 + 6u, 0),
+    R(LEVI, 120, KNOB, "Macro", "Macro 8", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MKNOB0 + 7u, 0),
+    R(LEVI, 121, SWITCH, "Macro", "Button 1", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 0u, 0),
+    R(LEVI, 122, SWITCH, "Macro", "Button 2", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 1u, 0),
+    R(LEVI, 123, SWITCH, "Macro", "Button 3", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 2u, 0),
+    R(LEVI, 124, SWITCH, "Macro", "Button 4", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 3u, 0),
+    R(LEVI, 125, SWITCH, "Macro", "Button 5", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 4u, 0),
+    R(LEVI, 126, SWITCH, "Macro", "Button 6", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 5u, 0),
+    R(LEVI, 127, SWITCH, "Macro", "Button 7", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 6u, 0),
+    R(LEVI, 128, SWITCH, "Macro", "Button 8", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_MBTN0 + 7u, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

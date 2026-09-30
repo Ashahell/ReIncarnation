@@ -212,6 +212,7 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
     { SL(82), RI_GEO_RECT, 0, 968, 143, 29, 20 },  /* PAGE up */
     { SL(83), RI_GEO_RECT, 0, 968, 169, 29, 20 },  /* PAGE down */
     { SL(68), RI_GEO_OPTION, 33, 968, 264, 30, 20 },  /* MOD MATRIX */
+    { SL(68), RI_GEO_OPTION, 35, 968, 220, 30, 20 },  /* MACRO ASSIGN (P5b) */
     { SL(68), RI_GEO_OPTION, 1, 1138, 182, 30, 20 },  /* MODE */
     { SL(68), RI_GEO_OPTION, 7, 1138, 209, 30, 20 },  /* DELAY */
     { SL(68), RI_GEO_OPTION, 2, 1184, 182, 30, 20 },  /* WAVE */

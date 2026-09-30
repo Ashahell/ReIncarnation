@@ -103,7 +103,6 @@ static const struct LeviCap DCAP[] = {
     { 629, 220, 29, ">", "", 1 },
     { 606, 264, 74, "HOME", "", 1 },
     { 968, 61, 29, "EXIT", "", 1 },
-    { 968, 220, 29, "MACRO", "ASSIGN", 0 },
 };
 static const struct LeviText DTEXT[] = {
     { 126, 224, "EDIT", "EDIT", 0, 44 },
@@ -437,6 +436,10 @@ static void levi_mod_label(uint32_t m, const char **l1, const char **l2) {
         *l2 = "MATRIX";
     } else if (m == RI_SLEVI_M_VOICE)
         *l1 = "VOICE";
+    else if (m == RI_SLEVI_M_MACRO) {
+        *l1 = "MACRO";
+        *l2 = "ASSIGN";
+    }
     else
         *l1 = "";
 }
