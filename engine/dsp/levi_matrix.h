@@ -72,7 +72,21 @@
 #define RI_LEVI_DM_MTRX 25u    /* route depth 1..32 */
 #define RI_LEVI_DM_MACRO 26u   /* macro 1..8 */
 #define RI_LEVI_DM_ALGO 27u    /* algorithm morph */
-#define RI_LEVI_DM_N 28u
+#define RI_LEVI_DM_VOICE 28u   /* voice params (fidelity P6b) */
+#define RI_LEVI_DM_N 29u
+/* Voice params (P6b): detune, pan, analog feel, bend range, vibrato
+ * amt/rate, glide toggle/time/curve, panner width. */
+#define RI_LEVI_DVO_DETUNE 0u
+#define RI_LEVI_DVO_PAN 1u
+#define RI_LEVI_DVO_AFEEL 2u
+#define RI_LEVI_DVO_BEND 3u
+#define RI_LEVI_DVO_VIBAMT 4u
+#define RI_LEVI_DVO_VIBRATE 5u
+#define RI_LEVI_DVO_GLIDETGL 6u
+#define RI_LEVI_DVO_GLTIME 7u
+#define RI_LEVI_DVO_GLCURVE 8u
+#define RI_LEVI_DVO_PANWIDTH 9u
+#define RI_LEVI_DVO_N 10u
 /* OSC params */
 #define RI_LEVI_DO_INIT 0u
 #define RI_LEVI_DO_ENVL 1u

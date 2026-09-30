@@ -60,6 +60,7 @@
 #include <proto/graphics.h>
 #include <proto/intuition.h>
 #include <proto/dos.h>
+#include <dos/dosextens.h>
 #include <proto/muimaster.h>
 #include <proto/timer.h>
 #include <proto/utility.h>
@@ -264,7 +265,16 @@ static void evlog_vol(void) {
         }
     }
     for (i = 0u; i < sizeof(vols) / sizeof(vols[0]); i++) {
-        BPTR lock = Lock((CONST_STRPTR)vols[i], ACCESS_READ);
+        /* No requesters: a missing volume must fail silently (riqemu1
+         * and stick-less machines must boot unattended). */
+        struct Process *me = (struct Process *)FindTask(NULL);
+        APTR oldwin = me ? me->pr_WindowPtr : 0;
+        BPTR lock;
+        if (me)
+            me->pr_WindowPtr = (APTR)-1;
+        lock = Lock((CONST_STRPTR)vols[i], ACCESS_READ);
+        if (me)
+            me->pr_WindowPtr = oldwin;
         if (lock) {
             UnLock(lock);
             {

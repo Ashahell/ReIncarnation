@@ -367,6 +367,28 @@ struct RILeviVoice {
     float mem[RI_LEVI_NMENV][9];
     uint8_t opm_on, mem_on, padm2[2];
     float melmod[RI_LEVI_NMENV];   /* ENV level offsets (P5b) */
+    /* Voice params (fidelity P6b, manual pp. 87-96; pan/width/mode go
+     * live with the P6c stereo sum, bend with the P9 MIDI data). */
+    float vdetune;  /* 0..1 ordinal spread, +/-50 c full scale */
+    float vafeel;   /* 0..1 per-voice drift */
+    float vrndph;   /* 0..1 random start-phase amount */
+    float vpan;     /* -1..1 */
+    float vwidth;   /* 0..1 panner width */
+    uint8_t vpanmode; /* 0..2 */
+    float vbendrng; /* semitones 0..24 (bend src reads 0 until P9) */
+    float vvibrate; /* Hz 0.1..20 */
+    float vvibamt;  /* semitones 0..4 */
+    float vvibdly;  /* seconds 0..5 */
+    uint8_t vglide; /* 0 off, 1 glide, 2 glissando */
+    float vgltime;  /* seconds 0..5 */
+    float vglcurve; /* glide exponent */
+    float vibphase, vibtime; /* vibrato state (trigger-reset) */
+    float glsemi, glt;       /* glide state (semitone offset, progress) */
+    float wtime;             /* analog-feel wander clock */
+    uint8_t vidx;            /* voice index (VoiceMod ordinal) */
+    uint8_t vpad[3];
+    float vom[RI_LEVI_DVO_N]; /* DM_VOICE offsets (P6b); -1..1 */
+    uint8_t vom_on;
 };
 
 /* Osc Env Level & Bias (manual p. 54): device-wide offsets over every
@@ -417,6 +439,22 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_POLYMODE 0x0E58u
 #define RI_CTL_LEVI_UDENSITY 0x0E59u
 #define RI_CTL_LEVI_ULIMIT 0x0E5Au
+/* Voice params (fidelity P6b, manual pp. 87-96): detune, analog feel,
+ * random phase, pan/width/mode (stored; stereo P6c), bend range,
+ * vibrato rate/amt/delay, glide mode/time/curve. Device-wide. */
+#define RI_CTL_LEVI_VDETUNE 0x0E5Bu
+#define RI_CTL_LEVI_VAFEEL 0x0E5Cu
+#define RI_CTL_LEVI_VRNDPH 0x0E5Du
+#define RI_CTL_LEVI_VPAN 0x0E5Eu
+#define RI_CTL_LEVI_VWIDTH 0x0E5Fu
+#define RI_CTL_LEVI_VPANMODE 0x0E60u
+#define RI_CTL_LEVI_VBENDRNG 0x0E61u
+#define RI_CTL_LEVI_VVIBRATE 0x0E62u
+#define RI_CTL_LEVI_VVIBAMT 0x0E63u
+#define RI_CTL_LEVI_VVIBDLY 0x0E64u
+#define RI_CTL_LEVI_VGLIDE 0x0E65u
+#define RI_CTL_LEVI_VGLTIME 0x0E66u
+#define RI_CTL_LEVI_VGLCURVE 0x0E67u
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u

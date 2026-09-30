@@ -2,6 +2,7 @@
 #include "gui/sectlevi.h"
 #include "gui/ctlreg.h"
 #include "engine/dsp/levi.h"
+#include "engine/dsp/kernels.h"
 
 /* Page-slot codes (see the page UI block below): a panel control index
  * (>= 0), a dead slot (engine in a later phase), or a per-oscillator
@@ -401,8 +402,12 @@ static const struct LeviSlot P_SEQ[8] = {
     { SLOT_DEAD, "GATE" }, { SLOT_DEAD, "PROB" }, { SLOT_DEAD, "DRIFT" }, { SLOT_DEAD, "TRANSPOSE" }
 };
 static const struct LeviSlot P_VOICE[8] = {
-    { RI_SLEVI_POLYMODE, "POLYPHONY" }, { RI_SLEVI_UDENSITY, "DENSITY" }, { RI_SLEVI_ULIMIT, "LIMIT" }, { SLOT_DEAD, "DETUNE" },
-    { SLOT_DEAD, "ANALOG FL" }, { SLOT_DEAD, "RND PHASE" }, { SLOT_DEAD, "PANNER" }, { SLOT_DEAD, "WIDTH" }
+    { RI_SLEVI_POLYMODE, "POLYPHONY" }, { RI_SLEVI_UDENSITY, "DENSITY" }, { RI_SLEVI_ULIMIT, "LIMIT" }, { RI_SLEVI_VDETUNE, "DETUNE" },
+    { RI_SLEVI_VAFEEL, "ANALOG FL" }, { RI_SLEVI_VRNDPH, "RND PHASE" }, { RI_SLEVI_VPAN, "PAN" }, { RI_SLEVI_VWIDTH, "WIDTH" }
+};
+static const struct LeviSlot P_VOICE2[8] = {
+    { RI_SLEVI_VPANMODE, "PAN MODE" }, { RI_SLEVI_VBENDRNG, "BEND RNG" }, { RI_SLEVI_VVIBRATE, "VIB RATE" }, { RI_SLEVI_VVIBAMT, "VIB AMT" },
+    { RI_SLEVI_VVIBDLY, "VIB DLY" }, { RI_SLEVI_VGLIDE, "GLIDE" }, { RI_SLEVI_VGLTIME, "GL TIME" }, { RI_SLEVI_VGLCURVE, "GL CURVE" }
 };
 /* Oscillator Group Edit keys -> the per-op param they show. */
 static const uint8_t GROUP_PARAM[12] = {
@@ -421,6 +426,7 @@ uint32_t ri_slevi_page_count(const struct RISectLevi *s) {
     return (module(s) == RI_SLEVI_M_OSC || module(s) == RI_SLEVI_M_ALGO) ? 5u
         : (module(s) >= RI_SLEVI_M_ENV1 && module(s) < RI_SLEVI_M_ENV1 + 5u) ? 4u
         : module(s) == RI_SLEVI_M_DFILT || (module(s) >= RI_SLEVI_M_LFO1 && module(s) < RI_SLEVI_M_LFO1 + 5u) ? 2u
+        : module(s) == RI_SLEVI_M_VOICE ? 2u
         : module(s) == RI_SLEVI_M_MATRIX ? 16u : module(s) == RI_SLEVI_M_MACRO ? 34u : 1u;
 }
 
@@ -482,7 +488,7 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         : m == RI_SLEVI_M_POSTFX ? P_POSTFX
         : (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) ? P_LFO[s->page == 1u ? 1u : 0u]
         : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? P_ARP
-        : m == RI_SLEVI_M_SEQ ? P_SEQ : P_VOICE;
+        : m == RI_SLEVI_M_SEQ ? P_SEQ : m == RI_SLEVI_M_VOICE ? (s->page == 1u ? P_VOICE2 : P_VOICE) : P_VOICE;
     if (name) {
         *name = p[k].name;
         if (p[k].idx == SLOT_OP(RI_LEVI_OP_COARSE))  /* label follows the pitch mode */
@@ -1076,6 +1082,76 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
     }
     if (t == (int)RI_SLEVI_ULIMIT) {
         put_num(buf, cap, s->val[t] * 6 / 127 + 1);
+        return;
+    }
+    if (t == (int)RI_SLEVI_VDETUNE) {
+        put_num(buf, cap, s->val[t] * 50 / 127);
+        cat_str(buf, cap, " C");
+        return;
+    }
+    if (t == (int)RI_SLEVI_VAFEEL || t == (int)RI_SLEVI_VRNDPH || t == (int)RI_SLEVI_VWIDTH) {
+        put_num(buf, cap, s->val[t] * 100 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_VPAN) {
+        int p = (s->val[t] - 64) * 100 / 63;
+        if (p == 0)
+            put_str(buf, cap, "CENTRE");
+        else if (p < 0) {
+            put_str(buf, cap, "L");
+            cat_num(buf, cap, -p);
+        } else {
+            put_str(buf, cap, "R");
+            cat_num(buf, cap, p);
+        }
+        return;
+    }
+    if (t == (int)RI_SLEVI_VPANMODE) {
+        static const char *const VM[3] = { "BALANCE", "POWER", "WIDE" };
+        int m = s->val[t];
+        put_str(buf, cap, VM[m >= 0 && m < 3 ? m : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_VBENDRNG) {
+        put_num(buf, cap, s->val[t] * 24 / 127);
+        cat_str(buf, cap, "ST");
+        return;
+    }
+    if (t == (int)RI_SLEVI_VVIBRATE) {
+        float hz = 0.1f * ri_pow2((float)s->val[t] / 127.0f * 7.6439f);
+        int h = (int)(hz * 10.0f + 0.5f);
+        put_num(buf, cap, h / 10);
+        cat_str(buf, cap, ".");
+        cat_num(buf, cap, h % 10);
+        cat_str(buf, cap, "HZ");
+        return;
+    }
+    if (t == (int)RI_SLEVI_VVIBAMT) {
+        put_num(buf, cap, s->val[t] * 400 / 127);
+        cat_str(buf, cap, " C");
+        return;
+    }
+    if (t == (int)RI_SLEVI_VVIBDLY || t == (int)RI_SLEVI_VGLTIME) {
+        int h = t == (int)RI_SLEVI_VVIBDLY ? s->val[t] * 500 / 127   /* 0..5 s linear */
+            : s->val[t] * s->val[t] * 500 / (127 * 127);             /* 0..5 s quadratic */
+        put_num(buf, cap, h / 100);
+        cat_str(buf, cap, ".");
+        cat_num(buf, cap, (h % 100) / 10);
+        cat_str(buf, cap, "S");
+        return;
+    }
+    if (t == (int)RI_SLEVI_VGLIDE) {
+        put_str(buf, cap, s->val[t] == 0 ? "OFF" : s->val[t] < 64 ? "GLIDE" : "GLISS");
+        return;
+    }
+    if (t == (int)RI_SLEVI_VGLCURVE) {
+        if (s->val[t] == 64)
+            put_str(buf, cap, "LIN");
+        else if (s->val[t] < 64)
+            put_str(buf, cap, "FAST");
+        else
+            put_str(buf, cap, "SLOW");
         return;
     }
     if (t >= (int)RI_SLEVI_SLOT0 && t < (int)RI_SLEVI_SLOT0 + 8) {

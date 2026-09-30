@@ -234,7 +234,7 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 186u, "mapped count %u (+4 bias P2, +13 algo P3, +13 filters P4, +3 env P5a, +16 macros P5b, +3 voice P6a)", mapped);
+            RI_ASSERT(mapped == 199u, "mapped count %u (+4 bias P2, +13 algo P3, +13 filters P4, +3 env P5a, +16 macros P5b, +3 voice P6a, +13 voice P6b)", mapped);
             RI_ASSERT(listed == 31u, "listed count %u", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
@@ -264,7 +264,7 @@ int main(void) {
                         owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 1013u, "allow-list size %u (186 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
+                RI_ASSERT(nallow == 1026u, "allow-list size %u (199 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
                     "5 x 14 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys)", nallow);
             }
         }

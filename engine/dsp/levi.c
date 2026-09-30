@@ -938,6 +938,23 @@ void levi_init_set(struct RILeviSet *s) {
         v->melfo = 0u;
         v->mepad[0] = v->mepad[1] = 0u;
         v->denv = v->aenv = v->vinit = 0.0f;
+        v->vdetune = v->vafeel = v->vrndph = 0.0f;
+        v->vpan = 0.0f;
+        v->vwidth = 0.5f;
+        v->vpanmode = 0u;
+        v->vbendrng = 2.0f;
+        v->vvibrate = 5.0f;
+        v->vvibamt = v->vvibdly = 0.0f;
+        v->vglide = 0u;
+        v->vgltime = 1.0f;
+        v->vglcurve = 1.0f;
+        v->vibphase = v->vibtime = 0.0f;
+        v->glsemi = v->glt = 0.0f;
+        v->wtime = (float)i * 1.7f;
+        v->vidx = (uint8_t)i;
+        v->vpad[0] = v->vpad[1] = v->vpad[2] = 0u;
+        memset(v->vom, 0, sizeof v->vom);
+        v->vom_on = 0u;
     }
     for (o = 0u; o < RI_LEVI_NLFO; o++)
         lfo_init(&s->glfo[o], 97u + o);
@@ -1173,6 +1190,16 @@ int levi_set_lfo_ui(struct RILeviSet *s, uint32_t voice, uint32_t lfo, uint32_t 
     return 0;
 }
 
+/* Per-voice/per-op trigger hash 0..1 (fidelity P6b): deterministic,
+ * no RNG; static per voice+op so retriggers are identical. */
+static float voice_phase_hash(uint32_t voice, uint32_t op) {
+    uint32_t h = (voice * 8u + op + 1u) * 0x9E3779B1u;
+    h ^= h >> 13;
+    h *= 0x85EBCA6Bu;
+    h ^= h >> 16;
+    return (float)h / 4294967296.0f;
+}
+
 int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
     struct RILeviVoice *v;
     float f;
@@ -1181,6 +1208,22 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
         return 2;
     v = &s->v[voice];
     f = note_hz(note);
+    {
+        /* Glide (P6b): a new note on a sounding voice slides from the
+         * old pitch; fresh voices start on pitch. Legato retunes set
+         * this in alloc_retune instead (same law). */
+        uint8_t old = v->note;
+        int was = v->active;
+        if (v->vglide && was && old != note) {
+            v->glsemi = (float)old - (float)note;
+            v->glt = 0.0f;
+        } else {
+            v->glsemi = 0.0f;
+            v->glt = 1.0f;
+        }
+    }
+    v->vibphase = 0.0f;
+    v->vibtime = 0.0f;
     v->active = 1u;
     v->note = note;
     for (b = 0u; b < 2u; b++) {
@@ -1195,7 +1238,7 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
                 float fo = op->pmode == 2u ? op->hz
                     : op->pmode == 0u ? base * op->pitchmul : base * op->ratio;
                 op_state_reset(&v->st[b][o], fo);
-                v->st[b][o].phase = op->phase0;
+                v->st[b][o].phase = frac1(op->phase0 + v->vrndph * voice_phase_hash(voice, o));
             }
     }
     filt_clear(v);
@@ -1255,10 +1298,19 @@ static int alloc_has_reset(const struct RILeviVoice *v) {
 }
 
 /* Legato retune: new pitch without restarting envelopes, LFOs, mod envs
- * or filters (E0: retune-only; reset wins over legato). */
+ * or filters (E0: retune-only; reset wins over legato). Glide restarts
+ * from the old note like a trigger (P6b). */
 static void alloc_retune(struct RILeviVoice *v, uint8_t note) {
     float f = note_hz(note);
     uint32_t o, b;
+    uint8_t old = v->note;
+    if (v->vglide && old != note) {
+        v->glsemi = (float)old - (float)note;
+        v->glt = 0.0f;
+    } else {
+        v->glsemi = 0.0f;
+        v->glt = 1.0f;
+    }
     v->note = note;
     for (b = 0u; b < 2u; b++) {
         uint8_t *live = b ? v->liveB : v->live;
@@ -1967,6 +2019,49 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
         s->ulimit = (uint8_t)(l > RI_LEVI_NVOICES ? RI_LEVI_NVOICES : l);
         return 0;
     }
+    case (RI_CTL_LEVI_VDETUNE & 0xFFu):
+        s->v[voice].vdetune = (float)(val > 127u ? 127u : val) / 127.0f;
+        return 0;
+    case (RI_CTL_LEVI_VAFEEL & 0xFFu):
+        s->v[voice].vafeel = (float)(val > 127u ? 127u : val) / 127.0f;
+        return 0;
+    case (RI_CTL_LEVI_VRNDPH & 0xFFu):
+        s->v[voice].vrndph = (float)(val > 127u ? 127u : val) / 127.0f;
+        return 0;
+    case (RI_CTL_LEVI_VPAN & 0xFFu): {
+        float p = ((float)(val > 127u ? 127u : val) - 64.0f) / 63.0f;
+        s->v[voice].vpan = p < -1.0f ? -1.0f : p > 1.0f ? 1.0f : p;
+        return 0;
+    }
+    case (RI_CTL_LEVI_VWIDTH & 0xFFu):
+        s->v[voice].vwidth = (float)(val > 127u ? 127u : val) / 127.0f;
+        return 0;
+    case (RI_CTL_LEVI_VPANMODE & 0xFFu):
+        s->v[voice].vpanmode = val > 2u ? 2u : val;
+        return 0;
+    case (RI_CTL_LEVI_VBENDRNG & 0xFFu):
+        s->v[voice].vbendrng = (float)(val > 127u ? 127u : val) * 24.0f / 127.0f;
+        return 0;
+    case (RI_CTL_LEVI_VVIBRATE & 0xFFu):
+        s->v[voice].vvibrate = 0.1f * ri_pow2((float)(val > 127u ? 127u : val) / 127.0f * 7.6439f);
+        return 0;
+    case (RI_CTL_LEVI_VVIBAMT & 0xFFu):
+        s->v[voice].vvibamt = (float)(val > 127u ? 127u : val) * 4.0f / 127.0f;
+        return 0;
+    case (RI_CTL_LEVI_VVIBDLY & 0xFFu):
+        s->v[voice].vvibdly = (float)(val > 127u ? 127u : val) * 5.0f / 127.0f;
+        return 0;
+    case (RI_CTL_LEVI_VGLIDE & 0xFFu):
+        s->v[voice].vglide = val == 0u ? 0u : val < 64u ? 1u : 2u;
+        return 0;
+    case (RI_CTL_LEVI_VGLTIME & 0xFFu): {
+        float u = (float)(val > 127u ? 127u : val) / 127.0f;
+        s->v[voice].vgltime = 5.0f * u * u;
+        return 0;
+    }
+    case (RI_CTL_LEVI_VGLCURVE & 0xFFu):
+        s->v[voice].vglcurve = ri_pow2(((float)(val > 127u ? 127u : val) - 64.0f) / 32.0f);
+        return 0;
     default:
         return 2;
     }
@@ -2010,7 +2105,7 @@ static float mod_warp(uint32_t mode, float ph, float n, float a) {
  * warp its phase trajectory. With every mode Freq Mod and the default
  * levels this is the v1 render bit for bit. */
 static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
-    int *any_on) {
+    float vpitch, int *any_on) {
     float opout[RI_LEVI_NOPS] = { 0.0f }, mix = 0.0f;
     const uint8_t *fd = bank ? v->feedsB : v->feeds;
     const uint8_t *ord = bank ? v->orderB : v->order;
@@ -2060,7 +2155,7 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
                 else
                     warped = 1;
             }
-        fq = o->freq;
+        fq = o->freq * vpitch;
         if (m) {
             /* Pitch +/-24 semitones full scale; ratio (+/-8 octaves) and
              * fine (+/-50 cents) act in ratio mode only (p. 127 note 1). */
@@ -2138,7 +2233,7 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     float *eaenv, float *ealfo, float *evlevel, float *evlfo, float *eoplevel, float *emorph) {
     float src[RI_LEVI_MS_N];
     struct RILeviModOut out[RI_LEVI_MODOUT_MAX];
-    uint32_t n, i, o, touch_op = 0u, touch_me = 0u;
+    uint32_t n, i, o, touch_op = 0u, touch_me = 0u, touch_vo = 0u;
     for (i = 0u; i < RI_LEVI_MS_N; i++)
         src[i] = 0.0f;
     for (o = 0u; o < RI_LEVI_NOPS; o++)
@@ -2152,6 +2247,17 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     for (o = 0u; o < RI_LEVI_NMENV; o++)
         src[RI_LEVI_MS_ENV0 + o] = levi_menv_value(v, o);
     src[RI_LEVI_MS_NOTE] = ((float)(v->note > 127u ? 127u : v->note) - 60.0f) / 60.0f;
+    {
+        /* VoiceMod (fidelity P6b, manual p. 127): per-voice static
+         * values, own law — VMOD bipolar hash, VMOD+ ordinal unipolar.
+         * Deterministic, no RNG. */
+        uint32_t h = ((uint32_t)v->vidx + 1u) * 0x9E3779B1u;
+        h ^= h >> 13;
+        h *= 0x85EBCA6Bu;
+        h ^= h >> 16;
+        src[RI_LEVI_MS_VMOD] = (float)h / 2147483648.0f - 1.0f;
+        src[RI_LEVI_MS_VMODP] = (float)v->vidx / ((float)RI_LEVI_NVOICES - 1.0f);
+    }
     n = ri_levi_matrix_eval2(mx, src, out);
     if (v->opm_on) {
         memset(v->opm, 0, sizeof v->opm);
@@ -2165,6 +2271,8 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
             v->menv[o].cmod[0] = v->menv[o].cmod[1] = v->menv[o].cmod[2] = 0;
         }
     }
+    if (v->vom_on)
+        memset(v->vom, 0, sizeof v->vom);
     for (i = 0u; i < n; i++) {
         uint32_t dm = out[i].dmod, dp = out[i].dpar;
         float x = out[i].x;
@@ -2216,10 +2324,16 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
                 *eoplevel += x;
         } else if (dm == RI_LEVI_DM_ALGO) {
             *emorph += 100.0f * x;
+        } else if (dm == RI_LEVI_DM_VOICE) {
+            if (dp < RI_LEVI_DVO_N) {
+                v->vom[dp] += x;
+                touch_vo = 1u;
+            }
         }
     }
     v->opm_on = (uint8_t)touch_op;
     v->mem_on = (uint8_t)touch_me;
+    v->vom_on = (uint8_t)touch_vo;
     for (o = 0u; o < RI_LEVI_NMENV && touch_me; o++)
         v->melmod[o] = v->mem[o][RI_LEVI_DE_LEVEL];
     if (!touch_me)
@@ -2247,6 +2361,7 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
      * plain path stays bit-identical (x*1.0 and x+0.0 are exact; morph
      * keeps its integer branches through emorph). */
     float ecut, ereso, edrive, emorph, eoplevel, evlevel, amp, lfo5[RI_LEVI_NLFO];
+    float vpitch, afwob; /* voice pitch mult + analog filter wobble (P6b) */
     float edm, edenv, eaenv, edlfo, ealfo, evlfo, edlevel, eacut = 1.0f, eareso;
     /* LFOs step once per sample when the matrix or a pre-wired amount
      * (LFO 1 > digital, 2 > analog, 3 > VCA; P4) listens. */
@@ -2306,8 +2421,67 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     if (mx)
         levi_mod_apply(v, mx, lfo5, &ecut, &ereso, &edm, &edenv, &edlfo, &edlevel, &eacut, &eareso, &edrive, &eaenv,
             &ealfo, &evlevel, &evlfo, &eoplevel, &emorph);
-    mixA = voice_pass(v, 0u, sr, &any_on);
-    mixB = voice_pass(v, 1u, sr, &any_on);
+    {
+        /* Voice pitch (fidelity P6b, manual pp. 87-96): detune spread,
+         * analog drift, vibrato and glide as one semitone offset, then
+         * a single pow2. Exact 0 (hence vpitch exactly 1) when every
+         * feature rests, so the legacy path stays bit-identical.
+         * Bend folds in with the P9 MIDI data (its source reads 0). */
+        float det = v->vdetune + (v->vom_on ? v->vom[RI_LEVI_DVO_DETUNE] : 0.0f);
+        float feel = v->vafeel + (v->vom_on ? v->vom[RI_LEVI_DVO_AFEEL] : 0.0f);
+        float va = v->vvibamt + (v->vom_on ? 4.0f * v->vom[RI_LEVI_DVO_VIBAMT] : 0.0f);
+        float vr = v->vvibrate * (v->vom_on ? ri_pow2(2.0f * v->vom[RI_LEVI_DVO_VIBRATE]) : 1.0f);
+        float hc = ((float)RI_LEVI_NVOICES - 1.0f) * 0.5f;
+        float vsemi = 0.0f;
+        vpitch = 1.0f;
+        afwob = 0.0f;
+        det = det < -1.0f ? -1.0f : det > 1.0f ? 1.0f : det;
+        feel = feel < 0.0f ? 0.0f : feel > 1.0f ? 1.0f : feel;
+        if (det != 0.0f)
+            vsemi += det * (((float)v->vidx - hc) / hc) * 50.0f;
+        if (va != 0.0f) {
+            float dg = v->vvibdly <= 0.0f ? 1.0f
+                : v->vibtime >= v->vvibdly ? 1.0f : v->vibtime / v->vvibdly;
+            vsemi += va * ri_sin(6.2831853f * v->vibphase) * dg;
+            v->vibtime += 1.0f / sr;
+        }
+        v->vibphase += vr / sr;
+        v->vibphase -= (float)(int)v->vibphase;
+        {
+            uint32_t gm = v->vglide;
+            if (v->vom_on && v->vom[RI_LEVI_DVO_GLIDETGL] != 0.0f)
+                gm = v->vom[RI_LEVI_DVO_GLIDETGL] > 0.0f ? 1u : 0u;
+            if (gm && v->glt < 1.0f) {
+                float gt = v->vgltime * (v->vom_on ? ri_pow2(4.0f * v->vom[RI_LEVI_DVO_GLTIME]) : 1.0f);
+                float gc = v->vglcurve + (v->vom_on ? v->vom[RI_LEVI_DVO_GLCURVE] : 0.0f);
+                float e = gt <= 0.0f ? 1.0f : v->glt + 1.0f / (gt * sr);
+                float ee;
+                e = e > 1.0f ? 1.0f : e;
+                v->glt = e;
+                ee = e + (gc - 1.0f) * e * (1.0f - e);
+                ee = ee < 0.0f ? 0.0f : ee > 1.0f ? 1.0f : ee;
+                if (gm == 2u) { /* glissando: step the slide in semitones */
+                    float ns = v->glsemi < 0.0f ? -v->glsemi : v->glsemi;
+                    uint32_t nst = (uint32_t)(ns + 0.5f);
+                    if (nst < 1u)
+                        nst = 1u;
+                    ee = ((float)(int)(ee * (float)nst + 0.5f)) / (float)nst;
+                }
+                vsemi += v->glsemi * (1.0f - ee);
+            }
+        }
+        if (feel != 0.0f) {
+            float w1 = ri_sin(6.2831853f * (v->wtime / 7.3f + (float)v->vidx * 0.13f));
+            float w2 = ri_sin(6.2831853f * (v->wtime / 11.7f + (float)v->vidx * 0.29f));
+            vsemi += feel * (3.6f * w1 + 2.4f * w2);
+            afwob = feel * (0.3f * w1 + 0.2f * w2);
+        }
+        v->wtime += 1.0f / sr;
+        if (vsemi != 0.0f)
+            vpitch = ri_pow2(vsemi / 12.0f);
+    }
+    mixA = voice_pass(v, 0u, sr, vpitch, &any_on);
+    mixB = voice_pass(v, 1u, sr, vpitch, &any_on);
     /* Exact endpoints (bit-identity with no-morph / pure-B voices);
      * the slide blends between them. */
     if (emorph <= 0.0f)
@@ -2328,6 +2502,10 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
         /* Signal flow (p. 67): OSCs level > digital filter > D.Filt
          * level > analog pre-drive + filter > VCA level > patch level. */
         float dc = ecut * v->dktm, ac = v->cutoff2 * v->aktm * eacut;
+        if (afwob != 0.0f) { /* analog-feel cutoff wander (P6b) */
+            dc *= ri_pow2(afwob);
+            ac *= ri_pow2(afwob);
+        }
         uint8_t dmsave = v->dmorph;
         if (lfo_on && edlfo != 0.0f)
             dc *= ri_pow2(4.0f * edlfo * lfo5[0]);     /* +/-4 octaves full scale */
