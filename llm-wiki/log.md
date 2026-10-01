@@ -1582,3 +1582,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (opens the P9 record); Update (amends the P9a bend plan bullet: per-sample semitone offset, not a retune pass; pins the P8e commit hash)
 - Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p9a-perfsig.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P9b (performance amounts)
+- Disposition: New (continues the P9 record); Update (pins the P9b commit hash; records the P9a mono-refresh gap closed here)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p9b-perfamt.md
+- Updated: llm-wiki/index.md (Live app entry list)
