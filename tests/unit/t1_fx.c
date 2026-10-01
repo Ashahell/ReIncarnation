@@ -207,9 +207,11 @@ int main(void) {
         ri_fxcomp_render(&c, IN, OA, SRU);
         r1 = rms(OA, SRU);
         mu_db = (float)(20.0 * log10((double)r1 / (double)r0));
-        /* thresh 64 = -19.84 dBFS, MU = +14.88 dB by the premult */
-        RI_ASSERT(fabs(mu_db - 14.88) <= 0.5,
-            "makeup %.3g dB want 14.88", (double)mu_db);
+        /* thresh 64 = -19.84 dBFS at 4:1: full compensation would be
+         * +14.88 dB; auto make-up is half of it (owner 2026-10-01, the
+         * TASCAM-style convention), +7.44 dB. */
+        RI_ASSERT(fabs(mu_db - 7.44) <= 0.5,
+            "makeup %.3g dB want 7.44", (double)mu_db);
         printf("comp low-level gain (make-up): %.3g dB\n", (double)mu_db);
         sine(IN, SRU, 440.0, 0.9);
         ri_fxcomp_reset(&c);
@@ -413,5 +415,23 @@ int main(void) {
             RI_ASSERT(OA[k] == OB[k], "chain nondet at %u", k);
     }
 
+    /* --- master soft limiter (owner 2026-10-01): exact below -1 dBFS,
+     * C1-continuous at the knee, odd, monotonic, never reaches full
+     * scale, so the s16 output never hard-clips --- */
+    {
+        float x, prev = -2.0f, t = RI_LIMIT_KNEE;
+        RI_ASSERT(ri_soft_limit(0.0f) == 0.0f, "limit zero");
+        RI_ASSERT(ri_soft_limit(0.5f) == 0.5f && ri_soft_limit(-0.8f) == -0.8f, "limit transparent");
+        RI_ASSERT(ri_soft_limit(t) == t, "limit knee exact");
+        RI_ASSERT(fabs((double)(ri_soft_limit(t + 1e-3f) - (t + 1e-3f))) < 1e-5, "limit C1 at knee");
+        for (x = -8.0f; x <= 8.0f; x += 0.01f) {
+            float y = ri_soft_limit(x);
+            RI_ASSERT(y > -1.0f && y < 1.0f, "limit bound x=%g y=%g", (double)x, (double)y);
+            RI_ASSERT(y >= prev, "limit monotonic x=%g", (double)x);
+            RI_ASSERT(ri_soft_limit(-x) == -y, "limit odd x=%g", (double)x);
+            prev = y;
+        }
+        RI_ASSERT(ri_soft_limit(2.0f) > 0.99f, "limit approaches full scale");
+    }
     RI_RESULT("fx");
 }

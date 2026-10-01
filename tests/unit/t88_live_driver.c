@@ -174,5 +174,28 @@ int main(void) {
         RI_ASSERT(ri_atomic_load_acq(&d.overloads) == 2u, "re-trip");
         t_step = 111u;
     }
+    /* A single external stall (Dell 2026-10-01: an 84 ms buffer while the
+     * GUI repainted a tab page) is not overload: it must not trip. */
+    {
+        uint32_t b;
+        t_fake_us = 0u;
+        t_step = 1000u;
+        fixture_session(&s);
+        ri_livedrv_init(&d, &s, 256u, fake_now);
+        for (b = 0u; b < 100u; b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        t_step = 84000u;
+        ri_livedrv_render(&d, buf, fl, fr, 256u);
+        t_step = 30000u; /* the stall spans a few renders */
+        ri_livedrv_render(&d, buf, fl, fr, 256u);
+        ri_livedrv_render(&d, buf, fl, fr, 256u);
+        ri_livedrv_render(&d, buf, fl, fr, 256u);
+        t_step = 1000u;
+        for (b = 0u; b < 50u; b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(ri_atomic_load_acq(&d.overloads) == 0u, "single stall trips (%u)",
+            ri_atomic_load_acq(&d.overloads));
+        t_step = 111u;
+    }
     RI_RESULT("live_driver");
 }

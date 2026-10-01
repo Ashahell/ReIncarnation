@@ -239,13 +239,15 @@ static void ri_fxcomp_derive(struct RiFXComp *c, float sr) {
     c->rel_a = ri_exp(-1.0f / (RI_FXCOMP_RELEASE_S * sr));
 }
 
-/* Auto make-up: MU_dB = -tdb*(1-1/R), premultiplied at set time
- * (MU_lin = 2^(-thresh_dB*(1-1/R)*log2(10)/20) via ri_pow2).
- * Re-derived on every knob set so threshold and ratio stay consistent
- * no matter which order the caller sets them. */
+/* Auto make-up: half the gain reduction a 0 dBFS input would get,
+ * MU_dB = -tdb*(1-1/R)/2 (owner 2026-10-01; the TASCAM-style half
+ * compensation: full compensation put +18 dB on a strip at the song's
+ * settings and hard-clipped the mix), premultiplied at set time
+ * (MU_lin = 2^(MU_dB*log2(10)/20) via ri_pow2). Re-derived on every knob
+ * set so threshold and ratio stay consistent in either order. */
 static void ri_fxcomp_makeup(struct RiFXComp *c) {
     float tdb = ri_fxcomp_thresh_db(c->thresh);
-    float mu_db = -tdb * (1.0f - 1.0f / c->ratio);
+    float mu_db = -tdb * (1.0f - 1.0f / c->ratio) * 0.5f;
     c->mu_lin = ri_pow2(mu_db * 0.1660964f);
 }
 
@@ -637,4 +639,16 @@ void RiFXReset(struct RIFX *x) {
         pcf_init(&x->pcf);
         ri_fx_pcf_apply(x);
     }
+}
+
+float ri_soft_limit(float x) {
+    const float t = RI_LIMIT_KNEE, room = 1.0f - RI_LIMIT_KNEE;
+    float a = x < 0.0f ? -x : x;
+    float y;
+    if (a <= t)
+        return x;
+    y = t + room * ri_tanh((a - t) / room);
+    if (y >= 1.0f)
+        y = 0.99999994f;                              /* largest float < 1 */
+    return x < 0.0f ? -y : y;
 }

@@ -91,8 +91,13 @@ static ULONG s_efreq;
 
 static void eclock_open(void) {
     struct EClockVal t0;
-    if (TimerBase)
+    if (TimerBase) {
+        /* RIAPP's audio side opened timer.device first: still read the
+         * EClock rate, else every draw timing is dropped (draw n=0). */
+        if (!s_efreq)
+            s_efreq = ReadEClock(&t0);
         return;
+    }
     s_tport = CreateMsgPort();
     if (s_tport)
         s_treq = (struct timerequest *)CreateIORequest(s_tport, sizeof *s_treq);
@@ -155,7 +160,7 @@ static const struct RIGeoSection *geo(const struct RSectionData *d);
 static void draw_frame(Object *obj, struct RSectionData *d) {
     struct RastPort *wrp = _rp(obj);
     int w = _mwidth(obj), h = _mheight(obj);
-    struct EClockVal t0, t1;
+    struct EClockVal t0, t1, tb;
     int timed = 0;
     ULONG us;
     if (w <= 0 || h <= 0)
@@ -163,6 +168,7 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
     if (!d->bm || d->bw != w || d->bh != h) {
         buf_free(d);
         d->bm = AllocBitMap((ULONG)w, (ULONG)h, GetBitMapAttr(wrp->BitMap, BMA_DEPTH), BMF_MINPLANES, wrp->BitMap);
+        d->diag.alloc_n++;
         if (d->bm) {
             InitRastPort(&d->brp);
             d->brp.BitMap = d->bm;
@@ -209,9 +215,14 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
         }
     }
     draw_section(&d->brp, d, 0, 0);
+    if (timed)
+        ReadEClock(&tb);
     BltBitMapRastPort(d->bm, 0, 0, wrp, _mleft(obj), _mtop(obj), w, h, 0xC0);
     if (timed) {
         ReadEClock(&t1);
+        us = eclock_us(&tb, &t1);
+        if (us > d->diag.blit_max)
+            d->diag.blit_max = us;
         us = eclock_us(&t0, &t1);
         if (us > d->diag.df_max)
             d->diag.df_max = us;

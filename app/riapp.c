@@ -387,6 +387,84 @@ static void rlog(const char *fmt, ...) {
 }
 
 /* Transport state edge -> the render task (or the null session). */
+/* CAPTURE=<file>: record the live output (what AHI plays) from the next
+ * Play to the next Stop/pause, then write a 16-bit stereo WAV at the device
+ * rate (owner 2026-10-01: pull a WAV of a song off the Dell). The render
+ * task copies each half into the GUI-owned buffer (live driver W capture);
+ * all file IO stays on the GUI task. One capture per run. */
+#define RIAPP_CAP_SECONDS 600u
+static char s_cap_path[256];
+static int s_cap_state;            /* 0 off, 1 armed, 2 recording, 3 written */
+static WORD *s_cap_mem;
+
+static void cap_put32(UBYTE *p, ULONG v) {
+    p[0] = (UBYTE)v;
+    p[1] = (UBYTE)(v >> 8);
+    p[2] = (UBYTE)(v >> 16);
+    p[3] = (UBYTE)(v >> 24);
+}
+
+static void capture_arm(const char *path) {
+    ULONG max;
+    if (!s_live || !path || !path[0] || s_cap_state)
+        return;
+    max = RIAPP_CAP_SECONDS * s_lv.mix_freq;
+    s_cap_mem = (WORD *)AllocVec(max * 4u, MEMF_ANY | MEMF_CLEAR);
+    if (!s_cap_mem) {
+        rlog("RIAPP capture %s: no memory for %lu s\n", path, (unsigned long)RIAPP_CAP_SECONDS);
+        return;
+    }
+    strncpy(s_cap_path, path, sizeof s_cap_path - 1u);
+    s_cap_path[sizeof s_cap_path - 1u] = '\0';
+    s_lv.cap_buf = s_cap_mem;
+    s_lv.cap_max = max;
+    s_cap_state = 1;
+    rlog("RIAPP capture %s: armed (%lu s max)\n", s_cap_path, (unsigned long)RIAPP_CAP_SECONDS);
+}
+
+static void capture_start(void) {
+    if (s_cap_state != 1)
+        return;
+    ri_atomic_store_rel(&s_lv.drv.cap_pos, 0u);
+    ri_atomic_store_rel(&s_lv.drv.cap_on, 1u);
+    s_cap_state = 2;
+    rlog("RIAPP capture %s: recording\n", s_cap_path);
+}
+
+static void capture_finish(const char *why) {
+    UBYTE h[44];
+    ULONG frames, bytes, rate;
+    BPTR fh;
+    LONG ok;
+    if (s_cap_state != 2)
+        return;
+    ri_atomic_store_rel(&s_lv.drv.cap_on, 0u);
+    Delay(2);                                         /* > one device period */
+    frames = ri_atomic_load_acq(&s_lv.drv.cap_pos);
+    s_cap_state = 3;
+    rate = s_lv.mix_freq;
+    bytes = frames * 4u;
+    memcpy(h, "RIFF", 4);
+    cap_put32(h + 4, 36u + bytes);
+    memcpy(h + 8, "WAVEfmt ", 8);
+    cap_put32(h + 16, 16u);
+    h[20] = 1; h[21] = 0;                             /* PCM */
+    h[22] = 2; h[23] = 0;                             /* stereo */
+    cap_put32(h + 24, rate);
+    cap_put32(h + 28, rate * 4u);
+    h[32] = 4; h[33] = 0;                             /* block align */
+    h[34] = 16; h[35] = 0;                            /* bits */
+    memcpy(h + 36, "data", 4);
+    cap_put32(h + 40, bytes);
+    fh = Open((CONST_STRPTR)s_cap_path, MODE_NEWFILE);
+    ok = fh && Write(fh, h, 44) == 44 && Write(fh, s_cap_mem, (LONG)bytes) == (LONG)bytes;
+    if (fh)
+        Close(fh);
+    rlog("RIAPP capture %s: %s, %lu frames (%lu s) at %lu Hz%s\n", s_cap_path, why,
+        (unsigned long)frames, (unsigned long)(rate ? frames / rate : 0u), (unsigned long)rate,
+        ok ? "" : " - WRITE FAILED");
+}
+
 static void sync_transport(void) {
     int st = s_ui[C_TR]->u.tr.tr.state;
     /* Owner 2026-09-29: the tempo knob drives the session (was
@@ -405,6 +483,7 @@ static void sync_transport(void) {
             au_live_request(&s_lv, AU_LIVE_CMD_PLAY);
         else
             ri_core_play(&s_core);
+        capture_start();
         rlog("RIAPP play\n");
         evlog("TR", "PLAY");
     } else {
@@ -413,6 +492,7 @@ static void sync_transport(void) {
         else
             ri_core_stop(&s_core);
         rlog("RIAPP stop\n");
+        capture_finish("stopped");
         evlog("TR", "STOP");
     }
 }
@@ -1490,12 +1570,24 @@ static void tab_switch(uint32_t g) {
     uint32_t k;
     if (g >= RI_TAB_COUNT || !s_pages)
         return;
+    ULONG x0 = s_live ? ri_atomic_load_acq(&s_lv.drv.xruns) : 0u, us = 0u, efreq = 0u;
+    struct EClockVal e0, e1;
+    if (TimerBase)
+        efreq = ReadEClock(&e0);
     SetAttrs(s_pages, MUIA_Group_ActivePage, (IPTR)g, TAG_DONE);
     for (k = 0u; k < RI_TAB_COUNT; k++)
         if (s_tabs[k])
             SetAttrs(s_tabs[k], MUIA_RArt_Active, (IPTR)(k == g ? TRUE : FALSE), TAG_DONE);
     rail_for_tab();
-    evlog("TAB", "page=%d", g);
+    if (efreq) {                      /* tab-stall probe (owner Dell 2026-10-01) */
+        uint64_t a, b;
+        ReadEClock(&e1);
+        a = ((uint64_t)e0.ev_hi << 32) | e0.ev_lo;
+        b = ((uint64_t)e1.ev_hi << 32) | e1.ev_lo;
+        us = (ULONG)((b - a) * 1000000ULL / efreq);
+    }
+    evlog("TAB", "page=%d us=%lu xruns+%lu", g, (unsigned long)us,
+        (unsigned long)((s_live ? ri_atomic_load_acq(&s_lv.drv.xruns) : 0u) - x0));
 }
 
 /* S5 zoom choice: persisted mode (Fit default) in ENVARC: prefs. */
@@ -1698,6 +1790,9 @@ int main(int argc, char **argv) {
                 rlog("RIAPP 909 pack missing: %s (909 renders silence)\n", err[0] ? err : "no pack", 0, 0, 0, 0);
         }
     }
+    for (i = 1; i < argc; i++)                        /* before the task takes the buffer */
+        if (argv[i] && !strncmp(argv[i], "CAPTURE=", 8))
+            capture_arm(argv[i] + 8);
     if (s_live && au_live_run(&s_lv, &s_core.session) != 0) {
         au_live_close(&s_lv);
         s_live = 0;
@@ -2127,6 +2222,8 @@ int main(int argc, char **argv) {
             have_cursor = 1;
         }
         sync_transport();
+        if (s_cap_state == 2 && !ri_atomic_load_acq(&s_lv.drv.cap_on))
+            capture_finish("buffer full");
         song_poll_end(have_cursor, cursor);
         for (i = C_P0; i <= C_P4; i++)
             sync_pat(i, have_cursor ? cursor : 0u);
@@ -2163,7 +2260,7 @@ int main(int argc, char **argv) {
          * S3 draw timing joins the window (live or not): full vs partial
          * redraw us, max + mean, so a knob-drag session reports both. */
         if (++hb >= 300u) {
-            ULONG dfmax = 0u, dpmax = 0u, dfsum = 0u, dpsum = 0u, dfn = 0u, dpn = 0u;
+            ULONG dfmax = 0u, dpmax = 0u, dfsum = 0u, dpsum = 0u, dfn = 0u, dpn = 0u, blmax = 0u, alln = 0u;
             hb = 0u;
             for (i = 0; i < C_N; i++) {
                 struct RSectionDiag *dg = (struct RSectionDiag *)s_dg[i];
@@ -2177,13 +2274,18 @@ int main(int argc, char **argv) {
                 dpsum += dg->dp_sum;
                 dfn += (ULONG)(dg->df_n > 0 ? dg->df_n : 0);
                 dpn += (ULONG)(dg->dp_n > 0 ? dg->dp_n : 0);
+                if (dg->blit_max > blmax)
+                    blmax = dg->blit_max;
+                alln += dg->alloc_n;
+                dg->blit_max = 0u;
+                dg->alloc_n = 0u;
                 dg->df_max = dg->df_sum = 0u;
                 dg->df_n = 0;
                 dg->dp_max = dg->dp_sum = 0u;
                 dg->dp_n = 0;
             }
-            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu\n",
-                dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn);
+            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu\n",
+                dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn, blmax, alln);
             if (s_live)
             rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us load=%lu/1000 overloads=%lu snd=%u/%u/%u/%u pend=%u/%u/%u/%u\n",
                 ri_atomic_load_acq(&s_lv.drv.buffers),
@@ -2212,8 +2314,13 @@ int main(int argc, char **argv) {
         DeleteIORequest((struct IORequest *)treq);
     if (tport)
         DeleteMsgPort(tport);
+    capture_finish("quit");
     if (s_live) {
         au_live_close(&s_lv);
+        if (s_cap_mem) {
+            FreeVec(s_cap_mem);
+            s_cap_mem = NULL;
+        }
         if (DOSBase)
             rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us\n",
                 ri_atomic_load_acq(&s_lv.drv.buffers), ri_atomic_load_acq(&s_lv.drv.xruns), ri_atomic_load_acq(&s_lv.drv.render_us_max), ri_atomic_load_acq(&s_lv.drv.render_us_sum_ms), s_lv.period_us);

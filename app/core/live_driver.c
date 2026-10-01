@@ -58,7 +58,11 @@ static void governor(struct RILiveDriver *d, uint32_t us, uint32_t frames) {
     period = (uint64_t)((float)frames * 1000000.0f / d->session->sr);
     if (period == 0u)
         return;
-    load = ((uint64_t)us * 1000u / period > 4000u) ? 4000u : (uint32_t)((uint64_t)us * 1000u / period);
+    /* One buffer counts at most 1.2x busy: a stall from outside (the Dell
+     * blocks audio ~50-84 ms while a tab page repaints) must not trip the
+     * governor on its own; only renders that stay over budget do. */
+    load = ((uint64_t)us * 1000u / period > RI_LIVEDRV_LOAD_CAP_PM) ? RI_LIVEDRV_LOAD_CAP_PM :
+        (uint32_t)((uint64_t)us * 1000u / period);
     d->load_pm = (d->load_pm * 7u + load) / 8u;
     if (ri_atomic_load_acq(&d->overloaded)) {
         if (d->over_left_us > period) {

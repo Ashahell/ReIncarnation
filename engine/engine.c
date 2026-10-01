@@ -624,9 +624,12 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 ri_meter_feed(&e->master_meter[0], tl, cc);
                 ri_meter_feed(&e->master_meter[1], tr, cc);
             }
+            /* Soft limiter last (owner 2026-10-01): exact below -1 dBFS,
+             * so every unclipped render stays bit-identical; the meters
+             * above still see (and CLIP-flag) the unlimited level. */
             for (i = 0; i < cc; i++) {
-                out_l[done + c + i] = (float)ml[i];
-                out_r[done + c + i] = (float)mr[i];
+                out_l[done + c + i] = ri_soft_limit((float)ml[i]);
+                out_r[done + c + i] = ri_soft_limit((float)mr[i]);
             }
             c += cc;
         }

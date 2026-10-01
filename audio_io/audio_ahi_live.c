@@ -100,8 +100,12 @@ static uint64_t aros_now_us(void) {
 /* Render priority: above the UI while the machine keeps up; below it
  * (still above idle) while the driver's load governor says it cannot,
  * so an overloaded song glitches instead of freezing menus, windows and
- * every other task (owner Dell 2026-09-30). */
-#define AU_LIVE_PRI 10
+ * every other task (owner Dell 2026-09-30).
+ * 21, one above input.device (20): on the Dell a tab-page repaint makes
+ * Intuition's input handler do 60-80 ms of display work, which at 10
+ * pre-empted the render mid-buffer (10-14 xruns per switch, heard as a
+ * glitch). At 21: 0 xruns, render_max 3.1 ms (owner Dell 2026-10-01). */
+#define AU_LIVE_PRI 21
 #define AU_LIVE_PRI_YIELD (-1)
 
 /* Render one half through the portable driver (T4): transport at the

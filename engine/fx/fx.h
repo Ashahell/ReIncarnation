@@ -144,6 +144,13 @@ void ri_fxcomp_render(struct RiFXComp *c, const float *in, float *out,
  * (<= 0; 0 when nothing compressed). gr_reset restarts the block peak. */
 float ri_fxcomp_gr_db(const struct RiFXComp *c);
 void ri_fxcomp_gr_reset(struct RiFXComp *c);
+
+/* Master soft limiter (owner 2026-10-01: hot inserts hard-clipped the s16
+ * output). Exact below RI_LIMIT_KNEE (-1 dBFS); above it the excess is
+ * tanh-shaped into the last 1 dB, so the output approaches but never
+ * reaches full scale. Odd, monotonic, C1 at the knee. */
+#define RI_LIMIT_KNEE 0.8912509f
+float ri_soft_limit(float x);
 /* Stereo-linked render: one detector on max(|l|,|r|), same gain both
  * channels (master comp). GR meter tracks. */
 void ri_fxcomp_render_linked(struct RiFXComp *c, float *l, float *r,

@@ -48,6 +48,8 @@ struct RSectionDiag {
     LONG df_n;            /* ... and count */
     ULONG dp_max, dp_sum; /* S3: partial-draw us, max + window sum */
     LONG dp_n;            /* ... and count */
+    ULONG blit_max;       /* full draw: BltBitMapRastPort share, max us */
+    ULONG alloc_n;        /* back-buffer (re)allocations */
 };
 
 struct MUI_CustomClass *ri_rsection_class(void);

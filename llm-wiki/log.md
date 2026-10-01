@@ -1543,6 +1543,7 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (deploy record; follows the menu-hang/load-governor record)
 - Raw: llm-wiki/raw/articles/2026-10-01-dell-deploy-abiv11-usb-stick-layout.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
 ## [2026-10-01] ingest | Leviasynth fidelity P7b (device reverb)
 - Disposition: New (continues the P7 FX record)
 - Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p7b-reverb.md
@@ -1568,6 +1569,10 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p8c-seq.md
 - Updated: llm-wiki/index.md (Live app entry list)
 
+## [2026-10-01] ingest | Dell Zombie Nation telemetry + song-load diagnosis
+- Disposition: New; Update (narrows the starvation hypothesis in the menu-hang record)
+- Raw: llm-wiki/raw/articles/2026-10-01-dell-zn-telemetry-song-load-diagnosis.md
+- Updated: llm-wiki/index.md (Live app entry list)
 ## [2026-10-01] ingest | Leviasynth fidelity P8d (ribbon)
 - Disposition: New (continues the P8 record); Update (pins the P8d commit hash)
 - Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p8d-ribbon.md
@@ -1586,4 +1591,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 ## [2026-10-01] ingest | Leviasynth fidelity P9b (performance amounts)
 - Disposition: New (continues the P9 record); Update (pins the P9b commit hash; records the P9a mono-refresh gap closed here)
 - Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p9b-perfamt.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Clipping (Comp make-up) and tab-switch dropouts (render priority)
+- Disposition: New; Update (resolves the deferred 2026-09-28 render-spike hunt; supersedes the pri-10 render choice in the menu-hang record)
+- Raw: llm-wiki/raw/articles/2026-10-01-clipping-comp-limiter-tab-stall-priority.md
 - Updated: llm-wiki/index.md (Live app entry list)
