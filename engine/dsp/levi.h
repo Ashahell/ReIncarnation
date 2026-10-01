@@ -412,6 +412,15 @@ struct RILeviVoice {
     float rbn_abs;  /* ribbon sources (P8d; refreshed per block) */
     float rbn_absp;
     float rbn_rel;
+    /* Performance signals (fidelity P9a): raw velocities for the amount
+     * laws (P9b) + the normalised source copies, refreshed per block. */
+    uint8_t nvel;     /* note-on velocity 0..127 */
+    uint8_t nveloff;  /* release velocity 0..127 */
+    float vel01, veloff01; /* note-on / release velocity, 0..1 */
+    float pat01, mpat01;   /* per-key / channel aftertouch, 0..1 */
+    float wheel01;         /* mod wheel, 0..1 */
+    float bsrc;            /* bend / bend range, clamped -1..1 */
+    uint8_t psigpad;
     /* Stereo + scales (fidelity P6c, manual pp. 87-96). Pan/width/mode
      * went live with the stereo sum; bend with the P9 MIDI data. */
     float vspread;  /* 0..1 unison stereo spread (static ordinal) */
@@ -718,6 +727,16 @@ struct RILeviSet {
     uint8_t rbn_mode;   /* 0 off, 1 abs, 2 rel, 3 theremin */
     uint8_t rbn_last;   /* relative baseline (consumed per block) */
     uint8_t rbn_pad[4];
+    /* Performance signals (fidelity P9a): device-wide live inputs. No
+     * live producer exists in the tree (P8d ledger) — the API drives
+     * them; the panel arrives with the P9c/P9d rows. */
+    uint8_t pvel;    /* pending note-on velocity for the allocator */
+    uint8_t rvel;    /* pending release velocity */
+    uint8_t press;   /* channel aftertouch 0..127 */
+    uint8_t wheel;   /* mod wheel 0..127 */
+    uint8_t pat[RI_LEVI_NVOICES]; /* per-key aftertouch per voice slot */
+    uint8_t psigpad;
+    float bend;      /* pitch bend, semitones, clamped +/-24 */
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
     uint8_t lsc[RI_LEVI_NLFO];           /* step editor cursor per LFO (P8e) */
@@ -753,6 +772,18 @@ void levi_release(struct RILeviSet *s, uint32_t voice);
  * Direct levi_trigger/release above stay lane==voice (songs, bit-identical). */
 int levi_note_on(struct RILeviSet *s, uint8_t note);
 int levi_note_off(struct RILeviSet *s, uint8_t note);
+/* Performance signals (fidelity P9a): the allocator entry points with a
+ * velocity (levi_note_on/off are velocity 127, so songs and the existing
+ * callers are bit-identical), then the channel/per-key signals.
+ * levi_note_vel / levi_note_rel_vel return the allocator count (-1 bad),
+ * the setters 0 ok / 2 NULL. vel 0..127, press/wheel 0..127 (clamped),
+ * bend semitones clamped to +/-24. */
+int levi_note_vel(struct RILeviSet *s, uint8_t note, uint8_t vel);
+int levi_note_rel_vel(struct RILeviSet *s, uint8_t note, uint8_t vel);
+int levi_press(struct RILeviSet *s, uint8_t press);
+int levi_polyat(struct RILeviSet *s, uint8_t note, uint8_t press);
+int levi_wheel(struct RILeviSet *s, uint8_t val);
+int levi_bend(struct RILeviSet *s, float semis);
 /* Arp strike: allocator policy without held-list insert (P8b); returns
  * voices fired, -1 bad. Release: voices sounding the note, no held
  * removal, no mode re-fire. */

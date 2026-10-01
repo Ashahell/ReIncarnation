@@ -876,6 +876,8 @@ void levi_init_set(struct RILeviSet *s) {
         uint32_t b;
         v->active = 0u;
         v->note = 0u;
+        v->nvel = 127u;     /* performance signals (P9a): full velocity */
+        v->nveloff = 127u;
         v->algoB = RI_LEVI_ALGO_DUO;
         v->morph = 0u;
         v->amode = RI_LEVI_AMODE_SINGLE;
@@ -1105,6 +1107,15 @@ void levi_init_set(struct RILeviSet *s) {
     s->rbn_mode = 0u;
     s->rbn_last = 64u;
     s->rbn_pad[0] = s->rbn_pad[1] = s->rbn_pad[2] = s->rbn_pad[3] = 0u;
+    /* Performance signals (fidelity P9a): full velocity, no pressure,
+     * no wheel, bend centred. */
+    s->pvel = 127u;
+    s->rvel = 127u;
+    s->press = 0u;
+    s->wheel = 0u;
+    memset(s->pat, 0, sizeof s->pat);
+    s->psigpad = 0u;
+    s->bend = 0.0f;
     s->seqon = 0u;
     s->seqlen = 16u;
     ri_levi_matrix_init(&s->mx);
@@ -1607,6 +1618,12 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
     if (!s || voice >= RI_LEVI_NVOICES || note > 127u)
         return 2;
     v = &s->v[voice];
+    /* Performance signals (P9a): the pending velocity is the note-on
+     * velocity and the starting release velocity; a retriggered voice
+     * drops the old key's pressure (its slot is the new key's). */
+    v->nvel = s->pvel;
+    v->nveloff = s->pvel;
+    s->pat[voice] = 0u;
     note = voice_quantize(v, note);   /* key lock (P6c; identity off/chromatic) */
     f = note_hz(note) * voice_micro_mult(v, note);
     {
@@ -1874,6 +1891,58 @@ int levi_note_on(struct RILeviSet *s, uint8_t note) {
     return note_on_core(s, note, 1);
 }
 
+/* ---- Performance signals (fidelity P9a; own laws) ---- */
+int levi_note_vel(struct RILeviSet *s, uint8_t note, uint8_t vel) {
+    if (!s || note > 127u)
+        return -1;
+    s->pvel = vel > 127u ? 127u : vel;
+    return note_on_core(s, note, 1);
+}
+
+int levi_note_rel_vel(struct RILeviSet *s, uint8_t note, uint8_t vel) {
+    if (!s || note > 127u)
+        return -1;
+    s->rvel = vel > 127u ? 127u : vel;
+    return levi_note_off(s, note);
+}
+
+int levi_press(struct RILeviSet *s, uint8_t press) {
+    if (!s)
+        return 2;
+    s->press = press > 127u ? 127u : press;
+    return 0;
+}
+
+int levi_polyat(struct RILeviSet *s, uint8_t note, uint8_t press) {
+    uint32_t v;
+    if (!s)
+        return 2;
+    if (press > 127u)
+        press = 127u;
+    for (v = 0u; v < RI_LEVI_NVOICES; v++)
+        if (s->v[v].active && s->v[v].note == note)
+            s->pat[v] = press;
+    return 0;
+}
+
+int levi_wheel(struct RILeviSet *s, uint8_t val) {
+    if (!s)
+        return 2;
+    s->wheel = val > 127u ? 127u : val;
+    return 0;
+}
+
+int levi_bend(struct RILeviSet *s, float semis) {
+    if (!s)
+        return 2;
+    if (semis < -24.0f)
+        semis = -24.0f;
+    else if (semis > 24.0f)
+        semis = 24.0f;
+    s->bend = semis;
+    return 0;
+}
+
 int levi_note_strike(struct RILeviSet *s, uint8_t note) {
     if (!s || note > 127u)
         return -1;
@@ -1900,8 +1969,10 @@ int levi_note_off(struct RILeviSet *s, uint8_t note) {
     if (mode == RI_LEVI_POLY_MONO || mode == RI_LEVI_POLY_MONOLO || mode == RI_LEVI_POLY_MONOHI) {
         if (s->an)
             alloc_fire(s, 0u, alloc_pick_mono(s, mode == RI_LEVI_POLY_MONO ? RI_LEVI_POLY_MONO : mode), 1);
-        else
+        else {
+            s->v[0].nveloff = s->rvel;   /* release velocity (P9a) */
             levi_release(s, 0u);
+        }
         return 1;
     }
     if (mode >= RI_LEVI_POLY_UNISON && mode <= RI_LEVI_POLY_UNISONHI) {
@@ -1910,14 +1981,18 @@ int levi_note_off(struct RILeviSet *s, uint8_t note) {
             for (v = 0u; v < s->ulimit && v < RI_LEVI_NVOICES; v++)
                 alloc_fire(s, v, nn, v == 0u);
         } else {
-            for (v = 0u; v < s->ulimit && v < RI_LEVI_NVOICES; v++)
+            for (v = 0u; v < s->ulimit && v < RI_LEVI_NVOICES; v++) {
+                s->v[v].nveloff = s->rvel;   /* release velocity (P9a) */
                 levi_release(s, v);
+            }
         }
         return 1;
     }
     for (v = 0u; v < RI_LEVI_NVOICES; v++)
-        if (s->v[v].active && s->v[v].note == note)
+        if (s->v[v].active && s->v[v].note == note) {
+            s->v[v].nveloff = s->rvel;   /* release velocity (P9a) */
             levi_release(s, v);
+        }
     return 1;
 }
 
@@ -3019,6 +3094,15 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     src[RI_LEVI_MS_RBNABS] = v->rbn_abs;
     src[RI_LEVI_MS_RBNABSP] = v->rbn_absp;
     src[RI_LEVI_MS_RBNREL] = v->rbn_rel;
+    /* Performance signals (fidelity P9a): velocity on/off, per-key and
+     * channel aftertouch, mod wheel, pitch bend (bend already carries
+     * the voice's bend range). */
+    src[RI_LEVI_MS_VELON] = v->vel01;
+    src[RI_LEVI_MS_VELOFF] = v->veloff01;
+    src[RI_LEVI_MS_POLYAT] = v->pat01;
+    src[RI_LEVI_MS_MONOAT] = v->mpat01;
+    src[RI_LEVI_MS_WHEEL] = v->wheel01;
+    src[RI_LEVI_MS_BEND] = v->bsrc;
     {
         /* VoiceMod (fidelity P6b, manual p. 127): per-voice static
          * values, own law — VMOD bipolar hash, VMOD+ ordinal unipolar.
@@ -3203,6 +3287,8 @@ static float voice_pitch_step(struct RILeviVoice *v, float sr, float *afwob) {
         vsemi += va * ri_sin(6.2831853f * v->vibphase) * dg;
         v->vibtime += 1.0f / sr;
     }
+    if (v->bsrc != 0.0f)
+        vsemi += v->bsrc * v->vbendrng;   /* pitch bend (P9a) */
     v->vibphase += vr / sr;
     v->vibphase -= (float)(int)v->vibphase;
     {
@@ -3615,6 +3701,22 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
             s->v[v].rbn_rel = rel;
         }
         s->rbn_last = s->rbn_pos;
+    }
+    /* Performance signals (fidelity P9a): per-voice copies, one block
+     * behind the setter (the same shape as the ribbon). Bend normalises
+     * against each voice's P6b bend range, so range 0 reads 0. */
+    for (v = 0u; v < RI_LEVI_NVOICES; v++) {
+        struct RILeviVoice *pv = &s->v[v];
+        pv->vel01 = (float)pv->nvel / 127.0f;
+        pv->veloff01 = (float)pv->nveloff / 127.0f;
+        pv->pat01 = (float)s->pat[v] / 127.0f;
+        pv->mpat01 = (float)s->press / 127.0f;
+        pv->wheel01 = (float)s->wheel / 127.0f;
+        pv->bsrc = pv->vbendrng > 0.0f ? s->bend / pv->vbendrng : 0.0f;
+        if (pv->bsrc < -1.0f)
+            pv->bsrc = -1.0f;
+        else if (pv->bsrc > 1.0f)
+            pv->bsrc = 1.0f;
     }
     for (i = 0u; i < n; i++) {
         float ml = 0.0f, mr = 0.0f, vl, vr;
