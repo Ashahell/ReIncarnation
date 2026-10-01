@@ -1607,3 +1607,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (continues the P9 record); Update (corrects the P9d code-time decision on what releasing the glide button does to a slide in progress — it stops it, it does not finish it; pins the P9d commit hash)
 - Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p9d-glidechord.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Dell xruns while playing and switching tabs (governor trip law + repaint policy)
+- Disposition: New; Update (confirms the pri-21 render-task fix held on the device — all 7 tab switches `xruns+0` — and records the two remaining causes, the pri -1 fallback tripping on peaks and the 100 ms tick's blanket repaint; leaves the owner's symptom open pending a redeploy)
+- Raw: llm-wiki/raw/articles/2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md
+- Updated: llm-wiki/index.md (Live app entry list)
