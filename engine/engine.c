@@ -726,6 +726,12 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
         levi_set_mr_ui(&e->slevi, (key >> 5) & 7u, (key >> 2) & 7u, key & 3u, val);
         return;
     }
+    if (blk == RI_AUTO_BLK_LEVILS0 || blk == RI_AUTO_BLK_LEVILS1) {
+        /* LFO step editor (fidelity P8e): 0x13 lfo << 2 | field, 0x14 LFO 5. */
+        uint32_t lf = blk == RI_AUTO_BLK_LEVILS0 ? (lo >> 2) & 3u : 4u;
+        levi_set_lfo_stepctl(&e->slevi, lf, lo & 3u, val);
+        return;
+    }
     if (blk == RI_AUTO_BLK_LEVIMOD) {
         /* ENV 1-5 / LFO 1-5 params (fidelity P5), section-wide. */
         uint32_t k = key & 0xFFu;

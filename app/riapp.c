@@ -666,6 +666,16 @@ static void song_ui_apply(void) {
             lv->mrv[lo >> 5][(lo >> 2) & 7u][lo & 3u] = val;
             continue;
         }
+        if (blk == 0x1300u || blk == 0x1400u) { /* LFO step editor (P8e) */
+            uint32_t l = blk == 0x1300u ? (lo >> 2) & 3u : 4u, f = lo & 3u;
+            if (f == RI_LEVI_LS_STEP)
+                lv->lfsc[l] = val;
+            else if (f == RI_LEVI_LS_VALUE)
+                lv->lfsv[l] = val;
+            else if (f == RI_LEVI_LS_RAMP)
+                lv->lfsr[l] = val;
+            continue;
+        }
         for (k = 0u; k < ri_ctlreg_count(); k++) {
             const struct RICtlDef *d = ri_ctlreg_at(k);
             if (!d || !d->automatable || ri_ctlreg_auto_id(d) != key)

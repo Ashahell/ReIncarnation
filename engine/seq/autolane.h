@@ -47,6 +47,11 @@ struct RIAutoPass {
  * (0x00-0x9F: triggers 0-3, level 6, envelope 12-28, vel curve 29),
  * LFO 1-5 at 0xA0 | lfo << 4 | param (params 0-13). */
 #define RI_AUTO_BLK_LEVIMOD 0x1000u
+/* Levi LFO step editor (fidelity P8e): LFO 1-4 at lfo << 2 | field, LFO 5
+ * alone in the 0x14 block (0x13xx is macro-route spill, MRKEY reaches
+ * 0x13FF). Fields 0-2 only: cursor, value at the cursor, ramp. */
+#define RI_AUTO_BLK_LEVILS0 0x1300u
+#define RI_AUTO_BLK_LEVILS1 0x1400u
 /* Levi matrix routes (slot << 2 | field, 0x00-0x7F) and macro routes
  * (macro << 5 | route << 2 | field) (fidelity P5b). */
 #define RI_AUTO_BLK_LEVIMX 0x1100u

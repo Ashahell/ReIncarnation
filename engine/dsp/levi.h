@@ -204,7 +204,8 @@ struct RILeviEnv {
 #define RI_LEVI_LP_ONESHOT 11u /* 0 off, 1 on (one cycle), 2 step (one step per note) */
 #define RI_LEVI_LP_PHASE 12u   /* start phase 0..360 deg */
 #define RI_LEVI_LP_STAGGER 13u /* per-voice phase offset (trig sync off) */
-#define RI_LEVI_LP_N 14u
+#define RI_LEVI_LP_SEMI 14u    /* step edits snap to semitones (fidelity P8e) */
+#define RI_LEVI_LP_N 15u
 #define RI_LEVI_MAXSTEPS 64u
 
 struct RILeviLFO {
@@ -216,7 +217,8 @@ struct RILeviLFO {
     float value;   /* last stepped value (after level/quantize/smooth) */
     uint8_t ui[RI_LEVI_LP_N];
     uint8_t steps, quant, wrapped, done;
-    uint8_t stepk, shared, pad[2];
+    uint8_t stepk, shared, semi, sown; /* semi = LP_SEMI, sown = table in use */
+    int8_t sval[RI_LEVI_MAXSTEPS];    /* step table, panel value - 64 (P8e) */
     float level, delay, fade, smooth; /* smooth: one-pole coefficient, 0 = off */
     float t;       /* seconds since the trigger */
     float phase0;  /* start phase 0..1 (+ stagger) */
@@ -593,6 +595,16 @@ struct RILeviVoice {
 /* Mod envelope / LFO params (block 0x10, P5). */
 #define RI_LEVI_MEKEY(e, p) ((uint16_t)(0x1000u | ((uint32_t)(e) << 5) | (uint32_t)(p)))
 #define RI_LEVI_LFOKEY(l, p) ((uint16_t)(0x10A0u | ((uint32_t)(l) << 4) | (uint32_t)(p)))
+/* LFO step editor (fidelity P8e): a cursor, a value at the cursor and a
+ * ramp gate, so a recorded edit stays small. LFO 1-4 live at 0x1300 with
+ * (lfo << 2 | field) because 0x12xx macro routes (MRKEY) spill through
+ * 0x13FF; LFO 5 sits alone in the 0x14 block. */
+#define RI_LEVI_LS_STEP 0u  /* step cursor, 0..63 */
+#define RI_LEVI_LS_VALUE 1u /* value at the cursor, 0..127 (64 = centre) */
+#define RI_LEVI_LS_RAMP 2u  /* non-zero: back to the default ramp */
+#define RI_LEVI_LSKEY(l, f) ((uint16_t)(((uint32_t)(l) < 4u \
+    ? (0x1300u | ((uint32_t)(l) << 2) | (uint32_t)(f)) \
+    : (0x1400u | (uint32_t)(f)))))
 /* Valid param range for a mod env / LFO param; 0 ok, 2 not a param. */
 int ri_levi_menv_range(uint32_t param, int *lo, int *hi);
 int ri_levi_lfo_range(uint32_t param, int *lo, int *hi);
@@ -708,6 +720,7 @@ struct RILeviSet {
     uint8_t rbn_pad[4];
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
+    uint8_t lsc[RI_LEVI_NLFO];           /* step editor cursor per LFO (P8e) */
     /* Voice allocator (fidelity P6a, manual pp. 87-96): device-wide.
      * Direct levi_trigger/release stay lane==voice for songs (bit-identical);
      * live notes go through levi_note_on/off below. */
@@ -726,6 +739,10 @@ int levi_set_mr_ui(struct RILeviSet *s, uint32_t macro, uint32_t route, uint32_t
 /* Mod envelope / LFO UI params (P5), 0..127 clamped to the param. 0 ok, 2 bad. */
 int levi_set_menv_ui(struct RILeviSet *s, uint32_t voice, uint32_t env, uint32_t param, uint8_t val);
 int levi_set_lfo_ui(struct RILeviSet *s, uint32_t voice, uint32_t lfo, uint32_t param, uint8_t val);
+/* Step editor (fidelity P8e): field = RI_LEVI_LS_*; the step table is
+ * device-wide (every voice's copy plus the shared one, like ui[]), the
+ * cursor is per LFO. 0 ok, 2 bad set/lfo/field. */
+int levi_set_lfo_stepctl(struct RILeviSet *s, uint32_t lfo, uint32_t field, uint8_t val);
 
 void levi_init_set(struct RILeviSet *s);
 /* Trigger (note 0..127) / release a voice. Returns 0 ok, 2 bad. */

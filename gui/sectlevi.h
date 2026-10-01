@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 214u
+#define RI_SLEVI_NCTL 215u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -177,6 +177,9 @@
 #define RI_SLEVI_RBNMODE 211u
 #define RI_SLEVI_RBNPOS 212u
 #define RI_SLEVI_RBNTOUCH 213u
+/* LFO step editor (fidelity P8e): 214 is the panel-only page gate (the
+ * editor slots carry RI_LEVI_LSKEYs, not registry rows). */
+#define RI_SLEVI_LFEDIT 214u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */
@@ -235,6 +238,9 @@ struct RISectLevi {
     uint8_t bpmpad[3];
     uint8_t mxv[RI_LEVI_MX_NSLOTS][4];               /* matrix routes: source, module, param, depth (P5b) */
     uint8_t mrv[RI_LEVI_NMACRO][RI_LEVI_MACRO_NR][4]; /* macro routes: module, param, depth, button value */
+    uint8_t lfsc[RI_LEVI_NLFO]; /* LFO step cursor 0..63 (P8e panel truth) */
+    uint8_t lfsv[RI_LEVI_NLFO]; /* value at the cursor (last written) */
+    uint8_t lfsr[RI_LEVI_NLFO]; /* ramp gate */
     struct RIPattern pat;      /* chord kind, class Levi */
 };
 

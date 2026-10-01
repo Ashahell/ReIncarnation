@@ -1167,7 +1167,7 @@ float ri_levi_lfo_rate(uint8_t ui) {
 static const char *const LFO_WAVE_NAME[RI_LEVI_NLW] = {
     "SINE", "TRIANGLE", "SAW UP", "SAW DOWN", "SQUARE", "PULSE 27", "PULSE 13", "S&H", "NOISE", "RANDOM", "STEP"
 };
-static const uint8_t LFO_HI[RI_LEVI_LP_N] = { 10, 127, 1, 2, 127, 127, 15, 127, 64, 127, 1, 2, 127, 127 };
+static const uint8_t LFO_HI[RI_LEVI_LP_N] = { 10, 127, 1, 2, 127, 127, 15, 127, 64, 127, 1, 2, 127, 127, 1 };
 
 const char *ri_levi_lfo_wave_name(uint32_t w) {
     return w < RI_LEVI_NLW ? LFO_WAVE_NAME[w] : "";
@@ -1220,6 +1220,48 @@ static float lfo_step_value(uint32_t n, uint32_t k) {
     return -1.0f + 2.0f * (float)(k % n) / (float)(n - 1u);
 }
 
+/* Step table value law (fidelity P8e): the panel is bipolar 7-bit with
+ * 64 at the centre, the table keeps the value minus 64, and the wave is
+ * that value over 63 (so -64 and -63 both read -1). */
+static float step_f(int8_t v) {
+    float x = (float)v * (1.0f / 63.0f);
+    return x < -1.0f ? -1.0f : x;
+}
+
+static int8_t step_q(float x) {
+    int v;
+    if (x < -1.0f)
+        x = -1.0f;
+    if (x > 1.0f)
+        x = 1.0f;
+    v = (int)(x * 63.0f + (x < 0.0f ? -0.5f : 0.5f));
+    return (int8_t)v;
+}
+
+/* SEMI LOCK: a written value lands on the 1/12 grid of the bipolar range
+ * (one semitone over the two octaves the wave spans, 25 levels). */
+static uint8_t step_snap(uint8_t val) {
+    float x = (float)((int)val - 64) / 63.0f;
+    float g;
+    int v;
+    if (x < -1.0f)
+        x = -1.0f;
+    if (x > 1.0f)
+        x = 1.0f;
+    g = (float)(int)(x * 12.0f + (x < 0.0f ? -0.5f : 0.5f)) / 12.0f;
+    v = (int)(g * 63.0f + (g < 0.0f ? -0.5f : 0.5f)) + 64;
+    return (uint8_t)(v < 0 ? 0 : v > 127 ? 127 : v);
+}
+
+/* First write lays the current analytic ramp into all 64 entries, so
+ * editing one step leaves the others where they were. */
+static void lfo_ladder(struct RILeviLFO *l) {
+    uint32_t k, n = lfo_nsteps(l);
+    for (k = 0u; k < RI_LEVI_MAXSTEPS; k++)
+        l->sval[k] = step_q(lfo_step_value(n, k >= n ? n - 1u : k));
+    l->sown = 1u;
+}
+
 /* Raw wave at phase p (0..1). */
 static float lfo_wave(struct RILeviLFO *l, float p) {
     switch (l->wave) {
@@ -1238,7 +1280,9 @@ static float lfo_wave(struct RILeviLFO *l, float p) {
     case RI_LEVI_LW_STEP: {
         uint32_t n = lfo_nsteps(l);
         uint32_t k = l->oneshot == 2u ? (l->stepk == 0xFFu ? 0u : l->stepk) : (uint32_t)(p * (float)n);
-        return lfo_step_value(n, k >= n ? n - 1u : k);
+        if (k >= n)
+            k = n - 1u;
+        return l->sown ? step_f(l->sval[k]) : lfo_step_value(n, k);
     }
     default: return ri_sin(2.0f * 3.14159265f * p);
     }
@@ -1335,6 +1379,7 @@ static void lfo_apply(struct RILeviLFO *l, uint32_t p) {
     case RI_LEVI_LP_QUANT: l->quant = u[p]; break;
     case RI_LEVI_LP_LEVEL: l->level = (float)u[p] / 127.0f; break;
     case RI_LEVI_LP_STEPS: l->steps = u[p]; break;
+    case RI_LEVI_LP_SEMI: l->semi = u[p] ? 1u : 0u; break;
     case RI_LEVI_LP_SMOOTH: l->smooth = u[p] ? 1.0f - ri_pow2(-12.0f + 11.0f * (1.0f - (float)u[p] / 127.0f)) : 0.0f; break;
     case RI_LEVI_LP_ONESHOT: l->oneshot = u[p]; l->done = 0u; l->stepk = 0xFFu; break;
     case RI_LEVI_LP_PHASE: l->phase0 = (float)u[p] / 128.0f; break;
@@ -1422,6 +1467,34 @@ int levi_set_lfo_ui(struct RILeviSet *s, uint32_t voice, uint32_t lfo, uint32_t 
         lfo_apply(l, param);
     }
     s->glfo[lfo].shared = 0u;                     /* the set steps the shared copy itself */
+    return 0;
+}
+
+/* Step editor (fidelity P8e): one write reaches every voice's copy and
+ * the shared one (the table is device state), the cursor is per LFO. */
+int levi_set_lfo_stepctl(struct RILeviSet *s, uint32_t lfo, uint32_t field, uint8_t val) {
+    struct RILeviLFO *l;
+    uint32_t k;
+    if (!s || lfo >= RI_LEVI_NLFO || field > RI_LEVI_LS_RAMP)
+        return 2;
+    if (field == RI_LEVI_LS_STEP) {
+        s->lsc[lfo] = val >= RI_LEVI_MAXSTEPS ? (uint8_t)(RI_LEVI_MAXSTEPS - 1u) : val;
+        return 0;
+    }
+    if (field == RI_LEVI_LS_RAMP) {
+        if (val)                                /* back to the analytic ramp */
+            for (k = 0u; k <= RI_LEVI_NVOICES; k++)
+                (k < RI_LEVI_NVOICES ? &s->v[k].lfo[lfo] : &s->glfo[lfo])->sown = 0u;
+        return 0;
+    }
+    if (s->glfo[lfo].semi)
+        val = step_snap(val);
+    for (k = 0u; k <= RI_LEVI_NVOICES; k++) {
+        l = k < RI_LEVI_NVOICES ? &s->v[k].lfo[lfo] : &s->glfo[lfo];
+        if (!l->sown)
+            lfo_ladder(l);
+        l->sval[s->lsc[lfo]] = (int8_t)((int)val - 64);
+    }
     return 0;
 }
 

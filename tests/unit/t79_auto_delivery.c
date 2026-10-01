@@ -168,7 +168,7 @@ int main(void) {
     autoev(&E, 0x0B0Fu, 5u, 0u);
     autoev(&E, 0x0B66u, 5u, 0u); /* strip-5 param 6 (no such param) */
     autoev(&E, 0x0B16u, 5u, 0u); /* param 6 */
-    autoev(&E, 0x1300u, 5u, 0u); /* unknown block (0x0F Levi ops P2, 0x10-0x12 Levi mod/matrix/macros P5) */
+    autoev(&E, 0x1500u, 5u, 0u); /* unknown block (0x0F Levi ops P2, 0x10-0x12 Levi mod/matrix/macros P5, 0x13-0x14 Levi LFO steps P8e) */
     /* (the Levi op block has no unknown keys since P3: 8 ops x 32 params fill it) */
     autoev(&E, RI_AUTO_ID_909(RI_CTL_909_TUNE, 12u), 5u, 3u); /* no voice 12 */
     /* slevi compares around the reverb core handles (P7b): non-owning

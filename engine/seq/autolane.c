@@ -5,6 +5,7 @@
 #include "engine/seq/autolane_emit.h" /* emitter bodies (model stays sched-free) */
 #include "engine/dsp/rb303.h" /* allow-list IDs (engine side, no GUI) */
 #include "engine/fx/fx.h" /* FX-block IDs (Task 5a delivery, no GUI) */
+#include "engine/dsp/levi.h" /* LFO param count + step editor fields (P8e) */
 #include <string.h> /* memmove for sorted insert */
 
 /* Allow-list (R-ALLOW, ledger): exactly the 16 303 control IDs — the
@@ -108,8 +109,12 @@ int ri_auto_allowed(uint16_t ctl) {
             p = k & 31u;
             return p <= 3u || p == 6u || (p >= 12u && p <= 29u);
         }
-        return k < 0xF0u && (k & 15u) < 14u;
+        return k < 0xF0u && (k & 15u) < RI_LEVI_LP_N;
     }
+    if ((ctl & 0xFF00u) == RI_AUTO_BLK_LEVILS0)
+        return (ctl & 0xFFu) <= 0x0Eu && (ctl & 3u) <= RI_LEVI_LS_RAMP;  /* 0x1300-0x130E */
+    if ((ctl & 0xFF00u) == RI_AUTO_BLK_LEVILS1)
+        return (ctl & 0xFFu) <= RI_LEVI_LS_RAMP;      /* 0x1400-0x1402 */
     if ((ctl & 0xFF00u) == RI_AUTO_BLK_LEVIMX)
         return (ctl & 0xFFu) < 0x80u;
     if ((ctl & 0xFF00u) == RI_AUTO_BLK_LEVIMAC)

@@ -484,6 +484,9 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 211, SELECTOR, "Ribbon", "Mode", 0, 3, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBNMODE, 0),
     R(LEVI, 212, KNOB, "Ribbon", "Pos", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBNPOS, 0),
     R(LEVI, 213, SWITCH, "Ribbon", "Touch", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBNTOUCH, 0),
+    /* LFO step editor gate (fidelity P8e): panel-only page switch, the
+     * editor slots themselves carry RI_LEVI_LSKEYs. */
+    R(LEVI, 214, SWITCH, "Lfo", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

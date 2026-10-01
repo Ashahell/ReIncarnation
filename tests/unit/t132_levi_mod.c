@@ -296,8 +296,8 @@ int main(void) {
 
     /* ---- Keys. ---- */
     RI_ASSERT(ri_auto_allowed(RI_LEVI_MEKEY(4u, RI_LEVI_OP_RELEASE)) && ri_auto_allowed(RI_LEVI_MEKEY(0u, 0u)) &&
-        !ri_auto_allowed(RI_LEVI_MEKEY(0u, RI_LEVI_OP_WAVE + 4u)) && !ri_auto_allowed(RI_LEVI_MEKEY(0u, 30u)) && ri_auto_allowed(RI_LEVI_LFOKEY(4u, 13u)) &&
-        !ri_auto_allowed(RI_LEVI_LFOKEY(4u, 14u)) && !ri_auto_allowed(0x10F0u) &&
+        !ri_auto_allowed(RI_LEVI_MEKEY(0u, RI_LEVI_OP_WAVE + 4u)) && !ri_auto_allowed(RI_LEVI_MEKEY(0u, 30u)) && ri_auto_allowed(RI_LEVI_LFOKEY(4u, 14u)) &&
+        !ri_auto_allowed(RI_LEVI_LFOKEY(4u, 15u)) && !ri_auto_allowed(0x10F0u) &&
         ri_auto_allowed(RI_CTL_LEVI_DENV1) && ri_auto_allowed(RI_CTL_LEVI_VINIT), "P5 keys");
 
     /* ---- UI: ENV / LFO pages, keys, conditional slots, texts, knobs. ---- */
@@ -316,7 +316,7 @@ int main(void) {
     ri_slevi_enc_text(&u, 0u, t, sizeof t);
     RI_ASSERT(!strcmp(ri_slevi_page_title(&u), "ENV 2  4/4") && !strcmp(t, "NOTE ON"), "trigger page: %s", t);
     ri_slevi_set_value(&u, RI_SLEVI_MODULE, (int)RI_SLEVI_M_LFO1);
-    RI_ASSERT(ri_slevi_page_count(&u) == 2u, "lfo pages");
+    RI_ASSERT(ri_slevi_page_count(&u) == 3u, "lfo pages");
     ri_slevi_enc_text(&u, 1u, t, sizeof t);
     RI_ASSERT(!strcmp(t, "0.57HZ"), "default rate text %s", t);
     ri_slevi_press(&u, RI_SLEVI_PAGEDN);

@@ -278,7 +278,7 @@ int main(void) {
 
     /* ---- Keys: 0x0F block allowed and applied by the engine. ---- */
     RI_ASSERT(ri_auto_allowed(RI_LEVI_OPKEY(7u, RI_LEVI_OP_VELENV)) && ri_auto_allowed(RI_LEVI_OPKEY(0u, RI_LEVI_OP_TGT3)) &&
-        !ri_auto_allowed(0x1300u) &&
+        !ri_auto_allowed(0x1500u) &&   /* beyond every Levi block (0x13-0x14 are the LFO step editor, P8e) */
         ri_auto_allowed(RI_CTL_LEVI_BIAS_REL), "op keys allowed");
     {
         static struct RIEngine E;

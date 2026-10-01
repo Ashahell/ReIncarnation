@@ -25,6 +25,9 @@
 #define SLOT_IS_ME(x) ((x) <= -96 && (x) > -128)
 #define SLOT_IS_LF(x) ((x) <= -128 && (x) > -144)
 #define SLOT_MPARAM(x) ((uint32_t)(SLOT_IS_LF(x) ? -(x) - 128 : -(x) - 96))
+/* LFO step editor fields (fidelity P8e): cursor, value at the cursor, ramp. */
+#define SLOT_LFS(f) (-(144 + (int)(f)))
+#define SLOT_IS_LFS(x) ((x) <= -144 && (x) > -147)
 /* Matrix route r field f / macro m route r field f (P5b). */
 #define SLOT_MX(r, f) (-(160 + (int)(r) * 4 + (int)(f)))
 #define SLOT_MR(m, r, f) (-(288 + ((int)(m) * 8 + (int)(r)) * 4 + (int)(f)))
@@ -115,6 +118,13 @@ int ri_slevi_press(struct RISectLevi *s, uint32_t idx) {
         s->val[RI_SLEVI_SEQON] = (int16_t)(s->val[RI_SLEVI_SEQON] ? 0 : 1);
         return 1;
     }
+    if (idx == RI_SLEVI_LFEDIT) {
+        /* Step editor gate (fidelity P8e): press pages to the LFO step
+         * editor and back, like the other bound gates. */
+        s->val[idx] = (int16_t)(s->val[idx] ? 0 : 1);
+        s->page = s->val[idx] ? 2u : 1u;
+        return 1;
+    }
     if (idx == RI_SLEVI_FXPRE || idx == RI_SLEVI_FXPOST) {
         /* Bound FX gates (fidelity P7c): panel truth toggles like MODE;
          * automation emit travels app-side via the knob syncs. */
@@ -192,6 +202,16 @@ int ri_slevi_set_value(struct RISectLevi *s, uint32_t idx, int v) {
         if (s->sel == sel)
             return 0;
         s->sel = sel;
+        return 1;
+    }
+    if (idx == RI_SLEVI_LFEDIT) {
+        /* Step editor gate (fidelity P8e): panel-only switch that pages
+         * to the LFO step editor and back. */
+        int w = v < 0 ? 0 : v > 1 ? 1 : v;
+        if (s->val[idx] == w)
+            return 0;
+        s->val[idx] = (int16_t)w;
+        s->page = w ? 2u : 1u;
         return 1;
     }
     if (idx == RI_SLEVI_ALGO || idx == RI_SLEVI_ALGOB) {
@@ -399,14 +419,17 @@ static const struct LeviSlot P_REVERB2[8] = {
     { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }
 };
 /* LFO 1-5 pages (P5, pp. 76-78). Steps show for the step wave or step
- * one-shot, stagger for trig sync off; BPM sync, semi lock and the step
- * editor wait for P8. */
+ * one-shot, stagger for trig sync off; page 3 is the step editor (P8e). */
 #define LF(p) SLOT_LF(RI_LEVI_LP_##p)
-static const struct LeviSlot P_LFO[2][8] = {
+static const struct LeviSlot P_LFO[3][8] = {
     { { LF(WAVE), "WAVE" }, { LF(RATE), "RATE" }, { LF(SPEED), "SPEED" }, { LF(TRIG), "TRIG SYNC" },
       { LF(DELAY), "DELAY" }, { LF(FADE), "FADE IN" }, { LF(QUANT), "QUANTIZE" }, { LF(LEVEL), "LEVEL" } },
     { { LF(STEPS), "STEPS" }, { LF(SMOOTH), "SMOOTH" }, { LF(BPM), "BPM SYNC" }, { LF(ONESHOT), "ONE-SHOT" },
-      { LF(PHASE), "PHASE" }, { LF(STAGGER), "STAGGER" }, { SLOT_DEAD, "SEMI LOCK" }, { SLOT_DEAD, "STEP EDIT" } }
+      { LF(PHASE), "PHASE" }, { LF(STAGGER), "STAGGER" }, { LF(SEMI), "SEMI LOCK" },
+      { RI_SLEVI_LFEDIT, "STEP EDIT" } },
+    { { SLOT_LFS(RI_LEVI_LS_STEP), "STEP" }, { SLOT_LFS(RI_LEVI_LS_VALUE), "VALUE" },
+      { SLOT_LFS(RI_LEVI_LS_RAMP), "RAMP" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" },
+      { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { RI_SLEVI_LFEDIT, "STEP EDIT" } }
 };
 #undef LF
 /* Algorithm pages (P3, pp. 58-61): mode, algorithm, morph position,
@@ -475,7 +498,8 @@ uint32_t ri_slevi_page_count(const struct RISectLevi *s) {
         return 1u;
     return (module(s) == RI_SLEVI_M_OSC || module(s) == RI_SLEVI_M_ALGO) ? 5u
         : (module(s) >= RI_SLEVI_M_ENV1 && module(s) < RI_SLEVI_M_ENV1 + 5u) ? 4u
-        : module(s) == RI_SLEVI_M_DFILT || (module(s) >= RI_SLEVI_M_LFO1 && module(s) < RI_SLEVI_M_LFO1 + 5u) ? 2u
+        : module(s) == RI_SLEVI_M_DFILT ? 2u
+        : (module(s) >= RI_SLEVI_M_LFO1 && module(s) < RI_SLEVI_M_LFO1 + 5u) ? 3u
         : module(s) == RI_SLEVI_M_VOICE ? 4u
         : module(s) == RI_SLEVI_M_REVERB ? 2u
         : module(s) == RI_SLEVI_M_ARP ? 2u
@@ -540,7 +564,7 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         : m == RI_SLEVI_M_DELAY ? P_DELAY
         : m == RI_SLEVI_M_REVERB ? (s->page == 1u ? P_REVERB2 : P_REVERB)
         : m == RI_SLEVI_M_POSTFX ? P_POSTFX
-        : (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) ? P_LFO[s->page == 1u ? 1u : 0u]
+        : (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) ? P_LFO[s->page < 3u ? s->page : 0u]
         : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? (s->page == 1u ? P_ARP2 : P_ARP)
         : m == RI_SLEVI_M_SEQ ? (s->page == 1u ? P_SEQ2 : P_SEQ)
         : m == RI_SLEVI_M_RIBBON ? P_RIBBON
@@ -643,6 +667,17 @@ static uint8_t *mod_val(const struct RISectLevi *s, int t, int *lo, int *hi, uin
             *dv = ri_levi_lfo_default(p);
         if (lo) { *lo = l0; *hi = h0; }
         return (uint8_t *)&s->lfv[u][p];
+    }
+    if (SLOT_IS_LFS(t) && m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + RI_LEVI_NLFO) {
+        u = m - RI_SLEVI_M_LFO1;
+        p = (uint32_t)(-t - 144);
+        h0 = p == RI_LEVI_LS_STEP ? RI_LEVI_MAXSTEPS - 1u : p == RI_LEVI_LS_VALUE ? 127u : 1u;
+        if (key)
+            *key = RI_LEVI_LSKEY(u, p);
+        if (dv)
+            *dv = p == RI_LEVI_LS_VALUE ? 64u : 0u;
+        if (lo) { *lo = 0; *hi = (int)h0; }
+        return (uint8_t *)(p == RI_LEVI_LS_STEP ? &s->lfsc[u] : p == RI_LEVI_LS_VALUE ? &s->lfsv[u] : &s->lfsr[u]);
     }
     return 0;
 }
@@ -834,11 +869,12 @@ const char *ri_slevi_page_title(const struct RISectLevi *s) {
         return tb;
     }
     if (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) {
-        static const char *const LP[5][2] = {
-            { "LFO 1  1/2", "LFO 1  2/2" }, { "LFO 2  1/2", "LFO 2  2/2" }, { "LFO 3  1/2", "LFO 3  2/2" },
-            { "LFO 4  1/2", "LFO 4  2/2" }, { "LFO 5  1/2", "LFO 5  2/2" }
+        static const char *const LP[5][3] = {
+            { "LFO 1  1/3", "LFO 1  2/3", "LFO 1  3/3" }, { "LFO 2  1/3", "LFO 2  2/3", "LFO 2  3/3" },
+            { "LFO 3  1/3", "LFO 3  2/3", "LFO 3  3/3" }, { "LFO 4  1/3", "LFO 4  2/3", "LFO 4  3/3" },
+            { "LFO 5  1/3", "LFO 5  2/3", "LFO 5  3/3" }
         };
-        return LP[m - RI_SLEVI_M_LFO1][s->page == 1u ? 1u : 0u];
+        return LP[m - RI_SLEVI_M_LFO1][s->page < 3u ? s->page : 0u];
     }
     return m == RI_SLEVI_M_OSC ? OSC_PG[s->opsel & 7u][s->page < 5u ? s->page : 0u] : T[m];
 }
@@ -1022,6 +1058,23 @@ static void mod_text(const struct RISectLevi *s, int t, char *buf, uint32_t cap)
     uint32_t p = SLOT_MPARAM(t);
     int v = *mv;
     buf[0] = 0;
+    if (SLOT_IS_LFS(t)) {
+        p = (uint32_t)(-t - 144);
+        if (p == RI_LEVI_LS_STEP) {                     /* "1/64".. the cursor */
+            cat_num(buf, cap, v + 1);
+            cat_str(buf, cap, "/64");
+            return;
+        }
+        if (p == RI_LEVI_LS_RAMP) {
+            put_str(buf, cap, v ? "RAMP" : "----");
+            return;
+        }
+        v = v * 200 / 127 - 100;                       /* bipolar percent */
+        if (v > 0)
+            put_str(buf, cap, "+");
+        cat_num(buf, cap, v);
+        return;
+    }
     if (SLOT_IS_MX(t) || SLOT_IS_MR(t)) {
         uint32_t f = SLOT_IS_MX(t) ? (uint32_t)(-t - 160) % 4u : (uint32_t)(-t - 288) % 4u;
         const uint8_t *u = mv - f;                     /* the route's four fields */
@@ -1075,6 +1128,7 @@ static void mod_text(const struct RISectLevi *s, int t, char *buf, uint32_t cap)
         case RI_LEVI_LP_LEVEL: put_num(buf, cap, v * 128 / 127); return;
         case RI_LEVI_LP_ONESHOT: put_str(buf, cap, ONE[v > 2 ? 2 : v]); return;
         case RI_LEVI_LP_BPM: put_str(buf, cap, v ? "SYNC" : "FREE"); return;
+        case RI_LEVI_LP_SEMI: put_str(buf, cap, v ? "LOCK" : "FREE"); return;
         case RI_LEVI_LP_PHASE: case RI_LEVI_LP_STAGGER: put_num(buf, cap, v * 360 / 128); return;
         default: put_num(buf, cap, v); return;
         }
@@ -1704,8 +1758,7 @@ static int enc_set(struct RISectLevi *s, uint32_t k, int v) {
         w = v >= 64 ? hi : lo;
         if (s->val[t] == w)
             return 0;
-        s->val[t] = (int16_t)w;
-        return 1;
+        return ri_slevi_set_value(s, (uint32_t)t, w);
     }
     w = lo + (v * (hi - lo) + 63) / 127;
     return ri_slevi_set_value(s, (uint32_t)t, w);
