@@ -501,6 +501,9 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 223, SELECTOR, "Performance", "Select", 0, 2, 2, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PFSEL, 0),
     R(LEVI, 224, SELECTOR, "Performance", "Split", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PFSPLIT, 0),
     R(LEVI, 225, KNOB, "Performance", "Balance", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PFBAL, 0),
+    /* Performance buttons (fidelity P9d): the glide hold and chord mode. */
+    R(LEVI, 226, SWITCH, "Performance", "Glide", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_GLIDE, 0),
+    R(LEVI, 227, SWITCH, "Performance", "Chord", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_CHORD, 0),
     /* LFO step editor gate (fidelity P8e): panel-only page switch, the
      * editor slots themselves carry RI_LEVI_LSKEYs. */
     R(LEVI, 214, SWITCH, "Lfo", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

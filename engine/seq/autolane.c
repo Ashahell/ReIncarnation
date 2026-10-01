@@ -98,7 +98,9 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     /* Performance amounts (fidelity P9b). */
     0x0EBFu, 0x0EC0u, 0x0EC1u, 0x0EC2u, 0x0EC3u, 0x0EC4u,
     /* Keyboard zones (fidelity P9c). */
-    0x0EC5u, 0x0EC6u, 0x0EC7u, 0x0EC8u, 0x0EC9u
+    0x0EC5u, 0x0EC6u, 0x0EC7u, 0x0EC8u, 0x0EC9u,
+    /* Performance buttons (fidelity P9d). */
+    0x0ECAu, 0x0ECBu
 };
 
 int ri_auto_allowed(uint16_t ctl) {

@@ -17,6 +17,9 @@
 
 #define RI_LEVI_NVOICES 8u
 #define RI_LEVI_NOPS 8u
+/* Chord lanes in chord mode (fidelity P9d): the pushed row, on_flags
+ * marks which lanes sound. */
+#define RI_LEVI_NCHORD 6u
 /* Algorithm ids (own presets; 8 = custom routing, readable not settable). */
 #define RI_LEVI_ALGO_DUO 0u     /* one 2-op pair (v1 sound), rest idle */
 #define RI_LEVI_ALGO_ALLPAR 1u  /* 8 parallel carriers */
@@ -396,6 +399,8 @@ struct RILeviVoice {
     uint8_t vglide; /* 0 off, 1 glide, 2 glissando */
     float vgltime;  /* seconds 0..5 */
     float vglcurve; /* glide exponent */
+    uint8_t gforce; /* glide button (P9d): refreshed per block, forces
+                     * glide mode 1 when the voice's own mode is off */
     float vibphase, vibtime; /* vibrato state (trigger-reset) */
     float glsemi, glt;       /* glide state (semitone offset, progress) */
     float wtime;             /* analog-feel wander clock */
@@ -614,6 +619,11 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_PFSEL 0x0EC7u
 #define RI_CTL_LEVI_PFSPLIT 0x0EC8u
 #define RI_CTL_LEVI_PFBAL 0x0EC9u
+/* Performance buttons (fidelity P9d): the glide hold is a momentary
+ * override of the voice glide mode, the chord mode pushes a held chord
+ * from the live note-ons (never from a strike). */
+#define RI_CTL_LEVI_GLIDE 0x0ECAu
+#define RI_CTL_LEVI_CHORD 0x0ECBu
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u
@@ -771,6 +781,15 @@ struct RILeviSet {
     uint8_t p_bal;      /* layer balance 0..127 (64 = both unity) */
     uint8_t p_splitkey; /* key split boundary 0..127 */
     float p_zgain;      /* pending layer gain for the next fire (1.0f) */
+    /* Performance buttons (fidelity P9d): the glide hold is momentary
+     * (copied into the voices each block, so releasing it hands them
+     * back to their own mode); the chord row lives on the device but is
+     * pushed by the app. p_chord_on marks the lanes that sound. */
+    uint8_t p_glidehold;
+    uint8_t p_chord;
+    uint8_t p_chord_on;
+    uint8_t p_chord_n;
+    uint8_t p_chord_note[RI_LEVI_NCHORD];
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
     uint8_t lsc[RI_LEVI_NLFO];           /* step editor cursor per LFO (P8e) */
@@ -838,6 +857,20 @@ int levi_perf_set(struct RILeviSet *s, uint32_t field, int val);
 #define RI_LEVI_PF_BOTH 2u
 #define RI_LEVI_PF_DUAL 0u
 #define RI_LEVI_PF_KEYSPLIT 1u
+/* Performance buttons (fidelity P9d). The glide hold is a momentary
+ * override: it forces glide mode 1 on voices whose own mode is off, and
+ * releasing it hands every voice back (the copy is refreshed per block).
+ * 0 ok / 2 on NULL, any non-zero value is on. */
+int levi_glide_hold(struct RILeviSet *s, int on);
+/* Chord mode: with it on, a live note-on (levi_note_on / levi_note_vel)
+ * fires the pushed chord's on lanes as held notes transposed by
+ * played - root, the root being the lowest on lane; any key release then
+ * releases the whole chord. Strikes never enter chord mode.
+ * levi_chord_set pushes the row: on_flags marks the lanes (bit i), n is
+ * 0..RI_LEVI_NCHORD (lanes past n are cleared), lane notes clamp to the
+ * keyboard. 0 ok / 2 on NULL or n out of range. */
+int levi_chord_mode(struct RILeviSet *s, int on);
+int levi_chord_set(struct RILeviSet *s, uint32_t on_flags, const uint8_t *notes, int n);
 /* Arp strike: allocator policy without held-list insert (P8b); returns
  * voices fired, -1 bad. Release: voices sounding the note, no held
  * removal, no mode re-fire. */

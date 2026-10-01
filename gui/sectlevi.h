@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 226u
+#define RI_SLEVI_NCTL 228u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -188,12 +188,15 @@
 #define RI_SLEVI_APAT 218u
 #define RI_SLEVI_VVEL 219u
 #define RI_SLEVI_VPAT 220u
-/* Keyboard zones (fidelity P9c): 221..225, the PERFORMANCE page. */
+/* Keyboard zones (fidelity P9c): 221..225, the PERFORMANCE page.
+ * Performance buttons (fidelity P9d): 226..227, same page. */
 #define RI_SLEVI_PFOCT 221u
 #define RI_SLEVI_PFMODE 222u
 #define RI_SLEVI_PFSEL 223u
 #define RI_SLEVI_PFSPLIT 224u
 #define RI_SLEVI_PFBAL 225u
+#define RI_SLEVI_GLIDE 226u
+#define RI_SLEVI_CHORD 227u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */
@@ -226,7 +229,7 @@
 #define RI_SLEVI_M_VOICE 34u
 #define RI_SLEVI_M_MACRO 35u      /* MACRO ASSIGN (P5b) */
 #define RI_SLEVI_M_RIBBON 36u    /* ribbon (P8d) */
-#define RI_SLEVI_M_PERF 37u      /* keyboard zones (P9c) */
+#define RI_SLEVI_M_PERF 37u      /* keyboard zones + buttons (P9c, P9d) */
 #define RI_SLEVI_NMOD 38u
 #define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
 #define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */

@@ -208,6 +208,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t142_levi_arp2 >/dev/null || { echo "
 bash "$ROOT/scripts/ri_build_host.sh" test t143_levi_seq2 >/dev/null || { echo "FAIL: t143_levi_seq2 (levi seq P8c)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t144_levi_ribbon >/dev/null || { echo "FAIL: t144_levi_ribbon (levi ribbon P8d)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t145_levi_lfostp >/dev/null || { echo "FAIL: t145_levi_lfostp (levi lfo step editor P8e)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t149_levi_perfglide >/dev/null || { echo "FAIL: t149_levi_perfglide (levi glide button + chord mode P9d)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t148_levi_perfzone >/dev/null || { echo "FAIL: t148_levi_perfzone (levi keyboard zones P9c)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t147_levi_perfamt >/dev/null || { echo "FAIL: t147_levi_perfamt (levi performance amounts P9b)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t146_levi_perfsig >/dev/null || { echo "FAIL: t146_levi_perfsig (levi performance signals P9a)"; exit 1; }

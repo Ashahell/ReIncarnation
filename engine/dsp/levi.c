@@ -1006,6 +1006,7 @@ void levi_init_set(struct RILeviSet *s) {
         v->vvibrate = 5.0f;
         v->vvibamt = v->vvibdly = 0.0f;
         v->vglide = 0u;
+        v->gforce = 0u;   /* glide button (P9d); refreshed per block */
         v->vgltime = 1.0f;
         v->vglcurve = 1.0f;
         v->vibphase = v->vibtime = 0.0f;
@@ -1146,6 +1147,12 @@ void levi_init_set(struct RILeviSet *s) {
     s->p_bal = 64u;
     s->p_splitkey = 60u;
     s->p_zgain = 1.0f;
+    s->p_glidehold = 0u;
+    s->p_chord = 0u;
+    s->p_chord_on = 0u;
+    s->p_chord_n = 0u;
+    for (i = 0u; i < RI_LEVI_NCHORD; i++)
+        s->p_chord_note[i] = 0u;
     s->seqon = 0u;
     s->seqlen = 16u;
     ri_levi_matrix_init(&s->mx);
@@ -1660,10 +1667,12 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
     {
         /* Glide (P6b): a new note on a sounding voice slides from the
          * old pitch; fresh voices start on pitch. Legato retunes set
-         * this in alloc_retune instead (same law). */
+         * this in alloc_retune instead (same law). The glide button
+         * (P9d) slides too, read live from the device flag because a
+         * trigger runs between blocks. */
         uint8_t old = v->note;
         int was = v->active;
-        if (v->vglide && was && old != note) {
+        if ((v->vglide || s->p_glidehold) && was && old != note) {
             v->glsemi = (float)old - (float)note;
             v->glt = 0.0f;
         } else {
@@ -1748,14 +1757,16 @@ static int alloc_has_reset(const struct RILeviVoice *v) {
 
 /* Legato retune: new pitch without restarting envelopes, LFOs, mod envs
  * or filters (E0: retune-only; reset wins over legato). Glide restarts
- * from the old note like a trigger (P6b). */
-static void alloc_retune(struct RILeviVoice *v, uint8_t note) {
+ * from the old note like a trigger (P6b), and the glide button (P9d)
+ * starts one too -- ghold is the device's momentary button, read live
+ * here because a retune runs between blocks. */
+static void alloc_retune(struct RILeviVoice *v, uint8_t note, int ghold) {
     float f;
     uint32_t o, b;
     uint8_t old = v->note;
     note = voice_quantize(v, note);
     f = note_hz(note) * voice_micro_mult(v, note);
-    if (v->vglide && old != note) {
+    if ((v->vglide || ghold) && old != note) {
         v->glsemi = (float)old - (float)note;
         v->glt = 0.0f;
     } else {
@@ -1776,6 +1787,17 @@ static void alloc_retune(struct RILeviVoice *v, uint8_t note) {
     }
     v->active = 1u;
     kt_update(v);
+}
+
+/* Is this note one of the held keys? Chord mode (P9d) works on the hold
+ * list, because a chord's voices hold the pushed lanes, not the key the
+ * player pressed. */
+static int alloc_holds(const struct RILeviSet *s, uint8_t note) {
+    uint32_t i;
+    for (i = 0u; i < s->an; i++)
+        if (s->anotes[i] == note)
+            return 1;
+    return 0;
 }
 
 static void alloc_hold_add(struct RILeviSet *s, uint8_t note) {
@@ -1825,7 +1847,7 @@ static uint8_t alloc_pick_mono(const struct RILeviSet *s, uint32_t mode) {
 static void alloc_fire(struct RILeviSet *s, uint32_t voice, uint8_t note, int legato_ok) {
     struct RILeviVoice *v = &s->v[voice];
     if (legato_ok && v->active && alloc_has_legato(v) && !alloc_has_reset(v))
-        alloc_retune(v, note);
+        alloc_retune(v, note, (int)s->p_glidehold);
     else
         levi_trigger(s, voice, note);
 }
@@ -1994,9 +2016,80 @@ static int note_on_core(struct RILeviSet *s, uint8_t note, int hold) {
     return n;
 }
 
+/* ---- Performance buttons (fidelity P9d; own laws) ---- */
+
+/* Glide hold: a momentary override of the voice glide mode. Device-wide,
+ * copied into every voice each block (the render has no set pointer), so
+ * releasing it hands the voices back at the next block; a trigger or
+ * legato retune reads the flag directly, so a press slides the very next
+ * note without waiting for a render. */
+int levi_glide_hold(struct RILeviSet *s, int on) {
+    if (!s)
+        return 2;
+    s->p_glidehold = on ? 1u : 0u;
+    return 0;
+}
+
+int levi_chord_mode(struct RILeviSet *s, int on) {
+    if (!s)
+        return 2;
+    s->p_chord = on ? 1u : 0u;
+    return 0;
+}
+
+/* Push the chord row. on_flags marks the lanes that sound (bit i = lane
+ * i); n is how many lanes are in use, and the lanes past it are cleared
+ * so a shorter push really is shorter. */
+int levi_chord_set(struct RILeviSet *s, uint32_t on_flags, const uint8_t *notes, int n) {
+    int i;
+    if (!s || !notes || n < 0 || (uint32_t)n > RI_LEVI_NCHORD)
+        return 2;
+    for (i = 0; i < (int)RI_LEVI_NCHORD; i++) {
+        if (i < n) {
+            uint8_t k = notes[i];
+            s->p_chord_note[i] = k > 127u ? 127u : k;
+        } else {
+            s->p_chord_note[i] = 0u;
+        }
+    }
+    s->p_chord_on = (uint8_t)(n > 0 ? on_flags & ((1u << (uint32_t)n) - 1u) : 0u);
+    s->p_chord_n = (uint8_t)n;
+    return 0;
+}
+
+/* Chord fire (P9d): the played key transposes the pushed chord, so the
+ * keyboard still plays chords in key. The root is the lowest *on* lane,
+ * not lane 0 -- the mask is what the player holds. An empty chord is
+ * silent by design (no fallback to the single note). Each lane then
+ * enters the allocator core, so a chord also passes the octave bias and
+ * the zone routing: a keyboard feature on the same routing, not a second
+ * allocator. Returns the voices fired across the lanes. */
+static int chord_fire(struct RILeviSet *s, uint8_t note, uint8_t vel) {
+    uint32_t i, mask = s->p_chord_on;
+    int root = -1, n = 0;
+    for (i = 0u; i < RI_LEVI_NCHORD; i++)
+        if (mask & (1u << i)) {
+            root = (int)s->p_chord_note[i];
+            break;
+        }
+    if (root < 0)
+        return 0;
+    s->pvel = vel > 127u ? 127u : vel;
+    for (i = 0u; i < RI_LEVI_NCHORD; i++) {
+        int k;
+        if (!(mask & (1u << i)))
+            continue;
+        k = (int)s->p_chord_note[i] + (int)note - root;
+        n += note_on_core(s, (uint8_t)(k < 0 ? 0 : k > 127 ? 127 : k), 1);
+    }
+    return n;
+}
+
 int levi_note_on(struct RILeviSet *s, uint8_t note) {
     if (!s || note > 127u)
         return -1;
+    if (s->p_chord)
+        return chord_fire(s, note, s->pvel);
     return note_on_core(s, note, 1);
 }
 
@@ -2005,6 +2098,8 @@ int levi_note_vel(struct RILeviSet *s, uint8_t note, uint8_t vel) {
     if (!s || note > 127u)
         return -1;
     s->pvel = vel > 127u ? 127u : vel;
+    if (s->p_chord)
+        return chord_fire(s, note, s->pvel);
     return note_on_core(s, note, 1);
 }
 
@@ -2028,6 +2123,14 @@ int levi_polyat(struct RILeviSet *s, uint8_t note, uint8_t press) {
         return 2;
     if (press > 127u)
         press = 127u;
+    if (s->p_chord) {
+        /* Chord mode (P9d): the pressed key is the *played* key, which is
+         * in no voice -- so pressure means the chord, like a release. */
+        for (v = 0u; v < RI_LEVI_NVOICES; v++)
+            if (s->v[v].active && alloc_holds(s, s->v[v].note))
+                s->pat[v] = press;
+        return 0;
+    }
     for (v = 0u; v < RI_LEVI_NVOICES; v++)
         if (s->v[v].active && note_held_by(s, s->v[v].note, note))
             s->pat[v] = press;   /* the played key, bias included (P9c) */
@@ -2073,6 +2176,22 @@ int levi_note_off(struct RILeviSet *s, uint8_t note) {
     uint32_t mode;
     if (!s || note > 127u)
         return -1;
+    if (s->p_chord) {
+        /* Chord mode (P9d): any key releases the whole chord. The hold
+         * list is the chord, so every held voice goes with the pending
+         * release velocity and the list empties; the poly-mode
+         * single-voice cases are bypassed, because one voice cannot own
+         * a chord. */
+        uint32_t n = 0u;
+        for (v = 0u; v < RI_LEVI_NVOICES; v++)
+            if (s->v[v].active && alloc_holds(s, s->v[v].note)) {
+                s->v[v].nveloff = s->rvel;   /* release velocity (P9a) */
+                levi_release(s, v);
+                n++;
+            }
+        s->an = 0u;
+        return (int)n;
+    }
     alloc_hold_del(s, note);
     mode = s->polymode;
     if (mode == RI_LEVI_POLY_MONO || mode == RI_LEVI_POLY_MONOLO || mode == RI_LEVI_POLY_MONOHI) {
@@ -2418,7 +2537,7 @@ static void ribbon_theremin(struct RILeviSet *s) {
     note = s->rbn_pos > 127u ? 127u : s->rbn_pos;
     for (v = 0u; v < RI_LEVI_NVOICES; v++)
         if (s->v[v].active)
-            alloc_retune(&s->v[v], note);
+            alloc_retune(&s->v[v], note, (int)s->p_glidehold);
 }
 
 int levi_ribbon_touch(struct RILeviSet *s, uint8_t pos) {
@@ -2817,6 +2936,13 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
                 return levi_perf_set(s, FIELD[i], (int)val);
         return 2;
     }
+    case (RI_CTL_LEVI_GLIDE & 0xFFu):
+        /* Performance buttons (fidelity P9d): device-wide like the zone
+         * rows, so the voice index is ignored and the section-wide 0x0E
+         * loop is idempotent. */
+        return levi_glide_hold(s, val ? 1 : 0);
+    case (RI_CTL_LEVI_CHORD & 0xFFu):
+        return levi_chord_mode(s, val ? 1 : 0);
     case (RI_CTL_LEVI_MKNOB0 & 0xFFu): case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 1u:
     case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 2u: case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 3u:
     case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 4u: case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 5u:
@@ -3446,7 +3572,10 @@ static float voice_pitch_step(struct RILeviVoice *v, float sr, float *afwob) {
     v->vibphase += vr / sr;
     v->vibphase -= (float)(int)v->vibphase;
     {
-        uint32_t gm = v->vglide;
+        /* Glide (P6b) with the glide button (P9d) as a momentary
+         * override: the voice's own mode wins, then the button (which
+         * forces glide, never glissando), then the DM_VOICE toggle. */
+        uint32_t gm = v->vglide ? v->vglide : (v->gforce ? 1u : 0u);
         if (v->vom_on && v->vom[RI_LEVI_DVO_GLIDETGL] != 0.0f)
             gm = v->vom[RI_LEVI_DVO_GLIDETGL] > 0.0f ? 1u : 0u;
         if (gm && v->glt < 1.0f) {
@@ -3834,6 +3963,10 @@ static void levi_sig_refresh(struct RILeviSet *s) {
             pv->bsrc = -1.0f;
         else if (pv->bsrc > 1.0f)
             pv->bsrc = 1.0f;
+        /* Glide button (fidelity P9d): the render has no set pointer, so
+         * the momentary hold arrives here, per block -- releasing it
+         * hands every voice back to its own mode at the next block. */
+        pv->gforce = s->p_glidehold ? 1u : 0u;
     }
 }
 

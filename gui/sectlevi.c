@@ -468,8 +468,8 @@ static const struct LeviSlot P_RIBBON[8] = {
  * dim in Single and Select dims in Dual (slot() applies the mode law). */
 static const struct LeviSlot P_PERF[8] = {
     { RI_SLEVI_PFOCT, "OCTAVE" }, { RI_SLEVI_PFMODE, "MODE" }, { RI_SLEVI_PFSEL, "SELECT" },
-    { RI_SLEVI_PFSPLIT, "SPLIT" }, { RI_SLEVI_PFBAL, "BALANCE" }, { SLOT_DEAD, "" },
-    { SLOT_DEAD, "" }, { SLOT_DEAD, "" }
+    { RI_SLEVI_PFSPLIT, "SPLIT" }, { RI_SLEVI_PFBAL, "BALANCE" }, { RI_SLEVI_GLIDE, "GLIDE" },
+    { RI_SLEVI_CHORD, "CHORD" }, { SLOT_DEAD, "" }
 };
 static const struct LeviSlot P_VOICE[8] = {
     { RI_SLEVI_POLYMODE, "POLYPHONY" }, { RI_SLEVI_UDENSITY, "DENSITY" }, { RI_SLEVI_ULIMIT, "LIMIT" }, { RI_SLEVI_VDETUNE, "DETUNE" },

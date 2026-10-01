@@ -402,15 +402,15 @@ int main(void) {
                 "row %u group/legend", 221u + k);
             RI_ASSERT(ri_auto_allowed((uint16_t)KEY[k]), "key %04x allowed", KEY[k]);
         }
-        RI_ASSERT(ri_auto_allowed(0x0EC9u) && !ri_auto_allowed(0x0ECAu), "0x0ECA refused");
+        RI_ASSERT(ri_auto_allowed(0x0EC9u) && !ri_auto_allowed(0x0ECCu), "0x0ECC refused (P9d)");
     }
     {
         struct RISectLevi lv;
         char tx[16];
         memset(&lv, 0, sizeof lv);
         ri_slevi_init(&lv);
-        RI_ASSERT(RI_SLEVI_PFOCT == 221u && RI_SLEVI_PFBAL == 225u && RI_SLEVI_NCTL == 226u,
-            "panel rows");
+        RI_ASSERT(RI_SLEVI_PFOCT == 221u && RI_SLEVI_PFBAL == 225u && RI_SLEVI_NCTL == 228u,
+            "panel rows (225 zone rows + the two P9d buttons)");
         RI_ASSERT(lv.val[RI_SLEVI_PFOCT] == 2 && lv.val[RI_SLEVI_PFMODE] == 0 &&
             lv.val[RI_SLEVI_PFSEL] == 2 && lv.val[RI_SLEVI_PFSPLIT] == 0 &&
             lv.val[RI_SLEVI_PFBAL] == 64, "panel defaults");
@@ -430,8 +430,14 @@ int main(void) {
             "single dims split");
         RI_ASSERT(!ri_slevi_enc_live(&lv, 4u) && !strcmp(ri_slevi_enc_name(&lv, 4u), "BALANCE"),
             "single dims balance");
-        RI_ASSERT(!ri_slevi_enc_live(&lv, 5u) && !ri_slevi_enc_live(&lv, 6u) &&
-            !ri_slevi_enc_live(&lv, 7u), "three dead slots");
+        /* Slots 5 and 6 are the P9d performance buttons (glide hold,
+         * chord mode); they are not zone knobs, so the dim law leaves
+         * them lit even in Single. Slot 7 is still dead. */
+        RI_ASSERT(ri_slevi_enc_live(&lv, 5u) && !strcmp(ri_slevi_enc_name(&lv, 5u), "GLIDE"),
+            "slot 5 is the glide button");
+        RI_ASSERT(ri_slevi_enc_live(&lv, 6u) && !strcmp(ri_slevi_enc_name(&lv, 6u), "CHORD"),
+            "slot 6 is the chord button");
+        RI_ASSERT(!ri_slevi_enc_live(&lv, 7u), "slot 7 still dead");
         /* Encoder travel is scaled across the row's range (the ribbon
          * law), so 0 and 127 are the ends and 64 the centre. */
         RI_ASSERT(ri_slevi_set_value(&lv, RI_SLEVI_ENC0 + 1u, 127) == 1, "mode multi");

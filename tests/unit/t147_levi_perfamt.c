@@ -461,8 +461,8 @@ int main(void) {
         }
         RI_ASSERT(ri_auto_allowed(0x0EC4u), "0x0EC4 allowed");
         RI_ASSERT(!ri_auto_allowed(0x0EC5u) == 0, "0x0EC5 is the first zone key (P9c)");
-        RI_ASSERT(RI_SLEVI_DVEL == 215u && RI_SLEVI_VPAT == 220u && RI_SLEVI_NCTL == 226u,
-            "panel rows (225 + the zone page, P9c)");
+        RI_ASSERT(RI_SLEVI_DVEL == 215u && RI_SLEVI_VPAT == 220u && RI_SLEVI_NCTL == 228u,
+            "panel rows (225 + the zone page and the two P9d buttons)");
     }
     {
         struct RISectLevi lv;
