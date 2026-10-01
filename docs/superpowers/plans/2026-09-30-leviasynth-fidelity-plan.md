@@ -297,6 +297,21 @@ Pre-FX and Post-FX with 9 types, delay types, reverb types with freeze, and the 
 - Arp to the manual's parameter set, with 64 own phrases.
 - 2 poly note tracks + a macro track, up to 128 steps with per-step MultiTrig/Drift/Probability/Entropy, and step record.
 - Ribbon as mod source, theremin and step selector.
+- Split (2026-10-01): P8a device tempo + all BPM sync (this slice — closes P7d too); P8b arp parameter set + phrases; P8c sequencer tracks + step record; P8d ribbon + step-LFO editor. Matrix arp/seq destinations ride with P8b/c.
+
+#### P8a plan (device tempo + BPM sync incl. P7d; before code 2026-10-01)
+
+- Tempo source: the engine already owns `tempo` (20..500, default 140) fed by song/MIDI; the device caches it per render call (`levi_set_tempo`, clamped 20..500, default 140) pushed by the engine section render — no MIDI plumbing in the device, no owner question (uses the interop lane's tempo, ledgered).
+- Refresh model (own): at the top of every `sum_stereo` call, recompute ONLY flagged units from retained UI values + cached tempo (unconditional, no dirty flag — tempo changes are rare but knob edits on flagged units must apply instantly; ~600 flag branches per block worst case, negligible vs 8-voice render).
+- Laws (own): musical time `beats(ui) = ui/127*4` (0..4 beats) → seconds `beats*60/bpm`. ENV segments (delay/attack/hold/decay/release) use it when the per-op/per-menv BPM flag is on; LFO delay/fade likewise; LFO rate becomes `bpm/60/beats_per_cycle` with `beats_per_cycle = 4*2^(-ui/127*7)` (4 beats..1/32 per cycle); delay time snaps to the nearest straight 16th (`beats` → 0.25 grid, clamp 1 ms..2 s) when `dbpm` is on (no new keys — the stored time is the musical length, snapped at the door).
+- Flags: LFO BPM already stored (`LP_BPM`, 0x10 keys exist — just bind the dead page slots). ENV BPM is new: per-op `opbpm[8]` + per-menv `mebpm[5]` in the voice (off = absolute, default off — songs bit-identical); keys `0x0E93..9F` (8 op + 5 menv, section-wide apply to all voices); NO new registry rows (panel slots are dynamic: `SLOT_OPBPM` (-48, inside the OP range as param 32) + `SLOT_MEBPM` (-150, in the free gap), resolved against the page's op/env in the 7 slot consumers).
+- E0: flags default off (bit-identical songs); tempo default 140 matches the engine default; ENV BPM at ui=0 is instant (same as the absolute map); delay snap is stepped (same as knob moves); LFO/delay/ENV recompute from retained UI (no render-state feedback); MIDI-clock derivation stays in the interop lane (device reads the pushed tempo only).
+- **Status: P8a done 2026-10-01** (engine, keys, UI, tests — closes P7d):
+  - Device tempo cache (`levi_set_tempo`, 20..500 clamped, default 140) pushed per block by the engine section render. Unconditional per-render refresh of flagged units from retained UI (no dirty flag — ~600 branches per block worst case).
+  - Laws: `beats(ui)=ui/127*4` → seconds at tempo; ENV segments + LFO delay/fade use it when flagged; LFO rate = `bpm/60` per `4*2^(-ui/127*7)` beats; delay snaps to straight 16ths at the door when `dbpm` (idempotent, no new keys).
+  - Flags: 13 new keys `0x0E93..9F` (8 op + 5 menv, section-wide to all voices, no registry rows — panel slots are dynamic `SLOT_OPBPM`/`SLOT_MEBPM`); LFO BPM slot bound to the existing 0x10 key; per-type texts SYNC/FREE.
+  - Proof: audit 0/0 clean worktree; riaudio lane: window opens, SPACE→TR PLAY, AHI 0x003e0001, buffers=11882 xruns=0. Deviations: no host wav; page pixels deferred (standing gap); 909 pack missing (unrelated).
+- **Tests:** t141 (pure helpers exact incl. snap floor/ceiling, tempo clamp/default/null, tempo-moves-synced/never-free for LFO rate, LFO delay, op ENV, menv ENV (via ENV1→cutoff prewire), delay snap; flags section-wide + range ends; UI round-trip set+key+texts; null guards; extremes at 20/140/500; 17 mutants killed, 1 ledgered survival: engine tempo-push removal — no engine-render unit law, lane-covered via PLAY at song tempo); t60 range to `0x0E9F`, t77 allow 1081 (+13 with page-slot ownership rule), t136/t138/t139/t140 `0x0EA0` boundary deliberate moves.
 
 ### P9: performance
 

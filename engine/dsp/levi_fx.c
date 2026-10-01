@@ -15,6 +15,24 @@ float ri_levi_delay_time(uint8_t ui) {
     return t;
 }
 
+float ri_levi_delay_snap(float sec, float bpm) {
+    /* Nearest straight 16th (P7d via the P8a clock). Idempotent:
+     * snapped values re-snap to themselves. */
+    float b = bpm, beats, q;
+    if (!(b >= 20.0f && b <= 500.0f))
+        b = 140.0f;
+    if (!(sec > 0.0f))
+        return 0.001f;
+    beats = sec * b / 60.0f;
+    q = (float)(int)(beats * 4.0f + 0.5f) / 4.0f;
+    sec = q * 60.0f / b;
+    if (sec < 0.001f)
+        sec = 0.001f;
+    if (sec > 2.0f)
+        sec = 2.0f;
+    return sec;
+}
+
 /* Flush subnormals (no denormals in any feedback loop). */
 static float flushf(float x) {
     return (x > -1e-18f && x < 1e-18f) ? 0.0f : x;

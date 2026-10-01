@@ -11,6 +11,11 @@
 #define SLOT_DEAD (-1)
 #define SLOT_OP(p) (-(16 + (int)(p)))
 #define SLOT_GOP(p) (-(64 + (int)(p)))
+/* Per-op ENV BPM flag (fidelity P8a): param 32, inside the OP range. */
+#define SLOT_OPBPM (-(16 + 32))
+/* Per-menv BPM flag (P8a): -150 sits in the free gap (LF ends at -144,
+ * matrix starts at -160) and is matched exactly, never by range. */
+#define SLOT_MEBPM (-150)
 #define SLOT_IS_OP(x) ((x) <= -16 && (x) > -64)
 #define SLOT_IS_GOP(x) ((x) <= -64 && (x) > -96)
 #define SLOT_PARAM(x) ((uint32_t)(SLOT_IS_GOP(x) ? -(x) - 64 : -(x) - 16))
@@ -68,6 +73,11 @@ int ri_slevi_init(struct RISectLevi *s) {
                 s->mrv[o][p][0] = s->mrv[o][p][1] = s->mrv[o][p][3] = 0u;
                 s->mrv[o][p][2] = 64u;
             }
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            s->opbpm[o] = 0u;
+        for (o = 0u; o < RI_LEVI_NMENV; o++)
+            s->mebpm[o] = 0u;
+        s->bpmpad[0] = s->bpmpad[1] = s->bpmpad[2] = 0u;
     }
     ri_pattern_init(&s->pat, RI_PATTERN_KIND_LEVI, 0u);
     return 0;
@@ -250,6 +260,12 @@ int ri_slevi_reset(struct RISectLevi *s, uint32_t idx) {
         }
         if (SLOT_IS_OP(t) || SLOT_IS_GOP(t)) {
             uint32_t o = slot_op(s, t, k), p = SLOT_PARAM(t);
+            if (p == 32u) {   /* per-op ENV BPM flag (fidelity P8a) */
+                if (s->opbpm[o] == 0u)
+                    return 0;
+                s->opbpm[o] = 0u;
+                return 1;
+            }
             uint8_t dv = (uint8_t)ri_levi_op_default(o, p);
             if (s->opv[o][p] == dv)
                 return 0;
@@ -313,7 +329,7 @@ static const struct LeviSlot P_OSC[5][8] = {
     { { OP(MODE), "MODE" }, { OP(WAVE), "WAVE" }, { OP(COARSE), "PITCH" }, { OP(FINE), "FINE" },
       { OP(INIT), "INIT LVL" }, { OP(ENVL), "ENV LVL" }, { OP(FEEDBACK), "FEEDBK" }, { OP(KEYTRK), "KEYTRK" } },
     { { OP(ATTACK), "ATTACK" }, { OP(DECAY), "DECAY" }, { OP(SUSTAIN), "SUSTAIN" }, { OP(RELEASE), "RELEASE" },
-      { OP(DELAY), "DELAY" }, { OP(HOLD), "HOLD" }, { OP(SPEED), "SPEED" }, { SLOT_DEAD, "BPM SYNC" } },
+      { OP(DELAY), "DELAY" }, { OP(HOLD), "HOLD" }, { OP(SPEED), "SPEED" }, { SLOT_OPBPM, "BPM SYNC" } },
     { { OP(ACURVE), "ATK CRV" }, { OP(DCURVE), "DEC CRV" }, { OP(QUANT), "QUANTIZE" }, { OP(RCURVE), "REL CRV" },
       { OP(LEGATO), "LEGATO" }, { OP(RESET), "RESET" }, { OP(FREERUN), "FREERUN" }, { OP(LOOP), "ENV LOOP" } },
     { { SLOT_DEAD, "TRIG 1" }, { SLOT_DEAD, "TRIG 2" }, { SLOT_DEAD, "TRIG 3" }, { SLOT_DEAD, "TRIG 4" },
@@ -327,7 +343,7 @@ static const struct LeviSlot P_OSC[5][8] = {
 #define ME(p) SLOT_ME(RI_LEVI_OP_##p)
 static const struct LeviSlot P_ENV[4][8] = {
     { { ME(ATTACK), "ATTACK" }, { ME(DECAY), "DECAY" }, { ME(SUSTAIN), "SUSTAIN" }, { ME(RELEASE), "RELEASE" },
-      { ME(DELAY), "DELAY" }, { ME(HOLD), "HOLD" }, { ME(SPEED), "SPEED" }, { SLOT_DEAD, "BPM SYNC" } },
+      { ME(DELAY), "DELAY" }, { ME(HOLD), "HOLD" }, { ME(SPEED), "SPEED" }, { SLOT_MEBPM, "BPM SYNC" } },
     { { ME(ACURVE), "ATK CRV" }, { ME(DCURVE), "DEC CRV" }, { ME(QUANT), "QUANTIZE" }, { ME(RCURVE), "REL CRV" },
       { ME(LEGATO), "LEGATO" }, { ME(RESET), "RESET" }, { ME(FREERUN), "FREERUN" }, { ME(LOOP), "ENV LOOP" } },
     { { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" },
@@ -384,7 +400,7 @@ static const struct LeviSlot P_REVERB2[8] = {
 static const struct LeviSlot P_LFO[2][8] = {
     { { LF(WAVE), "WAVE" }, { LF(RATE), "RATE" }, { LF(SPEED), "SPEED" }, { LF(TRIG), "TRIG SYNC" },
       { LF(DELAY), "DELAY" }, { LF(FADE), "FADE IN" }, { LF(QUANT), "QUANTIZE" }, { LF(LEVEL), "LEVEL" } },
-    { { LF(STEPS), "STEPS" }, { LF(SMOOTH), "SMOOTH" }, { SLOT_DEAD, "BPM SYNC" }, { LF(ONESHOT), "ONE-SHOT" },
+    { { LF(STEPS), "STEPS" }, { LF(SMOOTH), "SMOOTH" }, { LF(BPM), "BPM SYNC" }, { LF(ONESHOT), "ONE-SHOT" },
       { LF(PHASE), "PHASE" }, { LF(STAGGER), "STAGGER" }, { SLOT_DEAD, "SEMI LOCK" }, { SLOT_DEAD, "STEP EDIT" } }
 };
 #undef LF
@@ -564,6 +580,16 @@ static uint8_t *mod_val(const struct RISectLevi *s, int t, int *lo, int *hi, uin
         if (lo) { *lo = l0; *hi = h0; }
         return (uint8_t *)&s->mev[u][p];
     }
+    if (t == SLOT_MEBPM && m >= RI_SLEVI_M_ENV1 && m < RI_SLEVI_M_ENV1 + RI_LEVI_NMENV) {
+        /* Per-menv BPM flag (fidelity P8a): switch 0/1 on the 0x0E key. */
+        u = m - RI_SLEVI_M_ENV1;
+        if (key)
+            *key = (uint16_t)(RI_CTL_LEVI_MEBPM0 + u);
+        if (dv)
+            *dv = 0;
+        if (lo) { *lo = 0; *hi = 1; }
+        return (uint8_t *)&s->mebpm[u];
+    }
     if (SLOT_IS_MX(t)) {
         uint32_t r = (uint32_t)(-t - 160) / 4u, f = (uint32_t)(-t - 160) % 4u;
         l0 = 0;
@@ -614,6 +640,8 @@ static int enc_value(const struct RISectLevi *s, uint32_t k) {
         return hi > lo ? ((int)*mv - lo) * 127 / (hi - lo) : 0;
     if (SLOT_IS_OP(t) || SLOT_IS_GOP(t)) {
         uint32_t o = slot_op(s, t, k), p = SLOT_PARAM(t);
+        if (p == 32u)   /* per-op ENV BPM flag: switch truth as-is */
+            return s->opbpm[o] ? 127 : 0;
         if (ri_levi_op_range(p, &lo, &hi) != 0 || hi <= lo)
             return 0;
         return ((int)s->opv[o][p] - lo) * 127 / (hi - lo);
@@ -674,6 +702,11 @@ int ri_slevi_ctl_key(const struct RISectLevi *s, uint32_t idx, uint16_t *key, in
         return 0;
     o = slot_op(s, t, (uint32_t)k);
     p = SLOT_PARAM(t);
+    if (p == 32u) {   /* per-op ENV BPM flag (fidelity P8a) */
+        *key = (uint16_t)(RI_CTL_LEVI_OPBPM0 + o);
+        *val = s->opbpm[o];
+        return 1;
+    }
     *key = RI_LEVI_OPKEY(o, p);
     *val = s->opv[o][p];
     return 1;
@@ -996,6 +1029,10 @@ static void mod_text(const struct RISectLevi *s, int t, char *buf, uint32_t cap)
             op_text(u, p, buf, cap);
         return;
     }
+    if (t == SLOT_MEBPM) {   /* per-menv BPM flag (fidelity P8a) */
+        put_str(buf, cap, v ? "SYNC" : "FREE");
+        return;
+    }
     {
         const uint8_t *u = mv - p;
         uint32_t slow = u[RI_LEVI_LP_SPEED] ? 0u : 1u;
@@ -1017,6 +1054,7 @@ static void mod_text(const struct RISectLevi *s, int t, char *buf, uint32_t cap)
         case RI_LEVI_LP_QUANT: if (!v) put_str(buf, cap, "OFF"); else put_num(buf, cap, v); return;
         case RI_LEVI_LP_LEVEL: put_num(buf, cap, v * 128 / 127); return;
         case RI_LEVI_LP_ONESHOT: put_str(buf, cap, ONE[v > 2 ? 2 : v]); return;
+        case RI_LEVI_LP_BPM: put_str(buf, cap, v ? "SYNC" : "FREE"); return;
         case RI_LEVI_LP_PHASE: case RI_LEVI_LP_STAGGER: put_num(buf, cap, v * 360 / 128); return;
         default: put_num(buf, cap, v); return;
         }
@@ -1034,6 +1072,10 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
         return;
     t = slot(s, k, 0);
     if (SLOT_IS_OP(t) || SLOT_IS_GOP(t)) {
+        if (SLOT_PARAM(t) == 32u) {   /* per-op ENV BPM flag */
+            put_str(buf, cap, s->opbpm[slot_op(s, t, k)] ? "SYNC" : "FREE");
+            return;
+        }
         op_text(s->opv[slot_op(s, t, k)], SLOT_PARAM(t), buf, cap);
         return;
     }
@@ -1466,6 +1508,13 @@ static int enc_set(struct RISectLevi *s, uint32_t k, int v) {
     }
     if (SLOT_IS_OP(t) || SLOT_IS_GOP(t)) {
         uint32_t o = slot_op(s, t, k), p = SLOT_PARAM(t);
+        if (p == 32u) {   /* per-op ENV BPM flag: switch 0/1 */
+            w = v >= 64 ? 1 : 0;
+            if (s->opbpm[o] == (uint8_t)w)
+                return 0;
+            s->opbpm[o] = (uint8_t)w;
+            return 1;
+        }
         if (ri_levi_op_range(p, &lo, &hi) != 0)
             return 0;
         w = lo + (v * (hi - lo) + 63) / 127;

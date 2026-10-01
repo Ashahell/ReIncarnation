@@ -124,6 +124,10 @@ struct RILeviFx {
 
 /* Delay time in seconds for a UI value (0..127 -> 1 ms..2 s). Pure. */
 float ri_levi_delay_time(uint8_t ui);
+/* Snap a delay time to the nearest straight 16th at a tempo (P7d):
+ * beats = sec*bpm/60 rounded to 0.25, back to seconds, clamped
+ * 1 ms..2 s. Idempotent. Pure; same bpm fallback as beats_time. */
+float ri_levi_delay_snap(float sec, float bpm);
 /* One stereo sample through the device delay (bypass = exact dry).
  * dfxm (matrix) folds first when dfxm_on. lenne = line length bound. */
 void levi_fx_delay(struct RILeviFx *f, float sr, float in_l, float in_r,

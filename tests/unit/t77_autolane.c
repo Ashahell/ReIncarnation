@@ -262,10 +262,15 @@ int main(void) {
                     if ((key & 0xFF00u) == RI_AUTO_BLK_LEVIMOD || (key & 0xFF00u) == RI_AUTO_BLK_LEVIMX ||
                         (key & 0xFF00u) == RI_AUTO_BLK_LEVIMAC)   /* + matrix / macro routes (P5b) */
                         owned = 1;
+                    /* Levi ENV BPM flags 0x0E93..9F (fidelity P8a):
+                     * per-op/per-menv flags, reached through the OSC/ENV
+                     * pages' BPM SYNC slots (no registry rows). */
+                    if (key >= 0x0E93u && key <= 0x0E9Fu)
+                        owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 1068u, "allow-list size %u (241 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
-                    "5 x 14 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys)", nallow);
+                RI_ASSERT(nallow == 1081u, "allow-list size %u (241 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
+                    "5 x 14 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys + 13 env-bpm P8a)", nallow);
             }
         }
     }

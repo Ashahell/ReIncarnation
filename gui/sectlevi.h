@@ -195,6 +195,9 @@ struct RISectLevi {
     uint8_t opv[RI_LEVI_NOPS][RI_LEVI_OP_NPARAM]; /* per-op UI values (P2) */
     uint8_t mev[RI_LEVI_NMENV][RI_LEVI_OP_NPARAM];   /* ENV 1-5 UI values (P5) */
     uint8_t lfv[RI_LEVI_NLFO][16];                   /* LFO 1-5 UI values (P5) */
+    uint8_t opbpm[RI_LEVI_NOPS]; /* per-op ENV BPM flags (P8a panel truth) */
+    uint8_t mebpm[RI_LEVI_NMENV]; /* per-menv BPM flags (P8a panel truth) */
+    uint8_t bpmpad[3];
     uint8_t mxv[RI_LEVI_MX_NSLOTS][4];               /* matrix routes: source, module, param, depth (P5b) */
     uint8_t mrv[RI_LEVI_NMACRO][RI_LEVI_MACRO_NR][4]; /* macro routes: module, param, depth, button value */
     struct RIPattern pat;      /* chord kind, class Levi */

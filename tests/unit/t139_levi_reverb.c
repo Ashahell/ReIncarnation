@@ -283,7 +283,7 @@ int main(void) {
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_RTYPE), "rtype allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_RBYPASS), "rbypass allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_RFREEZE), "rfreeze allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0E93u), "0x0E93 refused (P7c)");
+    RI_ASSERT(!ri_auto_allowed(0x0EA0u), "0x0EA0 refused (P8a)");
     {
         const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | RI_SLEVI_FXREV));
         RI_ASSERT(d && d->engine_id == RI_CTL_LEVI_RBYPASS, "fxrev binds bypass");

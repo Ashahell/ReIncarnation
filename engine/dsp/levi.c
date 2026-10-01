@@ -346,6 +346,42 @@ int ri_levi_op_default(uint32_t op, uint32_t param) {
     }
 }
 
+/* Musical time (fidelity P8a): beats(ui) = ui/127*4 over 0..4 beats. */
+static float beats_of(uint8_t ui, float bpm) {
+    float b = bpm;
+    if (!(b >= 20.0f && b <= 500.0f))
+        b = 140.0f;
+    return (float)(ui > 127u ? 127u : ui) / 127.0f * 4.0f * 60.0f / b;
+}
+
+float ri_levi_beats_time(uint8_t ui, float bpm) {
+    return beats_of(ui, bpm);
+}
+
+float ri_levi_lfo_sync_hz(uint8_t ui, float bpm) {
+    /* One cycle per 4*2^(-ui/127*7) beats (4 beats..1/32). */
+    float b = bpm, bpc;
+    uint8_t u = ui > 127u ? 127u : ui;
+    if (!(b >= 20.0f && b <= 500.0f))
+        b = 140.0f;
+    bpc = 4.0f / ri_pow2((float)u / 127.0f * 7.0f);
+    return b / 60.0f / bpc;
+}
+
+int levi_set_tempo(struct RILeviSet *s, float bpm) {
+    if (!s)
+        return 2;
+    if (!(bpm > 0.0f))
+        s->tempo_bpm = 140.0f;
+    else if (bpm < 20.0f)
+        s->tempo_bpm = 20.0f;
+    else if (bpm > 500.0f)
+        s->tempo_bpm = 500.0f;
+    else
+        s->tempo_bpm = bpm;
+    return 0;
+}
+
 float ri_levi_env_time(uint32_t param, uint8_t val, uint32_t speed) {
     /* Manual ranges (p. 38): Fast D 32 s, A/H 36 s, D/R 60 s;
      * Slow D 60 s, A/H 600 s, D/R 900 s. Own quartic map (fine short
@@ -1011,6 +1047,7 @@ void levi_init_set(struct RILeviSet *s) {
     s->fx.fxpad[0] = s->fx.fxpad[1] = s->fx.fxpad[2] = 0u;
     s->fx.rfxpad[0] = s->fx.rfxpad[1] = s->fx.rfxpad[2] = 0u;
     levi_fx_reverb_bind(&s->fx);
+    s->tempo_bpm = 140.0f;   /* device tempo cache (P8a; engine pushes per block) */
     /* Mod slots (fidelity P7c): chorus by default, bypassed (songs
      * bit-identical until switched on). */
     s->fx.pre.type = s->fx.post.type = RI_LEVI_MT_CHORUS;
@@ -1218,6 +1255,61 @@ static void lfo_apply(struct RILeviLFO *l, uint32_t p) {
     case RI_LEVI_LP_PHASE: l->phase0 = (float)u[p] / 128.0f; break;
     default: break;                               /* BPM, stagger: read where used */
     }
+}
+
+/* Tempo refresh (fidelity P8a): recompute flagged musical times from
+ * retained UI values + the cached tempo. Runs at the top of every
+ * sum_stereo call; flag branches only when everything is off, so the
+ * steady-state cost is ~600 branches per block against an 8-voice
+ * render. No dirty flag (knob edits on flagged units apply instantly). */
+static void lfo_sync_apply(struct RILeviLFO *l, float bpm) {
+    const uint8_t *u;
+    if (!l)
+        return;
+    u = l->ui;
+    if (!u[RI_LEVI_LP_BPM])
+        return;
+    l->rate = ri_levi_lfo_sync_hz(u[RI_LEVI_LP_RATE], bpm);
+    l->delay = beats_of(u[RI_LEVI_LP_DELAY], bpm);
+    l->fade = beats_of(u[RI_LEVI_LP_FADE], bpm);
+}
+
+static void env_sync_apply(struct RILeviEnv *e, const uint8_t *u, float bpm) {
+    if (!e || !u)
+        return;
+    e->times[RI_LEVI_SEG_D] = beats_of(u[RI_LEVI_OP_DELAY], bpm);
+    e->times[RI_LEVI_SEG_A] = beats_of(u[RI_LEVI_OP_ATTACK], bpm);
+    e->times[RI_LEVI_SEG_H] = beats_of(u[RI_LEVI_OP_HOLD], bpm);
+    e->times[RI_LEVI_SEG_D2] = beats_of(u[RI_LEVI_OP_DECAY], bpm);
+    e->times[RI_LEVI_SEG_R] = beats_of(u[RI_LEVI_OP_RELEASE], bpm);
+}
+
+static void levi_tempo_refresh(struct RILeviSet *s) {
+    uint32_t v, o, e;
+    float bpm;
+    if (!s)
+        return;
+    bpm = s->tempo_bpm;
+    for (v = 0u; v < RI_LEVI_NVOICES; v++) {
+        struct RILeviVoice *vv = &s->v[v];
+        for (o = 0u; o < RI_LEVI_NOPS; o++) {
+            if (vv->opbpm[o]) {
+                uint32_t b;
+                for (b = 0u; b < 2u; b++)
+                    env_sync_apply(&vv->st[b][o].env, vv->op[o].ui, bpm);
+            }
+        }
+        for (e = 0u; e < RI_LEVI_NMENV; e++) {
+            if (vv->mebpm[e])
+                env_sync_apply(&vv->menv[e], vv->meui[e], bpm);
+        }
+        for (o = 0u; o < RI_LEVI_NLFO; o++)
+            lfo_sync_apply(&vv->lfo[o], bpm);
+    }
+    for (o = 0u; o < RI_LEVI_NLFO; o++)
+        lfo_sync_apply(&s->glfo[o], bpm);
+    if (s->fx.dbpm)
+        s->fx.dtime = ri_levi_delay_snap(s->fx.dtime, bpm);
 }
 
 static void lfo_init(struct RILeviLFO *l, uint32_t seed) {
@@ -1953,6 +2045,20 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     float f;
     if (!s || voice >= RI_LEVI_NVOICES)
         return 2;
+    /* ENV BPM flags (fidelity P8a): per-op 0x93..9A, per-menv 0x9B..9F,
+     * section-wide apply to every voice (all voices share the flags). */
+    if (id >= (RI_CTL_LEVI_OPBPM0 & 0xFFu) && id <= (RI_CTL_LEVI_OPBPM7 & 0xFFu)) {
+        uint32_t w;
+        for (w = 0u; w < RI_LEVI_NVOICES; w++)
+            s->v[w].opbpm[id - (RI_CTL_LEVI_OPBPM0 & 0xFFu)] = val ? 1u : 0u;
+        return 0;
+    }
+    if (id >= (RI_CTL_LEVI_MEBPM0 & 0xFFu) && id <= (RI_CTL_LEVI_MEBPM4 & 0xFFu)) {
+        uint32_t w;
+        for (w = 0u; w < RI_LEVI_NVOICES; w++)
+            s->v[w].mebpm[id - (RI_CTL_LEVI_MEBPM0 & 0xFFu)] = val ? 1u : 0u;
+        return 0;
+    }
     switch (id) {
     case RI_LEVI_CUTOFF:
         f = 40.0f * ri_pow2(((float)val / 127.0f) * 8.5f);
@@ -3119,6 +3225,7 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
     uint32_t i, v;
     if (!s || !out_l || !out_r)
         return;
+    levi_tempo_refresh(s);   /* flagged musical times follow the cached tempo */
     for (i = 0u; i < n; i++) {
         float ml = 0.0f, mr = 0.0f, vl, vr;
         uint32_t o;

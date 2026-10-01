@@ -412,6 +412,9 @@ struct RILeviVoice {
     uint8_t vpad2[3];
     float vhold[2]; /* vintage hold values L/R */
     uint32_t vcount; /* vintage decimation counter */
+    uint8_t opbpm[RI_LEVI_NOPS]; /* per-op ENV BPM sync flags (P8a) */
+    uint8_t mebpm[RI_LEVI_NMENV]; /* per-menv BPM sync flags (P8a) */
+    uint8_t tbpad[3];
 };
 
 /* Osc Env Level & Bias (manual p. 54): device-wide offsets over every
@@ -523,6 +526,12 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_OP2 0x0E90u
 #define RI_CTL_LEVI_ODRYWET 0x0E91u
 #define RI_CTL_LEVI_POSTBYPASS 0x0E92u
+/* ENV BPM sync flags (fidelity P8a; device tempo in the set). Per-op
+ * 0x0E93..9A, per-menv 0x0E9B..9F; section-wide apply to all voices. */
+#define RI_CTL_LEVI_OPBPM0 0x0E93u
+#define RI_CTL_LEVI_OPBPM7 0x0E9Au
+#define RI_CTL_LEVI_MEBPM0 0x0E9Bu
+#define RI_CTL_LEVI_MEBPM4 0x0E9Fu
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u
@@ -559,6 +568,7 @@ struct RILeviSet {
     uint8_t seqlen;  /* device seq length 1..16 */
     struct RILeviFx fx;     /* per-device FX chain (fidelity P7) */
     struct RILeviMatrix mx; /* device matrix program (v2 feature 4) */
+    float tempo_bpm;  /* device tempo cache 20..500 (P8a; engine pushes per block) */
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
     /* Voice allocator (fidelity P6a, manual pp. 87-96): device-wide.
@@ -675,6 +685,15 @@ const char *ri_levi_wave_name(uint32_t wave);
 float ri_levi_wave(uint32_t w, float phase, float dt);
 /* LFO UI map (0..127 -> 0.01..30 Hz exp). Pure. */
 float ri_levi_lfo_rate(uint8_t ui);
+/* Musical time in seconds for a UI value at a tempo: beats(ui) =
+ * ui/127*4 (0..4 beats) at 60/bpm seconds per beat. Pure; bad bpm
+ * (<20 or >500, non-finite) falls back to 140. */
+float ri_levi_beats_time(uint8_t ui, float bpm);
+/* LFO rate in Hz for a UI value at a tempo: one cycle per
+ * 4*2^(-ui/127*7) beats (4 beats..1/32). Pure; same bpm fallback. */
+float ri_levi_lfo_sync_hz(uint8_t ui, float bpm);
+/* Cache the device tempo (20..500 clamped); 2 on NULL. */
+int levi_set_tempo(struct RILeviSet *s, float bpm);
 /* Advance one LFO a sample (wraps phase 0..1); returns its value
  * (wave, level, quantize, smooth, delay/fade). A shared LFO (trig sync
  * single/off) returns its value unchanged: the set steps it. 0.0f on bad. */
