@@ -55,7 +55,7 @@ uint32_t ri_cev_key(struct RICevState *st, struct RISectUI *ui,
 
 uint32_t ri_cev_button(struct RICevState *st, struct RISectUI *ui,
     struct RIPanelUI *panel, const struct RIGeoSection *geo, int zoom,
-    int lx, int ly, int w, int h, int kind) {
+    int lx, int ly, int w, int h, int kind, uint32_t ms) {
     uint16_t id;
     uint32_t idx;
     int opt = -1;
@@ -102,7 +102,10 @@ uint32_t ri_cev_button(struct RICevState *st, struct RISectUI *ui,
         st->acc_dx = st->acc_dy = 0.0;
         st->last_x = lx;
         st->last_y = ly;
-    } else if (ri_sui_press(ui, idx)) {
+    } else if (ri_sui_tap(ui, idx, ms) || ri_sui_press(ui, idx)) {
+        /* A tap that moved the tempo needs no ordinary press: ri_str_press
+         * has no case for the key, and a tap without a clock falls through
+         * to it and does nothing. */
         out |= RI_CEV_CHANGED;
     }
     return out | RI_CEV_EAT;

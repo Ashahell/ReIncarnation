@@ -265,6 +265,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(TRANSPORT, 11, DISPLAY, "", "Loop Length", 1, 999, 4, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(TRANSPORT, 12, LED, "", "MIDI In", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(TRANSPORT, 13, LED, "", "Sync", 0, 2, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(TRANSPORT, 14, BUTTON, "", "Tap", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(PAT_SYNTH1, 0, SWITCH, "", "Section Off", 0, 1, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
     R(PAT_SYNTH1, 1, SELECTOR, "", "Bank", 0, 3, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
     R(PAT_SYNTH1, 2, SELECTOR, "", "Pattern", 0, 7, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),

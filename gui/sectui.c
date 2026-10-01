@@ -65,6 +65,12 @@ int ri_sui_press(struct RISectUI *s, uint32_t idx) {
          : ispat(s) ? ri_spat_press(&s->u.pat, idx) : istr(s) ? ri_str_press(&s->u.tr, idx) : 0;
 }
 
+int ri_sui_tap(struct RISectUI *s, uint32_t idx, uint32_t ms) {
+    if (!s || !istr(s) || idx != RI_STR_TAP)
+        return 0;
+    return ri_str_tap(&s->u.tr, ms);
+}
+
 int ri_sui_set(struct RISectUI *s, uint32_t idx, int v) {
     if (!s)
         return 0;

@@ -528,6 +528,7 @@ static const struct RIGeoItem RI_GEO_TRANSPORT[] = {
     { TR(6), RI_GEO_RECT, 0, 706, 137, 120, 76 },
     { TR(7), RI_GEO_RECT, 0, 834, 137, 120, 76 },
     { TR(8), RI_GEO_RECT, 0, 962, 137, 120, 76 },
+    { TR(14), RI_GEO_RECT, 0, 490, 58, 120, 76 },   /* Tap (P9e): above Play */
     { TR(3), RI_GEO_RECT, 0, 1139, 143, 110, 70 },
     { TR(3), RI_GEO_STEPPER, 1, 1222, 127, 32, 28 },
     { TR(3), RI_GEO_STEPPER, 0, 1222, 158, 32, 28 },

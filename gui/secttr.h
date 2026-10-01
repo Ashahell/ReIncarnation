@@ -28,7 +28,14 @@
 #define RI_STR_LOOP_LEN 11u
 #define RI_STR_MIDI 12u
 #define RI_STR_SYNC 13u      /* 0 off, 1 red (downbeat), 2 green */
-#define RI_STR_NCTL 14u
+#define RI_STR_TAP 14u       /* tap tempo: a button, not a value (P9e) */
+#define RI_STR_NCTL 15u
+
+/* Tap tempo (P9e): the estimator keeps this many press intervals and
+ * forgets everything older; a pause longer than the gap starts a new
+ * measurement rather than dragging a stale interval into the average. */
+#define RI_STR_TAP_IV 4u
+#define RI_STR_TAP_GAP_MS 2000u
 
 struct RISectTr {
     uint8_t section;         /* RI_SEC_TRANSPORT */
@@ -40,10 +47,20 @@ struct RISectTr {
     uint64_t cursor;         /* ticks */
     uint32_t ppq;
     uint32_t song_bars;      /* bar count the seeks/loop clamp against */
+    uint32_t tap_iv[RI_STR_TAP_IV]; /* kept tap intervals, ms, oldest first */
+    uint32_t tap_last;       /* ms of the last counted tap */
+    uint8_t tap_n;           /* how many intervals are kept */
+    uint8_t tap_have;        /* a first tap is on record */
 };
 
 int ri_str_init(struct RISectTr *s);
 int ri_str_press(struct RISectTr *s, uint32_t idx);
+/* Tap tempo (P9e): one press at `ms` (0 = no clock, ignored). Keeps up to
+ * RI_STR_TAP_IV intervals, averages them and writes the tempo through the
+ * display's own clamp. Returns 1 when the tempo moved (the repaint
+ * contract), 0 otherwise — including for the first tap of a run, which
+ * only records the reference. */
+int ri_str_tap(struct RISectTr *s, uint32_t ms);
 int ri_str_set_value(struct RISectTr *s, uint32_t idx, int v);
 int ri_str_reset(struct RISectTr *s, uint32_t idx);
 int ri_str_step(struct RISectTr *s, uint32_t idx, int dir);

@@ -79,7 +79,11 @@ static int read_file(const char *path, unsigned char **out, uint32_t *n) {
         fclose(f);
         return 1;
     }
-    *out = (unsigned char *)malloc((size_t)sz);
+    /* One byte for the terminator: the manifest is parsed as a C string
+     * (ri_skin_parse), and the AROS loader does the same thing after its
+     * own read_whole (gui/skin_aros.c). Without it the parser's charset
+     * scan runs one byte past the file. */
+    *out = (unsigned char *)malloc((size_t)sz + 1u);
     if (!*out) {
         fclose(f);
         return 1;
@@ -90,6 +94,7 @@ static int read_file(const char *path, unsigned char **out, uint32_t *n) {
         return 1;
     }
     fclose(f);
+    (*out)[sz] = 0u;
     *n = (uint32_t)sz;
     return 0;
 }
@@ -135,13 +140,30 @@ static int load_skin(const char *dir, int zoom, struct RISkin *skin) {
         if (!th)
             th = 1u;
         scaled = (uint32_t *)malloc((size_t)tw * th * 4u);
-        if (!scaled)
+        if (!scaled) {
+            ri_pal_image_free(px);
+            skin->parts[i].rgba = 0;
             continue;
+        }
         ri_skin_downscale(px, w, h, scaled, tw, th);
+        /* This test only ever renders the zoom copy, and the masters are
+         * caller-owned (gui/skin.h), so they go now rather than at exit. */
+        ri_pal_image_free(px);
+        skin->parts[i].rgba = 0;
         if (ri_skin_bind_zoom(skin, i, scaled, (uint16_t)tw, (uint16_t)th) != 0)
             free(scaled);
     }
     return 0;
+}
+
+/* Free the zoom copies after the render: the caller owns them, and this is
+ * the last thing the test does with the skin. */
+static void free_skin(struct RISkin *skin) {
+    uint32_t i;
+    for (i = 0u; i < skin->nparts; i++) {
+        free((void *)skin->parts[i].zrgba);
+        skin->parts[i].zrgba = 0;
+    }
 }
 
 static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
@@ -197,10 +219,10 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 12u, 1u, 0x2ec3d1f4u },
     { 12u, 2u, 0x94e3467eu },
     { 12u, 3u, 0xda4318cbu },
-    { 13u, 0u, 0x88c72895u },
-    { 13u, 1u, 0x0153a2edu },
-    { 13u, 2u, 0x53c3c6fbu },
-    { 13u, 3u, 0xd0f0d2d8u },
+    { 13u, 0u, 0xbfae0587u },
+    { 13u, 1u, 0x01a16d77u },
+    { 13u, 2u, 0x326d005au },
+    { 13u, 3u, 0x8f296ed2u },
     { 14u, 0u, 0x01149021u },
     { 14u, 1u, 0x10d88c9cu },
     { 14u, 2u, 0x1a01eb0eu },
@@ -536,6 +558,7 @@ int main(void) {
             "docs/evidence/gui/host-raster/sec02-skin-z0.png");
         RI_ASSERT(h != 0u, "skin render");
         RI_ASSERT(h == T_SKIN_PIN, "pin skin got %08x", h);
+        free_skin(&skin);
     }
     rack_checks(px);
     levi_checks(px);

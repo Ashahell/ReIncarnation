@@ -116,6 +116,19 @@ static ULONG eclock_us(const struct EClockVal *a, const struct EClockVal *b) {
     return (ULONG)((y - x) * 1000000ULL / s_efreq);
 }
 
+/* Wall clock for tap tempo (P9e), in ms. 0 when timer.device is not open:
+ * the estimator treats that as "no clock" and ignores the tap, which is
+ * the honest answer — a tap with a guessed time would set a wrong tempo. */
+static ULONG eclock_ms(void) {
+    struct EClockVal t0;
+    uint64_t v;
+    if (!s_efreq)
+        return 0u;
+    (void)ReadEClock(&t0);
+    v = ((uint64_t)t0.ev_hi << 32) | (uint64_t)t0.ev_lo;
+    return (ULONG)(v * 1000ULL / s_efreq);
+}
+
 /* Own cybergraphics base for exact-colour fills (never the knob_blit global). */
 static struct Library *s_rcyber;
 #include "gui/widgets/rsection_replay.inc"
@@ -437,7 +450,8 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             if (kind < 0)
                 return (IPTR)0;
             r = ri_cev_button(&d->cev, &d->ui, d->panel, geo(d), (int)d->zoom,
-                lx, ly, _mwidth(obj), _mheight(obj), kind);
+                lx, ly, _mwidth(obj), _mheight(obj), kind,
+                kind == 0 ? eclock_ms() : 0u);
             if (r & RI_CEV_CHANGED)
                 changed(obj, d);
             return (r & RI_CEV_EAT) ? (IPTR)MUI_EventHandlerRC_Eat : (IPTR)0;

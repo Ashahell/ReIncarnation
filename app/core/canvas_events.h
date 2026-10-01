@@ -41,10 +41,12 @@ uint32_t ri_cev_key(struct RICevState *st, struct RISectUI *ui,
 
 /* Pointer button. kind: 0 select-down, 1 select-up, 2 menu-down.
  * lx/ly are canvas-relative; w/h the canvas size (focus click is
- * inside-tested like the MCC). Returns CHANGED/EAT. */
+ * inside-tested like the MCC). ms is the press time for the controls that
+ * need a clock (tap tempo, P9e); 0 means "no clock" and the tap is
+ * ignored. Returns CHANGED/EAT. */
 uint32_t ri_cev_button(struct RICevState *st, struct RISectUI *ui,
     struct RIPanelUI *panel, const struct RIGeoSection *geo, int zoom,
-    int lx, int ly, int w, int h, int kind);
+    int lx, int ly, int w, int h, int kind, uint32_t ms);
 
 /* Pointer motion while a drag is active. shift = fine mode. */
 uint32_t ri_cev_move(struct RICevState *st, struct RISectUI *ui,

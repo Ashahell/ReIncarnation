@@ -39,6 +39,10 @@ int ri_sui_init(struct RISectUI *s, uint8_t section); /* 0 ok, 2 not laid out */
  * spans sections). Returns 0 ok, 2 when s is not a mixer/master. */
 int ri_sui_bind_board(struct RISectUI *s, struct RIMixBoard *b);
 int ri_sui_press(struct RISectUI *s, uint32_t idx);
+/* Tap tempo (P9e): the one press that needs a wall clock, so the clock is
+ * passed in at the press instead of living in the panel state. ms == 0 means
+ * no clock and the tap is ignored. 1 when the tempo moved. */
+int ri_sui_tap(struct RISectUI *s, uint32_t idx, uint32_t ms);
 int ri_sui_set(struct RISectUI *s, uint32_t idx, int v);
 int ri_sui_reset(struct RISectUI *s, uint32_t idx);
 /* Arrow button of a value display (dir > 0 up); 0 when not applicable. */

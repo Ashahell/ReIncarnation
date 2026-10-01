@@ -18,6 +18,10 @@ int ri_str_init(struct RISectTr *s) {
     s->cursor = 0;
     s->ppq = RI_PPQ_DEFAULT;
     s->song_bars = RI_SEQ_MAX_BARS;
+    s->tap_iv[0] = s->tap_iv[1] = s->tap_iv[2] = s->tap_iv[3] = 0u;
+    s->tap_last = 0u;
+    s->tap_n = 0u;
+    s->tap_have = 0u;
     return 0;
 }
 
@@ -65,6 +69,51 @@ int ri_str_press(struct RISectTr *s, uint32_t idx) {
         return 0;
     }
     return t0.state != s->tr.state || t0.clicks != s->tr.clicks || c0 != s->cursor;
+}
+
+/* Tap tempo (P9e). Pure: the only state it owns is the tap window, and the
+ * only thing it writes is the tempo, through the display's own 20..500
+ * clamp — so a wild estimate lands on 20 or 500, never on a broken
+ * readout, and the caller repaints only when the number moved.
+ *
+ * The average is over the kept intervals, not the last one: bpm =
+ * 60000 * n / sum, rounded by adding half the sum before dividing. Four
+ * intervals is enough to shrug off one clumsy tap without the display
+ * lagging behind a deliberate change. */
+int ri_str_tap(struct RISectTr *s, uint32_t ms) {
+    uint32_t d, sum = 0u, i;
+    int bpm;
+    if (!s || ms == 0u)
+        return 0;                     /* no clock: ignore, never guess */
+    if (!s->tap_have) {               /* first tap of a run: reference only */
+        s->tap_have = 1u;
+        s->tap_n = 0u;
+        s->tap_last = ms;
+        return 0;
+    }
+    if (ms <= s->tap_last) {          /* a clock that went backwards: restart */
+        s->tap_n = 0u;
+        s->tap_last = ms;
+        return 0;
+    }
+    d = ms - s->tap_last;
+    s->tap_last = ms;
+    if (d > RI_STR_TAP_GAP_MS) {      /* a long pause starts a new measurement */
+        s->tap_n = 0u;
+        return 0;
+    }
+    if (s->tap_n < RI_STR_TAP_IV)
+        s->tap_iv[s->tap_n] = d;
+    else {                           /* window slides: drop the oldest */
+        for (i = 1u; i < RI_STR_TAP_IV; i++)
+            s->tap_iv[i - 1u] = s->tap_iv[i];
+        s->tap_iv[RI_STR_TAP_IV - 1u] = d;
+    }
+    s->tap_n = (uint8_t)(s->tap_n < RI_STR_TAP_IV ? s->tap_n + 1u : RI_STR_TAP_IV);
+    for (i = 0u; i < s->tap_n; i++)
+        sum += s->tap_iv[i];
+    bpm = (int)((60000u * s->tap_n + sum / 2u) / sum);
+    return ri_str_set_value(s, RI_STR_TEMPO, bpm);
 }
 
 int ri_str_set_value(struct RISectTr *s, uint32_t idx, int v) {

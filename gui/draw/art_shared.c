@@ -9,6 +9,7 @@
 #include "gui/draw/font_legend.h"
 #include "gui/panelgeo.h"
 #include "gui/panelui.h"
+#include "gui/secttr.h"
 
 static const uint32_t RI_ART_RGB[C_NCOL] = {
     0xCACCC7u, 0x8C8C84u, 0x141414u, 0xF4F4F0u, 0xB4B4AEu, 0xF0F0EAu, 0x5A5A56u,
@@ -381,7 +382,12 @@ void ri_art_tr_key(struct ri_dlist *dl, int x0, int y0, int x1, int y1, uint32_t
     int cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, h = ri_geo_px(14, z), k, j;
     int col = lit ? (idx == 8 ? C_LED_ON : C_MIX_GREEN) : C_BLACK;
     ri_art_bevel(dl, x0, y0, x1, y1, C_BTN);
-    if (idx == 5) {
+    if (idx == RI_STR_TAP) {
+        /* Tap (P9e): the only transport key that is not a glyph — it has no
+         * lamp (the tempo display is what changes), so it is a labelled
+         * button. Same face and text colour as the glyph keys. */
+        ri_art_text_c(dl, cx, cy, "TAP", C_BLACK);
+    } else if (idx == 5) {
         ri_art_rect(dl, cx - h / 2, cy - h / 2, cx + h / 2, cy + h / 2, C_BLACK);
     } else if (idx == 8) {
         ri_art_circle(dl, cx, cy, h * 2 / 3, lit ? C_LED_ON : C_LED_OFF);

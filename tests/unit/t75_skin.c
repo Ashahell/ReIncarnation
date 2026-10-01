@@ -362,8 +362,8 @@ int main(void) {
       RI_ASSERT(ri_skin_modref_set(&song, "x", "short", 1u) == -1, "modref sha len");
       RI_ASSERT(ri_skin_modref_set(&song, "x", "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg", 1u) == -1, "modref sha hex");
       for (i = 1; i < 16; i++) {
-          char nm[8];
-          sprintf(nm, "m%d", i);
+          char nm[16];   /* i is 1..15 here, but the compiler cannot know that */
+          snprintf(nm, sizeof nm, "m%d", i);
           RI_ASSERT(ri_skin_modref_set(&song, nm,
               "0000000000000000000000000000000000000000000000000000000000000000", 1u) == 0, "modref fill");
       }
