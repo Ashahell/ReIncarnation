@@ -5,7 +5,7 @@
 - Published: 2026-10-01
 - Plan: `docs/superpowers/plans/2026-09-30-leviasynth-fidelity-plan.md` (§P7b plan + status, E0 ledger)
 - Prior: [2026-10-01-leviasynth-fidelity-p7a-delay.md](2026-10-01-leviasynth-fidelity-p7a-delay.md)
-- Commit: P7b (this session; unpushed at collection).
+- Commit: `445cb02` (unpushed at collection).
 
 ## Scope (P7 split; rest to follow)
 
