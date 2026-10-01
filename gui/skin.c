@@ -430,9 +430,12 @@ int ri_skin_modref_set(struct RISong *song, const char *name,
     }
     if (song->nmods >= RI_RBNG_MAX_MODS)
         return -2;
-    for (i = 0u; i <= RI_RBNG_MAX_MOD_NAME; i++)
+    /* Copy by the length that was just checked, not by the field size: a
+     * name of 6 chars in a 64-byte field must not be read 64 bytes deep
+     * (ASan, 2026-10-02: over-read the caller's string by one past its NUL). */
+    for (i = 0u; i < nl; i++)
         song->mods[song->nmods].name[i] = name[i];
-    song->mods[song->nmods].name[RI_RBNG_MAX_MOD_NAME] = '\0';
+    song->mods[song->nmods].name[nl] = '\0';
     for (i = 0u; i < 65u; i++)
         song->mods[song->nmods].sha[i] = sha[i];
     song->mods[song->nmods].sha[64] = '\0';
