@@ -396,6 +396,10 @@ struct RILeviVoice {
     uint8_t dfxm_on;
     float rfxm[RI_LEVI_DR_N]; /* DM_REVERB offsets (P7b, lead voice) */
     uint8_t rfxm_on;
+    float pfxm[RI_LEVI_DX_N]; /* DM_PREFX offsets (P7c, lead voice) */
+    uint8_t pfxm_on;
+    float ofxm[RI_LEVI_DX_N]; /* DM_POSTFX offsets (P7c, lead voice) */
+    uint8_t ofxm_on;
     /* Stereo + scales (fidelity P6c, manual pp. 87-96). Pan/width/mode
      * went live with the stereo sum; bend with the P9 MIDI data. */
     float vspread;  /* 0..1 unison stereo spread (static ordinal) */
@@ -505,6 +509,20 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_RDRYWET 0x0E84u
 #define RI_CTL_LEVI_RFREEZE 0x0E85u
 #define RI_CTL_LEVI_RBYPASS 0x0E86u
+/* Mod FX (fidelity P7c, manual pp. 83-86). P* = pre slot, O* = post
+ * slot; FXPRE (row 64) / FXPOST (row 67) bind the bypasses. */
+#define RI_CTL_LEVI_PTYPE 0x0E87u
+#define RI_CTL_LEVI_PPRESET 0x0E88u
+#define RI_CTL_LEVI_PP1 0x0E89u
+#define RI_CTL_LEVI_PP2 0x0E8Au
+#define RI_CTL_LEVI_PDRYWET 0x0E8Bu
+#define RI_CTL_LEVI_PREBYPASS 0x0E8Cu
+#define RI_CTL_LEVI_OTYPE 0x0E8Du
+#define RI_CTL_LEVI_OPRESET 0x0E8Eu
+#define RI_CTL_LEVI_OP1 0x0E8Fu
+#define RI_CTL_LEVI_OP2 0x0E90u
+#define RI_CTL_LEVI_ODRYWET 0x0E91u
+#define RI_CTL_LEVI_POSTBYPASS 0x0E92u
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u

@@ -32,8 +32,48 @@
 #define RI_LEVI_REV_CAP 2048u
 #define RI_LEVI_PREDLY_MAX 12000u /* 250 ms at 48 kHz per channel */
 
+/* Mod types (own algorithms, never shared engine/fx). */
+#define RI_LEVI_MT_CHORUS 0u
+#define RI_LEVI_MT_FLANGER 1u
+#define RI_LEVI_MT_ROTARY 2u
+#define RI_LEVI_MT_PHASER 3u
+#define RI_LEVI_MT_LOFI 4u
+#define RI_LEVI_MT_TREMOLO 5u
+#define RI_LEVI_MT_EQ 6u
+#define RI_LEVI_MT_COMP 7u
+#define RI_LEVI_MT_DISTORT 8u
+#define RI_LEVI_MT_N 9u
+
+/* Mod presets per type (own factory tuples) and modulated-delay cap. */
+#define RI_LEVI_MT_PRESETS 4u
+#define RI_LEVI_MOD_MAX 2400u /* ~50 ms at 48 kHz per channel */
+
 /* Matrix destination params for DM_DELAY live in levi_matrix.h
  * (RI_LEVI_DD_*), next to the other destination groups. */
+
+/* One pre/post mod slot (fidelity P7c). p1/p2 ride 0..1 normalized;
+ * the type maps them (rates, depths, dB, ratios — see the plan E0). */
+struct RILeviMod {
+    float mdl[RI_LEVI_MOD_MAX]; /* modulated-delay line L */
+    float mdr[RI_LEVI_MOD_MAX]; /* modulated-delay line R */
+    uint32_t mpos;      /* shared write position */
+    uint8_t type;       /* RI_LEVI_MT_* */
+    uint8_t preset;     /* 0..3 factory tuple */
+    uint8_t bypass;     /* 1 = exact dry */
+    uint8_t mpad;
+    float p1, p2;       /* 0..1 normalized params */
+    float drywet;       /* 0..1 wet */
+    float lfo;          /* modulation phase 0..1 */
+    float apd[2][4];    /* phaser allpass states per channel */
+    float eql[2], eqr[2]; /* EQ shelf helper states */
+    float envl, envr;   /* compressor follower states */
+    float cgl, cgr;     /* compressor smoothed gains */
+    float dtl, dtr;     /* distort tone states */
+    float lh[2];        /* lofi hold + decim counter */
+    float mxm[RI_LEVI_DX_N]; /* DM_PREFX/POSTFX offsets (lead voice) */
+    uint8_t mxm_on;
+    uint8_t mxpad[3];
+};
 
 struct RILeviFx {
     float dl[RI_LEVI_DLY_MAX]; /* delay lines L/R (device pair) */
@@ -78,6 +118,8 @@ struct RILeviFx {
     float rfxm[RI_LEVI_DR_N]; /* DM_REVERB offsets (lead voice) */
     uint8_t rfxm_on;
     uint8_t rfxpad[3];
+    /* Mod slots (fidelity P7c): pre before delay, post after reverb. */
+    struct RILeviMod pre, post;
 };
 
 /* Delay time in seconds for a UI value (0..127 -> 1 ms..2 s). Pure. */
@@ -90,6 +132,14 @@ void levi_fx_delay(struct RILeviFx *f, float sr, float in_l, float in_r,
 void levi_fx_reverb_bind(struct RILeviFx *f);
 /* One stereo sample through the device reverb (bypass = exact dry). */
 void levi_fx_reverb(struct RILeviFx *f, float sr, float in_l, float in_r,
+    float *out_l, float *out_r);
+/* Factory preset tuple (UI 0..127 p1/p2/drywet) for a mod type. Pure;
+ * returns 2 on bad type/preset/NULL (t140 pins the knob-write law). */
+int ri_levi_mod_preset(uint32_t type, uint32_t preset, uint8_t *p1,
+    uint8_t *p2, uint8_t *dw);
+/* One stereo sample through a pre/post mod slot (bypass = exact dry).
+ * mxm (matrix) folds first when mxm_on. */
+void levi_fx_mod(struct RILeviMod *m, float sr, float in_l, float in_r,
     float *out_l, float *out_r);
 /* Clear lines + states (keeps knobs). NULL-safe no-op. */
 void levi_fx_clear(struct RILeviFx *f);

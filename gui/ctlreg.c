@@ -316,10 +316,10 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 61, SWITCH, "Matrix", "R6", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_ROUTE5, 0),
     R(LEVI, 62, SWITCH, "Matrix", "R7", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_ROUTE6, 0),
     R(LEVI, 63, SWITCH, "Matrix", "R8", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_ROUTE7, 0),
-    R(LEVI, 64, SWITCH, "Fx", "Pre", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 64, SWITCH, "Fx", "Pre", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PREBYPASS, 0),
     R(LEVI, 65, SWITCH, "Fx", "Dly", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DBYPASS, 0),
     R(LEVI, 66, SWITCH, "Fx", "Rev", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBYPASS, 0),
-    R(LEVI, 67, SWITCH, "Fx", "Post", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 67, SWITCH, "Fx", "Post", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_POSTBYPASS, 0),
     /* Hardware page UI (fidelity plan P1, 2026-09-30): module select, the
      * 8 MASTER CONTROL encoders (they send their page target) and the
      * display. UI-only rows: never automated themselves. */
@@ -439,6 +439,17 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 170, KNOB, "Reverb", "Lo Damp", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RLODAMP, 0),
     R(LEVI, 171, KNOB, "Reverb", "Dry/Wet", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RDRYWET, 0),
     R(LEVI, 172, SWITCH, "Reverb", "Freeze", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RFREEZE, 0),
+    /* Mod FX pre/post (fidelity P7c, manual pp. 83-86). */
+    R(LEVI, 173, SELECTOR, "PreFx", "Type", 0, 8, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PTYPE, 0),
+    R(LEVI, 174, SELECTOR, "PreFx", "Preset", 0, 3, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PPRESET, 0),
+    R(LEVI, 175, KNOB, "PreFx", "Param 1", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PP1, 0),
+    R(LEVI, 176, KNOB, "PreFx", "Param 2", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PP2, 0),
+    R(LEVI, 177, KNOB, "PreFx", "Dry/Wet", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PDRYWET, 0),
+    R(LEVI, 178, SELECTOR, "PostFx", "Type", 0, 8, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_OTYPE, 0),
+    R(LEVI, 179, SELECTOR, "PostFx", "Preset", 0, 3, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_OPRESET, 0),
+    R(LEVI, 180, KNOB, "PostFx", "Param 1", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_OP1, 0),
+    R(LEVI, 181, KNOB, "PostFx", "Param 2", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_OP2, 0),
+    R(LEVI, 182, KNOB, "PostFx", "Dry/Wet", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_ODRYWET, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

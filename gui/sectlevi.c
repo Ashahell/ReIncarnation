@@ -105,6 +105,12 @@ int ri_slevi_press(struct RISectLevi *s, uint32_t idx) {
         s->val[RI_SLEVI_SEQON] = (int16_t)(s->val[RI_SLEVI_SEQON] ? 0 : 1);
         return 1;
     }
+    if (idx == RI_SLEVI_FXPRE || idx == RI_SLEVI_FXPOST) {
+        /* Bound FX gates (fidelity P7c): panel truth toggles like MODE;
+         * automation emit travels app-side via the knob syncs. */
+        s->val[idx] = (int16_t)(s->val[idx] ? 0 : 1);
+        return 1;
+    }
     if (idx >= RI_SLEVI_ROUTE0 && idx < RI_SLEVI_ROUTE0 + 8u) {
         /* Bound route gates (v2 feature 4c): panel truth toggles like
          * MODE; automation emit travels app-side via the knob syncs. */
@@ -352,12 +358,12 @@ static const struct LeviSlot P_VCA[8] = {
     { SLOT_DEAD, "POLYAT" }, { RI_SLEVI_VINIT, "INIT LVL" }
 };
 static const struct LeviSlot P_PREFX[8] = {
-    { RI_SLEVI_FXPRE, "ON" }, { SLOT_DEAD, "PRESET" }, { SLOT_DEAD, "PARAM 1" }, { SLOT_DEAD, "PARAM 2" },
-    { SLOT_DEAD, "PARAM 3" }, { SLOT_DEAD, "PARAM 4" }, { SLOT_DEAD, "PARAM 5" }, { SLOT_DEAD, "DRY/WET" }
+    { RI_SLEVI_FXPRE, "ON" }, { RI_SLEVI_PTYPE, "TYPE" }, { RI_SLEVI_PPRESET, "PRESET" }, { RI_SLEVI_PP1, "PARAM 1" },
+    { RI_SLEVI_PP2, "PARAM 2" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { RI_SLEVI_PDRYWET, "DRY/WET" }
 };
 static const struct LeviSlot P_POSTFX[8] = {
-    { RI_SLEVI_FXPOST, "ON" }, { SLOT_DEAD, "PRESET" }, { SLOT_DEAD, "PARAM 1" }, { SLOT_DEAD, "PARAM 2" },
-    { SLOT_DEAD, "PARAM 3" }, { SLOT_DEAD, "PARAM 4" }, { SLOT_DEAD, "PARAM 5" }, { SLOT_DEAD, "DRY/WET" }
+    { RI_SLEVI_FXPOST, "ON" }, { RI_SLEVI_OTYPE, "TYPE" }, { RI_SLEVI_OPRESET, "PRESET" }, { RI_SLEVI_OP1, "PARAM 1" },
+    { RI_SLEVI_OP2, "PARAM 2" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { RI_SLEVI_ODRYWET, "DRY/WET" }
 };
 static const struct LeviSlot P_DELAY[8] = {
     { RI_SLEVI_FXDLY, "ON" }, { RI_SLEVI_DLYTYPE, "TYPE" }, { RI_SLEVI_DLYTIME, "TIME" }, { RI_SLEVI_DLYFB, "FEEDBACK" },
@@ -1304,6 +1310,105 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
     }
     if (t == (int)RI_SLEVI_RFREEZE) {
         put_str(buf, cap, s->val[t] ? "HELD" : "OFF");
+        return;
+    }
+    if (t == (int)RI_SLEVI_PTYPE || t == (int)RI_SLEVI_OTYPE) {
+        static const char *const MT[9] = { "CHORUS", "FLANGER", "ROTARY", "PHASER", "LO-FI",
+            "TREMOLO", "EQ", "COMP", "DISTORT" };
+        int m = s->val[t];
+        put_str(buf, cap, MT[m >= 0 && m < 9 ? m : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_PPRESET || t == (int)RI_SLEVI_OPRESET) {
+        put_str(buf, cap, "P");
+        cat_num(buf, cap, (s->val[t] % 4) + 1);
+        return;
+    }
+    if (t == (int)RI_SLEVI_PP1 || t == (int)RI_SLEVI_OP1 ||
+        t == (int)RI_SLEVI_PP2 || t == (int)RI_SLEVI_OP2) {
+        /* Per-type units: the TYPE row of the same slot selects the map. */
+        int tyrow = (t <= (int)RI_SLEVI_PDRYWET) ? (int)RI_SLEVI_PTYPE : (int)RI_SLEVI_OTYPE;
+        int ty = s->val[tyrow];
+        int is_p1 = (t == (int)RI_SLEVI_PP1 || t == (int)RI_SLEVI_OP1);
+        int v = s->val[t];
+        if (ty < 0 || ty > 8)
+            ty = 0;
+        if (is_p1 && (ty == 0 || ty == 1)) {          /* chorus/flanger rate Hz */
+            float hz = 0.05f + (float)v / 127.0f * 7.95f;
+            put_num(buf, cap, (int)(hz * 10.0f + 0.5f) / 10);
+            cat_str(buf, cap, ".");
+            cat_num(buf, cap, (int)(hz * 10.0f + 0.5f) % 10);
+            cat_str(buf, cap, "HZ");
+        } else if (is_p1 && ty == 2) {               /* rotary rate Hz */
+            float hz = 0.5f + (float)v / 127.0f * 7.5f;
+            put_num(buf, cap, (int)(hz * 10.0f + 0.5f) / 10);
+            cat_str(buf, cap, ".");
+            cat_num(buf, cap, (int)(hz * 10.0f + 0.5f) % 10);
+            cat_str(buf, cap, "HZ");
+        } else if (is_p1 && ty == 3) {               /* phaser rate Hz */
+            float hz = 0.05f + (float)v / 127.0f * 3.95f;
+            put_num(buf, cap, (int)(hz * 10.0f + 0.5f) / 10);
+            cat_str(buf, cap, ".");
+            cat_num(buf, cap, (int)(hz * 10.0f + 0.5f) % 10);
+            cat_str(buf, cap, "HZ");
+        } else if (is_p1 && ty == 4) {               /* lo-fi bits */
+            put_num(buf, cap, 16 - v * 12 / 127);
+            cat_str(buf, cap, "BIT");
+        } else if (is_p1 && ty == 5) {               /* tremolo rate Hz */
+            float hz = 0.5f + (float)v / 127.0f * 14.5f;
+            put_num(buf, cap, (int)(hz * 10.0f + 0.5f) / 10);
+            cat_str(buf, cap, ".");
+            cat_num(buf, cap, (int)(hz * 10.0f + 0.5f) % 10);
+            cat_str(buf, cap, "HZ");
+        } else if (is_p1 && ty == 6) {               /* EQ bass dB */
+            int db = v * 24 / 127 - 12;
+            if (db < 0) {
+                put_str(buf, cap, "-");
+                put_num(buf, cap, -db);
+            } else {
+                put_str(buf, cap, "+");
+                put_num(buf, cap, db);
+            }
+            cat_str(buf, cap, "DB");
+        } else if (is_p1 && ty == 7) {               /* comp threshold dB */
+            put_num(buf, cap, v * 40 / 127 - 40);
+            cat_str(buf, cap, "DB");
+        } else if (!is_p1 && ty == 4) {              /* lo-fi decim */
+            put_str(buf, cap, "X");
+            cat_num(buf, cap, 1 + v * 15 / 127);
+        } else if (!is_p1 && ty == 6) {              /* EQ treble dB */
+            int db = v * 24 / 127 - 12;
+            if (db < 0) {
+                put_str(buf, cap, "-");
+                put_num(buf, cap, -db);
+            } else {
+                put_str(buf, cap, "+");
+                put_num(buf, cap, db);
+            }
+            cat_str(buf, cap, "DB");
+        } else if (!is_p1 && ty == 7) {              /* comp ratio */
+            put_num(buf, cap, 1 + v * 19 / 127);
+            cat_str(buf, cap, ":1");
+        } else if (!is_p1 && ty == 8) {              /* distort tone Hz */
+            float hz = 500.0f + (float)v / 127.0f * 17000.0f;
+            if (hz < 1000.0f) {
+                put_num(buf, cap, (int)(hz + 0.5f));
+                cat_str(buf, cap, "HZ");
+            } else {
+                put_num(buf, cap, (int)(hz / 100.0f + 0.5f) / 10);
+                cat_str(buf, cap, ".");
+                cat_num(buf, cap, (int)(hz / 100.0f + 0.5f) % 10);
+                cat_str(buf, cap, "KHZ");
+            }
+        } else {                                     /* depths, drive: % */
+            put_num(buf, cap, v * 100 / 127);
+            cat_str(buf, cap, "%");
+        }
+        return;
+    }
+    if (t == (int)RI_SLEVI_PDRYWET || t == (int)RI_SLEVI_ODRYWET) {
+        put_num(buf, cap, s->val[t] * 100 / 127);
+        cat_str(buf, cap, "%");
         return;
     }
     if (t >= (int)RI_SLEVI_SLOT0 && t < (int)RI_SLEVI_SLOT0 + 8) {

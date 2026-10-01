@@ -53,6 +53,19 @@ void levi_fx_clear(struct RILeviFx *f) {
     f->dpos = 0u;
     f->wl = f->wr = f->fl = f->fr = 0.0f;
     f->wphase = 0.0f;
+    for (i = 0u; i < RI_LEVI_MOD_MAX; i++)
+        f->pre.mdl[i] = f->pre.mdr[i] = f->post.mdl[i] = f->post.mdr[i] = 0.0f;
+    f->pre.mpos = f->post.mpos = 0u;
+    f->pre.lfo = f->post.lfo = 0.0f;
+    for (i = 0u; i < 4u; i++)
+        f->pre.apd[0][i] = f->pre.apd[1][i] = f->post.apd[0][i] = f->post.apd[1][i] = 0.0f;
+    f->pre.eql[0] = f->pre.eql[1] = f->pre.eqr[0] = f->pre.eqr[1] = 0.0f;
+    f->post.eql[0] = f->post.eql[1] = f->post.eqr[0] = f->post.eqr[1] = 0.0f;
+    f->pre.envl = f->pre.envr = f->pre.cgl = f->pre.cgr = 0.0f;
+    f->post.envl = f->post.envr = f->post.cgl = f->post.cgr = 0.0f;
+    f->pre.cgl = f->pre.cgr = f->post.cgl = f->post.cgr = 1.0f;
+    f->pre.dtl = f->pre.dtr = f->post.dtl = f->post.dtr = 0.0f;
+    f->pre.lh[0] = f->pre.lh[1] = f->post.lh[0] = f->post.lh[1] = 0.0f;
 }
 
 /* Own reverb tap sets (never the core's 1123/1201/1291/1361/401/271):
@@ -300,6 +313,281 @@ void levi_fx_reverb(struct RILeviFx *f, float sr, float in_l, float in_r,
     wr = hipass(&f->ldr, wr, lod, sr);
     f->frz[0] = wl;
     f->frz[1] = wr;
+    *out_l = flushf(in_l + (wl - in_l) * wet);
+    *out_r = flushf(in_r + (wr - in_r) * wet);
+}
+
+/* Own factory preset tuples (p1, p2, drywet as UI 0..127). */
+static const uint8_t MOD_PRESETS[RI_LEVI_MT_N][RI_LEVI_MT_PRESETS][3] = {
+    { { 16, 64, 48 }, { 32, 80, 64 }, { 8, 110, 80 }, { 64, 127, 96 } },     /* CHORUS */
+    { { 24, 48, 48 }, { 48, 80, 64 }, { 12, 110, 80 }, { 96, 127, 96 } },    /* FLANGER */
+    { { 32, 64, 64 }, { 64, 64, 80 }, { 16, 96, 64 }, { 110, 32, 96 } },     /* ROTARY */
+    { { 16, 48, 48 }, { 32, 72, 64 }, { 8, 100, 80 }, { 90, 127, 96 } },     /* PHASER */
+    { { 48, 24, 64 }, { 80, 64, 80 }, { 100, 100, 96 }, { 127, 127, 110 } }, /* LOFI */
+    { { 32, 80, 80 }, { 64, 100, 96 }, { 16, 48, 64 }, { 100, 127, 110 } },  /* TREMOLO */
+    { { 80, 64, 80 }, { 64, 90, 80 }, { 96, 96, 96 }, { 48, 80, 64 } },       /* EQ */
+    { { 64, 48, 80 }, { 32, 80, 96 }, { 96, 32, 64 }, { 16, 110, 110 } },    /* COMP */
+    { { 32, 80, 80 }, { 64, 90, 96 }, { 96, 64, 110 }, { 127, 100, 120 } },   /* DISTORT */
+};
+
+int ri_levi_mod_preset(uint32_t type, uint32_t preset, uint8_t *p1,
+    uint8_t *p2, uint8_t *dw) {
+    if (type >= RI_LEVI_MT_N || preset >= RI_LEVI_MT_PRESETS)
+        return 2;
+    if (!p1 || !p2 || !dw)
+        return 2;
+    *p1 = MOD_PRESETS[type][preset][0];
+    *p2 = MOD_PRESETS[type][preset][1];
+    *dw = MOD_PRESETS[type][preset][2];
+    return 0;
+}
+
+/* Fractional modulated-delay read (linear interp, own). */
+static float mod_dl_read(const float *line, uint32_t pos, float dsmp) {
+    float p = (float)pos - dsmp;
+    uint32_t i0, i1;
+    float fr;
+    while (p < 0.0f)
+        p += (float)RI_LEVI_MOD_MAX;
+    i0 = (uint32_t)p;
+    fr = p - (float)i0;
+    i1 = i0 + 1u >= RI_LEVI_MOD_MAX ? 0u : i0 + 1u;
+    return line[i0] + (line[i1] - line[i0]) * fr;
+}
+
+/* One allpass stage (own): y = d + a*x; d' = x - a*y. */
+static float allpass(float *d, float x, float a) {
+    float y = *d + a * x;
+    *d = flushf(x - a * y);
+    return y;
+}
+
+void levi_fx_mod(struct RILeviMod *m, float sr, float in_l, float in_r,
+    float *out_l, float *out_r) {
+    uint32_t type;
+    float p1, p2, wet, wl, wr;
+    if (!m || !out_l || !out_r) {
+        if (out_l)
+            *out_l = in_l;
+        if (out_r)
+            *out_r = in_r;
+        return;
+    }
+    if (m->bypass) {   /* exact dry */
+        *out_l = in_l;
+        *out_r = in_r;
+        return;
+    }
+    if (!(sr > 0.0f)) {
+        *out_l = in_l;
+        *out_r = in_r;
+        return;
+    }
+    type = m->type >= RI_LEVI_MT_N ? RI_LEVI_MT_N - 1u : m->type;
+    p1 = m->p1;
+    p2 = m->p2;
+    wet = m->drywet;
+    if (m->mxm_on) {
+        p1 += m->mxm[RI_LEVI_DX_P1] * 0.5f;
+        p2 += m->mxm[RI_LEVI_DX_P2] * 0.5f;
+        wet += m->mxm[RI_LEVI_DX_DRYWET];
+    }
+    if (p1 < 0.0f)
+        p1 = 0.0f;
+    if (p1 > 1.0f)
+        p1 = 1.0f;
+    if (p2 < 0.0f)
+        p2 = 0.0f;
+    if (p2 > 1.0f)
+        p2 = 1.0f;
+    if (wet < 0.0f)
+        wet = 0.0f;
+    if (wet > 1.0f)
+        wet = 1.0f;
+    wl = in_l;
+    wr = in_r;
+    switch (type) {
+    case RI_LEVI_MT_CHORUS: {
+        /* Modulated 20 ms delay, ±8 ms sweep, R anti-phase (own). */
+        float rate = 0.05f + p1 * 7.95f, dep = p2;
+        float base = 0.020f * sr, swp = 0.008f * sr * dep;
+        float s1 = ri_sin(m->lfo * 6.2831853f);
+        float dl = base + swp * s1, dr = base - swp * s1;
+        float rl, rr;
+        if (dl > (float)(RI_LEVI_MOD_MAX - 2u))
+            dl = (float)(RI_LEVI_MOD_MAX - 2u);
+        if (dr > (float)(RI_LEVI_MOD_MAX - 2u))
+            dr = (float)(RI_LEVI_MOD_MAX - 2u);
+        if (dl < 1.0f)
+            dl = 1.0f;
+        if (dr < 1.0f)
+            dr = 1.0f;
+        rl = flushf(mod_dl_read(m->mdl, m->mpos, dl));
+        rr = flushf(mod_dl_read(m->mdr, m->mpos, dr));
+        m->mdl[m->mpos] = in_l;
+        m->mdr[m->mpos] = in_r;
+        m->mpos++;
+        if (m->mpos >= RI_LEVI_MOD_MAX)
+            m->mpos = 0u;
+        m->lfo += rate / sr;
+        if (m->lfo >= 1.0f)
+            m->lfo -= 1.0f;
+        wl = rl;
+        wr = rr;
+        break;
+    }
+    case RI_LEVI_MT_FLANGER: {
+        /* Short 3 ms line with 0.55 loop (own); R anti-phase. */
+        float rate = 0.05f + p1 * 7.95f, dep = p2;
+        float base = 0.003f * sr, swp = 0.0025f * sr * dep;
+        float s1 = ri_sin(m->lfo * 6.2831853f);
+        float dl = base + swp * s1, dr = base - swp * s1;
+        float rl, rr;
+        if (dl > (float)(RI_LEVI_MOD_MAX - 2u))
+            dl = (float)(RI_LEVI_MOD_MAX - 2u);
+        if (dr > (float)(RI_LEVI_MOD_MAX - 2u))
+            dr = (float)(RI_LEVI_MOD_MAX - 2u);
+        if (dl < 1.0f)
+            dl = 1.0f;
+        if (dr < 1.0f)
+            dr = 1.0f;
+        rl = flushf(mod_dl_read(m->mdl, m->mpos, dl));
+        rr = flushf(mod_dl_read(m->mdr, m->mpos, dr));
+        m->mdl[m->mpos] = flushf(in_l + 0.55f * rl);
+        m->mdr[m->mpos] = flushf(in_r + 0.55f * rr);
+        m->mpos++;
+        if (m->mpos >= RI_LEVI_MOD_MAX)
+            m->mpos = 0u;
+        m->lfo += rate / sr;
+        if (m->lfo >= 1.0f)
+            m->lfo -= 1.0f;
+        wl = rl;
+        wr = rr;
+        break;
+    }
+    case RI_LEVI_MT_ROTARY: {
+        /* Dual-rate tremolo with cross-pan (own rotary impression). */
+        float rate = 0.5f + p1 * 7.5f, bal = p2;
+        float ph = m->lfo * 6.2831853f;
+        float fast = 0.5f + 0.5f * ri_sin(ph);
+        float slow = 0.5f + 0.5f * ri_sin(ph * 0.5f + 1.0f);
+        float pan = 0.5f + 0.5f * ri_sin(ph + 1.5707963f);
+        float tl = bal * fast + (1.0f - bal) * slow;
+        float tr = bal * slow + (1.0f - bal) * fast;
+        m->lfo += rate / sr;
+        if (m->lfo >= 1.0f)
+            m->lfo -= 1.0f;
+        wl = in_l * (1.0f - 0.7f * tl) * (0.7f + 0.6f * pan);
+        wr = in_r * (1.0f - 0.7f * tr) * (1.3f - 0.6f * pan);
+        break;
+    }
+    case RI_LEVI_MT_PHASER: {
+        /* 4 allpass stages, swept coefficient (own). */
+        float rate = 0.05f + p1 * 3.95f, dep = p2;
+        float a = 0.3f + 0.6f * dep * (0.5f + 0.5f * ri_sin(m->lfo * 6.2831853f));
+        uint32_t s;
+        float xl = in_l, xr = in_r;
+        m->lfo += rate / sr;
+        if (m->lfo >= 1.0f)
+            m->lfo -= 1.0f;
+        for (s = 0u; s < 4u; s++) {
+            xl = allpass(&m->apd[0][s], xl, a);
+            xr = allpass(&m->apd[1][s], xr, a);
+        }
+        wl = flushf(xl);
+        wr = flushf(xr);
+        break;
+    }
+    case RI_LEVI_MT_LOFI: {
+        /* Bitcrush + decim hold; lfo doubles as the decim counter. */
+        uint32_t bits = 16u - (uint32_t)(p1 * 12.99f);
+        uint32_t dec = 1u + (uint32_t)(p2 * 15.99f);
+        float step, ql, qr;
+        if (bits > 16u)
+            bits = 16u;
+        if (bits < 4u)
+            bits = 4u;
+        m->lfo += 1.0f;
+        if (m->lfo >= (float)dec) {
+            m->lfo = 0.0f;
+            step = 8.0f / (float)(1u << (bits - 1u)) / 2.0f;
+            ql = (float)(int)(in_l / step + (in_l < 0.0f ? -0.5f : 0.5f)) * step;
+            qr = (float)(int)(in_r / step + (in_r < 0.0f ? -0.5f : 0.5f)) * step;
+            m->lh[0] = ql;
+            m->lh[1] = qr;
+        }
+        wl = m->lh[0];
+        wr = m->lh[1];
+        break;
+    }
+    case RI_LEVI_MT_TREMOLO: {
+        /* Sine AM (own). */
+        float rate = 0.5f + p1 * 14.5f, dep = p2;
+        float g = 1.0f - dep * 0.5f + dep * 0.5f * ri_sin(m->lfo * 6.2831853f);
+        m->lfo += rate / sr;
+        if (m->lfo >= 1.0f)
+            m->lfo -= 1.0f;
+        wl = in_l * g;
+        wr = in_r * g;
+        break;
+    }
+    case RI_LEVI_MT_EQ: {
+        /* One-pole bass/treble shelves ±12 dB (own). */
+        float bl = ri_pow2((p1 * 2.0f - 1.0f) * 12.0f / 6.0f);
+        float tr = ri_pow2((p2 * 2.0f - 1.0f) * 12.0f / 6.0f);
+        float lo_l = lopass(&m->eql[0], in_l, 350.0f, sr);
+        float lo_r = lopass(&m->eqr[0], in_r, 350.0f, sr);
+        float hi_l = in_l - lopass(&m->eql[1], in_l, 3000.0f, sr);
+        float hi_r = in_r - lopass(&m->eqr[1], in_r, 3000.0f, sr);
+        wl = fx_sat(in_l + (bl - 1.0f) * lo_l + (tr - 1.0f) * hi_l);
+        wr = fx_sat(in_r + (bl - 1.0f) * lo_r + (tr - 1.0f) * hi_r);
+        break;
+    }
+    case RI_LEVI_MT_COMP: {
+        /* Peak-follower compressor with set-time makeup (own). */
+        float thr = ri_pow2((-40.0f + p1 * 40.0f) * 0.1660964f);
+        float ratio = 1.0f + p2 * 19.0f;
+        float expo = (ratio - 1.0f) / ratio;
+        float mu = ri_pow2((-40.0f + p1 * 40.0f) * -expo * 0.1660964f);
+        float at = 1.0f - ri_pow2(-1.0f / (0.010f * sr));
+        float rl = 1.0f - ri_pow2(-1.0f / (0.100f * sr));
+        float al = in_l < 0.0f ? -in_l : in_l;
+        float ar = in_r < 0.0f ? -in_r : in_r;
+        float gl, gr, tgt;
+        m->envl += al > m->envl ? at * (al - m->envl) : rl * (al - m->envl);
+        m->envr += ar > m->envr ? at * (ar - m->envr) : rl * (ar - m->envr);
+        m->envl = flushf(m->envl);
+        m->envr = flushf(m->envr);
+        /* gain target: 1/(1+(env/thr-1)*expo) above threshold, unity
+         * below (smooth curve, exact unity at threshold). */
+        if (m->envl > thr && m->envl > 0.0f)
+            tgt = 1.0f / (1.0f + (m->envl / thr - 1.0f) * expo);
+        else
+            tgt = 1.0f;
+        gl = tgt;
+        if (m->envr > thr && m->envr > 0.0f)
+            tgt = 1.0f / (1.0f + (m->envr / thr - 1.0f) * expo);
+        else
+            tgt = 1.0f;
+        gr = tgt;
+        m->cgl += (gl > m->cgl ? at : rl) * (gl - m->cgl);
+        m->cgr += (gr > m->cgr ? at : rl) * (gr - m->cgr);
+        wl = fx_sat(in_l * flushf(m->cgl) * mu);
+        wr = fx_sat(in_r * flushf(m->cgr) * mu);
+        break;
+    }
+    default: { /* RI_LEVI_MT_DISTORT */
+        /* Asymmetric soft-clip drive + tone (own). */
+        float k = 1.0f + p1 * 24.0f;
+        float tone = 500.0f + p2 * 17000.0f;
+        float dl = in_l * k, dr = in_r * k;
+        float yl = dl >= 0.0f ? fx_sat(dl) : fx_sat(dl * 0.8f) * 1.1f;
+        float yr = dr >= 0.0f ? fx_sat(dr) : fx_sat(dr * 0.8f) * 1.1f;
+        wl = lopass(&m->dtl, yl, tone, sr);
+        wr = lopass(&m->dtr, yr, tone, sr);
+        break;
+    }
+    }
     *out_l = flushf(in_l + (wl - in_l) * wet);
     *out_r = flushf(in_r + (wr - in_r) * wet);
 }
