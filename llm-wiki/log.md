@@ -1538,3 +1538,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (starts the P7 FX record)
 - Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p7a-delay.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Dell deploy: ABIv11 trap + RIAPP and songs on the USB stick
+- Disposition: New (deploy record; follows the menu-hang/load-governor record)
+- Raw: llm-wiki/raw/articles/2026-10-01-dell-deploy-abiv11-usb-stick-layout.md
+- Updated: llm-wiki/index.md (Live app entry list)

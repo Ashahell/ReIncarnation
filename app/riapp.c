@@ -707,6 +707,23 @@ static void song_ui_sync(void) {
     }
 }
 
+/* Tell the user why a song or playlist did not load (owner Dell
+ * 2026-10-01: a silent failure reads as "nothing happens"). */
+static void song_fail(const char *what, const char *path, const char *why) {
+    struct EasyStruct es;
+    IPTR args[3];
+    rlog("RIAPP %s %s: %s\n", what, path, why);
+    es.es_StructSize = sizeof es;
+    es.es_Flags = 0;
+    es.es_Title = (CONST_STRPTR)"RIAPP";
+    es.es_TextFormat = (CONST_STRPTR)"Cannot load %s\n%s\n%s";
+    es.es_GadgetFormat = (CONST_STRPTR)"OK";
+    args[0] = (IPTR)what;
+    args[1] = (IPTR)path;
+    args[2] = (IPTR)why;
+    EasyRequestArgs(NULL, &es, NULL, (RAWARG)args);
+}
+
 static int song_load_path(const char *path) {
     static char err[160];
     struct RICoreSong cs;
@@ -717,7 +734,7 @@ static int song_load_path(const char *path) {
     s_song.atrk = s_song_ev;
     s_song.atrk_cap = RI_CORE_AUTO_CAP;
     if (rbng_read_song(path, &s_song, err, sizeof err) != 0) {
-        rlog("RIAPP song %s: %s\n", path, err);
+        song_fail("song", path, err);
         evlog("SONG", "fail %s", path);
         return 2;
     }
@@ -761,7 +778,7 @@ static int playlist_load_path(const char *path) {
     BPTR fh = Open((CONST_STRPTR)path, MODE_OLDFILE);
     LONG n;
     if (!fh) {
-        rlog("RIAPP playlist %s: cannot open\n", path);
+        song_fail("playlist", path, "cannot open");
         return 2;
     }
     n = Read(fh, text, (LONG)sizeof text - 1);
@@ -769,7 +786,7 @@ static int playlist_load_path(const char *path) {
     text[n > 0 ? n : 0] = '\0';
     ri_playlist_dirname(path, dir, sizeof dir);
     if (ri_playlist_parse(text, dir, &s_pl, err, sizeof err) != 0) {
-        rlog("RIAPP playlist %s: %s\n", path, err);
+        song_fail("playlist", path, err);
         return 2;
     }
     s_pl_on = 1;
@@ -789,23 +806,33 @@ static void playlist_step(int dir) {
     }
 }
 
-/* ASL file requester; 0 ok with path filled. */
+/* ASL file requester; 0 ok with path filled. Every outcome is logged. */
 static int song_pick(const char *title, const char *pattern, char *path, ULONG cap) {
     struct FileRequester *fr;
     int ok = 0;
-    if (!AslBase)
+    if (!AslBase) {
+        song_fail("file", title, "asl.library did not open");
         return 2;
+    }
     fr = (struct FileRequester *)AllocAslRequestTags(ASL_FileRequest,
         ASLFR_TitleText, (IPTR)title,
         ASLFR_InitialPattern, (IPTR)pattern,
         ASLFR_DoPatterns, TRUE,
         TAG_DONE);
-    if (!fr)
+    if (!fr) {
+        song_fail("file", title, "no file requester");
         return 2;
-    if (AslRequest(fr, 0) && fr->fr_File && fr->fr_File[0]) {
-        strncpy(path, (const char *)fr->fr_Drawer, cap - 1u);
+    }
+    if (!AslRequest(fr, 0))
+        rlog("RIAPP %s: cancelled\n", title);
+    else if (!fr->fr_File || !fr->fr_File[0])
+        rlog("RIAPP %s: no file chosen (drawer %s)\n", title,
+            fr->fr_Drawer ? (const char *)fr->fr_Drawer : "-");
+    else {
+        strncpy(path, fr->fr_Drawer ? (const char *)fr->fr_Drawer : "", cap - 1u);
         path[cap - 1u] = '\0';
         ok = AddPart((STRPTR)path, fr->fr_File, cap) ? 1 : 0;
+        rlog("RIAPP %s: picked %s%s\n", title, path, ok ? "" : " (path too long)");
     }
     FreeAslRequest(fr);
     return ok ? 0 : 2;
@@ -813,6 +840,7 @@ static int song_pick(const char *title, const char *pattern, char *path, ULONG c
 
 static void song_menu(ULONG id) {
     static char path[256];
+    rlog("RIAPP songs menu %lu\n", (unsigned long)id);
     switch (id) {
     case 0u:
         if (song_pick("Load song", "#?.rbng", path, sizeof path) == 0) {
