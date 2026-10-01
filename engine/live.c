@@ -361,6 +361,8 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
      * guards any future default/session split.) */
     if (s->eng.tempo != s->bpm)
         ri_engine_set_tempo(&s->eng, s->bpm);
+    ri_engine_transport(&s->eng, s->tr.state == RI_TR_PLAYING ? 1u : 0u,
+        s->cursor_ticks, s->ppq);
     {
         uint32_t got = ri_engine_render(&s->eng, out_l, out_r, frames, s->sr);
         if (got < frames) {

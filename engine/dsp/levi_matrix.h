@@ -78,7 +78,8 @@
 #define RI_LEVI_DM_PREFX 31u   /* pre-FX params (fidelity P7c) */
 #define RI_LEVI_DM_POSTFX 32u  /* post-FX params (fidelity P7c) */
 #define RI_LEVI_DM_ARP 33u     /* arp params (fidelity P8b) */
-#define RI_LEVI_DM_N 34u
+#define RI_LEVI_DM_SEQ 34u     /* seq track params (fidelity P8c) */
+#define RI_LEVI_DM_N 35u
 /* DM_DELAY params. */
 #define RI_LEVI_DD_TIME 0u
 #define RI_LEVI_DD_FEEDBACK 1u
@@ -111,6 +112,16 @@
 #define RI_LEVI_DA_RATCHET 9u
 #define RI_LEVI_DA_CHANCE 10u
 #define RI_LEVI_DA_N 11u
+/* DM_SEQ params (track-knob mirrors). */
+#define RI_LEVI_DS_RATE 0u
+#define RI_LEVI_DS_SWING 1u
+#define RI_LEVI_DS_GATE 2u
+#define RI_LEVI_DS_PROB 3u
+#define RI_LEVI_DS_DRIFT 4u
+#define RI_LEVI_DS_TRANSP 5u
+#define RI_LEVI_DS_TRKLEN 6u
+#define RI_LEVI_DS_MODE 7u
+#define RI_LEVI_DS_N 8u
 /* Voice params (P6b): detune, pan, analog feel, bend range, vibrato
  * amt/rate, glide toggle/time/curve, panner width. */
 #define RI_LEVI_DVO_DETUNE 0u

@@ -297,7 +297,7 @@ Pre-FX and Post-FX with 9 types, delay types, reverb types with freeze, and the 
 - Arp to the manual's parameter set, with 64 own phrases.
 - 2 poly note tracks + a macro track, up to 128 steps with per-step MultiTrig/Drift/Probability/Entropy, and step record.
 - Ribbon as mod source, theremin and step selector.
-- Split (2026-10-01): P8a device tempo + all BPM sync (this slice — closes P7d too); P8b device arp parameter set + phrases (this slice); P8c sequencer tracks + step record; P8d ribbon + step-LFO editor. Matrix arp/seq destinations ride with P8b/c.
+- Split (2026-10-01): P8a device tempo + all BPM sync (this slice — closes P7d too); P8b device arp parameter set + phrases (this slice); P8c device sequencer tracks + step record (this slice); P8d ribbon + step-LFO editor. Matrix arp/seq destinations ride with P8b/c.
 
 #### P8a plan (device tempo + BPM sync incl. P7d; before code 2026-10-01)
 
@@ -327,6 +327,22 @@ Pre-FX and Post-FX with 9 types, delay types, reverb types with freeze, and the 
   - Stepper: PHRASE mode + rule factory (zero bytes) + `rewind`; modes 0..7 bit-identical (t113-115 green untouched).
   - Proof: audit 0/0 clean worktree; Dell 0 UND + 0 r12 (audit gate); riaudio lane: window opens, SPACE→TR PLAY, AHI 0x003e0001, buffers=16474 xruns=0. Deviations: no host wav; ARP page pixels deferred (standing gap); 909 pack missing (unrelated). Adjacent fix: `levi_arp.c` into the AROS sections list (audit caught it, P7b pattern).
 - **Tests:** t142 (off-identity, UP order, determinism, division density, gate trim, octave reach, phrase rule + nonzero row, swing shift, ratchet multiply, chance thin via strike counter, length wrap, latch sustain/quiet, entropy leaps, stepoff rotate, clocklock grid restart, DM route-fill + gate fold, factory pins, mode clamp, full key sweep, row bind, 2 pages + texts, null guards, extremes over all 9 modes; 22 mutants killed, 1 ledgered survival: engine arp-block hook removal — no engine-render unit law, lane-covered like the tempo push); t60 range to `0x0EAC`, t77 mapped 254 / allow 1094, t133 last module ARP, t136/t138/t139/t140/t141 `0x0EAD` boundary deliberate moves.
+
+#### P8c plan (device sequencer tracks + step record; before code 2026-10-01)
+
+- Runtime-only tracks (NO song-format change — persistence rides the P10 owner review): 2 note tracks × 128 steps (4 notes + vel/gate/trig/prob/drift/entropy each) + 8-lane × 128 macro track, all in the set (~3 KB BSS). Zero = empty/rest.
+- Per-block `levi_seq_block(s, sr, n, playing, tick, ppq)` (engine hook next to arp; transport pushed synchronously by the live task next to the tempo push — same single-threaded ownership, no shared-struct surgery beyond 3 additive engine fields). Steps song-locked: `idx = (tick/step_ticks) % trklen`.
+- Playback (own): parallel/series (alternate loops), division 1/2/4/8 per quarter, swing ≤50%, gate = step × track/127, prob = step × master/127 threshold, drift ticks→samples (linear tempo approx — tempo curves ignored, ledgered), trig 1..4 sub-hits via 16-queue, entropy ±12 pitch wobble, transpose ±24, macro knobs set per step. Strikes reuse the arp strike/release path (no held insert); own gate countdowns.
+- Record: realtime (armed + playing: held chord split round-robin to tracks at each boundary, empty held writes rests) and step (armed + stopped: held written to STEPCUR every block — idempotent live preview). Captures note + vel 100 + gate 100 + trig/prob/drift/entropy from the 4 step-default knobs + macro positions. Measured gate and per-step UI editing deferred (ledgered).
+- Params (defaults = silent until recorded): 15 keys `0x0EAD..BB` (RATE/MODE/SWING/GATE/PROB/DRIFT/TRANSPOSE + TRKLEN/RECARM/STEPCUR/CLEAR + STRIG/SPROB/SDRIFT/SENTR); 15 rows; SEQ 2 pages (page 1 fills the 7 dead slots, page 2 new); SEQLEN row untouched (v2 song window). CLEAR is momentary (nonzero clears). Matrix `DM_SEQ` (34): RATE/SWING/GATE/PROB/DRIFT/TRANSPOSE/TRKLEN/MODE (8, mirror knobs); voice `sxm[8]`.
+- E0: tracks empty = rests; block-granular strikes; tick rewind/seek restarts (step index jumps — no carry); linear tick→sample approx; ppq 0 falls back to 96; macro playback overwrites knob positions (record first).
+- **Status: P8c done 2026-10-01** (engine, keys, UI, tests):
+  - Runtime-only tracks (no format change): 2×128 note steps (4 notes + vel/gate/trig/prob/drift/entropy) + 8×128 macro lanes. Transport pushed synchronously by the live task (3 additive engine fields + setter, next to tempo push); steps song-locked (`idx = tick/step`).
+  - Playback: parallel/series, division 1/2/4/8, swing ≤50%, gate = step×track, prob = step×master threshold, drift ticks→samples (linear approx), trig sub-queue (64), entropy ±12, transpose ±24, macro set per striking step only (rests don't stomp knobs — poison fix). Strike path shared with arp; own gate countdowns; seek/restart/clear drain futures; schedule-once traversal robust to any tick granularity (hitch cap 16).
+  - Record: realtime (crossed steps, empty held writes rests) + stopped cursor preview; captures note/vel 100/gate 100/trig/prob/drift/entropy from step-default knobs + macro positions. Measured gate + per-step UI editing deferred.
+  - 15 keys `0x0EAD..BB`, 15 rows, SEQ 2 pages, `DM_SEQ` (8 mirror knobs).
+  - Proof: audit 0/0 clean worktree; riaudio lane: window opens, SPACE→TR PLAY, AHI 0x003e0001, buffers=11322 xruns=0. Deviations: no host wav; SEQ pixels deferred (standing gap); 909 pack missing (unrelated).
+- **Tests:** t143 (off-identity, realtime split + defaults, step record, playback order/content, trig ratio, prob mute, drift deferral, entropy wobble, transpose, series alternation, division density, length wrap both directions, clear incl. drains, macro capture/play, swing checkpoint, mode clamp, stopped silence, restart + clear drain (planted futures), DM route-fill + gate fold, gate knob, factory-adjacent pins, full key sweep, row bind, 2 pages + texts, null guards, extremes; 26 mutants killed, 2 ledgered survivals: live transport push + engine seq-block hook — no engine-render unit laws, lane-covered); t60 range to `0x0EBB`, t77 mapped 269 / allow 1109, t133 last module SEQ, t136/t138/t139/t140/t141/t142 `0x0EBC` boundary deliberate moves.
 
 ### P9: performance
 

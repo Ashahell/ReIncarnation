@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 196u
+#define RI_SLEVI_NCTL 211u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -157,6 +157,22 @@
 #define RI_SLEVI_ARPLATCH 193u
 #define RI_SLEVI_ARPCLOCK 194u
 #define RI_SLEVI_ARPSTEPPOFF 195u
+/* Device sequencer (fidelity P8c): 196..210. */
+#define RI_SLEVI_SEQRATE 196u
+#define RI_SLEVI_SEQMODE 197u
+#define RI_SLEVI_SEQSWING 198u
+#define RI_SLEVI_SEQGATE 199u
+#define RI_SLEVI_SEQPROB 200u
+#define RI_SLEVI_SEQDRIFT 201u
+#define RI_SLEVI_SEQTRANSP 202u
+#define RI_SLEVI_SEQTRKLEN 203u
+#define RI_SLEVI_SEQREC 204u
+#define RI_SLEVI_SEQSTEP 205u
+#define RI_SLEVI_SEQCLEAR 206u
+#define RI_SLEVI_SEQSTRIG 207u
+#define RI_SLEVI_SEQSPROB 208u
+#define RI_SLEVI_SEQSDRIFT 209u
+#define RI_SLEVI_SEQSENTR 210u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */

@@ -70,6 +70,10 @@ struct RIEngine {
     uint8_t master; /* S4b song-data fader 0..127, 127 = unity */
     float master_applied; /* zipless slew state */
     float tempo; /* delay clock, 20..500 BPM */
+    uint8_t tr_playing; /* transport mirror for device sequencers (P8c) */
+    uint8_t tr_pad[3];
+    uint64_t tr_tick;   /* song position in ticks */
+    uint32_t tr_ppq;    /* ticks per quarter (0 = 96) */
     float *dline; /* caller-owned delay line, NULL = dry */
     uint32_t dcap;
     struct RiFXDelay delay;
@@ -112,6 +116,9 @@ int ri_engine_set_level(struct RIEngine *e, uint32_t section, uint8_t v);
  * neutral path). Post-everything gain + L/R meter taps. Returns 0 ok. */
 int ri_engine_set_master(struct RIEngine *e, uint8_t v);
 void ri_engine_set_tempo(struct RIEngine *e, float bpm);
+/* Transport mirror for device sequencers (P8c). */
+void ri_engine_transport(struct RIEngine *e, uint32_t playing,
+    uint64_t tick, uint32_t ppq);
 /* Delay line (caller-owned, cap >= 64; NULL buf detaches = dry).
  * Returns 0 ok, 2 bad arg. Attaching syncs time + forces wet. */
 int ri_engine_set_delay(struct RIEngine *e, float *buf, uint32_t cap);

@@ -58,6 +58,10 @@ void ri_engine_init(struct RIEngine *e) {
     e->master = 127u; /* unity song-data fader (S4b), 127 = unity */
     e->master_applied = 1.0f;
     e->tempo = RI_ENGINE_TEMPO_DEFAULT;
+    e->tr_playing = 0u;
+    e->tr_pad[0] = e->tr_pad[1] = e->tr_pad[2] = 0u;
+    e->tr_tick = 0u;
+    e->tr_ppq = 96u;
     e->dline = 0;
     e->dcap = 0;
     /* Delay knob defaults (match ri_fxdelay_init; mix forced wet). */
@@ -313,6 +317,18 @@ void ri_engine_set_tempo(struct RIEngine *e, float bpm) {
     e->tempo = bpm;
 }
 
+/* Transport mirror for device sequencers (fidelity P8c): pushed by the
+ * live task next to the tempo push (same single-threaded ownership).
+ * ppq 0 falls back to 96 at the device. */
+void ri_engine_transport(struct RIEngine *e, uint32_t playing,
+    uint64_t tick, uint32_t ppq) {
+    if (!e)
+        return;
+    e->tr_playing = playing ? 1u : 0u;
+    e->tr_tick = tick;
+    e->tr_ppq = ppq;
+}
+
 int ri_engine_set_delay(struct RIEngine *e, float *buf, uint32_t cap) {
     uint8_t steps, triplet, fb128;
     if (!e)
@@ -547,6 +563,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             if (e->sections & RI_ENGINE_SLEVI) {
                 levi_set_tempo(&e->slevi, e->tempo);   /* device follows the session tempo */
                 levi_arp_block(&e->slevi, sr, cc);     /* device arp steps before the sum */
+                levi_seq_block(&e->slevi, sr, cc, e->tr_playing, e->tr_tick, e->tr_ppq);
                 levi_voice_render_sum_stereo(&e->slevi, e->scratch, e->scratchR, cc, sr);
                 engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr);
             }

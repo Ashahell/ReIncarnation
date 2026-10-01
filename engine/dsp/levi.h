@@ -404,6 +404,9 @@ struct RILeviVoice {
     float axm[RI_LEVI_DA_N]; /* DM_ARP offsets (P8b, lead voice) */
     uint8_t axm_on;
     uint8_t axpad[3];
+    float sxm[RI_LEVI_DS_N]; /* DM_SEQ offsets (P8c, lead voice) */
+    uint8_t sxm_on;
+    uint8_t sxpad[3];
     /* Stereo + scales (fidelity P6c, manual pp. 87-96). Pan/width/mode
      * went live with the stereo sum; bend with the P9 MIDI data. */
     float vspread;  /* 0..1 unison stereo spread (static ordinal) */
@@ -551,6 +554,23 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_ARPLATCH 0x0EAAu
 #define RI_CTL_LEVI_ARPCLOCK 0x0EABu
 #define RI_CTL_LEVI_ARPSTEPPOFF 0x0EACu
+/* Device sequencer (fidelity P8c, manual pp. 105-119). SEQLEN (row 55)
+ * stays the v2 song window; the runtime tracks below are separate. */
+#define RI_CTL_LEVI_SEQRATE 0x0EADu
+#define RI_CTL_LEVI_SEQMODE 0x0EAEu
+#define RI_CTL_LEVI_SEQSWING 0x0EAFu
+#define RI_CTL_LEVI_SEQGATE 0x0EB0u
+#define RI_CTL_LEVI_SEQPROB 0x0EB1u
+#define RI_CTL_LEVI_SEQDRIFT 0x0EB2u
+#define RI_CTL_LEVI_SEQTRANSP 0x0EB3u
+#define RI_CTL_LEVI_SEQTRKLEN 0x0EB4u
+#define RI_CTL_LEVI_SEQREC 0x0EB5u
+#define RI_CTL_LEVI_SEQSTEP 0x0EB6u
+#define RI_CTL_LEVI_SEQCLEAR 0x0EB7u
+#define RI_CTL_LEVI_SEQSTRIG 0x0EB8u
+#define RI_CTL_LEVI_SEQSPROB 0x0EB9u
+#define RI_CTL_LEVI_SEQSDRIFT 0x0EBAu
+#define RI_CTL_LEVI_SEQSENTR 0x0EBBu
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u
@@ -579,6 +599,22 @@ float levi_menv_value(const struct RILeviVoice *v, uint32_t env);
 /* Digital model name (own, upper case, never NULL). */
 const char *ri_levi_df_name(uint32_t t);
 
+/* Device sequencer store (fidelity P8c, manual pp. 105-119).
+ * Runtime-only (no song-format change): 2 note tracks x 128 steps
+ * (4 notes + vel/gate/trig/prob/drift/entropy each) + 8 macro lanes
+ * x 128 values. 255 = rest. Zero-init = empty. */
+#define RI_LEVI_SEQ_STEPS 128u
+#define RI_LEVI_SEQ_NOTES 4u
+struct RILeviSeqStep {
+    uint8_t note[RI_LEVI_SEQ_NOTES]; /* 255 = rest */
+    uint8_t vel;    /* 0..127 */
+    uint8_t gate;   /* 0..127 UI (% of step at track gate 127) */
+    uint8_t trig;   /* 1..4 sub-hits */
+    uint8_t prob;   /* 0..127 step gate probability */
+    int8_t drift;   /* -64..+63 ticks timing offset */
+    uint8_t entropy; /* 0..127 pitch wobble amount */
+    uint8_t spad;
+};
 struct RILeviSet {
     struct RILeviVoice v[RI_LEVI_NVOICES];
     uint8_t arpon;   /* device arp gate (v2 feature 3; UI/automation truth) */
@@ -604,7 +640,7 @@ struct RILeviSet {
     uint8_t arpclock;  /* restart step grid on chord change */
     uint8_t arpstepoff; /* start rotation 0..15 */
     uint8_t arppad[3];
-    /* Device arp runtime (per-block step clock, P8b). */
+/* Device arp runtime (per-block step clock, P8b). */
     struct RILeviArp darp; /* persistent stepper (pos/dir/lcg survive blocks) */
     uint64_t arp_samp;  /* absolute sample clock */
     uint64_t arp_t0;    /* chord grid origin (clock restarts move it) */
@@ -624,6 +660,38 @@ struct RILeviSet {
     int32_t arp_pend_off[16]; /* gate length for the sub-hit (-1 legato) */
     uint32_t arp_npend;
     int8_t arp_uphr[64][16]; /* user phrase bank (zero = unison) */
+    /* Device sequencer params (fidelity P8c). */
+    uint8_t seqrate;   /* 0..127 -> 1/2/4/8 steps per quarter */
+    uint8_t seqmode;   /* 0 off, 1 parallel, 2 series */
+    uint8_t seqswing;  /* odd-step delay 0..50 % */
+    uint8_t seqgate;   /* 0..127 master gate scale */
+    uint8_t seqprob;   /* 0..127 master probability */
+    uint8_t seqdrift;  /* 0..127 master drift (-64..+63 ticks) */
+    uint8_t seqtransp; /* 0..127 -> -24..+24 semitones */
+    uint8_t seqtrklen; /* 0..127 -> 1..128 steps per loop */
+    uint8_t seqrec;    /* record arm */
+    uint8_t seqstep;   /* step cursor 0..127 (step record) */
+    uint8_t seqstrig;  /* 0..127 -> 1..4 (recorded trig) */
+    uint8_t seqsprob;  /* recorded prob default */
+    uint8_t seqsdrift; /* 0..127 -> -64..+63 (recorded drift) */
+    uint8_t seqsentr;  /* recorded entropy default */
+    uint8_t seqpad[2];
+    /* Device sequencer store + runtime (per-block step clock, P8c). */
+    struct RILeviSeqStep seq_t1[RI_LEVI_SEQ_STEPS];
+    struct RILeviSeqStep seq_t2[RI_LEVI_SEQ_STEPS];
+    uint8_t seq_macro[8][RI_LEVI_SEQ_STEPS];
+    int64_t seq_lastk;  /* last fired step (absolute; -1 = none) */
+    int64_t seq_lastrec; /* last recorded step (absolute; -1 = none) */
+    uint64_t seq_tick;  /* last transport tick (seek detect) */
+    uint32_t seq_lcg;  /* prob/entropy/drift LCG (deterministic runs) */
+    uint32_t seq_nstr; /* strikes fired (test hook) */
+    int32_t seq_gate[RI_LEVI_NVOICES]; /* gate countdowns (-1 idle) */
+    uint8_t seq_gnote[RI_LEVI_NVOICES]; /* struck note per voice */
+    uint64_t seq_pend_tick[64]; /* trig sub-hit queue (absolute ticks) */
+    uint8_t seq_pend_note[64];
+    int32_t seq_pend_off[64];
+    uint32_t seq_npend;
+    uint64_t seq_samp;  /* absolute sample clock */
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
     /* Voice allocator (fidelity P6a, manual pp. 87-96): device-wide.
@@ -662,6 +730,11 @@ int levi_arp_release_note(struct RILeviSet *s, uint8_t note);
 /* Per-block device arp step (fidelity P8b): fires strikes/releases for
  * n samples at sr into the allocator. No-op when off or chordless. */
 void levi_arp_block(struct RILeviSet *s, float sr, uint32_t n);
+/* Per-block device sequencer step (fidelity P8c): record + playback
+ * for n samples at sr. playing/tick/ppq come from the transport push
+ * (ppq 0 falls back to 96). No-op when seqon is off. */
+void levi_seq_block(struct RILeviSet *s, float sr, uint32_t n,
+    uint32_t playing, uint64_t tick, uint32_t ppq);
 /* Allocator mode/density/limit UI (keys 0x0E58..5A, device-wide). 0 ok, 2 bad. */
 int levi_set_alloc_ui(struct RILeviSet *s, uint32_t mode);
 uint32_t levi_alloc_mode(const struct RILeviSet *s);

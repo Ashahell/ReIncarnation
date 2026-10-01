@@ -1002,6 +1002,8 @@ void levi_init_set(struct RILeviSet *s) {
         v->ofxm_on = 0u;
         memset(v->axm, 0, sizeof v->axm);
         v->axm_on = 0u;
+        memset(v->sxm, 0, sizeof v->sxm);
+        v->sxm_on = 0u;
         v->vspread = 0.0f;
         {
             uint32_t q;
@@ -1053,6 +1055,50 @@ void levi_init_set(struct RILeviSet *s) {
     s->arp_nlatch = 0u;
     s->arp_npend = 0u;
     ri_levi_arp_init(&s->darp);
+    /* Device sequencer (fidelity P8c): silent until recorded. */
+    s->seqrate = 64u;
+    s->seqmode = 1u;   /* parallel: empty tracks are rests until recorded */
+    s->seqswing = 0u;
+    s->seqgate = 127u;
+    s->seqprob = 127u;
+    s->seqdrift = 64u;
+    s->seqtransp = 64u;
+    s->seqtrklen = 127u;
+    s->seqrec = 0u;
+    s->seqstep = 0u;
+    s->seqstrig = 0u;
+    s->seqsprob = 127u;
+    s->seqsdrift = 64u;
+    s->seqsentr = 0u;
+    s->seqpad[0] = s->seqpad[1] = 0u;
+    {
+        uint32_t st, nn;
+        for (st = 0u; st < RI_LEVI_SEQ_STEPS; st++) {
+            for (nn = 0u; nn < RI_LEVI_SEQ_NOTES; nn++)
+                s->seq_t1[st].note[nn] = s->seq_t2[st].note[nn] = 255u;
+            s->seq_t1[st].vel = s->seq_t2[st].vel = 100u;
+            s->seq_t1[st].gate = s->seq_t2[st].gate = 100u;
+            s->seq_t1[st].trig = s->seq_t2[st].trig = 1u;
+            s->seq_t1[st].prob = s->seq_t2[st].prob = 127u;
+            s->seq_t1[st].drift = s->seq_t2[st].drift = 0;
+            s->seq_t1[st].entropy = s->seq_t2[st].entropy = 0u;
+            s->seq_t1[st].spad = s->seq_t2[st].spad = 0u;
+        }
+    }
+    s->seq_lastk = -1;
+    s->seq_lastrec = -1;
+    s->seq_tick = 0u;
+    s->seq_lcg = 0x9E3779B9u;
+    s->seq_nstr = 0u;
+    {
+        uint32_t g;
+        for (g = 0u; g < RI_LEVI_NVOICES; g++) {
+            s->seq_gate[g] = -1;
+            s->seq_gnote[g] = 0u;
+        }
+    }
+    s->seq_npend = 0u;
+    s->seq_samp = 0u;
     s->seqon = 0u;
     s->seqlen = 16u;
     ri_levi_matrix_init(&s->mx);
@@ -2221,6 +2267,62 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case (RI_CTL_LEVI_ARPSTEPPOFF & 0xFFu):
         s->arpstepoff = val;
         return 0;
+    case (RI_CTL_LEVI_SEQRATE & 0xFFu):
+        s->seqrate = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQMODE & 0xFFu):
+        s->seqmode = val > 2u ? 2u : val;
+        return 0;
+    case (RI_CTL_LEVI_SEQSWING & 0xFFu):
+        s->seqswing = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQGATE & 0xFFu):
+        s->seqgate = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQPROB & 0xFFu):
+        s->seqprob = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQDRIFT & 0xFFu):
+        s->seqdrift = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQTRANSP & 0xFFu):
+        s->seqtransp = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQTRKLEN & 0xFFu):
+        s->seqtrklen = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQREC & 0xFFu):
+        s->seqrec = val ? 1u : 0u;
+        return 0;
+    case (RI_CTL_LEVI_SEQSTEP & 0xFFu):
+        s->seqstep = val > RI_LEVI_SEQ_STEPS - 1u ? RI_LEVI_SEQ_STEPS - 1u : val;
+        return 0;
+    case (RI_CTL_LEVI_SEQCLEAR & 0xFFu):
+        if (val) {
+            uint32_t st, nn, m, g;
+            for (st = 0u; st < RI_LEVI_SEQ_STEPS; st++) {
+                for (nn = 0u; nn < RI_LEVI_SEQ_NOTES; nn++)
+                    s->seq_t1[st].note[nn] = s->seq_t2[st].note[nn] = 255u;
+                for (m = 0u; m < 8u; m++)
+                    s->seq_macro[m][st] = 0u;
+            }
+            s->seq_npend = 0u;
+            for (g = 0u; g < RI_LEVI_NVOICES; g++)
+                s->seq_gate[g] = -1;
+        }
+        return 0;
+    case (RI_CTL_LEVI_SEQSTRIG & 0xFFu):
+        s->seqstrig = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQSPROB & 0xFFu):
+        s->seqsprob = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQSDRIFT & 0xFFu):
+        s->seqsdrift = val;
+        return 0;
+    case (RI_CTL_LEVI_SEQSENTR & 0xFFu):
+        s->seqsentr = val;
+        return 0;
     case (RI_CTL_LEVI_SEQON & 0xFFu): /* SEQON (device seq gate) */
         s->seqon = val != 0u ? 1u : 0u;
         return 0;
@@ -2754,7 +2856,7 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     float src[RI_LEVI_MS_N];
     struct RILeviModOut out[RI_LEVI_MODOUT_MAX];
     uint32_t n, i, o, touch_op = 0u, touch_me = 0u, touch_vo = 0u, touch_fx = 0u, touch_rv = 0u, touch_px = 0u,
-        touch_ox = 0u, touch_ax = 0u;
+        touch_ox = 0u, touch_ax = 0u, touch_sx = 0u;
     for (i = 0u; i < RI_LEVI_MS_N; i++)
         src[i] = 0.0f;
     for (o = 0u; o < RI_LEVI_NOPS; o++)
@@ -2804,6 +2906,8 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
         memset(v->ofxm, 0, sizeof v->ofxm);
     if (v->axm_on)
         memset(v->axm, 0, sizeof v->axm);
+    if (v->sxm_on)
+        memset(v->sxm, 0, sizeof v->sxm);
     for (i = 0u; i < n; i++) {
         uint32_t dm = out[i].dmod, dp = out[i].dpar;
         float x = out[i].x;
@@ -2885,6 +2989,11 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
                 v->axm[dp] += x;
                 touch_ax = 1u;
             }
+        } else if (dm == RI_LEVI_DM_SEQ) {
+            if (dp < RI_LEVI_DS_N) {
+                v->sxm[dp] += x;
+                touch_sx = 1u;
+            }
         }
     }
     v->opm_on = (uint8_t)touch_op;
@@ -2895,6 +3004,7 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     v->pfxm_on = (uint8_t)touch_px;
     v->ofxm_on = (uint8_t)touch_ox;
     v->axm_on = (uint8_t)touch_ax;
+    v->sxm_on = (uint8_t)touch_sx;
     for (o = 0u; o < RI_LEVI_NMENV && touch_me; o++)
         v->melmod[o] = v->mem[o][RI_LEVI_DE_LEVEL];
     if (!touch_me)
@@ -3852,4 +3962,276 @@ void levi_arp_block(struct RILeviSet *s, float sr, uint32_t n) {
         s->arp_k++;
     }
     s->arp_samp += n;
+}
+
+/* Effective seq UI (knob + DM_SEQ lead-voice offset, ±64 UI span). */
+static uint8_t seq_eff(struct RILeviSet *s, uint32_t dp, uint8_t knob) {
+    uint32_t lv;
+    int x = (int)knob;
+    for (lv = 0u; lv < RI_LEVI_NVOICES; lv++)
+        if (s->v[lv].active)
+            break;
+    if (lv >= RI_LEVI_NVOICES)
+        lv = 0u;
+    if (dp < RI_LEVI_DS_N && s->v[lv].sxm_on)
+        x += (int)(s->v[lv].sxm[dp] * 64.0f);
+    if (x < 0)
+        x = 0;
+    if (x > 127)
+        x = 127;
+    return (uint8_t)x;
+}
+
+static uint32_t seq_lcg_next(struct RILeviSet *s) {
+    s->seq_lcg = s->seq_lcg * 1664525u + 1013904223u;
+    return s->seq_lcg >> 16;
+}
+
+/* Arm seq gate countdowns on voices sounding the struck note. */
+static void seq_arm(struct RILeviSet *s, uint8_t note, int32_t len) {
+    uint32_t v;
+    if (len < 1)
+        len = 1;
+    for (v = 0u; v < RI_LEVI_NVOICES; v++)
+        if (s->v[v].active && s->v[v].note == note) {
+            s->seq_gate[v] = len;
+            s->seq_gnote[v] = note;
+        }
+}
+
+/* Record the held chord into a step (round-robin split over tracks). */
+static void seq_record_step(struct RILeviSet *s, uint32_t idx) {
+    uint8_t chord[RI_LEVI_ARP_MAXNOTES], nch = 0u;
+    uint32_t i, j, n1 = 0u, n2 = 0u, m;
+    struct RILeviSeqStep *t1, *t2;
+    uint8_t trig;
+    if (idx >= RI_LEVI_SEQ_STEPS)
+        return;
+    t1 = &s->seq_t1[idx];
+    t2 = &s->seq_t2[idx];
+    for (i = 0u; i < RI_LEVI_SEQ_NOTES; i++)
+        t1->note[i] = t2->note[i] = 255u;
+    nch = arp_chord(s, chord);
+    for (i = 0u; i < nch; i++) {
+        if ((i & 1u) == 0u) {
+            if (n1 < RI_LEVI_SEQ_NOTES)
+                t1->note[n1++] = chord[i];
+        } else {
+            if (n2 < RI_LEVI_SEQ_NOTES)
+                t2->note[n2++] = chord[i];
+        }
+    }
+    trig = (uint8_t)(1u + s->seqstrig * 3u / 127u);
+    t1->vel = t2->vel = 100u;
+    t1->gate = t2->gate = 100u;
+    t1->trig = t2->trig = trig;
+    t1->prob = t2->prob = s->seqsprob;
+    t1->drift = t2->drift = (int8_t)((int)s->seqsdrift - 64);
+    t1->entropy = t2->entropy = s->seqsentr;
+    for (m = 0u; m < 8u; m++)
+        s->seq_macro[m][idx] = s->mx.mknob[m];
+    (void)j;
+}
+
+void levi_seq_block(struct RILeviSet *s, float sr, uint32_t n,
+    uint32_t playing, uint64_t tick, uint32_t ppq) {
+    uint32_t i, div, trklen, mode;
+    uint64_t step_ticks;
+    uint64_t tick_span = 0u;
+    float spt;
+    if (!s || !(sr > 0.0f) || n == 0u)
+        return;
+    if (ppq < 4u)
+        ppq = 96u;
+    /* Gate countdowns + pending subs run regardless (releases land). */
+    for (i = 0u; i < RI_LEVI_NVOICES; i++) {
+        if (s->seq_gate[i] > 0) {
+            s->seq_gate[i] -= (int32_t)n;
+            if (s->seq_gate[i] <= 0) {
+                s->seq_gate[i] = -1;
+                if (s->v[i].active && s->v[i].note == s->seq_gnote[i])
+                    levi_release(s, i);
+            }
+        }
+    }
+    for (i = 0u; i < s->seq_npend;) {
+        if (s->seq_pend_tick[i] <= tick) {
+            uint8_t nn = s->seq_pend_note[i];
+            int32_t off = s->seq_pend_off[i];
+            uint32_t j;
+            levi_note_strike(s, nn);
+            seq_arm(s, nn, off);
+            s->seq_nstr++;
+            s->seq_npend--;
+            for (j = i; j < s->seq_npend; j++) {
+                s->seq_pend_tick[j] = s->seq_pend_tick[j + 1u];
+                s->seq_pend_note[j] = s->seq_pend_note[j + 1u];
+                s->seq_pend_off[j] = s->seq_pend_off[j + 1u];
+            }
+        } else {
+            i++;
+        }
+    }
+    if (!s->seqon) {
+        s->seq_samp += n;
+        return;
+    }
+    div = seq_eff(s, RI_LEVI_DS_RATE, s->seqrate);
+    div = div <= 42u ? 1u : div <= 85u ? 2u : 4u;
+    trklen = 1u + seq_eff(s, RI_LEVI_DS_TRKLEN, s->seqtrklen);
+    if (trklen > RI_LEVI_SEQ_STEPS)
+        trklen = RI_LEVI_SEQ_STEPS;
+    step_ticks = (uint64_t)ppq / div;
+    if (step_ticks == 0u)
+        step_ticks = 1u;
+    spt = 60.0f * sr / (s->tempo_bpm * (float)ppq);
+    if (!(spt > 0.0f))
+        spt = 1.0f;
+    /* Record: realtime captures crossed steps, stopped writes cursor. */
+    if (s->seqrec) {
+        if (playing) {
+            int64_t idx = (int64_t)((tick / step_ticks) % trklen);
+            int64_t k = s->seq_lastrec;
+            uint32_t c = 0u;
+            if (k < idx - (int64_t)RI_LEVI_SEQ_STEPS || k > idx)
+                k = idx - 1;   /* jump/seek: record current only */
+            while (k < idx && c < 16u) {
+                k++;
+                seq_record_step(s, (uint32_t)((uint64_t)k % trklen));
+                c++;
+            }
+            s->seq_lastrec = idx;
+        } else {
+            uint32_t cur = s->seqstep;
+            if (cur >= RI_LEVI_SEQ_STEPS)
+                cur = RI_LEVI_SEQ_STEPS - 1u;
+            seq_record_step(s, cur);
+        }
+    }
+    if (!playing) {
+        s->seq_samp += n;
+        s->seq_tick = tick;
+        s->seq_npend = 0u;   /* stopped: drop futures (gates still land above) */
+        return;
+    }
+    /* Transport rewind/seek: catch up, never retrofire; drain stale
+     * futures (queued strikes, armed gates) so a restart plays clean.
+     * Already-ringing voices are left alone (steal reclaims them). */
+    if (tick < s->seq_tick) {
+        uint32_t g;
+        s->seq_lastk = (int64_t)(tick / step_ticks) - 1;
+        s->seq_npend = 0u;
+        for (g = 0u; g < RI_LEVI_NVOICES; g++)
+            s->seq_gate[g] = -1;
+        tick_span = 0u;
+    } else {
+        tick_span = tick - s->seq_tick;
+    }
+    s->seq_tick = tick;
+    mode = seq_eff(s, RI_LEVI_DS_MODE, s->seqmode);
+    if (mode < 1u || mode > 2u) {
+        s->seq_samp += n;
+        return;
+    }
+    /* Schedule steps starting within reach of this block. Reach derives
+     * from the actual tick advance (any host granularity): steps the
+     * block overlaps, plus one tick of slack. Each step schedules once
+     * (lastk); a forward jump wider than 16 steps drops the stale span
+     * (hitch recovery) instead of piling late strikes. */
+    {
+        int64_t k_hi = (int64_t)((tick + tick_span + 1u) / step_ticks);
+        int64_t k = s->seq_lastk + 1;
+        if (k < 0)
+            k = 0;
+        if (k_hi - k > 16)
+            k = k_hi;
+        for (; k <= k_hi; k++) {
+            uint64_t idx;
+            float at;
+            uint32_t sw, mgate, mprob, mdrift, mtransp, loop;
+            int fire_t1, fire_t2;
+            s->seq_lastk = k;
+            idx = ((uint64_t)k % trklen + trklen) % trklen;
+            loop = ((uint64_t)k / trklen) & 1u;
+            fire_t1 = mode == 1u || (mode == 2u && loop == 0u);
+            fire_t2 = mode == 1u || (mode == 2u && loop != 0u);
+            if (!fire_t1 && !fire_t2)
+                continue;
+            sw = seq_eff(s, RI_LEVI_DS_SWING, s->seqswing);
+            mgate = seq_eff(s, RI_LEVI_DS_GATE, s->seqgate);
+            mprob = seq_eff(s, RI_LEVI_DS_PROB, s->seqprob);
+            mdrift = seq_eff(s, RI_LEVI_DS_DRIFT, s->seqdrift);
+            mtransp = seq_eff(s, RI_LEVI_DS_TRANSP, s->seqtransp);
+            at = (float)((uint64_t)k * step_ticks);
+            if ((idx & 1u) && sw)
+                at += (float)sw / 127.0f * 0.5f * (float)step_ticks;
+            /* Fire each active track; the macro lane follows only steps
+             * that strike (rests must not stomp the live knobs, or a
+             * later record would capture the stomp). */
+            {
+                uint32_t t, fired = 0u;
+                for (t = 0u; t < 2u; t++) {
+                    struct RILeviSeqStep *st = t ? &s->seq_t2[idx] : &s->seq_t1[idx];
+                    uint32_t nn, trig;
+                    int32_t drift_t = (int32_t)st->drift + (int32_t)mdrift - 64;
+                    float nat = at + (float)drift_t;
+                    uint32_t thr;
+                    if ((t == 0u && !fire_t1) || (t == 1u && !fire_t2))
+                        continue;
+                    thr = (uint32_t)st->prob * mprob / 127u;
+                    if (thr < 127u && (seq_lcg_next(s) & 127u) >= thr)
+                        continue;
+                    trig = st->trig;
+                    if (trig < 1u)
+                        trig = 1u;
+                    if (trig > 4u)
+                        trig = 4u;
+                    for (nn = 0u; nn < RI_LEVI_SEQ_NOTES; nn++) {
+                        uint8_t on = st->note[nn];
+                        int tr = (int)on + ((int)mtransp - 64) * 48 / 127;
+                        int sub;
+                        if (on >= 250u)
+                            continue;
+                        if (st->entropy) {
+                            uint32_t er = seq_lcg_next(s);
+                            tr += (int)((er % 25u) - 12u) * (int)st->entropy / 127;
+                        }
+                        if (tr < 0)
+                            tr = 0;
+                        if (tr > 127)
+                            tr = 127;
+                        for (sub = 0; sub < (int)trig; sub++) {
+                            float sat = nat + (trig > 1u ? (float)sub * (float)step_ticks / (float)trig : 0.0f);
+                            int32_t glen;
+                            float step_samp = (float)step_ticks * spt / (float)trig;
+                            glen = (int32_t)((float)st->gate / 127.0f * (float)mgate / 127.0f * step_samp);
+                            if (glen < 1)
+                                glen = 1;
+                            if (sat > (float)tick) {
+                                /* Beyond now: queue for a later block. */
+                                if (s->seq_npend < 64u) {
+                                    s->seq_pend_tick[s->seq_npend] = (uint64_t)(sat + 0.5f);
+                                    s->seq_pend_note[s->seq_npend] = (uint8_t)tr;
+                                    s->seq_pend_off[s->seq_npend] = glen;
+                                    s->seq_npend++;
+                                    fired = 1u;
+                                }
+                                continue;
+                            }
+                            levi_note_strike(s, (uint8_t)tr);
+                            seq_arm(s, (uint8_t)tr, glen);
+                            s->seq_nstr++;
+                            fired = 1u;
+                        }
+                    }
+                }
+                if (fired) {
+                    uint32_t m;
+                    for (m = 0u; m < 8u; m++)
+                        s->mx.mknob[m] = s->seq_macro[m][idx];
+                }
+            }
+        }
+    }
+    s->seq_samp += n;
 }

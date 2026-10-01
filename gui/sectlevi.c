@@ -425,8 +425,12 @@ static const struct LeviSlot P_ARP2[8] = {
     { RI_SLEVI_ARPLATCH, "LATCH" }, { RI_SLEVI_ARPCLOCK, "CLK LOCK" }, { RI_SLEVI_ARPSTEPPOFF, "STEP OFF" }, { SLOT_DEAD, "" }
 };
 static const struct LeviSlot P_SEQ[8] = {
-    { RI_SLEVI_SEQLEN, "LENGTH" }, { SLOT_DEAD, "RATE" }, { SLOT_DEAD, "MODE" }, { SLOT_DEAD, "SWING" },
-    { SLOT_DEAD, "GATE" }, { SLOT_DEAD, "PROB" }, { SLOT_DEAD, "DRIFT" }, { SLOT_DEAD, "TRANSPOSE" }
+    { RI_SLEVI_SEQLEN, "LENGTH" }, { RI_SLEVI_SEQRATE, "RATE" }, { RI_SLEVI_SEQMODE, "MODE" }, { RI_SLEVI_SEQSWING, "SWING" },
+    { RI_SLEVI_SEQGATE, "GATE" }, { RI_SLEVI_SEQPROB, "PROB" }, { RI_SLEVI_SEQDRIFT, "DRIFT" }, { RI_SLEVI_SEQTRANSP, "TRANSPOSE" }
+};
+static const struct LeviSlot P_SEQ2[8] = {
+    { RI_SLEVI_SEQTRKLEN, "TRK LEN" }, { RI_SLEVI_SEQREC, "REC" }, { RI_SLEVI_SEQSTEP, "STEP" }, { RI_SLEVI_SEQCLEAR, "CLEAR" },
+    { RI_SLEVI_SEQSTRIG, "ST TRIG" }, { RI_SLEVI_SEQSPROB, "ST PROB" }, { RI_SLEVI_SEQSDRIFT, "ST DRIFT" }, { RI_SLEVI_SEQSENTR, "ST ENTR" }
 };
 static const struct LeviSlot P_VOICE[8] = {
     { RI_SLEVI_POLYMODE, "POLYPHONY" }, { RI_SLEVI_UDENSITY, "DENSITY" }, { RI_SLEVI_ULIMIT, "LIMIT" }, { RI_SLEVI_VDETUNE, "DETUNE" },
@@ -466,6 +470,7 @@ uint32_t ri_slevi_page_count(const struct RISectLevi *s) {
         : module(s) == RI_SLEVI_M_VOICE ? 4u
         : module(s) == RI_SLEVI_M_REVERB ? 2u
         : module(s) == RI_SLEVI_M_ARP ? 2u
+        : module(s) == RI_SLEVI_M_SEQ ? 2u
         : module(s) == RI_SLEVI_M_MATRIX ? 16u : module(s) == RI_SLEVI_M_MACRO ? 34u : 1u;
 }
 
@@ -528,7 +533,7 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         : m == RI_SLEVI_M_POSTFX ? P_POSTFX
         : (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) ? P_LFO[s->page == 1u ? 1u : 0u]
         : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? (s->page == 1u ? P_ARP2 : P_ARP)
-        : m == RI_SLEVI_M_SEQ ? P_SEQ
+        : m == RI_SLEVI_M_SEQ ? (s->page == 1u ? P_SEQ2 : P_SEQ)
         : m == RI_SLEVI_M_VOICE
         ? (s->page == 3u ? P_VOICE4 : s->page == 2u ? P_VOICE3 : s->page == 1u ? P_VOICE2 : P_VOICE)
         : P_VOICE;
@@ -1506,6 +1511,89 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
     }
     if (t == (int)RI_SLEVI_ARPSTEPPOFF) {
         put_num(buf, cap, s->val[t] * 15 / 127);
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQRATE) {
+        int v = s->val[t];
+        put_num(buf, cap, v <= 42 ? 1 : v <= 85 ? 2 : 4);
+        cat_str(buf, cap, "/Q");
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQMODE) {
+        static const char *const SM[3] = { "OFF", "PARA", "SERIES" };
+        int m = s->val[t];
+        put_str(buf, cap, SM[m >= 0 && m < 3 ? m : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQSWING || t == (int)RI_SLEVI_SEQGATE ||
+        t == (int)RI_SLEVI_SEQPROB) {
+        put_num(buf, cap, s->val[t] * 100 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQDRIFT) {
+        int v = s->val[t] - 64;
+        if (v < 0) {
+            put_str(buf, cap, "-");
+            put_num(buf, cap, -v);
+        } else {
+            put_str(buf, cap, "+");
+            put_num(buf, cap, v);
+        }
+        cat_str(buf, cap, "TK");
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQTRANSP) {
+        int v = (s->val[t] - 64) * 48 / 127;
+        if (v < 0) {
+            put_str(buf, cap, "-");
+            put_num(buf, cap, -v);
+        } else {
+            put_str(buf, cap, "+");
+            put_num(buf, cap, v);
+        }
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQTRKLEN) {
+        put_num(buf, cap, 1 + s->val[t]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQREC) {
+        put_str(buf, cap, s->val[t] ? "ARM" : "OFF");
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQSTEP) {
+        put_num(buf, cap, s->val[t] + 1);
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQCLEAR) {
+        put_str(buf, cap, "CLR");
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQSTRIG) {
+        put_num(buf, cap, 1 + s->val[t] * 3 / 127);
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQSPROB) {
+        put_num(buf, cap, s->val[t] * 100 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQSDRIFT) {
+        int v = s->val[t] - 64;
+        if (v < 0) {
+            put_str(buf, cap, "-");
+            put_num(buf, cap, -v);
+        } else {
+            put_str(buf, cap, "+");
+            put_num(buf, cap, v);
+        }
+        cat_str(buf, cap, "TK");
+        return;
+    }
+    if (t == (int)RI_SLEVI_SEQSENTR) {
+        put_num(buf, cap, s->val[t] * 100 / 127);
+        cat_str(buf, cap, "%");
         return;
     }
     if (t >= (int)RI_SLEVI_SLOT0 && t < (int)RI_SLEVI_SLOT0 + 8) {
