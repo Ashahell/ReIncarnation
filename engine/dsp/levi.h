@@ -407,6 +407,9 @@ struct RILeviVoice {
     float sxm[RI_LEVI_DS_N]; /* DM_SEQ offsets (P8c, lead voice) */
     uint8_t sxm_on;
     uint8_t sxpad[3];
+    float rbn_abs;  /* ribbon sources (P8d; refreshed per block) */
+    float rbn_absp;
+    float rbn_rel;
     /* Stereo + scales (fidelity P6c, manual pp. 87-96). Pan/width/mode
      * went live with the stereo sum; bend with the P9 MIDI data. */
     float vspread;  /* 0..1 unison stereo spread (static ordinal) */
@@ -571,6 +574,10 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_SEQSPROB 0x0EB9u
 #define RI_CTL_LEVI_SEQSDRIFT 0x0EBAu
 #define RI_CTL_LEVI_SEQSENTR 0x0EBBu
+/* Ribbon (fidelity P8d, manual pp. 97-98). */
+#define RI_CTL_LEVI_RBNMODE 0x0EBCu
+#define RI_CTL_LEVI_RBNPOS 0x0EBDu
+#define RI_CTL_LEVI_RBNTOUCH 0x0EBEu
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u
@@ -692,6 +699,13 @@ struct RILeviSet {
     int32_t seq_pend_off[64];
     uint32_t seq_npend;
     uint64_t seq_samp;  /* absolute sample clock */
+    /* Ribbon state (fidelity P8d, manual pp. 97-98). No live-input
+     * path exists yet; the panel/API drives it (app touch later). */
+    uint8_t rbn_pos;    /* 0..127 position */
+    uint8_t rbn_touch;  /* touched flag */
+    uint8_t rbn_mode;   /* 0 off, 1 abs, 2 rel, 3 theremin */
+    uint8_t rbn_last;   /* relative baseline (consumed per block) */
+    uint8_t rbn_pad[4];
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
     /* Voice allocator (fidelity P6a, manual pp. 87-96): device-wide.
@@ -735,6 +749,12 @@ void levi_arp_block(struct RILeviSet *s, float sr, uint32_t n);
  * (ppq 0 falls back to 96). No-op when seqon is off. */
 void levi_seq_block(struct RILeviSet *s, float sr, uint32_t n,
     uint32_t playing, uint64_t tick, uint32_t ppq);
+/* Ribbon touch/move/release (fidelity P8d): position 0..127. Touch
+ * starts trig-7 menvs (+ theremin retune + seq jump); move retunes;
+ * release ends trig-8 menvs. 2 on NULL. */
+int levi_ribbon_touch(struct RILeviSet *s, uint8_t pos);
+int levi_ribbon_move(struct RILeviSet *s, uint8_t pos);
+int levi_ribbon_release(struct RILeviSet *s);
 /* Allocator mode/density/limit UI (keys 0x0E58..5A, device-wide). 0 ok, 2 bad. */
 int levi_set_alloc_ui(struct RILeviSet *s, uint32_t mode);
 uint32_t levi_alloc_mode(const struct RILeviSet *s);

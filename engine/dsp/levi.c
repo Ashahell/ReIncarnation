@@ -1099,6 +1099,12 @@ void levi_init_set(struct RILeviSet *s) {
     }
     s->seq_npend = 0u;
     s->seq_samp = 0u;
+    /* Ribbon (fidelity P8d): centered, untouched, off. */
+    s->rbn_pos = 64u;
+    s->rbn_touch = 0u;
+    s->rbn_mode = 0u;
+    s->rbn_last = 64u;
+    s->rbn_pad[0] = s->rbn_pad[1] = s->rbn_pad[2] = s->rbn_pad[3] = 0u;
     s->seqon = 0u;
     s->seqlen = 16u;
     ri_levi_matrix_init(&s->mx);
@@ -2144,6 +2150,62 @@ const char *ri_levi_df_name(uint32_t t) {
     return t < RI_LEVI_NDF ? DF_NAME[t] : "";
 }
 
+/* Ribbon touch/move/release (fidelity P8d, manual pp. 97-98). Touch
+ * starts trig-7 menvs, retunes theremin voices and jumps the seq grid;
+ * move retunes; release ends trig-8 menvs. */
+static void ribbon_theremin(struct RILeviSet *s) {
+    uint32_t v;
+    uint8_t note;
+    if (!s->rbn_touch || s->rbn_mode != 3u)
+        return;
+    note = s->rbn_pos > 127u ? 127u : s->rbn_pos;
+    for (v = 0u; v < RI_LEVI_NVOICES; v++)
+        if (s->v[v].active)
+            alloc_retune(&s->v[v], note);
+}
+
+int levi_ribbon_touch(struct RILeviSet *s, uint8_t pos) {
+    uint32_t v, e;
+    uint32_t trklen;
+    if (!s)
+        return 2;
+    if (pos > 127u)
+        pos = 127u;
+    s->rbn_touch = 1u;
+    s->rbn_pos = pos;
+    for (v = 0u; v < RI_LEVI_NVOICES; v++)
+        for (e = 0u; e < RI_LEVI_NMENV; e++)
+            if (menv_has(&s->v[v], e, 7u))
+                menv_start(&s->v[v].menv[e]);
+    ribbon_theremin(s);
+    /* Seq step selector: jump the grid to the touched position. */
+    trklen = 1u + s->seqtrklen;
+    if (trklen > RI_LEVI_SEQ_STEPS)
+        trklen = RI_LEVI_SEQ_STEPS;
+    s->seq_lastk = (int64_t)((uint64_t)pos * trklen / 128u) - 1;
+    return 0;
+}
+
+int levi_ribbon_move(struct RILeviSet *s, uint8_t pos) {
+    if (!s)
+        return 2;
+    s->rbn_pos = pos > 127u ? 127u : pos;
+    ribbon_theremin(s);
+    return 0;
+}
+
+int levi_ribbon_release(struct RILeviSet *s) {
+    uint32_t v, e;
+    if (!s)
+        return 2;
+    s->rbn_touch = 0u;
+    for (v = 0u; v < RI_LEVI_NVOICES; v++)
+        for (e = 0u; e < RI_LEVI_NMENV; e++)
+            if (menv_has(&s->v[v], e, 8u))
+                menv_release(&s->v[v].menv[e]);
+    return 0;
+}
+
 int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     uint8_t val) {
     float f;
@@ -2323,6 +2385,16 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case (RI_CTL_LEVI_SEQSENTR & 0xFFu):
         s->seqsentr = val;
         return 0;
+    case (RI_CTL_LEVI_RBNMODE & 0xFFu):
+        s->rbn_mode = val > 3u ? 3u : val;
+        return 0;
+    case (RI_CTL_LEVI_RBNPOS & 0xFFu):
+        s->rbn_pos = val > 127u ? 127u : val;
+        return 0;
+    case (RI_CTL_LEVI_RBNTOUCH & 0xFFu):
+        if (val)
+            return levi_ribbon_touch(s, s->rbn_pos);
+        return levi_ribbon_release(s);
     case (RI_CTL_LEVI_SEQON & 0xFFu): /* SEQON (device seq gate) */
         s->seqon = val != 0u ? 1u : 0u;
         return 0;
@@ -2870,6 +2942,10 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     for (o = 0u; o < RI_LEVI_NMENV; o++)
         src[RI_LEVI_MS_ENV0 + o] = levi_menv_value(v, o);
     src[RI_LEVI_MS_NOTE] = ((float)(v->note > 127u ? 127u : v->note) - 60.0f) / 60.0f;
+    /* Ribbon (fidelity P8d): per-voice copies refreshed per block. */
+    src[RI_LEVI_MS_RBNABS] = v->rbn_abs;
+    src[RI_LEVI_MS_RBNABSP] = v->rbn_absp;
+    src[RI_LEVI_MS_RBNREL] = v->rbn_rel;
     {
         /* VoiceMod (fidelity P6b, manual p. 127): per-voice static
          * values, own law — VMOD bipolar hash, VMOD+ ordinal unipolar.
@@ -3441,6 +3517,32 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
     if (!s || !out_l || !out_r)
         return;
     levi_tempo_refresh(s);   /* flagged musical times follow the cached tempo */
+    /* Ribbon sources (fidelity P8d): computed once per block, voices
+     * read their copies (render has no set pointer). REL consumes. */
+    {
+        float pos = (float)(s->rbn_pos > 127u ? 127u : s->rbn_pos);
+        float d = s->rbn_mode ? pos - (float)s->rbn_last : 0.0f;
+        float rel = d / 64.0f;
+        float ab, ap;
+        if (s->rbn_mode == 0u) {
+            ab = 0.0f;
+            ap = 0.0f;
+            rel = 0.0f;
+        } else {
+            ab = pos / 127.0f * 2.0f - 1.0f;
+            ap = pos / 127.0f;
+        }
+        if (rel < -1.0f)
+            rel = -1.0f;
+        if (rel > 1.0f)
+            rel = 1.0f;
+        for (v = 0u; v < RI_LEVI_NVOICES; v++) {
+            s->v[v].rbn_abs = ab;
+            s->v[v].rbn_absp = ap;
+            s->v[v].rbn_rel = rel;
+        }
+        s->rbn_last = s->rbn_pos;
+    }
     for (i = 0u; i < n; i++) {
         float ml = 0.0f, mr = 0.0f, vl, vr;
         uint32_t o;

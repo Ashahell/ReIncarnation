@@ -91,7 +91,9 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     /* Device sequencer (fidelity P8c, manual pp. 105-119). */
     0x0EADu, 0x0EAEu, 0x0EAFu, 0x0EB0u, 0x0EB1u, 0x0EB2u, 0x0EB3u,
     0x0EB4u, 0x0EB5u, 0x0EB6u, 0x0EB7u, 0x0EB8u, 0x0EB9u, 0x0EBAu,
-    0x0EBBu
+    0x0EBBu,
+    /* Ribbon (fidelity P8d, manual pp. 97-98). */
+    0x0EBCu, 0x0EBDu, 0x0EBEu
 };
 
 int ri_auto_allowed(uint16_t ctl) {

@@ -480,6 +480,10 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 208, KNOB, "Seq", "St Prob", 0, 127, 127, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_SEQSPROB, 0),
     R(LEVI, 209, KNOB, "Seq", "St Drift", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_SEQSDRIFT, 0),
     R(LEVI, 210, KNOB, "Seq", "St Entr", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_SEQSENTR, 0),
+    /* Ribbon (fidelity P8d, manual pp. 97-98). */
+    R(LEVI, 211, SELECTOR, "Ribbon", "Mode", 0, 3, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBNMODE, 0),
+    R(LEVI, 212, KNOB, "Ribbon", "Pos", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBNPOS, 0),
+    R(LEVI, 213, SWITCH, "Ribbon", "Touch", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBNTOUCH, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

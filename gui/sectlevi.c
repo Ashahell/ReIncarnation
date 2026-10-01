@@ -121,6 +121,11 @@ int ri_slevi_press(struct RISectLevi *s, uint32_t idx) {
         s->val[idx] = (int16_t)(s->val[idx] ? 0 : 1);
         return 1;
     }
+    if (idx == RI_SLEVI_RBNTOUCH) {
+        /* Ribbon touch (fidelity P8d): panel truth toggles like MODE. */
+        s->val[idx] = (int16_t)(s->val[idx] ? 0 : 1);
+        return 1;
+    }
     if (idx >= RI_SLEVI_ROUTE0 && idx < RI_SLEVI_ROUTE0 + 8u) {
         /* Bound route gates (v2 feature 4c): panel truth toggles like
          * MODE; automation emit travels app-side via the knob syncs. */
@@ -432,6 +437,10 @@ static const struct LeviSlot P_SEQ2[8] = {
     { RI_SLEVI_SEQTRKLEN, "TRK LEN" }, { RI_SLEVI_SEQREC, "REC" }, { RI_SLEVI_SEQSTEP, "STEP" }, { RI_SLEVI_SEQCLEAR, "CLEAR" },
     { RI_SLEVI_SEQSTRIG, "ST TRIG" }, { RI_SLEVI_SEQSPROB, "ST PROB" }, { RI_SLEVI_SEQSDRIFT, "ST DRIFT" }, { RI_SLEVI_SEQSENTR, "ST ENTR" }
 };
+static const struct LeviSlot P_RIBBON[8] = {
+    { RI_SLEVI_RBNMODE, "MODE" }, { RI_SLEVI_RBNPOS, "POS" }, { RI_SLEVI_RBNTOUCH, "TOUCH" }, { SLOT_DEAD, "" },
+    { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }
+};
 static const struct LeviSlot P_VOICE[8] = {
     { RI_SLEVI_POLYMODE, "POLYPHONY" }, { RI_SLEVI_UDENSITY, "DENSITY" }, { RI_SLEVI_ULIMIT, "LIMIT" }, { RI_SLEVI_VDETUNE, "DETUNE" },
     { RI_SLEVI_VAFEEL, "ANALOG FL" }, { RI_SLEVI_VRNDPH, "RND PHASE" }, { RI_SLEVI_VPAN, "PAN" }, { RI_SLEVI_VWIDTH, "WIDTH" }
@@ -534,6 +543,7 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         : (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) ? P_LFO[s->page == 1u ? 1u : 0u]
         : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? (s->page == 1u ? P_ARP2 : P_ARP)
         : m == RI_SLEVI_M_SEQ ? (s->page == 1u ? P_SEQ2 : P_SEQ)
+        : m == RI_SLEVI_M_RIBBON ? P_RIBBON
         : m == RI_SLEVI_M_VOICE
         ? (s->page == 3u ? P_VOICE4 : s->page == 2u ? P_VOICE3 : s->page == 1u ? P_VOICE2 : P_VOICE)
         : P_VOICE;
@@ -763,7 +773,7 @@ const char *ri_slevi_page_title(const struct RISectLevi *s) {
         "GROUP: SUSTAIN", "GROUP: RELEASE", "ENV 1", "ENV 2", "ENV 3", "ENV 4", "ENV 5",
         "DIGITAL FILTER", "ANALOG FILTER", "VCA", "PRE-FX", "DELAY", "REVERB", "POST-FX",
         "LFO 1", "LFO 2", "LFO 3", "LFO 4", "LFO 5", "ALGORITHM", "ARPEGGIATOR", "SEQUENCER",
-        "MOD MATRIX", "VOICE", "MACRO ASSIGN"
+        "MOD MATRIX", "VOICE", "MACRO ASSIGN", "RIBBON"
     };
     static const char *const OSC_PG[RI_LEVI_NOPS][5] = {
         { "OSC 1  1/5", "OSC 1  2/5", "OSC 1  3/5", "OSC 1  4/5", "OSC 1  5/5" },
@@ -1594,6 +1604,21 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
     if (t == (int)RI_SLEVI_SEQSENTR) {
         put_num(buf, cap, s->val[t] * 100 / 127);
         cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_RBNMODE) {
+        static const char *const RM[4] = { "OFF", "ABS", "REL", "THEREMIN" };
+        int m = s->val[t];
+        put_str(buf, cap, RM[m >= 0 && m < 4 ? m : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_RBNPOS) {
+        put_num(buf, cap, s->val[t] * 100 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_RBNTOUCH) {
+        put_str(buf, cap, s->val[t] ? "ON" : "OFF");
         return;
     }
     if (t >= (int)RI_SLEVI_SLOT0 && t < (int)RI_SLEVI_SLOT0 + 8) {

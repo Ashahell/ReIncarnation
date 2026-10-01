@@ -234,7 +234,7 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 269u, "mapped count %u (+4 bias P2, +13 algo P3, +13 filters P4, +3 env P5a, +16 macros P5b, +3 voice P6a, +13 voice P6b, +13 stereo P6c, +8 delay P7a, +9 reverb P7b, +12 modfx P7c, +13 arp P8b, +15 seq P8c)", mapped);
+            RI_ASSERT(mapped == 272u, "mapped count %u (+4 bias P2, +13 algo P3, +13 filters P4, +3 env P5a, +16 macros P5b, +3 voice P6a, +13 voice P6b, +13 stereo P6c, +8 delay P7a, +9 reverb P7b, +12 modfx P7c, +13 arp P8b, +15 seq P8c, +3 ribbon P8d)", mapped);
             RI_ASSERT(listed == 31u, "listed count %u", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
@@ -269,8 +269,8 @@ int main(void) {
                         owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 1109u, "allow-list size %u (269 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
-                    "5 x 14 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys + 13 env-bpm P8a + 13 arp P8b + 15 seq P8c)", nallow);
+                RI_ASSERT(nallow == 1112u, "allow-list size %u (272 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
+                    "5 x 14 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys + 13 env-bpm P8a + 13 arp P8b + 15 seq P8c + 3 ribbon P8d)", nallow);
             }
         }
     }

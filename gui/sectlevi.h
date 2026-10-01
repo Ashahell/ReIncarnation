@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 211u
+#define RI_SLEVI_NCTL 214u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -173,6 +173,10 @@
 #define RI_SLEVI_SEQSPROB 208u
 #define RI_SLEVI_SEQSDRIFT 209u
 #define RI_SLEVI_SEQSENTR 210u
+/* Ribbon (fidelity P8d): 211..213. */
+#define RI_SLEVI_RBNMODE 211u
+#define RI_SLEVI_RBNPOS 212u
+#define RI_SLEVI_RBNTOUCH 213u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */
@@ -204,7 +208,8 @@
 #define RI_SLEVI_M_MATRIX 33u
 #define RI_SLEVI_M_VOICE 34u
 #define RI_SLEVI_M_MACRO 35u      /* MACRO ASSIGN (P5b) */
-#define RI_SLEVI_NMOD 36u
+#define RI_SLEVI_M_RIBBON 36u    /* ribbon (P8d) */
+#define RI_SLEVI_NMOD 37u
 #define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
 #define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */
 #define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */

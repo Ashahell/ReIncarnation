@@ -297,7 +297,7 @@ Pre-FX and Post-FX with 9 types, delay types, reverb types with freeze, and the 
 - Arp to the manual's parameter set, with 64 own phrases.
 - 2 poly note tracks + a macro track, up to 128 steps with per-step MultiTrig/Drift/Probability/Entropy, and step record.
 - Ribbon as mod source, theremin and step selector.
-- Split (2026-10-01): P8a device tempo + all BPM sync (this slice — closes P7d too); P8b device arp parameter set + phrases (this slice); P8c device sequencer tracks + step record (this slice); P8d ribbon + step-LFO editor. Matrix arp/seq destinations ride with P8b/c.
+- Split (2026-10-01): P8a device tempo + all BPM sync (this slice — closes P7d too); P8b device arp parameter set + phrases (this slice); P8c device sequencer tracks + step record (this slice); P8d ribbon (state/sources/theremin/triggers/step-select); P8e step-LFO editor (values/keys/semi/UI). Matrix arp/seq destinations ride with P8b/c.
 
 #### P8a plan (device tempo + BPM sync incl. P7d; before code 2026-10-01)
 
@@ -343,6 +343,27 @@ Pre-FX and Post-FX with 9 types, delay types, reverb types with freeze, and the 
   - 15 keys `0x0EAD..BB`, 15 rows, SEQ 2 pages, `DM_SEQ` (8 mirror knobs).
   - Proof: audit 0/0 clean worktree; riaudio lane: window opens, SPACE→TR PLAY, AHI 0x003e0001, buffers=11322 xruns=0. Deviations: no host wav; SEQ pixels deferred (standing gap); 909 pack missing (unrelated).
 - **Tests:** t143 (off-identity, realtime split + defaults, step record, playback order/content, trig ratio, prob mute, drift deferral, entropy wobble, transpose, series alternation, division density, length wrap both directions, clear incl. drains, macro capture/play, swing checkpoint, mode clamp, stopped silence, restart + clear drain (planted futures), DM route-fill + gate fold, gate knob, factory-adjacent pins, full key sweep, row bind, 2 pages + texts, null guards, extremes; 26 mutants killed, 2 ledgered survivals: live transport push + engine seq-block hook — no engine-render unit laws, lane-covered); t60 range to `0x0EBB`, t77 mapped 269 / allow 1109, t133 last module SEQ, t136/t138/t139/t140/t141/t142 `0x0EBC` boundary deliberate moves.
+
+#### P8d plan (ribbon; before code 2026-10-01)
+
+- Device ribbon state (no live-input path exists anywhere — the panel/API drives it; app touch wiring later, ledgered): `rbn_pos` (0..127, default 64), `rbn_touch`, `rbn_mode` (0 off, 1 abs, 2 rel, 3 theremin), `rbn_last` (relative baseline). API `levi_ribbon_touch/move/release(s, pos)` (2 bad on NULL) + keys `0x0EBC` (MODE), `0x0EBD` (POS), `0x0EBE` (TOUCH, momentary: nonzero = touched).
+- Sources (P5b ids already exist, no DM work): computed once per `sum_stereo` top (P8a refresh pattern) into per-voice fields (voice renders can't see the set): ABS bipolar `pos/127*2-1`, ABS+ unipolar `pos/127`, REL `clamp((pos-last)/64)` with block-granular consume. Mode off zeroes all three (sources inert).
+- Theremin (mode 3 + touched): touch/move retunes all active voices to `pos` (clamped note, via `alloc_retune` — quantize/micro apply; instant, no glide). Held list untouched (release behavior unchanged).
+- ENV triggers: touch starts menvs with source 7; release releases menvs with source 8 (`menv_release` is idle-safe). Op envelopes have no trigger sources (menvs only).
+- Seq step selector: touch jumps `seq_lastk` to the mapped step (`pos/127*trklen - 1`, restart-like); move doesn't (jitter); harmless stopped.
+- UI: `M_RIBBON` 36 (`NMOD` 37, appended — existing ids stable) with 1 page (MODE/POS/TOUCH + 5 dead); rows 211..213; texts OFF/ABS/REL/THEREMIN, %, ON/OFF; TOUCH press toggles (bound-switch pattern).
+- E0: off default (bit-identical songs); POS key never implies touch (songs stay silent); ribbon position has no MIDI/panel producer yet.
+- **Status: P8d done 2026-10-01** (engine, keys, UI, tests):
+  - Ribbon state + API (touch/move/release) + keys `0x0EBC..BE` + rows 211..213 + `M_RIBBON` 36 (appended, ids stable) with 1 page (MODE/POS/TOUCH); per-type texts; TOUCH press toggles.
+  - Sources computed per block into voice copies (render has no set pointer — P8a refresh pattern): ABS bipolar, ABS+ unipolar, REL consumed; off zeroes.
+  - Theremin (mode 3 + touched) retunes actives; touch/release drive menv trig 7/8; touch jumps seq grid.
+  - Proof: audit 0/0 clean worktree; riaudio lane (restarted after PC reboot — anonymous session, no pairs file needed): window opens, SPACE→TR PLAY, AHI 0x003e0001, first post-boot PLAY 9 xruns (cold AHI transient), steady PLAY 4143 buffers 0 xruns. Deviations: no host wav; RIBBON pixels deferred (standing gap); 909 pack missing (unrelated).
+- **Tests:** t144 (defaults/off-identity, ABS/ABS+/REL incl. consume, touch/release trigger laws, theremin retune/glide, mode/pos clamps, mode-0 silence, touch-key path, seq jump, twin-set audible law, full key sweep, row bind, module/page/slots/texts incl. press toggle, null guards, extremes over 4 modes; 20 mutants killed, 1 benign survival: engine POS clamp — refresh re-clamps, P7b defense class); t60 range to `0x0EBE`, t77 mapped 272 / allow 1112, t107 module clamp 36, t136–t143 `0x0EBF` boundary deliberate moves.
+
+#### P8e plan (step-LFO editor; before code — queued after P8d)
+
+- Per-LFO 64 step values replacing the default ramp (`sval[64]` mirrored voice+shared like `ui[]`, ~3 KB); key blocks `0x13` (lfo 0..3) + `0x14` (lfo 4) with allow-list block rules; `LP_SEMI` 14 (per-LFO semi lock, step edits snap to semitone grid); LFO page 3 step editor (STEP cursor + VALUE + RAMP, press-nav from the page-2 STEP EDIT slot).
+- **Status: pending.**
 
 ### P9: performance
 
