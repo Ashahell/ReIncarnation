@@ -47,7 +47,8 @@ int main(void) {
     pu.focus = RI_FOCUS_808;
     RI_ASSERT(ri_panel_key(&pu, 0x20, 0) == 0 && ri_pdrum_get(&d8.u.s808.pat, 0, RI_L808_BD) == RI_HIT_OFF,
         "tap ignored while stopped (p. 32: with playback activated)");
-    RI_ASSERT(ri_panel_live(&pu, 1, 13u) == 1 && pu.playhead[2] == 1 && pu.playhead[3] == 13 && pu.playhead[0] == 13,
+    RI_ASSERT(ri_panel_live(&pu, 1, 13u) == (RI_PANEL_CH_PLAYING | RI_PANEL_CH_PLAYHEAD) &&
+        pu.playhead[2] == 1 && pu.playhead[3] == 13 && pu.playhead[0] == 13,
         "each section loops its own length");
     RI_ASSERT(ri_panel_live(&pu, 1, 13u) == 0, "same position: no change");
     /* tap A = BD at the 808 playhead (step 1); again = no change (only adds) */
@@ -84,7 +85,7 @@ int main(void) {
     ri_panel_live(&pu, 0, 0u);
     ri_sui_press(&tr, RI_STR_MODE);
     ri_sui_press(&tr, RI_STR_PLAY);
-    RI_ASSERT(ri_panel_live(&pu, 1, 0u) == 1 && ri_sui_value(&tr, RI_STR_BAR) == 1, "play from bar 1");
+    RI_ASSERT(ri_panel_live(&pu, 1, 0u) != 0u && ri_sui_value(&tr, RI_STR_BAR) == 1, "play from bar 1");
     ri_panel_live(&pu, 1, 40u);
     RI_ASSERT(ri_sui_value(&tr, RI_STR_BAR) == 3, "40 sixteenths -> bar 3: %d", ri_sui_value(&tr, RI_STR_BAR));
     ri_sui_press(&tr, RI_STR_STOP);
@@ -96,7 +97,7 @@ int main(void) {
     ri_panel_live(&pu, 1, 0u);                            /* starts at bar 3 (held) */
     ri_panel_live(&pu, 1, 16u * 5u);                      /* 5 bars later: 3,4,3,4,3 -> 4 */
     RI_ASSERT(ri_sui_value(&tr, RI_STR_BAR) == 4, "loop wrap: %d", ri_sui_value(&tr, RI_STR_BAR));
-    RI_ASSERT(ri_panel_live(&pu, 0, 0u) == 1 && pu.playhead[0] == -1, "stop clears playheads");
+    RI_ASSERT(ri_panel_live(&pu, 0, 0u) != 0u && pu.playhead[0] == -1, "stop clears playheads");
     RI_ASSERT(ri_panel_live(0, 1, 1u) == 0, "null");
     RI_RESULT("livestate");
 }

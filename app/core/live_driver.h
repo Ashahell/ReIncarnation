@@ -39,8 +39,13 @@ struct RILiveDriver {
      * menus included; only the pointer moves). Load = render time over
      * the buffer period, per mille, smoothed 1/8. At RI_LIVEDRV_OVER_PM
      * the backend drops the render task below the UI for
-     * RI_LIVEDRV_OVER_US, then probes again at its normal priority. */
+     * RI_LIVEDRV_OVER_US, then probes again at its normal priority.
+     * The trip also needs RI_LIVEDRV_ARM_US of CONTINUOUS over-budget
+     * load (owner Dell 2026-10-01): peaks must not count, because below
+     * the UI every repaint pre-empts the audio task (1.47 xruns per
+     * repaint), so a peaky song must not be able to start that. */
     uint32_t load_pm;              /* task side: smoothed load, per mille */
+    uint64_t over_run_us;         /* task side: continuous over-budget time */
     uint64_t over_left_us;         /* task side: overload time remaining */
     ri_atomic_u32 overloaded;      /* 1 while the backend should yield */
     ri_atomic_u32 overloads;       /* overload entries (heartbeat) */
@@ -49,6 +54,7 @@ struct RILiveDriver {
 #define RI_LIVEDRV_OVER_PM 850u
 #define RI_LIVEDRV_OVER_US 2000000u
 #define RI_LIVEDRV_LOAD_CAP_PM 1200u
+#define RI_LIVEDRV_ARM_US 2000000u
 
 void ri_livedrv_init(struct RILiveDriver *d, struct RILiveSession *s,
     uint32_t frames, uint64_t (*now_us)(void));

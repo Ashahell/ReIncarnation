@@ -141,9 +141,18 @@ int main(void) {
             break;
         }
     }
-    /* Load governor: 256 frames at 48 kHz = 5333 us per buffer. Light
-     * load never trips; a sustained 5000 us render (938 per mille) trips
-     * once, holds for 2 s of buffers whatever the load, then probes. */
+    /* Load governor: 256 frames at 48 kHz = 5333 us per buffer, so the
+     * threshold 850 per mille is 4533 us of render and the cap 1200 is
+     * 6400 us. The yield below the UI is for a machine that CANNOT keep up,
+     * so only a CONTINUOUS over-budget load may trip it:
+     *  - light load never trips;
+     *  - peaks never trip. Owner Dell 2026-10-01: playing ran at 585-638
+     *    per mille with repaint spikes, and every crossing of 850 put the
+     *    render task below the UI for 2 s, where one repaint cost 1-2
+     *    buffers (923 xruns against 630 repaints in one window). The load
+     *    has to stay over budget for RI_LIVEDRV_ARM_US (2 s) to trip;
+     *  - once tripped it holds 2 s of buffers whatever the load, then
+     *    probes, and the next trip needs its own 2 s. */
     {
         uint32_t b, first = 0u, held = 0u;
         t_fake_us = 0u;
@@ -154,12 +163,63 @@ int main(void) {
             ri_livedrv_render(&d, buf, fl, fr, 256u);
         RI_ASSERT(!ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 0u,
             "light load stays normal");
-        t_step = 5000u;
-        for (b = 0u; b < 100u && !ri_livedrv_overloaded(&d); b++)
+        /* The Dell first trip exactly: ten capped buffers in a row (48 ms),
+         * then back to 562 per mille. A burst is not a sustained load. */
+        for (b = 0u; b < 12u; b++) {
+            t_step = 84000u;
             ri_livedrv_render(&d, buf, fl, fr, 256u);
-        first = b;
-        RI_ASSERT(ri_livedrv_overloaded(&d) && first > 3u && first < 40u, "trips after %u", first);
+        }
+        t_step = 3000u; /* 562 per mille: the playing load on the Dell */
+        for (b = 0u; b < 2000u; b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(!ri_livedrv_overloaded(&d), "capped burst trips (%u buffers in)",
+            ri_atomic_load_acq(&d.overloads));
+        RI_ASSERT(ri_atomic_load_acq(&d.overloads) == 0u, "capped burst entries");
+        /* Peaky: one capped buffer every 20 (the repaint spikes). */
+        for (b = 0u; b < 4000u; b++) {
+            t_step = (b % 20u == 0u) ? 84000u : 3000u;
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        }
+        RI_ASSERT(!ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 0u,
+            "peaky load never trips");
+        /* Continuous but under the threshold: 843 per mille asymptotes
+         * below 850 and must never trip. */
+        t_step = 4500u;
+        for (b = 0u; b < 2000u; b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(!ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 0u,
+            "843 per mille continuous stays normal");
+        /* Continuous over budget: 938 per mille. Half a second is not the
+         * 2 s arm; the trip lands at 850-crossing (18 buffers) + 2 s of
+         * buffers (376), so at 393 of them. */
+        t_fake_us = 0u;
+        t_step = 1000u;
+        fixture_session(&s);
+        ri_livedrv_init(&d, &s, 256u, fake_now);
+        t_step = 5000u;
+        first = 0u;
+        for (b = 0u; b < 500u; b++) {
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+            if (b == 99u)
+                RI_ASSERT(!ri_livedrv_overloaded(&d) &&
+                    ri_atomic_load_acq(&d.overloads) == 0u,
+                    "half a second of 938 per mille trips");
+            if (first == 0u && ri_livedrv_overloaded(&d))
+                first = b + 1u;
+        }
+        RI_ASSERT(first != 0u, "sustained load never trips");
+        RI_ASSERT(first > 360u && first < 430u, "trips after %u buffers (2 s past 850)", first);
         RI_ASSERT(ri_atomic_load_acq(&d.overloads) == 1u, "one entry");
+        /* Hold and probe from a fresh trip, so the window starts full. */
+        t_fake_us = 0u;
+        t_step = 1000u;
+        fixture_session(&s);
+        ri_livedrv_init(&d, &s, 256u, fake_now);
+        t_step = 5000u;
+        for (b = 0u; b < 500u && !ri_livedrv_overloaded(&d); b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 1u,
+            "fresh driver trips once (%u)", ri_atomic_load_acq(&d.overloads));
         t_step = 50u; /* load gone: still held for the full window */
         for (b = 0u; b < 400u && ri_livedrv_overloaded(&d); b++)
             held++, ri_livedrv_render(&d, buf, fl, fr, 256u);
@@ -168,10 +228,34 @@ int main(void) {
             ri_livedrv_render(&d, buf, fl, fr, 256u);
         RI_ASSERT(!ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 1u,
             "probe at light load stays normal");
-        t_step = 5000u; /* still heavy after the probe: trips again */
-        for (b = 0u; b < 100u && !ri_livedrv_overloaded(&d); b++)
+        t_step = 5000u; /* still heavy after the probe: a fresh 2 s arm */
+        for (b = 0u; b < 200u; b++)
             ri_livedrv_render(&d, buf, fl, fr, 256u);
-        RI_ASSERT(ri_atomic_load_acq(&d.overloads) == 2u, "re-trip");
+        RI_ASSERT(!ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 1u,
+            "re-trip is not instant");
+        for (b = 0u; b < 300u && !ri_livedrv_overloaded(&d); b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 2u,
+            "sustained again trips a second time");
+        /* Recovery resets the arm: 1.9 s over budget, one light buffer,
+         * 1.9 s over budget again never reaches the 2 s the trip wants. */
+        t_fake_us = 0u;
+        t_step = 1000u;
+        fixture_session(&s);
+        ri_livedrv_init(&d, &s, 256u, fake_now);
+        t_step = 5000u;
+        for (b = 0u; b < 360u; b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        t_step = 1000u; /* one buffer of headroom */
+        ri_livedrv_render(&d, buf, fl, fr, 256u);
+        t_step = 5000u;
+        for (b = 0u; b < 360u; b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(!ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 0u,
+            "one light buffer does not reset the arm");
+        for (b = 0u; b < 100u; b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(ri_livedrv_overloaded(&d), "the reset arm still trips after 2 s (%u)", b);
         t_step = 111u;
     }
     /* A single external stall (Dell 2026-10-01: an 84 ms buffer while the

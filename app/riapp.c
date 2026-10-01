@@ -1031,10 +1031,16 @@ static void meter_round(ULONG mix_freq) {
         }
     }
     playing = (s_tr_state != RI_TR_STOPPED);
-    if (ri_panel_live(&s_panel, playing, sixteenths)) {
-        /* S3: 808/909 chase lamps repaint old+new step boxes (the lamps
-         * live inside their step keys); everything else keeps the full
-         * refresh (position text, pattern follows). */
+    {
+        /* G6b: the live feed says WHY it changed, and each canvas is
+         * repainted only if its art can show that reason
+         * (gui/panelui.h: ri_panel_live_stale). The blanket full
+         * refresh this replaces cost 18 full repaints a second while
+         * playing; with the governor's pri -1 yield (app/core/
+         * live_driver.c) each one pre-empted the audio task for a
+         * buffer or two, which is the Dell xruns (owner 2026-10-01:
+         * 923 xruns in the tab-switch window against 630 repaints). */
+        uint32_t live = ri_panel_live(&s_panel, playing, sixteenths);
         static int8_t s_chase_last[C_N];
         static int s_chase_init;
         int c;
@@ -1044,16 +1050,33 @@ static void meter_round(ULONG mix_freq) {
             s_chase_init = 1;
         }
         for (k = 0; k < C_N; k++) {
-            int is_chase = (k == C_808 || k == C_909);
-            if (k == C_MST)
-                continue; /* MASTER art is static; meters ride their own path */
-            if (!is_chase) {
+            uint32_t sec = c_sections[k];
+            int stale = ri_panel_live_stale(live, sec);
+            if (stale == RI_STALE_NONE)
+                continue;              /* no art here reads live state */
+            if (stale == RI_STALE_ALL) {
+                /* a held delete-tap edited pattern data: repaint the row
+                 * it edited (and leave the chase shadow, which the full
+                 * paint has just made true again). */
                 ri_rsection_refresh(s_canvas[k]);
                 continue;
             }
+            if (stale == RI_STALE_BAR) {
+                /* song mode: the Song Position display followed the song */
+                const struct RIGeoSection *g = ri_geo_section(sec);
+                int x0, y0, x1, y1;
+                if (g && ri_geo_bbox(g,
+                    (uint16_t)(((uint32_t)RI_SEC_TRANSPORT << 8) | RI_STR_BAR), 0,
+                    &x0, &y0, &x1, &y1) == 0)
+                    ri_rsection_refresh_box(s_canvas[k], x0, y0, x1, y1);
+                else
+                    ri_rsection_refresh(s_canvas[k]);
+                continue;
+            }
             {
-                uint32_t sec = c_sections[k];
-                uint32_t base = (k == C_808) ? RI_S808_STEP0 : RI_S909_STEP0;
+                /* RI_STALE_STEPS: a drum row, old lamp and new (the
+                 * chase lamp lives inside its step key, S3). */
+                uint32_t base = (sec == RI_SEC_808) ? RI_S808_STEP0 : RI_S909_STEP0;
                 int f = ri_panel_focus_of(sec);
                 int st = (f >= 0 && f < (int)RI_FOCUS_COUNT) ? s_panel.playhead[f] : -1;
                 const struct RIGeoSection *g = ri_geo_section(sec);

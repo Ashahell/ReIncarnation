@@ -236,29 +236,45 @@ int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {    struct R
     return ch;
 }
 
-int ri_panel_live(struct RIPanelUI *p, int playing, uint64_t sixteenths) {
-    uint32_t f;
-    int ch = 0;
+uint32_t ri_panel_live(struct RIPanelUI *p, int playing, uint64_t sixteenths) {
+    uint32_t f, ch = 0u;
     if (!p)
-        return 0;
+        return 0u;
     if (playing && !p->playing && p->tr)
         p->play_start_ticks = p->tr->u.tr.cursor;       /* playback edge */
     if ((uint8_t)(playing != 0) != p->playing)
-        ch = 1;
+        ch |= RI_PANEL_CH_PLAYING;
     p->playing = (uint8_t)(playing != 0);
     for (f = 0; f < RI_FOCUS_COUNT; f++) {
         uint32_t len = p->pat[f] ? (uint32_t)ri_sui_value(p->pat[f], RI_SPAT_LENGTH) : 16u;
         int8_t st = (int8_t)(playing ? (int)ri_live_step(sixteenths, len) : -1);
         if (st != p->playhead[f]) {
             p->playhead[f] = st;
-            ch = 1;
-            if (st >= 0 && p->del_held && p->del_focus == f)
-                tap(p, f, p->del_arg, 1);
+            ch |= RI_PANEL_CH_PLAYHEAD;
+            /* A held delete-tap that edited a step is a change of its
+             * own: the row it edited has to be repainted (t71). */
+            if (st >= 0 && p->del_held && p->del_focus == f &&
+                tap(p, f, p->del_arg, 1) != 0)
+                ch |= RI_PANEL_CH_TAP;
         }
     }
     if (playing && p->tr && ri_str_follow(&p->tr->u.tr, p->play_start_ticks, sixteenths))
-        ch = 1;
+        ch |= RI_PANEL_CH_FOLLOW;
     if (ch)
         p->changes++;
     return ch;
+}
+
+int ri_panel_live_stale(uint32_t mask, uint32_t section) {
+    if (mask == 0u)
+        return RI_STALE_NONE;
+    if ((mask & RI_PANEL_CH_TAP) != 0u)
+        return (section == RI_SEC_808 || section == RI_SEC_909 ||
+            section == RI_SEC_LEVI) ? RI_STALE_ALL : RI_STALE_NONE;
+    if ((mask & RI_PANEL_CH_FOLLOW) != 0u && section == RI_SEC_TRANSPORT)
+        return RI_STALE_BAR;
+    if ((mask & RI_PANEL_CH_PLAYHEAD) != 0u &&
+        (section == RI_SEC_808 || section == RI_SEC_909))
+        return RI_STALE_STEPS;
+    return RI_STALE_NONE;
 }

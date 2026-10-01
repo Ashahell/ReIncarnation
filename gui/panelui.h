@@ -65,6 +65,36 @@ void ri_panel_skins(struct RIPanelUI *p, const char *const *installed,
  * length, p. 147), lets the Song-mode bar display follow, and applies a
  * held delete-tap to each step the playhead reaches (p. 33, 44). Taps
  * (RI_KA_TAP) record at the current playhead and only while playing
- * ("With playback activated"). Returns 1 when anything visible changed. */
-int ri_panel_live(struct RIPanelUI *p, int playing, uint64_t sixteenths);
+ * ("With playback activated").
+ *
+ * Returns WHY something changed, 0 when nothing visible did, so the
+ * caller repaints only what that change can show. The art reads live
+ * state in three places, and only these (owner Dell 2026-10-01): the
+ * 808/909 chase lamps (gui/draw/art_shared.c ri_art_chase, called from
+ * art_section.c for the two drum sections only), the focus bar
+ * (art_pat.c, moved by clicks, not by the tick) and the transport's
+ * Song Position display (gui/secttr.c ri_str_follow). Nothing reads
+ * panel->playing: the transport lamps change on the press that moved
+ * them. */
+#define RI_PANEL_CH_PLAYHEAD 0x1u   /* a focus step moved: the drum lamps */
+#define RI_PANEL_CH_PLAYING  0x2u   /* the transport playing edge */
+#define RI_PANEL_CH_FOLLOW   0x4u   /* the Song Position display followed */
+#define RI_PANEL_CH_TAP      0x8u   /* a held delete-tap edited a step row */
+uint32_t ri_panel_live(struct RIPanelUI *p, int playing, uint64_t sixteenths);
+
+/* What those changes make stale on a canvas that draws `section`. The
+ * sets are the evidence above, kept as a table so the 100 ms tick is a
+ * dispatch and the finding is a law (t71):
+ *  - the drums answer STEPS (their own 16-step rows, repainted old and
+ *    new); no other section draws a chase lamp;
+ *  - the transport answers BAR (its Song Position display);
+ *  - the playing edge is stale nowhere;
+ *  - a delete-tap edited pattern data, so only a section with step keys
+ *    can show it: the 808, the 909 and the Levi rows (the 303 patterns
+ *    have no on-panel steps). t71 pins that set against the registry. */
+#define RI_STALE_NONE  0
+#define RI_STALE_STEPS 1
+#define RI_STALE_BAR   2
+#define RI_STALE_ALL   3
+int ri_panel_live_stale(uint32_t mask, uint32_t section);
 #endif

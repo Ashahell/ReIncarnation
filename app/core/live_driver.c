@@ -29,6 +29,7 @@ void ri_livedrv_init(struct RILiveDriver *d, struct RILiveSession *s,
     d->cap_pos.v = 0u;
     d->cap_on.v = 0u;
     d->load_pm = 0u;
+    d->over_run_us = 0u;
     d->over_left_us = 0u;
     d->overloaded.v = 0u;
     d->overloads.v = 0u;
@@ -71,14 +72,27 @@ static void governor(struct RILiveDriver *d, uint32_t us, uint32_t frames) {
         }
         d->over_left_us = 0u;
         d->load_pm = 0u; /* probe afresh at normal priority */
+        d->over_run_us = 0u; /* so the next entry needs its own arm */
         ri_atomic_store_rel(&d->overloaded, 0u);
         return;
     }
-    if (d->load_pm >= RI_LIVEDRV_OVER_PM) {
-        d->over_left_us = RI_LIVEDRV_OVER_US;
-        ri_atomic_store_rel(&d->overloaded, 1u);
-        ri_atomic_fetch_add_rel(&d->overloads, 1u);
+    /* Continuous over budget only (owner Dell 2026-10-01). Playing on the
+     * Dell runs at 585-638 per mille with spikes from the UI, and every
+     * crossing of the threshold put the render task below the UI, where a
+     * repaint costs 1-2 buffers (485 and 923 xruns in two windows, 9 and
+     * 13 entries). A peak is not a machine that cannot keep up; the load
+     * has to stay over RI_LIVEDRV_OVER_PM for RI_LIVEDRV_ARM_US. */
+    if (d->load_pm < RI_LIVEDRV_OVER_PM) {
+        d->over_run_us = 0u;
+        return;
     }
+    d->over_run_us += period;
+    if (d->over_run_us < RI_LIVEDRV_ARM_US)
+        return;
+    d->over_run_us = 0u;
+    d->over_left_us = RI_LIVEDRV_OVER_US;
+    ri_atomic_store_rel(&d->overloaded, 1u);
+    ri_atomic_fetch_add_rel(&d->overloads, 1u);
 }
 
 void ri_livedrv_render(struct RILiveDriver *d, int16_t *out,
