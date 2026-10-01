@@ -394,6 +394,8 @@ struct RILeviVoice {
     uint8_t vom_on;
     float dfxm[RI_LEVI_DD_N]; /* DM_DELAY offsets (P7a, lead voice); -1..1 */
     uint8_t dfxm_on;
+    float rfxm[RI_LEVI_DR_N]; /* DM_REVERB offsets (P7b, lead voice) */
+    uint8_t rfxm_on;
     /* Stereo + scales (fidelity P6c, manual pp. 87-96). Pan/width/mode
      * went live with the stereo sum; bend with the P9 MIDI data. */
     float vspread;  /* 0..1 unison stereo spread (static ordinal) */
@@ -492,6 +494,17 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_DLYDRYWET 0x0E7Bu
 #define RI_CTL_LEVI_DLYBPM 0x0E7Cu
 #define RI_CTL_LEVI_DBYPASS 0x0E7Du
+/* Reverb (fidelity P7b, manual pp. 83-86). FXREV (row 66) is the panel
+ * on/off, bound here; the rest ride 0x0E7E..86. */
+#define RI_CTL_LEVI_RTYPE 0x0E7Eu
+#define RI_CTL_LEVI_RPREDLY 0x0E7Fu
+#define RI_CTL_LEVI_RTIME 0x0E80u
+#define RI_CTL_LEVI_RTONE 0x0E81u
+#define RI_CTL_LEVI_RHIDAMP 0x0E82u
+#define RI_CTL_LEVI_RLODAMP 0x0E83u
+#define RI_CTL_LEVI_RDRYWET 0x0E84u
+#define RI_CTL_LEVI_RFREEZE 0x0E85u
+#define RI_CTL_LEVI_RBYPASS 0x0E86u
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u

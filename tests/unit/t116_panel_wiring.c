@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stddef.h>
 #include "tests/helpers/ri_assert.h"
 #include "gui/ctlreg.h"
 #include "gui/panelctl.h"
@@ -27,6 +28,26 @@
 static int is_value(uint32_t kind) {
     return kind == RI_CK_KNOB || kind == RI_CK_FADER || kind == RI_CK_SWITCH ||
         kind == RI_CK_SELECTOR || kind == RI_CK_DISPLAY;
+}
+
+/* P7b: RILeviFx embeds two RIReverb cores whose line pointers are absolute
+ * per instance (non-owning views of the set's static backing), so a raw
+ * whole-engine memcmp always differs. Compare around the pointer words and
+ * pin the handles' scalar fields instead. */
+static int engines_equal(const struct RIEngine *a, const struct RIEngine *b) {
+    size_t r0 = offsetof(struct RIEngine, slevi) +
+        offsetof(struct RILeviSet, fx) + offsetof(struct RILeviFx, rvl);
+    size_t r1 = r0 + 2u * sizeof(struct RIReverb);
+    const struct RILeviFx *fa = &a->slevi.fx, *fb = &b->slevi.fx;
+    if (memcmp(a, b, r0))
+        return 0;
+    if (memcmp((const unsigned char *)a + r1, (const unsigned char *)b + r1,
+            sizeof *a - r1))
+        return 0;
+    return fa->rvl.fb == fb->rvl.fb && fa->rvr.fb == fb->rvr.fb &&
+        fa->rvl.cap == fb->rvl.cap && fa->rvr.cap == fb->rvr.cap &&
+        !memcmp(fa->rvl.len, fb->rvl.len, sizeof fa->rvl.len) &&
+        !memcmp(fa->rvr.len, fb->rvr.len, sizeof fa->rvr.len);
 }
 
 /* Direct-setter mirror of engine_automation for one lane key (see
@@ -131,7 +152,7 @@ int main(void) {
                 for (q = 0u; q < nd; q++)
                     ri_engine_apply_event(&ea, &ev[q]);
                 ri_engine_set_master(&eb, (uint8_t)(d->max_v & 127));
-                RI_ASSERT(memcmp(&ea, &eb, sizeof ea) == 0, "master wiring");
+                RI_ASSERT(engines_equal(&ea, &eb), "master wiring");
                 ntested++;
                 continue;
             }
@@ -163,7 +184,7 @@ int main(void) {
         for (q = 0u; q < nd; q++)
             ri_engine_apply_event(&ea, &ev[q]);
         direct(&eb, key, (uint8_t)(v & 127));
-        RI_ASSERT(memcmp(&ea, &eb, sizeof ea) == 0, "wiring %04x %s/%s",
+        RI_ASSERT(engines_equal(&ea, &eb), "wiring %04x %s/%s",
             d->reg_id, d->group, d->legend);
         ntested++;
         testedsec[d->section]++;

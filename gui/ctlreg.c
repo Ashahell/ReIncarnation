@@ -318,7 +318,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 63, SWITCH, "Matrix", "R8", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_ROUTE7, 0),
     R(LEVI, 64, SWITCH, "Fx", "Pre", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 65, SWITCH, "Fx", "Dly", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DBYPASS, 0),
-    R(LEVI, 66, SWITCH, "Fx", "Rev", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(LEVI, 66, SWITCH, "Fx", "Rev", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBYPASS, 0),
     R(LEVI, 67, SWITCH, "Fx", "Post", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     /* Hardware page UI (fidelity plan P1, 2026-09-30): module select, the
      * 8 MASTER CONTROL encoders (they send their page target) and the
@@ -430,6 +430,15 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 162, KNOB, "Delay", "FB Tone", 0, 127, 127, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYFBTONE, 0),
     R(LEVI, 163, KNOB, "Delay", "Dry/Wet", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYDRYWET, 0),
     R(LEVI, 164, SWITCH, "Delay", "BPM Sync", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DLYBPM, 0),
+    /* Reverb (fidelity P7b, manual pp. 83-86). */
+    R(LEVI, 165, SELECTOR, "Reverb", "Type", 0, 3, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RTYPE, 0),
+    R(LEVI, 166, KNOB, "Reverb", "Pre-Dly", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RPREDLY, 0),
+    R(LEVI, 167, KNOB, "Reverb", "Time", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RTIME, 0),
+    R(LEVI, 168, KNOB, "Reverb", "Tone", 0, 127, 127, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RTONE, 0),
+    R(LEVI, 169, KNOB, "Reverb", "Hi Damp", 0, 127, 127, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RHIDAMP, 0),
+    R(LEVI, 170, KNOB, "Reverb", "Lo Damp", 0, 127, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RLODAMP, 0),
+    R(LEVI, 171, KNOB, "Reverb", "Dry/Wet", 0, 127, 32, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RDRYWET, 0),
+    R(LEVI, 172, SWITCH, "Reverb", "Freeze", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RFREEZE, 0),
     R(LEVI, 4, SELECTOR, "", "Lane", 0, 5, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 5, BUTTON, "", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(LEVI, 6, BUTTON, "", "Back", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

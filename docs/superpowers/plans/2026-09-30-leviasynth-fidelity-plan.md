@@ -248,7 +248,21 @@ Each phase lands as TDD slices:
 ### P7: FX
 
 Pre-FX and Post-FX with 9 types, delay types, reverb types with freeze, and the send wiring into the engine (the reverb core exists).
-- Split (2026-09-30): P7a delay + chain framework (this slice); P7b reverb types + freeze; P7c pre/post 9-type engines; P7d BPM-sync wiring (needs the P8 clock — flags stored until then).
+- Split (2026-09-30): P7a delay + chain framework (done); P7b reverb types + freeze (this slice); P7c pre/post 9-type engines; P7d BPM-sync wiring (needs the P8 clock — flags stored until then).
+
+#### P7b plan (reverb types + freeze; before code 2026-10-01)
+
+- Reuse the v2 core (`ri_reverb_*`, untouched — t123 pins it): two instances (L/R) with static backing in `RILeviFx` (6 lines × 2048+ × 2ch); own type tunings (4: ROOM/HALL/PLATE/CHAMBER — authored tap sets, never the core's); own predelay lines (250 ms max, static).
+- Params: type, predelay 0..250 ms, time→comb fb 0..0.95, tone (wet LP), hi-damp (2nd wet LP), lo-damp (wet HP), dry/wet, freeze (fb→1.0 exactly + input muted; finite by unity recirculation), bypass (exact dry). Damps are wet-EQ (no loop hooks in the shared core — own interpretation, ledgered).
+- Chain: delay → reverb → out (post-FX slot stays a pass-through until P7c).
+- Matrix `DM_REVERB` (30): TIME, TONE, HIDAMP, LODAMP, DRYWET (prompt's list exactly).
+- Keys `0x0E7E..86` (9): RTYPE/RPREDLY/RTIME/RTONE/RHIDAMP/RLODAMP/RDRYWET/RFREEZE + RBYPASS on the FXREV row (same single-truth pattern as FXDLY). Registry rows 165..171; REVERB pages 1/2 (existing 8) + 2/2 (FREEZE + 7 dead reserved).
+- E0: bypassed by default; freeze sustains bounded content; predelay line keeps shifting under freeze; FTZ is globally on (explicit flushes belt-and-braces).
+- **Status: P7b done 2026-10-01** (engine, keys, UI, tests):
+  - Reuses the v2 core untouched (t123 green): dual-mono instances with static backing, 4 own tap sets, 250 ms predelay lines, wet-EQ damps (own interpretation — no loop hooks in the shared core), freeze as held wet-mix drone (tails resume on release), chain delay → reverb, `DM_REVERB` (30) lead-voice driven, keys `0x0E7E..86`, rows 165..172, REVERB 2 pages.
+  - Proof: audit 0/0 clean worktree; Dell 0 UND + 0 r12 (audit gate); riaudio lane (Dell still crash-loops everything): window opens no crash, SPACE→TR PLAY inks, AHI mode 0x003e0001, buffers=6184 xruns=0. Deviations: no host wav this round (lane QEMU writes no wav file); REVERB page pixels deferred (standing tab-nav-focus gap); lane 909 pack missing (unrelated silence).
+  - Adjacent fixes the slice forced: t79/t116 whole-engine memcmp now hole-aware (reverb line pointers are absolute per instance); `engine/fx/reverb.c` added to the AROS sections + riapp lists and `build/portable.mk` (audit caught the RISECT link, not me).
+- **Tests:** t139 (bypass/dry identity, tail outlives release, max-decay bound, rtype clamp + 4 types differ, predelay shift, tone/hi/lo shape with 1.2× margin laws, freeze sustains/flat/bounded, DM route, chain order, keys/pages/texts, null guards, extremes; 21 mutants killed, 2 benign survivals ledgered: DSP fb-clamp under the UI door, freeze-fb obsolesced by the drone redesign); t60 range to `0x0E86`, t77 mapped 229 / allow 1056, t133 last module REVERB, t136/t138 `0x0E87` boundary deliberate moves.
 
 #### P7a plan (delay + framework; before code 2026-09-30)
 

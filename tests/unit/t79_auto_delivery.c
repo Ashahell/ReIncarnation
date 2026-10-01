@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stddef.h>
 #include <math.h>
 #include "tests/helpers/ri_assert.h"
 #include "engine/engine.h"
@@ -170,11 +171,26 @@ int main(void) {
     autoev(&E, 0x1300u, 5u, 0u); /* unknown block (0x0F Levi ops P2, 0x10-0x12 Levi mod/matrix/macros P5) */
     /* (the Levi op block has no unknown keys since P3: 8 ops x 32 params fill it) */
     autoev(&E, RI_AUTO_ID_909(RI_CTL_909_TUNE, 12u), 5u, 3u); /* no voice 12 */
-    RI_ASSERT(!memcmp(E.pan, F.pan, sizeof E.pan) && !memcmp(E.send, F.send, sizeof E.send) &&
-              !memcmp(E.level, F.level, sizeof E.level) && !memcmp(&E.route, &F.route, sizeof E.route) &&
-              !memcmp(&E.s808, &F.s808, sizeof E.s808) && !memcmp(&E.s909, &F.s909, sizeof E.s909) &&
-              !memcmp(&E.slevi, &F.slevi, sizeof E.slevi),
-              "unknown keys change nothing");
+    /* slevi compares around the reverb core handles (P7b): non-owning
+     * line pointers read absolute per instance (deterministic derivations
+     * of the struct base). Every DSP param around them still compares,
+     * plus the handles' scalar fields below. */
+    {
+        size_t r0 = offsetof(struct RILeviSet, fx) + offsetof(struct RILeviFx, rvl);
+        size_t r1 = r0 + 2u * sizeof(struct RIReverb);
+        const struct RILeviFx *fa = &E.slevi.fx, *fb = &F.slevi.fx;
+        RI_ASSERT(!memcmp(E.pan, F.pan, sizeof E.pan) && !memcmp(E.send, F.send, sizeof E.send) &&
+                  !memcmp(E.level, F.level, sizeof E.level) && !memcmp(&E.route, &F.route, sizeof E.route) &&
+                  !memcmp(&E.s808, &F.s808, sizeof E.s808) && !memcmp(&E.s909, &F.s909, sizeof E.s909) &&
+                  !memcmp(&E.slevi, &F.slevi, r0) &&
+                  !memcmp((const unsigned char *)&E.slevi + r1, (const unsigned char *)&F.slevi + r1,
+                      sizeof E.slevi - r1) &&
+                  fa->rvl.fb == fb->rvl.fb && fa->rvr.fb == fb->rvr.fb &&
+                  fa->rvl.cap == fb->rvl.cap && fa->rvr.cap == fb->rvr.cap &&
+                  !memcmp(fa->rvl.len, fb->rvl.len, sizeof fa->rvl.len) &&
+                  !memcmp(fa->rvr.len, fb->rvr.len, sizeof fa->rvr.len),
+                  "unknown keys change nothing");
+    }
 
     RI_RESULT("auto_delivery");
 }

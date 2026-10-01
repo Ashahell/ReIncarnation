@@ -834,6 +834,7 @@ void levi_init_set(struct RILeviSet *s) {
     uint32_t i, o;
     if (!s)
         return;
+    memset(s, 0, sizeof *s);   /* padding included: whole-struct memcmp stays clean */
     for (i = 0u; i < RI_LEVI_NVOICES; i++) {
         struct RILeviVoice *v = &s->v[i];
         uint32_t b;
@@ -957,6 +958,8 @@ void levi_init_set(struct RILeviSet *s) {
         v->vom_on = 0u;
         memset(v->dfxm, 0, sizeof v->dfxm);
         v->dfxm_on = 0u;
+        memset(v->rfxm, 0, sizeof v->rfxm);
+        v->rfxm_on = 0u;
         v->vspread = 0.0f;
         {
             uint32_t q;
@@ -989,6 +992,21 @@ void levi_init_set(struct RILeviSet *s) {
     s->fx.dfbtone = 8000.0f;
     s->fx.ddrywet = 32.0f / 127.0f;
     levi_fx_clear(&s->fx);
+    s->fx.rtype = RI_LEVI_RT_ROOM;
+    s->fx.rfreeze = 0u;
+    s->fx.rbypass = 1u;   /* bypassed by default: songs bit-identical */
+    s->fx.rpredly = 0.0f;
+    s->fx.rtime = 64.0f / 127.0f * 0.95f;
+    s->fx.rtone = 18000.0f;
+    s->fx.rhidamp = 18000.0f;
+    s->fx.rlodamp = 20.0f;
+    s->fx.rdrywet = 32.0f / 127.0f;
+    memset(s->fx.rfxm, 0, sizeof s->fx.rfxm);
+    s->fx.rfxm_on = 0u;
+    s->fx.rpad = 0u;
+    s->fx.fxpad[0] = s->fx.fxpad[1] = s->fx.fxpad[2] = 0u;
+    s->fx.rfxpad[0] = s->fx.rfxpad[1] = s->fx.rfxpad[2] = 0u;
+    levi_fx_reverb_bind(&s->fx);
     s->polymode = RI_LEVI_POLY_ROTATE;
     s->udensity = 8u;
     s->ulimit = RI_LEVI_NVOICES;
@@ -2235,6 +2253,33 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case (RI_CTL_LEVI_DBYPASS & 0xFFu):
         s->fx.dbypass = val ? 0u : 1u;  /* panel ON (FXDLY) vs engine bypass */
         return 0;
+    case (RI_CTL_LEVI_RTYPE & 0xFFu):
+        s->fx.rtype = val > RI_LEVI_RT_N - 1u ? RI_LEVI_RT_N - 1u : val;
+        return 0;
+    case (RI_CTL_LEVI_RPREDLY & 0xFFu):
+        s->fx.rpredly = (float)(val > 127u ? 127u : val) / 127.0f * 0.25f;
+        return 0;
+    case (RI_CTL_LEVI_RTIME & 0xFFu):
+        s->fx.rtime = (float)(val > 127u ? 127u : val) / 127.0f * 0.95f;
+        return 0;
+    case (RI_CTL_LEVI_RTONE & 0xFFu):
+        s->fx.rtone = 200.0f * ri_pow2((float)(val > 127u ? 127u : val) / 127.0f * 6.4919f);
+        return 0;
+    case (RI_CTL_LEVI_RHIDAMP & 0xFFu):
+        s->fx.rhidamp = 200.0f * ri_pow2((float)(val > 127u ? 127u : val) / 127.0f * 6.4919f);
+        return 0;
+    case (RI_CTL_LEVI_RLODAMP & 0xFFu):
+        s->fx.rlodamp = 20.0f * ri_pow2((float)(val > 127u ? 127u : val) / 127.0f * 4.6439f);
+        return 0;
+    case (RI_CTL_LEVI_RDRYWET & 0xFFu):
+        s->fx.rdrywet = (float)(val > 127u ? 127u : val) / 127.0f;
+        return 0;
+    case (RI_CTL_LEVI_RFREEZE & 0xFFu):
+        s->fx.rfreeze = val ? 1u : 0u;
+        return 0;
+    case (RI_CTL_LEVI_RBYPASS & 0xFFu):
+        s->fx.rbypass = val ? 0u : 1u;  /* panel ON (FXREV) vs engine bypass */
+        return 0;
     default:
         return 2;
     }
@@ -2442,7 +2487,7 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     float *eaenv, float *ealfo, float *evlevel, float *evlfo, float *eoplevel, float *emorph) {
     float src[RI_LEVI_MS_N];
     struct RILeviModOut out[RI_LEVI_MODOUT_MAX];
-    uint32_t n, i, o, touch_op = 0u, touch_me = 0u, touch_vo = 0u, touch_fx = 0u;
+    uint32_t n, i, o, touch_op = 0u, touch_me = 0u, touch_vo = 0u, touch_fx = 0u, touch_rv = 0u;
     for (i = 0u; i < RI_LEVI_MS_N; i++)
         src[i] = 0.0f;
     for (o = 0u; o < RI_LEVI_NOPS; o++)
@@ -2484,6 +2529,8 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
         memset(v->vom, 0, sizeof v->vom);
     if (v->dfxm_on)
         memset(v->dfxm, 0, sizeof v->dfxm);
+    if (v->rfxm_on)
+        memset(v->rfxm, 0, sizeof v->rfxm);
     for (i = 0u; i < n; i++) {
         uint32_t dm = out[i].dmod, dp = out[i].dpar;
         float x = out[i].x;
@@ -2545,12 +2592,18 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
                 v->dfxm[dp] += x;
                 touch_fx = 1u;
             }
+        } else if (dm == RI_LEVI_DM_REVERB) {
+            if (dp < RI_LEVI_DR_N) {
+                v->rfxm[dp] += x;
+                touch_rv = 1u;
+            }
         }
     }
     v->opm_on = (uint8_t)touch_op;
     v->mem_on = (uint8_t)touch_me;
     v->vom_on = (uint8_t)touch_vo;
     v->dfxm_on = (uint8_t)touch_fx;
+    v->rfxm_on = (uint8_t)touch_rv;
     for (o = 0u; o < RI_LEVI_NMENV && touch_me; o++)
         v->melmod[o] = v->mem[o][RI_LEVI_DE_LEVEL];
     if (!touch_me)
@@ -3030,6 +3083,23 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
                 s->fx.dfxm_on = 0u;
             }
             levi_fx_delay(&s->fx, sr, ml, mr, &ml, &mr);
+        }
+        /* Reverb (fidelity P7b): lead voice drives the matrix offsets. */
+        if (!s->fx.rbypass) {
+            uint32_t lv, q;
+            for (lv = 0u; lv < RI_LEVI_NVOICES; lv++)
+                if (s->v[lv].active)
+                    break;
+            if (lv >= RI_LEVI_NVOICES)
+                lv = 0u;
+            if (s->v[lv].rfxm_on) {
+                for (q = 0u; q < RI_LEVI_DR_N; q++)
+                    s->fx.rfxm[q] = s->v[lv].rfxm[q];
+                s->fx.rfxm_on = 1u;
+            } else {
+                s->fx.rfxm_on = 0u;
+            }
+            levi_fx_reverb(&s->fx, sr, ml, mr, &ml, &mr);
         }
         out_l[i] = ml;
         out_r[i] = mr;

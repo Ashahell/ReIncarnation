@@ -55,6 +55,33 @@ void levi_fx_clear(struct RILeviFx *f) {
     f->wphase = 0.0f;
 }
 
+/* Own reverb tap sets (never the core's 1123/1201/1291/1361/401/271):
+ * spread-out odd lengths per type. */
+static const uint32_t REV_TAPS[RI_LEVI_RT_N][6] = {
+    { 307u, 353u, 401u, 449u, 151u, 167u },   /* ROOM */
+    { 1491u, 1613u, 1741u, 1867u, 457u, 479u }, /* HALL */
+    { 809u, 877u, 947u, 1013u, 277u, 311u },  /* PLATE */
+    { 613u, 673u, 733u, 797u, 211u, 233u },   /* CHAMBER */
+};
+
+static void reverb_taps(struct RIReverb *r, uint32_t type, float sr) {
+    /* Lengths retune live (cheap); positions are NEVER touched here
+     * (bind zeroes them once — resetting per sample freezes the lines
+     * and the output sits at exact 0). Type changes may click faintly. */
+    uint32_t i;
+    for (i = 0u; i < 6u; i++) {
+        uint64_t len = (uint64_t)REV_TAPS[type < RI_LEVI_RT_N ? type : 0u][i] *
+            (uint64_t)(sr > 0.0f ? sr : 48000.0f) / 48000u;
+        uint32_t max = RI_LEVI_REV_CAP - 1u;
+        r->len[i] = len < 1u ? 1u : len > max ? max : (uint32_t)len;
+    }
+}
+
+/* Highpass helper via the shared lowpass (own). */
+static float hipass(float *st, float x, float fc, float sr) {
+    return x - lopass(st, x, fc, sr);
+}
+
 void levi_fx_delay(struct RILeviFx *f, float sr, float in_l, float in_r,
     float *out_l, float *out_r) {
     float t, fb, wt, ft, wet;
@@ -165,4 +192,114 @@ void levi_fx_delay(struct RILeviFx *f, float sr, float in_l, float in_r,
     yR = in_r + (wr - in_r) * wet;
     *out_l = flushf(yL);
     *out_r = flushf(yR);
+}
+
+/* Bind the two core instances to the static backing (once, at set
+ * init — never per sample, or tails would clear). Taps retune per
+ * sample from the live type (cheap, pos-preserving). */
+void levi_fx_reverb_bind(struct RILeviFx *f) {
+    uint32_t i;
+    if (!f)
+        return;
+    ri_reverb_init(&f->rvl, 48000u);
+    ri_reverb_init(&f->rvr, 48000u);
+    ri_reverb_lines(&f->rvl, f->rlc[0][0], f->rlc[0][1], f->rlc[0][2],
+        f->rlc[0][3], f->rla[0][0], f->rla[0][1], RI_LEVI_REV_CAP);
+    ri_reverb_lines(&f->rvr, f->rlc[1][0], f->rlc[1][1], f->rlc[1][2],
+        f->rlc[1][3], f->rla[1][0], f->rla[1][1], RI_LEVI_REV_CAP);
+    for (i = 0u; i < RI_LEVI_PREDLY_MAX; i++)
+        f->pdl[0][i] = f->pdl[1][i] = 0.0f;
+    f->pdpos = 0u;
+    f->twl = f->twr = 0.0f;
+    f->hdwl = f->hdwr = 0.0f;
+    f->ldl = f->ldr = 0.0f;
+    f->frz[0] = f->frz[1] = 0.0f;
+}
+
+void levi_fx_reverb(struct RILeviFx *f, float sr, float in_l, float in_r,
+    float *out_l, float *out_r) {
+    float fb, tone, hid, lod, wet, pdd;
+    uint32_t pdl;
+    float pl, pr, wl, wr;
+    if (!f || !out_l || !out_r) {
+        if (out_l)
+            *out_l = in_l;
+        if (out_r)
+            *out_r = in_r;
+        return;
+    }
+    if (f->rbypass) {   /* exact dry */
+        *out_l = in_l;
+        *out_r = in_r;
+        return;
+    }
+    if (!(sr > 0.0f)) {
+        *out_l = in_l;
+        *out_r = in_r;
+        return;
+    }
+    reverb_taps(&f->rvl, f->rtype, sr);
+    reverb_taps(&f->rvr, f->rtype, sr);
+    fb = f->rtime;
+    tone = f->rtone;
+    hid = f->rhidamp;
+    lod = f->rlodamp;
+    wet = f->rdrywet;
+    if (f->rfxm_on) {
+        fb += f->rfxm[RI_LEVI_DR_TIME];
+        tone *= ri_pow2(2.0f * f->rfxm[RI_LEVI_DR_TONE]);
+        hid *= ri_pow2(2.0f * f->rfxm[RI_LEVI_DR_HIDAMP]);
+        lod *= ri_pow2(2.0f * f->rfxm[RI_LEVI_DR_LODAMP]);
+        wet += f->rfxm[RI_LEVI_DR_DRYWET];
+    }
+    if (f->rfreeze) {
+        /* Frozen drone: static held wet mix over live dry (playable
+         * over); core + predelay untouched, so tails resume on release. */
+        *out_l = flushf(in_l + (f->frz[0] - in_l) * wet);
+        *out_r = flushf(in_r + (f->frz[1] - in_r) * wet);
+        return;
+    }
+    if (fb < 0.0f)
+        fb = 0.0f;
+    if (fb > 0.95f)
+        fb = 0.95f;
+    if (wet < 0.0f)
+        wet = 0.0f;
+    if (wet > 1.0f)
+        wet = 1.0f;
+    f->rvl.fb = fb;
+    f->rvr.fb = fb;
+    /* Predelay (keeps shifting under freeze; 0 = dry straight in). */
+    pdd = f->rpredly * sr;
+    pdl = pdd < 0.0f ? 0u : pdd > (float)(RI_LEVI_PREDLY_MAX - 1u) ?
+        RI_LEVI_PREDLY_MAX - 1u : (uint32_t)pdd;
+    if (pdl == 0u) {
+        pl = in_l;
+        pr = in_r;
+    } else {
+        uint32_t p = (f->pdpos + RI_LEVI_PREDLY_MAX - pdl) % RI_LEVI_PREDLY_MAX;
+        pl = f->pdl[0][p];
+        pr = f->pdl[1][p];
+        f->pdl[0][f->pdpos] = in_l;
+        f->pdl[1][f->pdpos] = in_r;
+        f->pdpos++;
+        if (f->pdpos >= RI_LEVI_PREDLY_MAX)
+            f->pdpos = 0u;
+    }
+    pl = flushf(pl);
+    pr = flushf(pr);
+    wl = ri_reverb_render(&f->rvl, pl);
+    wr = ri_reverb_render(&f->rvr, pr);
+    /* Wet EQ (own interpretation of tone + damps): lowpass, second
+     * lowpass, and highpass via a shared lowpass helper. */
+    wl = lopass(&f->twl, wl, tone, sr);
+    wr = lopass(&f->twr, wr, tone, sr);
+    wl = lopass(&f->hdwl, wl, hid, sr);
+    wr = lopass(&f->hdwr, wr, hid, sr);
+    wl = hipass(&f->ldl, wl, lod, sr);
+    wr = hipass(&f->ldr, wr, lod, sr);
+    f->frz[0] = wl;
+    f->frz[1] = wr;
+    *out_l = flushf(in_l + (wl - in_l) * wet);
+    *out_r = flushf(in_r + (wr - in_r) * wet);
 }

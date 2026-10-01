@@ -364,8 +364,12 @@ static const struct LeviSlot P_DELAY[8] = {
     { RI_SLEVI_DLYWTONE, "WET TONE" }, { RI_SLEVI_DLYBPM, "BPM SYNC" }, { RI_SLEVI_DLYFBTONE, "FB TONE" }, { RI_SLEVI_DLYDRYWET, "DRY/WET" }
 };
 static const struct LeviSlot P_REVERB[8] = {
-    { RI_SLEVI_FXREV, "ON" }, { SLOT_DEAD, "PRE-DLY" }, { SLOT_DEAD, "TIME" }, { SLOT_DEAD, "TONE" },
-    { SLOT_DEAD, "TYPE" }, { SLOT_DEAD, "HI DAMP" }, { SLOT_DEAD, "LO DAMP" }, { SLOT_DEAD, "DRY/WET" }
+    { RI_SLEVI_FXREV, "ON" }, { RI_SLEVI_RTYPE, "TYPE" }, { RI_SLEVI_RPREDLY, "PRE-DLY" }, { RI_SLEVI_RTIME, "TIME" },
+    { RI_SLEVI_RTONE, "TONE" }, { RI_SLEVI_RHIDAMP, "HI DAMP" }, { RI_SLEVI_RLODAMP, "LO DAMP" }, { RI_SLEVI_RDRYWET, "DRY/WET" }
+};
+static const struct LeviSlot P_REVERB2[8] = {
+    { RI_SLEVI_RFREEZE, "FREEZE" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" },
+    { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }
 };
 /* LFO 1-5 pages (P5, pp. 76-78). Steps show for the step wave or step
  * one-shot, stagger for trig sync off; BPM sync, semi lock and the step
@@ -434,6 +438,7 @@ uint32_t ri_slevi_page_count(const struct RISectLevi *s) {
         : (module(s) >= RI_SLEVI_M_ENV1 && module(s) < RI_SLEVI_M_ENV1 + 5u) ? 4u
         : module(s) == RI_SLEVI_M_DFILT || (module(s) >= RI_SLEVI_M_LFO1 && module(s) < RI_SLEVI_M_LFO1 + 5u) ? 2u
         : module(s) == RI_SLEVI_M_VOICE ? 4u
+        : module(s) == RI_SLEVI_M_REVERB ? 2u
         : module(s) == RI_SLEVI_M_MATRIX ? 16u : module(s) == RI_SLEVI_M_MACRO ? 34u : 1u;
 }
 
@@ -491,7 +496,8 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         : (m >= RI_SLEVI_M_ENV1 && m < RI_SLEVI_M_ENV1 + 5u) ? P_ENV[s->page < 4u ? s->page : 0u]
         : m == RI_SLEVI_M_DFILT ? P_DFILT[s->page == 1u ? 1u : 0u] : m == RI_SLEVI_M_AFILT ? P_AFILT
         : m == RI_SLEVI_M_VCA ? P_VCA : m == RI_SLEVI_M_PREFX ? P_PREFX
-        : m == RI_SLEVI_M_DELAY ? P_DELAY : m == RI_SLEVI_M_REVERB ? P_REVERB
+        : m == RI_SLEVI_M_DELAY ? P_DELAY
+        : m == RI_SLEVI_M_REVERB ? (s->page == 1u ? P_REVERB2 : P_REVERB)
         : m == RI_SLEVI_M_POSTFX ? P_POSTFX
         : (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) ? P_LFO[s->page == 1u ? 1u : 0u]
         : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? P_ARP
@@ -1247,6 +1253,57 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
     }
     if (t == (int)RI_SLEVI_DLYBPM) {
         put_str(buf, cap, s->val[t] ? "SYNC" : "FREE");
+        return;
+    }
+    if (t == (int)RI_SLEVI_RTYPE) {
+        static const char *const RT[4] = { "ROOM", "HALL", "PLATE", "CHAMBER" };
+        int m = s->val[t];
+        put_str(buf, cap, RT[m >= 0 && m < 4 ? m : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_RPREDLY) {
+        put_num(buf, cap, s->val[t] * 250 / 127);
+        cat_str(buf, cap, "MS");
+        return;
+    }
+    if (t == (int)RI_SLEVI_RTIME) {
+        put_num(buf, cap, s->val[t] * 95 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_RTONE || t == (int)RI_SLEVI_RHIDAMP) {
+        float hz = 200.0f * ri_pow2((float)s->val[t] / 127.0f * 6.4919f);
+        if (hz < 1000.0f) {
+            put_num(buf, cap, (int)(hz + 0.5f));
+            cat_str(buf, cap, "HZ");
+        } else {
+            put_num(buf, cap, (int)(hz / 100.0f + 0.5f) / 10);
+            cat_str(buf, cap, ".");
+            cat_num(buf, cap, (int)(hz / 100.0f + 0.5f) % 10);
+            cat_str(buf, cap, "KHZ");
+        }
+        return;
+    }
+    if (t == (int)RI_SLEVI_RLODAMP) {
+        float hz = 20.0f * ri_pow2((float)s->val[t] / 127.0f * 4.6439f);
+        if (hz < 1000.0f) {
+            put_num(buf, cap, (int)(hz + 0.5f));
+            cat_str(buf, cap, "HZ");
+        } else {
+            put_num(buf, cap, (int)(hz / 100.0f + 0.5f) / 10);
+            cat_str(buf, cap, ".");
+            cat_num(buf, cap, (int)(hz / 100.0f + 0.5f) % 10);
+            cat_str(buf, cap, "KHZ");
+        }
+        return;
+    }
+    if (t == (int)RI_SLEVI_RDRYWET) {
+        put_num(buf, cap, s->val[t] * 100 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_RFREEZE) {
+        put_str(buf, cap, s->val[t] ? "HELD" : "OFF");
         return;
     }
     if (t >= (int)RI_SLEVI_SLOT0 && t < (int)RI_SLEVI_SLOT0 + 8) {
