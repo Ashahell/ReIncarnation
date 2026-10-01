@@ -1543,3 +1543,37 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (deploy record; follows the menu-hang/load-governor record)
 - Raw: llm-wiki/raw/articles/2026-10-01-dell-deploy-abiv11-usb-stick-layout.md
 - Updated: llm-wiki/index.md (Live app entry list)
+## [2026-10-01] ingest | Leviasynth fidelity P7b (device reverb)
+- Disposition: New (continues the P7 FX record)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p7b-reverb.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P7c (pre/post mod engines)
+- Disposition: New (continues the P7 FX record)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p7c-modfx.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P8a (device tempo, P7d closed)
+- Disposition: New (starts the P8 record)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p8a-tempo.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P8b (device arp)
+- Disposition: New (continues the P8 record)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p8b-arp.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P8c (device sequencer)
+- Disposition: New (continues the P8 record)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p8c-seq.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P8d (ribbon)
+- Disposition: New (continues the P8 record); Update (pins the P8d commit hash)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p8d-ribbon.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P8e (step-LFO editor)
+- Disposition: New (closes the P8 record); Update (amends the P8e plan key-block note; pins the P8d commit hash)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p8e-lfostp.md
+- Updated: llm-wiki/index.md (Live app entry list)
