@@ -5,7 +5,7 @@
 - Published: 2026-10-01
 - Plan: `docs/superpowers/plans/2026-09-30-leviasynth-fidelity-plan.md` (§P8a plan + status, E0 ledger)
 - Prior: [2026-10-01-leviasynth-fidelity-p7c-modfx.md](2026-10-01-leviasynth-fidelity-p7c-modfx.md)
-- Commit: P8a (this session; unpushed at collection).
+- Commit: `04f0d23` (unpushed at collection).
 
 ## Scope (P8 split; rest to follow)
 
