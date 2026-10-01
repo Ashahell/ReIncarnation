@@ -1597,3 +1597,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New; Update (resolves the deferred 2026-09-28 render-spike hunt; supersedes the pri-10 render choice in the menu-hang record)
 - Raw: llm-wiki/raw/articles/2026-10-01-clipping-comp-limiter-tab-stall-priority.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P9c (keyboard zones)
+- Disposition: New (continues the P9 record); Update (pins the P9c commit hash; records the panel reachability probe the zone dim law forced)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p9c-zones.md
+- Updated: llm-wiki/index.md (Live app entry list)
