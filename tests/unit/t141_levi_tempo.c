@@ -216,7 +216,7 @@ int main(void) {
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_OPBPM7), "opbpm7 allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_MEBPM0), "mebpm0 allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_MEBPM4), "mebpm4 allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0EA0u), "0x0EA0 refused");
+    RI_ASSERT(!ri_auto_allowed(0x0EADu), "0x0EAD refused");
     {
         struct RISectLevi lv;
         char tx[16];

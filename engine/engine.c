@@ -546,6 +546,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             }
             if (e->sections & RI_ENGINE_SLEVI) {
                 levi_set_tempo(&e->slevi, e->tempo);   /* device follows the session tempo */
+                levi_arp_block(&e->slevi, sr, cc);     /* device arp steps before the sum */
                 levi_voice_render_sum_stereo(&e->slevi, e->scratch, e->scratchR, cc, sr);
                 engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr);
             }

@@ -297,7 +297,7 @@ Pre-FX and Post-FX with 9 types, delay types, reverb types with freeze, and the 
 - Arp to the manual's parameter set, with 64 own phrases.
 - 2 poly note tracks + a macro track, up to 128 steps with per-step MultiTrig/Drift/Probability/Entropy, and step record.
 - Ribbon as mod source, theremin and step selector.
-- Split (2026-10-01): P8a device tempo + all BPM sync (this slice — closes P7d too); P8b arp parameter set + phrases; P8c sequencer tracks + step record; P8d ribbon + step-LFO editor. Matrix arp/seq destinations ride with P8b/c.
+- Split (2026-10-01): P8a device tempo + all BPM sync (this slice — closes P7d too); P8b device arp parameter set + phrases (this slice); P8c sequencer tracks + step record; P8d ribbon + step-LFO editor. Matrix arp/seq destinations ride with P8b/c.
 
 #### P8a plan (device tempo + BPM sync incl. P7d; before code 2026-10-01)
 
@@ -312,6 +312,21 @@ Pre-FX and Post-FX with 9 types, delay types, reverb types with freeze, and the 
   - Flags: 13 new keys `0x0E93..9F` (8 op + 5 menv, section-wide to all voices, no registry rows — panel slots are dynamic `SLOT_OPBPM`/`SLOT_MEBPM`); LFO BPM slot bound to the existing 0x10 key; per-type texts SYNC/FREE.
   - Proof: audit 0/0 clean worktree; riaudio lane: window opens, SPACE→TR PLAY, AHI 0x003e0001, buffers=11882 xruns=0. Deviations: no host wav; page pixels deferred (standing gap); 909 pack missing (unrelated).
 - **Tests:** t141 (pure helpers exact incl. snap floor/ceiling, tempo clamp/default/null, tempo-moves-synced/never-free for LFO rate, LFO delay, op ENV, menv ENV (via ENV1→cutoff prewire), delay snap; flags section-wide + range ends; UI round-trip set+key+texts; null guards; extremes at 20/140/500; 17 mutants killed, 1 ledgered survival: engine tempo-push removal — no engine-render unit law, lane-covered via PLAY at song tempo); t60 range to `0x0E9F`, t77 allow 1081 (+13 with page-slot ownership rule), t136/t138/t139/t140 `0x0EA0` boundary deliberate moves.
+
+#### P8b plan (device arp params + phrases; before code 2026-10-01)
+
+- Device live-arp, DSP-contained: per-block `levi_arp_block(s, sr, n)` (engine calls it before the Levi sum, next to the tempo push). Chord = allocator held notes (strikes must NOT pollute it — see below); latch keeps the last chord after release. The player song path stays v2 (songs bit-identical); tap rhythm deferred (live input timing needs a device wall clock that doesn't exist — app territory, ledgered).
+- Strike path (own, minimal P6a surgery): `levi_note_on` body becomes `note_on_core(s, note, holdleit)`; `levi_note_strike` = core without held insert; `levi_arp_release_note` = release voices sounding the note without held removal or mode re-fire. t134 re-verifies the wrapped path.
+- Note selection reuses the v2 stepper (modes 0..7 bit-identical — struct inits zero the new fields) + 9th mode PHRASE (root + rule-authored offset, 100 = rest). Factory phrases are RULE-computed, zero bytes: major 2-octave scale, `deg = (step*(3+family)+variant) % 15`, rest on `(step*7+variant*3+family) % 13 == 0`, accessor `ri_levi_arp_phrase(idx, step)` pinned absolutely. User bank `uphr[64][16]` in the set, zero-init (unison), no edit UI yet (rides P8c step record).
+- Timing layer (own): division from STEPSQ(rate) × tempo; octave transpose (`octpos % range`, UP/DOWN/OFF); gate 5..150% (<100 explicit OFFs, ≥100 legato chain — order-safe); swing ≤50% odd-step shift; ratchet 1+round(×3) sub-hits; chance skip + entropy octave-leap via set-held LCG (defaults 0 = v2-identical); length 1..16 cycle wrap (default 127 = effectively off); stepoff start rotation; clocklock restarts phase on chord change (default 1) vs free-run.
+- Params in the set (defaults = v2-identical sound when enabled): arpon 0, arprate 64, octmode 0, octrange 0, gate 127, mode 0, len 127, phrase 0, entropy/swing/ratchet/chance 0, latch 0, clock 1, stepoff 0. Keys `0x0EA0..AC` (13; division rides ARPRATE 0x0E12); rows 183..195; ARP 2 pages (page 1 fills the 7 dead slots, page 2 new); per-param texts.
+- Matrix `DM_ARP` (33): MODE, DIVISION, SWING, GATE, OCTAVE, OCTMODE, LENGTH, PHRASE, ENTROPY, RATCHET, CHANCE (prompt order exactly); voice `axm[11]` + flag, lead-voice fold per block (1-block lag, P5b precedent).
+- E0: arp off default (bit-identical songs); block-granular strikes (sub-block timing inaudible at musical divisions); gate release-all-sounding-note on unison overlaps; user phrases default unison; phrase offsets clamp 0..127.
+- **Status: P8b done 2026-10-01** (engine, keys, UI, tests):
+  - Strike path: `note_on_core(hold)` wrap (t134 re-green), `levi_note_strike` (no held insert), `levi_arp_release_note` (no held removal/mode refire). Per-block `levi_arp_block` (engine hook next to tempo push): absolute-clock grid, swing-deferred strikes, chance/rest advance, length rewind, latch buffer, ratchet sub queue (16), gate countdowns with stale-note guard, last-chord cleanup on empty unlatch.
+  - Stepper: PHRASE mode + rule factory (zero bytes) + `rewind`; modes 0..7 bit-identical (t113-115 green untouched).
+  - Proof: audit 0/0 clean worktree; Dell 0 UND + 0 r12 (audit gate); riaudio lane: window opens, SPACE→TR PLAY, AHI 0x003e0001, buffers=16474 xruns=0. Deviations: no host wav; ARP page pixels deferred (standing gap); 909 pack missing (unrelated). Adjacent fix: `levi_arp.c` into the AROS sections list (audit caught it, P7b pattern).
+- **Tests:** t142 (off-identity, UP order, determinism, division density, gate trim, octave reach, phrase rule + nonzero row, swing shift, ratchet multiply, chance thin via strike counter, length wrap, latch sustain/quiet, entropy leaps, stepoff rotate, clocklock grid restart, DM route-fill + gate fold, factory pins, mode clamp, full key sweep, row bind, 2 pages + texts, null guards, extremes over all 9 modes; 22 mutants killed, 1 ledgered survival: engine arp-block hook removal — no engine-render unit law, lane-covered like the tempo push); t60 range to `0x0EAC`, t77 mapped 254 / allow 1094, t133 last module ARP, t136/t138/t139/t140/t141 `0x0EAD` boundary deliberate moves.
 
 ### P9: performance
 

@@ -77,7 +77,8 @@
 #define RI_LEVI_DM_REVERB 30u  /* reverb params (fidelity P7b) */
 #define RI_LEVI_DM_PREFX 31u   /* pre-FX params (fidelity P7c) */
 #define RI_LEVI_DM_POSTFX 32u  /* post-FX params (fidelity P7c) */
-#define RI_LEVI_DM_N 33u
+#define RI_LEVI_DM_ARP 33u     /* arp params (fidelity P8b) */
+#define RI_LEVI_DM_N 34u
 /* DM_DELAY params. */
 #define RI_LEVI_DD_TIME 0u
 #define RI_LEVI_DD_FEEDBACK 1u
@@ -97,6 +98,19 @@
 #define RI_LEVI_DX_P2 1u
 #define RI_LEVI_DX_DRYWET 2u
 #define RI_LEVI_DX_N 3u
+/* DM_ARP params (prompt list exactly). */
+#define RI_LEVI_DA_MODE 0u
+#define RI_LEVI_DA_DIVISION 1u
+#define RI_LEVI_DA_SWING 2u
+#define RI_LEVI_DA_GATE 3u
+#define RI_LEVI_DA_OCTAVE 4u
+#define RI_LEVI_DA_OCTMODE 5u
+#define RI_LEVI_DA_LENGTH 6u
+#define RI_LEVI_DA_PHRASE 7u
+#define RI_LEVI_DA_ENTROPY 8u
+#define RI_LEVI_DA_RATCHET 9u
+#define RI_LEVI_DA_CHANCE 10u
+#define RI_LEVI_DA_N 11u
 /* Voice params (P6b): detune, pan, analog feel, bend range, vibrato
  * amt/rate, glide toggle/time/curve, panner width. */
 #define RI_LEVI_DVO_DETUNE 0u

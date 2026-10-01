@@ -16,6 +16,9 @@ void ri_levi_arp_init(struct RILeviArp *a) {
     a->pos = 0u;
     a->dir = 0u;
     a->lcg = 1u;
+    a->phrase = 0u;
+    a->phpad[0] = a->phpad[1] = a->phpad[2] = 0u;
+    a->uphr = 0;
 }
 
 int ri_levi_arp_start(struct RILeviArp *a, const uint8_t *notes, uint32_t n,
@@ -47,6 +50,28 @@ int ri_levi_arp_start(struct RILeviArp *a, const uint8_t *notes, uint32_t n,
 static uint32_t next_lcg(struct RILeviArp *a) {
     a->lcg = a->lcg * 1664525u + 1013904223u;
     return a->lcg >> 16;
+}
+
+void ri_levi_arp_rewind(struct RILeviArp *a) {
+    if (!a)
+        return;
+    a->pos = 0u;
+    a->dir = 0u;
+}
+
+/* Own factory phrase rule (fidelity P8b): 64 phrases = 8 families x 8
+ * variants over a major 2-octave ladder; rests peppered by hash. */
+int8_t ri_levi_arp_phrase(uint8_t idx, uint32_t step) {
+    static const int8_t LADDER[15] = { 0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 22, 24 };
+    uint32_t family, variant, deg;
+    if (idx >= 64u || step >= 16u)
+        return 0;
+    family = idx / 8u;
+    variant = idx % 8u;
+    if ((step * 7u + variant * 3u + family) % 13u == 0u)
+        return RI_LEVI_ARP_REST;
+    deg = (step * (3u + family) + variant) % 15u;
+    return LADDER[deg];
 }
 
 int ri_levi_arp_step(struct RILeviArp *a, uint8_t *note_out) {
@@ -109,6 +134,36 @@ int ri_levi_arp_step(struct RILeviArp *a, uint8_t *note_out) {
         } else {
             *note_out = a->notes[idx];
         }
+    } else if (m == RI_LEVI_ARP_PHRASE) {
+        /* Chord root + rule-authored offset (own phrases, P8b). */
+        uint8_t ph = a->phrase;
+        int8_t off;
+        uint32_t st = a->pos % 16u;
+        int note;
+        a->pos++;
+        if (a->n == 0u)
+            return 1;
+        if (ph >= 128u)
+            ph = 127u;
+        if (ph < 64u) {
+            off = ri_levi_arp_phrase(ph, st);
+        } else if (a->uphr) {
+            off = a->uphr[(ph - 64u) * 16u + st];
+            if (off < -24)
+                off = -24;
+            if (off > 24 && off != RI_LEVI_ARP_REST)
+                off = 24;
+        } else {
+            off = 0;
+        }
+        if (off == RI_LEVI_ARP_REST)
+            return 1;
+        note = (int)a->notes[0] + (int)off;
+        if (note < 0)
+            note = 0;
+        if (note > 127)
+            note = 127;
+        *note_out = (uint8_t)note;
     } else {
         return 2;
     }

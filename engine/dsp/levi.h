@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include "engine/dsp/levi_matrix.h"
 #include "engine/dsp/levi_fx.h"
+#include "engine/dsp/levi_arp.h"
 
 #define RI_LEVI_NVOICES 8u
 #define RI_LEVI_NOPS 8u
@@ -400,6 +401,9 @@ struct RILeviVoice {
     uint8_t pfxm_on;
     float ofxm[RI_LEVI_DX_N]; /* DM_POSTFX offsets (P7c, lead voice) */
     uint8_t ofxm_on;
+    float axm[RI_LEVI_DA_N]; /* DM_ARP offsets (P8b, lead voice) */
+    uint8_t axm_on;
+    uint8_t axpad[3];
     /* Stereo + scales (fidelity P6c, manual pp. 87-96). Pan/width/mode
      * went live with the stereo sum; bend with the P9 MIDI data. */
     float vspread;  /* 0..1 unison stereo spread (static ordinal) */
@@ -532,6 +536,21 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_OPBPM7 0x0E9Au
 #define RI_CTL_LEVI_MEBPM0 0x0E9Bu
 #define RI_CTL_LEVI_MEBPM4 0x0E9Fu
+/* Device arp params (fidelity P8b, manual pp. 99-104). Division rides
+ * ARPRATE (0x0E12); tap rhythm is live-only (no device clock). */
+#define RI_CTL_LEVI_ARPOCTMODE 0x0EA0u
+#define RI_CTL_LEVI_ARPOCTRANGE 0x0EA1u
+#define RI_CTL_LEVI_ARPGATE 0x0EA2u
+#define RI_CTL_LEVI_ARPMODE 0x0EA3u
+#define RI_CTL_LEVI_ARPLEN 0x0EA4u
+#define RI_CTL_LEVI_ARPPHRASE 0x0EA5u
+#define RI_CTL_LEVI_ARPENTROPY 0x0EA6u
+#define RI_CTL_LEVI_ARPSWING 0x0EA7u
+#define RI_CTL_LEVI_ARPRATCHET 0x0EA8u
+#define RI_CTL_LEVI_ARPCHANCE 0x0EA9u
+#define RI_CTL_LEVI_ARPLATCH 0x0EAAu
+#define RI_CTL_LEVI_ARPCLOCK 0x0EABu
+#define RI_CTL_LEVI_ARPSTEPPOFF 0x0EACu
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u
@@ -569,6 +588,42 @@ struct RILeviSet {
     struct RILeviFx fx;     /* per-device FX chain (fidelity P7) */
     struct RILeviMatrix mx; /* device matrix program (v2 feature 4) */
     float tempo_bpm;  /* device tempo cache 20..500 (P8a; engine pushes per block) */
+    /* Device arp params (fidelity P8b, manual pp. 99-104). Division
+     * rides arprate (STEPSQ map); tap rhythm is live-only. */
+    uint8_t arpoctmode; /* 0 off, 1 up, 2 down */
+    uint8_t arpoctrange; /* 0..127 -> 1..4 octaves */
+    uint8_t arpgate;   /* 0..127 -> 5..150 % of step */
+    uint8_t arpmode;   /* RI_LEVI_ARP_* (8 = phrase) */
+    uint8_t arplen;    /* 0..127 -> 1..16 steps per cycle */
+    uint8_t arpphrase; /* 0..127 (factory 0..63, user 64..127) */
+    uint8_t arpentropy; /* octave-leap amount */
+    uint8_t arpswing;  /* odd-step delay 0..50 % */
+    uint8_t arpratchet; /* 1 + round(×3) sub-hits */
+    uint8_t arpchance; /* per-strike skip probability */
+    uint8_t arplatch;  /* keep last chord after release */
+    uint8_t arpclock;  /* restart step grid on chord change */
+    uint8_t arpstepoff; /* start rotation 0..15 */
+    uint8_t arppad[3];
+    /* Device arp runtime (per-block step clock, P8b). */
+    struct RILeviArp darp; /* persistent stepper (pos/dir/lcg survive blocks) */
+    uint64_t arp_samp;  /* absolute sample clock */
+    uint64_t arp_t0;    /* chord grid origin (clock restarts move it) */
+    uint32_t arp_k;     /* strikes scheduled this chord (grid index) */
+    uint32_t arp_pos;   /* strikes in the length cycle */
+    uint32_t arp_oct;   /* octave cycle position */
+    uint32_t arp_lcg;   /* chance/entropy LCG (block-seeded runs stay deterministic) */
+    uint32_t arp_nstr;  /* strikes fired (swing parity + test hook) */
+    int32_t arp_gate[RI_LEVI_NVOICES]; /* gate countdowns, samples (-1 idle) */
+    uint8_t arp_gnote[RI_LEVI_NVOICES]; /* struck note per voice (stale-guard) */
+    uint8_t arp_chord[RI_LEVI_ARP_MAXNOTES]; /* latched chord, low -> high */
+    uint8_t arp_nchord;
+    uint8_t arp_latch[RI_LEVI_ARP_MAXNOTES]; /* latch buffer */
+    uint8_t arp_nlatch;
+    uint64_t arp_pend_at[16]; /* ratchet sub-hit queue (absolute samples) */
+    uint8_t arp_pend_note[16];
+    int32_t arp_pend_off[16]; /* gate length for the sub-hit (-1 legato) */
+    uint32_t arp_npend;
+    int8_t arp_uphr[64][16]; /* user phrase bank (zero = unison) */
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
     /* Voice allocator (fidelity P6a, manual pp. 87-96): device-wide.
@@ -599,6 +654,14 @@ void levi_release(struct RILeviSet *s, uint32_t voice);
  * Direct levi_trigger/release above stay lane==voice (songs, bit-identical). */
 int levi_note_on(struct RILeviSet *s, uint8_t note);
 int levi_note_off(struct RILeviSet *s, uint8_t note);
+/* Arp strike: allocator policy without held-list insert (P8b); returns
+ * voices fired, -1 bad. Release: voices sounding the note, no held
+ * removal, no mode re-fire. */
+int levi_note_strike(struct RILeviSet *s, uint8_t note);
+int levi_arp_release_note(struct RILeviSet *s, uint8_t note);
+/* Per-block device arp step (fidelity P8b): fires strikes/releases for
+ * n samples at sr into the allocator. No-op when off or chordless. */
+void levi_arp_block(struct RILeviSet *s, float sr, uint32_t n);
 /* Allocator mode/density/limit UI (keys 0x0E58..5A, device-wide). 0 ok, 2 bad. */
 int levi_set_alloc_ui(struct RILeviSet *s, uint32_t mode);
 uint32_t levi_alloc_mode(const struct RILeviSet *s);

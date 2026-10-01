@@ -89,7 +89,7 @@ int ri_levi_matrix_eval(const struct RILeviMatrix *m, const float *openv,
 
 /* ---- Fidelity P5b: module/param routes, macros, names ---- */
 static const uint8_t DM_NPARAM[RI_LEVI_DM_N] = {
-    0, 14, 14, 14, 14, 14, 14, 14, 14, 14, 2, 2, 7, 5, 3, 9, 9, 9, 9, 9, 4, 4, 4, 4, 4, 32, 8, 1, 10, 5, 5, 3, 3
+    0, 14, 14, 14, 14, 14, 14, 14, 14, 14, 2, 2, 7, 5, 3, 9, 9, 9, 9, 9, 4, 4, 4, 4, 4, 32, 8, 1, 10, 5, 5, 3, 3, 11
 };
 
 uint32_t ri_levi_dm_nparam(uint32_t dmod) {
@@ -188,7 +188,8 @@ static const char *const MS_NAME[RI_LEVI_MS_N] = {
 static const char *const DM_NAME[RI_LEVI_DM_N] = {
     "---", "OSC 1", "OSC 2", "OSC 3", "OSC 4", "OSC 5", "OSC 6", "OSC 7", "OSC 8", "ALL OSC", "CARRIERS",
     "MODULATORS", "D.FILTER", "A.FILTER", "VCA", "ENV 1", "ENV 2", "ENV 3", "ENV 4", "ENV 5", "LFO 1", "LFO 2",
-    "LFO 3", "LFO 4", "LFO 5", "MOD MTRX", "MACRO", "ALGO", "VOICE", "DELAY", "REVERB", "PRE-FX", "POST-FX"
+    "LFO 3", "LFO 4", "LFO 5", "MOD MTRX", "MACRO", "ALGO", "VOICE", "DELAY", "REVERB", "PRE-FX", "POST-FX",
+    "ARP"
 };
 static const char *const DP_OSC[RI_LEVI_DO_N] = { "INIT LVL", "ENV LVL", "PITCH", "RATIO", "FINE", "FEEDBACK",
     "PHASE", "PAN", "WAVE", "ATTACK", "HOLD", "DECAY", "SUSTAIN", "RELEASE" };
@@ -209,6 +210,8 @@ static const char *const DP_VOICE[RI_LEVI_DVO_N] = { "DETUNE", "PAN", "ANALOG FL
 static const char *const DP_DLY[RI_LEVI_DD_N] = { "TIME", "FEEDBACK", "WET TONE", "FB TONE", "DRY/WET" };
 static const char *const DP_REV[RI_LEVI_DR_N] = { "TIME", "TONE", "HI DAMP", "LO DAMP", "DRY/WET" };
 static const char *const DP_MDX[RI_LEVI_DX_N] = { "PARAM 1", "PARAM 2", "DRY/WET" };
+static const char *const DP_ARP[RI_LEVI_DA_N] = { "MODE", "DIVISION", "SWING", "GATE", "OCTAVE", "OCT MODE",
+    "LENGTH", "PHRASE", "ENTROPY", "RATCHET", "CHANCE" };
 
 static const uint8_t MS_UI[RI_LEVI_MS_UI_N] = {
     RI_LEVI_MS_N, 17, 18, 19, 20, 21, 8, 9, 10, 11, 12, 22, 23, 24, 25, 26, 0, 1, 2, 3, 4, 5, 6, 7,
@@ -262,5 +265,7 @@ const char *ri_levi_dp_name(uint32_t dmod, uint32_t dpar) {
         return DP_REV[dpar];
     if (dmod == RI_LEVI_DM_PREFX || dmod == RI_LEVI_DM_POSTFX)
         return DP_MDX[dpar];
+    if (dmod == RI_LEVI_DM_ARP)
+        return DP_ARP[dpar];
     return "MORPH";
 }

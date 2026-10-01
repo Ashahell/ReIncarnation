@@ -1000,6 +1000,8 @@ void levi_init_set(struct RILeviSet *s) {
         v->pfxm_on = 0u;
         memset(v->ofxm, 0, sizeof v->ofxm);
         v->ofxm_on = 0u;
+        memset(v->axm, 0, sizeof v->axm);
+        v->axm_on = 0u;
         v->vspread = 0.0f;
         {
             uint32_t q;
@@ -1020,6 +1022,37 @@ void levi_init_set(struct RILeviSet *s) {
     s->bias[0] = s->bias[1] = s->bias[2] = s->bias[3] = 64u;
     s->arpon = 0u;
     s->arprate = 64u;
+    /* Device arp params (fidelity P8b): defaults = v2-identical sound. */
+    s->arpoctmode = 0u;
+    s->arpoctrange = 0u;
+    s->arpgate = 127u;
+    s->arpmode = RI_LEVI_ARP_UP;
+    s->arplen = 127u;
+    s->arpphrase = 0u;
+    s->arpentropy = 0u;
+    s->arpswing = 0u;
+    s->arpratchet = 0u;
+    s->arpchance = 0u;
+    s->arplatch = 0u;
+    s->arpclock = 1u;
+    s->arpstepoff = 0u;
+    s->arppad[0] = s->arppad[1] = s->arppad[2] = 0u;
+    s->arp_samp = 0u;
+    s->arp_t0 = 0u;
+    s->arp_k = 0u;
+    s->arp_pos = 0u;
+    s->arp_oct = 0u;
+    s->arp_lcg = 0x9E3779B9u;
+    s->arp_nstr = 0u;
+    {
+        uint32_t g;
+        for (g = 0u; g < RI_LEVI_NVOICES; g++)
+            s->arp_gate[g] = -1;
+    }
+    s->arp_nchord = 0u;
+    s->arp_nlatch = 0u;
+    s->arp_npend = 0u;
+    ri_levi_arp_init(&s->darp);
     s->seqon = 0u;
     s->seqlen = 16u;
     ri_levi_matrix_init(&s->mx);
@@ -1635,7 +1668,9 @@ uint32_t levi_alloc_mode(const struct RILeviSet *s) {
     return s ? s->polymode : 0u;
 }
 
-int levi_note_on(struct RILeviSet *s, uint8_t note) {
+/* Allocator core (fidelity P6a; P8b adds the hold flag so arp strikes
+ * reuse the policy without joining the held chord). */
+static int note_on_core(struct RILeviSet *s, uint8_t note, int hold) {
     uint32_t v, n = 0u;
     uint32_t mode, dens, lim;
     if (!s || note > 127u)
@@ -1643,7 +1678,8 @@ int levi_note_on(struct RILeviSet *s, uint8_t note) {
     mode = s->polymode;
     dens = s->udensity < 1u ? 1u : s->udensity > 8u ? 8u : s->udensity;
     lim = s->ulimit < 1u ? 1u : s->ulimit > RI_LEVI_NVOICES ? RI_LEVI_NVOICES : s->ulimit;
-    alloc_hold_add(s, note);
+    if (hold)
+        alloc_hold_add(s, note);
     switch (mode) {
     case RI_LEVI_POLY_MONO:
     case RI_LEVI_POLY_MONOLO:
@@ -1705,6 +1741,28 @@ int levi_note_on(struct RILeviSet *s, uint8_t note) {
         }
     }
     }
+}
+
+int levi_note_on(struct RILeviSet *s, uint8_t note) {
+    if (!s || note > 127u)
+        return -1;
+    return note_on_core(s, note, 1);
+}
+
+int levi_note_strike(struct RILeviSet *s, uint8_t note) {
+    if (!s || note > 127u)
+        return -1;
+    return note_on_core(s, note, 0);
+}
+
+int levi_arp_release_note(struct RILeviSet *s, uint8_t note) {
+    uint32_t v;
+    if (!s || note > 127u)
+        return -1;
+    for (v = 0u; v < RI_LEVI_NVOICES; v++)
+        if (s->v[v].active && s->v[v].note == note)
+            levi_release(s, v);
+    return 1;
 }
 
 int levi_note_off(struct RILeviSet *s, uint8_t note) {
@@ -2123,6 +2181,45 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
         return 0;
     case (RI_CTL_LEVI_ARPRATE & 0xFFu): /* ARPRATE (device arp rate) */
         s->arprate = val;
+        return 0;
+    case (RI_CTL_LEVI_ARPOCTMODE & 0xFFu):
+        s->arpoctmode = val > 2u ? 2u : val;
+        return 0;
+    case (RI_CTL_LEVI_ARPOCTRANGE & 0xFFu):
+        s->arpoctrange = val;
+        return 0;
+    case (RI_CTL_LEVI_ARPGATE & 0xFFu):
+        s->arpgate = val;
+        return 0;
+    case (RI_CTL_LEVI_ARPMODE & 0xFFu):
+        s->arpmode = val > RI_LEVI_ARP_NMODES - 1u ? RI_LEVI_ARP_NMODES - 1u : val;
+        return 0;
+    case (RI_CTL_LEVI_ARPLEN & 0xFFu):
+        s->arplen = val;
+        return 0;
+    case (RI_CTL_LEVI_ARPPHRASE & 0xFFu):
+        s->arpphrase = val;
+        return 0;
+    case (RI_CTL_LEVI_ARPENTROPY & 0xFFu):
+        s->arpentropy = val;
+        return 0;
+    case (RI_CTL_LEVI_ARPSWING & 0xFFu):
+        s->arpswing = val;
+        return 0;
+    case (RI_CTL_LEVI_ARPRATCHET & 0xFFu):
+        s->arpratchet = val;
+        return 0;
+    case (RI_CTL_LEVI_ARPCHANCE & 0xFFu):
+        s->arpchance = val;
+        return 0;
+    case (RI_CTL_LEVI_ARPLATCH & 0xFFu):
+        s->arplatch = val ? 1u : 0u;
+        return 0;
+    case (RI_CTL_LEVI_ARPCLOCK & 0xFFu):
+        s->arpclock = val ? 1u : 0u;
+        return 0;
+    case (RI_CTL_LEVI_ARPSTEPPOFF & 0xFFu):
+        s->arpstepoff = val;
         return 0;
     case (RI_CTL_LEVI_SEQON & 0xFFu): /* SEQON (device seq gate) */
         s->seqon = val != 0u ? 1u : 0u;
@@ -2657,7 +2754,7 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     float src[RI_LEVI_MS_N];
     struct RILeviModOut out[RI_LEVI_MODOUT_MAX];
     uint32_t n, i, o, touch_op = 0u, touch_me = 0u, touch_vo = 0u, touch_fx = 0u, touch_rv = 0u, touch_px = 0u,
-        touch_ox = 0u;
+        touch_ox = 0u, touch_ax = 0u;
     for (i = 0u; i < RI_LEVI_MS_N; i++)
         src[i] = 0.0f;
     for (o = 0u; o < RI_LEVI_NOPS; o++)
@@ -2705,6 +2802,8 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
         memset(v->pfxm, 0, sizeof v->pfxm);
     if (v->ofxm_on)
         memset(v->ofxm, 0, sizeof v->ofxm);
+    if (v->axm_on)
+        memset(v->axm, 0, sizeof v->axm);
     for (i = 0u; i < n; i++) {
         uint32_t dm = out[i].dmod, dp = out[i].dpar;
         float x = out[i].x;
@@ -2781,6 +2880,11 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
                 v->ofxm[dp] += x;
                 touch_ox = 1u;
             }
+        } else if (dm == RI_LEVI_DM_ARP) {
+            if (dp < RI_LEVI_DA_N) {
+                v->axm[dp] += x;
+                touch_ax = 1u;
+            }
         }
     }
     v->opm_on = (uint8_t)touch_op;
@@ -2790,6 +2894,7 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     v->rfxm_on = (uint8_t)touch_rv;
     v->pfxm_on = (uint8_t)touch_px;
     v->ofxm_on = (uint8_t)touch_ox;
+    v->axm_on = (uint8_t)touch_ax;
     for (o = 0u; o < RI_LEVI_NMENV && touch_me; o++)
         v->melmod[o] = v->mem[o][RI_LEVI_DE_LEVEL];
     if (!touch_me)
@@ -3482,4 +3587,269 @@ int levi_morph_get(const struct RILeviSet *s, uint32_t voice) {
     if (!s || voice >= RI_LEVI_NVOICES)
         return -1;
     return (int)s->v[voice].morph;
+}
+
+/* Effective arp UI (knob + DM_ARP lead-voice offset, ±64 UI span). */
+static uint8_t arp_eff(struct RILeviSet *s, uint32_t dp, uint8_t knob) {
+    uint32_t lv;
+    int x = (int)knob;
+    for (lv = 0u; lv < RI_LEVI_NVOICES; lv++)
+        if (s->v[lv].active)
+            break;
+    if (lv >= RI_LEVI_NVOICES)
+        lv = 0u;
+    if (dp < RI_LEVI_DA_N && s->v[lv].axm_on)
+        x += (int)(s->v[lv].axm[dp] * 64.0f);
+    if (x < 0)
+        x = 0;
+    if (x > 127)
+        x = 127;
+    return (uint8_t)x;
+}
+
+static uint32_t arp_lcg_next(struct RILeviSet *s) {
+    s->arp_lcg = s->arp_lcg * 1664525u + 1013904223u;
+    return s->arp_lcg >> 16;
+}
+
+/* Snapshot the held chord low -> high (insertion sort, n <= 6). */
+static uint32_t arp_chord(struct RILeviSet *s, uint8_t *chord) {
+    uint32_t i, j, n = 0u;
+    for (i = 0u; i < s->an && n < RI_LEVI_ARP_MAXNOTES; i++)
+        chord[n++] = s->anotes[i];
+    for (i = 1u; i < n; i++) {
+        uint8_t v = chord[i];
+        j = i;
+        while (j > 0u && chord[j - 1u] > v) {
+            chord[j] = chord[j - 1u];
+            j--;
+        }
+        chord[j] = v;
+    }
+    return n;
+}
+
+/* Arm gate countdowns on voices sounding the struck note. */
+static void arp_arm(struct RILeviSet *s, uint8_t note, int32_t len) {
+    uint32_t v;
+    if (len < 0)
+        return;
+    for (v = 0u; v < RI_LEVI_NVOICES; v++)
+        if (s->v[v].active && s->v[v].note == note) {
+            s->arp_gate[v] = len;
+            s->arp_gnote[v] = note;
+        }
+}
+
+/* (Re)start the pattern on a chord: stepper + stepoff rotation. */
+static void arp_start_chord(struct RILeviSet *s, const uint8_t *chord,
+    uint32_t nch, uint8_t mode, uint8_t phrase, uint8_t stepoff, uint8_t len) {
+    uint8_t tmp;
+    uint32_t k, off;
+    s->darp.phrase = phrase;
+    s->darp.uphr = &s->arp_uphr[0][0];
+    s->darp.on = 1u;
+    if (ri_levi_arp_start(&s->darp, chord, nch, mode, (uint32_t)s->arp_samp) != 0) {
+        s->darp.on = 0u;
+        return;
+    }
+    off = stepoff >= 16u ? 15u : stepoff;
+    for (k = 0u; k < off; k++)
+        ri_levi_arp_step(&s->darp, &tmp);
+    s->arp_pos = len ? off % len : 0u;
+    s->arp_oct = 0u;
+}
+
+void levi_arp_block(struct RILeviSet *s, float sr, uint32_t n) {
+    uint32_t i, stepsq, len, rats;
+    float step_dur;
+    uint8_t chord[RI_LEVI_ARP_MAXNOTES], nch = 0u;
+    uint8_t mode, octmode, phrase, eff_sw, eff_ch, eff_en;
+    uint32_t octrange, gatepct;
+    if (!s || !(sr > 0.0f) || n == 0u)
+        return;
+    /* Gate countdowns tick even with the arp off (releases land). */
+    for (i = 0u; i < RI_LEVI_NVOICES; i++) {
+        if (s->arp_gate[i] > 0) {
+            s->arp_gate[i] -= (int32_t)n;
+            if (s->arp_gate[i] <= 0) {
+                s->arp_gate[i] = -1;
+                if (s->v[i].active && s->v[i].note == s->arp_gnote[i])
+                    levi_release(s, i);
+            }
+        }
+    }
+    /* Pending ratchet sub-hits fire on schedule. */
+    for (i = 0u; i < s->arp_npend;) {
+        if (s->arp_pend_at[i] < s->arp_samp + n) {
+            uint8_t nn = s->arp_pend_note[i];
+            int32_t off = s->arp_pend_off[i];
+            uint32_t j;
+            levi_note_strike(s, nn);
+            arp_arm(s, nn, off);
+            s->arp_npend--;
+            for (j = i; j < s->arp_npend; j++) {
+                s->arp_pend_at[j] = s->arp_pend_at[j + 1u];
+                s->arp_pend_note[j] = s->arp_pend_note[j + 1u];
+                s->arp_pend_off[j] = s->arp_pend_off[j + 1u];
+            }
+        } else {
+            i++;
+        }
+    }
+    if (!s->arpon) {
+        s->arp_samp += n;
+        return;
+    }
+    /* Effective params (knob + matrix). */
+    mode = arp_eff(s, RI_LEVI_DA_MODE, s->arpmode);
+    if (mode > RI_LEVI_ARP_NMODES - 1u)
+        mode = RI_LEVI_ARP_NMODES - 1u;
+    octmode = arp_eff(s, RI_LEVI_DA_OCTMODE, s->arpoctmode);
+    if (octmode > 2u)
+        octmode = 2u;
+    octrange = 1u + arp_eff(s, RI_LEVI_DA_OCTAVE, s->arpoctrange) * 3u / 127u;
+    gatepct = 5u + arp_eff(s, RI_LEVI_DA_GATE, s->arpgate) * 145u / 127u;
+    len = 1u + arp_eff(s, RI_LEVI_DA_LENGTH, s->arplen) * 15u / 127u;
+    phrase = arp_eff(s, RI_LEVI_DA_PHRASE, s->arpphrase);
+    eff_sw = arp_eff(s, RI_LEVI_DA_SWING, s->arpswing);
+    eff_ch = arp_eff(s, RI_LEVI_DA_CHANCE, s->arpchance);
+    eff_en = arp_eff(s, RI_LEVI_DA_ENTROPY, s->arpentropy);
+    /* Chord snapshot: held, else latch, else empty. */
+    nch = arp_chord(s, chord);
+    if (nch > 0u) {
+        for (i = 0u; i < nch; i++)
+            s->arp_latch[i] = chord[i];
+        s->arp_nlatch = (uint8_t)nch;
+    } else if (s->arplatch && s->arp_nlatch) {
+        for (i = 0u; i < s->arp_nlatch && i < RI_LEVI_ARP_MAXNOTES; i++)
+            chord[i] = s->arp_latch[i];
+        nch = s->arp_nlatch;
+    }
+    if (nch == 0u) {
+        /* Nothing to play: release last-chord voices, park the clock. */
+        for (i = 0u; i < RI_LEVI_NVOICES; i++) {
+            uint32_t k, hit = 0u;
+            for (k = 0u; k < s->arp_nchord; k++)
+                if (s->v[i].active && s->v[i].note == s->arp_chord[k])
+                    hit = 1u;
+            if (hit)
+                levi_release(s, i);
+        }
+        s->arp_nchord = 0u;
+        s->arp_npend = 0u;
+        s->arp_samp += n;
+        return;
+    }
+    /* Chord change: restart the pattern (and the grid when locked). */
+    {
+        uint32_t same = nch == s->arp_nchord;
+        for (i = 0u; same && i < nch; i++)
+            if (chord[i] != s->arp_chord[i])
+                same = 0u;
+        if (!same) {
+            uint8_t off = (uint8_t)(s->arpstepoff * 15u / 127u);
+            uint8_t save_pos = s->darp.pos;
+            uint32_t save_oct = s->arp_oct, save_cyc = s->arp_pos;
+            for (i = 0u; i < nch; i++)
+                s->arp_chord[i] = chord[i];
+            s->arp_nchord = (uint8_t)nch;
+            s->arp_lcg = (uint32_t)s->arp_samp ^ 0x9E3779B9u;
+            arp_start_chord(s, chord, nch, mode, phrase,
+                s->arpclock ? off : 0u, (uint8_t)len);
+            s->darp.mode = mode;
+            if (s->arpclock) {
+                s->arp_t0 = s->arp_samp;
+                s->arp_k = 0u;
+            } else {
+                /* Free-run: pattern position rides through the change. */
+                s->darp.pos = save_pos;
+                s->arp_oct = save_oct;
+                s->arp_pos = save_cyc;
+            }
+        }
+    }
+    s->darp.mode = mode;
+    s->darp.phrase = phrase;
+    s->darp.uphr = &s->arp_uphr[0][0];
+    /* Division to step duration (sub-audible rate steps nothing). */
+    stepsq = RI_LEVI_ARP_STEPSQ(arp_eff(s, RI_LEVI_DA_DIVISION, s->arprate));
+    if (stepsq == 0u) {
+        s->arp_samp += n;
+        return;
+    }
+    step_dur = sr * 60.0f / (s->tempo_bpm * (float)stepsq);
+    if (!(step_dur >= 1.0f)) {
+        s->arp_samp += n;
+        return;
+    }
+    rats = 1u + (arp_eff(s, RI_LEVI_DA_RATCHET, s->arpratchet) * 3u + 63u) / 127u;
+    /* Fire due strikes (block-granular note-ons; swung strikes wait). */
+    for (;;) {
+        uint64_t at = s->arp_t0 + (uint64_t)((float)s->arp_k * step_dur);
+        uint8_t note = 0u;
+        int rc, sub;
+        uint32_t draw;
+        /* Swing shifts odd strikes by up to half a step. */
+        if ((s->arp_nstr & 1u) && eff_sw)
+            at += (uint64_t)((float)eff_sw / 127.0f * 0.5f * step_dur);
+        if (at >= s->arp_samp + n)
+            break;
+        /* Length wrap restarts the pattern. */
+        if (s->arp_pos >= len) {
+            arp_start_chord(s, chord, nch, mode, phrase, 0u, (uint8_t)len);
+            s->darp.mode = mode;
+        }
+        /* Chance skips the strike (pattern still advances). */
+        draw = arp_lcg_next(s);
+        if ((draw & 127u) < eff_ch) {
+            uint8_t tmp;
+            ri_levi_arp_step(&s->darp, &tmp);
+            s->arp_pos++;
+            s->arp_oct++;
+            s->arp_k++;
+            continue;
+        }
+        rc = ri_levi_arp_step(&s->darp, &note);
+        if (rc != 0) {   /* rest or empty: advance, no strike */
+            s->arp_pos++;
+            s->arp_oct++;
+            s->arp_k++;
+            continue;
+        }
+        /* Octave transpose + entropy leap. */
+        if (octmode == 1u) {
+            uint32_t tr = 12u * (s->arp_oct % octrange);
+            note = tr > 127u - note ? 127u : (uint8_t)(note + tr);
+        } else if (octmode == 2u) {
+            uint32_t tr = 12u * (s->arp_oct % octrange);
+            note = tr > note ? 0u : (uint8_t)(note - tr);
+        }
+        draw = arp_lcg_next(s);
+        if (eff_en && (draw & 255u) < eff_en) {
+            int nn = (int)note + ((draw & 256u) ? 12 : -12);
+            note = (uint8_t)(nn < 0 ? 0 : nn > 127 ? 127 : nn);
+        }
+        /* Strike + ratchet subs (later subs queue for future blocks). */
+        levi_note_strike(s, note);
+        {
+            int32_t sub_per = rats > 1u ? (int32_t)(step_dur / (float)rats) : (int32_t)step_dur;
+            int32_t glen = gatepct >= 100u ? -1 : (int32_t)(gatepct * (uint32_t)(sub_per > 0 ? sub_per : 1) / 100u);
+            arp_arm(s, note, glen);
+            for (sub = 1; sub < (int)rats; sub++) {
+                uint64_t sat = at + (uint64_t)((float)sub * step_dur / (float)rats);
+                if (s->arp_npend < 16u) {
+                    s->arp_pend_at[s->arp_npend] = sat;
+                    s->arp_pend_note[s->arp_npend] = note;
+                    s->arp_pend_off[s->arp_npend] = glen;
+                    s->arp_npend++;
+                }
+            }
+        }
+        s->arp_pos++;
+        s->arp_oct++;
+        s->arp_nstr++;
+        s->arp_k++;
+    }
+    s->arp_samp += n;
 }

@@ -417,8 +417,12 @@ static const struct LeviSlot P_ALGO[5][8] = {
     { { 0 } }, { { 0 } }, { { 0 } }                 /* custom grid pages: see slot() */
 };
 static const struct LeviSlot P_ARP[8] = {
-    { RI_SLEVI_ARPRATE, "DIVISION" }, { SLOT_DEAD, "OCT MODE" }, { SLOT_DEAD, "OCT RANGE" }, { SLOT_DEAD, "GATE" },
-    { SLOT_DEAD, "MODE" }, { SLOT_DEAD, "LENGTH" }, { SLOT_DEAD, "PHRASE" }, { SLOT_DEAD, "TEMPO" }
+    { RI_SLEVI_ARPRATE, "DIVISION" }, { RI_SLEVI_ARPOCTMODE, "OCT MODE" }, { RI_SLEVI_ARPOCTRANGE, "OCT RANGE" }, { RI_SLEVI_ARPGATE, "GATE" },
+    { RI_SLEVI_ARPMODE, "MODE" }, { RI_SLEVI_ARPLEN, "LENGTH" }, { RI_SLEVI_ARPPHRASE, "PHRASE" }, { SLOT_DEAD, "TEMPO" }
+};
+static const struct LeviSlot P_ARP2[8] = {
+    { RI_SLEVI_ARPENTROPY, "ENTROPY" }, { RI_SLEVI_ARPSWING, "SWING" }, { RI_SLEVI_ARPRATCHET, "RATCHET" }, { RI_SLEVI_ARPCHANCE, "CHANCE" },
+    { RI_SLEVI_ARPLATCH, "LATCH" }, { RI_SLEVI_ARPCLOCK, "CLK LOCK" }, { RI_SLEVI_ARPSTEPPOFF, "STEP OFF" }, { SLOT_DEAD, "" }
 };
 static const struct LeviSlot P_SEQ[8] = {
     { RI_SLEVI_SEQLEN, "LENGTH" }, { SLOT_DEAD, "RATE" }, { SLOT_DEAD, "MODE" }, { SLOT_DEAD, "SWING" },
@@ -461,6 +465,7 @@ uint32_t ri_slevi_page_count(const struct RISectLevi *s) {
         : module(s) == RI_SLEVI_M_DFILT || (module(s) >= RI_SLEVI_M_LFO1 && module(s) < RI_SLEVI_M_LFO1 + 5u) ? 2u
         : module(s) == RI_SLEVI_M_VOICE ? 4u
         : module(s) == RI_SLEVI_M_REVERB ? 2u
+        : module(s) == RI_SLEVI_M_ARP ? 2u
         : module(s) == RI_SLEVI_M_MATRIX ? 16u : module(s) == RI_SLEVI_M_MACRO ? 34u : 1u;
 }
 
@@ -522,7 +527,7 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         : m == RI_SLEVI_M_REVERB ? (s->page == 1u ? P_REVERB2 : P_REVERB)
         : m == RI_SLEVI_M_POSTFX ? P_POSTFX
         : (m >= RI_SLEVI_M_LFO1 && m < RI_SLEVI_M_LFO1 + 5u) ? P_LFO[s->page == 1u ? 1u : 0u]
-        : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? P_ARP
+        : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? (s->page == 1u ? P_ARP2 : P_ARP)
         : m == RI_SLEVI_M_SEQ ? P_SEQ
         : m == RI_SLEVI_M_VOICE
         ? (s->page == 3u ? P_VOICE4 : s->page == 2u ? P_VOICE3 : s->page == 1u ? P_VOICE2 : P_VOICE)
@@ -1451,6 +1456,56 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
     if (t == (int)RI_SLEVI_PDRYWET || t == (int)RI_SLEVI_ODRYWET) {
         put_num(buf, cap, s->val[t] * 100 / 127);
         cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPOCTMODE) {
+        static const char *const OM[3] = { "OFF", "UP", "DOWN" };
+        int m = s->val[t];
+        put_str(buf, cap, OM[m >= 0 && m < 3 ? m : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPOCTRANGE) {
+        put_num(buf, cap, 1 + s->val[t] * 3 / 127);
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPGATE) {
+        put_num(buf, cap, 5 + s->val[t] * 145 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPMODE) {
+        static const char *const AM[9] = { "UP", "DOWN", "UPDOWN", "CHORD", "OCTUP", "OCTDOWN",
+            "RANDOM", "ENTROPY", "PHRASE" };
+        int m = s->val[t];
+        put_str(buf, cap, AM[m >= 0 && m < 9 ? m : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPLEN) {
+        put_num(buf, cap, 1 + s->val[t] * 15 / 127);
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPPHRASE) {
+        int v = s->val[t];
+        put_str(buf, cap, v < 64 ? "F" : "U");
+        cat_num(buf, cap, (v % 64) + 1);
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPENTROPY || t == (int)RI_SLEVI_ARPSWING ||
+        t == (int)RI_SLEVI_ARPRATCHET || t == (int)RI_SLEVI_ARPCHANCE) {
+        put_num(buf, cap, s->val[t] * 100 / 127);
+        cat_str(buf, cap, "%");
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPLATCH) {
+        put_str(buf, cap, s->val[t] ? "ON" : "OFF");
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPCLOCK) {
+        put_str(buf, cap, s->val[t] ? "LOCK" : "FREE");
+        return;
+    }
+    if (t == (int)RI_SLEVI_ARPSTEPPOFF) {
+        put_num(buf, cap, s->val[t] * 15 / 127);
         return;
     }
     if (t >= (int)RI_SLEVI_SLOT0 && t < (int)RI_SLEVI_SLOT0 + 8) {
