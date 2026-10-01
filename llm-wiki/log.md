@@ -1612,3 +1612,13 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New; Update (confirms the pri-21 render-task fix held on the device — all 7 tab switches `xruns+0` — and records the two remaining causes, the pri -1 fallback tripping on peaks and the 100 ms tick's blanket repaint; leaves the owner's symptom open pending a redeploy)
 - Raw: llm-wiki/raw/articles/2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-02] ingest | Leviasynth fidelity P9e (transport tap tempo)
+- Disposition: New (continues the P9 record); Update (pins the P9e and skin-fix commit hashes; closes the P9e lane-proof box as deliberately deferred; records the mutation-run lessons and the t92-list-vs-t93-pixel pin distinction)
+- Raw: llm-wiki/raw/articles/2026-10-02-leviasynth-fidelity-p9e-tap-tempo.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-02] ingest | Dell lane: the ABIv1 link gate is not the Dell, and `--get` lies about open files
+- Disposition: New; Update (corrects the standing assumption that a green `scripts/ri_audit.sh` AROS link gate is evidence the change runs on the Dell; corrects the standing assumption that a `--get` on `RAM:RIAPP.LOG` shows current contents)
+- Raw: llm-wiki/raw/articles/2026-10-02-dell-lane-abiv11-build-and-bulkget-staleness.md
+- Updated: llm-wiki/index.md (Lane infrastructure entry list)
