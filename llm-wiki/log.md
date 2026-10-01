@@ -1523,3 +1523,18 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New (corrects the quarantine in the wide-modes/parked-audio record; extends the 09-28 audio-in-qemu record)
 - Raw: llm-wiki/raw/articles/2026-09-30-riqemu1-quarantine-revert-riaudio-sound.md
 - Updated: llm-wiki/index.md (Lane infrastructure entry list)
+
+## [2026-10-01] ingest | Menu hang + tab-switch artifacts: load governor and damage-box fix
+- Disposition: New (follows the songs & playlists record)
+- Raw: llm-wiki/raw/articles/2026-10-01-menu-hang-tab-artifacts-load-governor.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P6c + P6d (voice complete)
+- Disposition: New (continues the P6a + P6b phase record)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p6c-p6d.md
+- Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-01] ingest | Leviasynth fidelity P7a (device delay)
+- Disposition: New (starts the P7 FX record)
+- Raw: llm-wiki/raw/articles/2026-10-01-leviasynth-fidelity-p7a-delay.md
+- Updated: llm-wiki/index.md (Live app entry list)
