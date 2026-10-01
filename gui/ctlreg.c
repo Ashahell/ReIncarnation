@@ -492,6 +492,15 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 218, KNOB, "Analog", "A Polyat", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_APAT, 0),
     R(LEVI, 219, KNOB, "VCA", "V Vel", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VVEL, 0),
     R(LEVI, 220, KNOB, "VCA", "V Polyat", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VPAT, 0),
+    /* Keyboard zones (fidelity P9c): the PERFORMANCE page. Device-wide,
+     * so the section-wide 0x0E loop applies them (the setter is
+     * idempotent per voice). The split key has no row yet: it arrives
+     * with the zone patches (P10). */
+    R(LEVI, 221, KNOB, "Performance", "Octave", 0, 4, 2, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PFOCT, 0),
+    R(LEVI, 222, SELECTOR, "Performance", "Mode", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PFMODE, 0),
+    R(LEVI, 223, SELECTOR, "Performance", "Select", 0, 2, 2, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PFSEL, 0),
+    R(LEVI, 224, SELECTOR, "Performance", "Split", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PFSPLIT, 0),
+    R(LEVI, 225, KNOB, "Performance", "Balance", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_PFBAL, 0),
     /* LFO step editor gate (fidelity P8e): panel-only page switch, the
      * editor slots themselves carry RI_LEVI_LSKEYs. */
     R(LEVI, 214, SWITCH, "Lfo", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

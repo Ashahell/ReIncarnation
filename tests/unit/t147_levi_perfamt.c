@@ -459,9 +459,10 @@ int main(void) {
                 !strcmp(d->legend, LEG[k]), "row %u group/legend/bind", 215u + k);
             RI_ASSERT(ri_auto_allowed((uint16_t)KEY[k]), "key %04x allowed", KEY[k]);
         }
-        RI_ASSERT(ri_auto_allowed(0x0EC4u) && !ri_auto_allowed(0x0EC5u), "0x0EC5 refused");
-        RI_ASSERT(RI_SLEVI_DVEL == 215u && RI_SLEVI_VPAT == 220u && RI_SLEVI_NCTL == 221u,
-            "panel rows");
+        RI_ASSERT(ri_auto_allowed(0x0EC4u), "0x0EC4 allowed");
+        RI_ASSERT(!ri_auto_allowed(0x0EC5u) == 0, "0x0EC5 is the first zone key (P9c)");
+        RI_ASSERT(RI_SLEVI_DVEL == 215u && RI_SLEVI_VPAT == 220u && RI_SLEVI_NCTL == 226u,
+            "panel rows (225 + the zone page, P9c)");
     }
     {
         struct RISectLevi lv;

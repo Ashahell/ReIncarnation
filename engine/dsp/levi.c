@@ -963,6 +963,7 @@ void levi_init_set(struct RILeviSet *s) {
         v->padm2[0] = v->padm2[1] = 0u;
         v->cutoff = RI_LEVI_DEF_CUTOFF;
         v->reso = RI_LEVI_DEF_RESO;
+        v->zgain = 1.0f;                    /* zone layer gain (P9c) */
         v->level = 1.0f;
         v->drive = 0.0f;
         v->cutoff2 = RI_LEVI_DEF_CUTOFF;
@@ -1136,6 +1137,15 @@ void levi_init_set(struct RILeviSet *s) {
     memset(s->pat, 0, sizeof s->pat);
     s->psigpad = 0u;
     s->bend = 0.0f;
+    /* Keyboard zones (fidelity P9c): Single at the centre octave, the
+     * balance even, the split key at middle C, no pending layer gain. */
+    s->p_mode = RI_LEVI_PF_SINGLE;
+    s->p_sel = RI_LEVI_PF_BOTH;
+    s->p_split = RI_LEVI_PF_DUAL;
+    s->p_oct = 0u;
+    s->p_bal = 64u;
+    s->p_splitkey = 60u;
+    s->p_zgain = 1.0f;
     s->seqon = 0u;
     s->seqlen = 16u;
     ri_levi_matrix_init(&s->mx);
@@ -1643,6 +1653,7 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
      * drops the old key's pressure (its slot is the new key's). */
     v->nvel = s->pvel;
     v->nveloff = s->pvel;
+    v->zgain = s->p_zgain;      /* zone layer gain (P9c); 1.0f on the song path */
     s->pat[voice] = 0u;
     note = voice_quantize(v, note);   /* key lock (P6c; identity off/chromatic) */
     f = note_hz(note) * voice_micro_mult(v, note);
@@ -1830,9 +1841,9 @@ uint32_t levi_alloc_mode(const struct RILeviSet *s) {
     return s ? s->polymode : 0u;
 }
 
-/* Allocator core (fidelity P6a; P8b adds the hold flag so arp strikes
- * reuse the policy without joining the held chord). */
-static int note_on_core(struct RILeviSet *s, uint8_t note, int hold) {
+/* Allocator body (fidelity P6a): the poly-mode policy, no hold list, no
+ * zone routing. note_on_core below wraps it (P9c). */
+static int note_on_body(struct RILeviSet *s, uint8_t note) {
     uint32_t v, n = 0u;
     uint32_t mode, dens, lim;
     if (!s || note > 127u)
@@ -1840,8 +1851,6 @@ static int note_on_core(struct RILeviSet *s, uint8_t note, int hold) {
     mode = s->polymode;
     dens = s->udensity < 1u ? 1u : s->udensity > 8u ? 8u : s->udensity;
     lim = s->ulimit < 1u ? 1u : s->ulimit > RI_LEVI_NVOICES ? RI_LEVI_NVOICES : s->ulimit;
-    if (hold)
-        alloc_hold_add(s, note);
     switch (mode) {
     case RI_LEVI_POLY_MONO:
     case RI_LEVI_POLY_MONOLO:
@@ -1905,6 +1914,86 @@ static int note_on_core(struct RILeviSet *s, uint8_t note, int hold) {
     }
 }
 
+/* ---- Keyboard zones (fidelity P9c; own laws) ----
+ *
+ * The octave bias moves the note the zone plays; the layer gains sum to 2
+ * so a two-layer note is one layer louder than a single note at any
+ * balance. A layer at gain 0 is muted but still takes its voice. */
+static uint8_t perf_note(const struct RILeviSet *s, uint8_t note) {
+    int n = (int)note + 12 * (int)s->p_oct;
+    return (uint8_t)(n < 0 ? 0 : n > 127 ? 127 : n);
+}
+
+/* A release and per-key pressure arrive on the played key: the voice may
+ * hold the biased note, and the bias may have moved since (a knob turn
+ * while a key is held must not leave a stuck voice). */
+static int note_held_by(const struct RILeviSet *s, uint32_t vnote, uint8_t played) {
+    return vnote == played || vnote == perf_note(s, played);
+}
+
+int levi_perf_set(struct RILeviSet *s, uint32_t field, int val) {
+    if (!s || field >= RI_LEVI_PF_NFIELDS)
+        return 2;
+    switch (field) {
+    case RI_LEVI_PF_OCT:
+        s->p_oct = (int8_t)(val < 0 ? -2 : val > 4 ? 2 : val - 2);
+        return 0;
+    case RI_LEVI_PF_MODE:
+        s->p_mode = (uint8_t)(val != 0 ? RI_LEVI_PF_MULTI : RI_LEVI_PF_SINGLE);
+        return 0;
+    case RI_LEVI_PF_SELECT:
+        s->p_sel = (uint8_t)(val < 0 ? RI_LEVI_PF_LOWER : val > 2 ? RI_LEVI_PF_BOTH : (uint32_t)val);
+        return 0;
+    case RI_LEVI_PF_SPLITM:
+        s->p_split = (uint8_t)(val != 0 ? RI_LEVI_PF_KEYSPLIT : RI_LEVI_PF_DUAL);
+        return 0;
+    case RI_LEVI_PF_BALANCE:
+        s->p_bal = (uint8_t)(val < 0 ? 0 : val > 127 ? 127 : val);
+        return 0;
+    default: /* RI_LEVI_PF_SPLITKEY */
+        s->p_splitkey = (uint8_t)(val < 0 ? 0 : val > 127 ? 127 : val);
+        return 0;
+    }
+}
+
+/* Fire one layer: the pending gain rides into the voice at the trigger and
+ * never outlives the fire, so a song lane triggered later is at unity. */
+static int zone_fire(struct RILeviSet *s, uint8_t note, float gain) {
+    int n;
+    s->p_zgain = gain;
+    n = note_on_body(s, note);
+    s->p_zgain = 1.0f;
+    return n;
+}
+
+/* Allocator core: the hold list keeps the *played* note (the arp chord is
+ * the played chord and the bias is applied once, at the strike), the zone
+ * routing then offers the shifted note to the layers. */
+static int note_on_core(struct RILeviSet *s, uint8_t note, int hold) {
+    float gu, gl;
+    int n, nl;
+    if (!s || note > 127u)
+        return -1;
+    if (hold)
+        alloc_hold_add(s, note);
+    note = perf_note(s, note);
+    if (s->p_mode == RI_LEVI_PF_SINGLE)            /* one layer, unity */
+        return zone_fire(s, note, 1.0f);
+    gu = (float)s->p_bal / 64.0f;
+    gl = 2.0f - gu;
+    if (s->p_split == RI_LEVI_PF_DUAL) {           /* both layers, always */
+        n = zone_fire(s, note, gl);              /* lower first, then upper */
+        nl = zone_fire(s, note, gu);
+        return n + nl;
+    }
+    /* Key split: SELECT decides, BOTH lets the split key decide. */
+    if (s->p_sel == RI_LEVI_PF_BOTH)
+        n = zone_fire(s, note, note < s->p_splitkey ? gl : gu);
+    else
+        n = zone_fire(s, note, s->p_sel == RI_LEVI_PF_UPPER ? gu : gl);
+    return n;
+}
+
 int levi_note_on(struct RILeviSet *s, uint8_t note) {
     if (!s || note > 127u)
         return -1;
@@ -1940,8 +2029,8 @@ int levi_polyat(struct RILeviSet *s, uint8_t note, uint8_t press) {
     if (press > 127u)
         press = 127u;
     for (v = 0u; v < RI_LEVI_NVOICES; v++)
-        if (s->v[v].active && s->v[v].note == note)
-            s->pat[v] = press;
+        if (s->v[v].active && note_held_by(s, s->v[v].note, note))
+            s->pat[v] = press;   /* the played key, bias included (P9c) */
     return 0;
 }
 
@@ -1974,7 +2063,7 @@ int levi_arp_release_note(struct RILeviSet *s, uint8_t note) {
     if (!s || note > 127u)
         return -1;
     for (v = 0u; v < RI_LEVI_NVOICES; v++)
-        if (s->v[v].active && s->v[v].note == note)
+        if (s->v[v].active && note_held_by(s, s->v[v].note, note))
             levi_release(s, v);
     return 1;
 }
@@ -2009,7 +2098,7 @@ int levi_note_off(struct RILeviSet *s, uint8_t note) {
         return 1;
     }
     for (v = 0u; v < RI_LEVI_NVOICES; v++)
-        if (s->v[v].active && s->v[v].note == note) {
+        if (s->v[v].active && note_held_by(s, s->v[v].note, note)) {
             s->v[v].nveloff = s->rvel;   /* release velocity (P9a) */
             levi_release(s, v);
         }
@@ -2712,6 +2801,21 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
         else
             s->v[voice].vpat = a;
         return 0;
+    }
+    case (RI_CTL_LEVI_PFOCT & 0xFFu): case (RI_CTL_LEVI_PFMODE & 0xFFu):
+    case (RI_CTL_LEVI_PFSEL & 0xFFu): case (RI_CTL_LEVI_PFSPLIT & 0xFFu):
+    case (RI_CTL_LEVI_PFBAL & 0xFFu): {
+        /* Keyboard zones (fidelity P9c): device-wide fields, so the
+         * voice index is ignored and the section-wide 0x0E loop is
+         * idempotent (the same value eight times). */
+        static const uint32_t FIELD[5] = { RI_LEVI_PF_OCT, RI_LEVI_PF_MODE,
+            RI_LEVI_PF_SELECT, RI_LEVI_PF_SPLITM, RI_LEVI_PF_BALANCE };
+        uint32_t i;
+        uint32_t base = RI_CTL_LEVI_PFOCT & 0xFFu;
+        for (i = 0u; i < 5u; i++)
+            if (id == base + i)
+                return levi_perf_set(s, FIELD[i], (int)val);
+        return 2;
     }
     case (RI_CTL_LEVI_MKNOB0 & 0xFFu): case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 1u:
     case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 2u: case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 3u:
@@ -3558,6 +3662,8 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
             if (amp < 0.0f)
                 amp = 0.0f;
         }
+        if (v->zgain != 1.0f)                      /* zone layer gain (P9c) */
+            amp *= v->zgain;
     }
     if (!(outL > -1e20f && outL < 1e20f) || !(outR > -1e20f && outR < 1e20f)) {
         filt_clear(v);
@@ -3697,6 +3803,8 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
             if (amp < 0.0f)
                 amp = 0.0f;
         }
+        if (v->zgain != 1.0f)                      /* zone layer gain (P9c) */
+            amp *= v->zgain;
     }
     if (!(out > -1e20f && out < 1e20f)) {
         /* Non-finite latch guard (Dell 2026-09-28): a poisoned filter

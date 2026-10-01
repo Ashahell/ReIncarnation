@@ -372,6 +372,9 @@ struct RILeviVoice {
     /* Performance amounts (fidelity P9b): velocity is read bipolar about
      * mid, per-key pressure unipolar, both scaled by these -1..+1. */
     float dvel, dpat, avel, apat, vvel, vpat;
+    /* Zone layer gain (fidelity P9c): stamped at the fire from the set's
+     * pending gain, 1.0f outside a zone fire (the song path and Single). */
+    float zgain;
     /* Matrix / macro modulation of oscillator and envelope params (P5b):
      * RI_LEVI_DO_* per oscillator, RI_LEVI_DE_* per ENV 1-5; -1..1. */
     float opm[RI_LEVI_NOPS][RI_LEVI_DO_N];
@@ -603,6 +606,14 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_APAT 0x0EC2u
 #define RI_CTL_LEVI_VVEL 0x0EC3u
 #define RI_CTL_LEVI_VPAT 0x0EC4u
+/* Keyboard zones (fidelity P9c): device-wide rows, applied by the
+ * allocator. OCT 0..4 (2 = centre), MODE SINGLE/MULTI, SELECT
+ * LOWER/UPPER/BOTH, SPLIT DUAL/KEYSPLIT, BALANCE 0..127 (64 = even). */
+#define RI_CTL_LEVI_PFOCT 0x0EC5u
+#define RI_CTL_LEVI_PFMODE 0x0EC6u
+#define RI_CTL_LEVI_PFSEL 0x0EC7u
+#define RI_CTL_LEVI_PFSPLIT 0x0EC8u
+#define RI_CTL_LEVI_PFBAL 0x0EC9u
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u
@@ -751,6 +762,15 @@ struct RILeviSet {
     uint8_t pat[RI_LEVI_NVOICES]; /* per-key aftertouch per voice slot */
     uint8_t psigpad;
     float bend;      /* pitch bend, semitones, clamped +/-24 */
+    /* Keyboard zones (fidelity P9c): device-wide, applied by the
+     * allocator. The song path (levi_trigger) never reads them. */
+    uint8_t p_mode;     /* RI_LEVI_PF_SINGLE / _MULTI */
+    uint8_t p_sel;      /* _LOWER / _UPPER / _BOTH (KEYSPLIT) */
+    uint8_t p_split;    /* _DUAL / _KEYSPLIT */
+    int8_t p_oct;       /* octave bias, octaves, stored -2..+2 */
+    uint8_t p_bal;      /* layer balance 0..127 (64 = both unity) */
+    uint8_t p_splitkey; /* key split boundary 0..127 */
+    float p_zgain;      /* pending layer gain for the next fire (1.0f) */
     uint8_t bias[4];        /* env level, attack, decay, release; 64 = 0 (voices hold the floats) */
     struct RILeviLFO glfo[RI_LEVI_NLFO]; /* shared LFOs (trig sync single / off, P5) */
     uint8_t lsc[RI_LEVI_NLFO];           /* step editor cursor per LFO (P8e) */
@@ -798,6 +818,26 @@ int levi_press(struct RILeviSet *s, uint8_t press);
 int levi_polyat(struct RILeviSet *s, uint8_t note, uint8_t press);
 int levi_wheel(struct RILeviSet *s, uint8_t val);
 int levi_bend(struct RILeviSet *s, float semis);
+/* Keyboard zones (fidelity P9c): one device-wide setter behind the five
+ * panel rows and the stored split key. field = RI_LEVI_PF_*, val clamped
+ * to the field (never refused), 0 ok / 2 on NULL or unknown field.
+ * OCT takes the UI 0..4 with 2 = centre and stores the bias in -2..+2;
+ * BALANCE is the layer crossfade (gUpper = bal/64, gLower = 2 - that). */
+int levi_perf_set(struct RILeviSet *s, uint32_t field, int val);
+#define RI_LEVI_PF_OCT 0u
+#define RI_LEVI_PF_MODE 1u
+#define RI_LEVI_PF_SELECT 2u
+#define RI_LEVI_PF_SPLITM 3u
+#define RI_LEVI_PF_BALANCE 4u
+#define RI_LEVI_PF_SPLITKEY 5u
+#define RI_LEVI_PF_NFIELDS 6u
+#define RI_LEVI_PF_SINGLE 0u
+#define RI_LEVI_PF_MULTI 1u
+#define RI_LEVI_PF_LOWER 0u
+#define RI_LEVI_PF_UPPER 1u
+#define RI_LEVI_PF_BOTH 2u
+#define RI_LEVI_PF_DUAL 0u
+#define RI_LEVI_PF_KEYSPLIT 1u
 /* Arp strike: allocator policy without held-list insert (P8b); returns
  * voices fired, -1 bad. Release: voices sounding the note, no held
  * removal, no mode re-fire. */

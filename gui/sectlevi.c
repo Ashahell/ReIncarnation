@@ -464,6 +464,13 @@ static const struct LeviSlot P_RIBBON[8] = {
     { RI_SLEVI_RBNMODE, "MODE" }, { RI_SLEVI_RBNPOS, "POS" }, { RI_SLEVI_RBNTOUCH, "TOUCH" }, { SLOT_DEAD, "" },
     { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }
 };
+/* Keyboard zones (fidelity P9c): the PERFORMANCE page. Select/Split/Balance
+ * dim in Single and Select dims in Dual (slot() applies the mode law). */
+static const struct LeviSlot P_PERF[8] = {
+    { RI_SLEVI_PFOCT, "OCTAVE" }, { RI_SLEVI_PFMODE, "MODE" }, { RI_SLEVI_PFSEL, "SELECT" },
+    { RI_SLEVI_PFSPLIT, "SPLIT" }, { RI_SLEVI_PFBAL, "BALANCE" }, { SLOT_DEAD, "" },
+    { SLOT_DEAD, "" }, { SLOT_DEAD, "" }
+};
 static const struct LeviSlot P_VOICE[8] = {
     { RI_SLEVI_POLYMODE, "POLYPHONY" }, { RI_SLEVI_UDENSITY, "DENSITY" }, { RI_SLEVI_ULIMIT, "LIMIT" }, { RI_SLEVI_VDETUNE, "DETUNE" },
     { RI_SLEVI_VAFEEL, "ANALOG FL" }, { RI_SLEVI_VRNDPH, "RND PHASE" }, { RI_SLEVI_VPAN, "PAN" }, { RI_SLEVI_VWIDTH, "WIDTH" }
@@ -568,6 +575,7 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         : m == RI_SLEVI_M_ALGO ? P_ALGO[s->page < 2u ? s->page : 0u] : m == RI_SLEVI_M_ARP ? (s->page == 1u ? P_ARP2 : P_ARP)
         : m == RI_SLEVI_M_SEQ ? (s->page == 1u ? P_SEQ2 : P_SEQ)
         : m == RI_SLEVI_M_RIBBON ? P_RIBBON
+        : m == RI_SLEVI_M_PERF ? P_PERF
         : m == RI_SLEVI_M_VOICE
         ? (s->page == 3u ? P_VOICE4 : s->page == 2u ? P_VOICE3 : s->page == 1u ? P_VOICE2 : P_VOICE)
         : P_VOICE;
@@ -592,6 +600,17 @@ static int slot(const struct RISectLevi *s, uint32_t k, const char **name) {
         return SLOT_DEAD;
     if (p[k].idx == (int)RI_SLEVI_DPOST && dtype_morphs(s))
         return SLOT_DEAD;
+    if (m == RI_SLEVI_M_PERF) {          /* zone mode law (P9c): the rows that
+         * do nothing in this mode draw dim, names and all */
+        if (s->val[RI_SLEVI_PFMODE] == RI_LEVI_PF_SINGLE) {
+            if (p[k].idx == (int)RI_SLEVI_PFSEL || p[k].idx == (int)RI_SLEVI_PFSPLIT ||
+                p[k].idx == (int)RI_SLEVI_PFBAL)
+                return SLOT_DEAD;
+        } else if (p[k].idx == (int)RI_SLEVI_PFSEL &&
+                   s->val[RI_SLEVI_PFSPLIT] == RI_LEVI_PF_DUAL) {
+            return SLOT_DEAD;           /* Dual sounds both layers: Select is moot */
+        }
+    }
     if (SLOT_IS_LF(p[k].idx)) {                     /* p. 77: conditional LFO params */
         const uint8_t *u = s->lfv[(m - RI_SLEVI_M_LFO1) % RI_LEVI_NLFO];
         if ((p[k].idx == SLOT_LF(RI_LEVI_LP_STEPS) && u[RI_LEVI_LP_WAVE] != RI_LEVI_LW_STEP &&
@@ -769,12 +788,21 @@ int ri_slevi_ctl_key(const struct RISectLevi *s, uint32_t idx, uint16_t *key, in
 
 int ri_slevi_page_reaches(uint32_t idx) {
     static const uint8_t DT[2] = { RI_LEVI_DF_LP_12, RI_LEVI_DF_VOWEL };   /* model-dependent slots */
+    /* Zone mode law (P9c): a row dimmed in the panel's default mode is
+     * still reachable -- the question is whether any state shows it. */
+    static const uint8_t ZONE[3][2] = {
+        { RI_LEVI_PF_SINGLE, RI_LEVI_PF_DUAL }, { RI_LEVI_PF_MULTI, RI_LEVI_PF_DUAL },
+        { RI_LEVI_PF_MULTI, RI_LEVI_PF_KEYSPLIT }
+    };
     struct RISectLevi t;
-    uint32_t m, k, pg, d;
+    uint32_t m, k, pg, d, z;
     ri_slevi_init(&t);
     for (d = 0u; d < 2u; d++)
+    for (z = 0u; z < 3u; z++)
     for (m = 0u; m < RI_SLEVI_NMOD; m++) {
         t.val[RI_SLEVI_DTYPE] = (int16_t)DT[d];
+        t.val[RI_SLEVI_PFMODE] = (int16_t)ZONE[z][0];
+        t.val[RI_SLEVI_PFSPLIT] = (int16_t)ZONE[z][1];
         t.val[RI_SLEVI_MODULE] = (int16_t)m;
         for (pg = 0u; pg < 5u; pg++) {
             t.page = (uint8_t)pg;
@@ -808,7 +836,7 @@ const char *ri_slevi_page_title(const struct RISectLevi *s) {
         "GROUP: SUSTAIN", "GROUP: RELEASE", "ENV 1", "ENV 2", "ENV 3", "ENV 4", "ENV 5",
         "DIGITAL FILTER", "ANALOG FILTER", "VCA", "PRE-FX", "DELAY", "REVERB", "POST-FX",
         "LFO 1", "LFO 2", "LFO 3", "LFO 4", "LFO 5", "ALGORITHM", "ARPEGGIATOR", "SEQUENCER",
-        "MOD MATRIX", "VOICE", "MACRO ASSIGN", "RIBBON"
+        "MOD MATRIX", "VOICE", "MACRO ASSIGN", "RIBBON", "PERFORMANCE"
     };
     static const char *const OSC_PG[RI_LEVI_NOPS][5] = {
         { "OSC 1  1/5", "OSC 1  2/5", "OSC 1  3/5", "OSC 1  4/5", "OSC 1  5/5" },
@@ -1207,6 +1235,39 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
         if (s->val[t] > 64)
             put_str(buf, cap, "+");
         cat_num(buf, cap, s->val[t] - 64);
+        return;
+    }
+    /* Keyboard zones (fidelity P9c): the octave reads its bias, the
+     * balance is centre-detented so it stays readable. */
+    if (t == (int)RI_SLEVI_PFOCT) {
+        int o = s->val[t] - 2;
+        if (o > 0)
+            put_str(buf, cap, "+");
+        cat_num(buf, cap, o);              /* its own sign, appended */
+        return;
+    }
+    if (t == (int)RI_SLEVI_PFMODE) {
+        put_str(buf, cap, s->val[t] ? "MULTI" : "SINGLE");
+        return;
+    }
+    if (t == (int)RI_SLEVI_PFSEL) {
+        static const char *const SEL[3] = { "LOWER", "UPPER", "BOTH" };
+        int v = s->val[t];
+        put_str(buf, cap, SEL[v >= 0 && v < 3 ? v : 0]);
+        return;
+    }
+    if (t == (int)RI_SLEVI_PFSPLIT) {
+        put_str(buf, cap, s->val[t] ? "KEY SPLIT" : "DUAL");
+        return;
+    }
+    if (t == (int)RI_SLEVI_PFBAL) {
+        int d = s->val[t] - 64;
+        if (d == 0) {
+            put_str(buf, cap, "MID");
+            return;
+        }
+        put_str(buf, cap, d > 0 ? "+" : "-");
+        cat_num(buf, cap, d < 0 ? -d : d);
         return;
     }
     if (t == (int)RI_SLEVI_DLEVEL || t == (int)RI_SLEVI_OSCLVL || t == (int)RI_SLEVI_VCALVL ||

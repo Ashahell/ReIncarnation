@@ -272,7 +272,7 @@ int main(void) {
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_DLYTYPE), "dtype allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_DBYPASS), "dbypass allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_DLYBPM), "dbpm allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0EC5u), "0x0EC5 refused (P9b)");
+    RI_ASSERT(!ri_auto_allowed(0x0ECAu), "0x0ECA refused (P9c)");
     {
         const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | RI_SLEVI_FXDLY));
         RI_ASSERT(d && d->engine_id == RI_CTL_LEVI_DBYPASS, "fxdly binds bypass");
