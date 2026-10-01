@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 215u
+#define RI_SLEVI_NCTL 221u
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -180,6 +180,14 @@
 /* LFO step editor (fidelity P8e): 214 is the panel-only page gate (the
  * editor slots carry RI_LEVI_LSKEYs, not registry rows). */
 #define RI_SLEVI_LFEDIT 214u
+/* Performance amounts (fidelity P9b): 215..220, the dim VEL>ENV / POLYAT
+ * slots P5 already drew on the two filter pages and the VCA page. */
+#define RI_SLEVI_DVEL 215u
+#define RI_SLEVI_DPAT 216u
+#define RI_SLEVI_AVEL 217u
+#define RI_SLEVI_APAT 218u
+#define RI_SLEVI_VVEL 219u
+#define RI_SLEVI_VPAT 220u
 /* Modules (page ids): OSC n (with opsel), the Oscillator Group Edit
  * keys, the MODULE SELECT chain, and the Algo/Arp/Seq/Matrix/Voice
  * pages behind their own buttons. */

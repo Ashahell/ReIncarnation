@@ -562,7 +562,13 @@ int levi_set_menv_ui(struct RILeviSet *s, uint32_t voice, uint32_t env, uint32_t
     }
     if (param == RI_LEVI_ME_LEVEL)
         v->melevel[env] = (float)v->meui[env][param] / 127.0f;
-    else if (param >= RI_LEVI_OP_DELAY && param <= RI_LEVI_OP_FREERUN)
+    else if (param == RI_LEVI_ME_VELCRV) {         /* P9b: bipolar curve */
+        v->mvelcrv[env] = ((float)v->meui[env][param] - 64.0f) / 63.0f;
+        if (v->mvelcrv[env] < -1.0f)
+            v->mvelcrv[env] = -1.0f;
+        else if (v->mvelcrv[env] > 1.0f)
+            v->mvelcrv[env] = 1.0f;
+    } else if (param >= RI_LEVI_OP_DELAY && param <= RI_LEVI_OP_FREERUN)
         env_ui_apply(&v->menv[env], v->meui[env], param);
     return 0;
 }
@@ -570,11 +576,21 @@ int levi_set_menv_ui(struct RILeviSet *s, uint32_t voice, uint32_t env, uint32_t
 float levi_menv_value(const struct RILeviVoice *v, uint32_t env) {
     if (!v || env >= RI_LEVI_NMENV)
         return 0.0f;
-    if (v->melmod[env] != 0.0f) {
-        float l = v->melevel[env] + v->melmod[env];
-        return env_out(&v->menv[env]) * (l < 0.0f ? 0.0f : l > 1.0f ? 1.0f : l);
+    {
+        float out;
+        if (v->melmod[env] != 0.0f) {
+            float l = v->melevel[env] + v->melmod[env];
+            out = env_out(&v->menv[env]) * (l < 0.0f ? 0.0f : l > 1.0f ? 1.0f : l);
+        } else
+            out = env_out(&v->menv[env]) * v->melevel[env];
+        /* VEL CRV (P9b): a velocity curve on the envelope value, read the
+         * same way by the ENV matrix source (which calls this). */
+        if (v->mvelcrv[env] != 0.0f) {
+            float g = 1.0f + v->mvelcrv[env] * (2.0f * v->vel01 - 1.0f);
+            out *= g < 0.0f ? 0.0f : g;
+        }
+        return out;
     }
-    return env_out(&v->menv[env]) * v->melevel[env];
 }
 
 /* Recompute an op's derived values after a UI change; env params go
@@ -614,6 +630,7 @@ static void op_apply(struct RILeviVoice *v, uint32_t o, uint32_t p) {
     }
     case RI_LEVI_OP_INIT: op->init = (float)u[p] / 127.0f; break;
     case RI_LEVI_OP_ENVL: op->envl = u[p] >= 127u ? 1.0f : ((float)u[p] - 64.0f) * 2.0f / 128.0f; break;
+    case RI_LEVI_OP_VELENV: op->venv = (float)u[p] / 127.0f; break;   /* P9b */
     case RI_LEVI_OP_FEEDBACK: op->fb = (float)u[p] / 127.0f; break;
     case RI_LEVI_OP_KEYTRK: op->kt = ((float)u[p] - 64.0f) / 32.0f; break;
     case RI_LEVI_OP_PHASE: op->phase0 = (float)u[p] / 128.0f; break;
@@ -903,6 +920,7 @@ void levi_init_set(struct RILeviSet *s) {
             op->hz = 0.0f;
             op->init = 0.0f;
             op->envl = o == 0u ? 1.0f : 0.125f;   /* v1: carrier full, modulator index 0.5 */
+            op->venv = 0.0f;
             op->fb = 0.0f;
             op->kt = 1.0f;
             op->phase0 = 0.0f;
@@ -973,10 +991,12 @@ void levi_init_set(struct RILeviSet *s) {
             for (pp = RI_LEVI_OP_DELAY; pp <= RI_LEVI_OP_FREERUN; pp++)
                 env_ui_apply(&v->menv[o], v->meui[o], pp);
             v->melevel[o] = 1.0f;
+            v->mvelcrv[o] = 0.0f;
         }
         v->melfo = 0u;
         v->mepad[0] = v->mepad[1] = 0u;
         v->denv = v->aenv = v->vinit = 0.0f;
+        v->dvel = v->dpat = v->avel = v->apat = v->vvel = v->vpat = 0.0f;
         v->vdetune = v->vafeel = v->vrndph = 0.0f;
         v->vpan = 0.0f;
         v->vwidth = 0.5f;
@@ -2670,6 +2690,29 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
             s->v[voice].aenv = a;
         return 0;
     }
+    case (RI_CTL_LEVI_DVEL & 0xFFu): case (RI_CTL_LEVI_DPAT & 0xFFu):
+    case (RI_CTL_LEVI_AVEL & 0xFFu): case (RI_CTL_LEVI_APAT & 0xFFu):
+    case (RI_CTL_LEVI_VVEL & 0xFFu): case (RI_CTL_LEVI_VPAT & 0xFFu): {
+        /* Performance amounts (fidelity P9b): the P5 ENV-amount scale,
+         * UI 64 = none. Velocity reads bipolar about mid, pressure
+         * unipolar (the caller returns it to 0). */
+        float a = ((float)(val > 127u ? 127u : val) - 64.0f) / 63.0f;
+        if (a < -1.0f)
+            a = -1.0f;
+        if (id == (RI_CTL_LEVI_DVEL & 0xFFu))
+            s->v[voice].dvel = a;
+        else if (id == (RI_CTL_LEVI_DPAT & 0xFFu))
+            s->v[voice].dpat = a;
+        else if (id == (RI_CTL_LEVI_AVEL & 0xFFu))
+            s->v[voice].avel = a;
+        else if (id == (RI_CTL_LEVI_APAT & 0xFFu))
+            s->v[voice].apat = a;
+        else if (id == (RI_CTL_LEVI_VVEL & 0xFFu))
+            s->v[voice].vvel = a;
+        else
+            s->v[voice].vpat = a;
+        return 0;
+    }
     case (RI_CTL_LEVI_MKNOB0 & 0xFFu): case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 1u:
     case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 2u: case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 3u:
     case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 4u: case (RI_CTL_LEVI_MKNOB0 & 0xFFu) + 5u:
@@ -3024,10 +3067,17 @@ static float voice_pass(struct RILeviVoice *v, uint32_t bank, float sr,
         osc = ri_levi_wave(wave, ph, fq / sr);
         if (p->invert)
             osc = -osc;
-        if (m)
-            amp = p->init + m[RI_LEVI_DO_INIT] + (p->envl + 2.0f * m[RI_LEVI_DO_ENVL] + v->bias_envl) * env_out(&o->env);
-        else
-            amp = p->init + (p->envl + v->bias_envl) * env_out(&o->env);
+        {
+            /* VEL > ENV (P9b): the depth scales the envelope *level* term
+             * only, about mid velocity (depth 0..1); never INIT or BIAS. */
+            float envl = p->venv != 0.0f ?
+                p->envl * (1.0f + p->venv * (2.0f * v->vel01 - 1.0f)) : p->envl;
+            if (m)
+                amp = p->init + m[RI_LEVI_DO_INIT] +
+                    (envl + 2.0f * m[RI_LEVI_DO_ENVL] + v->bias_envl) * env_out(&o->env);
+            else
+                amp = p->init + (envl + v->bias_envl) * env_out(&o->env);
+        }
         if (amp < 0.0f)
             amp = 0.0f;
         if (amp > 1.0f)
@@ -3485,6 +3535,13 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
             dc *= ri_pow2(8.0f * edenv * levi_menv_value(v, 0u));
         if (eaenv != 0.0f)                             /* ENV 2 > analog */
             ac *= ri_pow2(8.0f * eaenv * levi_menv_value(v, 1u));
+        {                                               /* P9b amounts */
+            float velb = 2.0f * v->vel01 - 1.0f;
+            if (v->dvel != 0.0f || v->dpat != 0.0f)
+                dc *= ri_pow2(8.0f * (v->dvel * velb + v->dpat * v->pat01));
+            if (v->avel != 0.0f || v->apat != 0.0f)
+                ac *= ri_pow2(8.0f * (v->avel * velb + v->apat * v->pat01));
+        }
         dc = dc < 20.0f ? 20.0f : dc > 20000.0f ? 20000.0f : dc;
         ac = ac < 20.0f ? 20.0f : ac > 20000.0f ? 20000.0f : ac;
         v->dmorph = (uint8_t)(edm < 0.0f ? 0.0f : edm > 127.0f ? 127.0f : edm + 0.5f);
@@ -3492,6 +3549,10 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
         outR = voice_chain(v, v->dfR, v->afR, mixR, sr, dc, ac, ereso, eareso, edrive, edlevel);
         v->dmorph = dmsave;
         amp = v->vcalvl * (v->vinit + (1.0f - v->vinit) * levi_menv_value(v, 2u));
+        if (v->vvel != 0.0f || v->vpat != 0.0f) {  /* VCA > velocity / polyat */
+            float g = 1.0f + v->vvel * (2.0f * v->vel01 - 1.0f) + v->vpat * v->pat01;
+            amp *= g < 0.0f ? 0.0f : g;
+        }
         if (lfo_on && evlfo != 0.0f) {
             amp *= 1.0f + evlfo * lfo5[2];
             if (amp < 0.0f)
@@ -3613,6 +3674,13 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
             dc *= ri_pow2(8.0f * edenv * levi_menv_value(v, 0u));
         if (eaenv != 0.0f)                             /* ENV 2 > analog */
             ac *= ri_pow2(8.0f * eaenv * levi_menv_value(v, 1u));
+        {                                               /* P9b amounts */
+            float velb = 2.0f * v->vel01 - 1.0f;
+            if (v->dvel != 0.0f || v->dpat != 0.0f)
+                dc *= ri_pow2(8.0f * (v->dvel * velb + v->dpat * v->pat01));
+            if (v->avel != 0.0f || v->apat != 0.0f)
+                ac *= ri_pow2(8.0f * (v->avel * velb + v->apat * v->pat01));
+        }
         dc = dc < 20.0f ? 20.0f : dc > 20000.0f ? 20000.0f : dc;
         ac = ac < 20.0f ? 20.0f : ac > 20000.0f ? 20000.0f : ac;
         v->dmorph = (uint8_t)(edm < 0.0f ? 0.0f : edm > 127.0f ? 127.0f : edm + 0.5f);
@@ -3620,6 +3688,10 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
         v->dmorph = dmsave;
         /* ENV 3 > VCA, opened to Initial Level at rest (p. 69). */
         amp = v->vcalvl * (v->vinit + (1.0f - v->vinit) * levi_menv_value(v, 2u));
+        if (v->vvel != 0.0f || v->vpat != 0.0f) {  /* VCA > velocity / polyat */
+            float g = 1.0f + v->vvel * (2.0f * v->vel01 - 1.0f) + v->vpat * v->pat01;
+            amp *= g < 0.0f ? 0.0f : g;
+        }
         if (lfo_on && evlfo != 0.0f) {
             amp *= 1.0f + evlfo * lfo5[2];
             if (amp < 0.0f)
@@ -3635,11 +3707,37 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     return out * amp * v->patchlvl * v->level * evlevel;
 }
 
+/* Performance signals (fidelity P9a): per-voice copies, one block behind
+ * the setter (the same shape as the ribbon). Bend normalises against each
+ * voice's P6b bend range, so range 0 reads 0. Both sums refresh: the amount
+ * laws (P9b) read vel01 / pat01 from the voice, so a sum that skipped this
+ * would hear a dead signal. */
+static void levi_sig_refresh(struct RILeviSet *s) {
+    uint32_t v;
+    for (v = 0u; v < RI_LEVI_NVOICES; v++) {
+        struct RILeviVoice *pv = &s->v[v];
+        pv->vel01 = (float)pv->nvel / 127.0f;
+        pv->veloff01 = (float)pv->nveloff / 127.0f;
+        pv->pat01 = (float)s->pat[v] / 127.0f;
+        pv->mpat01 = (float)s->press / 127.0f;
+        pv->wheel01 = (float)s->wheel / 127.0f;
+        pv->bsrc = pv->vbendrng > 0.0f ? s->bend / pv->vbendrng : 0.0f;
+        if (pv->bsrc < -1.0f)
+            pv->bsrc = -1.0f;
+        else if (pv->bsrc > 1.0f)
+            pv->bsrc = 1.0f;
+    }
+}
+
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
     float sr) {
     uint32_t i, v;
     if (!s || !out)
         return;
+    /* Performance signals (fidelity P9a, P9b): the mono sum refreshes the
+     * same per-voice copies the stereo sum does -- otherwise the amount
+     * laws (which read vel01 / pat01) would see a dead signal here. */
+    levi_sig_refresh(s);
     for (i = 0u; i < n; i++) {
         float m = 0.0f;
         uint32_t o;
@@ -3705,19 +3803,7 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
     /* Performance signals (fidelity P9a): per-voice copies, one block
      * behind the setter (the same shape as the ribbon). Bend normalises
      * against each voice's P6b bend range, so range 0 reads 0. */
-    for (v = 0u; v < RI_LEVI_NVOICES; v++) {
-        struct RILeviVoice *pv = &s->v[v];
-        pv->vel01 = (float)pv->nvel / 127.0f;
-        pv->veloff01 = (float)pv->nveloff / 127.0f;
-        pv->pat01 = (float)s->pat[v] / 127.0f;
-        pv->mpat01 = (float)s->press / 127.0f;
-        pv->wheel01 = (float)s->wheel / 127.0f;
-        pv->bsrc = pv->vbendrng > 0.0f ? s->bend / pv->vbendrng : 0.0f;
-        if (pv->bsrc < -1.0f)
-            pv->bsrc = -1.0f;
-        else if (pv->bsrc > 1.0f)
-            pv->bsrc = 1.0f;
-    }
+    levi_sig_refresh(s);
     for (i = 0u; i < n; i++) {
         float ml = 0.0f, mr = 0.0f, vl, vr;
         uint32_t o;

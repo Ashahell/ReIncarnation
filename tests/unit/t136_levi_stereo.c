@@ -248,7 +248,7 @@ int main(void) {
     /* Keys / allow-list / pages. */
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_VINTAGE), "vintage allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_VOSCPAN1 + 7u), "oscpan8 allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0EBFu), "0x0EBF refused (P8d)");
+    RI_ASSERT(!ri_auto_allowed(0x0EC5u), "0x0EC5 refused (P9b)");
     {
         const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 145u));
         RI_ASSERT(d && d->engine_id == RI_CTL_LEVI_VINTAGE, "reg vintage");

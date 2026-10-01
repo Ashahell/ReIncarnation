@@ -364,7 +364,7 @@ static const struct LeviSlot P_OSC[5][8] = {
 };
 #undef OP
 /* ENV 1-5 pages (P5, pp. 71-75). BPM sync waits for the clock (P8),
- * velocity for P9, tap trigger for the button model. */
+ * the velocity curve arrived with P9b, tap trigger waits for the button model. */
 #define ME(p) SLOT_ME(RI_LEVI_OP_##p)
 static const struct LeviSlot P_ENV[4][8] = {
     { { ME(ATTACK), "ATTACK" }, { ME(DECAY), "DECAY" }, { ME(SUSTAIN), "SUSTAIN" }, { ME(RELEASE), "RELEASE" },
@@ -372,31 +372,31 @@ static const struct LeviSlot P_ENV[4][8] = {
     { { ME(ACURVE), "ATK CRV" }, { ME(DCURVE), "DEC CRV" }, { ME(QUANT), "QUANTIZE" }, { ME(RCURVE), "REL CRV" },
       { ME(LEGATO), "LEGATO" }, { ME(RESET), "RESET" }, { ME(FREERUN), "FREERUN" }, { ME(LOOP), "ENV LOOP" } },
     { { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" },
-      { SLOT_DEAD, "VEL CRV" }, { SLOT_DEAD, "VEL>ENV" }, { ME(STAGELOOP), "STG LOOP" },
+      { SLOT_ME(RI_LEVI_ME_VELCRV), "VEL CRV" }, { SLOT_DEAD, "VEL>ENV" }, { ME(STAGELOOP), "STG LOOP" },
       { SLOT_ME(RI_LEVI_ME_LEVEL), "LEVEL" } },
     { { SLOT_ME(0), "TRIG 1" }, { SLOT_ME(1), "TRIG 2" }, { SLOT_ME(2), "TRIG 3" }, { SLOT_ME(3), "TRIG 4" },
       { SLOT_DEAD, "TAP TRIG" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" } }
 };
 #undef ME
-/* Filter and VCA pages (P4, pp. 62-70; env amounts + initial level P5).
- * Velocity and PolyAT amounts wait for P9. */
+/* Filter and VCA pages (P4, pp. 62-70; env amounts + initial level P5;
+ * velocity and PolyAT amounts P9b). */
 static const struct LeviSlot P_DFILT[2][8] = {
     { { RI_SLEVI_DTYPE, "TYPE" }, { RI_SLEVI_DMORPH, "DRIVE" }, { RI_SLEVI_CUTOFF, "CUTOFF" },
-      { RI_SLEVI_RESO, "RESO" }, { RI_SLEVI_DENV1, "ENV1 AMT" }, { SLOT_DEAD, "VEL>ENV" }, { SLOT_DEAD, "POLYAT" },
-      { RI_SLEVI_DKEYTRK, "KEYTRK" } },
+      { RI_SLEVI_RESO, "RESO" }, { RI_SLEVI_DENV1, "ENV1 AMT" }, { RI_SLEVI_DVEL, "VEL>ENV" },
+      { RI_SLEVI_DPAT, "POLYAT" }, { RI_SLEVI_DKEYTRK, "KEYTRK" } },
     { { SLOT_DEAD, "" }, { RI_SLEVI_DPOST, "DRV POS" }, { SLOT_DEAD, "" }, { SLOT_DEAD, "" },
       { RI_SLEVI_VORDER, "VOW ORDER" }, { SLOT_DEAD, "" }, { RI_SLEVI_DLFO1, "LFO1 AMT" },
       { RI_SLEVI_DLEVEL, "DFILT LVL" } }
 };
 static const struct LeviSlot P_AFILT[8] = {
     { RI_SLEVI_DRIVE, "PRE-DRV" }, { RI_SLEVI_ALFO2, "LFO2 AMT" }, { RI_SLEVI_CUTOFF2, "CUTOFF" },
-    { RI_SLEVI_RESO2, "RESO" }, { RI_SLEVI_AENV2, "ENV2 AMT" }, { SLOT_DEAD, "VEL>ENV" },
-    { SLOT_DEAD, "POLYAT" }, { RI_SLEVI_AKEYTRK, "KEYTRK" }
+    { RI_SLEVI_RESO2, "RESO" }, { RI_SLEVI_AENV2, "ENV2 AMT" }, { RI_SLEVI_AVEL, "VEL>ENV" },
+    { RI_SLEVI_APAT, "POLYAT" }, { RI_SLEVI_AKEYTRK, "KEYTRK" }
 };
 static const struct LeviSlot P_VCA[8] = {
     { RI_SLEVI_OSCLVL, "OSCS LVL" }, { RI_SLEVI_DLEVEL, "DFILT LVL" }, { RI_SLEVI_VCALVL, "VCA LVL" },
-    { RI_SLEVI_PATCHLVL, "PATCH LVL" }, { RI_SLEVI_VLFO3, "LFO3 AMT" }, { SLOT_DEAD, "VEL>ENV" },
-    { SLOT_DEAD, "POLYAT" }, { RI_SLEVI_VINIT, "INIT LVL" }
+    { RI_SLEVI_PATCHLVL, "PATCH LVL" }, { RI_SLEVI_VLFO3, "LFO3 AMT" }, { RI_SLEVI_VVEL, "VEL>ENV" },
+    { RI_SLEVI_VPAT, "POLYAT" }, { RI_SLEVI_VINIT, "INIT LVL" }
 };
 static const struct LeviSlot P_PREFX[8] = {
     { RI_SLEVI_FXPRE, "ON" }, { RI_SLEVI_PTYPE, "TYPE" }, { RI_SLEVI_PPRESET, "PRESET" }, { RI_SLEVI_PP1, "PARAM 1" },
@@ -1035,7 +1035,10 @@ static void op_text(const uint8_t *u, uint32_t p, char *buf, uint32_t cap) {
             put_num(buf, cap, v + 1);
         return;
     case RI_LEVI_OP_STAGELOOP: put_str(buf, cap, STAGES[v > 2 ? 2 : v]); return;
-    case RI_LEVI_OP_VELENV: put_num(buf, cap, v - 64); return;
+    case RI_LEVI_OP_VELENV:                 /* depth 0..1, never signed (P9b) */
+        put_num(buf, cap, v * 100 / 127);
+        cat_str(buf, cap, "%");
+        return;
     case RI_LEVI_OP_TGT1: case RI_LEVI_OP_TGT2: case RI_LEVI_OP_TGT3:
         if (!v) {
             put_str(buf, cap, "---");
@@ -1098,7 +1101,14 @@ static void mod_text(const struct RISectLevi *s, int t, char *buf, uint32_t cap)
             put_str(buf, cap, TS[v < (int)RI_LEVI_TS_N ? v : 0]);
         else if (p == RI_LEVI_ME_LEVEL)
             put_num(buf, cap, v * 128 / 127);
-        else
+        else if (p == RI_LEVI_ME_VELCRV) {             /* bipolar curve (P9b) */
+            int c = v * 200 / 127 - 100;
+            if (c > 0)
+                put_str(buf, cap, "+");
+            cat_num(buf, cap, c);
+            cat_str(buf, cap, "%");
+            return;
+        } else
             op_text(u, p, buf, cap);
         return;
     }
@@ -1191,7 +1201,9 @@ void ri_slevi_enc_text(const struct RISectLevi *s, uint32_t k, char *buf, uint32
         return;
     }
     if (t == (int)RI_SLEVI_DLFO1 || t == (int)RI_SLEVI_ALFO2 || t == (int)RI_SLEVI_VLFO3 ||
-        t == (int)RI_SLEVI_DENV1 || t == (int)RI_SLEVI_AENV2) {
+        t == (int)RI_SLEVI_DENV1 || t == (int)RI_SLEVI_AENV2 ||
+        t == (int)RI_SLEVI_DVEL || t == (int)RI_SLEVI_DPAT || t == (int)RI_SLEVI_AVEL ||
+        t == (int)RI_SLEVI_APAT || t == (int)RI_SLEVI_VVEL || t == (int)RI_SLEVI_VPAT) {
         if (s->val[t] > 64)
             put_str(buf, cap, "+");
         cat_num(buf, cap, s->val[t] - 64);

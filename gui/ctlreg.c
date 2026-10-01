@@ -484,6 +484,14 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(LEVI, 211, SELECTOR, "Ribbon", "Mode", 0, 3, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBNMODE, 0),
     R(LEVI, 212, KNOB, "Ribbon", "Pos", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBNPOS, 0),
     R(LEVI, 213, SWITCH, "Ribbon", "Touch", 0, 1, 0, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_RBNTOUCH, 0),
+    /* Performance amounts (fidelity P9b): the VEL>ENV / POLYAT slots P5
+     * drew dim on the two filter pages and the VCA page. */
+    R(LEVI, 215, KNOB, "Filter", "D Vel", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DVEL, 0),
+    R(LEVI, 216, KNOB, "Filter", "D Polyat", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_DPAT, 0),
+    R(LEVI, 217, KNOB, "Analog", "A Vel", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_AVEL, 0),
+    R(LEVI, 218, KNOB, "Analog", "A Polyat", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_APAT, 0),
+    R(LEVI, 219, KNOB, "VCA", "V Vel", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VVEL, 0),
+    R(LEVI, 220, KNOB, "VCA", "V Polyat", 0, 127, 64, RI_MIDI_CC_NONE, 1, LEVI, RI_CTL_LEVI_VPAT, 0),
     /* LFO step editor gate (fidelity P8e): panel-only page switch, the
      * editor slots themselves carry RI_LEVI_LSKEYs. */
     R(LEVI, 214, SWITCH, "Lfo", "Step", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),

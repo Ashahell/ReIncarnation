@@ -94,7 +94,9 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     0x0EB4u, 0x0EB5u, 0x0EB6u, 0x0EB7u, 0x0EB8u, 0x0EB9u, 0x0EBAu,
     0x0EBBu,
     /* Ribbon (fidelity P8d, manual pp. 97-98). */
-    0x0EBCu, 0x0EBDu, 0x0EBEu
+    0x0EBCu, 0x0EBDu, 0x0EBEu,
+    /* Performance amounts (fidelity P9b). */
+    0x0EBFu, 0x0EC0u, 0x0EC1u, 0x0EC2u, 0x0EC3u, 0x0EC4u
 };
 
 int ri_auto_allowed(uint16_t ctl) {

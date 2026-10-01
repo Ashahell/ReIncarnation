@@ -282,8 +282,10 @@ int main(void) {
     ri_slevi_enc_text(&u, 7u, txt, sizeof txt);
     RI_ASSERT(!strcmp(txt, "64"), "level text %s", txt);
     ri_slevi_set_value(&u, RI_SLEVI_MODULE, (int)RI_SLEVI_M_VCA);
-    RI_ASSERT(ri_slevi_ctl_idx(&u, RI_SLEVI_ENC0 + 3u) == RI_SLEVI_PATCHLVL && !ri_slevi_enc_live(&u, 6u) &&
-        ri_slevi_ctl_idx(&u, RI_SLEVI_ENC0 + 7u) == RI_SLEVI_VINIT, "vca page (initial level live since P5)");
+    RI_ASSERT(ri_slevi_ctl_idx(&u, RI_SLEVI_ENC0 + 3u) == RI_SLEVI_PATCHLVL &&
+        ri_slevi_ctl_idx(&u, RI_SLEVI_ENC0 + 6u) == RI_SLEVI_VPAT &&
+        ri_slevi_ctl_idx(&u, RI_SLEVI_ENC0 + 7u) == RI_SLEVI_VINIT,
+        "vca page (initial level live since P5, V Polyat live since P9b)");
     RI_ASSERT(ri_slevi_legacy(RI_SLEVI_FTYPE) && ri_slevi_page_reaches(RI_SLEVI_VORDER) &&
         ri_slevi_page_reaches(RI_SLEVI_DPOST), "legacy / reach");
     RI_RESULT("levi_filters");

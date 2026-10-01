@@ -691,7 +691,7 @@ int main(void) {
         for (k = 0x0EADu; k <= 0x0EBBu; k++)
             RI_ASSERT(ri_auto_allowed((uint16_t)k), "seq key %04x allowed", k);
     }
-    RI_ASSERT(!ri_auto_allowed(0x0EBFu), "0x0EBF refused (P8d)");
+    RI_ASSERT(!ri_auto_allowed(0x0EC5u), "0x0EC5 refused (P9b)");
     {
         const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 196u));
         RI_ASSERT(d && d->engine_id == RI_CTL_LEVI_SEQRATE, "seqrate row binds");

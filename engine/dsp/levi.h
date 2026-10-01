@@ -234,7 +234,7 @@ struct RILeviLFO {
 #define RI_LEVI_NMENV 5u
 #define RI_LEVI_ME_TRIG1 0u     /* trigger sources 1-4 (params 0..3) */
 #define RI_LEVI_ME_LEVEL 6u     /* 0..127 = 0.0..128.0 (the osc ENVL slot) */
-#define RI_LEVI_ME_VELCRV 29u   /* stored (velocity arrives in P9) */
+#define RI_LEVI_ME_VELCRV 29u   /* velocity curve -1..+1, live in P9b */
 #define RI_LEVI_TS_OFF 0u
 #define RI_LEVI_TS_NOTE 1u
 #define RI_LEVI_TS_LFO1 2u      /* 2..6 = LFO 1-5 cycle start */
@@ -274,7 +274,7 @@ struct RILeviLFO {
 #define RI_LEVI_OP_LEGATO 25u
 #define RI_LEVI_OP_RESET 26u
 #define RI_LEVI_OP_FREERUN 27u
-#define RI_LEVI_OP_VELENV 28u    /* stored; velocity arrives with MIDI (P9) */
+#define RI_LEVI_OP_VELENV 28u    /* velocity > env level, 0..1 depth (P9b) */
 #define RI_LEVI_OP_TGT1 29u      /* custom routing: up to 3 targets, 0 none, 1..8 = OSC 1..8 */
 #define RI_LEVI_OP_TGT2 30u
 #define RI_LEVI_OP_TGT3 31u
@@ -294,6 +294,7 @@ struct RILeviOp {
     float hz;         /* frequency mode: fixed Hz */
     float init;       /* 0..1 */
     float envl;       /* -1..1 */
+    float venv;       /* velocity > env level depth, 0..1 (fidelity P9b) */
     float fb;         /* 0..1 */
     float kt;         /* keytrack, 1 = 100 % */
     float phase0;     /* 0..1 */
@@ -366,7 +367,11 @@ struct RILeviVoice {
     uint8_t melfo;            /* some envelope listens to an LFO cycle (steps the LFOs) */
     uint8_t mepad[2];
     float melevel[RI_LEVI_NMENV];
+    float mvelcrv[RI_LEVI_NMENV]; /* ENV velocity curve -1..1 (fidelity P9b) */
     float denv, aenv, vinit;  /* ENV 1/2 amounts -1..1, VCA initial level 0..1 */
+    /* Performance amounts (fidelity P9b): velocity is read bipolar about
+     * mid, per-key pressure unipolar, both scaled by these -1..+1. */
+    float dvel, dpat, avel, apat, vvel, vpat;
     /* Matrix / macro modulation of oscillator and envelope params (P5b):
      * RI_LEVI_DO_* per oscillator, RI_LEVI_DE_* per ENV 1-5; -1..1. */
     float opm[RI_LEVI_NOPS][RI_LEVI_DO_N];
@@ -589,6 +594,15 @@ struct RILeviVoice {
 #define RI_CTL_LEVI_RBNMODE 0x0EBCu
 #define RI_CTL_LEVI_RBNPOS 0x0EBDu
 #define RI_CTL_LEVI_RBNTOUCH 0x0EBEu
+/* Performance amounts (fidelity P9b): velocity and per-key pressure
+ * authority on the two filters and the VCA. Bipolar -1..+1, UI 64 = none
+ * (the P5 ENV-amount law); the panel applies them to every voice. */
+#define RI_CTL_LEVI_DVEL 0x0EBFu
+#define RI_CTL_LEVI_DPAT 0x0EC0u
+#define RI_CTL_LEVI_AVEL 0x0EC1u
+#define RI_CTL_LEVI_APAT 0x0EC2u
+#define RI_CTL_LEVI_VVEL 0x0EC3u
+#define RI_CTL_LEVI_VPAT 0x0EC4u
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u
