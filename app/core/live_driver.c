@@ -28,6 +28,10 @@ void ri_livedrv_init(struct RILiveDriver *d, struct RILiveSession *s,
     d->cap_max = 0u;
     d->cap_pos.v = 0u;
     d->cap_on.v = 0u;
+    d->load_pm = 0u;
+    d->over_left_us = 0u;
+    d->overloaded.v = 0u;
+    d->overloads.v = 0u;
     /* Init on the owning task before sharing; plain stores safe here. */
 }
 
@@ -39,6 +43,38 @@ void ri_livedrv_request(struct RILiveDriver *d, int cmd) {
 void ri_livedrv_report_late(struct RILiveDriver *d, uint32_t n) {
     if (d && n)
         ri_atomic_fetch_add_rel(&d->xruns, n);
+}
+
+int ri_livedrv_overloaded(struct RILiveDriver *d) {
+    return d ? (int)ri_atomic_load_acq(&d->overloaded) : 0;
+}
+
+/* One buffer's timing into the governor (task side). */
+static void governor(struct RILiveDriver *d, uint32_t us, uint32_t frames) {
+    uint64_t period;
+    uint32_t load;
+    if (!d->session || !(d->session->sr > 0.0f))
+        return;
+    period = (uint64_t)((float)frames * 1000000.0f / d->session->sr);
+    if (period == 0u)
+        return;
+    load = ((uint64_t)us * 1000u / period > 4000u) ? 4000u : (uint32_t)((uint64_t)us * 1000u / period);
+    d->load_pm = (d->load_pm * 7u + load) / 8u;
+    if (ri_atomic_load_acq(&d->overloaded)) {
+        if (d->over_left_us > period) {
+            d->over_left_us -= period;
+            return;
+        }
+        d->over_left_us = 0u;
+        d->load_pm = 0u; /* probe afresh at normal priority */
+        ri_atomic_store_rel(&d->overloaded, 0u);
+        return;
+    }
+    if (d->load_pm >= RI_LIVEDRV_OVER_PM) {
+        d->over_left_us = RI_LIVEDRV_OVER_US;
+        ri_atomic_store_rel(&d->overloaded, 1u);
+        ri_atomic_fetch_add_rel(&d->overloads, 1u);
+    }
 }
 
 void ri_livedrv_render(struct RILiveDriver *d, int16_t *out,
@@ -93,6 +129,7 @@ void ri_livedrv_render(struct RILiveDriver *d, int16_t *out,
             ri_atomic_store_rel(&d->render_us_max, us);
         d->us_acc += us;
         ri_atomic_store_rel(&d->render_us_sum_ms, (uint32_t)(d->us_acc / 1000ULL));
+        governor(d, us, frames);
     }
     ri_atomic_fetch_add_rel(&d->buffers, 1u);
 }

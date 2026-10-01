@@ -97,6 +97,13 @@ static uint64_t aros_now_us(void) {
     return ((uint64_t)t.ev_hi << 32 | (uint64_t)t.ev_lo) * 1000000ULL / s_efreq;
 }
 
+/* Render priority: above the UI while the machine keeps up; below it
+ * (still above idle) while the driver's load governor says it cannot,
+ * so an overloaded song glitches instead of freezing menus, windows and
+ * every other task (owner Dell 2026-09-30). */
+#define AU_LIVE_PRI 10
+#define AU_LIVE_PRI_YIELD (-1)
+
 /* Render one half through the portable driver (T4): transport at the
  * buffer boundary, one device buffer through the session, s16 halves,
  * capture and timing inside the driver. */
@@ -115,7 +122,7 @@ static void live_task(void) {
     struct MsgPort *tport = NULL;
     BYTE hsig = -1;
     ULONG processed = 0u, queued = 1u;
-    int started = 0, dev_open = 0;
+    int started = 0, dev_open = 0, yielding = 0;
     ULONG mygen;
 
     s_render = FindTask(NULL);
@@ -259,6 +266,10 @@ static void live_task(void) {
         render_half(lv, free_half);
         AHI_SetSound(0, (UWORD)free_half, 0, 0, actl, AHISF_NONE);
         queued = free_half;
+        if (ri_livedrv_overloaded(&lv->drv) != yielding) {
+            yielding = !yielding;
+            SetTaskPri(FindTask(NULL), yielding ? AU_LIVE_PRI_YIELD : AU_LIVE_PRI);
+        }
     }
 done:
     {
@@ -356,7 +367,7 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
     s_lv = lv;
     ri_atomic_store_rel(&s_hook_count, 0u);
     p = CreateNewProcTags(NP_Entry, (IPTR)live_task, NP_Name, (IPTR)"RIAPP render",
-        NP_Priority, 10, NP_StackSize, 32768, TAG_DONE);
+        NP_Priority, AU_LIVE_PRI, NP_StackSize, 32768, TAG_DONE);
     if (!p) {
         lv->err = 6;
         CloseDevice((struct IORequest *)treq);

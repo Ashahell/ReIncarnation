@@ -22,9 +22,10 @@ static struct RISongTrack TR;
 static struct RIEvent SCR1[512];
 
 static uint64_t t_fake_us;
+static uint32_t t_step = 111u; /* each render reads the clock twice */
 
 static uint64_t fake_now(void) {
-    t_fake_us += 111u;
+    t_fake_us += t_step;
     return t_fake_us;
 }
 
@@ -139,6 +140,39 @@ int main(void) {
             RI_ASSERT(0, "stop silent @%u", i);
             break;
         }
+    }
+    /* Load governor: 256 frames at 48 kHz = 5333 us per buffer. Light
+     * load never trips; a sustained 5000 us render (938 per mille) trips
+     * once, holds for 2 s of buffers whatever the load, then probes. */
+    {
+        uint32_t b, first = 0u, held = 0u;
+        t_fake_us = 0u;
+        t_step = 1000u; /* 1000 us render: 187 per mille */
+        fixture_session(&s);
+        ri_livedrv_init(&d, &s, 256u, fake_now);
+        for (b = 0u; b < 200u; b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(!ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 0u,
+            "light load stays normal");
+        t_step = 5000u;
+        for (b = 0u; b < 100u && !ri_livedrv_overloaded(&d); b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        first = b;
+        RI_ASSERT(ri_livedrv_overloaded(&d) && first > 3u && first < 40u, "trips after %u", first);
+        RI_ASSERT(ri_atomic_load_acq(&d.overloads) == 1u, "one entry");
+        t_step = 50u; /* load gone: still held for the full window */
+        for (b = 0u; b < 400u && ri_livedrv_overloaded(&d); b++)
+            held++, ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(held >= 370u && held <= 377u, "held %u buffers (2 s)", held);
+        for (b = 0u; b < 200u; b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(!ri_livedrv_overloaded(&d) && ri_atomic_load_acq(&d.overloads) == 1u,
+            "probe at light load stays normal");
+        t_step = 5000u; /* still heavy after the probe: trips again */
+        for (b = 0u; b < 100u && !ri_livedrv_overloaded(&d); b++)
+            ri_livedrv_render(&d, buf, fl, fr, 256u);
+        RI_ASSERT(ri_atomic_load_acq(&d.overloads) == 2u, "re-trip");
+        t_step = 111u;
     }
     RI_RESULT("live_driver");
 }

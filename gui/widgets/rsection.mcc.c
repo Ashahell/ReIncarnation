@@ -385,7 +385,15 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
         return (IPTR)TRUE;         /* text lives in instance data */
     case MUIM_Draw:
         DoSuperMethodA(cl, obj, msg);
-        draw_frame(obj, (struct RSectionData *)INST_DATA(cl, obj));
+        d = (struct RSectionData *)INST_DATA(cl, obj);
+        /* Only our own DRAWUPDATE may use the damage box. A box queued
+         * while the canvas sat on a hidden tab (meters, chase lamps)
+         * would otherwise turn the page switch's full draw into a box
+         * repaint and leave the previous tab on screen (owner Dell
+         * 2026-09-30). */
+        if (!(((struct MUIP_Draw *)msg)->flags & MADF_DRAWUPDATE))
+            d->dmg_valid = FALSE;
+        draw_frame(obj, d);
         return (IPTR)0;
     case MUIM_HandleEvent: {
         struct MUIP_HandleEvent *m = (struct MUIP_HandleEvent *)msg;
@@ -494,6 +502,8 @@ void ri_rsection_refresh_box(APTR obj, int x0, int y0, int x1, int y1) {
     int w, h;
     if (!o)
         return;
+    if (s_rsection_class && !((struct RSectionData *)INST_DATA(s_rsection_class->mcc_Class, o))->shown)
+        return; /* hidden: MUIM_Show's full draw covers it */
     if (!s_rsection_class || x1 < x0 || y1 < y0) {
         MUI_Redraw(o, MADF_DRAWOBJECT);
         return;

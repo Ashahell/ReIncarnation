@@ -2147,10 +2147,12 @@ int main(int argc, char **argv) {
             rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu\n",
                 dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn);
             if (s_live)
-            rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us snd=%u/%u/%u/%u pend=%u/%u/%u/%u\n",
+            rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us load=%lu/1000 overloads=%lu snd=%u/%u/%u/%u pend=%u/%u/%u/%u\n",
                 ri_atomic_load_acq(&s_lv.drv.buffers),
                 ri_atomic_load_acq(&s_lv.drv.xruns),
                 ri_atomic_load_acq(&s_lv.drv.render_us_max),
+                (ULONG)s_lv.drv.load_pm, /* diagnostic-only unsynchronized read */
+                ri_atomic_load_acq(&s_lv.drv.overloads),
                 s_core.session.player.sounding_slot[0], s_core.session.player.sounding_slot[1],
                 s_core.session.player.sounding_slot[2], s_core.session.player.sounding_slot[3],
                 s_core.session.player.pending_slot[0], s_core.session.player.pending_slot[1],
