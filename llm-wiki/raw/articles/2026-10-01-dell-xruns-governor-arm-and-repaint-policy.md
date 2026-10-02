@@ -113,6 +113,9 @@ int ri_panel_live_stale(uint32_t mask, uint32_t section);
 
 > **Status: Disputed** (2026-10-02)
 > The method is sound and the ratio survives — re-read over the whole baseline run it is 1.12 xruns per full repaint (1165 / 1037), against 1.47 from the six-heartbeat slice. The inference drawn from it was wrong: "pre-emption" does not imply "not a cost problem". The render task averages 32.8 µs of every 5333 µs, i.e. it is *late*, not *crowded*, and a single long GUI operation is charged one dropout per audio period it spans — a 303 ms repaint is ~57 of them. "Rules out saturation" and "rules out per-event cost" are different claims and only the first was supported. Two further corrections from the same record: the `draw:` line carries **two** fields named `n=` (full, then partial), so a keyed parse silently reads the wrong one; and a damage-box repaint still pays a full `build_dl`, so avoiding the blit is not the same as avoiding the cost.
+> **Status: Disputed** (2026-10-02, later the same day)
+> The reasoning in the block above is sound and it is the reasoning that went wrong: a ratio of ~1 xruns per event plus a low duty cycle does exclude *saturation*, but it does not exclude a *per-event cost* as the mechanism, and this record read "excludes saturation" as "excludes cost". The same day, a third-party review established that a pri-21 render task cannot be pre-empted by the GUI at all, so the pre-emption story needed a named blocking point and none was found. Numbers survive, mechanism does not.
+
 - **Two equivalent mutants in the Fix B set, both worth naming.** Replacing the `mask == 0` guard with `if (0)` survived, because with no bits set every later test is false anyway — the guard is redundant, not load-bearing. And a `--ARM_US 0u` mutant died as a `-Werror=type-limits` build break rather than behaviourally, which proves nothing about the laws; `1u` is the same mutation with a real effect. Both were replaced.
 
 ## Standing gaps

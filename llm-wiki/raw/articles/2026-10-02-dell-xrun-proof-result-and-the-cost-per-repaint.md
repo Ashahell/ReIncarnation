@@ -6,7 +6,9 @@
 - Plan: `docs/superpowers/plans/2026-09-30-leviasynth-fidelity-plan.md` (§P9 interlude), ledger in `docs/2026-09-24-improvement-todo.md` §12.11
 - Prior: [2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md](2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md) (the diagnosis and the two fixes), [2026-10-01-clipping-comp-limiter-tab-stall-priority.md](2026-10-01-clipping-comp-limiter-tab-stall-priority.md) (the pri-21 render task), [2026-09-22-wbs21-storm.md](2026-09-22-wbs21-storm.md), [2026-10-01-menu-hang-tab-artifacts-load-governor.md](2026-10-01-menu-hang-tab-artifacts-load-governor.md)
 - Deployed image: `RAM:RIPP9F`, ev-log `RUN frames=256 vol=RAM: build=3dadda7`; the fix under test is `3dadda7`
-- Raw logs: `/tmp/opencode/fix_f.log` (346925 B, `RIAPP.LOG`, sha-verified bulk get) and `/tmp/opencode/fix_f.ev.log` (1549 B, `RIAPP-EV.LOG`)
+- Raw logs: `/tmp/opencode/fix_f.log` (346925 B, `RIAPP.LOG`, sha-verified bulk get) and `/tmp/opencode/fix_f.ev.log` (1549 B, `RIAPP-EV.LOG`) — **both since lost**: the host restarted at 07:48 and the owner rebooted the Dell, so `RAM:` went with it. The figures are preserved here and in `58b00c4`; the artefacts are not
+- Revised: 2026-10-02 (later) — a third-party advisor review landed; three claims withdrawn and the causal chain downgraded to Disputed. See *The advisor's objections*, and the Status blocks
+- Follows on: `5940cc3` (wake latency + repaint reason metrics)
 
 ## What the owner said, and what I did about it
 
@@ -89,11 +91,21 @@ if (n - processed > 1u)
     ri_livedrv_report_late(&lv->drv, n - processed - 1u); /* AHI looped a half: late */
 ```
 
-So a single long GUI operation is charged one dropout per audio period it spans. A 303 ms GUI operation spans about 57 periods. The render task is not competing for a saturated CPU — it uses **32.8 µs of every 5333 µs** on average over the whole 7-hour session (`render_total=153734 ms` / 4683315 buffers), about 0.6 % of a core. It is *late*, not *crowded*.
+> **Status: Disputed** (2026-10-02, later the same day)
+> The numbers are sound; the causal claim below is not. A pri-21 task cannot be pre-empted by GUI work at pri 0–20, so charging a dropout to each audio period a GUI operation spans needs a *named blocking point* — a `Forbid`, a contended lock — and none was ever found. The repaint timings are also wall-clock, so an audio stall would inflate them: the 303 ms tail may be a **symptom** of the dropout burst rather than its cause. And 407 dropouts in 7.7 s is ~28 % of all buffers, which does not reconcile with a task using 0.6 % of a core; that tension was resolved in favour of this story instead of investigated. What survives: the measurement that repaint cost did not move, and the conclusion that the pri -1 fallback was suppressing it. What does not survive: that the repaint cost caused the dropouts. Wake latency was added (`5940cc3`) specifically to settle it.
 
-And the GUI feels sluggish for the same numbers, not for a scheduling reason. A 4 ms repaint is a quarter of a 60 Hz frame budget, which on its own is not a stall — but it is a floor under every interaction, so a knob drag that repaints per step lands ~4 ms behind the pointer each step. The outliers are what the hand notices: the 30601 µs full repaint is about 1.8 frames, and 303098 µs is about 18 frames, a quarter-second freeze. And at 119 partials averaging 4036 µs inside one ~11.5 s window, the GUI's own queue is doing ~480 ms of work against 5.3 ms audio deadlines interleaved through it.
+The xrun detector is not a CPU-saturation test. In `audio_io/audio_ahi_live.c` the render task waits on the AHI hook signal and reports a dropout when it wakes to find more than one half already played:
 
-The timeline is tight, and it needs no priority story to explain it:
+```c
+if (n - processed > 1u)
+    ri_livedrv_report_late(&lv->drv, n - processed - 1u); /* AHI looped a half: late */
+```
+
+So a single long GUI operation *would* be charged one dropout per audio period it spans, and a 303 ms operation spans about 57 periods. The render task is not competing for a saturated CPU — it uses **32.8 µs of every 5333 µs** on average over the whole 7-hour session (`render_total=153734 ms` / 4683315 buffers), about 0.6 % of a core. It is *late*, not *crowded*.
+
+The GUI's own cost is what a hand would notice, and it is large regardless of what caused the dropouts: a 4 ms repaint is a floor under every interaction, so a knob drag that repaints per step lands ~4 ms behind the pointer; the 30601 µs full repaint is about 1.8 frames at 60 Hz; 303098 µs is about 18 frames, a quarter-second freeze. 119 partials averaging 4036 µs inside one ~11.5 s window is ~480 ms of GUI work.
+
+The timeline is tight:
 
 ```
 buf=4630697  xruns=0    full n=15 avg=5774 max=30601 | part n=119 avg=4036 max=303098 | allocs=15
@@ -103,7 +115,7 @@ buf=4638231  xruns=387  load=928
 buf=4641143  xruns=407  load=2   (transport stopped; xruns stop dead)
 ```
 
-Repaints happen in one window, the xruns follow in the next three, and they stop when the transport stops. With 182 partial repaints at up to 4036 µs plus a 303 ms outlier against 5.3 ms deadlines, no further explanation is required.
+Repaints happen in one window, the xruns follow in the next three, and they stop when the transport stops. That ordering is a correlation, and correlation is where this argument went wrong: at the time it was written the claim "no further explanation is required" stood, and it was the strongest-sounding and least-supported sentence in the record. A timeline does not name a mechanism, and the mechanism has to survive the priority arithmetic to be a mechanism at all.
 
 ## What this overturns in the previous record
 
@@ -114,22 +126,55 @@ The priority inversion was real — the previous build's `overloads=22` put the 
 - The previous lane's build was slow because it did 1037 full repaints of 18 canvases **and** dropped the render task below the UI. The GUI felt instant because the audio paid for it.
 - `RAM:RIPP9F` is fast because it does 15. The GUI no longer has the audio task as a punching bag, so it feels the true cost of a repaint — which nobody had measured, because the yield had been hiding it.
 
-That is the whole finding: **the pri -1 fallback was a symptom-suppressor, and removing it exposed a per-repaint cost problem that was always there.** Both of the owner's symptoms are that one cost, seen from two ends.
+That is the whole finding: **the pri -1 fallback was a symptom-suppressor, and removing it exposed a per-repaint cost problem that was always there.**
+
+> **Status: Disputed** (2026-10-02, later the same day)
+> The suppressor reading survives in its weaker form. The second sentence is the unsupported part: both symptoms being "that one cost, seen from two ends" requires the GUI to delay a pri-21 task, which needs a named blocking point that was never found, and the 303 ms repaint may itself be a consequence of the audio stall rather than its cause. Something *was* being hidden by the pri -1 fallback and the per-repaint cost was measurably large enough to be worth hiding — but what it was hiding, and what caused 407 dropouts in 7.7 s, is open.
 
 ## Method findings
 
 - **A cumulative counter can improve while the experience gets worse.** 1165 → 407 xruns is a 65 % improvement and was reported as one. But the earlier build's 1165 were spread over 19 minutes; these 407 arrived inside 7.8 s of playing, one every 19 ms. The ear hears a rate, not a session total. Score the rate inside the window that matters, and score the *latency of the thing the hand touches* separately — a metric that cannot see the GUI cannot detect a fix that made the GUI worse.
 - **The fix and the diagnosis must be scored on the same axis.** Fix A targets audio continuity and Fix B targets wasted work; neither can be validated by "xruns went down". The only way both were provable at once is to measure both axes, and the second axis (repaint latency) had no metric at all — which is precisely why the regression shipped.
+- **A metric that does not exist cannot refute a theory, but a theory built without it will be stated as if it did.** The record below asserts a causal chain from repaint cost to dropouts with no blocking point named, and it reads as settled. The missing measurement did not just leave a gap — it left room for a confident sentence that the arithmetic cannot support. Instrument the question *before* answering it, and if a number is not available, the honest output is "cannot tell yet", not the most plausible mechanism available.
+- **A correlation ordered correctly in time is not a mechanism.** "Repaints happen in one window, the xruns follow in the next three, they stop when the transport stops" is a real observation and it was written as though it closed the question. It closes nothing until it survives the priority arithmetic.
+- **An admission-control failure silently removes test coverage.** `gui/widgets/rsection.h` is AROS-only and `#error`s on a host include, so a policy declared there would have been untestable in principle — not because the policy was hard, but because of where someone had put it. The repaint-reason codes had to move to `gui/panelui.h` to be testable at all. Worth checking before designing, not after.
 - **A telemetry line with two fields of the same name will silently invert an analysis.** `n=` appears twice per `draw:` line with different meanings. It cost a full wrong reading of the owner's session and would have produced a confidently wrong article. Any keyed parse of these lines must handle the duplicate, and the format itself deserves disambiguation.
 - **A "damage" optimisation that skips the blit but not the build is not a partial.** `build_dl(&d->brp, d, 0, 0, &dl)` reconstructs the whole section's display list to paint one box. Whenever a damage path is introduced, the *construction* has to be bounded too, or the optimisation only moves the cost somewhere the metrics do not look.
 - **A fallback that escalates silently inherits the worst case.** `ri_rsection_refresh_box` escalates to `MUI_Redraw(o, MADF_DRAWOBJECT)` on three degenerate-input paths, and `meter_round` escalates to `ri_rsection_refresh` on four. Every one of those is counted under the cheaper label, so a 303 ms full redraw can appear in the log as a "partial repaint". The telemetry cannot distinguish what it is measuring.
 
+## The advisor's objections, and which of them held
+
+A third-party advisor reviewed this record the same day. Three claims did not survive contact with the repository, and two did — the two that did are the ones that changed the work.
+
+**Wrong: "rebase onto `4167e32`, it already contains two of the things being redesigned."** It does contain them, and it is *already* an ancestor of HEAD, already on `origin/main`, dated five hours before Fix A. Traced per commit, the two guards are different layers, not duplicates: `4167e32` added `RI_LIVEDRV_LOAD_CAP_PM 1200` (how much one slow buffer may raise the smoothed load), Fix A added `RI_LIVEDRV_ARM_US` (how long the load must stay over). Both survive to HEAD. There were no conflicts to resolve because no fork was ever taken.
+
+**Wrong: "the event log shows `build=?`, so the measurements may be from a priority-10 tree."** The RUN line reads `build=3dadda7`, and that commit postdates the pri-21 change.
+
+**Wrong: "the diagnosis does not hold at priority 21."** *The mechanism* does not hold; the measurement survives. A pri-21 task cannot be pre-empted by GUI work at pri 0–20, so "one 303 ms repaint = 57 dropouts" needed a named blocking point — a `Forbid`, a contended lock — and **none was ever found.** Worse for the argument, those repaint timings are wall-clock, so an audio stall would *inflate* them: the 303 ms tail may be a symptom of the dropout, not its cause. And 407 dropouts in 7.7 s is ~28 % of all buffers, which does not sit with a task using 0.6 % of a core. That tension is the real finding, and it was resolved in favour of the causal story rather than investigated.
+
+**Right, and acted on:** the fix and the diagnosis were scored on different axes, and the axis the owner feels — repaint latency — had **no metric at all**. That is why a change could improve every counter while making the experience worse. This is the failure mode named in *Method findings* above, now closed by `5940cc3`.
+
+**Right, and acted on:** one 7.7 s session by one owner on one machine, with the earlier run's build identity inferred rather than tagged, is not a basis for tuning a governor.
+
+Also noted: `4167e32` added `blit_max`/`allocs` to the `draw:` line whose two duplicate `n=` fields are the parsing trap above — the duplicate predates both lanes and the format was never disambiguated.
+
+## What was built after this record (`5940cc3`)
+
+Two metrics, both pure accounting — no engine DSP touched, so no song render moves and t92's hashes and t93's goldens are unchanged.
+
+- **Wake latency.** The AHI hook stamps the EClock when the device wants a half; the render task reports the interval *before* rendering, with the priority it actually held. This is the metric that separates late from slow. The priority is the point: a late wake at `AU_LIVE_PRI_YIELD -1` is the governor's doing and one at 21 is not. The heartbeat gained `wake_max`, `wake_n`, `prio` and `arm_us` — the last being the governor's own accumulation, so that `overloads=0` stops conflating "never over budget" with "over budget and reset hundreds of times". Proof: `t151_wake_latency`, mutation 12/12.
+- **Repaint reason.** Every box repaint is tallied against the caller that asked for it, closing this record's own gap ("nothing attributes a repaint to a cause"). The reason codes live in `gui/panelui.h` because `gui/widgets/rsection.h` is AROS-only and refuses a host include — an admission-control failure that would otherwise have made the policy untestable. Proof: `t152_repaint_reason`, mutation 6/6.
+
+**Not built on purpose:** the in-memory ring dumped at quit. Live per-line writes during a run can perturb what they measure, and the A/B should not be the run that discovers it.
+
 ## Honest gaps
 
-- **No code change has been made in response to any of this.** The diagnosis is complete; the fix is not designed. Nothing in this record has been re-run on the Dell.
-- `RAM:RIPP9F` is closed and not relaunched. `RAM:RIPP9E` (the stray ABIv1 build) is still faulting its `Software Failure!` requester and still needs a human Suspend click.
+- **The remediation is still undesigned.** The metrics exist so the next diagnosis can be evidence rather than argument; no fix has been designed against them, and nothing here has been re-run on the Dell.
+- The raw logs behind every number here were in `/tmp` and the host restarted at 07:48, taking them. The figures live in this record and its commit; the artefacts do not.
+- `RAM:RIPP9F` is closed and not relaunched. The owner rebooted the Dell afterwards, so `RAM:` and both logs are gone. `RAM:RIPP9E` (the stray ABIv1 build) needs a Suspend click at `--ui-click l,590,531`; a reboot is the owner's call, not the lane's.
 - What actually costs 4036 µs inside `build_dl`, and what makes one call cost 303098 µs, is **not** established. The 15 allocations in the same window are a hint, not a measurement. Nothing in the current telemetry attributes a repaint to a cause, so the biggest remaining question cannot be answered from the log at all.
-- The owner's "less responsive" is a report, not a measurement. There is no GUI latency metric in the build; the repaint costs above are the closest proxy and they are consistent with it, not a measurement of it.
+- The owner's "less responsive" is a report, not a measurement, and remains one: no GUI latency metric exists yet in the deployed build. The repaint costs above are a proxy, consistent with the report but not a measurement of it.
+- The causal chain from repaint cost to dropouts is **unsupported**, not merely unproven: the mechanism requires a blocking point that was never identified, and the 303 ms figure may be a consequence of the stall it was cited as the cause of.
 - This record's numbers come from one 7.8 s play burst by one owner on one machine. The comparison holds because both runs are in the same log under one parser, but neither run is a controlled A/B, and which build produced the earlier run is inferred rather than tagged.
 
 ## See Also
