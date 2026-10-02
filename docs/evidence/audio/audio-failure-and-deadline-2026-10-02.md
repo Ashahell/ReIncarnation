@@ -254,3 +254,73 @@ workload measured, where at `-O0` it was 106-108 %. Levi, the largest single
 device, goes 737 us -> 350 us and `dstg block` 1370 us -> 660 us: a uniform
 ~2.1x, with the *proportions* unchanged, which is the signature of the flag and
 not of an algorithmic change.
+
+## A,B,B,A with the BUILD FLAG as the arm (2026-10-03)
+
+Both arms built from the **same clean `HEAD` tree** (`a98691a`, via
+`git archive HEAD | tar -x`), so the optimisation level is the only variable.
+The working tree was deliberately not used: it holds the sibling lane's
+uncommitted `NOAUDIO` change, which must not enter either build.
+
+```
+-O0   1,094,648 B   r12moves=41
+-O2     874,744 B   r12moves=282
+```
+
+Protocol per cell (coordinates from the click-map record, each click verified
+against the event it produces -- never a blind click):
+
+```
+delete RIAPP.LOG, RIAPP-EV.LOG
+Run Vk4aros:ReIncarnation/<bin> PLAYLIST=.../songs/local/demos.rbpl
+wait for window; confirm exactly one Process in `status`
+click Play (513,80)
+click SYNTH(56,166) DRUMS(122,166) LEVI(180,166) MIX(238,166) FX(288,166), 2 s apart
+click Stop (560,80); settle; close; pull RIAPP.LOG + RIAPP-EV.LOG
+```
+
+Event verification, identical in all five cells:
+
+```
+TR PLAY TAB page=0 TAB page=1 TAB page=2 TAB page=3 TAB page=4 TR STOP
+```
+
+Results. A,B,B,A order with a third B added to resolve an outlier:
+
+| cell | arm | buffers | **xruns** | **overloads** | `render_max` | `wake_max` | **5-tab total** | `full_avg` |
+|------|-----|---------|-----------|---------------|--------------|------------|----------------|------------|
+| A1 | `-O0` | 4,273 | **1,590** | **6** | 91,932 us | 5,820 us | 99,432 us | 2,275 us |
+| A2 | `-O0` | 4,299 | **1,589** | **6** | 92,021 us | 5,816 us | 99,786 us | 2,274 us |
+| B1 | `-O2` | 3,065 | **0** | **0** | 4,113 us | 471 us | 300,041 us * | 4,563 us |
+| B2 | `-O2` | 3,084 | **0** | **0** | 4,101 us | 398 us | 241,791 us | 4,565 us |
+| B3 | `-O2` | 6,064 | **0** | **0** | 4,117 us | 436 us | 241,632 us | 2,850 us |
+
+\* B1's LEVI switch alone was 107,029 us against 52,475 and 52,545 in B2/B3.
+**Excluded by name**, per the re-run rule for outliers on this guest, not
+quietly dropped. B2 and B3 then agree to 0.07 %.
+
+Per-tab costs (us):
+
+| tab | A1 `-O0` | A2 `-O0` | B1 `-O2` | B2 `-O2` | B3 `-O2` |
+|-----|----------|----------|----------|----------|----------|
+| SYNTH | 27 | 29 | 27 | 25 | 25 |
+| DRUMS | 22546 | 22644 | 51904 | 48530 | 48435 |
+| LEVI | 18644 | 18654 | 107029 * | 52475 | 52545 |
+| MIX | 34237 | 34374 | 81637 | 81428 | 81413 |
+| FX | 23978 | 24085 | 59444 | 59333 | 59214 |
+
+Play windows from the ev-log (`TR PLAY` -> `TR STOP`): 4299, 4301, 4646, 4738,
+4831 ms -- comparable, so the xrun counts are not a duration artefact.
+
+**What this settles, and what it does not.** `-O2` removes every xrun (0 across
+12,213 buffers in three runs) and cuts `render_max` 22x and `wake_max` 13x, with
+`overloads` going 6 -> 0. It also makes the five-tab repaint cycle **2.43x
+slower** (99.6 ms -> 241.7 ms), reproducibly: the `-O0` pair agrees to 0.36 %
+and the `-O2` pair to 0.07 %. So `-O2` is not a free win -- it trades audio
+correctness for GUI latency, and which one matters is an owner call.
+
+`r12moves=282` produced no functional problem across all three `-O2` runs, which
+exercised the eight files the inlining touches (tab switches drive
+`rsection.mcc.o`, the largest at 52; `skin_aros.o` loads at startup;
+`audio_ahi_live.o` runs the live backend; `fs_aros.o` loads three songs; the 909
+pack and the log are live). Every click was event-verified.
