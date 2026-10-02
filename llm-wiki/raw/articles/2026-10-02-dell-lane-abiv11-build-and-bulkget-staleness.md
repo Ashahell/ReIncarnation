@@ -20,8 +20,19 @@ The three sizes that identify each lane at a glance:
 |---|---|---|
 | deployed good `RAM:RIPP9` | 1074888 B | runs |
 | v11 `-O0` rebuild of the `cdcf85c` tree | 1074856 B (683453 bytes differ from the deployed one) | runs |
-| v11 build of the xrun fix (`RI_V11_OPT=-O2`) | 1075600 B | runs |
+| v11 build of the xrun fix (labelled `RI_V11_OPT=-O2` — **that label is wrong, see the Status block**) | 1075600 B | runs |
 | accidental **v1** build | 1082416 B | `Software Failure!` requester, no log line |
+
+> **Status: Outdated** (2026-10-02)
+> **The optimisation label on the third row is wrong, and size does not identify the lane.** Rebuilt and measured on one tree:
+
+> | build | bytes | `mov %rax,%r12` | runs? |
+> |---|---|---|---|
+> | v1 (`ri_build_aros.sh`, the audit's link gate) | 1088384 | **0** | no |
+> | v11 at `-O0` | 1081512 | 41 | yes |
+> | v11 at `-O2` (the recipe's documented default) | 867320 | 285 | yes |
+
+> So the 1075600 B binary above is an **`-O0`** build, and so was `RAM:RIPP9F` (`r12moves=41` is the `-O0` signature). The default `-O2` yields ~867 KB, outside every band this table ever recorded. Two consequences: **the A/B must run both arms at the same optimisation level**, and the baseline stays `-O0` to match what was proven to run — an `-O2` deploy changes CPU cost by ~24 % by size alone and would confound the metrics being measured. And the v1 / v11-at-`-O0` gap is only 6872 bytes (0.6 %), so **no size band can separate the lanes**; the discriminator is the register convention — `r12moves == 0` means the build-pc SDK leaked in and the binary faults on the Dell's first LVO call, `r12moves > 0` is the v11 lane. Full record: [2026-10-02-dell-sticky-log-location-and-size-heuristic-correction.md](2026-10-02-dell-sticky-log-location-and-size-heuristic-correction.md). This article's other two findings — that the audit's link gate builds the wrong lane, and that `--get` serves stale bytes for an open file — are unaffected and still hold.
 
 Note the second row: the deployed `RAM:RIPP9` is 32 bytes larger than a clean rebuild of the tree it claims to be built from, and 683453 bytes of it differ. So a deployed binary's embedded `build=` label is evidence of *intent*, not of *provenance* — always compare bytes before trusting a label on the target.
 
