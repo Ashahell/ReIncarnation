@@ -117,3 +117,26 @@ evidence still owed — and reading it needs the lane back.
 - [Driving the Dell lane by script: the verified click map, the startup clock, and the two ways a run silently produces nothing](2026-10-02-dell-lane-scripted-ab-procedure-and-click-map.md)
 - [The Knife (Genesis) as deep house: a faithful-progression re-cut](2026-10-02-the-knife-deep-house-song-cut.md)
 - [The Dell lane has two silent traps: the audit's link gate builds ABIv1, and `--get` serves stale bytes for a file the guest still has open](2026-10-02-dell-lane-abiv11-build-and-bulkget-staleness.md)
+
+## The lane is shared, and the reset is not mine to spend
+
+Found while waiting for the guest to come back: the spool carries jobs from **both**
+opencode sessions on this machine. When the reset happened, five jobs were queued and
+**four of them were the other lane's** — a `put RIAPP.v11 -> RAM:RIAPP_SEC`, a 4-action
+`ui_close/exec` run, a 27-exec run, and a 190-action run. Mine was one `list`.
+
+Two consequences that belong in the procedure:
+
+1. **`kill -USR1` is not a private reset.** It closes the one session the whole lane
+   shares. It was the right call here (the session was wedged inside *my* action) and it
+   still cost a re-dial that did not come for 20 minutes, with another session's 190
+   actions sitting behind it. Reach for it only after reading
+   `state = busy:<job-id>` and confirming that job is yours.
+2. **A queued `ui_click` is the same trap as `ui_capture`.** The other lane's newest job
+   begins with a `ui_click`, against a guest that still had a modal requester on screen.
+   If a UI action hangs on a guest whose frontmost window is a requester, that run is what
+   wedges next, and the loss is theirs, not mine. Diagnose from the **log**, never from a
+   UI action, on this lane.
+
+The queue is serial and has no cancel, so the lane's blast radius is every session using
+that spool.
