@@ -97,4 +97,22 @@ uint32_t ri_panel_live(struct RIPanelUI *p, int playing, uint64_t sixteenths);
 #define RI_STALE_BAR   2
 #define RI_STALE_ALL   3
 int ri_panel_live_stale(uint32_t mask, uint32_t section);
+
+/* Which caller asked for a box repaint, so the cost of an expensive
+ * repaint can be attributed (Dell 2026-10-02: a 303 ms partial and a 4 ms
+ * partial are different failures and the aggregate n=/max= pair cannot tell
+ * them apart). These sit here, not in rsection.h, because rsection.h is
+ * AROS-only and the policy has to be host-testable. Distinct, contiguous,
+ * starting at 0, so a bucket array indexed by them is total. */
+#define RI_RSEC_BOX_NONE  0  /* unattributed: never charge a caller by guess */
+#define RI_RSEC_BOX_STEPS 1  /* drum step lamps (the chase) */
+#define RI_RSEC_BOX_BAR   2  /* the Song Position display */
+#define RI_RSEC_BOX_OTHER 3  /* any other caller, or a reason out of range */
+/* Any code outside the four folds onto OTHER: a new caller cannot index
+ * out of bounds, and an unknown reason is visible as OTHER rather than
+ * silently charged to one of the known callers. */
+static inline int ri_rsection_box_why(int why) {
+    return (why >= RI_RSEC_BOX_NONE && why <= RI_RSEC_BOX_OTHER)
+        ? why : RI_RSEC_BOX_OTHER;
+}
 #endif

@@ -27,7 +27,12 @@ struct RILiveDriver {
     ri_atomic_u32 buffers;         /* buffers rendered */
     ri_atomic_u32 render_us_max;   /* slowest buffer render, microseconds */
     ri_atomic_u32 render_us_sum_ms; /* total render time, milliseconds */
+    ri_atomic_u32 wake_us_max;     /* slowest wake latency, microseconds */
+    ri_atomic_u32 wake_us_sum_ms;  /* total wake latency, milliseconds */
+    ri_atomic_u32 wake_n;          /* wake samples */
+    ri_atomic_u32 prio_now;        /* backend task priority at last wake */
     uint64_t us_acc;               /* task-side microsecond accumulator */
+    uint64_t wake_acc;             /* task-side wake-latency accumulator */
     /* W capture: task copies each rendered s16 half here while cap_on;
      * the owner writes the WAV after turning cap_on off (no IO here). */
     int16_t *cap_buf;              /* interleaved stereo s16, owner buffer */
@@ -46,6 +51,10 @@ struct RILiveDriver {
      * repaint), so a peaky song must not be able to start that. */
     uint32_t load_pm;              /* task side: smoothed load, per mille */
     uint64_t over_run_us;         /* task side: continuous over-budget time */
+    /* over_run_us is in the heartbeat too: with overloads=0 one cannot tell
+     * "never went over budget" from "went over and reset 400 times", and
+     * those are very different machines. Diagnostic-only unsynchronized
+     * read, exactly like load_pm. */
     uint64_t over_left_us;         /* task side: overload time remaining */
     ri_atomic_u32 overloaded;      /* 1 while the backend should yield */
     ri_atomic_u32 overloads;       /* overload entries (heartbeat) */
@@ -62,6 +71,9 @@ void ri_livedrv_init(struct RILiveDriver *d, struct RILiveSession *s,
 void ri_livedrv_request(struct RILiveDriver *d, int cmd);
 /* Backend-observed under-run (device repeated a buffer). */
 void ri_livedrv_report_late(struct RILiveDriver *d, uint32_t n);
+/* Wake latency + the priority held at that wake (task side). This is what
+ * separates "late" (not scheduled) from "slow" (the render itself). */
+void ri_livedrv_report_wake(struct RILiveDriver *d, uint32_t us, uint32_t prio);
 /* Render exactly one device buffer of stereo s16 into out[2*frames].
  * scratch_fl/scratch_fr are caller float buffers of >= frames. */
 void ri_livedrv_render(struct RILiveDriver *d, int16_t *out,

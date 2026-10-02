@@ -43,6 +43,7 @@
 #include <inline/cybergraphics.h>
 #include <proto/muimaster.h>
 #include <proto/utility.h>
+#include "gui/panelui.h" /* RI_RSEC_BOX_* + ri_rsection_box_why */
 #include <clib/alib_protos.h>
 #include <string.h>
 #include "gui/ctlreg.h"
@@ -79,7 +80,15 @@ struct RSectionData {
     char help[64];             /* bubble text for the control under the pointer */
     int dmg_x0, dmg_y0, dmg_x1, dmg_y1; /* S3: canvas-local damage box */
     BOOL dmg_valid;
+    int dmg_why;                 /* RI_RSEC_BOX_* who asked for this box */
 };
+
+/* Reason the caller is about to ask for a box repaint, set by
+ * ri_rsection_set_box_why and consumed by the next refresh_box on any
+ * canvas. A module global because the GUI has one caller
+ * (meter_round) and threading it through every call site would change
+ * signatures for no gain; both run on the GUI task. */
+static int s_box_why;
 
 /* EClock draw timing (S3 Dell proof): UNIT_ECLOCK opened once, GUI side.
  * TimerBase is weak: RIAPP already defines it strong (audio task side);
@@ -203,6 +212,7 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
     if (d->dmg_valid) {
         struct ri_dlist dl;
         int x0 = d->dmg_x0, y0 = d->dmg_y0, x1 = d->dmg_x1, y1 = d->dmg_y1;
+        d->dmg_why = RI_RSEC_BOX_NONE;
         d->dmg_valid = FALSE;
         if (x0 < 0) x0 = 0;
         if (y0 < 0) y0 = 0;
@@ -215,12 +225,20 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
                 BltBitMapRastPort(d->bm, x0, y0, wrp, _mleft(obj) + x0, _mtop(obj) + y0,
                     x1 - x0 + 1, y1 - y0 + 1, 0xC0);
                 if (timed) {
+                    int why = d->dmg_why;
                     ReadEClock(&t1);
                     us = eclock_us(&t0, &t1);
                     if (us > d->diag.dp_max)
                         d->diag.dp_max = us;
                     d->diag.dp_sum += us;
                     d->diag.dp_n++;
+                    /* The same sample also lands in its reason bucket, so
+                     * the aggregate dp_* and the per-reason split always
+                     * agree on the count. */
+                    if (us > d->diag.dpw_max[why])
+                        d->diag.dpw_max[why] = us;
+                    d->diag.dpw_sum[why] += us;
+                    d->diag.dpw_n[why]++;
                 }
                 return;
             }
@@ -521,7 +539,7 @@ void ri_rsection_refresh(APTR obj) {
         MUI_Redraw((Object *)obj, MADF_DRAWOBJECT);
 }
 
-void ri_rsection_refresh_box(APTR obj, int x0, int y0, int x1, int y1) {
+void ri_rsection_refresh_box_why(APTR obj, int x0, int y0, int x1, int y1, int why) {
     Object *o = (Object *)obj;
     struct RSectionData *d;
     int w, h;
@@ -552,6 +570,16 @@ void ri_rsection_refresh_box(APTR obj, int x0, int y0, int x1, int y1) {
     d->dmg_y0 = y0;
     d->dmg_x1 = x1;
     d->dmg_y1 = y1;
+    d->dmg_why = ri_rsection_box_why(why);
     d->dmg_valid = TRUE;
     MUI_Redraw(o, MADF_DRAWUPDATE);
+}
+
+void ri_rsection_set_box_why(int why) {
+    s_box_why = ri_rsection_box_why(why);
+}
+
+void ri_rsection_refresh_box(APTR obj, int x0, int y0, int x1, int y1) {
+    ri_rsection_refresh_box_why(obj, x0, y0, x1, y1, s_box_why);
+    s_box_why = RI_RSEC_BOX_NONE;
 }

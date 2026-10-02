@@ -58,12 +58,25 @@ static ULONG s_hook_mask;
 static struct Hook s_sound_hook;
 static WORD s_pcm[2][AU_LIVE_MAXFRAMES * 2u];
 static float s_fl[AU_LIVE_MAXFRAMES], s_fr[AU_LIVE_MAXFRAMES];
+static ULONG s_efreq; /* EClock ticks/sec (task side, cached at entry) */
+/* Wake latency: the AHI hook stamps the EClock at the moment the device
+ * wanted a half, and the render task compares it against the clock once it
+ * actually starts the buffer. That difference is the whole "late vs slow"
+ * question — render_us_max only says how long the render took, never how
+ * long the task sat unscheduled. Raw ticks (not us) because the hook runs in
+ * interrupt context where a divide would be rude. */
+static struct EClockVal s_hook_ev;
 
-/* SoundFunc: count + Signal() only (spec §4.2 hook contract). */
+/* SoundFunc: count + Signal() + a wake stamp (spec §4.2 hook contract).
+ * The stamp is two plain stores in the order lo-then-hi; a torn read on the
+ * task side yields a nonsense sample, never a plausible small one, and
+ * wake_us_max would only ever be raised by a torn value that wrapped. */
 static ULONG sound_entry(struct Hook *h, APTR actrl, APTR msg) {
     (void)h;
     (void)actrl;
     (void)msg;
+    if (TimerBase && s_efreq)
+        ReadEClock(&s_hook_ev);
     ri_atomic_fetch_add_rel(&s_hook_count, 1u);
     if (s_render != NULL)
         Signal(s_render, s_hook_mask);
@@ -86,8 +99,6 @@ static void tell_parent(void) {
         Signal(s_parent, 1UL << s_parent_sig);
 }
 
-static ULONG s_efreq; /* EClock ticks/sec (task side, cached at entry) */
-
 /* Backend clock for the portable driver (T4): EClock microseconds. */
 static uint64_t aros_now_us(void) {
     struct EClockVal t;
@@ -95,6 +106,29 @@ static uint64_t aros_now_us(void) {
         return 0u;
     ReadEClock(&t);
     return ((uint64_t)t.ev_hi << 32 | (uint64_t)t.ev_lo) * 1000000ULL / s_efreq;
+}
+
+/* Microseconds from the hook's stamp to now, or 0 when it cannot be had
+ * (no timer, a torn stamp, or the clock having gone backwards). Reported as
+ * 0 rather than a clamped 1 so "no sample" stays distinguishable from
+ * "instantly scheduled" in the heartbeat. */
+static uint32_t wake_us_now(void) {
+    uint64_t h0, h1, n;
+    struct EClockVal t;
+    if (!TimerBase || !s_efreq)
+        return 0u;
+    /* The hook can fire between the two loads, so re-read hi: a stable pair
+     * is a consistent stamp, and an unstable one is reported as no sample
+     * rather than as a nonsense interval. */
+    h0 = (uint64_t)s_hook_ev.ev_hi << 32 | (uint64_t)s_hook_ev.ev_lo;
+    h1 = (uint64_t)s_hook_ev.ev_hi << 32 | (uint64_t)s_hook_ev.ev_lo;
+    if (h0 != h1)
+        return 0u;
+    ReadEClock(&t);
+    n = (uint64_t)t.ev_hi << 32 | (uint64_t)t.ev_lo;
+    if (n <= h0)
+        return 0u;
+    return (uint32_t)((n - h0) * 1000000ULL / s_efreq);
 }
 
 /* Render priority: above the UI while the machine keeps up; below it
@@ -265,6 +299,13 @@ static void live_task(void) {
         if (n - processed > 1u)
             ri_livedrv_report_late(&lv->drv, n - processed - 1u); /* AHI looped a half: late */
         processed = n;
+        /* Wake latency, sampled before the render so the render's own cost
+         * is not counted into it, and carrying the priority actually held
+         * (which is AU_LIVE_PRI_YIELD while yielding, and that is the whole
+         * point: a late wake at pri -1 is the governor's doing, while a late
+         * wake at pri 21 is somebody else's). */
+        ri_livedrv_report_wake(&lv->drv, wake_us_now(),
+            (uint32_t)(int32_t)FindTask(NULL)->tc_Node.ln_Pri);
         /* the most recently queued half is the one now playing */
         free_half = queued ^ 1u;
         render_half(lv, free_half);
@@ -370,6 +411,8 @@ int au_live_open(struct AuLive *lv, ULONG frames, ULONG want_rate) {
     ri_atomic_fetch_add_rel(&s_open_gen, 1u);
     s_lv = lv;
     ri_atomic_store_rel(&s_hook_count, 0u);
+    s_hook_ev.ev_hi = 0u;
+    s_hook_ev.ev_lo = 0u;
     p = CreateNewProcTags(NP_Entry, (IPTR)live_task, NP_Name, (IPTR)"RIAPP render",
         NP_Priority, AU_LIVE_PRI, NP_StackSize, 32768, TAG_DONE);
     if (!p) {

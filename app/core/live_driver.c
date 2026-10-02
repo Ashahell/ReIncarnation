@@ -23,7 +23,12 @@ void ri_livedrv_init(struct RILiveDriver *d, struct RILiveSession *s,
     d->buffers.v = 0u;
     d->render_us_max.v = 0u;
     d->render_us_sum_ms.v = 0u;
+    d->wake_us_max.v = 0u;
+    d->wake_us_sum_ms.v = 0u;
+    d->wake_n.v = 0u;
+    d->prio_now.v = 0u;
     d->us_acc = 0u;
+    d->wake_acc = 0u;
     d->cap_buf = 0;
     d->cap_max = 0u;
     d->cap_pos.v = 0u;
@@ -48,6 +53,23 @@ void ri_livedrv_report_late(struct RILiveDriver *d, uint32_t n) {
 
 int ri_livedrv_overloaded(struct RILiveDriver *d) {
     return d ? (int)ri_atomic_load_acq(&d->overloaded) : 0;
+}
+
+/* Wake latency: the backend calls this as it begins a buffer, with the
+ * microseconds between its wake source firing and the render starting, and
+ * the priority the task held at that moment. This is the metric that
+ * separates "late" (the task was not scheduled in time) from "slow" (the
+ * render itself took too long) — render_us_max alone cannot tell those
+ * apart. Task side only; the GUI reads the atomics. */
+void ri_livedrv_report_wake(struct RILiveDriver *d, uint32_t us, uint32_t prio) {
+    if (!d)
+        return;
+    if (us > ri_atomic_load_acq(&d->wake_us_max))
+        ri_atomic_store_rel(&d->wake_us_max, us);
+    ri_atomic_store_rel(&d->prio_now, prio);
+    d->wake_acc += us;
+    ri_atomic_store_rel(&d->wake_us_sum_ms, (uint32_t)(d->wake_acc / 1000ULL));
+    ri_atomic_fetch_add_rel(&d->wake_n, 1u);
 }
 
 /* One buffer's timing into the governor (task side). */

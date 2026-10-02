@@ -50,6 +50,11 @@ struct RSectionDiag {
     LONG dp_n;            /* ... and count */
     ULONG blit_max;       /* full draw: BltBitMapRastPort share, max us */
     ULONG alloc_n;        /* back-buffer (re)allocations */
+    /* Box repaints split by the reason they were asked for (RI_RSEC_BOX_*),
+     * so an expensive partial can be attributed to the caller that caused it.
+     * Index 0 unused, so _n counts line up with the reason codes. */
+    ULONG dpw_max[4], dpw_sum[4];
+    LONG dpw_n[4];
 };
 
 struct MUI_CustomClass *ri_rsection_class(void);
@@ -62,6 +67,16 @@ void ri_rsection_refresh(APTR obj);
  * anything invalid falls back to a full redraw. Coordinates are canvas px
  * (sections are exactly canvas-sized). */
 void ri_rsection_refresh_box(APTR obj, int x0, int y0, int x1, int y1);
+/* Why a box repaint was requested, so the repaint cost can be attributed:
+ * a "partial" of 4 ms and a "partial" of 300 ms are different failures, and
+ * the aggregated n=/max= pair cannot tell them apart. Recorded per canvas in
+ * RSectionDiag as dp_box_*; reasons that escalate to a full redraw are
+ * still counted as full (that is what actually happened). */
+/* The codes and the folding rule live in gui/panelui.h (RI_RSEC_BOX_*,
+ * ri_rsection_box_why) so the policy is host-testable: rsection.h is
+ * AROS-only and cannot be included by a host test at all. */
+void ri_rsection_refresh_box_why(APTR obj, int x0, int y0, int x1, int y1, int why);
+void ri_rsection_set_box_why(int why); /* meter_round's next refresh_box call */
 /* Replay an app-built display list (rack furniture) with the canvas
  * colour path; needs a section canvas set up on the same screen. */
 struct ri_dlist;

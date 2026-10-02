@@ -1068,7 +1068,8 @@ static void meter_round(ULONG mix_freq) {
                 if (g && ri_geo_bbox(g,
                     (uint16_t)(((uint32_t)RI_SEC_TRANSPORT << 8) | RI_STR_BAR), 0,
                     &x0, &y0, &x1, &y1) == 0)
-                    ri_rsection_refresh_box(s_canvas[k], x0, y0, x1, y1);
+                    ri_rsection_refresh_box_why(s_canvas[k], x0, y0, x1, y1,
+                        RI_RSEC_BOX_BAR);
                 else
                     ri_rsection_refresh(s_canvas[k]);
                 continue;
@@ -1095,7 +1096,8 @@ static void meter_round(ULONG mix_freq) {
                             continue;
                         if (ri_geo_bbox(g, (uint16_t)(base + (uint32_t)steps[s]), 0,
                             &x0, &y0, &x1, &y1) == 0)
-                            ri_rsection_refresh_box(s_canvas[k], x0, y0, x1, y1);
+                            ri_rsection_refresh_box_why(s_canvas[k], x0, y0, x1, y1,
+                                RI_RSEC_BOX_STEPS);
                         else
                             ok = 0;
                     }
@@ -2284,6 +2286,8 @@ int main(int argc, char **argv) {
          * redraw us, max + mean, so a knob-drag session reports both. */
         if (++hb >= 300u) {
             ULONG dfmax = 0u, dpmax = 0u, dfsum = 0u, dpsum = 0u, dfn = 0u, dpn = 0u, blmax = 0u, alln = 0u;
+            ULONG dpwmax[4] = { 0u, 0u, 0u, 0u }, dpwsum[4] = { 0u, 0u, 0u, 0u }, dpwn[4] = { 0u, 0u, 0u, 0u };
+            int w;
             hb = 0u;
             for (i = 0; i < C_N; i++) {
                 struct RSectionDiag *dg = (struct RSectionDiag *)s_dg[i];
@@ -2300,6 +2304,14 @@ int main(int argc, char **argv) {
                 if (dg->blit_max > blmax)
                     blmax = dg->blit_max;
                 alln += dg->alloc_n;
+                for (w = 0; w < 4; w++) {
+                    if (dg->dpw_max[w] > dpwmax[w])
+                        dpwmax[w] = dg->dpw_max[w];
+                    dpwsum[w] += dg->dpw_sum[w];
+                    dpwn[w] += (ULONG)(dg->dpw_n[w] > 0 ? dg->dpw_n[w] : 0L);
+                    dg->dpw_max[w] = dg->dpw_sum[w] = 0u;
+                    dg->dpw_n[w] = 0L;
+                }
                 dg->blit_max = 0u;
                 dg->alloc_n = 0u;
                 dg->df_max = dg->df_sum = 0u;
@@ -2307,13 +2319,30 @@ int main(int argc, char **argv) {
                 dg->dp_max = dg->dp_sum = 0u;
                 dg->dp_n = 0;
             }
-            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu\n",
-                dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn, blmax, alln);
+            /* box_* splits the partials by RI_RSEC_BOX_*: steps (drum lamps), bar (Song
+             * Position), other. An expensive partial now names its caller. */
+            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu\n",
+                dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn, blmax, alln,
+                dpwn[RI_RSEC_BOX_STEPS] ? dpwsum[RI_RSEC_BOX_STEPS] / dpwn[RI_RSEC_BOX_STEPS] : 0u,
+                dpwmax[RI_RSEC_BOX_STEPS], dpwn[RI_RSEC_BOX_STEPS],
+                dpwn[RI_RSEC_BOX_BAR] ? dpwsum[RI_RSEC_BOX_BAR] / dpwn[RI_RSEC_BOX_BAR] : 0u,
+                dpwmax[RI_RSEC_BOX_BAR], dpwn[RI_RSEC_BOX_BAR],
+                dpwn[RI_RSEC_BOX_OTHER] ? dpwsum[RI_RSEC_BOX_OTHER] / dpwn[RI_RSEC_BOX_OTHER] : 0u,
+                dpwmax[RI_RSEC_BOX_OTHER], dpwn[RI_RSEC_BOX_OTHER]);
             if (s_live)
-            rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us load=%lu/1000 overloads=%lu snd=%u/%u/%u/%u pend=%u/%u/%u/%u\n",
+            /* wake_max/wake_n/prio separate "late" (the render task was not
+             * scheduled) from "slow" (the render took too long) — render_max
+             * alone cannot. arm_us is the governor's own accumulation: with
+             * overloads=0 it distinguishes "never over budget" from "over
+             * budget and reset many times". */
+            rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us wake_max=%lu us wake_n=%lu prio=%ld arm_us=%llu load=%lu/1000 overloads=%lu snd=%u/%u/%u/%u pend=%u/%u/%u/%u\n",
                 ri_atomic_load_acq(&s_lv.drv.buffers),
                 ri_atomic_load_acq(&s_lv.drv.xruns),
                 ri_atomic_load_acq(&s_lv.drv.render_us_max),
+                ri_atomic_load_acq(&s_lv.drv.wake_us_max),
+                ri_atomic_load_acq(&s_lv.drv.wake_n),
+                (LONG)(int32_t)ri_atomic_load_acq(&s_lv.drv.prio_now),
+                (unsigned long long)s_lv.drv.over_run_us, /* diagnostic-only unsynchronized read */
                 (ULONG)s_lv.drv.load_pm, /* diagnostic-only unsynchronized read */
                 ri_atomic_load_acq(&s_lv.drv.overloads),
                 s_core.session.player.sounding_slot[0], s_core.session.player.sounding_slot[1],
@@ -2345,8 +2374,9 @@ int main(int argc, char **argv) {
             s_cap_mem = NULL;
         }
         if (DOSBase)
-            rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us\n",
-                ri_atomic_load_acq(&s_lv.drv.buffers), ri_atomic_load_acq(&s_lv.drv.xruns), ri_atomic_load_acq(&s_lv.drv.render_us_max), ri_atomic_load_acq(&s_lv.drv.render_us_sum_ms), s_lv.period_us);
+            rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us wake_max=%lu us wake_total=%lu ms wake_n=%lu\n",
+                ri_atomic_load_acq(&s_lv.drv.buffers), ri_atomic_load_acq(&s_lv.drv.xruns), ri_atomic_load_acq(&s_lv.drv.render_us_max), ri_atomic_load_acq(&s_lv.drv.render_us_sum_ms), s_lv.period_us,
+                ri_atomic_load_acq(&s_lv.drv.wake_us_max), ri_atomic_load_acq(&s_lv.drv.wake_us_sum_ms), ri_atomic_load_acq(&s_lv.drv.wake_n));
     }
     SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
     MUI_DisposeObject(app);
