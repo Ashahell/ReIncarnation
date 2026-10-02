@@ -36,6 +36,8 @@ struct ri_dlist {
     /* Legend face state (S2): ri_art_text_c emits TEXT with this face so
      * section legends scale with zoom; 0 = backend/system font. */
     uint8_t cur_face;
+    uint8_t clip;         /* 1 = a damage clip box is set (below) */
+    int16_t cx0, cy0, cx1, cy1;
     uint8_t _rfu[3];
 };
 

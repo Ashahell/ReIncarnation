@@ -55,6 +55,10 @@ struct RSectionDiag {
      * Index 0 unused, so _n counts line up with the reason codes. */
     ULONG dpw_max[4], dpw_sum[4];
     LONG dpw_n[4];
+    /* Box repaint split build vs replay+blit (Dell A,B,B,A 2026-10-02:
+     * a tab-switch box cost 46-91 ms and build_dl is the suspect; the
+     * damage path does not know yet, so it is measured). */
+    ULONG dp_build_max, dp_build_sum;
 };
 
 struct MUI_CustomClass *ri_rsection_class(void);

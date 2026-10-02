@@ -108,6 +108,11 @@ int ri_panel_live_stale(uint32_t mask, uint32_t section);
 #define RI_RSEC_BOX_STEPS 1  /* drum step lamps (the chase) */
 #define RI_RSEC_BOX_BAR   2  /* the Song Position display */
 #define RI_RSEC_BOX_OTHER 3  /* any other caller, or a reason out of range */
+/* Number of reason codes, i.e. the size of every per-reason bucket array and
+ * of the set the heartbeat must print. Dell 2026-10-02: NONE was a legal code
+ * that no bucket printed, so a whole reason split reported zeros and looked
+ * like "no repaints happened". Print all RI_RSEC_BOX_COUNT of them. */
+#define RI_RSEC_BOX_COUNT 4
 /* Any code outside the four folds onto OTHER: a new caller cannot index
  * out of bounds, and an unknown reason is visible as OTHER rather than
  * silently charged to one of the known callers. */

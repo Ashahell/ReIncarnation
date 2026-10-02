@@ -443,21 +443,28 @@ static int replay_dl_dmg(struct RastPort *rp, const struct ri_dlist *dl,
     return 1;
 }
 
+/* cx0..cy1 is a damage clip box, or an inverted box (cx1 < cx0) for "build
+ * the whole section". The clip is set AFTER ri_dlist_init, which clears it.
+ * Clipping at push time is exactly equivalent to building everything and
+ * letting the backend's clipped replay skip the same commands (Dell
+ * 2026-10-02: build_dl was 59 % of a box repaint, ~96 chase boxes/window). */
 static void build_dl(struct RastPort *rp, struct RSectionData *dd, int ox, int oy,
-    struct ri_dlist *dl) {
+    struct ri_dlist *dl, int cx0, int cy0, int cx1, int cy1) {
     struct ri_text_metrics tm;
     tm.width = rtext_width;
     tm.height = rp ? rp->TxHeight : 8;
     tm.baseline = rp ? rp->TxBaseline : 6;
     tm.ctx = rp;
     ri_dlist_init(dl, s_dl_back, 24576u, s_dl_spool, sizeof s_dl_spool);
+    ri_dlist_set_clip(dl, cx0, cy0, cx1, cy1); /* inverted box => no clip */
     ri_draw_section(dl, &dd->ui, dd->ui.section, (int)dd->zoom, ox, oy, &tm,
         ri_skin_aros_for(dd->ui.section), dd->panel);
+    ri_dlist_clear_clip(dl);
 }
 
 static void draw_section(struct RastPort *rp, struct RSectionData *dd, int ox, int oy) {
     struct ri_dlist dl;
-    build_dl(rp, dd, ox, oy, &dl);
+    build_dl(rp, dd, ox, oy, &dl, -1, -1, -2, -2); /* inverted => whole section */
     replay_dl(rp, &dl, ri_skin_aros_for(dd->ui.section));
 }
 

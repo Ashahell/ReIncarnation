@@ -12,6 +12,20 @@
 void ri_dlist_init(struct ri_dlist *dl, struct ri_dcmd *backing, uint32_t cap,
     char *spool, uint32_t spcap);
 void ri_dlist_clear(struct ri_dlist *dl);
+/* Damage clip (Dell 2026-10-02: build_dl was 59 % of a box repaint, and
+ * the chase issues ~96 of them per window, because the damage path built the
+ * WHOLE section and then threw away everything outside the box). With a clip
+ * set, ri_dlist_push drops commands that cannot paint inside it, so the build
+ * only pays for what the replay would have drawn anyway.
+ *
+ * This is exactly equivalent, not an approximation: the backend's clipped
+ * replay already skips every command for which ri_dcmd_hits_box is 0, so the
+ * surviving stream is identical. A command that straddles the box still hits
+ * and is kept, so partial coverage is unchanged. With no clip set the push
+ * path is byte-for-byte the old one, which is what keeps the goldens.
+ * RI_D_CLIP is a no-op for replay and is dropped when clipping. */
+void ri_dlist_set_clip(struct ri_dlist *dl, int x0, int y0, int x1, int y1);
+void ri_dlist_clear_clip(struct ri_dlist *dl);
 /* Push one command; returns 0 ok, 1 full (counts on the caller to size). */
 int ri_dlist_push(struct ri_dlist *dl, const struct ri_dcmd *c);
 

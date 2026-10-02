@@ -15,6 +15,8 @@ void ri_dlist_init(struct ri_dlist *dl, struct ri_dcmd *backing, uint32_t cap,
     dl->spn = 0u;
     dl->spcap = (spool && spcap) ? spcap : 0u;
     dl->cur_face = 0u;
+    dl->clip = 0u;
+    dl->cx0 = dl->cy0 = dl->cx1 = dl->cy1 = 0;
     dl->_rfu[0] = dl->_rfu[1] = dl->_rfu[2] = 0u;
 }
 
@@ -28,8 +30,29 @@ void ri_dlist_clear(struct ri_dlist *dl) {
 int ri_dlist_push(struct ri_dlist *dl, const struct ri_dcmd *c) {
     if (!dl || !c || !dl->cmd || dl->n >= dl->cap)
         return 1;
+    if (dl->clip && !ri_dcmd_hits_box(c, dl->cx0, dl->cy0, dl->cx1, dl->cy1))
+        return 0; /* cannot paint inside the damage box: build never sees it */
     dl->cmd[dl->n++] = *c;
     return 0;
+}
+
+void ri_dlist_set_clip(struct ri_dlist *dl, int x0, int y0, int x1, int y1) {
+    if (!dl)
+        return;
+    if (x1 < x0 || y1 < y0) {   /* an empty box can paint nothing */
+        dl->clip = 0u;
+        return;
+    }
+    dl->cx0 = (int16_t)x0;
+    dl->cy0 = (int16_t)y0;
+    dl->cx1 = (int16_t)x1;
+    dl->cy1 = (int16_t)y1;
+    dl->clip = 1u;
+}
+
+void ri_dlist_clear_clip(struct ri_dlist *dl) {
+    if (dl)
+        dl->clip = 0u;
 }
 
 static int emit(struct ri_dlist *dl, uint8_t op, int x0, int y0, int x1, int y1,

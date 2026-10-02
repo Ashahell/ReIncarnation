@@ -2296,6 +2296,7 @@ int main(int argc, char **argv) {
         if (++hb >= 300u) {
             ULONG dfmax = 0u, dpmax = 0u, dfsum = 0u, dpsum = 0u, dfn = 0u, dpn = 0u, blmax = 0u, alln = 0u;
             ULONG dpwmax[4] = { 0u, 0u, 0u, 0u }, dpwsum[4] = { 0u, 0u, 0u, 0u }, dpwn[4] = { 0u, 0u, 0u, 0u };
+            ULONG dpbmax = 0u, dpbsum = 0u;
             int w;
             hb = 0u;
             for (i = 0; i < C_N; i++) {
@@ -2313,6 +2314,10 @@ int main(int argc, char **argv) {
                 if (dg->blit_max > blmax)
                     blmax = dg->blit_max;
                 alln += dg->alloc_n;
+                if (dg->dp_build_max > dpbmax)
+                    dpbmax = dg->dp_build_max;
+                dpbsum += dg->dp_build_sum;
+                dg->dp_build_max = dg->dp_build_sum = 0u;
                 for (w = 0; w < 4; w++) {
                     if (dg->dpw_max[w] > dpwmax[w])
                         dpwmax[w] = dg->dpw_max[w];
@@ -2330,14 +2335,17 @@ int main(int argc, char **argv) {
             }
             /* box_* splits the partials by RI_RSEC_BOX_*: steps (drum lamps), bar (Song
              * Position), other. An expensive partial now names its caller. */
-            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu\n",
+            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us\n",
                 dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn, blmax, alln,
                 dpwn[RI_RSEC_BOX_STEPS] ? dpwsum[RI_RSEC_BOX_STEPS] / dpwn[RI_RSEC_BOX_STEPS] : 0u,
                 dpwmax[RI_RSEC_BOX_STEPS], dpwn[RI_RSEC_BOX_STEPS],
                 dpwn[RI_RSEC_BOX_BAR] ? dpwsum[RI_RSEC_BOX_BAR] / dpwn[RI_RSEC_BOX_BAR] : 0u,
                 dpwmax[RI_RSEC_BOX_BAR], dpwn[RI_RSEC_BOX_BAR],
                 dpwn[RI_RSEC_BOX_OTHER] ? dpwsum[RI_RSEC_BOX_OTHER] / dpwn[RI_RSEC_BOX_OTHER] : 0u,
-                dpwmax[RI_RSEC_BOX_OTHER], dpwn[RI_RSEC_BOX_OTHER]);
+                dpwmax[RI_RSEC_BOX_OTHER], dpwn[RI_RSEC_BOX_OTHER],
+                dpwn[RI_RSEC_BOX_NONE] ? dpwsum[RI_RSEC_BOX_NONE] / dpwn[RI_RSEC_BOX_NONE] : 0u,
+                dpwmax[RI_RSEC_BOX_NONE], dpwn[RI_RSEC_BOX_NONE],
+                dpn ? dpbsum / dpn : 0u, dpbmax);
             if (s_live)
             /* wake_max/wake_n/prio separate "late" (the render task was not
              * scheduled) from "slow" (the render took too long) — render_max

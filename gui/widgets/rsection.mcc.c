@@ -212,6 +212,10 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
     if (d->dmg_valid) {
         struct ri_dlist dl;
         int x0 = d->dmg_x0, y0 = d->dmg_y0, x1 = d->dmg_x1, y1 = d->dmg_y1;
+        /* Captured BEFORE the clear: reading it after always gave NONE, so
+         * every repaint was attributed to "unattributed" and the whole
+         * reason split reported zeros (Dell A,B,B,A 2026-10-02 caught it). */
+        int why = d->dmg_why;
         d->dmg_why = RI_RSEC_BOX_NONE;
         d->dmg_valid = FALSE;
         if (x0 < 0) x0 = 0;
@@ -219,15 +223,29 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
         if (x1 >= w) x1 = w - 1;
         if (y1 >= h) y1 = h - 1;
         if (x1 >= x0 && y1 >= y0) {
-            build_dl(&d->brp, d, 0, 0, &dl); /* CPU only; cheap vs blits */
+            ULONG us_build = 0u;
+            if (timed)
+                ReadEClock(&tb);
+            /* Bounded build: only the commands the clipped replay would have
+             * drawn anyway. Dell 2026-10-02 measured build_dl at 59 % of a box
+             * repaint with ~96 chase boxes per window; the full-section build
+             * was the cost, and the replay already culls identically. */
+            build_dl(&d->brp, d, 0, 0, &dl, x0, y0, x1, y1);
+            if (timed) {
+                ReadEClock(&t1);
+                us_build = eclock_us(&tb, &t1);
+                if (us_build > d->diag.dp_build_max)
+                    d->diag.dp_build_max = us_build;
+                d->diag.dp_build_sum += us_build;
+            }
             if (replay_dl_dmg(&d->brp, &dl, ri_skin_aros_for(d->ui.section),
                 x0, y0, x1, y1)) {
                 BltBitMapRastPort(d->bm, x0, y0, wrp, _mleft(obj) + x0, _mtop(obj) + y0,
                     x1 - x0 + 1, y1 - y0 + 1, 0xC0);
                 if (timed) {
-                    int why = d->dmg_why;
-                    ReadEClock(&t1);
-                    us = eclock_us(&t0, &t1);
+                    struct EClockVal t2;
+                    ReadEClock(&t2);
+                    us = eclock_us(&t0, &t2);
                     if (us > d->diag.dp_max)
                         d->diag.dp_max = us;
                     d->diag.dp_sum += us;
