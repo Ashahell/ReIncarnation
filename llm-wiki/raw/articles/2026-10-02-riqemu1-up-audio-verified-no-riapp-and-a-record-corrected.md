@@ -120,6 +120,29 @@ a full program, so this lane has never produced a linked RIAPP from this tree.
 Bringing one up means pairing the v1 compiler driver with the v1 runtime names —
 a real task, not a flag, and not part of this one.
 
+> **CORRECTION (2026-10-02, later the same day).** Two things in this record are
+> wrong, and both are about the crash rather than about the VM:
+>
+> 1. **The crash is a PRIVILEGE VIOLATION, not an `Illegal instruction`.** At this
+>    guest's capture ceiling (scale 2, 512×384 — scale 1 is refused as "screen too
+>    large") the two are indistinguishable in a screenshot. The full report, obtained
+>    as **text**, reads `Error: 0x00000008 - Privilege violation error`.
+> 2. **The r12 explanation below is wrong.** AROS's own
+>    `arch/x86_64-all/ABI_SPECIFICATION` — *"Specification of AROS x86_64 ABIv11
+>    calling conventions"* — specifies **R12 for base**, library-side base **R12**,
+>    and documents `-ffixed-r12` as the sanctioned mechanism (*"GCC is now hardcoded
+>    to have R12 as fixed register"*, *"Not using R12 in caller side code is however
+>    NOT an ABI requirement"*). **v11's r12 sequence is AROS's documented ABI, not a
+>    stale convention.** The comment in `ri_build_aros.sh` saying otherwise does not
+>    match upstream.
+>
+> What survives from this record: the v1 build is the correct recipe for this
+> v1-lineage guest and it **fixes** the startup crash (see
+> [the successor record](2026-10-02-riqemu1-software-failure-is-two-faults-wrong-abi-fixed-and-misaligned-movaps.md));
+> the audio hardware path is verified host-side; and the ES1370 driver does not exist
+> in this AHI. What does not: attributing the fault to r12, and reading it as an
+> illegal instruction.
+
 ## This is what corrected a record I had already pushed
 
 Going to build a binary for a *different lane* is what exposed the error. Asking
