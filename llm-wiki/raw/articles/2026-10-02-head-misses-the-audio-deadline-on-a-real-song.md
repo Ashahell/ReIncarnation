@@ -110,6 +110,34 @@ The playlist is `songs/local/dotdot.rbpl` on the stick: three songs where entry 
 only loads if the `..` fold works. That makes the same playlist a two-purpose fixture —
 it proves the path fix and gives the render work a repeatable five-device song.
 
+> **UPDATE (2026-10-03) -- the measurement stands, the conclusion drawn from it does not.**
+>
+> Everything measured here is correct: at `-O0` on `demos.rbpl`, HEAD really does
+> miss the deadline, and `stg_dsp_avg` alone really does exceed `period`. That was
+> never in doubt and nothing below retracts it.
+>
+> What changes is the *cause* the record implied. A same-playlist `-O2` pair
+> (`RIAPP-o2`, 874,968 B, `r12moves=282`) gives:
+>
+> ```
+> buffers=109229 xruns=0 stg_total_avg=2467 us stg_dsp_avg=2389 us render_max=4296 us arm_us=0
+> buffers=105447 xruns=0 stg_total_avg=2805 us stg_dsp_avg=2723 us render_max=4414 us arm_us=0
+> ```
+>
+> **214,676 buffers, 0 xruns**, stage average at 46-53 % of the period where `-O0`
+> sits at 106-108 %. So the DSP is not too expensive -- the build is. "Hand it to
+> the render-stage lane" was the wrong lever for this symptom: the render stage's
+> breakdown remains correct about *where* the time goes (Levi, voices) and that is
+> still worth knowing, but nothing there needs changing to make this song play.
+>
+> The comparison this record was built on -- old `-O0` against HEAD `-O0`, same flag --
+> is untouched, so "the DSP got more expensive at `-O0`" still holds exactly as
+> claimed. What is left open is narrower and sharper: **is `-O2` safe to ship?**
+> `r12moves` 41 -> 282 is the repo's own ABI check and 282 has never been run as a
+> shipping configuration.
+>
+> Full record: [The `-O0` xruns are a build-flag artefact](2026-10-03-the-o0-xruns-are-a-build-flag-artefact-not-a-render-stage-regression.md).
+
 ## What was left deployed, and why
 
 HEAD (`406500f`) is deployed as `RIAPP`, because it is what the repository builds and it

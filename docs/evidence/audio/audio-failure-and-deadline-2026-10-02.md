@@ -186,3 +186,71 @@ RIAPP audio: sound card unusable, continuing without sound [err 4]
 Present in `status`, absent from `--ui-windows` is the signature. Rule: after
 any two-instance experiment, wait for `status` to clear before launching again,
 or the next launch inherits the failure and reads as a new bug.
+## `-O2` on a REAL song: 0 xruns (2026-10-03)
+
+The gap this closes: every `-O0` figure above is from a playlist carrying The
+Knife and Zombie Nation, while the `-O2` figure on file
+(`docs/evidence` sibling record, commit `5d233a1`) was taken with **no song
+loaded at all**. The raw logs show it directly — `stg1`, `stg2`, `stgo2`,
+`stgo2b` and `stgbase` each contain `RIAPP play` and **zero** `RIAPP playlist` /
+`RIAPP song` lines, so they played the built-in demo. Different workload, so the
+two records were never in conflict; the missing cell was `-O2` on a real song.
+
+Binary: `Vk4aros:ReIncarnation/RIAPP-o2`, 874,968 B, built with
+`~/bin/build_v11.sh` and `-O2` substituted for `-O0` (81 TUs, 0 undefined,
+`r12moves=282` — the record's `-O2` profile is 873,888 B / 286).
+
+Same playlist as the `-O0` runs, `Vk4aros:ReIncarnation/songs/local/demos.rbpl`,
+one instance, AHI live (`mode=0x003e0001 mix=48000 Hz buffer=256 frames
+period=5333 us`). Two runs, because the effect is large and a single 0 is
+either a fix or a quiet guest.
+
+```
+run 1  RIAPP closed: buffers=109229 xruns=0 render_max=4296 us render_total=270756 ms
+       period=5333 us wake_max=448 us wake_total=2097 ms wake_n=109227
+       stg_total_avg=2467 us stg_dsp_avg=2389 us stg_evt_avg=27 us
+       stg_playing=109205 stg_stopped=24
+
+run 2  RIAPP closed: buffers=105447 xruns=0 render_max=4414 us render_total=296911 ms
+       period=5333 us wake_max=43 us wake_total=2029 ms wake_n=105445
+       stg_total_avg=2805 us stg_dsp_avg=2723 us stg_evt_avg=33 us
+       stg_playing=105403 stg_stopped=44
+```
+
+**214,676 buffers across the two runs, 0 xruns.** Final heartbeats:
+
+```
+hb: buffers=108291 xruns=0 render_max=4296 us wake_max=448 us wake_n=108289 prio=21 arm_us=0 load=526/1000 overloads=0
+hb: buffers=102552 xruns=0 render_max=4414 us wake_max=43  wake_n=102550 prio=21 arm_us=0 load=716/1000 overloads=0
+```
+
+Per-stage and per-device, run 2:
+
+```
+stg[5]: avg=2698 us max=4318 us
+stg[7]: avg=2780 us max=4401 us
+dstg levi      avg=350 us max=655 us
+dstg lev-voice avg=306 us max=600 us
+dstg block     avg=660 us max=1054 us
+```
+
+`arm_us=0` and `overloads=0` in both runs: **the governor arm never engages**,
+which is exactly what the `-O2` record predicted would happen to the A,B,B,A
+arms if re-run at `-O2`. Confirmed here on a real song.
+
+### The four cells, same playlist where comparable
+
+| flag | workload | buffers | xruns | `stg_total_avg` | `stg_dsp_avg` | `render_max` | `wake_max` |
+|------|----------|---------|-------|-----------------|---------------|--------------|------------|
+| `-O0` | `demos.rbpl` | 97,444 | 20,998 | 5766 us | 5689 us | 21573 us | 5823 us |
+| `-O0` | `demos.rbpl` | 90,106 | 18,259 | 5654 us | 5576 us | 10115 us | 5823 us |
+| `-O2` | `demos.rbpl` | 109,229 | **0** | 2467 us | 2389 us | 4296 us | 448 us |
+| `-O2` | `demos.rbpl` | 105,447 | **0** | 2805 us | 2723 us | 4414 us | 43 us |
+| `-O0` | demo only | 40,208 | 2,320 | 4638 us | 4557 us | 6457 us | 5822 us |
+| `-O2` | demo only | 40,812 | **0** | 2223 us | 2142 us | 3028 us | 37 us |
+
+At `-O2` the stage average is 46-53 % of the 5333 us period on the heaviest
+workload measured, where at `-O0` it was 106-108 %. Levi, the largest single
+device, goes 737 us -> 350 us and `dstg block` 1370 us -> 660 us: a uniform
+~2.1x, with the *proportions* unchanged, which is the signature of the flag and
+not of an algorithmic change.

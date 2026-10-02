@@ -170,6 +170,32 @@ figure must not be quoted as a per-playing-buffer cost.
   clamp and a saturation law together make that a tested path rather than an assumed
   one.
 
+> **UPDATE (2026-10-03) -- this breakdown is right about *where*, and is the
+> wrong lever for the symptom it was asked to fix.**
+>
+> Nothing in this record is wrong: VOICES is ~94 % of the block, the FX chain is
+> ~1 %, and Levi is the largest single device. But the gap below -- "an xrun is
+> structurally guaranteed on this guest for this patch" -- turns out to be a
+> property of the **build flag**, not of the render stage. A same-playlist `-O2`
+> pair on the real song (`RIAPP-o2`) gives:
+>
+> ```
+> buffers=109229 xruns=0 stg_total_avg=2467 us stg_dsp_avg=2389 us
+> buffers=105447 xruns=0 stg_total_avg=2805 us stg_dsp_avg=2723 us
+> ```
+>
+> **214,676 buffers, 0 xruns**, with per-device costs at roughly half their `-O0`
+> values and the *proportions unchanged* -- Levi 737 -> 350 us, `dstg block`
+> 1370 -> 660 us. A uniform ~2.1x with stable ratios is a compiler flag, not a code
+> change. So the render-stage lane does **not** need to make this song play; it
+> already does at `-O2`.
+>
+> What survives as useful: the *proportions* are the durable finding and they
+> still say where optimisation effort would pay, if anyone wants it. What does not
+> survive: "hand the xruns to the render stage". The remaining question is the ABI
+> one -- `r12moves` 41 -> 282, untested as a shipping configuration.
+> See [The `-O0` xruns are a build-flag artefact](2026-10-03-the-o0-xruns-are-a-build-flag-artefact-not-a-render-stage-regression.md).
+
 ## Standing gaps
 
 - **VOICES is one bucket over five engines.** 303A, 303B, 808, 909 and LEVI are

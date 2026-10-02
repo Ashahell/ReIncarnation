@@ -44,6 +44,33 @@ run — that is deliberate, so repaint work cannot contaminate the render figure
 bug, not a measurement. It is kept because its xruns, `render_max` and
 `wake_max` are unaffected by the fix and belong in the series.
 
+> **CASCADE (2026-10-03). Two things this record left implicit, now settled.**
+>
+> **1. The workload was the built-in demo -- no song at all.** Every run above
+> (`stg1`, `stg2`, `stgo2`, `stgo2b`, `stgbase`) contains `RIAPP play` and **zero**
+> `RIAPP playlist` / `RIAPP song` lines. So "on this workload", said sixteen
+> times, meant the lightest thing the app can play. Not wrong; understated in the
+> dangerous direction, because the flag's *extent* is larger on real songs.
+>
+> **2. The missing cell is now measured: `-O2` on a real song gives 0 xruns.**
+> Same playlist as the `-O0` real-song runs, one instance, AHI live, two runs:
+>
+> | flag | buffers | xruns | `stg_total_avg` | % of 5333 us | `render_max` |
+> |------|---------|-------|-----------------|--------------|--------------|
+> | `-O0` | 97,444 | 20,998 | 5766 us | 108 % | 21573 us |
+> | `-O0` | 90,106 | 18,259 | 5654 us | 106 % | 10115 us |
+> | `-O2` | 109,229 | **0** | 2467 us | 46 % | 4296 us |
+> | `-O2` | 105,447 | **0** | 2805 us | 53 % | 4414 us |
+>
+> **214,676 buffers, 0 xruns**, with `arm_us=0 overloads=0` in both -- which is the
+> prediction further down this record ("if the arms were re-run at `-O2`, neither
+> fix is measurable, because the arm would never engage"), confirmed on a heavier
+> workload than it was made about. Full record and evidence:
+> [The `-O0` xruns are a build-flag artefact](2026-10-03-the-o0-xruns-are-a-build-flag-artefact-not-a-render-stage-regression.md).
+> What this record's "what this does not say" section got right, and now matters
+> more than when it was written: **`-O2` is still not the shipping answer on its
+> own evidence.** `r12moves` 41 -> 282 is untested as a shipping configuration.
+
 **Corrected for the 301 µs/buffer the instrumentation costs itself** (measured by
 stashing it and re-running; see the breakdown record), and against the 5333 µs
 period:
