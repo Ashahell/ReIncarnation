@@ -56,10 +56,17 @@ Three consequences, each checked rather than inferred:
    allocates nor rewrites it. Every CFLAGS line in this repo passes
    `-ffixed-r12`, believing it produces "zero `mov %rax,%r12`"; it cannot, and the
    build script's own comment saying so is wrong.
-2. **There is no rdx variant to build against.** `find src/abi -name libcall.h`
-   returns 26 files; the only x86_64 ones are v11's, all with r12 and zero rdx.
-   v1 has no x86_64 `libcall.h` at all. So "MUST emit rdx-base calls" is not
-   achievable in this tree as written.
+2. **There is no rdx variant to build against — and that is the error in this
+   record, corrected below. Only v11 ships an arch-specific x86_64 header at
+   all:**
+   ```
+   v11/core-pc-x86_64/bin/pc-x86_64/.../aros/x86_64/libcall.h   r12=45  rdx=0
+   v11/core-pc-x86_64/bin/pc-x86_64/gen/.../aros/x86_64/libcall.h r12=45  rdx=0
+   v1  -- no aros/x86_64/libcall.h exists --
+   ```
+   v1's x86_64 SDK provides `cpucontext.h` and `genmodule.h` instead. That is
+   why a v1 build emits zero of these instructions and why the audit gate — which
+   builds against the **v1** SDK and asserts zero — passes at zero.
 3. **Therefore the count measures inlining, not ABI safety.**
 
 ## Why the count rises with optimisation
@@ -95,6 +102,50 @@ zero. Two control experiments agree: a minimal probe compiles to 0 at `-O2` with
 or without `-ffixed-r12` (no library calls), and `platform/pal/ri_pal_sticky.c`
 also compiles to 0 standalone (no library calls) while the *linked* binary
 attributes instances to that symbol.
+
+## CORRECTION (2026-10-02, later the same day, found while starting `riqemu1`)
+
+**This record's central claim was too strong and part of it was wrong. The gate's
+premise is not "unachievable"; the gate is a v1-lane gate and it is coherent for
+v1.** I read `find src/abi -name libcall.h` and concluded no rdx variant existed,
+without noticing that the arch-specific header I was looking at belonged to **v11
+only** and that v1 has no such header at all. The audit builds with
+`V1SDK=src/abi/v1/core-pc-x86_64/...`, gates the artifacts it builds, and they
+count zero — the gate works, on the lane it was written for.
+
+What actually stands, and what does not:
+
+- **Stands:** within the v11 lane the count is an **inlining counter**. `-O0` gives
+  0 in our own objects and `-O2` gives 245, confined to the eight AROS-only files
+  that call AHI/Intuition/dos, with no engine or DSP file affected. `-ffixed-r12`
+  cannot suppress the v11 sequence because the register is named in the asm.
+- **Stands, and is actually the *better* explanation:** `r12moves` is a reliable
+  **ABI fingerprint** — it cleanly answers "which ABI did this build target",
+  which is precisely how the size-heuristic record used it and why it worked for
+  weeks. Zero means v1; a non-zero count means v11.
+- **Wrong:** "the gate's stated invariant is unachievable in this tree", "an
+  optimised build trips this gate for doing the wrong thing", and the framing that
+  a v11 build is somehow non-conforming. The real and much narrower fact is that
+  the v11-lane recipe `vms/ri-p9/build_v11.sh` lives **outside this repo**, so a
+  v1-lane gate is never applied to its output. Two different ABIs, two different
+  gates, and no contradiction between them.
+- **Also wrong, and worth naming because I asserted it confidently:** I wrote that
+  `r12moves` "must stop being cited as evidence of ABI conformance". It is evidence
+  of ABI *identity* — v1 versus v11 — which is a stronger and more useful claim
+  than the one I replaced it with.
+
+**The error was mine, it shipped, and it was found by going to look rather than by
+re-reading my own reasoning.** Nothing prompted this except needing to build a
+binary for a *different lane* (`riqemu1`, the ABI v1 VM) and asking which SDK the
+recipe used. `ri_build_aros.sh` defaults to `V1SDK=.../abi/v1/...`; that one line
+would have answered it at the start.
+
+The method lesson is the sharpest thing in this record now: **a conclusion drawn
+from a search needs the search's scope stated.** "There is no rdx libcall.h" was
+true and useless; "there is no rdx libcall.h *in v11*, and v1 has no arch-specific
+header at all" is the fact, and it inverts the verdict. When a finding says a
+*rule* is wrong, check which lane the rule is written for before declaring it
+broken.
 
 ## What this does and does not settle
 

@@ -71,8 +71,23 @@
 #define RI_ENGINE_ST_S808   8u  /* section 3: sampler drums */
 #define RI_ENGINE_ST_S909   9u  /* section 4: PCM drums */
 #define RI_ENGINE_ST_SLEVI  10u /* section 5: the Levi synth, polyphonic */
-#define RI_ENGINE_ST_TOTAL  11u /* one whole block */
-#define RI_ENGINE_ST_COUNT  12u
+/* Levi sub-stages, inside SLEVI: a third level of nesting, so SLEVI must keep a
+ * timestamp of its own -- the wrapper/leaf trap t156 caught twice already.
+ * Numbered BEFORE TOTAL so TOTAL stays last: it is the outermost wrapper, and
+ * an index layout that puts the enclosure in the middle is one every caller
+ * has to special-case. LEVMIX leads the group out because it is what writes the
+ * section bus, so it is the only one the others' results depend on. */
+#define RI_ENGINE_ST_ARPA    11u /* levi_arp_block: arpeggiator step advance */
+#define RI_ENGINE_ST_LEVSEQ  12u /* levi_seq_block: the device's own sequencer */
+#define RI_ENGINE_ST_LEVVOICE 13u /* levi_voice_render_sum_stereo: the voices */
+#define RI_ENGINE_ST_LEVMIX  14u /* engine_section_stereo: sum onto the buses */
+#define RI_ENGINE_ST_TOTAL  15u /* one whole block; ENCLOSES every stage above */
+#define RI_ENGINE_ST_COUNT  16u
+/* The LEVI sub-span: these run only when SLEVI does, and only inside it. It
+ * starts immediately after the top-level stages end, which is the invariant
+ * the test pins rather than a magic constant. */
+#define RI_ENGINE_ST_SUB_FIRST RI_ENGINE_ST_ARPA
+#define RI_ENGINE_ST_SUB_LAST  RI_ENGINE_ST_LEVMIX
 /* The conditional span: stages in here run only when their section is enabled. */
 #define RI_ENGINE_ST_LEAF_FIRST RI_ENGINE_ST_S303A
 #define RI_ENGINE_ST_LEAF_LAST  RI_ENGINE_ST_SLEVI

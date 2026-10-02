@@ -546,7 +546,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
     uint32_t done = 0;
     /* te is TOTAL's own timestamp; the sub-stages inside the block loop share
      * ts, exactly the trap t156 caught one level up. */
-    uint64_t ts = 0, te = 0;
+    uint64_t ts = 0, te = 0, tv = 0;
     if (!e || !out_l || !out_r || sr <= 0.0f)
         return 0;
     while (n > 0 && e->cursor < e->total) {
@@ -607,13 +607,25 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 RI_ESTAGE_E(e, RI_ENGINE_ST_S909, ts);
             }
             if (e->sections & RI_ENGINE_SLEVI) {
-                RI_ESTAGE_T(e, RI_ENGINE_ST_SLEVI, ts);
+                /* SLEVI's own timestamp is `tv`, not `ts`: the four sub-stages
+                 * below all write `ts`, so sharing one variable would make
+                 * SLEVI measure from the last sub-stage instead of from its own
+                 * start. Same trap as the block TOTAL, one level down. */
+                RI_ESTAGE_T(e, RI_ENGINE_ST_SLEVI, tv);
                 levi_set_tempo(&e->slevi, e->tempo);   /* device follows the session tempo */
+                RI_ESTAGE_T(e, RI_ENGINE_ST_ARPA, ts);
                 levi_arp_block(&e->slevi, sr, cc);     /* device arp steps before the sum */
+                RI_ESTAGE_E(e, RI_ENGINE_ST_ARPA, ts);
+                RI_ESTAGE_T(e, RI_ENGINE_ST_LEVSEQ, ts);
                 levi_seq_block(&e->slevi, sr, cc, e->tr_playing, e->tr_tick, e->tr_ppq);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_LEVSEQ, ts);
+                RI_ESTAGE_T(e, RI_ENGINE_ST_LEVVOICE, ts);
                 levi_voice_render_sum_stereo(&e->slevi, e->scratch, e->scratchR, cc, sr);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_LEVVOICE, ts);
+                RI_ESTAGE_T(e, RI_ENGINE_ST_LEVMIX, ts);
                 engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr);
-                RI_ESTAGE_E(e, RI_ENGINE_ST_SLEVI, ts);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_LEVMIX, ts);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_SLEVI, tv);
             }
             RI_ESTAGE_T(e, RI_ENGINE_ST_DELAY, ts);
             /* Shared delay send: one line over the summed post-insert

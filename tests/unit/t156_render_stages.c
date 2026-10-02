@@ -263,11 +263,19 @@ int main(void) {
     }
 
     /* ---- the DSP sub-stage table, which is per BLOCK not per buffer ---- */
-    RI_ASSERT(RI_ENGINE_ST_COUNT == 12, "twelve DSP sub-stages (%u)",
+    RI_ASSERT(RI_ENGINE_ST_COUNT == 16, "sixteen DSP sub-stages (%u)",
         (unsigned)RI_ENGINE_ST_COUNT);
     RI_ASSERT(RI_ENGINE_ST_ALWAYS == 6u, "six unconditional stages");
-    RI_ASSERT(RI_ENGINE_ST_LEAF_LAST + 1u == RI_ENGINE_ST_TOTAL,
-        "TOTAL immediately follows the conditional span");
+    /* The layout is: unconditional stages, conditional sections, the nested
+     * Levi span, then TOTAL. All three boundaries are pinned, because an index
+     * layout that drifts is invisible until a caller's loop silently skips a
+     * stage -- and TOTAL must stay last, being the outermost wrapper. */
+    RI_ASSERT(RI_ENGINE_ST_LEAF_LAST + 1u == RI_ENGINE_ST_SUB_FIRST,
+        "the nested span follows the conditional sections with no gap");
+    RI_ASSERT(RI_ENGINE_ST_SUB_LAST + 1u == RI_ENGINE_ST_TOTAL,
+        "TOTAL comes last, immediately after the nested span");
+    RI_ASSERT(RI_ENGINE_ST_ALWAYS == RI_ENGINE_ST_LEAF_FIRST,
+        "the always-run stages end where the conditional ones begin");
     RI_ASSERT(RI_ENGINE_ST_TOTAL == RI_ENGINE_ST_COUNT - 1u, "block TOTAL is last");
     RI_ASSERT(ri_engine_stages(NULL) == 0, "NULL engine -> NULL");
 
@@ -339,10 +347,16 @@ int main(void) {
             "at least ceil(frames/block) blocks per render (%lu)",
             (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
         /* Every LEAF sub-stage costs exactly one tick per block: it opens with
-         * one read and closes with the next, and nothing nests inside a block.
-         * That is what makes a stage which reads the clock twice, or is never
-         * closed, visible here. */
+         * one read and closes with the next. That is what makes a stage which
+         * reads the clock twice, or is never closed, visible here.
+         * SLEVI is now a WRAPPER around the four Levi sub-stages, so it is not a
+         * leaf and must be excluded -- the same exclusion the block TOTAL needs
+         * one level up. Asserting one tick for it would be asserting that a
+         * measurement ignores what it contains. */
         for (q = 0u; q < RI_ENGINE_ST_TOTAL; q++)
+            if (q == RI_ENGINE_ST_SLEVI)
+                continue;
+            else
             RI_ASSERT(h->sum_us[q] == (uint64_t)h->n[q] * g_tick_us,
                 "DSP sub-stage %u cost one tick per block (%lu, want %lu)", q,
                 (unsigned long)h->sum_us[q],
@@ -355,11 +369,19 @@ int main(void) {
          * one, and with the section stages conditional a plain 2*COUNT-1 would
          * be wrong the moment a section is disabled. */
         {
-            uint64_t leaf_n = 0u;
-            for (q = 0u; q < RI_ENGINE_ST_TOTAL; q++)
-                leaf_n += h->n[q];
+            uint64_t leaf_n = 0u, sub_n = 0u;
+            for (q = 0u; q <= RI_ENGINE_ST_LEAF_LAST; q++)
+                leaf_n += h->n[q];  /* top-level leaves only */
+            for (q = RI_ENGINE_ST_SUB_FIRST; q <= RI_ENGINE_ST_SUB_LAST; q++)
+                sub_n += h->n[q];
+            /* Reads per block = TOTAL's own 2, plus 2 for every top-level leaf
+             * that ran, plus 2 for every NESTED sub-stage that ran; the elapsed
+             * is one less than the read count. This is the general form, and it
+             * is why the identity is derived from the counts rather than
+             * hard-coded as 2*COUNT-1: the nesting depth has now changed twice
+             * and the law absorbed it without being rewritten. */
             RI_ASSERT(h->sum_us[RI_ENGINE_ST_TOTAL]
-                    == (2u * leaf_n + h->n[RI_ENGINE_ST_TOTAL]) * g_tick_us,
+                    == (2u * leaf_n + 2u * sub_n + h->n[RI_ENGINE_ST_TOTAL]) * g_tick_us,
                 "the block TOTAL spans 2*leaves+1 ticks per block (%lu, want %lu)",
                 (unsigned long)h->sum_us[RI_ENGINE_ST_TOTAL],
                 (unsigned long)((2u * leaf_n + h->n[RI_ENGINE_ST_TOTAL]) * g_tick_us));
@@ -465,6 +487,73 @@ int main(void) {
              * reads, so the stale span measures exactly one tick and looks
              * perfect. Enabling sections one at a time is what exposes it: here
              * the two reads on either side are far enough apart to show. */
+            if (RI_ENGINE_ST_LEAF_FIRST + i == RI_ENGINE_ST_SLEVI) {
+                /* SLEVI is a WRAPPER here, so the nested-span laws have to be
+                 * evaluated against THIS fixture. Asserting them against the
+                 * main one, where only 303A is enabled, makes every one of them
+                 * vacuous: SLEVI and all four sub-stages are zero, and
+                 * 0 == 0 passes. That is not a test that was weakened, it is a
+                 * test that was never running. */
+                unsigned z;
+                RI_ASSERT(h->n[RI_ENGINE_ST_SLEVI] == h->n[RI_ENGINE_ST_TOTAL],
+                    "with Levi alone, SLEVI ran every block (%lu of %lu)",
+                    (unsigned long)h->n[RI_ENGINE_ST_SLEVI],
+                    (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
+                /* Every sub-stage ran exactly once per SLEVI block. This is what
+                 * catches a sub-stage opened and never closed: it reports n=0,
+                 * which is exactly what a sub-stage that never ran reports. */
+                for (z = RI_ENGINE_ST_SUB_FIRST; z <= RI_ENGINE_ST_SUB_LAST; z++)
+                    RI_ASSERT(h->n[z] == h->n[RI_ENGINE_ST_SLEVI],
+                        "Levi sub-stage %u ran once per SLEVI block (%lu of %lu)", z,
+                        (unsigned long)h->n[z], (unsigned long)h->n[RI_ENGINE_ST_SLEVI]);
+                /* ... and each is a leaf, so exactly one tick. */
+                for (z = RI_ENGINE_ST_SUB_FIRST; z <= RI_ENGINE_ST_SUB_LAST; z++)
+                    RI_ASSERT(h->sum_us[z] == (uint64_t)h->n[z] * g_tick_us,
+                        "Levi sub-stage %u alone cost one tick per block (%lu)", z,
+                        (unsigned long)h->sum_us[z]);
+                /* SLEVI encloses them, so it must cost MORE than one tick. This
+                 * is the law that dies if SLEVI shares a timestamp with what it
+                 * wraps: the mutant leaves ts holding the last sub-stage's open,
+                 * and SLEVI's measured span collapses to a single tick -- which
+                 * is precisely a measurement that ignores its own contents. */
+                RI_ASSERT(h->sum_us[RI_ENGINE_ST_SLEVI]
+                        > (uint64_t)h->n[RI_ENGINE_ST_TOTAL] * g_tick_us,
+                    "SLEVI alone encloses its sub-stages and costs more than one tick (%lu)",
+                    (unsigned long)h->sum_us[RI_ENGINE_ST_SLEVI]);
+            } else if (RI_ENGINE_ST_LEAF_FIRST + i == RI_ENGINE_ST_SLEVI) {
+                /* SLEVI is a WRAPPER here, so the nested-span laws must be
+                 * evaluated against THIS fixture. Asserting them against the
+                 * main one, where only 303A is enabled, makes every one of them
+                 * vacuous: SLEVI and all four sub-stages are zero, and 0 == 0
+                 * passes. That is not a test that was weakened -- it is a test
+                 * that was never running. */
+                unsigned z;
+                RI_ASSERT(h->n[RI_ENGINE_ST_SLEVI] == h->n[RI_ENGINE_ST_TOTAL],
+                    "with Levi alone, SLEVI ran every block (%lu of %lu)",
+                    (unsigned long)h->n[RI_ENGINE_ST_SLEVI],
+                    (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
+                /* Every sub-stage ran once per SLEVI block. This is what catches
+                 * a sub-stage opened and never closed: it reports n=0, which is
+                 * exactly what a sub-stage that never ran reports. */
+                for (z = RI_ENGINE_ST_SUB_FIRST; z <= RI_ENGINE_ST_SUB_LAST; z++)
+                    RI_ASSERT(h->n[z] == h->n[RI_ENGINE_ST_SLEVI],
+                        "Levi sub-stage %u ran once per SLEVI block (%lu of %lu)", z,
+                        (unsigned long)h->n[z], (unsigned long)h->n[RI_ENGINE_ST_SLEVI]);
+                /* ... and each is a leaf, so exactly one tick. */
+                for (z = RI_ENGINE_ST_SUB_FIRST; z <= RI_ENGINE_ST_SUB_LAST; z++)
+                    RI_ASSERT(h->sum_us[z] == (uint64_t)h->n[z] * g_tick_us,
+                        "Levi sub-stage %u alone cost one tick per block (%lu)", z,
+                        (unsigned long)h->sum_us[z]);
+                /* SLEVI encloses them, so it must cost MORE than one tick. This
+                 * is the law that dies if SLEVI shares a timestamp with what it
+                 * wraps: the mutant leaves ts holding the last sub-stage's open
+                 * and SLEVI's measured span collapses to a single tick -- which
+                 * is precisely a measurement that ignores its own contents. */
+                RI_ASSERT(h->sum_us[RI_ENGINE_ST_SLEVI]
+                        > (uint64_t)h->n[RI_ENGINE_ST_TOTAL] * g_tick_us,
+                    "SLEVI alone encloses its sub-stages and costs more than one tick (%lu)",
+                    (unsigned long)h->sum_us[RI_ENGINE_ST_SLEVI]);
+            } else
             RI_ASSERT(h->sum_us[RI_ENGINE_ST_LEAF_FIRST + i]
                     == (uint64_t)h->n[RI_ENGINE_ST_TOTAL] * g_tick_us,
                 "section %u alone cost one tick per block (%lu, want %lu)", i,
@@ -486,6 +575,10 @@ int main(void) {
         unsigned q;
         for (q = 0u; q < RI_ENGINE_ST_TOTAL; q++)
             parts += h->sum_us[q];
+        /* The count law itself is asserted in the Levi-alone fixture above; here
+         * only the layout, which is a compile-time property and holds anywhere. */
+        RI_ASSERT(RI_ENGINE_ST_SUB_FIRST == RI_ENGINE_ST_LEAF_LAST + 1u,
+            "the nested span starts immediately after the top-level stages end");
         RI_ASSERT(h->sum_us[RI_ENGINE_ST_TOTAL] >= parts,
             "the block TOTAL brackets its leaves (%lu >= %lu)",
             (unsigned long)h->sum_us[RI_ENGINE_ST_TOTAL], (unsigned long)parts);
