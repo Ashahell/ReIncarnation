@@ -150,6 +150,47 @@ int main(void) {
             "one lamp keeps under a tenth of the build (%u of %u)", dl.n, ref.n);
     }
 
+    /* An empty box must switch clipping OFF, not leave the previous box in
+     * force. This is the one case a mutant of the reset line dies on: build()
+     * below always starts from ri_dlist_init (which zeroes clip) and calls
+     * set_clip once, so without an explicit second call the `dl->clip = 0u`
+     * in the empty-box branch of ri_dlist_set_clip is unobservable. The
+     * sequence below -- real box, then degenerate box on the same dlist --
+     * is the only arrangement that sees it, and it is the arrangement that
+     * matters: a damage box that comes back empty must stop clipping, or the
+     * next commands are tested against a stale rectangle and a repaint draws
+     * the wrong region. */
+    {
+        struct ri_dlist d3;
+        struct ri_dcmd c;
+        uint32_t kept_empty;
+        ri_dlist_init(&d3, cmd, CAP, spool, 8192u);
+        memset(&c, 0, sizeof c);
+        c.op = RI_D_RECT;
+        c.x0 = 500; c.y0 = 200; c.x1 = 560; c.y1 = 240;
+        c.rgb = 0x112233u;
+
+        ri_dlist_set_clip(&d3, 495, 195, 555, 245);   /* a real, tight box */
+        ri_dlist_push(&d3, &c);
+        RI_ASSERT(d3.n == 1u, "the in-box command survives the real box (%u)", d3.n);
+        RI_ASSERT(d3.clip == 1u, "clip is on (%u)", (unsigned)d3.clip);
+
+        /* Degenerate: x1 < x0. Must clear, not fall through. */
+        ri_dlist_set_clip(&d3, 555, 245, 495, 195);
+        RI_ASSERT(d3.clip == 0u,
+            "an empty box must clear the clip, not keep the stale one (%u)",
+            (unsigned)d3.clip);
+
+        /* And the consequence: with clip off, a far-away command is kept. */
+        memset(&c, 0, sizeof c);
+        c.op = RI_D_RECT;
+        c.x0 = 0; c.y0 = 0; c.x1 = 20; c.y1 = 20;
+        ri_dlist_push(&d3, &c);
+        kept_empty = d3.n;
+        RI_ASSERT(kept_empty == 2u,
+            "after clearing, the far command is kept too (%u)", kept_empty);
+    }
+
     /* A cleared clip must let everything through afterwards. build_dl pairs
      * set_clip with clear_clip around every build, so this is the path a
      * full repaint takes immediately after a damage repaint: if clear_clip

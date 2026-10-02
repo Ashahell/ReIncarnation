@@ -228,6 +228,10 @@ bash "$ROOT/scripts/ri_build_host.sh" test t133_levi_matrix2 >/dev/null || { ech
 bash "$ROOT/scripts/ri_build_host.sh" test t140_songs >/dev/null || { echo "FAIL: t140_songs (song scripts, Levi banks, playlists, song playback)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t157_playlist_canon >/dev/null || { echo "FAIL: t157_playlist_canon (RBPL entry paths are canonicalised)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t158_audio_failure_loud >/dev/null || { echo "FAIL: t158_audio_failure_loud (a lost audio path is reported, not silent)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t151_wake_latency >/dev/null || { echo "FAIL: t151_wake_latency (wake latency separates 'late' from 'slow')"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t152_repaint_reason >/dev/null || { echo "FAIL: t152_repaint_reason (repaint cost attributed to its caller)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t154_reason_and_build_split >/dev/null || { echo "FAIL: t154_reason_and_build_split (reason read before the damage box)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t155_damage_clip_build >/dev/null || { echo "FAIL: t155_damage_clip_build (display-list build bounded to the damage box)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t153_sticky_log >/dev/null || { echo "FAIL: t153_sticky_log (durable log volume, T: not RAM:)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t134_levi_voice >/dev/null || { echo "FAIL: t134_levi_voice (levi voice allocator P6a)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t135_levi_voice2 >/dev/null || { echo "FAIL: t135_levi_voice2 (levi voice params P6b)"; exit 1; }
