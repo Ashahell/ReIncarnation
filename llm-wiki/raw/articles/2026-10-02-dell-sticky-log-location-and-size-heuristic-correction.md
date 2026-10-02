@@ -30,6 +30,17 @@ It is one header, not two copies, because `app/riapp.c`'s ev-log and the main lo
 
 So the figures from that session survive only in a wiki record and a commit message, and the artefacts are gone — every number in the record is un-re-checkable. The ev-log, which had preferred the stick since 2026-09-27, was the one file that would have survived; the main log was not. The `dir Vk4aros:` after the owner's reboot shows exactly that asymmetry: `RIAPP-EV.LOG` present, `RIAPP.LOG` absent.
 
+## `T:` was considered and is the wrong answer
+
+`T:` is the AmigaDOS convention for a temporary directory, and it is **mounted on the guest** — so it looks like the durable choice next to a wiped `RAM:`. It is not:
+
+```
+[exec] 'dir T:'     -> rc=0   Tmp1131088915161
+[exec] 'dir RAM:T'  -> rc=0   Tmp1131088915161
+```
+
+`T:` resolves to `RAM:T`, contains one `Tmp…` scratch file, and is therefore exactly as reboot-wiped as `RAM:` itself. Pointing the log there would have preserved the status quo while looking like a fix. `Vk4aros:` is the only mounted volume on this guest with persistent backing, which is why the probe list contains USB/stick names and no `T:`.
+
 ## On-target proof
 
 Deployed as `RAM:RIPLOG` (a new name per binary; `RAM:` was clean after the reboot and nothing else was running — never two RIAPPs, they contend for the sound card).
