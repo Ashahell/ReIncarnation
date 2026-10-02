@@ -547,7 +547,11 @@ Both metrics are pure accounting: no engine DSP is touched, so no song render mo
 - **No tab switch caused a dropout in any of the twenty switches**, in either arm, while the sessions accumulated 274-620 xruns between them. The 2026-10-01 tab-switch xruns are **not reproduced** by a scripted tab cycle and remain unexplained.
 - `arm_us=261317` with `overloads=0` in B2 shows the load *was* continuously over budget for 261 ms and the arm reset it — the ambiguity the field was added to remove.
 
-Still undesigned: bounding `build_dl` on the damage path (now the priority, since it is a measured 2.3× GUI regression), and the cap's fate. Evidence: `llm-wiki/raw/articles/2026-10-02-dell-scripted-ab-abba-governor-arm-wins-repaint-policy-regresses.md`; raw logs in `~/Work/vms/ri-p9/logs/ab-2026-10-02/`.
+**Bounded damage-box build, 2026-10-02 (`bb1c385`): 1.9× less GUI work, xruns unmoved.** The split of the box-repaint timer into build vs replay+blit showed `build_dl` was **59 % of a box repaint** (3048 of 5149 µs) and the chase issues **~96 step-lamp boxes per window = 1.07 s of CPU while playing**, each rebuilding a whole 1464×460 section to paint one lamp. `ri_dlist_set_clip`/`clear_clip` plus a cull in `ri_dlist_push` bounds the build to the box; the equivalence is *exact*, because `replay_dl_dmg` already skips every command for which `ri_dcmd_hits_box` is 0, and with no clip set the push path is byte-for-byte the old one (t92 and t93 unmoved). Measured on target (C1 unbounded vs D2/D4 bounded): box repaint average **5149 → 2730 µs**, step-lamp work per window **1.35 s → 0.70 s**, and **xruns 272 → 266 with `wake_max` unchanged** — which is the A,B,B.A confirmed: the xruns track the governor, not repaint cost. This closes the GUI-responsiveness half of the owner's complaint with a measurement and leaves the audio half untouched.
+
+That split also exposed a bug in the reason metric shipped the day before: `draw_frame` cleared `d->dmg_why` before the timing block read it, so every sample landed in `NONE` — and `NONE` was not a printed bucket. Two cancelling failures; all three `box_*` fields read `0/0/0` across four A,B,B,A runs.
+
+Still undesigned: the cap's fate, and the actual xruns. `wake_max` is a full 5333 µs period late at worst with the render task already consuming 53 % of every period — a scheduling/throughput question, not a drawing one. Evidence: `llm-wiki/raw/articles/2026-10-02-dell-scripted-ab-abba-governor-arm-wins-repaint-policy-regresses.md`; raw logs in `~/Work/vms/ri-p9/logs/ab-2026-10-02/`.
 
 ### P10: patches
 
