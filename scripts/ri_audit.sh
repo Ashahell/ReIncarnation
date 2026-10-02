@@ -227,6 +227,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t132_levi_mod >/dev/null || { echo "F
 bash "$ROOT/scripts/ri_build_host.sh" test t133_levi_matrix2 >/dev/null || { echo "FAIL: t133_levi_matrix2 (levi matrix + macros)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t140_songs >/dev/null || { echo "FAIL: t140_songs (song scripts, Levi banks, playlists, song playback)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t157_playlist_canon >/dev/null || { echo "FAIL: t157_playlist_canon (RBPL entry paths are canonicalised)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t158_audio_failure_loud >/dev/null || { echo "FAIL: t158_audio_failure_loud (a lost audio path is reported, not silent)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t153_sticky_log >/dev/null || { echo "FAIL: t153_sticky_log (durable log volume, T: not RAM:)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t134_levi_voice >/dev/null || { echo "FAIL: t134_levi_voice (levi voice allocator P6a)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t135_levi_voice2 >/dev/null || { echo "FAIL: t135_levi_voice2 (levi voice params P6b)"; exit 1; }

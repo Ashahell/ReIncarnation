@@ -222,3 +222,11 @@ int ri_core_meters(struct RIAppCore *c, int *lvl303, int *lvl808,
     (void)playing;
     return 1;
 }
+
+/* A null-backend fallback is only excusable when there is no AHI hardware to
+ * miss. Anything else -- and anything unrecognised -- is a device that was
+ * reachable and then lost, so it is reported rather than swallowed. See
+ * t158_audio_failure_loud and the header for the hardware evidence. */
+int ri_core_audio_failure_is_loud(long err) {
+    return err == RI_AUDIO_ERR_ABSENT ? 0 : 1;
+}

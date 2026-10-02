@@ -823,6 +823,35 @@ static void song_fail(const char *what, const char *path, const char *why) {
     EasyRequestArgs(NULL, &es, NULL, (RAWARG)args);
 }
 
+/* Say so when the sound card could not be opened (owner 2026-10-02). The null
+ * backend keeps the app usable for offline render, but a launch that lost the
+ * audio path used to be completely silent: window, panels, playlist and
+ * transport all came up, with no sound and no requester -- strictly worse than
+ * a requester, which at least reports that something happened. On the Dell the
+ * cause was a second RIAPP holding ahi.device, so AHI_AllocAudioA failed. Only
+ * the genuinely absent-device case stays quiet, because there the null backend
+ * is the documented fallback. Policy and evidence: ri_core_audio_failure_is_loud
+ * (app/core/riapp_core.h) and tests/unit/t158_audio_failure_loud.c.
+ *
+ * The step number goes to the log, not the requester: this file already casts
+ * err to IPTR for rlog's %ld, and a vararg format is not worth the risk in a
+ * user-facing box when the number is already in the log. */
+static void audio_fail(long err) {
+    struct EasyStruct es;
+    rlog("RIAPP audio: sound card unusable, continuing without sound [err %ld]\n",
+        (IPTR)err, 0, 0, 0, 0);
+    es.es_StructSize = sizeof es;
+    es.es_Flags = 0;
+    es.es_Title = (CONST_STRPTR)"RIAPP";
+    es.es_TextFormat = (CONST_STRPTR)"Cannot start audio"
+        "\n\nThe sound card could not be opened."
+        "\nAnother program may already be using it."
+        "\n\nRIAPP will run without sound (offline render only)."
+        "\nClose the other program and start RIAPP again.";
+    es.es_GadgetFormat = (CONST_STRPTR)"OK";
+    EasyRequestArgs(NULL, &es, NULL, NULL);
+}
+
 static int song_load_path(const char *path) {
     static char err[160];
     struct RICoreSong cs;
@@ -1835,9 +1864,15 @@ int main(int argc, char **argv) {
         if (s_live)
             rlog("audio: AHI low-level mode=0x%08lx mix=%lu Hz buffer=%lu frames period=%lu us\n",
                 s_lv.mode_id, s_lv.mix_freq, s_lv.frames, s_lv.period_us, 0);
-        else
+        else {
             rlog("audio: AHI unavailable - null backend active (offline render only) [err %ld]\n",
                 (IPTR)s_lv.err, 0, 0, 0, 0);
+            /* No AHI hardware is a documented quiet fallback; a device we
+             * reached and then lost is a failure the user must be told about
+             * (t158). */
+            if (ri_core_audio_failure_is_loud((long)s_lv.err))
+                audio_fail((long)s_lv.err);
+        }
     }
 
     /* Panel: content canvases at the persisted/Fit zoom, transport compact.

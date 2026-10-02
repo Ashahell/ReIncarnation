@@ -91,4 +91,20 @@ int ri_core_capture_sel(struct RIAppCore *c, uint64_t bar, uint32_t inst, uint8_
 int ri_core_meters(struct RIAppCore *c, int *lvl303, int *lvl808,
     uint64_t *sixteenths, uint32_t mix_freq, int playing);
 
+/* au_live_open()'s failure step for "ahi.device would not open at all":
+ * audio_ahi_live.c sets err=2 exactly where OpenDevice("ahi.device") fails.
+ * On such a machine there is no AHI hardware, so the null backend is the
+ * documented offline-render fallback (RI_AUDIO_NULL_MSG) and stays quiet. */
+#define RI_AUDIO_ERR_ABSENT 2L
+/* 1 when a null-backend fallback must be reported to the user, 0 when it is
+ * the documented absent-device case. Every other step (port/alloc/load/task/
+ * open-timeout, and err 0 meaning "opened fine, then the run failed") means a
+ * device was reachable and the audio path was lost -- on the Dell that is
+ * another AHI client already holding the card. Owner 2026-10-02: such a launch
+ * used to log one line and carry on, so the window opened, the playlist
+ * loaded, the transport played, and there was no sound and no requester --
+ * the worst failure mode a music app can have, and strictly worse than the
+ * "Cannot load song" requester it was mistaken for. */
+int ri_core_audio_failure_is_loud(long err);
+
 #endif
