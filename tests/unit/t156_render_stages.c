@@ -76,6 +76,23 @@ static void fixture(struct RILiveSession *s, int with_clock) {
     }
 }
 
+/* Same fixture, but the caller picks which section engines exist. */
+static void fixture_sections(struct RILiveSession *s, uint32_t sections) {
+    const struct RIPatternBank *b4[5];
+    uint32_t q;
+    ri_bank_init(&BA, 0u, RI_PATTERN_KIND_303, 0u);
+    for (q = 0u; q < 32u; q++)
+        ri_pattern_set_length(&BA.pat[q], 16u);
+    for (q = 0u; q < 16u; q++)
+        ri_p303_set(&BA.pat[0], q, 6u, (q == 0u) ? 0u : (uint8_t)RI_STEP_REST);
+    ri_track_init(&TR);
+    b4[0] = &BA; b4[1] = 0; b4[2] = 0; b4[3] = 0; b4[4] = 0;
+    ri_live_init(s, PPQ, SR, BPM, sections, SCR1, 512u);
+    ri_live_set_banks(s, b4, &TR, 0);
+    g_ticks = 0u;
+    g_reads = 0u;
+}
+
 static void render_n(struct RILiveSession *s, uint32_t n) {
     static float fl[256], fr[256];
     uint32_t i;
@@ -246,7 +263,11 @@ int main(void) {
     }
 
     /* ---- the DSP sub-stage table, which is per BLOCK not per buffer ---- */
-    RI_ASSERT(RI_ENGINE_ST_COUNT == 8, "eight DSP sub-stages");
+    RI_ASSERT(RI_ENGINE_ST_COUNT == 12, "twelve DSP sub-stages (%u)",
+        (unsigned)RI_ENGINE_ST_COUNT);
+    RI_ASSERT(RI_ENGINE_ST_ALWAYS == 6u, "six unconditional stages");
+    RI_ASSERT(RI_ENGINE_ST_LEAF_LAST + 1u == RI_ENGINE_ST_TOTAL,
+        "TOTAL immediately follows the conditional span");
     RI_ASSERT(RI_ENGINE_ST_TOTAL == RI_ENGINE_ST_COUNT - 1u, "block TOTAL is last");
     RI_ASSERT(ri_engine_stages(NULL) == 0, "NULL engine -> NULL");
 
@@ -258,13 +279,57 @@ int main(void) {
         unsigned q;
         RI_ASSERT(h->n[RI_ENGINE_ST_TOTAL] >= 1u,
             "the engine's block loop ran (%lu blocks)", (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
-        /* Every sub-stage runs exactly once per block, so they all share the
-         * block count. A sub-stage numbered onto another, or opened without
-         * being closed, breaks this immediately. */
-        for (q = 0u; q < RI_ENGINE_ST_COUNT; q++)
+        /* Every UNCONDITIONAL sub-stage runs exactly once per block, so it
+         * shares the block count. A sub-stage numbered onto another, or opened
+         * without being closed, breaks this immediately. */
+        for (q = 0u; q < RI_ENGINE_ST_ALWAYS; q++)
             RI_ASSERT(h->n[q] == h->n[RI_ENGINE_ST_TOTAL],
                 "DSP sub-stage %u ran once per block (%lu of %lu)", q,
                 (unsigned long)h->n[q], (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
+        /* The five SECTION stages are conditional on e->sections, so their n is
+         * the blocks in which that section was enabled. A section that ran
+         * while disabled -- or that did not run while enabled -- is the exact
+         * defect this split is meant to be able to see, and the sum of the five
+         * must equal blocks x enabled-sections exactly. */
+        {
+            static const struct { uint32_t st; uint32_t mask; } sec[5] = {
+                { RI_ENGINE_ST_S303A, RI_ENGINE_S303A },
+                { RI_ENGINE_ST_S303B, RI_ENGINE_S303B },
+                { RI_ENGINE_ST_S808,  RI_ENGINE_S808  },
+                { RI_ENGINE_ST_S909,  RI_ENGINE_S909  },
+                { RI_ENGINE_ST_SLEVI, RI_ENGINE_SLEVI } };
+            uint64_t want = 0u;
+            unsigned i;
+            for (i = 0u; i < 5u; i++) {
+                uint32_t on = (s.eng.sections & sec[i].mask) ? 1u : 0u;
+                RI_ASSERT(h->n[sec[i].st] == h->n[RI_ENGINE_ST_TOTAL] * on,
+                    "section stage %u ran %lu time(s), expected %lu for a %s section",
+                    sec[i].st, (unsigned long)h->n[sec[i].st],
+                    (unsigned long)(h->n[RI_ENGINE_ST_TOTAL] * on),
+                    on ? "enabled" : "disabled");
+                want += (uint64_t)h->n[RI_ENGINE_ST_TOTAL] * on;
+            }
+            {
+                uint32_t on_cnt = 0u;
+                for (i = 0u; i < 5u; i++)
+                    if (s.eng.sections & sec[i].mask)
+                        on_cnt++;
+                RI_ASSERT(on_cnt == want / (uint64_t)(h->n[RI_ENGINE_ST_TOTAL]
+                        ? h->n[RI_ENGINE_ST_TOTAL] : 1u),
+                    "the section stages account for every enabled section");
+            }
+            /* ... and no section stage lies outside the conditional span. */
+            RI_ASSERT(RI_ENGINE_ST_LEAF_FIRST == RI_ENGINE_ST_S303A
+                    && RI_ENGINE_ST_LEAF_LAST == RI_ENGINE_ST_SLEVI,
+                "the conditional span brackets exactly the five sections");
+            /* Equality, not merely non-overlap: the conditional span starts
+             * exactly where the unconditional stages end. That is what makes
+             * RI_ENGINE_ST_ALWAYS a derived count rather than a second list to
+             * keep in step, and it means a caller can split the table into
+             * "always" and "maybe" without a hard-coded index list. */
+            RI_ASSERT(RI_ENGINE_ST_LEAF_FIRST == RI_ENGINE_ST_ALWAYS,
+                "the conditional span starts exactly where the always stages end");
+        }
         /* The block loop is bounded by RI_ENGINE_BLOCK, so a 256-frame render
          * needs at least 256/64 blocks and can never need fewer. This is the
          * only thing standing between the reader and the assumption that the
@@ -282,18 +347,23 @@ int main(void) {
                 "DSP sub-stage %u cost one tick per block (%lu, want %lu)", q,
                 (unsigned long)h->sum_us[q],
                 (unsigned long)((uint64_t)h->n[q] * g_tick_us));
-        /* The block TOTAL opens before every leaf and closes after, so it spans
-         * exactly 2*COUNT reads and therefore 2*COUNT-1 ticks. Stating it
-         * exactly is what catches a sub-stage boundary that moved or vanished:
-         * the total would still be a plausible number, but not this one. */
-        RI_ASSERT(h->sum_us[RI_ENGINE_ST_TOTAL]
-                == (uint64_t)h->n[RI_ENGINE_ST_TOTAL]
-                    * (2u * RI_ENGINE_ST_COUNT - 1u) * g_tick_us,
-            "the block TOTAL spans exactly %u ticks per block (%lu, want %lu)",
-            2u * RI_ENGINE_ST_COUNT - 1u,
-            (unsigned long)h->sum_us[RI_ENGINE_ST_TOTAL],
-            (unsigned long)((uint64_t)h->n[RI_ENGINE_ST_TOTAL]
-                * (2u * RI_ENGINE_ST_COUNT - 1u) * g_tick_us));
+        /* The block TOTAL opens before every leaf and closes after, so a block
+         * in which k leaves ran spans exactly 2k+2 reads and therefore 2k+1
+         * ticks. Summed over the run that is 2*sum(leaf n) + n[TOTAL] ticks.
+         * Stating it exactly is what catches a boundary that moved or
+         * vanished: the total would still be a plausible number, but not this
+         * one, and with the section stages conditional a plain 2*COUNT-1 would
+         * be wrong the moment a section is disabled. */
+        {
+            uint64_t leaf_n = 0u;
+            for (q = 0u; q < RI_ENGINE_ST_TOTAL; q++)
+                leaf_n += h->n[q];
+            RI_ASSERT(h->sum_us[RI_ENGINE_ST_TOTAL]
+                    == (2u * leaf_n + h->n[RI_ENGINE_ST_TOTAL]) * g_tick_us,
+                "the block TOTAL spans 2*leaves+1 ticks per block (%lu, want %lu)",
+                (unsigned long)h->sum_us[RI_ENGINE_ST_TOTAL],
+                (unsigned long)((2u * leaf_n + h->n[RI_ENGINE_ST_TOTAL]) * g_tick_us));
+        }
     }
 
     /* max >= avg for every sub-stage that has samples: without this the max
@@ -318,9 +388,9 @@ int main(void) {
         g_ticks = 0u;
         ri_live_play(&s);
         render_n(&s, 1u);
-        RI_ASSERT(ri_engine_stages(&s.eng)->max_us[RI_ENGINE_ST_VOICES] == 0xFFFFFFFFu,
+        RI_ASSERT(ri_engine_stages(&s.eng)->max_us[RI_ENGINE_ST_LIMIT] == 0xFFFFFFFFu,
             "a saturated DSP sample clamps to 0xFFFFFFFF (%lu)",
-            (unsigned long)ri_engine_stages(&s.eng)->max_us[RI_ENGINE_ST_VOICES]);
+            (unsigned long)ri_engine_stages(&s.eng)->max_us[RI_ENGINE_ST_LIMIT]);
         g_tick_us = save;
     }
 
@@ -341,6 +411,66 @@ int main(void) {
         RI_ASSERT(g_reads == before,
             "ri_engine_set_clock reads the clock %lu time(s)",
             (unsigned long)(g_reads - before));
+    }
+
+    /* The defect this split exists to detect: a section that renders even when
+     * it is disabled. With only one section enabled, the other four must
+     * report nothing at all -- not a cheap number, nothing.
+     *
+     * Each section is enabled ALONE, in turn, rather than testing one mask and
+     * assuming the rest. That is what makes the law able to see two stages
+     * sharing a bucket: with every section off except 303A, a collision between
+     * 808 and 303B is invisible, because both are zero either way. Enabling one
+     * section at a time makes every pair distinguishable, and it also catches a
+     * stage that is opened but never closed -- which reports n=0, and is exactly
+     * what a stage that never ran reports. */
+    {
+        static const uint32_t masks[5] = {
+            RI_ENGINE_S303A, RI_ENGINE_S303B, RI_ENGINE_S808,
+            RI_ENGINE_S909,  RI_ENGINE_SLEVI };
+        unsigned i, k;
+        for (i = 0u; i < 5u; i++) {
+            struct RILiveSession one;
+            const struct RIEngineStages *h;
+            const struct RIEngineStages *base = ri_engine_stages(&s.eng);
+            uint32_t blocks = base->n[RI_ENGINE_ST_TOTAL];
+            (void)blocks;
+            fixture_sections(&one, masks[i]);
+        ri_live_set_clock(&one, tick_clock);
+        ri_engine_set_clock(&one.eng, tick_clock);
+        ri_live_play(&one);
+        render_n(&one, 1u);
+        h = ri_engine_stages(&one.eng);
+            for (k = 0u; k < RI_ENGINE_ST_LEAF_FIRST; k++)
+                RI_ASSERT(h->n[k] == h->n[RI_ENGINE_ST_TOTAL],
+                    "unconditional stage %u ran with only section %u on (%lu of %lu)",
+                    k, i, (unsigned long)h->n[k],
+                    (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
+            for (k = RI_ENGINE_ST_LEAF_FIRST; k <= RI_ENGINE_ST_LEAF_LAST; k++)
+                RI_ASSERT(h->n[k] == (k == RI_ENGINE_ST_LEAF_FIRST + i
+                        ? h->n[RI_ENGINE_ST_TOTAL] : 0u),
+                    "with only section %u on, stage %u ran %lu time(s)",
+                    i, k, (unsigned long)h->n[k]);
+            /* A stage that ran nothing must also report no time, so that a
+             * disabled section cannot be mistaken for a very cheap one. */
+            for (k = RI_ENGINE_ST_LEAF_FIRST; k <= RI_ENGINE_ST_LEAF_LAST; k++)
+                if (k != RI_ENGINE_ST_LEAF_FIRST + i)
+                    RI_ASSERT(h->sum_us[k] == 0u && h->max_us[k] == 0u,
+                        "a disabled section (%u with %u on) reports no time", k, i);
+            /* ... and the one that DID run must cost exactly one tick per block,
+             * from its OWN open. A stage closed without being opened inherits
+             * the previous stage's timestamp, and whether that shows up depends
+             * on what happens to precede it -- with every section but 303A off,
+             * the stage before 808 is ZERO, whose open and close are adjacent
+             * reads, so the stale span measures exactly one tick and looks
+             * perfect. Enabling sections one at a time is what exposes it: here
+             * the two reads on either side are far enough apart to show. */
+            RI_ASSERT(h->sum_us[RI_ENGINE_ST_LEAF_FIRST + i]
+                    == (uint64_t)h->n[RI_ENGINE_ST_TOTAL] * g_tick_us,
+                "section %u alone cost one tick per block (%lu, want %lu)", i,
+                (unsigned long)h->sum_us[RI_ENGINE_ST_LEAF_FIRST + i],
+                (unsigned long)((uint64_t)h->n[RI_ENGINE_ST_TOTAL] * g_tick_us));
+        }
     }
 
     /* TOTAL brackets its leaves. It is deliberately NOT required to equal
@@ -418,7 +548,7 @@ int main(void) {
         render_n(&fresh, 1u);
         RI_ASSERT(ri_engine_stages(&fresh.eng)->n[RI_ENGINE_ST_TOTAL] == 0u,
             "an un-timed caller gets an empty DSP table, not a wrong one");
-        RI_ASSERT(ri_engine_stages(&fresh.eng)->sum_us[RI_ENGINE_ST_VOICES] == 0u,
+        RI_ASSERT(ri_engine_stages(&fresh.eng)->sum_us[RI_ENGINE_ST_LIMIT] == 0u,
             "and no sums");
     }
 

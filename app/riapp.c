@@ -2364,15 +2364,17 @@ int main(int argc, char **argv) {
                         (unsigned long)g->max_us[q], (unsigned long)g->n[q]);
             }
             /* DSP sub-stages, per BLOCK (the engine's block loop is the unit
-             * here, so n is blocks and not buffers). Two lines rather than
-             * eight: this log is already long, and a table that has to be
-             * scrolled apart from its maxima is a table nobody reads. */
+             * here, so n is blocks and not buffers). A section stage reports
+             * n=0 when its section is disabled, which is what distinguishes
+             * "cheap" from "never ran". Compact rather than one line each:
+             * this log is already long, and a table that has to be scrolled
+             * apart from its maxima is a table nobody reads. */
             if (s_live && s_lv.drv.session) {
                 const struct RIEngineStages *h =
                     ri_engine_stages(&s_lv.drv.session->eng);
                 static const char *nm[RI_ENGINE_ST_COUNT] = {
-                    "zero", "voices", "delay", "comp", "master", "meter",
-                    "limit", "block" };
+                    "zero", "delay", "comp", "master", "meter", "limit",
+                    "303a", "303b", "808", "909", "levi", "block" };
                 unsigned q;
                 rlog("RIAPP dstg n=%lu", (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
                 for (q = 0; q < RI_ENGINE_ST_COUNT; q++)

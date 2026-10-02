@@ -43,22 +43,41 @@
 #define RI_ENGINE_FX_COUNT 4u
 
 /* DSP sub-stage breakdown (Dell 2026-10-02). ri_live_render's DSP stage turned
- * out to be 98 % of the whole render, so the next question is what inside it.
+ * out to be 98 % of the whole render, so the next question is what inside it;
+ * and when that was answered the answer was "the voices", so the five section
+ * engines are timed separately rather than as one bucket.
+ *
  * Counted PER BLOCK, not per buffer: the block loop runs RI_ENGINE_BLOCK
  * samples at a time and a 256-frame buffer is several blocks, so a per-buffer
- * reading would be ambiguous. Zero and TOTAL count once per block like the rest.
+ * reading would be ambiguous.
+ *
+ * The five section stages are CONDITIONAL on e->sections, so their n[] is the
+ * number of blocks in which that section was enabled -- not necessarily the
+ * block count. The six unconditional stages and TOTAL always run once per block.
+ * RI_ENGINE_ST_LEAF_FIRST..LEAF_LAST bracket the conditional ones and the
+ * RI_ENGINE_ST_ALWAYS ones are outside that span, so a caller can tell the two
+ * apart without hard-coding a list, exactly as the heartbeat needs to.
  *
  * now_us is injected and NULL by default, for the same reason as the session
  * stages: no OS call in the engine, and no cost to an offline caller. */
-#define RI_ENGINE_ST_ZERO   0u /* clear ml/mr/sendbus */
-#define RI_ENGINE_ST_VOICES 1u /* every section render: 303A/303B/808/909/LEVI */
-#define RI_ENGINE_ST_DELAY  2u /* shared delay send, return and pan */
-#define RI_ENGINE_ST_COMP   3u /* master compressor, stereo-linked */
-#define RI_ENGINE_ST_MASTER 4u /* master fader ramp */
-#define RI_ENGINE_ST_METER  5u /* master meter feed */
-#define RI_ENGINE_ST_LIMIT  6u /* soft limiter and the output write */
-#define RI_ENGINE_ST_TOTAL  7u /* one whole block */
-#define RI_ENGINE_ST_COUNT  8u
+#define RI_ENGINE_ST_ZERO   0u  /* clear ml/mr/sendbus */
+#define RI_ENGINE_ST_DELAY  1u  /* shared delay send, return and pan */
+#define RI_ENGINE_ST_COMP   2u  /* master compressor, stereo-linked */
+#define RI_ENGINE_ST_MASTER 3u  /* master fader ramp */
+#define RI_ENGINE_ST_METER  4u  /* master meter feed */
+#define RI_ENGINE_ST_LIMIT  5u  /* soft limiter and the output write */
+#define RI_ENGINE_ST_S303A  6u  /* section 1: TB-303 A, rb303 + engine_section */
+#define RI_ENGINE_ST_S303B  7u  /* section 2: TB-303 B */
+#define RI_ENGINE_ST_S808   8u  /* section 3: sampler drums */
+#define RI_ENGINE_ST_S909   9u  /* section 4: PCM drums */
+#define RI_ENGINE_ST_SLEVI  10u /* section 5: the Levi synth, polyphonic */
+#define RI_ENGINE_ST_TOTAL  11u /* one whole block */
+#define RI_ENGINE_ST_COUNT  12u
+/* The conditional span: stages in here run only when their section is enabled. */
+#define RI_ENGINE_ST_LEAF_FIRST RI_ENGINE_ST_S303A
+#define RI_ENGINE_ST_LEAF_LAST  RI_ENGINE_ST_SLEVI
+/* How many stages are unconditional, i.e. run once per block, always. */
+#define RI_ENGINE_ST_ALWAYS 6u
 
 struct RIEngineStages {
     uint64_t sum_us[RI_ENGINE_ST_COUNT];

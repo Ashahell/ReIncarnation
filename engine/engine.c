@@ -582,31 +582,39 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             for (i = 0; i < cc; i++)
                 sendbus[i] = 0.0f;
             RI_ESTAGE_E(e, RI_ENGINE_ST_ZERO, ts);
-            RI_ESTAGE_T(e, RI_ENGINE_ST_VOICES, ts);
             if (e->sections & RI_ENGINE_S303A) {
+                RI_ESTAGE_T(e, RI_ENGINE_ST_S303A, ts);
                 rb303_render(&e->v303a, e->scratch, cc, sr);
                 engine_section(e, 0, ml, mr, sendbus, cc, sr);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_S303A, ts);
             }
             if (e->sections & RI_ENGINE_S303B) {
+                RI_ESTAGE_T(e, RI_ENGINE_ST_S303B, ts);
                 rb303_render(&e->v303b, e->scratch, cc, sr);
                 engine_section(e, 1, ml, mr, sendbus, cc, sr);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_S303B, ts);
             }
             if (e->sections & RI_ENGINE_S808) {
+                RI_ESTAGE_T(e, RI_ENGINE_ST_S808, ts);
                 rb808_render_mix(&e->s808, e->scratch, cc, sr);
                 engine_section(e, 2, ml, mr, sendbus, cc, sr);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_S808, ts);
             }
             if (e->sections & RI_ENGINE_S909) {
+                RI_ESTAGE_T(e, RI_ENGINE_ST_S909, ts);
                 rb909_render_mix(&e->s909, e->scratch, cc, sr);
                 engine_section(e, 3, ml, mr, sendbus, cc, sr);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_S909, ts);
             }
             if (e->sections & RI_ENGINE_SLEVI) {
+                RI_ESTAGE_T(e, RI_ENGINE_ST_SLEVI, ts);
                 levi_set_tempo(&e->slevi, e->tempo);   /* device follows the session tempo */
                 levi_arp_block(&e->slevi, sr, cc);     /* device arp steps before the sum */
                 levi_seq_block(&e->slevi, sr, cc, e->tr_playing, e->tr_tick, e->tr_ppq);
                 levi_voice_render_sum_stereo(&e->slevi, e->scratch, e->scratchR, cc, sr);
                 engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_SLEVI, ts);
             }
-            RI_ESTAGE_E(e, RI_ENGINE_ST_VOICES, ts);
             RI_ESTAGE_T(e, RI_ENGINE_ST_DELAY, ts);
             /* Shared delay send: one line over the summed post-insert
              * sends; stereo return with its own pan (NULL = dry). */
