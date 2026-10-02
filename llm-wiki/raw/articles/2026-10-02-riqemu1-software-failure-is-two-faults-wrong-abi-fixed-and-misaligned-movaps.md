@@ -4,6 +4,7 @@
 - Collected: 2026-10-02
 - Published: 2026-10-02
 - Prior: [riqemu1 up, audio verified, no RIAPP, and a record corrected](2026-10-02-riqemu1-up-audio-verified-no-riapp-and-a-record-corrected.md) (**partly corrected again here — its "illegal instruction" reading and its r12 explanation were both wrong**), [r12moves is an inlining counter](2026-10-02-r12moves-is-an-inlining-counter-not-an-abi-hazard.md)
+- Raw: [riqemu1 AHI privilege-violation reports](../evidence/2026-10-02-riqemu1-ahi-privilege-violation-reports.md) — both AROS requester dumps transcribed verbatim, including the two `movaps` addresses the diagnosis rests on
 - Commit: unpushed at collection. No ReIncarnation device numbers here.
 
 ## What the user reported, and what it actually was
@@ -83,7 +84,17 @@ Stack: ahi.device __DevOpen -> probe_ahi main
 
 **Same mechanism both times: `movaps` on a misaligned address raises #GP.** The
 compiler emitted a 16-byte-aligned SSE load against a constant that is not 16-byte
-aligned (`0x4bfab87c` and `0x4bf4d88c` both end in `c`). This is a defect in the
+aligned:
+
+| report | sequence | address | mod 16 |
+|---|---|---|---|
+| 1 | `mov $0x4bfab87c,%rdx` ; `movaps (%rdx),%xmm0` | `0x4bfab87c` | **12** |
+| 2 | `mov $0x4bf4d88c,%rax` ; `movaps (%rax),%xmm0` | `0x4bf4d88c` | **12** |
+
+Both are misaligned by 4 bytes, and both reports carry error `0x00000008`, which is
+#GP on x86-64. Both dumps are in
+[the raw evidence file](../evidence/2026-10-02-riqemu1-ahi-privilege-violation-reports.md),
+transcribed from the operator-supplied reports. This is a defect in the
 **binaries on this image**, not in ReIncarnation and not in AHI's logic: the fault is in
 `ahi.device`'s own `ReadConfig`, on every open path, and `probe_ahi` reproduces it with
 zero ReIncarnation code involved.
@@ -155,6 +166,16 @@ AHI is not miscompiled.
   took **9.9 s** where every other rename took 7–22 ms. The slow ones are the drivers
   that probe hardware on access, and they are the same family that later faults. A
   latency outlier in a bulk operation was pointing at the culprit all along.
+
+## Still open, and now blocked on this
+
+The **Levi sub-split** (`RI_ENGINE_ST_ARPA / LEVSEQ / LEVVOICE / LEVMIX` inside `SLEVI`,
+each gated on the section test, `SLEVI` keeping its own timestamp because it wraps
+four stages, `TOTAL` moved last) is built, tested and mutation-proven — `t156` plus
+`mut_fixM6` 14/14 and `mut_fixM7` 25/25, every kill behavioural, audit 0/0, ASan clean.
+**It still has no device number**, and this investigation is why: riqemu1 has no
+usable AHI, and the Dell belongs to another session. Every remaining audio
+measurement is blocked on one lane or the other.
 
 ## Standing gaps
 

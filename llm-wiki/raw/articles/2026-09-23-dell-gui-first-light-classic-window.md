@@ -34,6 +34,29 @@ step, not this one.
   warning-free first try → `ri_classic` 28,048 B
   (`/home/miller/Work/ri_build/dell1/`, scratch).
 - **Artifact gates** (v11 lane — note the inversion: r12 moves
+
+> **Confirmed against AROS upstream, 2026-10-02.** This record's framing — *"r12
+> moves EXPECTED here, the r12==0 gate is v1-guest-only"* — is **correct**, and it is
+> worth being explicit about why, because a later record of the same day got the
+> opposite conclusion. AROS's own
+> [`arch/x86_64-all/ABI_SPECIFICATION`](https://github.com/deadw00d/AROS/blob/master/arch/x86_64-all/ABI_SPECIFICATION)
+> (*"Specification of AROS x86_64 ABIv11 calling conventions"*) specifies **R12 for
+> base / SysV x86_64 ABI for arguments**, library-side base **R12**, states that
+> *"the only requirement is that R12 is used to pass base during call and that R12 is a
+> callee-saved register"*, and documents `-ffixed-r12` as the sanctioned mechanism
+> (*"GCC is now hardcoded to have R12 as fixed register"*).
+>
+> So **r12 is the current, documented AROS x86_64 convention — not a stale one**, and
+> a v1 build legitimately emits zero of these instructions because v1 ships **no
+> arch-specific `aros/x86_64/libcall.h` at all**. The `r12==0` gate is a **v1-lane**
+> gate and is coherent for v1.
+>
+> What made the wrong conclusion available was that nobody cross-checked this record:
+> a later 2026-10-02 entry asserted that the gate's invariant was "unachievable in
+> this tree" without opening a document that already said otherwise three months
+> earlier. **This record is the example of what the wiki is for; the later error is the
+> example of not using it.**
+
   EXPECTED here, the r12==0 gate is v1-guest-only):
   `task.resource` string count 0, ELF64 AROS relocatable, r12
   moves 168 (live convention, m1-1 probe had 225).

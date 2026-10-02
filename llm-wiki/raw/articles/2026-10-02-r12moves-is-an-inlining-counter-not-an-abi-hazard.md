@@ -140,6 +140,17 @@ binary for a *different lane* (`riqemu1`, the ABI v1 VM) and asking which SDK th
 recipe used. `ri_build_aros.sh` defaults to `V1SDK=.../abi/v1/...`; that one line
 would have answered it at the start.
 
+**And the wiki already had the answer.** The 2026-09-23 record
+[riqemu1/Dell GUI first light](../articles/2026-09-23-dell-gui-first-light-classic-window.md)
+says, in a parenthetical, *"note the inversion: r12 moves EXPECTED here, the r12==0
+gate is v1-guest-only"*. That is precisely the right reading, written three months
+earlier, and it was not opened before a same-day record asserted the opposite. **The
+error was available to catch from inside this wiki and was not caught from inside it.**
+The same day then corrected it a second time when a *different* record realised r12
+is AROS's documented ABI — so this record's claim survived one round of self-review
+and needed a second. What would have prevented both is the thing the wiki exists to
+provide: read the lane's own prior records before asserting something about it.
+
 The method lesson is the sharpest thing in this record now: **a conclusion drawn
 from a search needs the search's scope stated.** "There is no rdx libcall.h" was
 true and useless; "there is no rdx libcall.h *in v11*, and v1 has no arch-specific
