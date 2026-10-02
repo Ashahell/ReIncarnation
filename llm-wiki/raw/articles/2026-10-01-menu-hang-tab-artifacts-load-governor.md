@@ -45,7 +45,7 @@
 - **Portable driver** (`app/core/live_driver.{c,h}`): load = render time / buffer period, per mille, smoothed 1/8.
   - At `RI_LIVEDRV_OVER_PM` 850 the driver flags overload for `RI_LIVEDRV_OVER_US` 2 s.
   - It then probes again with the smoothing reset to 0.
-- **AHI backend** (`audio_io/audio_ahi_live.c`): `SetTaskPri` moves the render task between `AU_LIVE_PRI` 10 and `AU_LIVE_PRI_YIELD` -1. An overloaded song glitches instead of freezing the machine.
+- **AHI backend** (`audio_io/audio_ahi_live.c`): `SetTaskPri` moves the render task between `AU_LIVE_PRI` and `AU_LIVE_PRI_YIELD` -1. An overloaded song glitches instead of freezing the machine. `AU_LIVE_PRI` was **10** as this was recorded, and is **21** in the tree as of 2026-10-02 (raised so the render task sits above `input.device`; see [the tab-switch dropout record](2026-10-01-clipping-comp-limiter-tab-stall-priority.md)).
 - **Heartbeat:** the RIAPP log adds `load=<pm>/1000 overloads=<n>`. A Dell run will confirm or refute the starvation hypothesis.
 - **Test:** `t88_live_driver` covers 256 frames at 48 kHz:
   - light load never trips;

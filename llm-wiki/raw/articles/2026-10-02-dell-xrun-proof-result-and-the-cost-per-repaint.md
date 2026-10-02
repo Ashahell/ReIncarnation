@@ -1,0 +1,139 @@
+# The xrun fix worked on its own terms and still made it worse: repaint *count* fell 98.6 %, repaint *cost* did not move (owner 2026-10-02)
+
+- Source: ReIncarnation session, 2026-10-02 (opencode lane; the on-target proof of `3dadda7` that the previous record left open)
+- Collected: 2026-10-02
+- Published: 2026-10-02
+- Plan: `docs/superpowers/plans/2026-09-30-leviasynth-fidelity-plan.md` (§P9 interlude), ledger in `docs/2026-09-24-improvement-todo.md` §12.11
+- Prior: [2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md](2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md) (the diagnosis and the two fixes), [2026-10-01-clipping-comp-limiter-tab-stall-priority.md](2026-10-01-clipping-comp-limiter-tab-stall-priority.md) (the pri-21 render task), [2026-09-22-wbs21-storm.md](2026-09-22-wbs21-storm.md), [2026-10-01-menu-hang-tab-artifacts-load-governor.md](2026-10-01-menu-hang-tab-artifacts-load-governor.md)
+- Deployed image: `RAM:RIPP9F`, ev-log `RUN frames=256 vol=RAM: build=3dadda7`; the fix under test is `3dadda7`
+- Raw logs: `/tmp/opencode/fix_f.log` (346925 B, `RIAPP.LOG`, sha-verified bulk get) and `/tmp/opencode/fix_f.ev.log` (1549 B, `RIAPP-EV.LOG`)
+
+## What the owner said, and what I did about it
+
+The owner's report, on the running `RAM:RIPP9F`: the GUI was "way less responsive", audio "choppy", and **"this wasn't the case with claude's fix"** — the comparison being the previous lane's build.
+
+There was no way to act on that without telemetry, and the telemetry was locked: `RAM:RIAPP.LOG` belongs to a running process. So I closed the app cleanly with `--ui-close` (window management, not pointer injection), let it write its closing line, and pulled both logs afterwards. **The app is currently not running** — a consequence worth stating plainly, since it was under the owner when I closed it.
+
+The event log shows the owner's whole session was one gesture: `TR PLAY`, four `TAB` switches, 45 `CTL` knob events inside 564 ms, `TR STOP`. Playing lasted 7767 ms of EClock.
+
+```
+ev  4 4630864 TR PLAY
+ev  5 4631677 TAB page=1 us=52890 xruns+0
+ev  6 4632050 TAB page=2 us=42885 xruns+0
+ev  7 4632526 TAB page=3 us=76229 xruns+0
+ev  8 4632920 TAB page=4 us=52676 xruns+0
+ev  9 4636542 CTL 0906=24        ... 45 CTL lines ...
+ev 55 4638631 TR STOP
+```
+
+## The measurement mistake that had to be undone first
+
+My own repaint analysis of this log family was wrong, and it was wrong in a way that inverts conclusions. The `draw:` heartbeat line carries **two** fields called `n=`:
+
+```
+RIAPP draw: full_max=30601 us full_avg=5774 us n=15 part_max=303098 us part_avg=4036 us n=119 blit_max=25012 us allocs=15
+```
+
+The first `n` counts **full** repaints, the second counts **partial** ones. Parsing the line into a dictionary keeps the *last* `n`, so every count read as "partial" is really "full" and vice versa. My first pass reported this window as "119 full repaints at 5774 µs each"; it is **15 full repaints at 5774 µs and 119 partial repaints at 4036 µs**. Every repaint ratio in the previous record needs re-reading with the two fields kept apart.
+
+Re-read that way, the previous build's headline ratio survives — `1.12` xruns per full repaint (1165 xruns / 1037 full repaints), against the `1.47` the previous record quoted from a six-heartbeat slice of one window. The *conclusion* the ratio was used for does not survive; see the last section.
+
+## Both fixes did exactly what they were designed to do
+
+The same log contains the previous lane's run, so the comparison is like-for-like on one machine, one log file, one parser. Segmenting on the heartbeat's buffer counter (which resets per launch) gives three runs: a long one, a short second one, and `RAM:RIPP9F`.
+
+**The main log carries no build tag, so the identification of the first run is an inference, not a read.** It rests on two things that do line up: run 0's overload ladder is `0 → 9` by buf 55227 and `9 → 22` by its end, which is the baseline the previous record wrote down from an earlier pull of the same file, and `RAM:RIPP9F` was deployed strictly after `RAM:RIPP9` in an append-only log. The `build=3dadda7` tag is confirmed only for the *last* run, from the ev log. Treat the left-hand column as "the previous lane's build" rather than as a proven `cdcf85c`.
+
+| | previous lane's build | `RAM:RIPP9F` (`build=3dadda7`, this fix) |
+|---|---|---|
+| xruns, whole session | 1165 | **407** |
+| xruns in the worst burst | +680 over 635 full repaints | +407 in 3 windows |
+| duration of the playing session | ~19 min | 7.8 s |
+| `overloads` (governor yields) | 22 | **0** |
+| **full repaints** | **1037** | **15** |
+| **partial repaints** | 119 | 182 |
+| worst full repaint | 115270 µs | 30601 µs |
+| **worst partial repaint** | **641 µs** | **303098 µs** |
+| partial repaint average | 186..641 µs | 300..4036 µs |
+| peak `load` | 1083/1000 | 928/1000 |
+| windows that repainted at all | 8 of 79 | **3 of 1645** |
+
+- **Fix A worked as specified**: `overloads` went 22 → 0. The 2 s arm never completed once, because the load never stayed over 850 for 2 s. The governor never yielded.
+- **Fix B worked as specified, and further than claimed**: full repaints fell 1037 → 15, and only 3 of 1645 heartbeat windows repainted anything at all. The blanket 100 ms refresh of 18 canvases is gone. The damage-box path it substituted is the subject of the next section, and it is not cheaper.
+- **The tab-switch xruns are gone**: all four `TAB` lines read `xruns+0`.
+
+And the owner still heard choppy audio and a sluggish GUI. Both facts are true at once, and the table says why: **the count of repaints collapsed and the cost of each one did not.**
+
+## The cost that did not move: the damage box avoids the blit, not the build
+
+`gui/widgets/rsection.mcc.c`'s draw hook has two paths. The full path calls `draw_section` and blits the whole canvas. The damage path — the one Fix B introduced — is:
+
+```c
+if (d->dmg_valid) {
+    ...
+    build_dl(&d->brp, d, 0, 0, &dl); /* CPU only; cheap vs blits */
+    if (replay_dl_dmg(&d->brp, &dl, ..., x0, y0, x1, y1)) {
+        BltBitMapRastPort(d->bm, x0, y0, wrp, ...);   /* the small box only */
+```
+
+`build_dl` is handed the **whole** section (`0, 0`), with no damage clipping. So a "partial" repaint pays a full display-list construction and then throws away everything outside the box. The comment calling it "cheap vs blits" is true about the blit and silent about the build, and the build is the larger term: the surviving partial repaints average **4036 µs**, which is 76 % of one 5333 µs audio buffer period, against 186..641 µs for the old two-lamp box blits they replaced.
+
+The tail is worse than the average by two orders of magnitude: one partial repaint took **303098 µs**, in the same window as `allocs=15`, i.e. where bitmaps were being rebuilt. The previous build's worst partial was 641 µs. **A path that was supposed to make repaints cheaper introduced a repaint mode that can take 303 ms**, and nothing in the design bounds it.
+
+## Why that produces both symptoms at once
+
+The xrun detector is not a CPU-saturation test. In `audio_io/audio_ahi_live.c` the render task waits on the AHI hook signal and reports a dropout when it wakes to find more than one half already played:
+
+```c
+if (n - processed > 1u)
+    ri_livedrv_report_late(&lv->drv, n - processed - 1u); /* AHI looped a half: late */
+```
+
+So a single long GUI operation is charged one dropout per audio period it spans. A 303 ms GUI operation spans about 57 periods. The render task is not competing for a saturated CPU — it uses **32.8 µs of every 5333 µs** on average over the whole 7-hour session (`render_total=153734 ms` / 4683315 buffers), about 0.6 % of a core. It is *late*, not *crowded*.
+
+And the GUI feels sluggish for the same numbers, not for a scheduling reason. A 4 ms repaint is a quarter of a 60 Hz frame budget, which on its own is not a stall — but it is a floor under every interaction, so a knob drag that repaints per step lands ~4 ms behind the pointer each step. The outliers are what the hand notices: the 30601 µs full repaint is about 1.8 frames, and 303098 µs is about 18 frames, a quarter-second freeze. And at 119 partials averaging 4036 µs inside one ~11.5 s window, the GUI's own queue is doing ~480 ms of work against 5.3 ms audio deadlines interleaved through it.
+
+The timeline is tight, and it needs no priority story to explain it:
+
+```
+buf=4630697  xruns=0    full n=15 avg=5774 max=30601 | part n=119 avg=4036 max=303098 | allocs=15
+buf=4633944  xruns=158  (play burst starts)
+buf=4635622  xruns=247  part n=62 avg=300 max=3279
+buf=4638231  xruns=387  load=928
+buf=4641143  xruns=407  load=2   (transport stopped; xruns stop dead)
+```
+
+Repaints happen in one window, the xruns follow in the next three, and they stop when the transport stops. With 182 partial repaints at up to 4036 µs plus a 303 ms outlier against 5.3 ms deadlines, no further explanation is required.
+
+## What this overturns in the previous record
+
+The previous record's method finding reads: *"Xruns per repaint, not xruns per second, named the bug … Only together do they point at a priority inversion rather than at 'make the drawing cheaper'."* The ratio was right; the exclusion of the cost explanation was wrong, and the measurement that should have caught it was sitting in the same log.
+
+The priority inversion was real — the previous build's `overloads=22` put the render task at `AU_LIVE_PRI_YIELD -1` (below the UI) for 2 s at a time, 22 times, and removing it is exactly what Fix A did. But the inversion was a *second* cause with a *smaller* coefficient than the one underneath it. Removing the second cause and leaving the first is what produced "the numbers are better and the experience is worse".
+
+- The previous lane's build was slow because it did 1037 full repaints of 18 canvases **and** dropped the render task below the UI. The GUI felt instant because the audio paid for it.
+- `RAM:RIPP9F` is fast because it does 15. The GUI no longer has the audio task as a punching bag, so it feels the true cost of a repaint — which nobody had measured, because the yield had been hiding it.
+
+That is the whole finding: **the pri -1 fallback was a symptom-suppressor, and removing it exposed a per-repaint cost problem that was always there.** Both of the owner's symptoms are that one cost, seen from two ends.
+
+## Method findings
+
+- **A cumulative counter can improve while the experience gets worse.** 1165 → 407 xruns is a 65 % improvement and was reported as one. But the earlier build's 1165 were spread over 19 minutes; these 407 arrived inside 7.8 s of playing, one every 19 ms. The ear hears a rate, not a session total. Score the rate inside the window that matters, and score the *latency of the thing the hand touches* separately — a metric that cannot see the GUI cannot detect a fix that made the GUI worse.
+- **The fix and the diagnosis must be scored on the same axis.** Fix A targets audio continuity and Fix B targets wasted work; neither can be validated by "xruns went down". The only way both were provable at once is to measure both axes, and the second axis (repaint latency) had no metric at all — which is precisely why the regression shipped.
+- **A telemetry line with two fields of the same name will silently invert an analysis.** `n=` appears twice per `draw:` line with different meanings. It cost a full wrong reading of the owner's session and would have produced a confidently wrong article. Any keyed parse of these lines must handle the duplicate, and the format itself deserves disambiguation.
+- **A "damage" optimisation that skips the blit but not the build is not a partial.** `build_dl(&d->brp, d, 0, 0, &dl)` reconstructs the whole section's display list to paint one box. Whenever a damage path is introduced, the *construction* has to be bounded too, or the optimisation only moves the cost somewhere the metrics do not look.
+- **A fallback that escalates silently inherits the worst case.** `ri_rsection_refresh_box` escalates to `MUI_Redraw(o, MADF_DRAWOBJECT)` on three degenerate-input paths, and `meter_round` escalates to `ri_rsection_refresh` on four. Every one of those is counted under the cheaper label, so a 303 ms full redraw can appear in the log as a "partial repaint". The telemetry cannot distinguish what it is measuring.
+
+## Honest gaps
+
+- **No code change has been made in response to any of this.** The diagnosis is complete; the fix is not designed. Nothing in this record has been re-run on the Dell.
+- `RAM:RIPP9F` is closed and not relaunched. `RAM:RIPP9E` (the stray ABIv1 build) is still faulting its `Software Failure!` requester and still needs a human Suspend click.
+- What actually costs 4036 µs inside `build_dl`, and what makes one call cost 303098 µs, is **not** established. The 15 allocations in the same window are a hint, not a measurement. Nothing in the current telemetry attributes a repaint to a cause, so the biggest remaining question cannot be answered from the log at all.
+- The owner's "less responsive" is a report, not a measurement. There is no GUI latency metric in the build; the repaint costs above are the closest proxy and they are consistent with it, not a measurement of it.
+- This record's numbers come from one 7.8 s play burst by one owner on one machine. The comparison holds because both runs are in the same log under one parser, but neither run is a controlled A/B, and which build produced the earlier run is inferred rather than tagged.
+
+## See Also
+
+- [Dell xruns while playing and switching tabs: the governor's trip law and the repaint policy](2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md)
+- [Clipping (Comp make-up) and tab-switch dropouts (render priority)](2026-10-01-clipping-comp-limiter-tab-stall-priority.md)
+- [The Dell lane has two silent traps: the audit's link gate builds ABIv1, and `--get` serves stale bytes for a file the guest still has open](2026-10-02-dell-lane-abiv11-build-and-bulkget-staleness.md)

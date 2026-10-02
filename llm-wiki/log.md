@@ -1622,3 +1622,10 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New; Update (corrects the standing assumption that a green `scripts/ri_audit.sh` AROS link gate is evidence the change runs on the Dell; corrects the standing assumption that a `--get` on `RAM:RIAPP.LOG` shows current contents)
 - Raw: llm-wiki/raw/articles/2026-10-02-dell-lane-abiv11-build-and-bulkget-staleness.md
 - Updated: llm-wiki/index.md (Lane infrastructure entry list)
+
+## [2026-10-02] ingest | The xrun fix worked and the symptom did not close: repaint count fell 98.6 %, repaint cost did not move
+- Disposition: New; Update (Disputed ×2 + Outdated ×1 on `2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md` — the on-target proof that record left open is answered, and the priority-inversion conclusion it drew is overturned in favour of a per-repaint cost); Update (correction: `2026-10-01-menu-hang-tab-artifacts-load-governor.md` pinned `AU_LIVE_PRI` 10, which contradicted the tab-switch record and the tree; restated as 10-as-recorded / 21-now); Update (both 2026-10-02 rows' neighbours re-statused)
+- Raw: llm-wiki/raw/articles/2026-10-02-dell-xrun-proof-result-and-the-cost-per-repaint.md
+- Updated: llm-wiki/index.md (Live app entry list)
+- Triggered by: the owner's report against `RAM:RIPP9F` ("the GUI is way less responsive and audio playback is choppy — this wasn't the case with claude's fix"), which is a *different* symptom from the one `3dadda7` targeted. Evidence required quitting the app first, because a process holds its own log: `--ui-close` on the RIAPP window, then a bulk get of both logs.
+- Note for the next session: the `draw:` heartbeat line has **two** fields named `n=` (full repaints, then partial). A keyed parse keeps the last one and silently inverts every repaint comparison. This produced a confidently wrong first reading of the owner's session and is the reason the previous record's 1.47 ratio is now 1.12.
