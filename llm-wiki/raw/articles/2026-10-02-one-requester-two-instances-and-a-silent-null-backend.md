@@ -117,11 +117,69 @@ clever path belongs in a fixture that never ships to the device.
 - **Verify a close by listing.** Both the success and the refusal of `--ui-close` are
   ambiguous on this lane.
 
-## Open at the time of writing
+## The wedged process, and the proof that was still owed
 
-`Process 8` (`RIAPP.prev2`) still held a modal "Cannot load song" requester that repeated
-`--ui-close` on its panel did not dismiss, and the process remained in `status`. Clearing
-it needs either a guest-side `kill` (the lane's CLI has no `kill` in reach) or a reboot.
+`Process 8` (`RIAPP.prev2`) held a modal "Cannot load song" requester that repeated
+`--ui-close` on its panel did not dismiss, and the process stayed in `status`. Clearing it
+needed a guest-side `kill` (the lane's CLI has no `kill` in reach) or a reboot.
+
+**It resolved itself** — on the next check the process was gone, no RIAPP window remained
+and AHI was free, consistent with a guest reboot. No `kill` was needed, which is worth
+knowing: a process wedged on its own modal box may not stay wedged, so "the lane has no
+`kill`" is not automatically a dead end.
+
+That left the verification this article's whole argument rested on still unrun: **does the
+fixed binary actually work as a listening session?** Run with a verified pre-flight —
+confirmed no RIAPP window before launch, then confirmed *one* instance after it rather
+than assuming — HEAD plus `demos.rbpl`, one instance, full cycle:
+
+```
+RIAPP playlist Vk4aros:ReIncarnation/songs/local/demos.rbpl: 3 songs
+RIAPP song Vk4aros:ReIncarnation/songs/local/the-knife/the-knife.rbng: 104 bars at 124 BPM
+RIAPP song Vk4aros:ReIncarnation/songs/local/zombie-nation/zombie-nation.rbng: 151 bars at 140 BPM
+RIAPP song Vk4aros:ReIncarnation/songs/local/riapp-demo.rbng: 16 bars at 140 BPM
+RIAPP song Vk4aros:ReIncarnation/songs/local/the-knife/the-knife.rbng: 104 bars at 124 BPM
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+```
+
+Three songs, the fourth line is the wrap, AHI is the **real** backend (not the null one),
+and there is no `open failed`, no requester and no error line anywhere in the log. The
+self-contained `demos.rbpl` works on hardware: `riapp-demo.rbng` resolves out of the
+directory the playlist actually names. That closes the playlist defect recorded above.
+
+One detail worth keeping: `delete Vk4aros:RIAPP.LOG` returned `rc=5` ("No file to delete")
+and the *job* verdict came back FAIL while every action that mattered, including the
+`Run`, was `rc=0`. Read per-action `rc`; a non-zero from a cleanup step you did not need
+is not a failure of the run.
+
+## The xruns survive every explanation except the song
+
+This run removes the confounders one at a time. `demos.rbpl` contains **no `..`**, so the
+path bug cannot be involved. It ran on a **single** instance with AHI live, so contention
+cannot be involved. And it is not the `..` fixture's particular playlist:
+
+```
+RIAPP closed: buffers=97444 xruns=20998 render_max=21573 us render_total=563088 ms
+  period=5333 us wake_max=5823 us wake_n=97442
+  stg_total_avg=5766 us stg_dsp_avg=5689 us stg_evt_avg=29 us
+  stg_playing=97396 stg_stopped=48
+```
+
+The single clearest number in the whole investigation: **`stg_total_avg=5766 us` against a
+`period=5333 us` deadline.** The *average* buffer is 8 % late. No scheduling, no governor
+arm, no repaint policy and no contention can explain an average that exceeds the budget —
+and `stg_dsp_avg=5689 us` against `stg_evt_avg=29 us` says the cost is DSP, not the
+instrumentation wrapped around it. Two stages carry it (`stg[5]` avg 5658 us, `stg[7]`
+avg 5735 us), and inside the DSP the largest single device is Levi at avg 747 us /
+max 15710 us.
+
+This confirms the earlier measurement (19,703 xruns / 94,489 buffers) on a second, clean
+run: 20,998 / 97,444. Same order of magnitude, same story. **It is the song's DSP cost on
+this hardware**, and it belongs to the render-stage lane — not to the path fix, not to the
+log fix, and not to anything this lane did.
+
+So HEAD is the binary to launch, and it is still xrunning on a real song. Those two facts
+are now independent of each other, which is what makes the recommendation stable.
 
 ## See Also
 
