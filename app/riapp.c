@@ -1807,6 +1807,35 @@ static void dev_visibility_toggle(uint32_t dev) {
     evlog("VIS", "dev=%d show=%d mask=%02x", dev, show ? 1 : 0, mask);
 }
 
+/* NOAUDIO: do not touch ahi.device at all (owner 2026-10-02).
+ *
+ * This exists for the riqemu1 lane, where `ahi.device ReadConfig` executes a
+ * `movaps` against a source address that is not 16-byte aligned and raises
+ * #GP inside the guest. That fault happens during OpenDevice, i.e. inside the
+ * attempt itself, so no error code comes back to be reported: AROS raises its
+ * own "Software Failure!" requester and RIAPP additionally raises its own
+ * audio_fail() box, which is two requesters for one fault and leaves the log
+ * unreadable behind the modal one.
+ *
+ * The reason this is a switch and not a fix: the null backend renders and
+ * accounts per stage exactly as the device path does -- the dstg block is
+ * present on runs whose audio line reads "AHI unavailable [err 4]" -- so every
+ * render-cost measurement still works with the audio device skipped. Only the
+ * sound is gone, and on a guest whose AHI cannot be opened there was never any
+ * to lose. On a healthy guest the argument is absent and nothing changes.
+ *
+ * The earlier version of this was written and reverted unverified, because the
+ * requester it failed to clear was the guest's and the log behind the modal box
+ * could not be read. It is verified now precisely because the skip is logged
+ * before the panel comes up, so the line is readable with no requester up. */
+static int riapp_arg_noaudio(int argc, char **argv) {
+    int i;
+    for (i = 1; i < argc; i++)
+        if (argv[i] && !strcmp(argv[i], "NOAUDIO"))
+            return 1;
+    return 0;
+}
+
 static ULONG riapp_arg_frames(int argc, char **argv) {
     ULONG v = 0u;
     const char *p;
@@ -1828,16 +1857,28 @@ int main(int argc, char **argv) {
     struct MsgPort *tport = 0;
     struct timerequest *treq = 0;
     int timer_ok = 0, timer_armed = 0;
+    int noaudio = riapp_arg_noaudio(argc, argv);
 
     ri_core_demo(&s_core);
     evlog_open();
     if (rack_classes_make() != 0 && DOSBase)
         rlog("RIAPP rack classes unavailable (plain buttons, flat bay)\n", 0, 0, 0, 0, 0);
     evlog("RUN", "frames=%lu vol=%s build=%s", frames, s_evvol, RIAPP_BUILD_HASH);
-    rc = au_live_open(&s_lv, frames, 48000u);
-    if (rc == 0) {
-        s_live = 1;
-        rate = (float)s_lv.mix_freq; /* E0 (G9.0): the session runs at the device rate */
+    if (noaudio) {
+        /* Logged here, before the panel, so this line is readable with no
+         * requester up -- which is what makes the skip verifiable at all. */
+        if (DOSBase)
+            rlog("audio: skipped by NOAUDIO - null backend active (offline render only)\n",
+                0, 0, 0, 0, 0);
+        evlog("AUDIO", "skipped NOAUDIO");
+        s_live = 0;
+        rc = -1;
+    } else {
+        rc = au_live_open(&s_lv, frames, 48000u);
+        if (rc == 0) {
+            s_live = 1;
+            rate = (float)s_lv.mix_freq; /* E0 (G9.0): the session runs at the device rate */
+        }
     }
     ri_core_init(&s_core, RIAPP_PPQ, rate, 140.0f,
         RI_ENGINE_S303A | RI_ENGINE_S303B | RI_ENGINE_S808 | RI_ENGINE_S909 | RI_ENGINE_SLEVI);
@@ -1860,7 +1901,7 @@ int main(int argc, char **argv) {
         au_live_close(&s_lv);
         s_live = 0;
     }
-    if (DOSBase) {
+    if (DOSBase && !noaudio) {
         if (s_live)
             rlog("audio: AHI low-level mode=0x%08lx mix=%lu Hz buffer=%lu frames period=%lu us\n",
                 s_lv.mode_id, s_lv.mix_freq, s_lv.frames, s_lv.period_us, 0);
