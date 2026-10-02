@@ -3,7 +3,7 @@
 - Source: ReIncarnation session, 2026-10-02 (opencode lane; deploying the owner's two decisions — canonicalise `..`, log fallback `T:` — to the Dell)
 - Collected: 2026-10-02
 - Published: 2026-10-02
-- Prior: [2026-10-02-aros-does-not-resolve-dotdot-playlist-entry-failure.md](2026-10-02-aros-does-not-resolve-dotdot-playlist-entry-failure.md) (the fix this deployment carried), [2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md) (the render-stage work these numbers belong to), [2026-10-02-dell-xruns-governor-arm-and-repaint-policy-regresses.md](2026-10-02-dell-xruns-governor-arm-and-repaint-policy-regresses.md) (the earlier xrun campaign)
+- Prior: [2026-10-02-aros-does-not-resolve-dotdot-playlist-entry-failure.md](2026-10-02-aros-does-not-resolve-dotdot-playlist-entry-failure.md) (the fix this deployment carried), [2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md) (the render-stage work these numbers belong to), [2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md](2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md) (the earlier xrun campaign)
 - Binaries: `Vk4aros:ReIncarnation/RIAPP` = repo HEAD `406500f` (1,093,672 B, built with `~/bin/build_v11.sh`, 81 TUs, 0 undefined, v11 `r12` convention); `RIAPP.prev2` = the 00:15 build that was on the stick (843,448 B), kept as the control
 
 ## The measurement
@@ -83,8 +83,19 @@ is one command if clean audio matters more than the fix for a listening session:
 copy Vk4aros:ReIncarnation/RIAPP.prev2 Vk4aros:ReIncarnation/RIAPP
 ```
 
+> **Status: Outdated — 2026-10-02, later the same day.**
+> **Do not follow that one-command revert as written.** Leaving the old binary beside
+> `RIAPP` under the name `RIAPP.prev2`, while a playlist fixture containing `..` sat on the
+> stick, produced the next incident: the old binary was launched, could not resolve `..`,
+> and put up a "Cannot load song" requester that read as the fix not working. The binary is
+> now named `RIAPP-old-no-dotdot-fix`, the `..` fixture has been removed from the device,
+> and the recommendation is inverted: **`RIAPP` (HEAD) is the only binary to launch.** It
+> xruns on this song, and that is a real defect owned by the render-stage lane — but the
+> old binary's clean audio came with a silent path bug, which is worse.
+> See [One requester, two instances, and a silent null backend](2026-10-02-one-requester-two-instances-and-a-silent-null-backend.md).
+
 ## See Also
 
 - [AROS does not resolve `..` in a path — and a playlist that reaches a sibling directory fails silently at the end of every cycle](2026-10-02-aros-does-not-resolve-dotdot-playlist-entry-failure.md)
 - [Render-stage breakdown: voices are 94 percent, not the FX chain](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md)
-- [Scripted A,B,B,A settles it — arm wins, repaint policy regresses](2026-10-01-dell-xruns-governor-arm-and-repaint-policy-regresses.md)
+- [Scripted A,B,B,A settles it — arm wins, repaint policy regresses](2026-10-02-dell-scripted-ab-abba-governor-arm-wins-repaint-policy-regresses.md)
