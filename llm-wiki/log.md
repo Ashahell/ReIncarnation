@@ -1720,3 +1720,13 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Updated: llm-wiki/raw/articles/2026-10-02-dell-lane-bare-path-launch-wedges-agent-and-ui-capture-hangs.md
 - Found while waiting for the guest to redial: **both** opencode sessions on this machine share `/tmp/spike_spool_laptop`. When the reset was spent, five jobs were queued and four were the other lane's — including a `put RIAPP.v11 -> RAM:RIAPP_SEC` and a 190-action run whose first action is a `ui_click`, against a guest that still had a modal requester up.
 - Two corrections to the procedure: `kill -USR1` closes the one shared session, so it may only be spent after reading `state = busy:<job-id>` and confirming the stuck job is yours; and a `ui_click` against a guest with a modal requester is the same hang as `ui_capture`, so the other lane's run is the next thing at risk. On a shared lane, diagnose from the log and never from a UI action.
+
+## [2026-10-02] ingest | Lane procedure gains a third silent-failure mode; the section split is built but unmeasured
+- Disposition: Update
+- Raw: llm-wiki/raw/articles/2026-10-02-dell-lane-scripted-ab-procedure-and-click-map.md
+- Updated: llm-wiki/index.md (lane entry)
+- Not an ingest of a new source — a cascade from the lane going down mid-task. The record's own title said "the two ways a run silently produces nothing"; it is now three.
+- **The new mode:** a disconnected guest agent. `submit` cannot distinguish it from a malformed job — both simply never come back — so a full scripted run printed nothing and looked complete. Only `status` reports it, per identity, as `disconnected pending=N`.
+- **The durable lesson, which is about harnesses rather than this lane:** piping every submit through `grep -E "..." | tail -2` to keep the log readable also discards the only evidence that the command failed. A measurement harness that cannot tell "no result" from "no result because the other end is dead" will quietly emit a series of empty runs that read like measurements. Every step now asserts its evidence arrived — the window is listed, clicks were injected, the pulled log is non-empty, the close line exists — and the script exits non-zero instead of continuing.
+- **Recorded as blocked, not skipped:** the five-way section split of the voice render is committed, tested and mutation-proven at 34/34, but has no device number. Stating a measurement that was never taken would be the exact error this wiki keeps catching elsewhere, so the gap is written into the record's standing gaps instead.
+

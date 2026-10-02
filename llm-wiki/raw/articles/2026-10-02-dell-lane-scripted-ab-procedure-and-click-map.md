@@ -45,6 +45,24 @@ The first attempt placed the transport at the panel root's left edge (`ROOT_INNE
 
 `--ui-close` refusing is ambiguous between "the app is gone" and "the app has not started yet", and those need opposite responses. Check `--ui-windows`, not the close result.
 
+**3. A disconnected guest agent looks exactly like a silent submit.** Added after the 2026-10-02 section work: the Dell agent went down (a guest reboot; the other session that day recorded both a bare-path launch wedging the lane and an `--ui-capture` hanging for 40 minutes), and a whole scripted run then produced *no output at all* while appearing to complete. `submit` cannot tell you the difference — a queued job and a malformed one both simply do not come back. Only `status` can:
+
+```
+python3 scripts/spike_server.py status --spool /tmp/spike_spool_laptop \
+    --pairs ~/.config/spike/pairs.e6320.json
+  e6320   /tmp/spike_spool_laptop   disconnected pending=6   last=0
+```
+
+So every harness here now runs a **preflight** that reads `status` and aborts with the re-dial command if the identity is not connected:
+
+```
+SYS:ATCPBIN agent <guest-ip> 9292 e6320
+```
+
+The guest was last seen at **192.168.1.60** (older notes say `.81`). Re-dialling is a manual owner action, not something a harness can do for itself.
+
+**The general rule, and it is the one worth keeping: never pipe a submit through a filter.** Every `sub ... | grep -E "..." | tail -2` in the first version of the stage harness meant that a total failure printed nothing and looked like a run with nothing interesting to say. For a measurement harness, silence is indistinguishable from "the event did not happen" — which is precisely the thing these logs exist to detect. Each step now asserts the evidence it needs arrived (the window is listed, clicks were injected, the pulled log is non-empty, the close line is present) and the script exits non-zero instead of continuing.
+
 ## Never two instances
 
 A stale instance surviving a close, plus a second launch, gives two RIAPPs contending for the sound card — and the second launch **truncates the ev-log** (`MODE_NEWFILE` per run), so the first run's evidence is destroyed without a word.
@@ -95,6 +113,8 @@ A,B,B,A alternating, two runs per arm. Deviation from the advisor's 4 s gap: the
 - **`rc=0` from `Run` means the command was accepted, not that a process exists.** A launch must be confirmed by `status` or `--ui-windows`, never by the return code.
 - **Refuse to believe a single dramatic measurement on shared hardware.** It cost one wasted investigation and it is the only reason D1 is documented instead of quietly deleted.
 - **Index-based addressing beats name-based addressing when names can collide**, and one of the things you can close by index is the channel the whole lane runs over. Check what is at each index before automating a close.
+- **A measurement harness must fail loudly, and a filter in the pipeline is how it fails silently.** Piping `submit` into `grep` to keep the log readable also discards the evidence that the command failed. A script that cannot distinguish "no result" from "no result because the lane is dead" will quietly produce a series of empty runs that look like measurements.
+- **Ask the server, not the client, whether the other end is alive.** `submit` reports its own timeout and nothing about the guest; `status` reports per-identity connection state and a pending count. One line of preflight would have turned a ten-minute mystery into an immediate, actionable error.
 
 ## Standing gaps
 
@@ -102,6 +122,7 @@ A,B,B,A alternating, two runs per arm. Deviation from the advisor's 4 s gap: the
 - The stall's cause is uninvestigated and it confounds every measurement taken on this guest.
 - Only Play, Stop and the tab row are automated. Anything else would need the same derive-then-verify treatment, and some controls are destructive.
 - A song is never loaded, so Zombie Nation comparisons against the older records remain unbridged.
+- **The section-level render split is built, tested and mutation-proven, but NOT yet measured on target** — the lane went down before the guest run. There is no device number for "which of the five voice engines carries the cost". Host laws are complete; the measurement is blocked, not skipped.
 
 ## See Also
 
