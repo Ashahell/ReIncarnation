@@ -5,7 +5,8 @@
 - Published: 2026-10-02
 - Plan: `docs/superpowers/plans/2026-09-30-leviasynth-fidelity-plan.md` (§P9 interlude)
 - Prior: [2026-10-02-dell-scripted-ab-abba-governor-arm-wins-repaint-policy-regresses.md](2026-10-02-dell-scripted-ab-abba-governor-arm-wins-repaint-policy-regresses.md), [2026-10-02-damage-box-bounded-build-1p9x-less-gui-work-no-xrun-change.md](2026-10-02-damage-box-bounded-build-1p9x-less-gui-work-no-xrun-change.md)
-- Commit: unpushed at collection. Raw logs: `~/Work/vms/ri-p9/logs/stg-2026-10-02/` (`stg1`, `stg2`, `stgo2`, `stgo2b`, `stgbase`)
+- Commit: `5d233a1`. Raw logs: `~/Work/vms/ri-p9/logs/stg-2026-10-02/` (`stg1`, `stg2`, `stgo2`, `stgo2b`, `stgbase`). The A,B,B,A figures used in the 53 % section come from a **different** directory, `~/Work/vms/ri-p9/logs/ab-2026-10-02/` (`B1.stick.log`, `B2.stick.log`)
+- Grounding: checked mechanically on 2026-10-02. Every integer and decimal literal in this record was grepped against the cited raw logs. What is verbatim in the logs: all buffer/xrun/`render_max`/`render_total`/`wake_*` figures and all per-stage `avg`/`max`/`n` values. What is **derived** and therefore shown with its components: µs/buffer (= µs/block × blocks-per-buffer, both printed), shares (%), blocks-per-buffer (= dstg n ÷ playing, both printed), speedups and spreads (ratios of two printed figures), and the idle fractions (printed buffer counts and `period`).
 
 ## Why this was measured rather than argued
 
@@ -116,7 +117,9 @@ B1/B2:   8515 buffers =  45.4 s,   23895 ms  ->   27.7 s playing, 17.7 s idle (3
 
 The A,B,B,A script clicks Play, waits, walks five tabs with four waits between
 each, stops — about 28 s of playback inside a 45 s session. The idle fraction is
-39 %, and `2806 = 0.61 × 4590 + 0.39 × 9`.
+39 %, and `0.61 × 4590 + 0.39 × 9 = 2803` against the measured
+`23895000 / 8515 = 2806.2`. The 2.6 µs is the rounding in a 39 % fraction, not slack
+in the argument — and the raw pair `8515` / `23895` is verifiable in `B1.stick.log`.
 
 So the record that withdrew *"the render task uses 32.8 µs of every 5333 µs, about
 0.6 % of a core"* replaced one session average with another, less idle one. The

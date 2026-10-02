@@ -135,6 +135,15 @@ That is the whole finding: **the pri -1 fallback was a symptom-suppressor, and r
 > Earlier, on the advisor's objections alone, this was marked *Disputed*; the text below records that intermediate state.
 > The suppressor reading survives in its weaker form. The second sentence is the unsupported part: both symptoms being "that one cost, seen from two ends" requires the GUI to delay a pri-21 task, which needs a named blocking point that was never found, and the 303 ms repaint may itself be a consequence of the audio stall rather than its cause. Something *was* being hidden by the pri -1 fallback and the per-repaint cost was measurably large enough to be worth hiding — but what it was hiding, and what caused 407 dropouts in 7.7 s, is open.
 
+> **Status: Refuted** (2026-10-02, later the same day — by per-stage measurement)
+> The line above that reads *"it uses 32.8 µs of every 5333 µs ... about 0.6 % of a core. It is late, not crowded"* is the same idle-average error the A,B,B,A record corrected, and it is now measured directly. `32.8 µs` is `render_total=153734 ms / 4683315 buffers` — a **7-hour session that was ~99 % idle**. Per *playing* buffer the render costs **4590 µs against a 5333 µs period: 86 % of the period, not 0.6 %.**
+>
+> The conclusion inverts with the arithmetic. The render task was not *late but uncrowded*; it was **crowded, and so long that a single buffer could not be produced inside its own period** (`render_max` 6343 µs at `-O0`). At `-O2` the same code renders in 1936 µs, `wake_max` falls from 5824 µs to **37 µs**, `wake_total` by 68×, and xruns go to **zero** without any scheduling change at all. So the wake latency this record treats as a scheduling symptom was mostly the render's own length.
+>
+> The mechanism this record was reaching for does exist — the render is genuinely too slow for the period — but it is not GUI pre-emption, and it needed no `Forbid` or contended lock to find. Evidence: [render-stage breakdown](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md), [optimisation level alone removes every xrun](2026-10-02-optimisation-level-alone-removes-every-xrun-on-the-dell.md), and the section split ([five sections, one culprit](2026-10-02-five-sections-one-culprit-levi-is-32-percent.md)) which puts 32 % of it in LEVI and 0.9 % in the whole FX chain.
+>
+> What survives here unchanged: the per-repaint cost really was large enough to be worth suppressing, `overloads` 22 → 0 and full repaints 1037 → 15 really did both hit their own metric, and the cumulative-versus-rate lesson below is one of the better ones in this wiki.
+
 ## Method findings
 
 - **A cumulative counter can improve while the experience gets worse.** 1165 → 407 xruns is a 65 % improvement and was reported as one. But the earlier build's 1165 were spread over 19 minutes; these 407 arrived inside 7.8 s of playing, one every 19 ms. The ear hears a rate, not a session total. Score the rate inside the window that matters, and score the *latency of the thing the hand touches* separately — a metric that cannot see the GUI cannot detect a fix that made the GUI worse.

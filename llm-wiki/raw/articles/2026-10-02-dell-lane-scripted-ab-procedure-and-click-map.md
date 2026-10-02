@@ -37,7 +37,7 @@ and `RI_GEO_ZOOM_COMPACT` is 3. With `ri_geo_px(q, z) = q * 2 * zoom_num(z) / 16
 
 The first attempt placed the transport at the panel root's left edge (`ROOT_INNER` = 12) and predicted Play at (203, 98). Three probes at x ≥ 390 missed, because **the transport panel is centred: it occupies screen x ≈ 347–947, not x ≈ 12**. Reading it off a magnified capture — `--ui-capture …,2` then crop and upscale with Pillow — settled it in one step. The lesson is not "compute harder", it is that a screen-space derivation needs one anchor point from the screen.
 
-## The two ways a run silently produces nothing
+## The four ways a run silently produces nothing
 
 **1. `Run RIPA` without the volume prefix starts nothing.** `--exec "Run RIPA"` returns `rc=0`, the process never appears, and no log is written — so the whole run looks like a flaky guest. The correct form is `--exec "Run RAM:RIPA"`. This cost two full attempts before it was spotted.
 
@@ -60,6 +60,38 @@ SYS:ATCPBIN agent <guest-ip> 9292 e6320
 ```
 
 The guest was last seen at **192.168.1.60** (older notes say `.81`). Re-dialling is a manual owner action, not something a harness can do for itself.
+
+**4. The spool is shared, and a stale `--get` is indistinguishable from a good one.**
+
+Found by the other lane on 2026-10-02 and it applies directly to any harness here
+(their record: [two Dell-lane traps](2026-10-02-dell-lane-bare-path-launch-wedges-agent-and-ui-capture-hangs.md)):
+`/tmp/spike_spool_laptop` carries jobs from **both** sessions on this machine. During
+the disconnection above, six jobs were queued and most were the other lane's — a
+`put RIAPP.v11 -> RAM:RIAPP_SEC`, a 4-action close/exec run, a 27-exec run and a
+190-action run. Two consequences: `kill -USR1` is **not a private reset** (it closes
+the one session the whole lane shares), and a queued `ui_click` is the same hang risk
+as `ui_capture`, so a run of mine can be the thing that wedges the lane for someone
+else. The queue is serial and has no cancel.
+
+The same session's companion record establishes that **`--get` can serve stale bytes**
+for a file the guest still holds open
+([ABIv11 build and bulkget staleness](2026-10-02-dell-lane-abiv11-build-and-bulkget-staleness.md)).
+That is the dangerous one for a *measurement* harness: a stale pull is a
+well-formed log from a **previous run**, and every harness check passes on it.
+
+So the stage harness now does two things it did not before:
+
+- `rm -f` both local destinations **before** the pull, so a pull that silently
+  returns nothing leaves nothing to mistake for a result;
+- asserts the pulled log is non-empty **and** contains a `RIAPP closed` line, since
+  a log without one is a run that did not shut down cleanly and its cumulative
+  figures are not comparable with other runs.
+
+Checked rather than assumed: all seven stage runs (`stg1`, `stg2`, `stgo2`, `stgo2b`,
+`stgbase`, `sec0`, `seco2`) carry **distinct** close lines — buffers 40208 / 39102 /
+40812 / 40840 / 40705 / 38038 / 40927 — so none of the numbers in those records came
+from a stale read. The risk was real and the `rm -f` closes it; the verification
+confirms it was not already realised.
 
 **The general rule, and it is the one worth keeping: never pipe a submit through a filter.** Every `sub ... | grep -E "..." | tail -2` in the first version of the stage harness meant that a total failure printed nothing and looked like a run with nothing interesting to say. For a measurement harness, silence is indistinguishable from "the event did not happen" — which is precisely the thing these logs exist to detect. Each step now asserts the evidence it needs arrived (the window is listed, clicks were injected, the pulled log is non-empty, the close line is present) and the script exits non-zero instead of continuing.
 
@@ -115,6 +147,8 @@ A,B,B,A alternating, two runs per arm. Deviation from the advisor's 4 s gap: the
 - **Index-based addressing beats name-based addressing when names can collide**, and one of the things you can close by index is the channel the whole lane runs over. Check what is at each index before automating a close.
 - **A measurement harness must fail loudly, and a filter in the pipeline is how it fails silently.** Piping `submit` into `grep` to keep the log readable also discards the evidence that the command failed. A script that cannot distinguish "no result" from "no result because the lane is dead" will quietly produce a series of empty runs that look like measurements.
 - **Ask the server, not the client, whether the other end is alive.** `submit` reports its own timeout and nothing about the guest; `status` reports per-identity connection state and a pending count. One line of preflight would have turned a ten-minute mystery into an immediate, actionable error.
+- **On a shared lane, clear the destination before you fetch.** A stale `--get` returns a *well-formed log from the previous run*, so every structural check passes and the number is simply wrong. `rm -f` the local path first and assert the content is non-empty and carries a close line — and then verify after the fact that the runs really were distinct, because "the fix is in place" and "the fix was needed" are different claims.
+- **Another session's lane findings are your findings.** The shared-spool and stale-`--get` traps were found by the other lane on the same spool the same day. Reading the lane records before automating on the lane is cheaper than rediscovering them.
 
 ## Standing gaps
 

@@ -5,6 +5,7 @@
 - Published: 2026-10-02
 - Prior: [2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md) (the `VOICES` bucket this splits), [2026-10-02-optimisation-level-alone-removes-every-xrun-on-the-dell.md](2026-10-02-optimisation-level-alone-removes-every-xrun-on-the-dell.md), [2026-10-02-r12moves-is-an-inlining-counter-not-an-abi-hazard.md](2026-10-02-r12moves-is-an-inlining-counter-not-an-abi-hazard.md)
 - Commit: `ce4ed05` (the split), `7863e2b` (the r12moves finding). Raw logs: `~/Work/vms/ri-p9/logs/stg-2026-10-02/` (`sec0`, `seco2`)
+- Grounding: checked mechanically on 2026-10-02. Every integer and decimal literal in this record was grepped against the cited raw logs. What is verbatim in the logs: all buffer/xrun/`render_max`/`render_total`/`wake_*` figures and all per-stage `avg`/`max`/`n` values. What is **derived** and therefore shown with its components: µs/buffer (= µs/block × blocks-per-buffer, both printed), shares (%), blocks-per-buffer (= dstg n ÷ playing, both printed), speedups and spreads (ratios of two printed figures), and the idle fractions (printed buffer counts and `period`).
 
 ## Why the split was placed inside the enable test
 

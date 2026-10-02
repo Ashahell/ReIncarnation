@@ -4,7 +4,7 @@
 - Collected: 2026-10-02
 - Published: 2026-10-02
 - Prior: [2026-10-02-optimisation-level-alone-removes-every-xrun-on-the-dell.md](2026-10-02-optimisation-level-alone-removes-every-xrun-on-the-dell.md) (which raised `-O2` as the candidate answer), [2026-10-02-dell-sticky-log-location-and-size-heuristic-correction.md](2026-10-02-dell-sticky-log-location-and-size-heuristic-correction.md) (which promoted `r12moves` to "the discriminator")
-- Commit: unpushed at collection. Toolchain: `src/abi/v11/toolchain-core-x86_64`, GCC 16.1.0
+- Commit: `7863e2b`. Source: SDK headers and build outputs, cited inline — `src/abi/v11/sdk/Developer/include/aros/x86_64/libcall.h` and its generator `src/abi/v11/AROS/arch/x86_64-all/include/gencall.c`; counts by `objdump -d` over `$OBJ/*.o` and the linked binary. Toolchain: `src/abi/v11/toolchain-core-x86_64`, GCC 16.1.0
 
 ## How this came up
 
