@@ -5,6 +5,7 @@
 - Published: 2026-10-02
 - Prior: [2026-10-02-aros-does-not-resolve-dotdot-playlist-entry-failure.md](2026-10-02-aros-does-not-resolve-dotdot-playlist-entry-failure.md) (the fix this deployment carried), [2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md) (the render-stage work these numbers belong to), [2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md](2026-10-01-dell-xruns-governor-arm-and-repaint-policy.md) (the earlier xrun campaign)
 - Binaries: `Vk4aros:ReIncarnation/RIAPP` = repo HEAD `406500f` (1,093,672 B, built with `~/bin/build_v11.sh`, 81 TUs, 0 undefined, v11 `r12` convention); `RIAPP.prev2` = the 00:15 build that was on the stick (843,448 B), kept as the control
+- Evidence: [`docs/evidence/audio/audio-failure-and-deadline-2026-10-02.md`](../../../docs/evidence/audio/audio-failure-and-deadline-2026-10-02.md) — the three-run table and the verbatim shutdown summary for the confirmation run
 
 ## The measurement
 
@@ -55,6 +56,42 @@ What is **not** unresolved: HEAD, as it stands, does not fit the audio deadline 
 five-device song on this machine. That is the fact the render-stage and governor work
 needs, and it is the first on-device number for HEAD — every earlier xrun figure in the
 wiki came from the 00:15 binary.
+
+> **Update, 2026-10-02 (later).** The three-way split above is now settled, by a second
+> run that removed the confounders one at a time. Full evidence in
+> [A lost audio path must not be silent](2026-10-02-a-lost-audio-path-must-not-be-silent.md).
+>
+> That run used a playlist with **no `..` in it at all**, on a **single** instance, with
+> AHI confirmed live (`mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us`) —
+> so neither the path bug, nor contention, nor the fixture can be involved. Result:
+> `buffers=97444 xruns=20998 render_max=21573 us render_total=563088 ms`,
+> `stg_total_avg=5766 us`, `stg_dsp_avg=5689 us`, `stg_evt_avg=29 us`.
+>
+> **The decisive pair of numbers: `stg_total_avg=5766 us` against `period=5333 us`.** The
+> *average* buffer is 8 % over budget. Instrumentation cannot explain that, because the
+> DSP mean **on its own** (`stg_dsp_avg=5689 us`) already exceeds the 5333 us deadline —
+> so "the instrumentation is most of the 18 ms" is ruled out, and the answer is the
+> first branch: **the DSP genuinely got more expensive**, with instrumentation possibly
+> adding on top rather than substituting for it. What survives from the original split is
+> only the unquantified "some of both", and the size of the remaining instrumentation
+> share is now bounded by `5766 − 5689 = 77 us` of event work plus whatever the five
+> per-buffer timers themselves cost.
+>
+> Two stages carry the load (`stg[5]` avg 5658 us, `stg[7]` avg 5735 us — both over the
+> deadline on their own), and inside the DSP the largest single device is **Levi** at
+> avg 747 us / max 15710 us. That is the concrete hand-off for the render-stage lane,
+> and it is consistent with the voice-render finding already on file
+> ([Render-stage breakdown](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md)).
+>
+> Second run, same order of magnitude as the first: 19,703 / 94,489 becomes
+> **20,998 / 97,444**. The effect reproduces; it is not an artefact of one playlist.
+>
+> **And a third, with a durable capture** (evidence file above, section "The deadline
+> gap"), because the first two runs' local logs did not survive a host reboot:
+> `buffers=90106 xruns=18259 render_max=10115 us`, `stg_total_avg=5654 us`,
+> `stg_dsp_avg=5576 us`, `stg_evt_avg=30 us` — same verdict, `stg_dsp_avg` again above
+> `period=5333 us`, now by 243 us on its own. Three runs, three playlists/contention
+> states, one conclusion.
 
 ## How to reproduce in two runs
 

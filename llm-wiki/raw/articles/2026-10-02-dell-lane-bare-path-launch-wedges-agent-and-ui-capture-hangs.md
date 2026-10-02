@@ -84,6 +84,57 @@ Practical consequence: **use `Run`, keep launches short, and prefer one `--exec`
 a `--ui-capture` you are not prepared to lose the lane to.** If the lane does go quiet,
 `SIGUSR1` is the host-side reset, and it costs a guest-side agent restart.
 
+## After a host cold reboot: the lane returns, but not the way you would guess
+
+Added 2026-10-02 (later the same day), after the host itself was cold-booted mid-session.
+Every part of this cost time, and three of the four checks give the *wrong* answer.
+
+**What comes back, and what does not.** The spool directory reappears but empty
+(`done/ jobs/ results/`, `pending=0`), `pairs.json` is intact, and all three `serve`
+processes return — this box hosts three lanes (`9091/9092` on `nvkspike`, `9292` here,
+`9294` on `spike_spool_s6`) and they all restart. But the guest shows:
+
+```
+e6320   /tmp/spike_spool_laptop   disconnected pending=0   last=0
+```
+
+`last=0` means it has never been seen by *this* spool instance, which is the tell.
+
+**Two checks that mislead:**
+
+- `ping 192.168.1.60` succeeds, 2/2, ~0.15 ms — and tells you nothing about the lane.
+- `nc`/connect to the Dell's own `9292` returns **refused**, and also tells you nothing:
+  the server lives on the *host*; the guest agent dials out to it. "Refused" on the Dell
+  is the expected steady state, not a fault.
+
+The only meaningful signal is the lane's own `status` line. Check that, not the network.
+
+**It reconnected on its own**, within minutes, with no `SIGUSR1` and no guest-side action
+— which is consistent with the note above that a reconnect sometimes happens. So the
+honest version of the earlier claim is: a `SIGUSR1` reset *may* cost a guest-side agent
+restart, and after a **host** reboot it often does not. Poll `status` before concluding
+the lane is dead, and do not spend a shared reset on a lane that is merely young.
+
+**`/tmp/ri` does not survive.** `~/bin/build_v11.sh` says so in its own header, and it is
+true: the v11 Dell build output is gone, so a deploy needs the 81-TU rebuild before
+anything can be put on the stick.
+
+**`x86_64-aros-gcc` is not on a bare shell's `PATH` after a reboot.** Probing it by hand
+fails with `command not found` and looks like a missing toolchain. It is not: the audit
+sources `../Vulkan4Aros/scripts/aros_build_env.sh` itself before every AROS phase. So
+probe AROS-side compiles *through the audit*, not by invoking the compiler directly.
+
+**A `status` line with no window is not noise.** After a two-instance experiment, wedged
+processes stayed in `status` while being absent from `--ui-windows` entirely — and they
+still held `ahi.device`, so the next single launch failed too. Present in `status` but
+absent from `--ui-windows` is the signature of a live-but-windowless holder; see
+[A lost audio path must not be silent](2026-10-02-a-lost-audio-path-must-not-be-silent.md).
+After any two-instance experiment, **wait for `status` to clear before launching again.**
+
+**And the guest CLI does have `kill`.** Correcting the earlier record: the *lane* has no
+kill action, but the AROS CLI on the guest does (`kill Process8` → `rc=0`, "kill: object
+not found" on a bad argument). Reach for it before concluding a reboot is required.
+
 ## The song itself was not at fault (recorded so it is not re-litigated)
 
 Every local check on `songs/local/the-knife/the-knife.rbng` passed against the app's own

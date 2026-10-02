@@ -4,6 +4,7 @@
 - Collected: 2026-10-02
 - Published: 2026-10-02
 - Prior: [One requester, two instances, and a silent null backend](2026-10-02-one-requester-two-instances-and-a-silent-null-backend.md) (this is the fix for the gap that article recorded)
+- Evidence: [`docs/evidence/audio/audio-failure-and-deadline-2026-10-02.md`](../../../docs/evidence/audio/audio-failure-and-deadline-2026-10-02.md) — every log excerpt, window dump, mutant hash and RED/FAIL line quoted below, verbatim
 - Deployed: `Vk4aros:ReIncarnation/RIAPP` = 1,094,648 B, `build=2ecffd0` (ev-log `RUN frames=256 vol=Vk4aros: build=2ecffd0`); rollback kept as `RIAPP-old-no-audio-fail`
 
 ## The defect

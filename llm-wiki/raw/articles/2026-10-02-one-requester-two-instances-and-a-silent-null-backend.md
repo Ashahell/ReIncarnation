@@ -121,7 +121,23 @@ clever path belongs in a fixture that never ships to the device.
 
 `Process 8` (`RIAPP.prev2`) held a modal "Cannot load song" requester that repeated
 `--ui-close` on its panel did not dismiss, and the process stayed in `status`. Clearing it
-needed a guest-side `kill` (the lane's CLI has no `kill` in reach) or a reboot.
+needed a guest-side `kill` or a reboot.
+
+> **Correction, 2026-10-02 (later).** This said "the lane's CLI has no `kill` in reach",
+> which conflated two different CLIs. The *lane* (`spike_server.py`) has no kill action —
+> its whole action set is `--exec / --get / --put / --run-script / --ui-*`. The **AROS CLI
+> on the guest does have one**:
+>
+> ```
+> [exec] 'kill Process8' -> rc=0 (5 ms)
+>        kill: object not found
+> ```
+>
+> `rc=0` with "object not found" on a bad argument, which is that CLI's usual shape. So
+> "no kill in reach" was wrong in the way that costs the most: it would have sent someone
+> to reboot when a `kill` was sitting there. What *is* true is narrower: a wedged process
+> may need a `kill` **with the right argument**, or a reboot, and repeated `--ui-close`
+> is not sufficient.
 
 **It resolved itself** — on the next check the process was gone, no RIAPP window remained
 and AHI was free, consistent with a guest reboot. No `kill` was needed, which is worth
