@@ -11,13 +11,18 @@
 enum ri_path {
     RI_PATH_MODS = 1,   /* skins/mods: AROS SYS:Classes/ReIncarnation/Mods/ */
     RI_PATH_SONGS = 2,  /* songs */
-    RI_PATH_TEMP = 3,   /* temp/wav/log: AROS RAM:, Win %TEMP% */
+    RI_PATH_TEMP = 3,   /* temp/wav/log: AROS first USB/stick vol else RAM:, Win %TEMP% */
     RI_PATH_PREFS = 4,  /* prefs: AROS ENVARC:, Win %APPDATA% */
     RI_PATH_PACKS = 5   /* sample packs: AROS SYS:Classes/ReIncarnation/Packs/ */
 };
 
 /* Write the base dir for p into out[cap] (NUL-terminated). 0 ok. */
 int ri_pal_path(enum ri_path p, char *out, uint32_t cap);
+/* First mounted durable volume (AROS: a USB/stick volume; "" when none),
+ * else RAM:. Never raises a requester for a missing volume. 0 ok.
+ * Lives beside ri_pal_path so the volume list stays in platform/ — the
+ * app must not hold its own copy of it. */
+int ri_pal_sticky_vol(char *out, uint32_t cap);
 /* Join dir + leaf with the platform separator (':' vs '\\' vs '/'). 0 ok. */
 int ri_pal_path_join(char *out, uint32_t cap, const char *dir, const char *leaf);
 /* List subdirectories of dir via cb(name). Stops if cb returns nonzero. */

@@ -232,7 +232,15 @@ static int s_mst_shown[2]; /* MASTER strip L/R meter shadows */
 /* Demo song, bank table, transport and meters live in app/core (T8).
  * Status lines also go to the TEMP log, opened, appended and closed per
  * line so it can be read while RIAPP runs (the Run redirect stays empty).
- * Formatted with vsnprintf (T6: no RawDoFmt packing) and sunk preformatted. */
+ * Formatted with vsnprintf (T6: no RawDoFmt packing) and sunk preformatted.
+ *
+ * TEMP is the first mounted USB/stick volume when there is one, RAM: when
+ * there is not (platform/aros/fs_aros.c). RIAPP.LOG is the evidence every
+ * on-target run is judged from, and on RAM: it died with the first reboot:
+ * the 2026-10-02 session's 346925 B of log was lost to /tmp on the host
+ * side and the guest copy went with the next reboot, so the figures had to
+ * be reconstructed from a transcript. The log belongs where a reboot cannot
+ * reach it. RIAPP_LOG=<vol> overrides, as RIAPP_EVLOG does. */
 /* Event log (owner, 2026-09-27): every user-driven event (control sends,
  * transport edges, pattern/step edits) goes to RIAPP-EV.LOG, fresh per run
  * (MODE_NEWFILE at startup), on a USB stick when one is present, RAM:
@@ -246,8 +254,7 @@ static void evlog_vol(void) {
     /* Spike hunt 2026-09-27: RIAPP_EVLOG=RAM: forces the ev-log off the
      * USB stick (the stick must stay in: the Dell runs system parts
      * off it, and shells won't open without it). Default unchanged. */
-    static const char *const vols[] = { "Vk4aros:", "USB0:", "USB1:", "UMSD0:", "UMSD1:", "USBDISK0:" };
-    uint32_t i;
+    uint32_t k = 0u;
     s_evvol[0] = 0;
     if (!DOSBase)
         return;
@@ -255,7 +262,6 @@ static void evlog_vol(void) {
         char v[16];
         LONG r = GetVar((STRPTR)"RIAPP_EVLOG", (STRPTR)v, (LONG)sizeof v - 1u, 0L);
         if (r > 0) {
-            uint32_t k = 0u;
             while (v[k] && k < sizeof(s_evvol) - 1u) {
                 s_evvol[k] = v[k];
                 k++;
@@ -264,32 +270,11 @@ static void evlog_vol(void) {
             return;
         }
     }
-    for (i = 0u; i < sizeof(vols) / sizeof(vols[0]); i++) {
-        /* No requesters: a missing volume must fail silently (riqemu1
-         * and stick-less machines must boot unattended). */
-        struct Process *me = (struct Process *)FindTask(NULL);
-        APTR oldwin = me ? me->pr_WindowPtr : 0;
-        BPTR lock;
-        if (me)
-            me->pr_WindowPtr = (APTR)-1;
-        lock = Lock((CONST_STRPTR)vols[i], ACCESS_READ);
-        if (me)
-            me->pr_WindowPtr = oldwin;
-        if (lock) {
-            UnLock(lock);
-            {
-                uint32_t k = 0u;
-                while (vols[i][k] && k < sizeof(s_evvol) - 1u) {
-                    s_evvol[k] = vols[i][k];
-                    k++;
-                }
-                s_evvol[k] = 0;
-            }
-            return;
-        }
-    }
-    /* No stick: TEMP base through PAL (T6 — no literals outside platform/). */
-    if (ri_pal_path(RI_PATH_TEMP, s_evvol, sizeof(s_evvol)) != 0)
+    /* The volume list lives in platform/ now (ri_pal_sticky_vol): it is
+     * the same list that decides where RIAPP.LOG goes, and two copies of
+     * a list that must agree is a list that will not. */
+    if (ri_pal_sticky_vol(s_evvol, sizeof(s_evvol)) != 0
+        && ri_pal_path(RI_PATH_TEMP, s_evvol, sizeof(s_evvol)) != 0)
         s_evvol[0] = 0;
 }
 
@@ -364,6 +349,30 @@ static void evlog(const char *kind, const char *fmt, ...) {
     Flush(s_evfh);
 }
 
+/* Where RIAPP.LOG lands. RIAPP_LOG=<vol> pins it (as RIAPP_EVLOG pins the
+ * ev-log); otherwise RI_PATH_TEMP, which prefers a mounted stick over the
+ * reboot-wiped RAM:. Resolved per line because a stick can be pulled
+ * mid-run, and a log that follows the volume out is better than one that
+ * keeps writing to a handle that has stopped working. */
+static int rlog_base(char *out, uint32_t cap) {
+    if (!DOSBase)
+        return 1;
+    {
+        char v[16];
+        LONG r = GetVar((STRPTR)"RIAPP_LOG", (STRPTR)v, (LONG)sizeof v - 1u, 0L);
+        if (r > 0) {
+            uint32_t k = 0u;
+            while (v[k] && k + 1u < cap) {
+                out[k] = v[k];
+                k++;
+            }
+            out[k] = 0;
+            return 0;
+        }
+    }
+    return ri_pal_path(RI_PATH_TEMP, out, cap);
+}
+
 static void rlog(const char *fmt, ...) {
     char buf[512], base[48], fn[96];
     va_list ap;
@@ -374,7 +383,7 @@ static void rlog(const char *fmt, ...) {
     ri_log_format(buf, sizeof buf, fmt, ap);
     va_end(ap);
     ri_pal_log_sink(buf);
-    if (ri_pal_path(RI_PATH_TEMP, base, sizeof base) != 0)
+    if (rlog_base(base, sizeof base) != 0)
         return;
     if (ri_pal_path_join(fn, sizeof fn, base, "RIAPP.LOG") != 0)
         return;

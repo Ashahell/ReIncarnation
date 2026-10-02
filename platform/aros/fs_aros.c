@@ -1,6 +1,7 @@
 /* fs_aros.c — AROS backend for ri_pal_fs (portability plan T6).
  * AROS-only. Paths: MODS = SYS:Classes/ReIncarnation/Mods/,
- * TEMP = RAM:, PREFS = ENVARC:ReIncarnation/ (SONGS = MODS sibling).
+ * TEMP = the first mounted USB/stick volume, else RAM: (the log must
+ * survive a reboot), PREFS = ENVARC:ReIncarnation/ (SONGS = MODS sibling).
  * Dir scan keeps the fixed ExAll walk (ED_TYPE, ed_Next, ExAllEnd).
  */
 #ifndef __AROS__
@@ -8,6 +9,7 @@
 #endif
 
 #include "platform/pal/ri_pal_fs.h"
+#include "platform/pal/ri_pal_sticky.h"
 
 #include <exec/types.h>
 #include <dos/dos.h>
@@ -17,6 +19,39 @@
 
 #include <string.h>
 
+/* First mounted sticky volume, else "" when there is none. Never opens a
+ * requester and never allocates. The candidate list is in
+ * platform/pal/ri_pal_sticky.h so the host test can read the same one. */
+int ri_pal_sticky_vol(char *out, uint32_t cap) {
+    uint32_t i, k;
+    struct Process *me;
+    APTR oldwin;
+    if (!out || cap == 0u)
+        return 1;
+    out[0] = 0;
+    if (!DOSBase)
+        return 1;
+    me = (struct Process *)FindTask(NULL);
+    for (i = 0u; i < RI_PAL_STICKY_COUNT; i++) {
+        BPTR lock;
+        oldwin = me ? me->pr_WindowPtr : 0;
+        if (me)
+            me->pr_WindowPtr = (APTR)-1; /* a missing volume must not raise
+            a requester: the Dell boots unattended */
+        lock = Lock((CONST_STRPTR)ri_pal_sticky_vols[i], ACCESS_READ);
+        if (me)
+            me->pr_WindowPtr = oldwin;
+        if (!lock)
+            continue;
+        UnLock(lock);
+        for (k = 0u; ri_pal_sticky_vols[i][k] && k + 1u < cap; k++)
+            out[k] = ri_pal_sticky_vols[i][k];
+        out[k] = 0;
+        return 0;
+    }
+    return 1;
+}
+
 int ri_pal_path(enum ri_path p, char *out, uint32_t cap) {
     const char *s = 0;
     uint32_t i = 0u;
@@ -25,7 +60,14 @@ int ri_pal_path(enum ri_path p, char *out, uint32_t cap) {
     switch (p) {
     case RI_PATH_MODS: s = "SYS:Classes/ReIncarnation/Mods/"; break;
     case RI_PATH_SONGS: s = "SYS:Classes/ReIncarnation/Songs/"; break;
-    case RI_PATH_TEMP: s = "RAM:"; break;
+    /* The log is evidence and RAM: is wiped by every reboot, so TEMP is
+     * the durable volume when one is present. No stick, no scratch disk:
+     * a machine with neither still logs somewhere rather than not at all. */
+    case RI_PATH_TEMP:
+        if (ri_pal_sticky_vol(out, cap) == 0)
+            return 0;
+        s = RI_PAL_STICKY_FALLBACK;
+        break;
     case RI_PATH_PREFS: s = "ENVARC:ReIncarnation/"; break;
     case RI_PATH_PACKS: s = "SYS:Classes/ReIncarnation/Packs/"; break;
     default: break;
