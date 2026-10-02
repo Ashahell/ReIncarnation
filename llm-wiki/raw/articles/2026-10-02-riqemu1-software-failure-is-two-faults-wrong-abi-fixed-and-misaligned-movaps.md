@@ -56,6 +56,21 @@ The difference from my own `build_ri.sh`: it links `-lstdcio` (v1's runtime) and
 shim at `-L /tmp/ri/libshim_v1`, not v11's `-lstdlib`/`-lcrt`. **Use the repo script;
 do not re-derive a guest build.**
 
+> **SUPERSEDED IN ITS DIAGNOSIS (2026-10-03).** The `movaps`/`#GP` observations
+> here are right and the arithmetic is unchanged, but the conclusion — *"the
+> binaries on this image are miscompiled"* — is **wrong**, and so is the closing
+> claim that the fix is not available from this repo.
+>
+> The binaries are correct. The AROS ELF loader places `.rodata` at **12 mod 16**
+> despite `sh_addralign = 16`, so every alignment-assuming move the compiler
+> proved aligned at link time faults. Proof from the faulting constant:
+> `0x4bf4d88c - 0x22a0 = 0x4bf4b5ec`, and `0x4bf4b5ec mod 16 = 12`.
+> **AHI on riqemu1 now works** — see
+> [AHI on riqemu1: the loader ignores sh_addralign](2026-10-03-ahi-on-riqemu1-the-loader-ignores-sh-addralign.md).
+>
+> What survives here unchanged: Fault 1 (the wrong-ABI build) and its fix; the
+> absence of an ES1370 AHI driver; the r12 correction; and the NOAUDIO revert.
+
 ## Fault 2: AHI cannot open on this image — misaligned `movaps`, not fixable here
 
 RIAPP reports `AHI unavailable - null backend active (offline render only) [err 7]`
