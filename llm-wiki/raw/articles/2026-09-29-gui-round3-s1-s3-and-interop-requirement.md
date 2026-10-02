@@ -64,6 +64,17 @@ The owner then had it documented (`docs/superpowers/specs/2026-09-29-interop-req
 - WAV comes only from the offline renderer and live **W** capture.
 - There is no MIDI file support, no Link and no plugin.
 
+> **Update 2026-10-02 (still true of the shipped app, but the gap is now half-built).**
+> P1's *tempo does not follow it* line above is still accurate for what RIAPP does today —
+> nothing applies a follower's decision. What changed is that the decision source now exists:
+> `midi_io/midi_follow.{c,h}` (`47debed`, `50dc90a`, `622907d`) is a pure clock-in follower
+> core, a byte-level realtime wire parser and a sync-source state machine, all tested on the
+> host and all returning *intents* for a caller to apply. CAMD wiring and transport
+> application are the open half. The `midi.h` `midi_clock_*` / `midi_mmc_cmd` pair this
+> article's spec quotes as "neither is wired" is still unwired and untouched — there are now
+> two clock models, and only the follower one can drive tempo.
+> See [MIDI interop R1: the clock-in follower core, the realtime wire parser, and the sync-source state](2026-10-02-midi-interop-r1-follower-core-wire-parser-sync-source.md).
+
 **Requirements by priority:**
 - **P1:** MIDI clock in (follow: 24 ppqn, Start/Continue/Stop/SPP, jitter-smoothed, phase-locked, dropout timeout, latency offset); clock out (lead, latency-compensated, a sender task only); MMC in/out; settings and LEDs.
 - **P2:** per-device note in and out (separate from the one-channel G7 remote); CC out using the Appendix C numbers; SMF type 1 export/import.
