@@ -529,7 +529,25 @@ The cause is that Fix B reduced the repaint **count** and left the **cost** unto
 - **Repaint reason** (`gui/panelui.h`, `gui/widgets/rsection.{h,mcc.c}`): every box repaint is recorded against the caller that asked for it (`RI_RSEC_BOX_STEPS` / `_BAR` / `_OTHER`, folded from any out-of-range code), so a 303 ms partial can no longer hide inside the same aggregate as a 4 ms one. The codes live in `panelui.h` rather than `rsection.h` because `rsection.h` is AROS-only and the policy has to be host-testable. `t152_repaint_reason` plus mutation 6/6.
 - **Not yet done:** the in-memory ring dumped at quit. Live per-line writes to the log during a run can perturb what they measure, and the A/B should not be the run that finds out.
 
-Both metrics are pure accounting: no engine DSP is touched, so no song render moves, and t92's transport hashes and t93's pixel goldens are unchanged. The remaining fixes — bounding `build_dl` to the damage box, and re-tuning or removing the governor's stall cap now that the arm subsumes it — stay undesigned until the scripted A,B,B,A run with these metrics exists.
+Both metrics are pure accounting: no engine DSP is touched, so no song render moves, and t92's transport hashes and t93's pixel goldens are unchanged.
+
+**Scripted A,B,B,A on the Dell, 2026-10-02: the two fixes split, and the premise behind Fix B is inverted.** Arms A=`4167e32` (pri-21 + stall cap + tab probe) and B=`b68443c` (A + arm + repaint policy + P9 + metrics + sticky log), both `-O0`, same built-in song, five tabs each, every click confirmed against the ev-log. Two runs per arm; within-arm spread ~0.3 %, B's two runs identical.
+
+| run | arm | xruns | `overloads` | `render_max` | 5-tab total | `wake_max` | mean wake |
+|---|---|---|---|---|---|---|---|
+| A1 | 4167e32 | 618 | 8 | 84971 µs | 120575 µs | — | — |
+| B1 | b68443c | **274** | **0** | 6336 µs | 279056 µs | 5802 µs | 881 µs |
+| B2 | b68443c | **274** | **0** | 6359 µs | 294043 µs | 5810 µs | 894 µs |
+| A2 | 4167e32 | 620 | 8 | 136056 µs | 120558 µs | — | — |
+
+- **Fix A (the arm) is a large, reproducible win** and **Fix B (the repaint policy) is a measured GUI regression.** Shipped as a pair, either alone would have read as a partial success.
+- **The stall cap is not sufficient alone.** Arm A tripped 8 times in a ~4 s session (~every 500 ms), `render_max` reaching 136 ms = 16-26 buffer periods at pri -1. So the two guards are **not** redundant, and the earlier suggestion to drop the cap in favour of the arm needs re-reading: the arm is the mechanism that works; whether the cap earns its place is now a separate, answerable question rather than a guess.
+- **Repaint cost is not the cause of the xruns.** B does 2.3× more repaint work than A and has 56 % fewer xruns. The xruns track the governor. The record's `build_dl` finding stands as a GUI-latency defect, not as the xrun mechanism.
+- **The "0.6 % of a core" argument was an idle average applied to a playing session.** Recomputed over playback the render task uses **53-54 % of a 5333 µs buffer period** (2806-2873 µs/buffer), with mean wake latency 881-894 µs and a worst wake of 5802-5810 µs — a full period late on its own.
+- **No tab switch caused a dropout in any of the twenty switches**, in either arm, while the sessions accumulated 274-620 xruns between them. The 2026-10-01 tab-switch xruns are **not reproduced** by a scripted tab cycle and remain unexplained.
+- `arm_us=261317` with `overloads=0` in B2 shows the load *was* continuously over budget for 261 ms and the arm reset it — the ambiguity the field was added to remove.
+
+Still undesigned: bounding `build_dl` on the damage path (now the priority, since it is a measured 2.3× GUI regression), and the cap's fate. Evidence: `llm-wiki/raw/articles/2026-10-02-dell-scripted-ab-abba-governor-arm-wins-repaint-policy-regresses.md`; raw logs in `~/Work/vms/ri-p9/logs/ab-2026-10-02/`.
 
 ### P10: patches
 

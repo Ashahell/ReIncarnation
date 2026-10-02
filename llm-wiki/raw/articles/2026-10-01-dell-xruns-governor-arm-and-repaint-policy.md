@@ -121,5 +121,6 @@ int ri_panel_live_stale(uint32_t mask, uint32_t section);
 ## Standing gaps
 
 - On-target proof of the fix (needs the owner). **Answered 2026-10-02 and qualified: both fixes landed, the symptom did not close.** See the Status block under *Proof*.
+- **Status: Refuted** (2026-10-02, later the same day) — the two fixes split cleanly under measurement. A scripted A,B,B,A (arm A = `4167e32` with the stall cap, arm B = this work) gave: **Fix A (the arm) is a large win** — xruns 618/620 → **274/274**, `overloads` 8 → **0**, `render_max` 85-136 ms → 6.4 ms; and **Fix B (the repaint policy) is a GUI regression** — five tab switches cost 120 ms → 279-294 ms, 2.3x slower. The two were shipped as a pair and would each have been reported as a partial success. Also: **no tab switch caused a dropout in any of the twenty switches** in either arm, so the tab-switch xruns that motivated this whole line of work are not reproduced by a scripted tab cycle. Record: [the A,B,B,A](2026-10-02-dell-scripted-ab-abba-governor-arm-wins-repaint-policy-regresses.md).
 - The 303 pattern pages have no on-panel step row, so a 303 delete-tap still changes data that nothing on the panel shows; this predates the fix and is untouched by it.
 - A held Delete during playback still repaints three canvases. That is the pre-fix behaviour, now bounded to the canvases that can show the edit.

@@ -91,7 +91,9 @@ if (n - processed > 1u)
     ri_livedrv_report_late(&lv->drv, n - processed - 1u); /* AHI looped a half: late */
 ```
 
-> **Status: Disputed** (2026-10-02, later the same day)
+> **Status: Refuted** (2026-10-02, later the same day — by measurement)
+> A scripted A,B,B,A on the Dell (arms `4167e32` vs `b68443c`, both `-O0`, two runs each) **inverts** this claim. The arm carrying the repaint policy performs **2.3x more repaint work** (five tab switches cost 279-294 ms against 120 ms) and has **56 % fewer xruns** (274 in both runs against 618/620), with `overloads` 0 against 8. If repaint cost caused the xruns the slower-repainting arm would drop out more. The xruns track the **governor**: 8 trips gives 85-136 ms `render_max` (16-26 buffer periods at pri -1), zero trips never exceeds 6.4 ms. **No tab switch caused a dropout in any of the twenty switches**, in either arm. Separately, the duty cycle quoted in the block below is an **idle** average: recomputed over playback it is 53-54 % of a buffer period, not 0.6 %. Full record: [the A,B,B,A](2026-10-02-dell-scripted-ab-abba-governor-arm-wins-repaint-policy-regresses.md).
+> Earlier, on the advisor's objections alone, the same claims were marked *Disputed*; the text below records that intermediate state.
 > The numbers are sound; the causal claim below is not. A pri-21 task cannot be pre-empted by GUI work at pri 0–20, so charging a dropout to each audio period a GUI operation spans needs a *named blocking point* — a `Forbid`, a contended lock — and none was ever found. The repaint timings are also wall-clock, so an audio stall would inflate them: the 303 ms tail may be a **symptom** of the dropout burst rather than its cause. And 407 dropouts in 7.7 s is ~28 % of all buffers, which does not reconcile with a task using 0.6 % of a core; that tension was resolved in favour of this story instead of investigated. What survives: the measurement that repaint cost did not move, and the conclusion that the pri -1 fallback was suppressing it. What does not survive: that the repaint cost caused the dropouts. Wake latency was added (`5940cc3`) specifically to settle it.
 
 The xrun detector is not a CPU-saturation test. In `audio_io/audio_ahi_live.c` the render task waits on the AHI hook signal and reports a dropout when it wakes to find more than one half already played:
@@ -128,7 +130,9 @@ The priority inversion was real — the previous build's `overloads=22` put the 
 
 That is the whole finding: **the pri -1 fallback was a symptom-suppressor, and removing it exposed a per-repaint cost problem that was always there.**
 
-> **Status: Disputed** (2026-10-02, later the same day)
+> **Status: Refuted** (2026-10-02, later the same day — by measurement)
+> The suppressor reading is right for the wrong reason, and the measurement is sharper than the hedge. The pri -1 fallback *was* suppressing the xruns — suppressing them by **being** the cause. Arm A, which keeps the fallback, drops out 2.3x more; arm B, which removes the trips, drops out 56 % less with the same render cost per buffer (2869 vs 2806 us). The suppressor was hiding the mechanism, not a second cause underneath it.
+> Earlier, on the advisor's objections alone, this was marked *Disputed*; the text below records that intermediate state.
 > The suppressor reading survives in its weaker form. The second sentence is the unsupported part: both symptoms being "that one cost, seen from two ends" requires the GUI to delay a pri-21 task, which needs a named blocking point that was never found, and the 303 ms repaint may itself be a consequence of the audio stall rather than its cause. Something *was* being hidden by the pri -1 fallback and the per-repaint cost was measurably large enough to be worth hiding — but what it was hiding, and what caused 407 dropouts in 7.7 s, is open.
 
 ## Method findings
