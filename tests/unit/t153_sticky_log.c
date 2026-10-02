@@ -9,8 +9,8 @@
  *
  * The AROS probe (DOS Lock, requester suppression) is not host-testable, so
  * what is pinned here is the decision layer it depends on: which candidate
- * volumes, in which order, and the guarantee that RAM: is the last resort
- * rather than the first.
+ * volumes, in which order, and the guarantee that the fallback is the scratch
+ * disk rather than RAM: (owner 2026-10-02: RAM: -> T:).
  *
  * This reads platform/pal/ri_pal_sticky.h — the SAME list fs_aros.c probes.
  * An earlier version of this test carried its own copy of the list, and
@@ -18,7 +18,7 @@
  * the thing it mirrors. That is the reason the list lives in a header.
  *
  * Laws:
- *  - RAM: is never a candidate, only the fallback: listing it would make
+ *  - RAM: is never a candidate and never the fallback: listing it would make
  *    every stick-less path behave as before while the Dell path kept
  *    silently losing logs;
  *  - Vk4aros: is tried first (the Dell's own stick), ahead of the generic
@@ -37,11 +37,22 @@
 int main(void) {
     int i, j;
 
-    /* RAM: is the fallback, never a candidate. */
+    /* The fallback is T:, and RAM: is neither the fallback nor a candidate.
+     * Owner decision 2026-10-02. RAM: stays out of the table for the
+     * original reason; T: is the scratch disk, RAM-backed on this guest, so
+     * it is "somewhere better than RAM:", not a durable place. */
     for (i = 0; i < RI_PAL_STICKY_COUNT; i++)
         RI_ASSERT(strcmp(ri_pal_sticky_vols[i], RI_PAL_STICKY_FALLBACK) != 0,
             "slot %d is not the fallback volume", i);
-    RI_ASSERT(strcmp(RI_PAL_STICKY_FALLBACK, "RAM:") == 0, "the fallback is RAM:");
+    RI_ASSERT(strcmp(RI_PAL_STICKY_FALLBACK, "T:") == 0, "the fallback is T:");
+    for (i = 0; i < RI_PAL_STICKY_COUNT; i++)
+        RI_ASSERT(strcmp(ri_pal_sticky_vols[i], "RAM:") != 0,
+            "slot %d must never be RAM:", i);
+    /* The fallback is not a mount candidate either, or the probe would find
+     * it first on every machine that has a scratch disk. */
+    for (i = 0; i < RI_PAL_STICKY_COUNT; i++)
+        RI_ASSERT(strncmp(ri_pal_sticky_vols[i], "T:", 2u) != 0,
+            "slot %d duplicates the fallback name", i);
 
     /* Every candidate is a volume: non-empty and ending in ':'. A bare
      * directory would Lock as a path and silently never match a mount. */

@@ -136,8 +136,12 @@ int main(void) {
         RI_ASSERT(ri_playlist_parse("# demo\nRBPL 1\nTITLE  Demo songs \n\nzombie.rbng | Zombie Nation\n"
             "../demo/classic.rbng\nWork:x/y.rbng\n", "songs/local", &pl, err, sizeof err) == 0, "playlist: %s", err);
         RI_ASSERT(pl.n == 3u && !strcmp(pl.title, "Demo songs"), "entries + title");
+        /* Entry 1 was asserted here as "songs/local/../demo/classic.rbng" until
+         * 2026-10-02: the test pinned the un-folded join, which is why a playlist
+         * entry that could not be opened on AROS passed every host gate. The join is
+         * canonicalised now (t157) and this is the resolved path. */
         RI_ASSERT(!strcmp(pl.e[0].path, "songs/local/zombie.rbng") && !strcmp(pl.e[1].path,
-            "songs/local/../demo/classic.rbng") && !strcmp(pl.e[2].path, "Work:x/y.rbng"), "paths resolve");
+            "songs/demo/classic.rbng") && !strcmp(pl.e[2].path, "Work:x/y.rbng"), "paths resolve");
         ri_playlist_name(&pl, 0u, name, sizeof name);
         RI_ASSERT(!strcmp(name, "Zombie Nation"), "title name");
         ri_playlist_name(&pl, 1u, name, sizeof name);

@@ -50,7 +50,68 @@ void ri_playlist_dirname(const char *path, char *out, uint32_t cap) {
     out[n] = '\0';
 }
 
+/* Fold "." and ".." textually (owner 2026-10-02). AROS does not resolve a ".."
+ * component in a path; the host PAL does. A playlist that reached a sibling
+ * directory therefore resolved in every host test and failed on the Dell with
+ * "open failed" -- and only on auto-advance past the last entry, which is why
+ * it read as a working playlist (t157).
+ *
+ * A leading "/" and a volume ("Vk4aros:") are the root: copied first and never
+ * popped. A ".." with nothing left above the root is DROPPED, the way the
+ * kernel clamps at "/", and is never emitted -- a leading ".." is exactly what
+ * AROS cannot resolve. No allocation: one scratch copy plus a backward scan.
+ * Returns 0 ok, 2 when the result does not fit. */
+static int canon(const char *in, char *out, uint32_t cap) {
+    const char *p = in;
+    const char *colon;
+    size_t n = 0u, root = 0u;
+    if (!in || !out || cap == 0u)
+        return 2;
+    if (*p == '/') {
+        out[0] = '/';
+        n = 1u;
+        root = 1u;
+    } else if ((colon = strchr(p, ':')) != 0) {
+        size_t rl = (size_t)(colon - p) + 1u;
+        if (rl >= cap)
+            return 2;
+        memcpy(out, p, rl);
+        n = rl;
+        root = rl;
+        p += rl;
+    }
+    while (*p) {
+        size_t cl = 0u;
+        while (p[cl] && p[cl] != '/')
+            cl++;
+        if (cl == 2u && p[0] == '.' && p[1] == '.') {
+            if (n > root) {                       /* pop the last component */
+                size_t k = n;
+                while (k > root && out[k - 1u] != '/')
+                    k--;
+                n = (k > root) ? k - 1u : root;
+            }
+        } else if (cl != 0u && !(cl == 1u && p[0] == '.')) {
+            if (n > root) {
+                if (n + 1u >= cap)
+                    return 2;
+                out[n++] = '/';
+            }
+            if (n + cl >= cap)
+                return 2;
+            memcpy(out + n, p, cl);
+            n += cl;
+        }
+        p += cl;
+        if (*p == '/')
+            p++;
+    }
+    out[n] = '\0';
+    return 0;
+}
+
 int ri_playlist_join(const char *dir, const char *rel, char *out, uint32_t cap) {
+    char raw[RI_PLAYLIST_PATH];
     size_t d, r;
     int sep;
     if (!rel || !out || !cap)
@@ -58,19 +119,19 @@ int ri_playlist_join(const char *dir, const char *rel, char *out, uint32_t cap) 
     if (!dir || !dir[0] || rel[0] == '/' || strchr(rel, ':')) {
         if (strlen(rel) >= cap)
             return 2;
-        strcpy(out, rel);
-        return 0;
+        strcpy(raw, rel);
+    } else {
+        d = strlen(dir);
+        r = strlen(rel);
+        sep = dir[d - 1u] != '/' && dir[d - 1u] != ':';
+        if (d + (size_t)sep + r >= cap || d + (size_t)sep + r >= sizeof raw)
+            return 2;
+        memcpy(raw, dir, d);
+        if (sep)
+            raw[d++] = '/';
+        memcpy(raw + d, rel, r + 1u);
     }
-    d = strlen(dir);
-    r = strlen(rel);
-    sep = dir[d - 1u] != '/' && dir[d - 1u] != ':';
-    if (d + (size_t)sep + r >= cap)
-        return 2;
-    memcpy(out, dir, d);
-    if (sep)
-        out[d++] = '/';
-    memcpy(out + d, rel, r + 1u);
-    return 0;
+    return canon(raw, out, cap);
 }
 
 int ri_playlist_parse(const char *text, const char *dir, struct RIPlaylist *pl, char *err, uint32_t errcap) {
