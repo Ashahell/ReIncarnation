@@ -14,6 +14,12 @@ void ri_engine_init(struct RIEngine *e) {
     uint32_t i;
     if (!e)
         return;
+    e->now_us = 0; /* no timing until a clock is injected */
+    for (i = 0u; i < RI_ENGINE_ST_COUNT; i++) {
+        e->estg.sum_us[i] = 0u;
+        e->estg.max_us[i] = 0u;
+        e->estg.n[i] = 0u;
+    }
     rb303_init(&e->v303a);
     rb303_init(&e->v303b);
     rb808_init_set(&e->s808);
@@ -509,9 +515,38 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
     }
 }
 
+/* DSP sub-stage timing. Identical discipline to the session stages in
+ * live.c: NULL clock means one branch per boundary and nothing else, and each
+ * block opens and closes every stage exactly once, so a sample can never span
+ * two blocks or leak into the next one. */
+#define RI_ESTAGE_T(e, k, t) do { \
+    if ((e)->now_us) { (t) = (e)->now_us(); } \
+} while (0)
+#define RI_ESTAGE_E(e, k, t) do { \
+    if ((e)->now_us) { \
+        uint64_t u_ = (e)->now_us() - (t); \
+        if (u_ > 0xFFFFFFFFu) u_ = 0xFFFFFFFFu; \
+        (e)->estg.sum_us[k] += u_; \
+        if ((uint32_t)u_ > (e)->estg.max_us[k]) (e)->estg.max_us[k] = (uint32_t)u_; \
+        (e)->estg.n[k]++; \
+    } \
+} while (0)
+
+void ri_engine_set_clock(struct RIEngine *e, uint64_t (*now_us)(void)) {
+    if (e)
+        e->now_us = now_us;
+}
+
+const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e) {
+    return e ? &e->estg : 0;
+}
+
 uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
     uint32_t n, float sr) {
     uint32_t done = 0;
+    /* te is TOTAL's own timestamp; the sub-stages inside the block loop share
+     * ts, exactly the trap t156 caught one level up. */
+    uint64_t ts = 0, te = 0;
     if (!e || !out_l || !out_r || sr <= 0.0f)
         return 0;
     while (n > 0 && e->cursor < e->total) {
@@ -540,10 +575,14 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             uint32_t i;
             if (cc > RI_ENGINE_BLOCK)
                 cc = RI_ENGINE_BLOCK;
+            RI_ESTAGE_T(e, RI_ENGINE_ST_TOTAL, te);
+            RI_ESTAGE_T(e, RI_ENGINE_ST_ZERO, ts);
             for (i = 0; i < cc; i++)
                 ml[i] = mr[i] = 0.0;
             for (i = 0; i < cc; i++)
                 sendbus[i] = 0.0f;
+            RI_ESTAGE_E(e, RI_ENGINE_ST_ZERO, ts);
+            RI_ESTAGE_T(e, RI_ENGINE_ST_VOICES, ts);
             if (e->sections & RI_ENGINE_S303A) {
                 rb303_render(&e->v303a, e->scratch, cc, sr);
                 engine_section(e, 0, ml, mr, sendbus, cc, sr);
@@ -567,6 +606,8 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 levi_voice_render_sum_stereo(&e->slevi, e->scratch, e->scratchR, cc, sr);
                 engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr);
             }
+            RI_ESTAGE_E(e, RI_ENGINE_ST_VOICES, ts);
+            RI_ESTAGE_T(e, RI_ENGINE_ST_DELAY, ts);
             /* Shared delay send: one line over the summed post-insert
              * sends; stereo return with its own pan (NULL = dry). */
             if (e->dline) {
@@ -579,6 +620,8 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                     mr[i] += (double)retbus[i] * rgr;
                 }
             }
+            RI_ESTAGE_E(e, RI_ENGINE_ST_DELAY, ts);
+            RI_ESTAGE_T(e, RI_ENGINE_ST_COMP, ts);
             /* Master comp: stereo-linked (one detector, both buses). */
             if (ri_route_owner(&e->route, RI_ROUTE_COMP) ==
                 RI_ROUTE_MASTER) {
@@ -595,6 +638,8 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                     mr[i] = (double)tr[i];
                 }
             }
+            RI_ESTAGE_E(e, RI_ENGINE_ST_COMP, ts);
+            RI_ESTAGE_T(e, RI_ENGINE_ST_MASTER, ts);
             /* Master fader (S4b song-data gain): post-everything P-17 law
              * with the strip zipless slew. Unity at rest skips the
              * multiply so the neutral path stays bit-identical; the meter
@@ -615,6 +660,8 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                     e->master_applied = a;
                 }
             }
+            RI_ESTAGE_E(e, RI_ENGINE_ST_MASTER, ts);
+            RI_ESTAGE_T(e, RI_ENGINE_ST_METER, ts);
             {
                 float tl[RI_ENGINE_BLOCK], tr[RI_ENGINE_BLOCK];
                 for (i = 0; i < cc; i++) {
@@ -624,6 +671,8 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 ri_meter_feed(&e->master_meter[0], tl, cc);
                 ri_meter_feed(&e->master_meter[1], tr, cc);
             }
+            RI_ESTAGE_E(e, RI_ENGINE_ST_METER, ts);
+            RI_ESTAGE_T(e, RI_ENGINE_ST_LIMIT, ts);
             /* Soft limiter last (owner 2026-10-01): exact below -1 dBFS,
              * so every unclipped render stays bit-identical; the meters
              * above still see (and CLIP-flag) the unlimited level. */
@@ -631,6 +680,8 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 out_l[done + c + i] = ri_soft_limit((float)ml[i]);
                 out_r[done + c + i] = ri_soft_limit((float)mr[i]);
             }
+            RI_ESTAGE_E(e, RI_ENGINE_ST_LIMIT, ts);
+            RI_ESTAGE_E(e, RI_ENGINE_ST_TOTAL, te);
             c += cc;
         }
         done += (uint32_t)run;

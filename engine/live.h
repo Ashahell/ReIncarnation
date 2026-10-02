@@ -28,8 +28,38 @@ struct RILiveMeters {
     uint32_t xruns;
 };
 
+/* Render-stage breakdown (Dell 2026-10-02). The render cost was only ever known
+ * as one aggregate, and that aggregate was quoted as though it described a
+ * playing buffer when it averaged over a mostly-idle session — the "0.6 % of a
+ * core" error. These counters are per stage, and ST_STOPPED is kept separate
+ * from the playing stages precisely so idle and playing cannot be confused
+ * again.
+ *
+ * now_us is injected (NULL = no timing); the engine makes no OS call itself.
+ * sum/max/n are task-side; the GUI reads them as diagnostic-only
+ * unsynchronized values, exactly like load_pm. */
+#define RI_LIVE_ST_STOPPED 0u /* silence fill + stopped knob drain */
+#define RI_LIVE_ST_EVENTS  1u /* pub apply, carry reindex, chase, player, auto, ctl */
+#define RI_LIVE_ST_SORT    2u /* the section 8 event sort */
+#define RI_LIVE_ST_FILTER  3u /* drop events outside this buffer's window */
+#define RI_LIVE_ST_LOAD    4u /* ri_engine_load */
+#define RI_LIVE_ST_DSP     5u /* ri_engine_render: voices + fx + mixer */
+#define RI_LIVE_ST_METERS  6u /* meter publish */
+#define RI_LIVE_ST_TOTAL   7u /* the whole playing render */
+#define RI_LIVE_ST_COUNT   8u
+
+struct RILiveStages {
+    uint64_t sum_us[RI_LIVE_ST_COUNT];
+    uint32_t max_us[RI_LIVE_ST_COUNT];
+    uint32_t n[RI_LIVE_ST_COUNT];
+    uint32_t playing_buffers; /* buffers that took the playing path */
+    uint32_t stopped_buffers; /* buffers that took the silence path */
+};
+
 struct RILiveSession {
     struct RIEngine eng;
+    struct RILiveStages stages;
+    uint64_t (*now_us)(void); /* injected clock; NULL disables stage timing */
     struct RITransport tr;
     uint64_t cursor_ticks;
     uint32_t ppq;
@@ -95,6 +125,11 @@ int ri_live_record_touch(struct RILiveSession *s, uint16_t key, uint8_t val);
 uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
     uint32_t frames);
 const struct RILiveMeters *ri_live_meters(const struct RILiveSession *s);
+/* Stage clock: NULL (the init default) disables timing entirely, so a
+ * host or offline caller pays only the branch. The AHI backend sets its
+ * EClock wrapper here once the timer is open. */
+void ri_live_set_clock(struct RILiveSession *s, uint64_t (*now_us)(void));
+const struct RILiveStages *ri_live_stages(const struct RILiveSession *s);
 /* Render-published meter snapshot protocol (G9b Step 2, closes G6b): the
  * render task owns s->meters and bumps meters_seq around every update
  * (odd = update in flight, even = copy coherent). The GUI never reads

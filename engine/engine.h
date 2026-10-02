@@ -42,7 +42,33 @@
 #define RI_ENGINE_FX_COMP 3u
 #define RI_ENGINE_FX_COUNT 4u
 
+/* DSP sub-stage breakdown (Dell 2026-10-02). ri_live_render's DSP stage turned
+ * out to be 98 % of the whole render, so the next question is what inside it.
+ * Counted PER BLOCK, not per buffer: the block loop runs RI_ENGINE_BLOCK
+ * samples at a time and a 256-frame buffer is several blocks, so a per-buffer
+ * reading would be ambiguous. Zero and TOTAL count once per block like the rest.
+ *
+ * now_us is injected and NULL by default, for the same reason as the session
+ * stages: no OS call in the engine, and no cost to an offline caller. */
+#define RI_ENGINE_ST_ZERO   0u /* clear ml/mr/sendbus */
+#define RI_ENGINE_ST_VOICES 1u /* every section render: 303A/303B/808/909/LEVI */
+#define RI_ENGINE_ST_DELAY  2u /* shared delay send, return and pan */
+#define RI_ENGINE_ST_COMP   3u /* master compressor, stereo-linked */
+#define RI_ENGINE_ST_MASTER 4u /* master fader ramp */
+#define RI_ENGINE_ST_METER  5u /* master meter feed */
+#define RI_ENGINE_ST_LIMIT  6u /* soft limiter and the output write */
+#define RI_ENGINE_ST_TOTAL  7u /* one whole block */
+#define RI_ENGINE_ST_COUNT  8u
+
+struct RIEngineStages {
+    uint64_t sum_us[RI_ENGINE_ST_COUNT];
+    uint32_t max_us[RI_ENGINE_ST_COUNT];
+    uint32_t n[RI_ENGINE_ST_COUNT];
+};
+
 struct RIEngine {
+    struct RIEngineStages estg;
+    uint64_t (*now_us)(void); /* injected clock; NULL disables stage timing */
     struct RB303Voice v303a, v303b;
     struct RB808Set s808; /* §12.7a/m64: drum sections */
     struct RB909Set s909;
@@ -93,6 +119,9 @@ void ri_engine_load(struct RIEngine *e, const struct RIEvent *ev,
 void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev);
 /* Render up to n frames of stereo. Returns frames rendered (0 at end).
  * Chunk-agnostic: splitting n renders sample-identical output. */
+void ri_engine_set_clock(struct RIEngine *e, uint64_t (*now_us)(void));
+const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e);
+
 uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
     uint32_t n, float sr);
 /* Mono sink: (L+R)/2 per sample. Centre-unity makes 303A-only mono

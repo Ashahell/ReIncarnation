@@ -71,6 +71,19 @@ Two runs excluded, both recorded: **D1 was a transient guest stall** — one tab
 ## Standing gaps
 
 - The xruns are untouched and undiagnosed. `wake_max` ~5.8 ms against a 5333 µs period with the render task already consuming 53 % of every period is the open question, and it is a scheduling/throughput question, not a drawing one.
+
+> **Status: Disputed (2026-10-02).** Two halves of this bullet have since moved.
+>
+> The **53 %** is a session average over runs that were 39 % idle; the per-playing-buffer
+> figure is **86 %** of the period
+> ([render-stage breakdown](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md)).
+>
+> The **"it is a scheduling/throughput question, not a drawing one"** half still holds
+> as far as it goes — GUI cost is not the cause — but it is now much more likely a
+> *throughput* question than a scheduling one: at `-O2` the render drops to 36 % of
+> the period, `wake_max` falls from 5824 µs to 37 µs and the xruns go to zero
+> ([optimisation level alone removes every xrun](2026-10-02-optimisation-level-alone-removes-every-xrun-on-the-dell.md)).
+> The render was simply too long for the period.
 - Tab-switch latency is unchanged: a tab switch is a **full** repaint, which the clip deliberately does not touch. Bounding full repaints is a separate problem with a separate cost profile.
 - One unexplained bounded-build outlier: `build_max` rose from 121552 µs to 310630 µs. Fewer commands are built on average, yet the single worst build got slower, and the same window carries the worst repaint. Unexplained; it needs a histogram rather than a max.
 - The guest shows intermittent multi-hundred-ms stalls independent of any build (D1, and a 362 ms tab switch in D4 carrying `xruns+5`). That is a confounder for every measurement taken on it and is itself uninvestigated.

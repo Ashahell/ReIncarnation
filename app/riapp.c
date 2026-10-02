@@ -2346,6 +2346,40 @@ int main(int argc, char **argv) {
                 dpwn[RI_RSEC_BOX_NONE] ? dpwsum[RI_RSEC_BOX_NONE] / dpwn[RI_RSEC_BOX_NONE] : 0u,
                 dpwmax[RI_RSEC_BOX_NONE], dpwn[RI_RSEC_BOX_NONE],
                 dpn ? dpbsum / dpn : 0u, dpbmax);
+            /* Render-stage breakdown (Dell 2026-10-02): avg and max per stage,
+             * with the playing and stopped paths counted separately, so an idle
+             * average can never be quoted as a playing cost again. Sticky
+             * cumulative, so the close line carries the whole run. Diagnostic-
+             * only unsynchronized reads, same basis as load_pm. */
+            if (s_live && s_lv.drv.session) {
+                const struct RILiveStages *g = ri_live_stages(s_lv.drv.session);
+                unsigned q;
+                rlog("RIAPP stg: playing=%lu stopped=%lu stopped_avg=%lu us",
+                    (unsigned long)g->playing_buffers, (unsigned long)g->stopped_buffers,
+                    (unsigned long)(g->n[RI_LIVE_ST_STOPPED]
+                        ? g->sum_us[RI_LIVE_ST_STOPPED] / g->n[RI_LIVE_ST_STOPPED] : 0u));
+                for (q = 0; q < RI_LIVE_ST_COUNT; q++)
+                    rlog("RIAPP stg[%d]: avg=%lu us max=%lu us n=%lu", q,
+                        (unsigned long)(g->n[q] ? g->sum_us[q] / g->n[q] : 0u),
+                        (unsigned long)g->max_us[q], (unsigned long)g->n[q]);
+            }
+            /* DSP sub-stages, per BLOCK (the engine's block loop is the unit
+             * here, so n is blocks and not buffers). Two lines rather than
+             * eight: this log is already long, and a table that has to be
+             * scrolled apart from its maxima is a table nobody reads. */
+            if (s_live && s_lv.drv.session) {
+                const struct RIEngineStages *h =
+                    ri_engine_stages(&s_lv.drv.session->eng);
+                static const char *nm[RI_ENGINE_ST_COUNT] = {
+                    "zero", "voices", "delay", "comp", "master", "meter",
+                    "limit", "block" };
+                unsigned q;
+                rlog("RIAPP dstg n=%lu", (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
+                for (q = 0; q < RI_ENGINE_ST_COUNT; q++)
+                    rlog("RIAPP dstg %-6s avg=%lu us max=%lu us", nm[q],
+                        (unsigned long)(h->n[q] ? h->sum_us[q] / h->n[q] : 0u),
+                        (unsigned long)h->max_us[q]);
+            }
             if (s_live)
             /* wake_max/wake_n/prio separate "late" (the render task was not
              * scheduled) from "slow" (the render took too long) — render_max
@@ -2391,9 +2425,17 @@ int main(int argc, char **argv) {
             s_cap_mem = NULL;
         }
         if (DOSBase)
-            rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us wake_max=%lu us wake_total=%lu ms wake_n=%lu\n",
+            rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us wake_max=%lu us wake_total=%lu ms wake_n=%lu stg_total_avg=%lu us stg_dsp_avg=%lu us stg_evt_avg=%lu us stg_playing=%lu stg_stopped=%lu\n",
                 ri_atomic_load_acq(&s_lv.drv.buffers), ri_atomic_load_acq(&s_lv.drv.xruns), ri_atomic_load_acq(&s_lv.drv.render_us_max), ri_atomic_load_acq(&s_lv.drv.render_us_sum_ms), s_lv.period_us,
-                ri_atomic_load_acq(&s_lv.drv.wake_us_max), ri_atomic_load_acq(&s_lv.drv.wake_us_sum_ms), ri_atomic_load_acq(&s_lv.drv.wake_n));
+                ri_atomic_load_acq(&s_lv.drv.wake_us_max), ri_atomic_load_acq(&s_lv.drv.wake_us_sum_ms), ri_atomic_load_acq(&s_lv.drv.wake_n),
+                (unsigned long)(s_lv.drv.session && ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_TOTAL]
+                    ? ri_live_stages(s_lv.drv.session)->sum_us[RI_LIVE_ST_TOTAL] / ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_TOTAL] : 0u),
+                (unsigned long)(s_lv.drv.session && ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_DSP]
+                    ? ri_live_stages(s_lv.drv.session)->sum_us[RI_LIVE_ST_DSP] / ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_DSP] : 0u),
+                (unsigned long)(s_lv.drv.session && ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_EVENTS]
+                    ? ri_live_stages(s_lv.drv.session)->sum_us[RI_LIVE_ST_EVENTS] / ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_EVENTS] : 0u),
+                (unsigned long)(s_lv.drv.session ? ri_live_stages(s_lv.drv.session)->playing_buffers : 0u),
+                (unsigned long)(s_lv.drv.session ? ri_live_stages(s_lv.drv.session)->stopped_buffers : 0u));
     }
     SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
     MUI_DisposeObject(app);

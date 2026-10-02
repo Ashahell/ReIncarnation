@@ -53,6 +53,26 @@ B2  2806.8 us/buffer = 53%
 
 This is the error the whole episode turns on, and it is a specific one worth naming: **an average taken over a session that was mostly idle describes the idle case, and quoting it about a busy one is a category error that no unit or formula reveals.** The `wake_latency` metric exists so that "late" and "slow" stop sharing an explanation.
 
+> **Status: Outdated (superseded 2026-10-02 by
+> [the render-stage breakdown](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md)).**
+> The correction above is right that the 0.6 % figure was an idle-session average,
+> but the replacement figure is *also* a session average — just a less idle one.
+> These runs were 39 % idle (8515 buffers = 45.4 s, of which 27.7 s playing), so
+> `2806 = 0.61 × 4590 + 0.39 × 9`. The per-playing-buffer cost is **4590 µs =
+> 86 % of the 5333 µs period**, measured on a play-only harness where the idle
+> fraction is 8.9 %. `render_max` agrees across every `-O0` run ever taken on this
+> guest (6310–6359 µs), which is what proves the workload was constant and the
+> average difference was an artefact of the protocol's idle time.
+>
+> The *comparison* in this record is unaffected and remains valid: both arms ran the
+> same protocol, so the governor-arm win stands. Only the absolute throughput figure
+> must not be quoted as a per-playing-buffer cost.
+>
+> A second reading has also changed. The `wake_max` 5802–5810 µs here was read as a
+> scheduling problem. At `-O2` the same measurement is **37 µs**
+> ([optimisation level alone removes every xrun](2026-10-02-optimisation-level-alone-removes-every-xrun-on-the-dell.md)),
+> so most of it was a long render, not an unfair wake.
+
 ## `arm_us` paid for itself immediately
 
 B2's first heartbeat reads `overloads=0 … arm_us=261317`: the load was continuously over 850 per mille for **261 ms** and the arm reset it. B1's reads `arm_us=0`. With `overloads=0` alone those two are indistinguishable from "never went over budget", which is how a 7.7 s session previously got over-read. The field cost four lines and converted an ambiguous zero into a measurement — and it also shows how close the arm is: at a 1 s arm this session would have tripped.

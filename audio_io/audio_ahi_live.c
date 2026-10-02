@@ -467,6 +467,15 @@ int au_live_run(struct AuLive *lv, struct RILiveSession *s) {
     lv->drv.session = s;
     lv->drv.cap_buf = lv->cap_buf;
     lv->drv.cap_max = lv->cap_max;
+    /* Render-stage breakdown (Dell 2026-10-02). Opted in HERE rather than in
+     * the portable driver, for two reasons: a host test's clock is a
+     * simulated one that advances per read, so injecting it there would
+     * inflate every simulated render (t88 is calibrated for exactly two reads
+     * per buffer and broke the moment the engine started reading it); and the
+     * extra ~14 EClock reads must not sit inside the driver's own t0..t1
+     * window. EClock is sub-microsecond here, so on the device it is free. */
+    ri_live_set_clock(s, aros_now_us);
+    ri_engine_set_clock(&s->eng, aros_now_us);
     Signal(s_render, SIGBREAKF_CTRL_E);
     wait_state(lv, 1);
     return (LONG)ri_atomic_load_acq(&lv->state) == 2 ? 0 : 3;

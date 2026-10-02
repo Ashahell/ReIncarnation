@@ -22,6 +22,14 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
         return;
     ri_engine_init(&s->eng);
     ri_engine_defaults(&s->eng);
+    s->now_us = 0;                 /* no timing until a clock is injected */
+    for (i = 0u; i < RI_LIVE_ST_COUNT; i++) {
+        s->stages.sum_us[i] = 0u;
+        s->stages.max_us[i] = 0u;
+        s->stages.n[i] = 0u;
+    }
+    s->stages.playing_buffers = 0u;
+    s->stages.stopped_buffers = 0u;
     s->tr.state = RI_TR_STOPPED;
     s->tr.clicks = 0u;
     s->cursor_ticks = 0u;
@@ -224,9 +232,48 @@ static void live_meters_update(struct RILiveSession *s) {
     s->meters.xruns = s->xruns;
 }
 
+/* Stage timing (Dell 2026-10-02). NULL clock = one predictable branch per
+ * boundary and nothing else, so an offline caller is unaffected. Every sample
+ * is clamped by construction: the clock is monotonic and each stage opens and
+ * closes exactly once. */
+#define RI_STAGE_T(s, k, t) do { \
+    if ((s)->now_us) { (t) = (s)->now_us(); } \
+} while (0)
+#define RI_STAGE_E(s, k, t) do { \
+    if ((s)->now_us) { \
+        uint64_t u_ = (s)->now_us() - (t); \
+        if (u_ > 0xFFFFFFFFu) u_ = 0xFFFFFFFFu; \
+        (s)->stages.sum_us[k] += u_; \
+        if ((uint32_t)u_ > (s)->stages.max_us[k]) (s)->stages.max_us[k] = (uint32_t)u_; \
+        (s)->stages.n[k]++; \
+    } \
+} while (0)
+
+/* These two hooks are deliberately INDEPENDENT. Cascading one into the other
+ * looks tidier and is wrong: the DSP sub-stage table sits inside the render,
+ * so arming it adds ~16 clock reads per block. A host test whose clock is a
+ * simulation that advances per read -- t88 is calibrated for exactly two reads
+ * per buffer -- then measures a render several times longer than it simulated,
+ * and its governor laws all fail for a reason that has nothing to do with the
+ * governor. Arming both is the backend's job, in the one place it happens. */
+void ri_live_set_clock(struct RILiveSession *s, uint64_t (*now_us)(void)) {
+    if (s)
+        s->now_us = now_us;
+}
+
+const struct RILiveStages *ri_live_stages(const struct RILiveSession *s) {
+    return s ? &s->stages : 0;
+}
+
 uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
     uint32_t frames) {
-    uint64_t s0, s1, t0, t1;
+    /* ts is written by RI_STAGE_T immediately before every RI_STAGE_E; the
+     * initialisers only satisfy -Wmaybe-uninitialized, which cannot see
+     * through the macros. Neither is read on a path that skips the clock.
+     * tt is TOTAL's own: TOTAL encloses every other stage, and they all write
+     * ts, so sharing one variable made TOTAL measure from the last inner
+     * stage instead of from its own start (t156 caught it). */
+    uint64_t s0, s1, t0, t1, ts = 0, tt = 0;
     uint32_t n = 0u, k;
     uint32_t seq;
     uint64_t loop_end = 0u;
@@ -236,6 +283,8 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
     if (!s->scratch || s->scratch_cap == 0u)
         return 0u;
     if (s->tr.state == RI_TR_STOPPED) {
+        RI_STAGE_T(s, RI_LIVE_ST_STOPPED, ts);
+        s->stages.stopped_buffers++;
         for (k = 0u; k < frames; k++) {
             out_l[k] = 0.0f;
             out_r[k] = 0.0f;
@@ -262,8 +311,12 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         s->meters.cursor_ticks = s->cursor_ticks;
         s->meters.xruns = s->xruns;
         ri_live_meters_end(s);
+        RI_STAGE_E(s, RI_LIVE_ST_STOPPED, ts);
         return frames;
     }
+    RI_STAGE_T(s, RI_LIVE_ST_TOTAL, tt);
+    RI_STAGE_T(s, RI_LIVE_ST_EVENTS, ts);
+    s->stages.playing_buffers++;
     if (s->pub)
         ri_auto_pub_apply(s->pub);
     if (s->pub && s->carry) {
@@ -332,6 +385,7 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         uint32_t got = ri_ctl_drain(s->ctl, s->scratch + n, room, s0, &seq);
         n += got;
     }
+    RI_STAGE_E(s, RI_LIVE_ST_EVENTS, ts);
     for (k = 1u; k < n; k++) {
         struct RIEvent key = s->scratch[k];
         uint64_t j = k;
@@ -341,6 +395,9 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         }
         s->scratch[j] = key;
     }
+    RI_STAGE_T(s, RI_LIVE_ST_SORT, ts);
+    RI_STAGE_E(s, RI_LIVE_ST_SORT, ts);
+    RI_STAGE_T(s, RI_LIVE_ST_FILTER, ts);
     {
         uint32_t w = 0u, r;
         for (r = 0u; r < n; r++) {
@@ -353,8 +410,11 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         }
         n = w;
     }
+    RI_STAGE_E(s, RI_LIVE_ST_FILTER, ts);
+    RI_STAGE_T(s, RI_LIVE_ST_LOAD, ts);
     ri_engine_load(&s->eng, s->scratch, n, frames,
         ri_atomic_load_acq(&s->sections));
+    RI_STAGE_E(s, RI_LIVE_ST_LOAD, ts);
     /* Delay clock ownership (owner 2026-09-27: echoes ran at the 140 BPM
      * engine default against a 120 groove): the transport tempo owns it.
      * (Demo is 140 since the Zombie Nation drive; the push stays — it
@@ -363,6 +423,7 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         ri_engine_set_tempo(&s->eng, s->bpm);
     ri_engine_transport(&s->eng, s->tr.state == RI_TR_PLAYING ? 1u : 0u,
         s->cursor_ticks, s->ppq);
+    RI_STAGE_T(s, RI_LIVE_ST_DSP, ts);
     {
         uint32_t got = ri_engine_render(&s->eng, out_l, out_r, frames, s->sr);
         if (got < frames) {
@@ -373,6 +434,7 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
             s->xruns++;
         }
     }
+    RI_STAGE_E(s, RI_LIVE_ST_DSP, ts);
     s->cursor_ticks = t1;
     s->sample_cursor = s1;
     s->seq_next = seq;
@@ -387,9 +449,12 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
             ri_auto_carry_reindex(s->carry, ri_auto_pub_front(s->pub),
                 (uint32_t)ls);
     }
+    RI_STAGE_T(s, RI_LIVE_ST_METERS, ts);
     ri_live_meters_begin(s);
     live_meters_update(s);
     ri_live_meters_end(s);
+    RI_STAGE_E(s, RI_LIVE_ST_METERS, ts);
+    RI_STAGE_E(s, RI_LIVE_ST_TOTAL, tt);
     return frames;
 }
 
