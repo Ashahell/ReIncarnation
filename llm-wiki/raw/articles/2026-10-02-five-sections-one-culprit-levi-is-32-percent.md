@@ -119,10 +119,38 @@ across all three runs to within 1 %.
 
 - **Actionable:** LEVI is the single biggest thing in the render, at twice the
   cost of any other engine, with the heaviest tail. It is where effort belongs.
-- **Not yet actionable:** LEVI's own block is five calls —
+> **ANSWERED ELSEWHERE (2026-10-03) — and it does not transfer to this table.**
+> The split named below was measured, on **riqemu1 (ABIv1)**, not on the Dell:
+> [The LEVI sub-split is measured](2026-10-03-the-levi-sub-split-measured-arp-seq-voice-and-mix-are-all-at-the-floor.md)
+> finds `lev-arp` 6 µs, `lev-seq` 6 µs, `lev-voice` 8 µs, `lev-mix` 6 µs — **all
+> four at the timer floor**, with **54 % of LEVI unattributed**. So on riqemu1 the
+> internals are not where the cost is, and further splitting them would find
+> nothing.
+>
+> **It does not transfer, for a reason worth stating.** On the **Dell** the same
+> four rows read `lev-arp` 4 µs, `lev-seq` 4 µs, `lev-mix` 4 µs and
+> **`lev-voice` 306 µs** — that is, ~87 % of Dell LEVI's 350 µs sits in one
+> sub-stage, against ~46 % on riqemu1. The two lanes have genuinely different
+> LEVI internal distributions.
+>
+> **And the riqemu1 rank change is not a refutation here.** That record puts LEVI
+> 3rd at 16.2 % of block against 303a 19.9 % and 303b 19.4 %, where this record
+> has LEVI 1st at ~32 %. The sibling's record explicitly declines to call it a
+> refutation and gives the reason: different song, different section enablement,
+> different optimisation level, and a resample factor of only ~1.09 against a 2×
+> difference. **The like-for-like repeat is still owed, and it is owed on the
+> Dell**, because every audio measurement in this lane is a Dell measurement.
+>
+> **Standing gap, restated precisely:** not "which call carries the 398 µs" but
+> **"why do the Dell and riqemu1 distribute LEVI differently, and which is right
+> for the Dell?"** — and a second gap the riqemu1 work exposes: there is **no `n`
+> on the sub-stage rows**, so a sub-stage reading at the floor is indistinguishable
+> from one that never ran. Three of the four Dell `lev-*` rows read at that floor.
+
+- ~~**Not yet actionable:** LEVI's own block is five calls —
   `levi_set_tempo`, `levi_arp_block`, `levi_seq_block`,
   `levi_voice_render_sum_stereo`, `engine_section_stereo` — timed together. Which
-  of those carries the 398 µs is not established, and the obvious next split.
+  of those carries the 398 µs is not established, and the obvious next split.~~
 - **The tail is the target, not the mean.** 909's 1.82 max/avg is nearly LEVI's
   1.94 on a much smaller base, and a mean-only view of this table would have
   hidden it entirely.

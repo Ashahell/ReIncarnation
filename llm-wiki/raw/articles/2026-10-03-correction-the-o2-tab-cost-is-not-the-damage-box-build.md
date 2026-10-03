@@ -107,6 +107,20 @@ that is not the build.
 above the way `box_*` already instruments the section, and see whether the cost
 is in the group switch, the five `SetAttrs`, the rail, or the bimodal tail.
 
+### A floor caveat on the device figures quoted here (2026-10-03)
+
+This record quotes `dstg levi` and `dstg block` — 350/660 µs at `-O2`,
+737/1370 µs at `-O0`. Those are **above the timer floor** and remain usable.
+
+It does **not** quote the `lev-*` sub-stages, which is fortunate: on the Dell
+those read `lev-arp` 4 µs, `lev-seq` 4 µs and `lev-mix` 4 µs, and there is **no
+`n` on those rows**, so a sub-stage reading at the floor is indistinguishable
+from one that never ran — the gap
+[the LEVI sub-split record](2026-10-03-the-levi-sub-split-measured-arp-seq-voice-and-mix-are-all-at-the-floor.md)
+names explicitly. Only `lev-voice` (306 µs at `-O2`) clears the floor on the Dell.
+**Any future attempt to split Dell LEVI further must add a count before trusting
+a number.**
+
 ## Method findings
 
 - **Check a conclusion against the tree before building on it.** `bb1c385` was

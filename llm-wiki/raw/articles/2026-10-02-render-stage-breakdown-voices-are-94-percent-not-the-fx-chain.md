@@ -198,6 +198,19 @@ figure must not be quoted as a per-playing-buffer cost.
 
 ## Standing gaps
 
+- **The LEVI sub-split is measured — on riqemu1, and it does not transfer.** All
+  four LEVI internals there sit at the timer floor with **54 % of LEVI
+  unattributed**
+  ([record](2026-10-03-the-levi-sub-split-measured-arp-seq-voice-and-mix-are-all-at-the-floor.md)),
+  whereas on the **Dell** `lev-voice` alone is **306 µs of LEVI's 350 µs** — ~87 %
+  in one sub-stage, against ~46 % on riqemu1. So the *proportion* this record is
+  about (VOICES ~94 % of the block, FX ~1 %) is undisturbed, but **the internals
+  are not a like-for-like result**. Two further consequences: the sub-stage rows
+  carry **no `n`**, so a floor reading cannot be distinguished from one that never
+  ran (three of the four Dell `lev-*` rows read 4 µs, at the floor); and the
+  like-for-like repeat is owed **on the Dell**, because every audio measurement in
+  this lane is a Dell measurement.
+
 - **VOICES is one bucket over five engines.** 303A, 303B, 808, 909 and LEVI are
   timed together, so the actionable target is "the voice render" and not yet "which
   voice render". The obvious next split.
