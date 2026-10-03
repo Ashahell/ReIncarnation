@@ -6,6 +6,25 @@
 - Prior: [2026-09-25-riqemu1-dh0-boot-v1j-rtl8139.md](2026-09-25-riqemu1-dh0-boot-v1j-rtl8139.md), [2026-09-26-riqemu1-sb128-open-hang.md](2026-09-26-riqemu1-sb128-open-hang.md) (sb128 movaps root cause; this session independently reproduces it)
 - Lane: riqemu1 (private, ABIv1), spool `/tmp/spike_spool_priv`, serve `:9295` (started this session, background), monitor `:4477`, launcher `~/Work/vms/start_riqemu1.sh` (edited, see below)
 
+> **SUPERSEDED ON AUDIO (2026-10-03), twice over.**
+>
+> 1. **AHI now works on this guest.** The `sb128.audio` / AC97 / open-hang findings
+>    below were all downstream of one cause: the AROS ELF loader places sections
+>    at 12 mod 16 despite `sh_addralign = 16`, so alignment-assuming SSE faults
+>    on every AHI open. Fixed guest-side — see
+>    [AHI on riqemu1](2026-10-03-ahi-on-riqemu1-the-loader-ignores-sh-addralign.md).
+>    `probe_ahi` now passes all seven low-level sizes and PulseAudio carries a live
+>    uncorked stream.
+> 2. **`-device AC97` still cannot be made to run at 48 kHz.** It is fixed at
+>    44100, so the guest's 48000 is resampled and everything sounds 8.1 % slow —
+>    see [AC97 resamples to 44.1 kHz](2026-10-03-riqemu1-ac97-resamples-48k-to-44k1-so-playback-is-8-1-slow.md).
+>    The "carries digital zeros" observation is therefore no longer a driver
+>    fault: audio flows, at the wrong rate.
+>
+> The display work in this record — the mode probe, the 1920x1080 availability —
+> is unaffected. So is the quarantine state it lists, though note that
+> `DEVS:AudioModes` now holds only `ac97` and the drivers are patched.
+
 ## Wide screen: DONE (proven, owner picks the mode)
 
 - Root cause: GRUB pinned `vesa=1280x1024x32` **plus `nomonitors`** (both in the default entry's `ARGS:` per `ShowConfig`); `nomonitors` keeps every monitor driver out, so the mode walk finds exactly **1 mode (1280x1024x24)**. DEVS:Monitors ships VMWare/NVidia/IntelGMA/ATI but none can load.

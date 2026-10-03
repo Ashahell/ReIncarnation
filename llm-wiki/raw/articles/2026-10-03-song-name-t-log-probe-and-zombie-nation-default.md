@@ -162,18 +162,17 @@ instinct to distrust it is right.**
 
 ## Still open, unchanged
 
-- **Playback is 8.1 % slow and it is not a performance problem.** QEMU's AC97 is
-  fixed at 44100 Hz and the guest runs 48000, so everything is resampled down:
-  `44100/48000 = 0.91875`. The guest's own counters rule out load —
-  `xruns=0`, `render_max` 3113 us against a 5333 us period (58 %), `load=3/1000`,
-  and a pacing ratio of exactly 1.00. Running AHI at 44100 removes the conversion.
-- **Injected clicks do not reach the guest on riqemu1.** `--ui-click` does not
-  switch a tab or press Play; `ui-capture` and `ui-windows` work. Switching the
-  active pointer to PS/2 (`mouse_set 2`) made no difference. A click had to be
-  done by hand to confirm audible audio.
-- **RIAPP running kills the guest's `exec` channel** (`rc=1`, no output);
-  closing it restores `exec` immediately. This silently invalidates any harness
-  that reads a log while playing.
+- **Playback is 8.1 % slow** — QEMU's AC97 is fixed at 44100 and the guest runs
+  48000, so it resamples. Not a performance problem: `xruns=0`, `render_max`
+  3113 us against a 5333 us period, `load=3/1000`, pacing ratio 1.00. Full record
+  and the fix (run AHI at 44100):
+  [AC97 resamples to 44.1 kHz](2026-10-03-riqemu1-ac97-resamples-48k-to-44k1-so-playback-is-8-1-slow.md).
+- **The lane cannot be driven by injection.** Clicks do not reach the guest, and
+  RIAPP running kills the guest `exec` channel — which is what made "the log is
+  unreadable behind the requester" true for hours with no requester involved.
+  Also: a black screen caused by my own `setsid` launch, diagnosed by
+  `screendump` reporting `P6 0 1600`. Full record:
+  [riqemu1 cannot be driven by injection](2026-10-03-riqemu1-cannot-be-driven-by-injection.md).
 
 ## See Also
 
