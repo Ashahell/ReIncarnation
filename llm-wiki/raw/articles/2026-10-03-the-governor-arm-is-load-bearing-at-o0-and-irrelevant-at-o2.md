@@ -151,3 +151,7 @@ redraws are intermittently several times their median cost.** Not chased here.
   `hb:` line at all — the heartbeat is printed from the GUI task, and the GUI was
   too starved to print it. Its absence was the first sign the cells were not
   merely slow but broken.
+
+## See Also
+
+- [The `-O2` tab cost is preemption of prebuilt MUI code](2026-10-03-the-o2-tab-cost-is-preemption-of-prebuilt-mui-code.md) — re-reads `arm_us=0` at `-O2`: the arm's absence is the cause of the GUI regression

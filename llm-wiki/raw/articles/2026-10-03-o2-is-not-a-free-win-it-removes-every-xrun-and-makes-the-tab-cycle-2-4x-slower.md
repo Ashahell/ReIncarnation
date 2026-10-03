@@ -147,3 +147,7 @@ are not independent problems, and fixing the first exposes the second.**
 - **"This fixes it" and "this is better" are different claims.** `-O2` fixes the
   xruns completely and is worse for the GUI. Reporting only the first would have
   been a true record of a decision that loses.
+
+## See Also
+
+- [The `-O2` tab cost is preemption of prebuilt MUI code](2026-10-03-the-o2-tab-cost-is-preemption-of-prebuilt-mui-code.md) — the localisation of the 2.43x this record measured

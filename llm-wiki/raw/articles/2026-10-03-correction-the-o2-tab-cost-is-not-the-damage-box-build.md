@@ -123,3 +123,7 @@ is in the group switch, the five `SetAttrs`, the rail, or the bimodal tail.
   halving while the GUI got slower is the kind of pair that invites a rationalised
   story. It is reported as the measurement, and the reading offered (a
   pathologically starved audio thread at `-O0`) is labelled as a reading.
+
+## See Also
+
+- [The `-O2` tab cost is preemption of prebuilt MUI code](2026-10-03-the-o2-tab-cost-is-preemption-of-prebuilt-mui-code.md) — runs the probe this record named, and supersedes its point 4

@@ -465,3 +465,95 @@ cost is 98 % outside the section repaint, and the render task is idle-er at
 switch (`SetAttrs(MUIA_Group_ActivePage)`, the five `MUIA_RArt_Active` writes,
 `rail_for_tab`) and the per-tab bimodality already recorded. **Not chased here**,
 and the correction below is the load-bearing output of this pass.
+
+## The page switch, split three ways (2026-10-03, after the host+guest reboot)
+
+The named probe for the unlocalised `-O2` repaint cost: instrument the three
+things `tab_switch()` does, with the same `ReadEClock` arithmetic that
+surrounding `TAB` line already uses. **`app/riapp.c` in the repo is untouched** --
+the instrumentation lives only in a clean `git archive HEAD` tree, exactly as the
+arm-disabled build did.
+
+```c
+SetAttrs(s_pages, MUIA_Group_ActivePage, (IPTR)g, TAG_DONE);      -> page_us
+for (k = 0; k < RI_TAB_COUNT; k++)
+    if (s_tabs[k])
+        SetAttrs(s_tabs[k], MUIA_RArt_Active, ...);               -> tabs_us
+rail_for_tab();                                                    -> rail_us
+```
+
+Binaries: `RIAPP-p0` 1,099,544 B (`r12moves=41`), `RIAPP-p2` 878,528 B
+(`r12moves=285`). Both from `HEAD`, flag the only variable.
+
+```
+ev 11 1925 TABP page=0 page_us=25    tabs_us=5   rail_us=6      split_us=37
+ev 13 2686 TABP page=1 page_us=17543 tabs_us=365 rail_us=4593   split_us=22502
+ev 15 2992 TABP page=2 page_us=15056 tabs_us=364 rail_us=3209   split_us=18630
+ev 17 3447 TABP page=3 page_us=27142 tabs_us=306 rail_us=6788   split_us=34237
+ev 19 3749 TABP page=4 page_us=23694 tabs_us=321 rail_us=5      split_us=24021
+```
+
+Totals over the four real switches (page 0 is the no-op first click):
+
+| arm | cell | `page_us` | `tabs_us` | `rail_us` | `split_us` |
+|-----|------|-----------|-----------|-----------|------------|
+| `-O0` | A1 | 83,435 | 1,356 | 14,595 | 99,390 |
+| `-O0` | A2 | 83,423 | 1,360 | 14,584 | 99,371 |
+| `-O2` | B1 | 218,735 | 1,322 | **259,907** | 479,966 |
+| `-O2` | B2 | 200,469 | 4,791 | 40,937 | 246,200 |
+
+Three results, one of which rules a candidate out and one of which corrects a
+claim this lane made earlier the same day.
+
+**1. `tabs_us` is IDENTICAL at both flags** -- 1,356 / 1,360 against 1,322.
+The five `MUIA_RArt_Active` writes are **ruled out**: they cost the same at
+`-O0` and `-O2`, and they are ~1 % of the tab cost at either. One of the three
+named candidates is eliminated.
+
+**2. The bulk is `page_us` -- and it is a prebuilt-library call.**
+`SetAttrs(s_pages, MUIA_Group_ActivePage, ...)` is MUI's own code. **`-O2` does
+not change MUI**: the flag applies only to our 81 TUs, and
+`MUI_MakeObject`/`Intuition` come from the SDK unaltered. Yet the call costs
+**83.4 ms -> 200-219 ms, 2.4-2.6x**, with the `-O0` pair agreeing to 0.014 %
+(83,435 / 83,423). Identical code, 2.5x the time.
+
+**3. The section repaint is nowhere near it.** Damage-box repaints
+(`box_steps`, format n/sum/max) cost **613-620 us** across ~530 samples at `-O0`
+and **4,373-4,374 us** across ~400-460 at `-O2` -- so ~1 us and ~11 us each,
+against a `page_us` of 21 ms and 50 ms per switch. That is **three orders of
+magnitude** short of the cost. Unattributed full repaints (`box_none`) are 139-600
+samples at `-O0` and **0** at `-O2`; `build_avg` is 157-520 us against 238-324 us.
+So the earlier finding stands and sharpens: the section repaint is not the cost,
+and at `-O2` the full-repaint path does not run at all.
+
+**Why identical code is 2.5x slower -- and this CORRECTS this lane's earlier
+claim.** The previous pass concluded "not contention" from `render_total` being
+*half* at `-O2` (15,933 ms against 31,540 ms). `render_total` measures CPU
+**consumed**; it says nothing about **preemption pressure**. The right measure
+is how late the render task is, and `wake_max` inverts completely:
+
+```
+-O0  wake_max = 5,820 us / 5,816 us      <- the audio task is the one WAITING
+-O2  wake_max =   398 us /   436 us      <- it never waits; it finishes in 2.6 ms
+                                            of a 5,333 us period and preempts the GUI
+```
+
+At `-O0` the render task overruns its period, the governor arm trips six times,
+and the task is deliberately pushed **below** the UI -- so MUI runs unimpeded and
+the tab cycle is 99 ms. At `-O2` the task finishes early, **never yields**, and
+takes the CPU away from the GUI roughly 187 times a second. The GUI's own work
+is identical; the *scheduling* is what differs.
+
+**So `-O2`'s tab cost is preemption of prebuilt MUI code by an audio task that
+is no longer late enough to be told to yield.** Not more work, not slower work,
+not the section repaint, and not a fixable build. It is the arm's whole purpose
+being correctly unnecessary -- and the cost of that showing up somewhere it was
+never measured.
+
+**4. The bimodality is localised, and it is the rail.** `rail_us` is 5 us on page 4
+in **every** cell, and 3,209-6,812 us at `-O0` against 9,949-239,355 us at `-O2`.
+B1's single 239,355 us is the outlier behind its 259,907 total; B2, without it,
+totals 40,937. The spikes are in `rail_for_tab()` -- five
+`SetAttrs(s_devbtn[d], MUIA_ShowMe, ...)`. B2 also shows a `tabs_us` spike
+(3,835 against a ~350 baseline), so **the spikes are in `SetAttrs` on our own
+widgets generally, not in one call.**
