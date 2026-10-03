@@ -635,6 +635,15 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 RI_ESTAGE_T(e, RI_ENGINE_ST_LEVMIX, ts);
                 engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr);
                 RI_ESTAGE_E(e, RI_ENGINE_ST_LEVMIX, ts);
+                /* SECOND CONTROL, deliberately INSIDE SLEVI. LEVPROBE (outside)
+                 * measures what one stage pair costs; this one measures what one
+                 * stage pair costs *to an enclosing stage*. Comparing SLEVI with
+                 * and without this pair is the only way to separate "LEVI has
+                 * 38 us the sub-stages do not explain" from "the sub-split charges
+                 * SLEVI about 6 us per stage it contains" -- and those two look
+                 * identical in a single table. */
+                RI_ESTAGE_T(e, RI_ENGINE_ST_LEVPROBE2, ts);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_LEVPROBE2, ts);
                 RI_ESTAGE_E(e, RI_ENGINE_ST_SLEVI, tv);
             }
             RI_ESTAGE_T(e, RI_ENGINE_ST_DELAY, ts);

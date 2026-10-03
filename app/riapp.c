@@ -2503,7 +2503,7 @@ int main(int argc, char **argv) {
                     "zero", "delay", "comp", "master", "meter", "limit",
                     "303a", "303b", "808", "909", "levi",
                     "lev-arp", "lev-seq", "lev-voice", "lev-mix",
-                    "lev-tempo", "lev-probe", "block" };
+                    "lev-tempo", "lev-probe", "lev-probe2", "block" };
                 unsigned q;
                 rlog("RIAPP dstg n=%lu", (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
                 for (q = 0; q < RI_ENGINE_ST_COUNT; q++)

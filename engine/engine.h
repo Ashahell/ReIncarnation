@@ -102,14 +102,15 @@
  * the sub-span's invariant is about ordering (SUB_FIRST..SUB_LAST), and a test
  * that needs it to be literally nested should say so rather than infer it. */
 #define RI_ENGINE_ST_LEVTEMPO 15u /* levi_set_tempo: the one uncovered SLEVI call */
-#define RI_ENGINE_ST_LEVPROBE 16u /* CONTROL: empty T/E pair = the per-pair floor */
-#define RI_ENGINE_ST_TOTAL  17u /* one whole block; ENCLOSES every stage above */
-#define RI_ENGINE_ST_COUNT  18u
+#define RI_ENGINE_ST_LEVPROBE 16u /* CONTROL: empty T/E pair OUTSIDE SLEVI */
+#define RI_ENGINE_ST_LEVPROBE2 17u /* CONTROL: empty T/E pair INSIDE SLEVI */
+#define RI_ENGINE_ST_TOTAL  18u /* one whole block; ENCLOSES every stage above */
+#define RI_ENGINE_ST_COUNT  19u
 /* The LEVI sub-span: these run only when SLEVI does, and only inside it. It
  * starts immediately after the top-level stages end, which is the invariant
  * the test pins rather than a magic constant. */
 #define RI_ENGINE_ST_SUB_FIRST RI_ENGINE_ST_ARPA
-#define RI_ENGINE_ST_SUB_LAST  RI_ENGINE_ST_LEVPROBE
+#define RI_ENGINE_ST_SUB_LAST  RI_ENGINE_ST_LEVPROBE2
 /* The conditional span: stages in here run only when their section is enabled. */
 #define RI_ENGINE_ST_LEAF_FIRST RI_ENGINE_ST_S303A
 #define RI_ENGINE_ST_LEAF_LAST  RI_ENGINE_ST_SLEVI

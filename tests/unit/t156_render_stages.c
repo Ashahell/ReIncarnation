@@ -263,7 +263,7 @@ int main(void) {
     }
 
     /* ---- the DSP sub-stage table, which is per BLOCK not per buffer ---- */
-    RI_ASSERT(RI_ENGINE_ST_COUNT == 18, "eighteen DSP sub-stages (%u)",
+    RI_ASSERT(RI_ENGINE_ST_COUNT == 19, "nineteen DSP sub-stages (%u)",
         (unsigned)RI_ENGINE_ST_COUNT);
     RI_ASSERT(RI_ENGINE_ST_ALWAYS == 6u, "six unconditional stages");
     /* The layout is: unconditional stages, conditional sections, the nested
