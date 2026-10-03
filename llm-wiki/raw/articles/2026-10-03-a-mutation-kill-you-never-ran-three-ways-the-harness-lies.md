@@ -162,6 +162,15 @@ Four passing-but-ungated tests (`t151`, `t152`, `t154`, `t155`) now run in
 `scripts/ri_audit.sh`; `t156` was deliberately left alone because it belongs to
 another lane that was mid-edit on it. The suite runs **157** gated tests.
 
+> **SUPERSEDED 2026-10-03 (count only).** Both facts below have since changed, and
+> the changes are recorded rather than left to rot: `t156` **is** now gated — the
+> lane that owned it landed (`a98691a`…`c7c2e1d`) and the test passes — and the
+> suite runs **182** gated with **one** named exemption, after
+> [26 tests were never gated](2026-10-03-26-tests-were-never-gated-and-two-had-already-gone-stale.md)
+> closed a further 21 gaps, two of which (`t51`, `t107`) had already gone stale
+> against their own headers. Phase 0d now fails the audit on any ungated test, so
+> the 157 figure cannot go stale the same way twice.
+
 A gate never observed failing is not known to work, so it was checked by
 inverting a gated test's expectation to a wrong-but-compiling value:
 
