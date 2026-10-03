@@ -2093,3 +2093,22 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - **The runtime half:** AROS `Run` spawns and returns, so its `rc=0` means *spawned*, not *ran*, and a stdout probe must be invoked in the foreground. Cross-referenced from the Dell rate record rather than restated.
 - Cascade: three articles cross-linked — the v11 lane traps record gains the **second-instance note** (tools not just the application, plus the link-shape table), the 2026-09-22 M1.1 record is **generalised forward** from its correct-but-unexplained `-ldos -lexec`, and the Dell rate record's See Also gains the build contract.
 - Lint: 219 articles + 7 raw sources, 0 unindexed, 0 dead index rows, 534 links 0 broken.
+
+## [2026-10-03] ingest | Cross-lane check after five sibling commits: nothing of mine broke, one reproducibility caveat added
+- Disposition: **Update** (no new article; one caveat added to an existing record, plus the standing Dell inventory refreshed)
+- Updated: `2026-10-03-the-o0-xruns-are-a-build-flag-artefact-not-a-render-stage-regression.md`
+- **Context.** The tree was clean and the audit green on arrival -- the sibling lane had landed `49856b7` (song name, `T:` log, Zombie Nation default), `b0e8803`, `5defaff` + `1c5d672` (AC97 resamples 48k -> 44.1k on riqemu1), `33b3171` (AHI probe build contract). My previous lint fixes turned out to have been **swept into `49856b7`** rather than dropped, so they are in the history; a case-insensitive re-check confirmed all four landed (an earlier case-sensitive grep of mine briefly suggested otherwise, which was the grep's fault, not the files').
+- **Everything of mine was verified against that work rather than assumed compatible.**
+  - *Deployed binary*: still 1,094,648 B on the stick, so the `build=2ecffd0` claim in the `-O2` and arm records still holds.
+  - *Sticky-log fallback*: the sibling's new record corrects the `fallback: RAM:` line in the 2026-10-02 sticky-log record. Already corrected **in that record's body** by them, not only in the index -- which is the practice this lane's last lint pass asked for and did not get. Nothing to add.
+  - *AC97 44.1 kHz*: `mix=48000 Hz` and `period=5333 us` are named in that record, but the resampling is **riqemu1/QEMU-specific** and the guest still *produces* 48 kHz audio (3808x256/48000 = 20.3 s exactly). None of the Dell numbers are touched.
+  - *My reproduction commands* that pull `RAM:RIAPP.LOG` still describe the binaries that wrote there, so they stand as history.
+- **The one real finding: a reproducibility caveat.** My record states the `-O2` cell was measured on the **built-in demo** -- true of those runs, and now false of a fresh launch, because the default song became Zombie Nation the same day. Anyone reproducing that cell today with no `PLAYLIST=` would silently get a **different workload**, which is the exact unstated-variable failure the `..` records warn about. Caveat added in place, pointing at the sibling's record for the change.
+- **Standing Dell inventory refreshed** (state belongs in this append-only log, not in an article that would rot):
+  - `RIAPP` = 1,094,648 B, `build=2ecffd0`, **`-O0`** -- still the deployed binary, and **not viable for shipping**: ~1,590 xruns and a 92 ms `render_max` per tab cycle on the real song
+  - `RIAPP-old-no-audio-fail` = 1,093,672 B -- rollback; lacks the audio-failure report
+  - `RIAPP-old-no-dotdot-fix` = 843,448 B -- the 00:15 build; lacks the `..` fix and the audio report
+  - `RIAPP.prev` = 776,608 B -- oldest; predates both
+  - **Experiment binaries (not rollbacks, and named like flags rather than for what they lack):** `RIAPP-o2` 874,968 B, `RIAPP-f0` 1,094,648 B, `RIAPP-f2` 874,744 B, `RIAPP-f2noarm` 874,896 B, `RIAPP-f0noarm` 1,095,592 B
+  - **Nine binaries on the stick is a hazard of the same shape as the naming rule this lane wrote earlier** ("name a binary for what it lacks"). The five experiment binaries should be pruned now that the `-O2`/arm question is answered; they are the ones most likely to be launched by accident, and `-f0`/`-f2`/`-f2noarm`/`-f0noarm` say nothing about what they are.
+- **Lint:** 219 articles, 219 index rows, 0 without a row, 0 rows pointing at a missing file, 0 broken links across every article. AUDIT 0/0 PASS.

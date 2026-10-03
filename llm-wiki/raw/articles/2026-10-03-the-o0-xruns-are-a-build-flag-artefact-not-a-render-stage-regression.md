@@ -33,6 +33,15 @@ on **The Knife and Zombie Nation**. Different workloads. Neither record was
 wrong; the matrix simply had a hole in it, and the hole was exactly the cell
 that decides the question.
 
+> **Reproducibility caveat (2026-10-03, later).** The statement above describes
+> **those runs**, and it remains true of them. It is no longer true of a *fresh*
+> launch: the default song was changed to Zombie Nation the same day (see
+> [the song-name/`T:`/default record](2026-10-03-song-name-t-log-probe-and-zombie-nation-default.md)),
+> so a launch today with no `PLAYLIST=` plays Zombie Nation, not the demo. Anyone
+> reproducing the demo-workload cell must say so explicitly rather than rely on
+> the default having stayed put — which is the same failure the `..` records warn
+> about, where the *workload* was the unstated variable.
+
 ## The missing cell
 
 `-O2` on a real song. Built by substituting `-O2` for `-O0` in a copy of
