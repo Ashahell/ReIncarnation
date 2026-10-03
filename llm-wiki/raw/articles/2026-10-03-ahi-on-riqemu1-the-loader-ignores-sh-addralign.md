@@ -135,9 +135,26 @@ Has an unfinished transaction which will be loaded now.
 
 from the resets used to reload the patched `ahi.device`. This needs a host click
 on **OK**. It could not be dismissed from the lane: `sendkey ret` does not
-activate the gadget, and this host has no mouse-injection tool (`ydotool`,
-`xdotool` and a `hyprctl` cursor dispatcher are all absent; QEMU's `mouse_move`
-is relative and did not land). **Someone must click it, or the guest stays down.**
+activate the gadget, and this host has no mouse-injection tool (`ydotool` and
+`xdotool` are absent; QEMU's `mouse_move` is relative and did not land).
+**Someone must click it, or the guest stays down.**
+
+> **Correction 2026-10-03: `hyprctl` is *not* absent — it is installed and its
+> Lua dispatcher namespace is empty on this build.** Enumerating it returns an
+> empty list:
+>
+> ```
+> $ hyprctl eval '... enumerate pairs(hl.dsp) ...'
+> ok
+> ```
+>
+> So `hyprctl clients`, `monitors` and `eval` all work and are used elsewhere,
+> but there is no `exec` dispatcher to launch an app and no cursor dispatcher to
+> move the pointer. The conclusion above stands — a requester still needs a human
+> — while the stated reason was wrong. Also relevant to the same host: **nothing
+> launched from the agent's shell can map a window at all**, proved with `foot`,
+> which also rules out launching anything via `hyprctl` as a workaround. Full
+> record: [proving the VM window is actually visible](2026-10-03-proving-the-vm-window-is-actually-visible.md).
 
 ## The two requesters, resolved
 

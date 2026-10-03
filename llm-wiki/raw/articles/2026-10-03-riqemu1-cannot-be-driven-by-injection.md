@@ -136,6 +136,22 @@ Not root-caused. It is reproducible and it is not the input path.
   that split the two paths.
 - **Read the launch script before wrapping it.** `-daemonize` was in the script
   the whole time; `setsid` was mine and was the black screen.
+- **A running VM and a visible window are different facts.** The framebuffer
+  check (`P6 1024 768`) said the VM was healthy while the compositor listed no
+  QEMU window at all. Same instrument as above, opposite question: `screendump`
+  describes the guest's VGA device, and nothing about the host desktop. Proved
+  by `foot` also failing to map — the constraint is session scope, not GTK — and
+  resolved by running the identical arguments minus `-daemonize` under a tracked
+  user service. **`-daemonize` and `systemd-run` are incompatible**: the unit
+  reported `Finished with result: success` in **101 ms** and systemd's
+  `KillMode=control-group` killed the orphaned daemon. Full record:
+  [proving the VM window is actually visible](2026-10-03-proving-the-vm-window-is-actually-visible.md).
+
+  > **Superseded detail.** This record's `-vga vmware` note stands, but the
+  > related claim that `grim` needed anything beyond a capture is corrected in the
+  > new record: on this host `grim` takes **only a positional output file** — no
+  > `-o`, no region argument — and `grim --help` fails. Window luminance is
+  > obtained by capturing the whole output and sampling the window's rectangle.
 
 ## See Also
 
