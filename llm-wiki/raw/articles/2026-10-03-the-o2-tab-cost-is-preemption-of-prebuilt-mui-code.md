@@ -122,6 +122,45 @@ a policy change rather than an optimisation.
   number.** The previous record's "not contention" is not merely wrong; its
   replacement explains both the arm result and the repaint result at once.
 
+## The rail, resolved: flag-independent, and not the `-O2` cost
+
+The next probe named above, run the same way. `rail_for_tab()` does five
+`SetAttrs(s_devbtn[d], MUIA_ShowMe, …)`, gated by a `static int shown[5]` cache
+so only real changes are written. Time each write individually.
+
+| arm | startup writes | tab-switch writes | total | worst single |
+|-----|----------------|-------------------|-------|---------------|
+| `-O0` | 5 (22 µs) | **11** | **35,215 µs** | 21,722 µs |
+| `-O2` | 5 (21 µs) | **11** | **33,931 µs** | 8,586 µs |
+
+**Same number of writes, same total — `-O2` is 3.6 % cheaper.** The rail's cost
+does not depend on the flag, so it is **not** part of the `-O2` regression. It
+is a separate, fixed ~34 ms per five-tab cycle at both arms, and the
+flag-dependent cost sits entirely in `page_us`.
+
+The per-write cost is the real anomaly: **~3,200 µs average to set one boolean
+visibility flag**. `MUIA_ShowMe` invalidates the object's group, and the group
+holds the section widgets, so every write drags a relayout in behind it. The
+`shown[]` cache already limits this to changes, so 11 writes per cycle is close
+to minimal for a five-device rail driven one button at a time.
+
+This **refines** the section above rather than confirming it. That section
+concluded "the spikes are in `SetAttrs` on our own widgets generally, not one
+call" — still true, but the spikes are flag-independent, so they are not the
+`-O2` cost.
+
+**So the tab-cycle budget now decomposes as:**
+
+| component | `-O0` | `-O2` | flag-dependent? |
+|-----------|-------|-------|-----------------|
+| `page_us` (MUI group page switch) | 83,435 µs | 200,469–218,735 µs | **yes — this is the whole `-O2` cost** |
+| `rail_us` (five `MUIA_ShowMe`) | 35,215 µs | 33,931 µs | no |
+| `tabs_us` (five `MUIA_RArt_Active`) | 1,356 µs | 1,322 µs | no |
+| **total** | **99,390 µs** | **246,200–479,966 µs** | |
+
+Two of the three components are flag-independent and together account for ~36 ms
+of fixed cost that a batching change could attack on its own merits.
+
 ## Standing gaps
 
 - **The spikes are localised but not explained.** `SetAttrs` on our own widgets,

@@ -557,3 +557,47 @@ totals 40,937. The spikes are in `rail_for_tab()` -- five
 `SetAttrs(s_devbtn[d], MUIA_ShowMe, ...)`. B2 also shows a `tabs_us` spike
 (3,835 against a ~350 baseline), so **the spikes are in `SetAttrs` on our own
 widgets generally, not in one call.**
+
+## The rail, per widget: its cost is flag-INDEPENDENT (2026-10-03)
+
+The probe the previous section named. `rail_for_tab()` does five
+`SetAttrs(s_devbtn[d], MUIA_ShowMe, ...)`, gated by a `static int shown[5]`
+cache so only real changes are written. Time each write individually, with the
+same `TimerBase` / `ReadEClock` guard `tab_switch()` uses (there is no
+`s_efreq` in `app/riapp.c`; `ReadEClock(&v)` returns the frequency).
+
+Again **`app/riapp.c` in the repo is untouched** -- the instrumentation lives
+only in a clean `git archive HEAD` tree.
+
+```
+-O0  startup: dev0..4 = 5, 4, 4, 4, 5 us          (5 writes, 22 us total)
+     page1: dev0=1194 dev1=913  dev2=1147 dev3=1352
+     page2: dev2=21722 dev3=936 dev4=1145
+     page3: dev0=1370 dev1=1594 dev2=1827 dev3=2015
+     -> 11 tab-switch writes, 35,215 us total, max 21,722 us
+
+-O2  startup: dev0..4 = 5, 4, 4, 4, 4 us          (5 writes, 21 us total)
+     page1: dev0=4208 dev1=900  dev2=1102 dev3=4352
+     page2: dev2=1127 dev3=4353 dev4=1086
+     page3: dev0=1318 dev1=4978 dev2=8586 dev3=1921
+     -> 11 tab-switch writes, 33,931 us total, max 8,586 us
+```
+
+**Same number of writes (11), same total (35,215 vs 33,931 us -- `-O2` is 3.6 %
+CHEAPER), and the same order of magnitude of worst case (21,722 vs 8,586 us).**
+So the rail's cost does **not** depend on the flag at all, and it is therefore
+**not** part of the `-O2` regression. It is a separate, fixed ~34 ms per five-tab
+cycle at both arms.
+
+Per-write cost is the real anomaly: **~3,200 us average to set one boolean
+visibility flag** (35,215 / 11). `MUIA_ShowMe` on a Zune object invalidates its
+group, and the group holds the section widgets, so each write drags a relayout
+in behind it. The `shown[]` cache already ensures only changes are written, so
+11 writes per cycle is close to minimal for a five-device rail driven one button
+at a time.
+
+**This refines the previous section rather than confirming it.** That section
+concluded "the spikes are in `SetAttrs` on our own widgets generally, not one
+call". Still true -- but the spikes are **flag-independent**, so they are not the
+`-O2` cost, and the remaining flag-dependent cost sits entirely in `page_us`
+(MUI's group page switch).

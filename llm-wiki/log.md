@@ -2214,3 +2214,26 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Lane note: a **fourth host reboot** (14:23, boot id `13ad72d1`) had killed riqemu1 and its spooler; both restored. `P6 1280 1024` on first boot after it, so the GRUB pin is confirmed durable across a reboot. `/tmp/opencode/start_riqemu1_visible.sh` had to be recreated — it lives in `/tmp` and this is the fourth time that has cost something.
 - Also recorded: `render_max=5034 us` against a 5333 us period with `block max=3048` against `avg` 351 — one block, not a sustained stall.
 - Lint: 223 articles + 11 raw sources, 0 unindexed, 0 dead index rows, 607 links 0 broken.
+
+## [2026-10-03] ingest | The rail is flag-independent -- and it is not the -O2 cost
+- Disposition: **Update** (`2026-10-03-the-o2-tab-cost-is-preemption-of-prebuilt-mui-code.md` gains the rail probe and a full budget decomposition; no new article, because this refines a claim already made rather than opening a new thesis)
+- Evidence: `docs/evidence/audio/audio-failure-and-deadline-2026-10-02.md`, section "The rail, per widget"
+- **Ran the probe the previous record named**: time each of `rail_for_tab()`'s five `SetAttrs(s_devbtn[d], MUIA_ShowMe, ...)` individually. Same discipline as the two probes before it -- **`app/riapp.c` in the repo untouched**, instrumentation only in a clean `git archive HEAD` tree.
+- **One build stumble worth recording:** the first two attempts failed to compile because I assumed a `s_efreq` guard that does not exist in `app/riapp.c`. `eclock_open`/`s_efreq` live in `gui/widgets/rsection.mcc.c`; `riapp.c` guards on `TimerBase` and takes the frequency from `ReadEClock(&v)`'s return. **Copy the guard from the function you are instrumenting, not from the nearest one that looks similar** -- the surrounding `tab_switch` had the right shape three functions away.
+- **Result: same number of writes, same total, flag-independent.**
+  - `-O0`: 5 startup writes (22 us), **11** tab-switch writes, **35,215 us** total, worst single 21,722 us
+  - `-O2`: 5 startup writes (21 us), **11** tab-switch writes, **33,931 us** total, worst single 8,586 us
+  - **`-O2` is 3.6 % CHEAPER.** The rail is therefore **not** part of the `-O2` regression; it is a separate fixed ~34 ms per five-tab cycle at both arms.
+- **The per-write cost is the real anomaly: ~3,200 us average to set one boolean visibility flag** (35,215 / 11). `MUIA_ShowMe` invalidates the object's group and the group holds the section widgets, so each write drags a relayout behind it. The `shown[]` cache already limits writes to real changes, so 11 per cycle is near-minimal for a five-device rail driven one button at a time.
+- **This REFINES the previous record rather than confirming it.** That record concluded "the spikes are in `SetAttrs` on our own widgets generally, not one call" -- still true, but flag-independent, so not the `-O2` cost. Recorded as a refinement because the distinction matters: chasing the spikes would have been chasing a fixed cost that neither explains nor worsens the regression.
+- **The tab-cycle budget now decomposes:**
+  | component | `-O0` | `-O2` | flag-dependent? |
+  |---|---|---|---|
+  | `page_us` (MUI group page switch) | 83,435 us | 200,469-218,735 us | **yes -- the whole `-O2` cost** |
+  | `rail_us` (five `MUIA_ShowMe`) | 35,215 us | 33,931 us | no |
+  | `tabs_us` (five `MUIA_RArt_Active`) | 1,356 us | 1,322 us | no |
+  | **total** | **99,390 us** | **246,200-479,966 us** | |
+  Two of three components are flag-independent and together account for ~36 ms of **fixed** cost that a batching change could attack on its own merits, independently of the flag decision.
+- Instrumented binaries pruned from the stick after the run (`RIAPP-r0`, `RIAPP-r2`); the stick is back to the four binaries named for what they lack.
+- Sibling lane's untracked `llm-wiki/raw/evidence/2026-10-03-levi-subsplit-riqemu1.md` left untouched.
+- 222 articles, 222 index rows, 0 broken links. AUDIT 0/0 PASS.
