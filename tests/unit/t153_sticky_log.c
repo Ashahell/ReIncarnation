@@ -37,22 +37,31 @@
 int main(void) {
     int i, j;
 
-    /* The fallback is T:, and RAM: is neither the fallback nor a candidate.
-     * Owner decision 2026-10-02. RAM: stays out of the table for the
-     * original reason; T: is the scratch disk, RAM-backed on this guest, so
-     * it is "somewhere better than RAM:", not a durable place. */
-    for (i = 0; i < RI_PAL_STICKY_COUNT; i++)
-        RI_ASSERT(strcmp(ri_pal_sticky_vols[i], RI_PAL_STICKY_FALLBACK) != 0,
-            "slot %d is not the fallback volume", i);
-    RI_ASSERT(strcmp(RI_PAL_STICKY_FALLBACK, "T:") == 0, "the fallback is T:");
+    /* The chain is stick -> T: -> RAM:, and RAM: is the ONLY fallback.
+     * Owner decisions 2026-10-02 (RAM: -> T:) and 2026-10-03 ("RAM: can be a
+     * fallback in case T: isn't available").
+     *
+     * The load-bearing part is that T: is a PROBED candidate rather than an
+     * assumed one. Returning "T:" unprobed handed guests without a scratch
+     * disk a path they could not write to, and that is how "the RAM: fallback
+     * is broken" came to be believed on riqemu1 while T: was working. So T:
+     * must be IN the table (probed, last) and RAM: must NOT be. */
+    RI_ASSERT(strcmp(RI_PAL_STICKY_FALLBACK, "RAM:") == 0,
+        "RAM: is the last-resort fallback");
     for (i = 0; i < RI_PAL_STICKY_COUNT; i++)
         RI_ASSERT(strcmp(ri_pal_sticky_vols[i], "RAM:") != 0,
-            "slot %d must never be RAM:", i);
-    /* The fallback is not a mount candidate either, or the probe would find
-     * it first on every machine that has a scratch disk. */
-    for (i = 0; i < RI_PAL_STICKY_COUNT; i++)
-        RI_ASSERT(strncmp(ri_pal_sticky_vols[i], "T:", 2u) != 0,
-            "slot %d duplicates the fallback name", i);
+            "slot %d must never be RAM: -- it is the fallback, and a candidate "
+            "would match first on every machine", i);
+    /* T: is probed, so it belongs in the table exactly once, last: a stick
+     * always outranks it. */
+    {
+        int seen = 0, at = -1;
+        for (i = 0; i < RI_PAL_STICKY_COUNT; i++)
+            if (strcmp(ri_pal_sticky_vols[i], "T:") == 0) { seen++; at = i; }
+        RI_ASSERT(seen == 1, "T: appears exactly once in the table (%d)", seen);
+        RI_ASSERT(at == RI_PAL_STICKY_COUNT - 1,
+            "T: is the last candidate, so a stick outranks it (at %d)", at);
+    }
 
     /* Every candidate is a volume: non-empty and ending in ':'. A bare
      * directory would Lock as a path and silently never match a mount. */
@@ -79,7 +88,7 @@ int main(void) {
                 "candidates %d and %d are the same volume", i, j);
 
     /* Bounded: a fixed table, not a scan. */
-    RI_ASSERT(RI_PAL_STICKY_COUNT == 6, "six candidates (%d)", RI_PAL_STICKY_COUNT);
+    RI_ASSERT(RI_PAL_STICKY_COUNT == 7, "seven candidates (%d)", RI_PAL_STICKY_COUNT);
 
     /* Every family of mount point is represented, so a stick enumerated
      * under any of them is not missed: mass-storage (UMSD), boot disk

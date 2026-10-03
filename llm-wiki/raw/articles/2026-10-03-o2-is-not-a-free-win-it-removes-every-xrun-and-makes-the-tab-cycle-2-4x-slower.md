@@ -87,10 +87,26 @@ the audio path is collapsing. At `-O2` nothing overloads, the arm never fires,
 and the tab cycle is exposed at its true cost.
 
 That is a hypothesis consistent with this data, not something these runs prove —
-the two effects are coupled and separating them needs an arm-disabled `-O2`
-build, which is the obvious next experiment. What is established is the coupling
-itself: **the audio xruns and the GUI latency are not independent problems, and
-fixing the first exposes the second.**
+the two effects are coupled and separating them needs an arm-disabled build.
+What is established is the coupling itself: **the audio xruns and the GUI latency
+are not independent problems, and fixing the first exposes the second.**
+
+> **RESOLVED, then partly corrected (2026-10-03, later the same day).**
+> **Resolved:** the arm-disabled experiment ran, both halves. The hypothesis is
+> **confirmed and understated**: at `-O0` removing the arm takes xruns 7.4×
+> (1,601 → 11,955) and the five-tab cycle from 99.6 ms to **27.7–38.2 seconds**,
+> and at `-O2` the arm is irrelevant (`overloads=0` with it on or off). See
+> [the arm record](2026-10-03-the-governor-arm-is-load-bearing-at-o0-and-irrelevant-at-o2.md).
+>
+> **Corrected:** the follow-on conclusion that "the damage-box full-rebuild fix is
+> on the critical path" is **wrong — it already shipped** (`bb1c385` is an
+> ancestor of HEAD). `build_avg` is *cheaper* at `-O2`, the section repaint is
+> 1–2 % of the tab cost, and `render_total` is *half* at `-O2` so it is not
+> contention. The repaint cost is 98 % outside the section repaint and
+> unlocalised. See
+> [the correction](2026-10-03-correction-the-o2-tab-cost-is-not-the-damage-box-build.md).
+> **Every measurement in this record stands** — only the follow-on localisation
+> is retracted.
 
 ## Standing gaps
 
@@ -98,7 +114,20 @@ fixing the first exposes the second.**
   governor trips, `render_max` 92 ms. The deployed binary is `-O0`. That is a
   shipping problem in its own right, independent of `-O2`'s cost.
 - **The arm-disabled `-O2` build** would separate "the arm was masking the
-  repaint regression" from "`-O2` genuinely slowed repaint". Not run.
+  repaint regression" from "`-O2` genuinely slowed repaint". **Run 2026-10-03 —
+  and the discriminating half turned out to be arm-disabled `-O0`, not `-O2`**:
+  at `-O2` the arm never engages anyway (`overloads=0` either way), so that cell
+  was a no-op by construction. See
+  [the arm record](2026-10-03-the-governor-arm-is-load-bearing-at-o0-and-irrelevant-at-o2.md).
+- **Where the repaint cost actually is: still unknown.** Ruled out so far — the
+  bounded build (already shipped, and *cheaper* at `-O2`), CPU contention
+  (`render_total` is half at `-O2`), and the arm (irrelevant at `-O2`). It is
+  **98 % outside the section repaint**, and `-O2` changes only our 81 TUs, so the
+  candidates are the page-switch code — `SetAttrs(MUIA_Group_ActivePage)`, the
+  five `MUIA_RArt_Active` writes, `rail_for_tab()` — plus the per-tab bimodality
+  (MIX 357,611 µs against 85,516). The honest next probe is to instrument those
+  four lines the way `box_*` already instruments the section. See
+  [the correction](2026-10-03-correction-the-o2-tab-cost-is-not-the-damage-box-build.md).
 - **`songs/local/` is git-ignored**, so `demos.rbpl` and the songs it names exist
   only on this machine. These five runs are unreproducible from a clean clone.
 

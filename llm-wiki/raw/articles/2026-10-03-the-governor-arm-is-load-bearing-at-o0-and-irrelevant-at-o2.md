@@ -85,6 +85,31 @@ is on the critical path for shipping `-O2`.** There is no configuration in which
 `-O2` is simply free, and the repaint work cannot be deferred as "an artefact of
 the arm".
 
+> **CORRECTION (2026-10-03, later the same day). The paragraph above is wrong, and
+> the consequence it draws is retracted.**
+> **The damage-box full-rebuild fix is not on the critical path, because it is
+> already shipped.** `bb1c385` is an ancestor of HEAD and
+> `gui/widgets/rsection.mcc.c:233` already passes the damage box. Three further
+> measurements rule the build out as the cost: `build_avg` is **cheaper** at `-O2`
+> (195 µs against 179–483 µs at `-O0`); the whole section repaint is **1–2 %** of
+> the tab-switch cost (4,565 µs against a 241,791 µs five-tab total); and
+> `render_total` is **half** at `-O2` (15,933 ms against 31,540 ms), so it is not
+> contention either. See
+> [Correction: the `-O2` tab cost is not the damage-box build](2026-10-03-correction-the-o2-tab-cost-is-not-the-damage-box-build.md).
+>
+> **What stands unchanged in this record:** every arm measurement. At `-O0` the arm
+> is load-bearing in both directions — arm off takes xruns 7.4× and the five-tab
+> cycle from 99.6 ms to 27.7–38.2 seconds — and at `-O2` it is irrelevant
+> (`overloads=0` either way). The `render_max` inversion (91,932 → 9,464 µs when
+> the arm is removed) also stands, and the byproduct reading it produced is
+> retained: `wake_total` is 11,547 ms at `-O0` against 116 ms at `-O2`, so part of
+> what looked like a fast GUI at `-O0` was the audio thread failing to get CPU at
+> all.
+>
+> **What is retracted:** the localisation, and the three-part build plan. The
+> shipping question is still open, but it is not "`-O2` plus the full-rebuild
+> fixed" — that work is done.
+
 ## What this means for shipping
 
 Three facts now, each measured:

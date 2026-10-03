@@ -114,9 +114,29 @@ period:
   repo's own ABI-recipe check, and 286 has never been run on the Dell as a shipping
   configuration. Changing the optimisation level is a decision that needs its own
   evidence, not a free win discovered while measuring something else.
-- **The A,B,B,A arms have not been re-run at `-O2`.** If they were, the expected
-  result is that neither fix is measurable, because the arm would never engage. That
-  is a prediction, not a measurement, and it is the obvious next experiment.
+> **RESOLVED (2026-10-03): the prediction below was tested and is correct.**
+>
+> - **The A,B,B,A arms have been re-run at `-O2`.** If they were, the expected
+>   result is that neither fix is measurable, because the arm would never engage. That
+>   is a prediction, not a measurement, and it is the obvious next experiment.
+>
+> Measured: `overloads` 6 → 0 and `arm_us` 0 throughout at `-O2`, so the arm indeed
+> never engages — the prediction holds. But the arms were re-run with the **build
+> flag** as the A,B,B,A variable rather than as two historical commits, and on the
+> real-song playlist rather than the demo:
+>
+> | arm | xruns | `overloads` | `render_max` | 5-tab total |
+> |-----|-------|-------------|--------------|-------------|
+> | `-O0` | 1,590 / 1,589 | 6 | ~92,000 us | 99,432 / 99,786 us |
+> | `-O2` | 0 / 0 / 0 | 0 | ~4,110 us | 241,791 / 241,632 us |
+>
+> See [`-O2` is not a free win](2026-10-03-o2-is-not-a-free-win-it-removes-every-xrun-and-makes-the-tab-cycle-2-4x-slower.md).
+> **`-O2` on a real song is not a free win**: it removes every xrun and makes the
+> tab cycle 2.43× slower. The repaint cost is **98 % outside the section repaint**
+> and is not localised — see
+> [the correction](2026-10-03-correction-the-o2-tab-cost-is-not-the-damage-box-build.md),
+> which also retracts an earlier claim of this lane's that the damage-box build fix
+> was still outstanding (it had already shipped as `bb1c385`).
 - **The `-O0` workload was constant, and that is checked.** `render_max` is
   6310–6359 µs across the A,B,B,A arms, `stg1`, `stg2` and the uninstrumented
   `stgbase`. The `-O2` runs sit at 3028–3039 µs — the flag moves it, nothing else

@@ -18,19 +18,27 @@
  * first, because a generic USB name may be a different device on another
  * machine.
  *
- * The fallback moved from RAM: to T: on 2026-10-02 (owner decision 2). Two
- * things to be clear about, because the change is easy to over-read:
+ * WHERE RIAPP.LOG GOES -- the rule, because it has been got wrong repeatedly:
  *
- *  - RAM: stays OUT of the candidate table for the original reason: listing
- *    it would make every stick-less path behave exactly as before.
- *  - T: is the scratch disk, which on this guest is itself RAM-backed and so
- *    is NOT reboot-durable. The fallback is "somewhere better than RAM:",
- *    not "durable". Durability is the candidate table's job, and only a
- *    mounted stick provides it.
- *  - On the Dell this is a no-op, because Vk4aros: is present and mounts, so
- *    the fallback never runs. What actually moved that machine's log off
- *    RAM: was deploying a build that contains this file at all: the binary
- *    that was running had been built before it existed.
+ *   stick if one mounts -> T: if it mounts -> RAM: as a last resort
+ *
+ *   NEVER hand-place a log. ri_pal_path(RI_PATH_TEMP, ...) owns this decision
+ *   and app/riapp.c asks it. Placing a log by hand is how RAM:RIAPP.LOG came to
+ *   be read as "the fallback is broken" on riqemu1 when T: had been working all
+ *   along (owner, 2026-10-03).
+ *
+ * History, because the change is easy to over-read:
+ *
+ *  - 2026-10-02: fallback moved RAM: -> T: (owner decision 2). T: is the
+ *    scratch disk, itself RAM-backed on this guest, so it is "somewhere better
+ *    than RAM:", NOT durable. Durability is the candidate table's job, and only
+ *    a mounted stick provides it.
+ *  - 2026-10-03: T: joined the table as a PROBED last candidate and RAM: became
+ *    the final fallback. Previously "T:" was returned unprobed, so a guest
+ *    without a scratch disk got a path it could not write to and the log went
+ *    nowhere at all. The owner: "RAM: can be a fallback in case T: isn't
+ *    available."
+ *  - On the Dell all of this is a no-op: Vk4aros: is present and mounts first.
  *
  * C99, <stdint.h> only (portability plan §2 gate).
  */
@@ -38,16 +46,26 @@
 #define RI_PAL_STICKY_H
 
 /* Probed in order; the first that mounts wins. A fixed table, not a scan,
- * so the cost does not depend on how many devices are attached. */
-#define RI_PAL_STICKY_COUNT 6
+ * so the cost does not depend on how many devices are attached.
+ *
+ * T: is LAST in the table and is PROBED, not assumed (owner 2026-10-03).
+ * The earlier version returned "T:" unconditionally when no stick was
+ * mounted, which meant a guest without a scratch disk was handed a path it
+ * could not write to and the log went nowhere -- which is exactly how
+ * "the RAM: fallback is broken" got believed on riqemu1 when T: was in fact
+ * working the whole time. Probing costs one Lock() and makes the answer true
+ * on every guest rather than on the ones that happen to have T:. */
+#define RI_PAL_STICKY_COUNT 7
 static const char *const ri_pal_sticky_vols[RI_PAL_STICKY_COUNT] = {
-    "Vk4aros:", "USB0:", "USB1:", "UMSD0:", "UMSD1:", "USBDISK0:"
+    "Vk4aros:", "USB0:", "USB1:", "UMSD0:", "UMSD1:", "USBDISK0:", "T:"
 };
 
-/* Used when nothing in the table is mounted: a machine with neither a stick
- * nor a scratch disk still logs somewhere rather than not at all. T:, never
- * RAM: (owner 2026-10-02) — T: is RAM-backed on this guest, so this is a
- * better place to write, not a durable one. */
-#define RI_PAL_STICKY_FALLBACK "T:"
+/* Last resort, used ONLY when the whole table fails to probe -- no stick AND
+ * no scratch disk. RAM: is wiped by every reboot, so it is the worst place for
+ * evidence and the reason it is last (owner 2026-10-03: "RAM: can be a
+ * fallback in case T: isn't available"). A log that cannot be written at all
+ * is worse than one that dies at the next reboot, so the chain ends here rather
+ * than refusing. */
+#define RI_PAL_STICKY_FALLBACK "RAM:"
 
 #endif

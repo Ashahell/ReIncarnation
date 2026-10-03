@@ -125,6 +125,21 @@ void ri_art_bg_fx(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int
 void ri_art_bg_pat(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, uint8_t sec);
 void ri_art_bg_tr(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z,
     const struct ri_text_metrics *tm);
+/* Which song is playing, shown on the transport plate (owner 2026-10-03:
+ * "the user cannot see which song is playing"). ri_art_tr_set_song(NULL or "")
+ * clears it; ri_art_tr_song() reads it back, which is what a host test uses
+ * to assert the setter took. Not a ctlreg entry on purpose -- it is a
+ * read-only label, not an automatable or steppable control. */
+void ri_art_tr_set_song(const char *name);
+const char *ri_art_tr_song(void);
+/* The bounded copy and the width-aware fit, exposed because t159 has to pin
+ * them directly: the first version of that test re-implemented the fit in the
+ * test file, and a mirror of the thing under test cannot fail when the thing
+ * changes. Both take the source explicitly so a host test can drive the fit
+ * without disturbing the label. */
+void ri_art_tr_copy(char *dst, uint32_t cap, const char *src);
+void ri_art_tr_fit(char *dst, uint32_t cap, const char *src,
+    const struct ri_text_metrics *tm, int room);
 void ri_art_focus_bar(struct ri_dlist *dl, uint8_t section,
     const struct RIPanelUI *panel, int ox, int oy, int z);
 /* Edge-anchored legend (text_at equivalent): align<0 right edge at x,

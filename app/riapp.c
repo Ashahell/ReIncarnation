@@ -894,6 +894,19 @@ static int song_load_path(const char *path) {
     s_song_on = 1;
     song_ui_sync();
     song_ui_apply();
+    /* Show it. The log line has said this all along, but the user had no way
+     * to see which song was playing without pulling the log off the guest by
+     * hand (owner 2026-10-03). The leaf name is what identifies a song; the
+     * directory is noise at this size. */
+    {
+        const char *leaf = path, *q;
+        for (q = path; *q; q++)
+            if (*q == ':' || *q == '/')
+                leaf = q + 1;
+        ri_art_tr_set_song(leaf);
+        if (s_canvas[C_TR])
+            ri_rsection_refresh(s_canvas[C_TR]);
+    }
     rlog("RIAPP song %s: %ld bars at %ld BPM\n", path, (long)s_core.song_bars, (long)s_song.tempo);
     evlog("SONG", "load %s bars=%lu bpm=%lu", path, (unsigned long)s_core.song_bars, (unsigned long)s_song.tempo);
     ri_str_press(&t->u.tr, RI_STR_PLAY);
@@ -2283,6 +2296,44 @@ int main(int argc, char **argv) {
             playlist_load_path(argv[i] + 9);
         else if (argv[i] && !strncmp(argv[i], "SONG=", 5))
             song_load_path(argv[i] + 5);
+    }
+
+    /* Default demo song (owner 2026-10-03: "we want Zombie Nation as the
+     * default demo song"). Tried ONLY when the command line did not already
+     * choose a song -- an explicit SONG=/PLAYLIST= always wins, because an
+     * argument is a decision and this is a default.
+     *
+     * Zombie Nation is the packaged arrangement in songs/local/zombie-nation/,
+     * deployed to SYS:Classes/ReIncarnation/Songs/ -- which is where
+     * RI_PATH_SONGS already points, so this adds no new location. The
+     * RIAPP_DEMO_SONG override names a different file, and RIAPP_DEMO=0 turns
+     * the attempt off for a session that wants the bare pattern-mode demo.
+     *
+     * A miss is NOT an error and must not raise a requester: on a guest with
+     * no song library deployed (riqemu1 has none) this path simply does not
+     * fire, and the built-in demo pattern carries on as before. Saying so in
+     * the log is the whole response. */
+    {
+        static char demo[RI_PLAYLIST_PATH];
+        const char *want = "zombie-nation.rbng";
+        LONG v[1];
+        int try_demo = 1;
+        if (GetVar((STRPTR)"RIAPP_DEMO", (STRPTR)v, (LONG)sizeof v, 0L) > 0 && v[0] == 0L)
+            try_demo = 0;
+        v[0] = 0;
+        if (try_demo && GetVar((STRPTR)"RIAPP_DEMO_SONG", (STRPTR)demo,
+                (LONG)sizeof demo - 1L, 0L) > 0)
+            want = demo;
+        if (try_demo && !s_song_on) {
+            if (ri_pal_path(RI_PATH_SONGS, demo, sizeof demo) == 0 &&
+                ri_pal_path_join(demo, sizeof demo, demo, want) == 0) {
+                if (song_load_path(demo) != 0)
+                    rlog("RIAPP demo song %s not found; built-in demo only\n",
+                        want, 0, 0, 0, 0);
+            } else {
+                rlog("RIAPP demo song: no songs volume\n", 0, 0, 0, 0, 0);
+            }
+        }
     }
 
     /* 100 ms tick: meter chase + null-backend advance. */
