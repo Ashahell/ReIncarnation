@@ -11,7 +11,8 @@
 
 > **No host test can reach them. Therefore no host test can kill a mutant of them. A test that mirrors their logic instead survives every mutation of the real code — which is worse than no test, because it reports green.**
 
-This is not a discipline lapse; it is a property of the tree, and it has now cost three separate investigations in one lane.
+This is not a discipline lapse; it is a property of the tree, and it has now cost three separate investigations in one lane, and two more
+found a fortnight's worth of routine work later (see the CASCADE above).
 
 ## The three occurrences
 
@@ -20,6 +21,37 @@ This is not a discipline lapse; it is a property of the tree, and it has now cos
 **2. The repaint-reason codes.** `RI_RSEC_BOX_*` first went in `gui/widgets/rsection.h`, so `t152` could not include it at all (`#error "rsection.h is AROS-only"`). The policy had to move to `gui/panelui.h` before it could be tested at all. Nothing was lost by moving it — it was never widget-specific, it was a policy that happened to be filed next to its only caller.
 
 **3. The AROS wiring for the damage clip.** `mut_fixM5.txt` covers `gui/draw/canvas.c` and `platform/pal/ri_pal_draw.h`, which the host build compiles. Its caller — `gui/widgets/rsection.mcc.c` — is untestable, so the wiring is proved **on target** instead, by the scripted harness. The set says so in its own header rather than pretending to cover more.
+
+> **CASCADE (2026-10-03) — two more occurrences, and one is a new shape.**
+>
+> **4. `t155` was blind through its own harness.** Removing
+> `dl->clip = 0u` from the empty-box branch of `ri_dlist_set_clip` left the test
+> green. Not a mirrored constant and not an AROS-only file — the test *did* call
+> the production function. The problem was its setup: `build()` calls
+> `ri_dlist_init` (which zeroes `clip`) and then `ri_dlist_set_clip` **once**, so
+> the branch that clears an *existing* clip was unreachable through the harness.
+> A new shape for this article: **the test can reach the code and still not reach
+> the branch.** Strengthened with a real box followed by a degenerate box on the
+> same dlist, asserting `clip` goes 1 -> 0; the mutant now dies at
+> `t155_damage_clip_build.c:180`.
+>
+> **5. The function has no production caller at all.** `grep` for
+> `ri_dlist_set_clip` across the tree finds it only in its own definition, its
+> header, and tests. So a green, mutation-proven test was covering **dead code** —
+> this article's failure mode arriving from the opposite direction: not a test that
+> cannot see production code, but production code with no caller and a test that
+> makes it look exercised. The clip path is proved **on target**, which is the
+> boundary case this record already describes.
+>
+> Both were found while gating `t151`/`t152`/`t154`/`t155` — i.e. by the boring
+> chore of wiring passing tests into `scripts/ri_audit.sh`, which is what makes the
+> argument of this article practical rather than theoretical. The harness traps hit
+> on the way (a build that fails is not a kill; a `static inline` header mutant
+> leaves every `.o` byte-identical) are recorded in
+> [A mutation kill you never ran](2026-10-03-a-mutation-kill-you-never-ran-three-ways-the-harness-lies.md).
+> Note the count in the paragraph below now reads **three** and is **five**:
+> this record's own tally was not kept current, which is the same failure at the
+> article level — a stale count is a `SURVIVED` that nobody re-read.
 
 ## The tell, and what to do instead
 
