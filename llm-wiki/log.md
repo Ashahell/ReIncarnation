@@ -2112,3 +2112,30 @@ Register (same visibility-only bit); activation later. t98 reverts to
   - **Experiment binaries (not rollbacks, and named like flags rather than for what they lack):** `RIAPP-o2` 874,968 B, `RIAPP-f0` 1,094,648 B, `RIAPP-f2` 874,744 B, `RIAPP-f2noarm` 874,896 B, `RIAPP-f0noarm` 1,095,592 B
   - **Nine binaries on the stick is a hazard of the same shape as the naming rule this lane wrote earlier** ("name a binary for what it lacks"). The five experiment binaries should be pruned now that the `-O2`/arm question is answered; they are the ones most likely to be launched by accident, and `-f0`/`-f2`/`-f2noarm`/`-f0noarm` say nothing about what they are.
 - **Lint:** 219 articles, 219 index rows, 0 without a row, 0 rows pointing at a missing file, 0 broken links across every article. AUDIT 0/0 PASS.
+
+## [2026-10-03] update | The stick is pruned: four binaries, each named for what it lacks
+- Disposition: **Update** to the standing Dell inventory recorded in the entry above (no new article; this is device state, and state goes in this append-only log)
+- Context: "commit and push" with a clean tree and `77e2a04` already on `origin/main`. Nothing to commit, so rather than manufacture one I did the outstanding item this lane had flagged twice: **nine binaries on the stick**, five of them experiment artifacts.
+- **Deleted, all five created by this lane and all reproducible** (81 TUs from `~/bin/build_v11.sh` with `-O2` substituted, or with the one-line arm gate in a clean `git archive HEAD` tree):
+  ```
+  [exec] 'delete Vk4aros:ReIncarnation/RIAPP-o2'      -> rc=0   Deleted
+  [exec] 'delete Vk4aros:ReIncarnation/RIAPP-f0'      -> rc=0   Deleted
+  [exec] 'delete Vk4aros:ReIncarnation/RIAPP-f2'      -> rc=0   Deleted
+  [exec] 'delete Vk4aros:ReIncarnation/RIAPP-f2noarm' -> rc=0   Deleted
+  [exec] 'delete Vk4aros:ReIncarnation/RIAPP-f0noarm' -> rc=0   Deleted
+  ```
+  `RIAPP-o2`, `RIAPP-f0`, `RIAPP-f2`, `RIAPP-f2noarm`, `RIAPP-f0noarm` -- 874,968 / 1,094,648 / 874,744 / 874,896 / 1,095,592 B.
+- **Why these and not the rollbacks.** They were named like *flags*, which is the precise hazard this lane's own rule exists to prevent: **name a binary for what it lacks, not for how old it is.** `-f0`/`-f2`/`-f2noarm`/`-f0noarm` say nothing about what they are, and they were the binaries most likely to be launched by accident. The `-O2` and arm questions they answered are answered and recorded; keeping the artefacts added risk and no information.
+- **Post-prune inventory (supersedes the list above):**
+  - `RIAPP` = 1,094,648 B, `build=2ecffd0`, **`-O0`** -- the deployed binary. **Still not viable for shipping**: ~1,590 xruns and a 92 ms `render_max` per tab cycle on the real song.
+  - `RIAPP-old-no-audio-fail` = 1,093,672 B -- the rollback. Lacks the audio-failure report.
+  - `RIAPP-old-no-dotdot-fix` = 843,448 B -- the 00:15 build. Lacks the `..` fix and the audio report.
+  - `RIAPP.prev` = 776,608 B -- oldest; predates both.
+  - **Flagged, not touched:** `RIAPP.prev` violates the naming rule (named for age, not for what it lacks). It is not this lane's binary and pruning an owner's rollback is their call, so it stays. Four on the stick is tolerable; nine was not.
+- **Stick verified healthy after the deletions** -- one instance, no requester, close-before-get:
+  ```
+  audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+  RIAPP song Vk4aros:ReIncarnation/songs/local/the-knife/the-knife.rbng: 104 bars at 124 BPM
+  ```
+  So the deletions removed only the intended files and left the app path intact.
+- 219 articles, 219 index rows, 0 broken links. AUDIT 0/0 PASS.
