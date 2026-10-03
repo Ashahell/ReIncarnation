@@ -94,9 +94,34 @@ for will produce 44100 here.
 It is equally pointless on the Dell, which already returns 44100 for every rate
 — see [the Dell hands back 44100 for every rate](2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md).
 
-**What is left is one word in a launch script, not a change to ReIncarnation:**
-`-audiodev pa,id=pa0,frequency=48000`. Untested. Whether that is sufficient
-depends on the unsettled question above, and it is the first thing to try.
+> **TESTED 2026-10-03 AND REJECTED. There is no launch-line knob.**
+>
+> ```
+> qemu-system-x86_64: -audiodev pa,id=pa0,...,frequency=48000:
+>     Parameter 'frequency' is unexpected
+> ```
+>
+> And it is not a `pa` peculiarity — **every** backend refuses it: `pa`, `alsa`,
+> `pw`, `none`, `sdl`, `coreaudio`, `jack` all reject `frequency`. So
+> `pdo->frequency`, which `audio/audio.c:253` defaults to 44100 when unspecified,
+> **cannot be overridden from the command line at all.**
+>
+> **The guest is exonerated.** AROS's `ac97` AHI driver mentions a rate exactly
+> twice, both 48000, and **never writes a codec rate register at all** — no
+> `CODEC_FMT`, no `EXTENDED_AUDIO`, no `VRA`. Combined with the readback
+> (`got=48000`, `nfreq=1`), the guest asks for 48000, reports 48000, and never
+> contradicts itself. **Nothing in ReIncarnation chooses 44100.**
+>
+> **What remains unexplained, and the bound that is established:** the effective
+> 44100 comes from neither the AC97 reset default (48000, `0xbb80`), nor the AROS
+> driver (48000), nor any CLI option (none exists) — so it is in **QEMU's audio
+> back end**, upstream of this project. The supporting trace is incomplete: the
+> QEMU source tree on this host is intermittently unreadable (`ls -la` on
+> `paaudio.c` succeeded and an immediate `sed` on the same path returned *No such
+> file or directory*), so whether `ss.rate = as->freq` reads the device's settings
+> or the audiodev template's is **not established**. Recording the bound rather
+> than a mechanism. Full record:
+> [the audiodev frequency fix is rejected by experiment](../evidence/2026-10-03-audiodev-frequency-rejected.md).
 
 The alternative — leave the engine at 48000 and accept 0.91875 — is only
 defensible if a future guest can be given a 44.1 kHz sound card, which QEMU's

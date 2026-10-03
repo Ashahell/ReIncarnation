@@ -81,13 +81,35 @@
 #define RI_ENGINE_ST_LEVSEQ  12u /* levi_seq_block: the device's own sequencer */
 #define RI_ENGINE_ST_LEVVOICE 13u /* levi_voice_render_sum_stereo: the voices */
 #define RI_ENGINE_ST_LEVMIX  14u /* engine_section_stereo: sum onto the buses */
-#define RI_ENGINE_ST_TOTAL  15u /* one whole block; ENCLOSES every stage above */
-#define RI_ENGINE_ST_COUNT  16u
+/* LEVTEMPO and LEVPROBE added 2026-10-03, for the measurement that found 54 % of
+ * SLEVI's cost unattributed by the four above (LEVI 57 us against arp+seq+voice
+ * +mix = 26 us on riqemu1). Two stages, two different jobs:
+ *
+ *   LEVTEMPO wraps levi_set_tempo, which is the ONLY call inside SLEVI that no
+ *   other sub-stage covers. Inspection says it is trivial -- three float
+ *   compares and a store -- which is exactly why it needs a number rather than
+ *   an argument: a trivial function that turns out to cost real time is a
+ *   finding, and one that reads at the floor closes the question.
+ *
+ *   LEVPROBE is a deliberate CONTROL: an open/close pair with nothing between
+ *   them. Its reading IS the cost of one stage pair, so subtracting it from any
+ *   other sub-stage separates "this stage is cheap" from "this stage cannot be
+ *   measured". It sits OUTSIDE SLEVI's own interval on purpose: measuring the
+ *   instrument inside the region it measures would inflate SLEVI and make the
+ *   old and new SLEVI numbers incomparable.
+ *
+ * LEVPROBE is therefore NOT inside SLEVI despite being in the LEVI sub-span;
+ * the sub-span's invariant is about ordering (SUB_FIRST..SUB_LAST), and a test
+ * that needs it to be literally nested should say so rather than infer it. */
+#define RI_ENGINE_ST_LEVTEMPO 15u /* levi_set_tempo: the one uncovered SLEVI call */
+#define RI_ENGINE_ST_LEVPROBE 16u /* CONTROL: empty T/E pair = the per-pair floor */
+#define RI_ENGINE_ST_TOTAL  17u /* one whole block; ENCLOSES every stage above */
+#define RI_ENGINE_ST_COUNT  18u
 /* The LEVI sub-span: these run only when SLEVI does, and only inside it. It
  * starts immediately after the top-level stages end, which is the invariant
  * the test pins rather than a magic constant. */
 #define RI_ENGINE_ST_SUB_FIRST RI_ENGINE_ST_ARPA
-#define RI_ENGINE_ST_SUB_LAST  RI_ENGINE_ST_LEVMIX
+#define RI_ENGINE_ST_SUB_LAST  RI_ENGINE_ST_LEVPROBE
 /* The conditional span: stages in here run only when their section is enabled. */
 #define RI_ENGINE_ST_LEAF_FIRST RI_ENGINE_ST_S303A
 #define RI_ENGINE_ST_LEAF_LAST  RI_ENGINE_ST_SLEVI

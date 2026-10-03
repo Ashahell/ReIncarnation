@@ -17,6 +17,32 @@ lane, and riqemu1 became usable once AHI worked.
 indistinguishable from a no-op, and more than half of LEVI's cost is not inside
 any of them.
 
+> **Status: the headline below is SUPERSEDED (2026-10-03, later the same
+> day). The measurement was valid; the window it covered was not.**
+>
+> `lev-voice avg=8 us` and "LEVI is 16.2 %, third" were both real numbers from a
+> real playing-state run — of **the first 32 seconds of the song**. `lev-voice`
+> was pinned at 8 µs across every dump of that run, and the run reached only
+> `playing=5942` buffers (5942 x 256 / 48000 = 31.7 s). A second run left playing
+> for 193 s (`playing=36200`) and got **`lev-voice avg=152 us`, `levi 213 us`,
+> LEVI at 42.7 % of the block** — with `lev-voice` climbing 65 -> 159 -> 183 ->
+> 138 -> 149 -> 152 as the arrangement progressed. **The Levi part of Zombie
+> Nation simply does not sound in the opening half-minute.**
+>
+> So: **LEVI is 42.7 %, not 16.2 %** — above the Dell's ~30 % rather than below
+> it, which retires the "does not refute" caveat below. And the residual inside
+> LEVI is **37 µs (17 %)**, not 54 %: `levi_set_tempo` was instrumented and its
+> real cost is **0 µs**, established against a new **control** stage (an empty
+> open/close pair) that reads 6 µs — the same floor the six no-op stages read.
+>
+> The lesson generalises past this article: **the `dstg` table is a cumulative
+> average and nothing in it says which part of the arrangement it covered.** Two
+> runs of one song, minutes apart, differed only in how long playback was left
+> running, and gave 8 µs and 152 µs for the same stage.
+>
+> Correction and raw evidence:
+> [the LEVI sub-split, re-measured](../evidence/2026-10-03-levi-subsplit-corrected-with-a-control.md).
+
 ## The table
 
 `RIAPP dstg n=24042`, Zombie Nation, 151 bars at 140 BPM, `xruns=0` over 26474

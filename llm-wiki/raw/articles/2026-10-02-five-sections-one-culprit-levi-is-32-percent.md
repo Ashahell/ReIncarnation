@@ -195,12 +195,17 @@ across all three runs to within 1 %.
   riqemu1, **all four sub-stages read 6 µs, which is the instrument's floor**
   (`zero`, a no-op, also reads 6). Excess over floor: `arp +0  seq +0  voice +2
   mix +0`. So the four regions named here contain about **2 µs of LEVI's 57 µs**,
-  and **54 % of LEVI is unattributed by them**. LEVI itself came out at **16.2 %
-  of block, third** behind 303a (19.9 %) and 303b (19.4 %) — which does **not**
-  refute this record's ~30 % headline: the lane's resample factor is 1.09 and the
-  gap is roughly 2×, so the two runs differ in configuration and a like-for-like
-  repeat is needed to say which. Full record:
-  [the LEVI sub-split is measured](2026-10-03-the-levi-sub-split-measured-arp-seq-voice-and-mix-are-all-at-the-floor.md).
+  and **54 % of LEVI is unattributed by them**. LEVI itself first came out at **16.2 %
+  of block, third** behind 303a (19.9 %) and 303b (19.4 %). **That figure is
+  itself superseded the same day:** it came from a run that covered only the
+  song's first 32 seconds, where the Levi part does not sound. A properly powered
+  run gives **`lev-voice avg=152 us`, `levi 213 us`, LEVI at 42.7 % of block** —
+  **above** this record's ~30 %, not below it, so the two agree in direction and
+  the "does not refute" caveat is retired. The residual inside LEVI is **37 µs
+  (17 %)**, not 54 %: `levi_set_tempo` was instrumented and its real cost is
+  **0 µs**, measured against a new control stage. Full records:
+  [first sub-split run](2026-10-03-the-levi-sub-split-measured-arp-seq-voice-and-mix-are-all-at-the-floor.md)
+  and [the correction, verbatim](../evidence/2026-10-03-levi-subsplit-corrected-with-a-control.md).
 - 909's tail: 174 µs average against a 316 µs worst block.
 - Tab-switch xruns, the guest's 300–500 ms stalls, and the in-memory ring are all
   untouched by this.

@@ -607,12 +607,22 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 RI_ESTAGE_E(e, RI_ENGINE_ST_S909, ts);
             }
             if (e->sections & RI_ENGINE_SLEVI) {
-                /* SLEVI's own timestamp is `tv`, not `ts`: the four sub-stages
-                 * below all write `ts`, so sharing one variable would make
-                 * SLEVI measure from the last sub-stage instead of from its own
+                /* CONTROL, deliberately OUTSIDE SLEVI's interval. An empty
+                 * open/close pair: its reading is the cost of one stage pair,
+                 * so `lev-tempo - lev-probe` is levi_set_tempo's real cost and
+                 * any sub-stage reading equal to lev-probe is unmeasurable
+                 * rather than cheap. Inside SLEVI it would inflate SLEVI and
+                 * make the before/after SLEVI numbers incomparable. */
+                RI_ESTAGE_T(e, RI_ENGINE_ST_LEVPROBE, ts);
+                RI_ESTAGE_E(e, RI_ENGINE_ST_LEVPROBE, ts);
+                /* SLEVI's own timestamp is `tv`, not `ts`: the sub-stages below
+                 * all write `ts`, so sharing one variable would make SLEVI
+                 * measure from the last sub-stage instead of from its own
                  * start. Same trap as the block TOTAL, one level down. */
                 RI_ESTAGE_T(e, RI_ENGINE_ST_SLEVI, tv);
+                RI_ESTAGE_T(e, RI_ENGINE_ST_LEVTEMPO, ts);
                 levi_set_tempo(&e->slevi, e->tempo);   /* device follows the session tempo */
+                RI_ESTAGE_E(e, RI_ENGINE_ST_LEVTEMPO, ts);
                 RI_ESTAGE_T(e, RI_ENGINE_ST_ARPA, ts);
                 levi_arp_block(&e->slevi, sr, cc);     /* device arp steps before the sum */
                 RI_ESTAGE_E(e, RI_ENGINE_ST_ARPA, ts);
