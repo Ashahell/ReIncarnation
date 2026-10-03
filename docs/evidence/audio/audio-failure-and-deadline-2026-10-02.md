@@ -324,3 +324,77 @@ exercised the eight files the inlining touches (tab switches drive
 `rsection.mcc.o`, the largest at 52; `skin_aros.o` loads at startup;
 `audio_ahi_live.o` runs the live backend; `fs_aros.o` loads three songs; the 909
 pack and the log are live). Every click was event-verified.
+
+## Arm-disabled cells: is -O2's slow repaint the arm's fault? (2026-10-03)
+
+The -O2 A,B,B,A left one coupling unresolved: at `-O0` six governor trips are
+what yield CPU to Intuition, so the tab cycle may be fast *because* the audio
+path is collapsing. Testing that needs the arm removed, and the accumulator left
+running so `overloads`/`arm_us` still report what **would** have tripped.
+
+Built from a second clean `git archive HEAD` tree (`/tmp/opencode/tree2`), so
+again the flag and the arm are the only variables. **One line, at the one place
+that consults the flag** -- `audio_io/audio_ahi_live.c`, where the render task
+drops below the UI:
+
+```
+-        if (ri_livedrv_overloaded(&lv->drv) != yielding) {
++        if (ri_livedrv_arm_enabled() && ri_livedrv_overloaded(&lv->drv) != yielding) {
+```
+
+```
+int ri_livedrv_arm_enabled(void) { return 0; }
+```
+
+`governor()` itself is untouched. Binaries (both from the same tree, so the arm
+gate is the only difference from their controls):
+
+```
+-O2  arm ON   RIAPP-f2        874,744 B   r12moves=282
+-O2  arm OFF  RIAPP-f2noarm   874,896 B   r12moves=282
+-O0  arm ON   RIAPP-f0      1,094,648 B   r12moves=41
+-O0  arm OFF  RIAPP-f0noarm 1,095,592 B   r12moves=41
+```
+
+Same protocol, same click verification (`TR PLAY TAB page=0..4 TR STOP` in every
+cell).
+
+| arm | cell | xruns | `overloads` | `render_max` | `wake_max` | 5-tab total |
+|-----|------|-------|-------------|--------------|------------|-------------|
+| `-O0` ON | A1 | 1,614 | 6 | 91,932 us | 5,820 us | 99,432 us |
+| `-O0` ON | A2 | 1,601 | 6 | 92,021 us | 5,816 us | 99,786 us |
+| `-O0` OFF | T2 | **11,852** | -- | 9,464 us | 5,820 us | **38,214,843 us** |
+| `-O0` OFF | T4 | **11,955** | -- | 9,499 us | 5,823 us | **27,701,899 us** |
+| `-O2` ON | B2 | **0** | 0 | 4,101 us | 398 us | 241,791 us |
+| `-O2` ON | B3 | **0** | 0 | 4,117 us | 436 us | 241,632 us |
+| `-O2` OFF | T3 | **0** | 0 | 4,098 us | 483 us | 240,873 us |
+| `-O2` OFF | T5 | **0** | 0 | 4,125 us | 485 us | 260,392 us |
+| `-O2` OFF | T1 | **0** | 0 | 4,110 us | 414 us | 514,356 us * |
+
+\* T1's MIX tab alone was 357,611 us against 85,516 in T5. **Excluded by name.**
+T3 and T5 then agree to 8 % -- looser than the `-O2` arm-on pair's 0.07 %.
+
+`-O0` arm-OFF per tab, which is where the number comes from (T2):
+
+```
+TAB page=0 us=28          xruns+0
+TAB page=1 us=8411253     xruns+490
+TAB page=2 us=24221363    xruns+1552
+TAB page=3 us=5368346     xruns+290
+TAB page=4 us=213853      xruns+0
+```
+
+**And no `hb:` heartbeat line at all** in either `-O0` arm-OFF cell -- the
+heartbeat is printed from the GUI task, and the GUI was too starved to print it.
+`RIAPP closed:` is present, so the process finished normally:
+
+```
+RIAPP closed: buffers=27485 xruns=11852 render_max=9464 us render_total=202914 ms period=5333 us wake_max=5820 us wake_total=68710 ms wake_n=27483
+RIAPP closed: buffers=27080 xruns=11955 render_max=9499 us render_total=203419 ms period=5333 us wake_max=5823 us wake_total=68744 ms wake_n=27078
+```
+
+Note `render_max` *falls* when the arm is disabled (91,932 -> 9,464 us): the
+render task no longer yields below the UI, so it never accumulates a 92 ms
+single-buffer stall -- it simply never gets to run, and the xruns and the GUI
+latency both go up instead. That inversion is the clearest single statement of
+what the arm is for.
