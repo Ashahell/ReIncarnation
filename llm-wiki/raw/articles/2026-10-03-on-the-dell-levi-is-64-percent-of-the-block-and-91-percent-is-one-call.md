@@ -75,6 +75,44 @@ flagged three of the four Dell `lev-*` rows as unquotable for that reason.
 caveat for this configuration, and it is the right way to close it: a control
 that reads the floor beats an argument about what the floor means.
 
+> **CORRECTION (2026-10-03, later the same day) — the residual is wrong; the
+> headline survives.**
+>
+> This record reported *"unattributed is 23 µs = 2 %"* and read that as a small,
+> honest leftover. It is not a leftover. A sibling pass
+> ([`4e4086c`](../evidence/2026-10-03-levi-residual-is-the-instrumentation.md))
+> measured the tax directly with **two** controls — `lev-probe` outside SLEVI and
+> `lev-probe2` inside it — both reading **6 µs**, and showed the slope is exactly
+> one timer pair per stage with the intercept barely moving.
+>
+> Applied to this Dell run, which instrumented **5** inner pairs:
+>
+> ```
+> levi                1,139 us
+> internals sum       1,112 us
+> residual as reported   27 us  = 2 % of levi
+> split tax, 6 us x 5 pairs = 30 us   <- EXCEEDS the residual
+> corrected residual   -3 us  ~ 0 %
+> lev-voice corrected 1,036 us (its own 6 us pair removed) = 90 % of levi
+> ```
+>
+> **So the true unattributed part on the Dell is ≈ 0, not 2 %.** The entire
+> residual was the split measuring itself, which is exactly what the sibling
+> found on riqemu1 — and the two lanes now agree completely, having previously
+> appeared to disagree by 52 percentage points.
+>
+> **What survives, unchanged:** `levi_voice_render_sum_stereo` at **1,036 µs** is
+> **90 %** of LEVI's 1,139 µs, and LEVI is 64 % of a 1,767 µs block. The headline
+> is if anything *cleaner* after the correction, because there is no longer an
+> unexplained remainder competing with it for attention.
+>
+> **And a second, quieter consequence.** Every `levi` figure quoted in this lane
+> since the sub-split landed carries the tax: **5.1 % inflation at `-O2`**
+> (350 → 332 µs corrected) and **2.6 % at `-O0`** (1,139 → 1,109 µs). The
+> `-O2`/`-O0` *ratio* this lane's flag work rests on moves from 2.3× to 2.2× —
+> the flag conclusion is unaffected, but the absolute figures are inflated and are
+> corrected here rather than left standing.
+
 ## What this means
 
 The render-stage question has an answer at last, on the machine that matters:

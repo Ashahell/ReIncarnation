@@ -2307,3 +2307,23 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - **TWO CONSEQUENCES, IN OPPOSITE DIRECTIONS, AND BOTH MATTER.** riqemu1's LEVI figure needs the correction most: reported 48.9 % is really 42.2 %, a 6.7-point correction, because its pair cost is the higher of the two. **The Dell's 64 % is barely inflated** — six inner stages at 4 us is about 24 us against a much larger block — so **the child-count tax is NOT what explains the 16.2 % / 64 % gap**, and that gap remains a configuration and song difference exactly as the Dell record concludes.
 - **THE TWO LANES CONVERGE ON THE SAME SHAPE**, reached independently from opposite starting points (riqemu1's intro-window 16.2 % and the Dell's 64 %): LEVI is 42.2 % corrected on riqemu1 against 64 % on the Dell, and `lev-voice` is **81 % of LEVI** (183/227) against **91 %**. **`levi_voice_render_sum_stereo` is the target on both machines, and it is a *render* rather than the sequencer, arpeggiator or bus mix.**
 - **Housekeeping that resolved itself.** The other session's `0b04d05` committed the shared `llm-wiki/index.md` and `log.md`, which carried this lane's rows with it — so the shared-file problem that had been leaving four rows uncommitted is gone. `index.md` is committed here with this lane's four remaining rows plus a reposition of the Dell row, whose article is already in the tree.
+
+## [2026-10-03] ingest | Correction: the LEVI residual was the split measuring itself
+- Disposition: **Update** (`2026-10-03-on-the-dell-levi-is-64-percent-of-the-block-and-91-percent-is-one-call.md` gains a Correction block; no new article — the finding is the sibling's and the correction belongs on the claim it corrects)
+- Evidence: `llm-wiki/raw/evidence/2026-10-03-levi-residual-is-the-instrumentation.md` (sibling's), plus `2026-10-03-the-sub-split-charges-levi-6us-per-stage-it-contains.md` (the article)
+- **The sibling's `4e4086c` corrects my own record, and this is the ingest.** Their second control, `lev-probe2` **inside** SLEVI, reads 6 us exactly like `lev-probe` outside it, and the slope is one timer pair per stage with the intercept barely moving -- so the "6 us per stage" is a measurement, not a story.
+- **Applied to my Dell run (5 inner pairs):**
+  ```
+  levi                   1,139 us
+  internals sum          1,112 us
+  residual as reported      27 us = 2 % of levi
+  split tax, 6 us x 5 pairs = 30 us   <- EXCEEDS the residual
+  corrected residual        -3 us ~ 0 %
+  lev-voice corrected    1,036 us = 90 % of levi
+  ```
+  **My "unattributed is 23 us = 2 %" was wrong. It is approximately zero** -- the whole residual was the split measuring itself.
+- **The two lanes now agree completely.** They previously appeared to disagree by 52 percentage points (2 % vs 54 % unattributed); that gap was the instrumentation, not the code. Worth stating plainly because it is the second time in two days that a cross-lane "contradiction" dissolved once both sides' *method* was read rather than their totals.
+- **The headline survives, and is cleaner.** `levi_voice_render_sum_stereo` at **1,036 us is 90 %** of LEVI's 1,139 us, and LEVI is 64 % of a 1,767 us block -- with no unexplained remainder competing for attention any more.
+- **A quieter consequence recorded rather than left standing:** every `levi` figure this lane has quoted since the sub-split landed carries the tax -- **5.1 % inflation at `-O2`** (350 -> 332 us corrected) and **2.6 % at `-O0`** (1,139 -> 1,109 us). The `-O2`/`-O0` ratio the flag work rests on moves from 2.3x to 2.2x. **The flag conclusion is unaffected; the absolute figures were inflated and are now corrected.**
+- **The floor caveat from the previous ingest also firms up.** That caveat said the at-floor `lev-*` rows might mean "never ran". The two-control result settles it in the other direction: they run, and they cost the timer tax. Reading 4-6 us is the *floor*, not the absence of work.
+- Audit green; sibling's `llm-wiki/index.md` WIP untouched (uncommitted, one modified file, not staged).
