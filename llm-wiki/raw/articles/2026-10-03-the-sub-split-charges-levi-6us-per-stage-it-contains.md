@@ -101,6 +101,43 @@ together in the corrected run.
 - **Check whether a wrapper is inflated by its own children** before trusting a
   leaf-against-wrapper comparison.
 
+## Cross-lane: the floor, and so the tax, is lane-dependent
+
+The Dell repeat of this same split landed the same day, and its control reads
+**4 µs where riqemu1's reads 6**:
+
+```
+lev-voice  avg=1042 us      91 % of levi
+lev-probe  avg=4    us      THE FLOOR CONTROL
+```
+
+So **the per-pair cost is not a constant — it is a property of the machine.** That
+refines this record in a way worth stating plainly: the "6 µs per stage" figure is
+**riqemu1-specific**, and the tax is roughly **4 µs per stage on the Dell**.
+
+Two consequences, in opposite directions:
+
+- **riqemu1's LEVI figure needs the correction most.** Its reported 48.9 % is
+  really 42.2 %, a 6.7-point correction, because its pair cost is the higher of
+  the two.
+- **The Dell's 64 % is barely inflated.** Six inner stages at 4 µs is about 24 µs
+  against a much larger block, so the headline survives essentially intact. **The
+  child-count tax is not what explains the 16.2 % / 64 % gap** — that remains a
+  configuration and song difference, as the Dell record itself concludes.
+
+And the two lanes now **converge on the same shape**, which is the useful part:
+
+| | riqemu1 (corrected) | Dell |
+|---|---|---|
+| LEVI share of block | 42.2 % | 64 % |
+| `lev-voice` share of LEVI | 183 / 227 = **81 %** | **91 %** |
+| control / pair cost | 6 µs | 4 µs |
+
+**`levi_voice_render_sum_stereo` is the target on both machines**, and it is a
+*render* rather than the sequencer, arpeggiator or bus mix — which is the same
+conclusion the two lanes reached independently, from opposite starting points
+(riqemu1's intro-window 16.2 % and the Dell's 64 %).
+
 ## Open
 
 - **The remaining ~8 µs inside LEVI.** Small and stable, but still unattributed.
