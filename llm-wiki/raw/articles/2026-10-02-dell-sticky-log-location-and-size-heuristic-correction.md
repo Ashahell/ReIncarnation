@@ -15,8 +15,27 @@
 
 The list, in preference order, is `platform/pal/ri_pal_sticky.h`:
 
+> **CORRECTED 2026-10-03.** The `fallback: RAM:` below was **stale** and is
+> what this whole record had to be corrected for. The list is now:
+>
+> ```
+> Vk4aros:   USB0:   USB1:   UMSD0:   UMSD1:   USBDISK0:   T:   fallback: RAM:
+> ```
+>
+> **T: is the 2026-10-02 fallback and was moved into the probe table on
+> 2026-10-03**, because returning it unprobed handed guests without a scratch disk
+> a path they could not write to. **RAM: is the last resort, used only when no
+> stick AND no scratch disk mount.**
+>
+> **The rule, because following the stale line above is how this keeps happening:
+> never hand-place a log. `ri_pal_path(RI_PATH_TEMP, ...)` owns the decision and
+> `app/riapp.c` asks it.** `RIAPP_LOG=<vol>` exists as a deliberate escape hatch
+> and should not be used to "fix" an apparently missing log — that is exactly
+> what I did on riqemu1 on 2026-10-03 while T: was working the whole time and
+> already held `RIAPP.LOG`.
+
 ```
-Vk4aros:   USB0:   USB1:   UMSD0:   UMSD1:   USBDISK0:      fallback: RAM:
+Vk4aros:   USB0:   USB1:   UMSD0:   UMSD1:   USBDISK0:      fallback: RAM:   <- STALE
 ```
 
 It is one header, not two copies, because `app/riapp.c`'s ev-log and the main log must agree on where output goes, and two lists that have to agree are a list that will not.
