@@ -30,6 +30,12 @@ echo "AROS STUB BUILD OK"
 # M1.1 probe (AROS-only executable; never in the host build).
 CFLAGS_AROS="-std=gnu99 -O2 -Wall -Wextra -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
 x86_64-aros-gcc $CFLAGS_AROS -c "$ROOT/audio_io/probe_ahi.c" -o "$OUT/probe_ahi.o"
+# Rate probe (2026-10-03): asks the card what rate it actually runs at, rather
+# than assuming 48000 is native. riqemu1 plays 8.1 % slow because QEMU's AC97 is
+# fixed at 44100 and resamples 48000 down; the fix (run AHI at 44100) is only
+# safe if 44100 is really available, so the Dell's native rate has to be asked
+# rather than inferred. Same link shape and same gates as probe_ahi.
+x86_64-aros-gcc $CFLAGS_AROS -c "$ROOT/audio_io/probe_rate.c" -o "$OUT/probe_rate.o"
 # Executable link mirrors build_cap_probes.sh: -nostartfiles + explicit
 # startup.o (guarded) + stub libs; -no-pie is mandatory (gotcha: GCC 16
 # defaults to PIE, AROS LoadSeg rejects R_X86_64_RELATIVE).
@@ -45,6 +51,9 @@ STARTUP=()
 x86_64-aros-gcc $CFLAGS_AROS -nostartfiles -no-pie -Wa,-W -o "$OUT/probe_ahi" "$OUT/probe_ahi.o" "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" -lstdcio -lposixc -ldos -lexec
 test -f "$OUT/probe_ahi" || { echo "FAIL: probe_ahi not linked"; exit 1; }
 x86_64-aros-readelf -h "$OUT/probe_ahi" | grep -q "Advanced Micro Devices X86-64" || { echo "FAIL: probe_ahi not X86-64 ELF"; exit 1; }
+x86_64-aros-gcc $CFLAGS_AROS -nostartfiles -no-pie -Wa,-W -o "$OUT/probe_rate" "$OUT/probe_rate.o" "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" -lstdcio -lposixc -ldos -lexec
+test -f "$OUT/probe_rate" || { echo "FAIL: probe_rate not linked"; exit 1; }
+x86_64-aros-readelf -h "$OUT/probe_rate" | grep -q "Advanced Micro Devices X86-64" || { echo "FAIL: probe_rate not X86-64 ELF"; exit 1; }
 echo "AROS PROBE BUILD OK"
 # Optional target (2026-09-25, §12.10 G4): `ri_build_aros.sh sections` also links
 # RISECT, the RSection canvas proof (303 / 808) for the ABIv1 lane (riqemu1).

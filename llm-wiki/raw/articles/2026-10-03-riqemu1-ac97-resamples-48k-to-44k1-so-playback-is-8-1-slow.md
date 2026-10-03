@@ -59,10 +59,12 @@ device-measured sub-split numbers that exist.
 than compensating for it, and it costs nothing on this lane: the engine is
 running at 3/1000 load, so 44100 is as cheap as 48000.
 
-Not implemented. It is a one-line change in `au_live_open`'s rate request and it
-should be an owner decision because it changes the rate the Dell lane negotiates
-too, and the Dell's AC97 is a *different* device whose native rate should be
-probed rather than assumed.
+Not implemented, and still an owner decision. **The native rate has since been
+probed** (2026-10-03): 44100 is `list[0]` on the Dell and the floor of its
+`range=44100-192000`, so the change is safe on both lanes. The probe did find one
+precondition — `AHI_BestAudioID` **cannot select 44100 on the Dell**, so the
+change must supply the mode id rather than just alter the requested frequency.
+See [the Dell hands back 44100 for every rate](2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md).
 
 The alternative — leave the engine at 48000 and accept 0.91875 — is only
 defensible if a future guest can be given a 44.1 kHz sound card, which QEMU's
@@ -84,16 +86,38 @@ as the stale `fallback: RAM:` line.
 A **later** capture, after the owner pressed Play by hand and audible output was
 confirmed, is the one that would carry weight; it is not in the raw file yet.
 
+> **Status: the "why the Dell numbers are not comparable" section below was
+> WRONG on its premise and has been corrected in place.** It claimed the Dell's
+> card "is native 48 kHz and needs no resample". Measured on the Dell
+> (2026-10-03): a 48000 request comes back from AHI as **44100**, and *every*
+> rate comes back as 44100. The inference came from this article's own log line,
+> `mix=48000`, which records the request rather than what the device did.
+> Both lanes in fact converge on 44100 — riqemu1 by resampling, the Dell by
+> AHI declining the request. Full record, and the corrected comparability rule:
+> [the Dell hands back 44100 for every rate](2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md).
+
 ## Why the Dell numbers are not comparable
 
-Every xruns figure in this lane came from the Dell, whose sound card is native
-48 kHz and needs no resample. **A number measured on riqemu1 is on a resampled
-clock and must not be compared against a Dell figure for absolute timing.** Stage
-*proportions* still transfer — the engine does the same work per buffer either
-way — so `lev-voice / block` is comparable and `xruns` is not.
+**Corrected premise.** The Dell is *not* native 48 kHz — its AHI hands back
+44100 for every rate requested, so the engine mixes at 44100 there too. What
+actually differs between the lanes is one step in the chain, not the clock:
 
-That distinction was not written down anywhere before this, and it matters for
-the Levi sub-split measurement that is still blocked on lane availability.
+| lane | requested | AHI read back | what the host plays |
+|---|---|---|---|
+| Dell | 48000 | 44100 | 44100 — no conversion |
+| riqemu1 | 48000 | 48000 | 44100 — QEMU resamples, 8.1 % slow |
+
+The engine is therefore running at 44100 on **both** lanes, and the same
+`period=5333 us` in the log above is not the period on either. Stage
+*proportions* still transfer — the engine does the same work per buffer either
+way — so `lev-voice / block` is comparable across lanes and `xruns` is not,
+but not for the reason first written here.
+
+The sharper rule, and the one worth keeping: **a log line that echoes an argument
+you passed is not evidence about the device.** `mix=48000` is what the engine
+asked for. Every figure derived from it is on the wrong clock, on both lanes,
+and the only thing that settles it is reading `AHIDB_Frequency` back off the
+allocated handle.
 
 ## See Also
 

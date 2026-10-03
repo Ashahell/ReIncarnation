@@ -110,6 +110,21 @@ grep -q '#error "probe_ahi.c is AROS-only' "$ROOT/audio_io/probe_ahi.c" || { ech
 if grep -rn "probe_ahi" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: probe leaks into host build"; exit 1; fi
 bash "$ROOT/scripts/ri_build_aros.sh" >/dev/null || { echo "FAIL: AROS build (stub+probe)"; exit 1; }
 test -f /tmp/ri/aros/probe_ahi || { echo "FAIL: probe_ahi artifact missing"; exit 1; }
+# Same hygiene contract for probe_rate (2026-10-03, the rate probe). It is a
+# second AHI-only executable and the host-build leak is the same hazard: a
+# file including <devices/ahi.h> cannot compile natively, so the guard has to be
+# a gate rather than a hope.
+test -f "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: missing audio_io/probe_rate.c"; exit 1; }
+grep -q "#ifndef __AROS__" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks __AROS__ guard"; exit 1; }
+grep -q '#error "probe_rate.c is AROS-only' "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks AROS-only #error"; exit 1; }
+if grep -rn "probe_rate" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: probe_rate leaks into host build"; exit 1; fi
+test -f /tmp/ri/aros/probe_rate || { echo "FAIL: probe_rate artifact missing"; exit 1; }
+# The rate probe must read the negotiated mode back and never trust the request.
+# This is the whole reason it exists: on the Dell, a 48000 request comes back
+# as 44100, and a probe that only reported the request would report "the card
+# does 48 kHz" -- the exact false claim it was written to correct.
+grep -q "AHIDB_Frequency,   (IPTR)&q_freq" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate does not read the mode back"; exit 1; }
+grep -q "CONVERTED_TO" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks the resampling tell"; exit 1; }
 echo "-- ABIv1 LVO convention gate (2026-09-21 probe_ahi guest page-fault) --"
 echo "-- Guest binaries MUST emit rdx-base calls (build-pc SDK); any"
 echo "-- 'mov %rax,%r12' means the stale r12 SDK leaked in and the binary"
