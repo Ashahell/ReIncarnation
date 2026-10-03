@@ -46,8 +46,12 @@ int main(void) {
     RI_ASSERT(ri_route_assign(&r, RI_ROUTE_PCF, RI_ROUTE_MASTER) == -2,
         "pcf master accepted");
 
-    /* Out-of-range owners rejected, state unchanged. */
-    RI_ASSERT(ri_route_assign(&r, RI_ROUTE_COMP, 5) == -2, "owner 5 taken");
+    /* Out-of-range owners rejected, state unchanged. RI_ROUTE_MASTER + 1, not a
+     * literal: master moved 4 -> 5 when Levi took section 4 (59a3e01), and a
+     * hardcoded 5 silently became "master is rejected" instead of "past master
+     * is rejected". Nothing caught it because this test was never gated. */
+    RI_ASSERT(ri_route_assign(&r, RI_ROUTE_COMP, RI_ROUTE_MASTER + 1) == -2,
+        "owner past master taken");
     RI_ASSERT(ri_route_assign(&r, RI_ROUTE_COMP, -2) == -2, "owner -2 taken");
     RI_ASSERT(ri_route_owner(&r, RI_ROUTE_COMP) == RI_ROUTE_MASTER,
         "comp moved!");

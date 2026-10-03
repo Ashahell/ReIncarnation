@@ -163,7 +163,8 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
 uint32_t ri_engine_render_mono(struct RIEngine *e, float *out, uint32_t n,
     float sr);
 /* Insert routing (§12.8): radio assign (returns previous owner, -2 bad).
- * Sections 0..3 (303A/303B/808/909); comp additionally RI_ROUTE_MASTER. */
+ * Sections 0..RI_ROUTE_NSECTIONS-1 (303A/303B/808/909/Levi); comp
+ * additionally RI_ROUTE_MASTER. */
 int ri_engine_assign_insert(struct RIEngine *e, uint32_t unit, int owner);
 /* Knob set by FX control id (RI_FXID_*; DELAY_MIX is accepted but stays
  * wet — send topology has no dry path). Unknown ids ignored. */

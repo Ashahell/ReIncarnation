@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 ROOT="$(dirname "$0")/.."
+# Phase 0d greps this file for gate names, so it needs its own real path —
+# `$0` is wrong under `bash < ri_audit.sh` or a symlinked entry point.
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 # The render tool resolves some defaults (--909pack inventory) CWD-relative;
 # pin the whole audit to the repo root so invocation CWD cannot silently
 # kill a gate (observed: S909 died with `|| exit 1` from another CWD).
@@ -11,6 +14,27 @@ echo "== Phase 0b: no platform transcendentals/FMA in engine/ =="
 if grep -rn "tanhf\|sinf\|cosf\|expf\|powf\|fmodf\|mul_add\|ffast-math" "$ROOT/engine/" 2>/dev/null | grep -v "ri_tanh\|ri_exp\|ri_sin\|ri_pow2"; then echo "FAIL"; exit 1; fi
 echo "== Phase 0c: evidence dirs =="
 for d in 303 808 909 pcf sequencer gui formats; do test -d "$ROOT/docs/evidence/$d" || { echo "FAIL: missing $d"; exit 1; }; done
+echo "== Phase 0d: no test ships ungated =="
+# An ungated test is not coverage. It passes in the author's terminal, then the
+# code under it changes, and nothing says so — which is not hypothetical: 26
+# tests sat ungated for 9 days, and two of them had already gone stale against
+# their own headers (t51 hardcoded an owner bound that Levi's arrival moved,
+# t107 asserts an encoder slot is dead after RIBBON took it).
+# Exemptions belong in the list below with a reason, so "not gated" is always a
+# recorded decision rather than an absence nobody notices.
+# t107 is KNOWN-RED, not exempt-by-omission: RIBBON (P8d) took encoder slot 5,
+# so its assertions that the slot is a dead one now describe the pre-RIBBON map.
+# Left ungated deliberately -- fixing it is a decision about which contract is
+# right, and guessing would make the suite green without making the code right.
+UNGATED_ALLOW=" t107_levi_sect "
+for f in "$ROOT"/tests/unit/*.c; do
+  t="$(basename "$f" .c)"
+  grep -qE "(test[[:space:]]+|\b)$t\b" "$SELF" && continue
+  case "$UNGATED_ALLOW" in *" $t "*) continue ;; esac
+  echo "FAIL: $t is not gated by this audit — add a gate, or an exemption with a reason"
+  exit 1
+done
+echo "-- every test reachable from a gate; sole exemption: t107_levi_sect (known-red, RIBBON encoder map) --"
 echo "== Phase 1: first-light goldens (Task 4, gate G4) =="
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 G="$ROOT/tests/golden/303"
@@ -29,6 +53,10 @@ bash "$ROOT/scripts/ri_build_host.sh" test t22_303slide >/dev/null || { echo "FA
 bash "$ROOT/scripts/ri_build_host.sh" test t22_303accent >/dev/null || { echo "FAIL: t22_303accent"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t22_303click >/dev/null || { echo "FAIL: t22_303click"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t22_303filter >/dev/null || { echo "FAIL: t22_303filter"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t36_303_ctls >/dev/null || { echo "FAIL: t36_303_ctls (0x0305 is wave, not level; 303B shares the implementation)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t38_gate_fraction >/dev/null || { echo "FAIL: t38_gate_fraction (gate ends at step_start + 1/2 step; ties hold)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t39_meg_veg >/dev/null || { echo "FAIL: t39_meg_veg (MEG follows Decay, VEG fixed, accent forces minimum MEG)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t40_logslide >/dev/null || { echo "FAIL: t40_logslide (slide slews log2(f): octave rate constant)"; exit 1; }
 echo "-- re-render-compare --"
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 OUT=/tmp/ri/build
@@ -142,6 +170,7 @@ grep -q "ri_engine_render_mono" "$ROOT/audio_io/audio.c" || { echo "FAIL: audio.
 if grep -q "RI_LIVE_FULL_GRAPH_UNIMPLEMENTED" "$ROOT/audio_io/audio.c"; then echo "FAIL: retired live-scope marker still present"; exit 1; fi
 mkdir -p /tmp/ri/run/t6 # t6 test writes its scaffold here; clean wipes /tmp/ri
 bash "$ROOT/scripts/ri_build_host.sh" test t6_w1backend >/dev/null || { echo "FAIL: t6_w1backend"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t37_engine_single >/dev/null || { echo "FAIL: t37_engine_single (shared core: per-device routing, centre-unity stereo, mono fold == legacy)"; exit 1; }
 gcc $CFLAGS -o "$OUT/compare" "$ROOT/tools/compare.c" || { echo "FAIL: compare build"; exit 1; }
 T6=/tmp/ri/run/t6
 "$OUT/compare" --events-a "$T6/file.events" --events-b "$T6/live.events" --wav-a "$T6/file.wav" --wav-b "$T6/live.wav" | grep -q "COMPARE: IDENTICAL" || { echo "FAIL: file-vs-live differ (not one renderer)"; exit 1; }
@@ -196,6 +225,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t85_pal_keys >/dev/null || { echo "FA
 bash "$ROOT/scripts/ri_build_host.sh" test t86_pal_fslog >/dev/null || { echo "FAIL: t86_pal_fslog (portability T6)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t87_pal_image >/dev/null || { echo "FAIL: t87_pal_image (portability T7)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t88_live_driver >/dev/null || { echo "FAIL: t88_live_driver (portability T4)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t156_render_stages >/dev/null || { echo "FAIL: t156_render_stages (per-stage render accounting; STOPPED never averaged with playing, and the stage read counts t88's governor laws depend on)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t90_pal_audio_null >/dev/null || { echo "FAIL: t90_pal_audio_null (portability T4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t89_pal_midi >/dev/null || { echo "FAIL: t89_pal_midi (portability T5)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t91_canvas_events >/dev/null || { echo "FAIL: t91_canvas_events (portability T3)"; exit 1; }
@@ -221,6 +251,8 @@ bash "$ROOT/scripts/ri_build_host.sh" test t102_levi_emit >/dev/null || { echo "
 bash "$ROOT/scripts/ri_build_host.sh" test t103_levi_dsp >/dev/null || { echo "FAIL: t103_levi_dsp (levi voices)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t110_levi_layout >/dev/null || { echo "FAIL: t110_levi_layout (levi hardware panel)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t129_levi_osc >/dev/null || { echo "FAIL: t129_levi_osc (levi oscillators + envelopes)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t108_levi_algo >/dev/null || { echo "FAIL: t108_levi_algo (levi algorithms)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t109_levi_morph >/dev/null || { echo "FAIL: t109_levi_morph (levi morph)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t130_levi_algo_modes >/dev/null || { echo "FAIL: t130_levi_algo_modes (levi algorithm modes)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t131_levi_filters >/dev/null || { echo "FAIL: t131_levi_filters (levi filters + VCA)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t132_levi_mod >/dev/null || { echo "FAIL: t132_levi_mod (levi ENV 1-5 + LFOs)"; exit 1; }
@@ -257,8 +289,10 @@ bash "$ROOT/scripts/ri_build_host.sh" test t113_levi_arp >/dev/null || { echo "F
 bash "$ROOT/scripts/ri_build_host.sh" test t114_levi_arp_emit >/dev/null || { echo "FAIL: t114_levi_arp_emit (levi arp emit)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_levi_arp_player >/dev/null || { echo "FAIL: t115_levi_arp_player (levi arp player)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t117_levi_seq_phrase >/dev/null || { echo "FAIL: t117_levi_seq_phrase (levi seq phrase)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t118_levi_seq_player >/dev/null || { echo "FAIL: t118_levi_seq_player (levi seq player)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t119_levi_matrix >/dev/null || { echo "FAIL: t119_levi_matrix (levi matrix core)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t120_levi_matrix_render >/dev/null || { echo "FAIL: t120_levi_matrix_render (levi matrix render)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t122_levi_lfo >/dev/null || { echo "FAIL: t122_levi_lfo (levi LFO)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t123_reverb >/dev/null || { echo "FAIL: t123_reverb (reverb core)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t125_midi_follow >/dev/null || { echo "FAIL: t125_midi_follow (midi clock follower)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t126_midi_rt >/dev/null || { echo "FAIL: t126_midi_rt (midi realtime parser)"; exit 1; }
@@ -347,6 +381,12 @@ bash "$ROOT/scripts/ri_build_host.sh" test t23_808bd >/dev/null || { echo "FAIL:
 bash "$ROOT/scripts/ri_build_host.sh" test t23_808clap >/dev/null || { echo "FAIL: t23_808clap (TC-2.3.3 clap)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t23_808accent >/dev/null || { echo "FAIL: t23_808accent (TC-2.3.4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t23_808storm >/dev/null || { echo "FAIL: t23_808storm (TC-2.3.5)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t33_808_silence >/dev/null || { echo "FAIL: t33_808_silence (long-silence regression: per-100ms RMS decays below -120 dBFS)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t34_808_storm_linear >/dev/null || { echo "FAIL: t34_808_storm_linear (storm linearity)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t35_808_deactivate >/dev/null || { echo "FAIL: t35_808_deactivate (voice deactivate silences cleanly)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t41_808_slots >/dev/null || { echo "FAIL: t41_808_slots (slot switches + MA)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t42_808_metal_choke >/dev/null || { echo "FAIL: t42_808_metal_choke (metal choke)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t43_808_bdboom >/dev/null || { echo "FAIL: t43_808_bdboom (BD boom)"; exit 1; }
 for v in bd sd lt mt ht lc mc hc rs cl cp ch oh cy cb ma; do
   test -f "$ROOT/docs/evidence/808/$v.md" || { echo "FAIL: missing ledger 808/$v.md"; exit 1; }
   grep -q "EXCITE" "$ROOT/docs/evidence/808/$v.md" || { echo "FAIL: ledger $v lacks accent mapping"; exit 1; }
@@ -371,6 +411,8 @@ bash "$ROOT/scripts/ri_build_host.sh" test t24_909accent >/dev/null || { echo "F
 bash "$ROOT/scripts/ri_build_host.sh" test t24_909quirk >/dev/null || { echo "FAIL: t24_909quirk (TC-2.4.3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t24_909retrig >/dev/null || { echo "FAIL: t24_909retrig (TC-2.4.4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t24_909swap >/dev/null || { echo "FAIL: t24_909swap (TC-2.4.5)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t44_909_newvoices >/dev/null || { echo "FAIL: t44_909_newvoices (new voice allocation)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t45_909_decouple >/dev/null || { echo "FAIL: t45_909_decouple (sample read decoupled from voice state)"; exit 1; }
 for v in bd sd ch oh cr rd lt mt ht rs cp; do
   test -f "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: missing ledger 909/$v.md"; exit 1; }
   grep -q "Provenance manifest" "$ROOT/docs/evidence/909/$v.md" || { echo "FAIL: ledger $v lacks manifest"; exit 1; }
@@ -425,6 +467,13 @@ bash "$ROOT/scripts/ri_build_host.sh" test t25_dist >/dev/null || { echo "FAIL: 
 bash "$ROOT/scripts/ri_build_host.sh" test t25_swap >/dev/null || { echo "FAIL: t25_swap (TC-2.5.5)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t25_pcfopen >/dev/null || { echo "FAIL: t25_pcfopen (TC-2.5.1-OPEN)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t27_fxlatency >/dev/null || { echo "FAIL: t27_fxlatency (TC-2.11.1)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t46_fx_delay_pool >/dev/null || { echo "FAIL: t46_fx_delay_pool (BEATS honored at 140 BPM/48 kHz; pool retired to caller-owned buffers)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t47_fx_delay_parity >/dev/null || { echo "FAIL: t47_fx_delay_parity (delay parity across paths)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t50_fx_dist_comp >/dev/null || { echo "FAIL: t50_fx_dist_comp (dist/comp complementarity)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t48_pcf_envelope >/dev/null || { echo "FAIL: t48_pcf_envelope (PCF envelope)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t49_pcf_patterns >/dev/null || { echo "FAIL: t49_pcf_patterns (PCF patterns)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t51_route >/dev/null || { echo "FAIL: t51_route (insert radio exclusivity; master is RI_ROUTE_MASTER, section 4 is Levi)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t52_engine_fx >/dev/null || { echo "FAIL: t52_engine_fx (inserts + pan + send/stereo-return; a section's FX leaves the other bit-identical)"; exit 1; }
 test -f "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: missing pcf engine ledger"; exit 1; }
 grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks P-15"; exit 1; }
 grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }
