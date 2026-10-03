@@ -398,3 +398,70 @@ render task no longer yields below the UI, so it never accumulates a 92 ms
 single-buffer stall -- it simply never gets to run, and the xruns and the GUI
 latency both go up instead. That inversion is the clearest single statement of
 what the arm is for.
+
+## Where the -O2 tab cost actually is -- and a correction (2026-10-03)
+
+Follow-up to the two sections above, prompted by checking the claim that the
+damage-box full-rebuild fix "is on the critical path for shipping `-O2`".
+Three measurements say that claim is wrong.
+
+**1. The bounded build is already shipped.** `bb1c385` ("bound the display-list
+build to the damage box") is an ancestor of HEAD:
+
+```
+git merge-base --is-ancestor bb1c385 HEAD   ->  yes
+```
+
+and `gui/widgets/rsection.mcc.c:233` passes the damage box:
+`build_dl(&d->brp, d, 0, 0, &dl, x0, y0, x1, y1)`. There is no unbounded
+full-rebuild left to fix.
+
+**2. `build_avg` is CHEAPER at `-O2`, not dearer** -- the metric that would move
+if the build were the cost:
+
+| cell | arm | `full_avg` | `build_avg` | `blit_max` | `part_max` | 5-tab total |
+|------|-----|-----------|-------------|------------|------------|-------------|
+| A1 | `-O0` | 2,275 us | 179 us | 9,914 us | 82,049 us | 99,432 us |
+| A2 | `-O0` | 2,274 us | 483 us | 9,819 us | 82,419 us | 99,786 us |
+| B2 | `-O2` | 4,565 us | 195 us | 27,249 us | 4,227 us | 241,791 us |
+| B3 | `-O2` | 2,850 us | 62 us | 4,118 us | 3,860 us | 241,632 us |
+| T3 | `-O2` off | 4,897 us | 194 us | 30,620 us | 4,200 us | 240,873 us |
+| T5 | `-O2` off | 4,839 us | 195 us | 28,033 us | 4,224 us | 260,392 us |
+
+The bounded build is 195 us at `-O2` against 179-483 us at `-O0`. It is not the
+cost, and at `-O2` there are **zero** `box_none` entries in most cells -- the
+unattributed full-repaint bucket the older record blamed is empty.
+
+**3. The section repaint is 1-2 % of the tab-switch cost.** The whole section
+full repaint at `-O2` averages 4,565 us against a five-tab total of 241,791 us:
+
+```
+  A1: 5 tabs = 99432 us; section full_avg = 2275 us  -> section is 2% of the tab cost
+  B2: 5 tabs = 241791 us; section full_avg = 4565 us  -> section is 1% of the tab cost
+```
+
+So the 2.43x is **not** in the section repaint, and cannot be fixed by bounding a
+build that is already bounded and already 1-2 % of the cost.
+
+**4. And not CPU contention either.** `render_total` -- the CPU the render task
+actually consumed -- is *lower* at `-O2`:
+
+| arm | buffers | xruns | xruns % | `render_total` | per buffer | `wake_total` |
+|-----|---------|-------|---------|----------------|------------|--------------|
+| `-O0` | 5,537 | 1,614 | 29 % | 31,540 ms | 5,696 us | 11,547 ms |
+| `-O0` | 5,540 | 1,601 | 28 % | 31,478 ms | 5,681 us | 11,515 ms |
+| `-O2` | 6,068 | 0 | 0 % | 15,933 ms | 2,625 us | 116 ms |
+| `-O2` | 6,067 | 0 | 0 % | 16,293 ms | 2,685 us | 117 ms |
+| `-O2` off | 5,879 | 0 | 0 % | 15,557 ms | 2,646 us | 112 ms |
+| `-O2` off | 5,975 | 0 | 0 % | 15,933 ms | 2,666 us | 115 ms |
+
+The render task does **half** the work at `-O2` and the GUI is still 2.43x
+slower. A busier render task cannot be what is slowing the GUI down.
+
+**Where that leaves it.** `-O2` only changes *our* 81 TUs; MUI, Intuition and
+`graphics.library` are prebuilt and byte-identical in both arms. The tab-switch
+cost is 98 % outside the section repaint, and the render task is idle-er at
+`-O2`, not busier. The remaining candidates are our own code around the page
+switch (`SetAttrs(MUIA_Group_ActivePage)`, the five `MUIA_RArt_Active` writes,
+`rail_for_tab`) and the per-tab bimodality already recorded. **Not chased here**,
+and the correction below is the load-bearing output of this pass.
