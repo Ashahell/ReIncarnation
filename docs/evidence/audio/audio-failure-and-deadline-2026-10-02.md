@@ -601,3 +601,60 @@ concluded "the spikes are in `SetAttrs` on our own widgets generally, not one
 call". Still true -- but the spikes are **flag-independent**, so they are not the
 `-O2` cost, and the remaining flag-dependent cost sits entirely in `page_us`
 (MUI's group page switch).
+
+## The like-for-like LEVI repeat, ON THE DELL (2026-10-03)
+
+The gap this lane's cascade restated as owed: *"why do the Dell and riqemu1
+distribute LEVI differently, and which is right for the Dell?"* — with the note
+that **the repeat is owed on the Dell, because every audio measurement in this
+lane is a Dell measurement.**
+
+`84f46cc` added the fifth sub-stage (`RI_ENGINE_ST_LEVTEMPO`,
+`levi_set_tempo` — the previously uncovered SLEVI call) **and a control**:
+`RI_ENGINE_ST_LEVPROBE`, an empty T/E pair that measures the per-pair floor
+directly. So the floor is no longer inferred; it is measured in the same run.
+
+Binary: `RIAPP-h` = 1,099,200 B, `r12moves=41`, HEAD `84f46cc`, `-O0`, ABIv11.
+The Knife, 104 bars at 124 BPM, 4344 playing buffers, live AHI
+(`mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us`).
+
+```
+RIAPP dstg block  avg=1767 us max=2499 us
+RIAPP dstg levi   avg=1139 us max=1862 us        (64 % of block)
+RIAPP dstg lev-arp   avg=4    us max=26  us      AT FLOOR
+RIAPP dstg lev-seq   avg=4    us max=33  us      AT FLOOR
+RIAPP dstg lev-voice avg=1042 us max=1661 us     91 % of levi
+RIAPP dstg lev-mix   avg=58   us max=140 us      5 % of levi
+RIAPP dstg lev-tempo avg=4    us max=27  us      AT FLOOR
+RIAPP dstg lev-probe avg=4    us max=31  us      THE FLOOR CONTROL
+RIAPP dstg 303a   avg=185 us    303b avg=183 us    808 avg=88 us    909 avg=77 us
+RIAPP hb: buffers=4360 xruns=1586 render_max=8868 us wake_max=5819 us overloads=6 load=1193/1000
+```
+
+**The answer is the opposite of riqemu1's, and the control is what makes it
+readable.**
+
+| | riqemu1 (ABIv1) | **Dell (ABIv11)** |
+|---|---|---|
+| LEVI share of block | 16.2 % | **64 %** |
+| `lev-voice` | 8 µs (floor) | **1,042 µs — 91 % of LEVI** |
+| `lev-mix` | 6 µs (floor) | 58 µs — 5 % |
+| `lev-arp` / `lev-seq` / `lev-tempo` | floor | floor |
+| internals sum vs LEVI | 26 of 57 µs (46 %) | **1,116 of 1,139 µs (98 %)** |
+| **unattributed** | **31 µs = 54 %** | **23 µs = 2 %** |
+
+So on the Dell **`levi_voice_render_sum_stereo` carries the cost** — 91 % of
+LEVI, and LEVI is 64 % of the block. riqemu1's "54 % of LEVI unattributed" is
+not a mystery about LEVI; it is what the same code looks like when
+`levi_voice_render_sum_stereo` is itself at the floor there.
+
+**And `lev-probe` settles the floor question this lane had to caveat.** An empty
+T/E pair reads **4 µs** — exactly what `lev-arp`, `lev-seq` and `lev-tempo` read.
+The three at-floor rows are therefore *measured as doing nothing*, not merely
+*too cheap to see*. The earlier caveat in this file ("no `n` on those rows, so a
+floor reading is indistinguishable from one that never ran") is now answered for
+this configuration: the control row reads the floor, so the rows matching it are
+at the floor.
+
+`xruns=1586`, `overloads=6`, `load=1193/1000` — the `-O0` behaviour on the Dell,
+unchanged and as recorded.

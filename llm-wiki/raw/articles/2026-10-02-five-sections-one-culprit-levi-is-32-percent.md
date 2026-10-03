@@ -216,3 +216,7 @@ across all three runs to within 1 %.
 - [Render-stage breakdown: the voice render is 94 % of the cost](2026-10-02-render-stage-breakdown-voices-are-94-percent-not-the-fx-chain.md)
 - [Optimisation level alone removes every xrun on the Dell](2026-10-02-optimisation-level-alone-removes-every-xrun-on-the-dell.md)
 - [`r12moves` is an inlining counter, not an ABI hazard](2026-10-02-r12moves-is-an-inlining-counter-not-an-abi-hazard.md)
+
+## See Also
+
+- [On the Dell, LEVI is 64 % of the block](2026-10-03-on-the-dell-levi-is-64-percent-of-the-block-and-91-percent-is-one-call.md) — the like-for-like repeat on this lane's own machine

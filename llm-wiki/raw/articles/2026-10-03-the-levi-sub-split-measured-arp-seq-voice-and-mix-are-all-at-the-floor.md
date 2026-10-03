@@ -175,3 +175,7 @@ read. `exec` returned `rc=1` with no output for the entire time RIAPP ran, and
 - [five sections, one culprit: LEVI is 32 percent](2026-10-02-five-sections-one-culprit-levi-is-32-percent.md) — the standing gap this closes, and the earlier headline
 - [AC97 resamples 48 kHz to 44.1 kHz](2026-10-03-riqemu1-ac97-resamples-48k-to-44k1-so-playback-is-8-1-slow.md) — the resample factor used above as a bound
 - [the riqemu1 lane cannot be driven by injection](2026-10-03-riqemu1-cannot-be-driven-by-injection.md) — why `sendkey` rather than a click, and the exec/ui split
+
+## See Also
+
+- [On the Dell, LEVI is 64 % of the block](2026-10-03-on-the-dell-levi-is-64-percent-of-the-block-and-91-percent-is-one-call.md) — the like-for-like repeat on this lane's own machine
