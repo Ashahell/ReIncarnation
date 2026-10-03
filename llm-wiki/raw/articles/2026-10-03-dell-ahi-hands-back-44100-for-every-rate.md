@@ -63,9 +63,17 @@ is no audio at all. Reaching 44100 requires supplying a mode id directly
 (`mode=0x003E0001`, obtained from the 48000 request) and letting `MixFreq` do
 what it will.
 
-This is a genuine AROS driver defect, not a usage error. `AHI_BestAudioID` is
-supposed to select the best mode *satisfying* the request; here it neither
-satisfies the request nor offers a native alternative that does.
+This is a genuine AROS defect, not a usage error. `AHI_BestAudioID` is supposed
+to select the best mode *satisfying* the request; here it neither satisfies the
+request nor offers a native alternative that does.
+
+> **Sharpened 2026-10-03: the same refusal reproduces on riqemu1, with the
+> opposite meaning.** `req=44100 mode=INVALID (BestAudioID)` there too — but on
+> riqemu1 the refusal is *correct*, because `nfreq=1` and the only mode is 48000.
+> On the Dell it is *incorrect*, because 44100 is `list[0]`. Same symptom, two
+> different verdicts, and only the mode list tells them apart. Which makes the
+> rule worth stating on its own: **a `BestAudioID` refusal says nothing by
+> itself** — read `AHIDB_Frequencies` before concluding a driver cannot do a rate.
 
 ## The correction: the log line is a request, not a fact
 
@@ -86,16 +94,31 @@ what was *asked for*. Everything derived from that line is on the wrong clock.
 That is a more useful lesson than the false claim it replaces: **a line in your
 own log that repeats an argument you passed is not evidence about the device.**
 
-The two lanes do genuinely differ, though, and now for a measured reason:
+The two lanes do genuinely differ, though, and now for a measured reason.
+**Measured on both, 2026-10-03:**
 
-| lane | requested | AHI read back | what the host plays |
-|---|---|---|---|
-| Dell | 48000 | **44100** | 44100 — no conversion |
-| riqemu1 | 48000 | **48000** | 44100 — QEMU resamples, 8.1 % slow |
+| lane | requested | AHI read back | AHI modes offered | what the host plays |
+|---|---|---|---|---|
+| Dell | 48000 | **44100** | 5: 44100…192000 | 44100 — no conversion |
+| riqemu1 | 48000 | **48000** | **1: 48000 only** | 44100 — 8.1 % slow |
+
+The riqemu1 row is `range=48000-48000 nfreq=1`, `list[0]=48000`, and every rate
+requested comes back as 48000.
+
+> **Correction 2026-10-03 (after the host cold-reboot): the "what the host plays"
+> column is not a QEMU conversion.** Read from QEMU's own source, `hw/audio/ac97.c`
+> 11.1.1, the AC97 model defaults to **48000** (`0xbb80`, `open_voice(..., 48000)`)
+> and takes its rate from the **guest's** `AC97_PCM_Front_DAC_Rate` register,
+> writable when `EACS_VRA` is set. And AROS's ac97 AHI driver hardcodes 48000
+> (`ac97-main.c:39`, `:147`). So neither QEMU's device model nor the guest asks for
+> 44100; QEMU defaults an unspecified `-audiodev` frequency to 44100
+> (`audio.c:253`) and the launch passes none. Where that 44100 actually comes from
+> is narrowed but **not settled**. The AHI columns in this table stand. Full
+> record: [raw evidence](../evidence/2026-10-03-riqemu1-rate-and-qemu-ac97-source.md).
 
 So the corrected comparability rule is not "the two lanes run on different
-clocks". It is: **both lanes end up at 44100, and the riqemu1 lane additionally
-converts to get there** — which is exactly why riqemu1 is 8.1 % slow and the
+clocks". It is: **both lanes end up playing 44100, and only riqemu1's engine is
+producing 48000 into it** — which is exactly why riqemu1 is 8.1 % slow and the
 Dell is not, on the same engine and the same requested rate.
 
 ## Why the 44100 fix is now safe to propose

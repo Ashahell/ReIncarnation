@@ -18,13 +18,41 @@ host:   format.rate = "44100"   (Sink Input #2337, application.name = "riqemu1")
 ratio:  44100 / 48000 = 0.91875          → 8.1 % slow
 ```
 
-QEMU's AC97 model is fixed at 44.1 kHz and resamples the guest's 48 kHz stream
-down to it. **Pitch and tempo go together**, which is why it reads as a
-performance problem rather than as a resampler: a synth played 8 % slow sounds
-like a synth being too slow, not like a clock being wrong.
+**Pitch and tempo go together**, which is why it reads as a performance problem
+rather than as a resampler: a synth played 8 % slow sounds like a synth being too
+slow, not like a clock being wrong.
 
-`start_riqemu1.sh` passes `-device AC97,audiodev=pa0`, and there is no AC97 rate
-knob on the QEMU side to change.
+> **Status: the mechanism below is WRONG on its central claim, and the recommended
+> fix is not achievable on this lane.** Both corrected 2026-10-03, the second
+> after a host cold-reboot gave the chance to measure this lane directly.
+>
+> **1. QEMU's AC97 is NOT fixed at 44.1 kHz and there IS a rate knob.** From
+> `hw/audio/ac97.c` (QEMU 11.1.1), `AC97_PCM_Front_DAC_Rate` is **guest-writable**
+> whenever `EACS_VRA` is set, and the reset path stores `0xbb80` — which is
+> **48000** — then calls `open_voice(s, PO_INDEX, 48000)`. The rate is used raw
+> (`as.freq = freq`). The model defaults to 48 kHz and takes its rate from the
+> guest.
+>
+> **2. The guest never asks for 44100 either.** AROS's ac97 AHI driver hardcodes
+> 48000 in two places (`ac97-main.c:39`, `ac97-main.c:147`), and the probe
+> confirms the mode: **`range=48000-48000 nfreq=1`, `list[0]=48000`**. Every rate
+> requested comes back as 48000, 44100 included.
+>
+> **So "run AHI at 44100" cannot work on riqemu1** — there is no 44100 mode to
+> select, and a 44100 request is silently converted. It remains a no-op on the
+> Dell, which already returns 44100 for everything.
+>
+> **Where the 44100 does come from is narrowed but not settled.** QEMU defaults an
+> unspecified `-audiodev` frequency to 44100 (`audio.c:253`), the launch passes
+> none, and all host sinks are 48000 — so neither the guest, QEMU's device model
+> nor the host explains it. Whether the device's `as.freq` overrides that template
+> default could not be read from this tree. **The decisive experiment:** add
+> `frequency=48000` to the `-audiodev`, play, read the host stream rate.
+>
+> The **measurement** in this article stands — the guest really does produce
+> 48000 at exactly real-time pace and the host really does play 44100. What was
+> wrong was saying QEMU was the thing converting. Full record:
+> [riqemu1 rate and QEMU's AC97 source](../evidence/2026-10-03-riqemu1-rate-and-qemu-ac97-source.md).
 
 ## The guest is not slow, and its own counters say so
 
@@ -53,18 +81,22 @@ The Levi sub-split, incidentally, came out of the same run and is clean —
 `dstg n=3453`, `lev-voice avg=124 us`, `block avg=462 us` — the only
 device-measured sub-split numbers that exist.
 
-## The fix
+## The fix — as originally written, and why it does not survive
 
-**Run AHI at 44100 so AC97 never resamples.** That removes the conversion rather
-than compensating for it, and it costs nothing on this lane: the engine is
-running at 3/1000 load, so 44100 is as cheap as 48000.
+**Run AHI at 44100 so AC97 never resamples.** That was the recommendation, on the
+reasoning that 44100 is QEMU's fixed rate and matching it removes the conversion.
 
-Not implemented, and still an owner decision. **The native rate has since been
-probed** (2026-10-03): 44100 is `list[0]` on the Dell and the floor of its
-`range=44100-192000`, so the change is safe on both lanes. The probe did find one
-precondition — `AHI_BestAudioID` **cannot select 44100 on the Dell**, so the
-change must supply the mode id rather than just alter the requested frequency.
-See [the Dell hands back 44100 for every rate](2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md).
+**It is not achievable on this lane.** `probe_rate` on riqemu1 returns
+`nfreq=1`, `list[0]=48000`, `range=48000-48000`: there is exactly one mode, and a
+44100 request comes back as 48000. No amount of changing what ReIncarnation asks
+for will produce 44100 here.
+
+It is equally pointless on the Dell, which already returns 44100 for every rate
+— see [the Dell hands back 44100 for every rate](2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md).
+
+**What is left is one word in a launch script, not a change to ReIncarnation:**
+`-audiodev pa,id=pa0,frequency=48000`. Untested. Whether that is sufficient
+depends on the unsettled question above, and it is the first thing to try.
 
 The alternative — leave the engine at 48000 and accept 0.91875 — is only
 defensible if a future guest can be given a 44.1 kHz sound card, which QEMU's
