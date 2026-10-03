@@ -47,6 +47,34 @@
 
 ## Lane state parked (2026-09-30)
 
+> **Status: the GRUB line of this lane state no longer holds (2026-10-03).** The
+> live lane has been moved back to the pinned `vesa=1280x1024x32` entry, which is
+> the state this record had deliberately moved away from — **so the trade-off
+> described above is now live in the opposite direction.** Full record and
+> reasoning: [the display mode is a GRUB kernel argument](2026-10-03-the-display-mode-is-a-grub-kernel-argument.md).
+>
+> What changed, and why it matters for anyone reading the original:
+>
+> | | pinned `vesa=1280x1024x32` + `nomonitors` | `native` |
+> |---|---|---|
+> | resolution | deterministic 1280x1024 | varies per boot |
+> | modes in the walk | **1** | **23**, incl. 1920x1080 |
+>
+> The pinned state was chosen to satisfy "riqemu1 always starts at 1280x". The
+> cost is the 23-mode capability this record exists to document, so **the wide-mode
+> work above can no longer be repeated on the lane as it now stands.**
+>
+> Also now true, and worth knowing before re-reading the parked state:
+> `grub.cfg` and `grub.cfg.mine` were made **byte-identical** (7148 B each), the
+> pinned default lives in both, and the malformed stray line
+> `'set default AROS64 with native Gfx '` that lived only in `.mine` was removed.
+> So `.mine` is **no longer a backup of the superseded state** — the distinction
+> this record relied on has been erased.
+>
+> **Not confirmed:** depth. The entry requests `x32`, this record observed the
+> single VBE mode as **1280x1024x24**, and `screendump` emits RGB regardless, so
+> the discrepancy is still open.
+
 - GRUB default = native (wide-capable); backup `grub.cfg.mine` on DH0.
 - Quarantined on DH0: `sb128.audio`→`.bak`, mode files `SB128`/`VIA-AC97`/`HDAUDIO`/`CMI8738`/`NVHDMI`→`SYS:Storage/*.bak`, `ac97.audio`→`.bak` (only `DEVS:AudioModes/ac97` left; restore order is the reverse).
 - `ENVARC:RIAPP_EVLOG=RAM:` persists; `start_riqemu1.sh` now `-vga vmware` + `-audiodev pa` + `-device intel-hda,msi=off -device hda-duplex` (AC97 stanza superseded; HDA still silent — see above).
