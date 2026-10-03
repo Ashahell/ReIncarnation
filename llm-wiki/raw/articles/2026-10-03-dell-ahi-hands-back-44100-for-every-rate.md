@@ -182,5 +182,6 @@ riqemu1 side of the comparison above comes from the earlier verified readback
 
 ## See Also
 
+- [the AHI probe build contract](2026-10-03-the-ahi-probe-build-contract.md) — what building this probe cost, and why a probe needs its own v11 build script
 - [AC97 resamples 48 kHz to 44.1 kHz](2026-10-03-riqemu1-ac97-resamples-48k-to-44k1-so-playback-is-8-1-slow.md) — the finding this extends, and the one carrying the claim this record corrects
 - [AHI on riqemu1: the loader ignores `sh_addralign`](2026-10-03-ahi-on-riqemu1-the-loader-ignores-sh-addralign.md) — why AHI is usable on either lane at all

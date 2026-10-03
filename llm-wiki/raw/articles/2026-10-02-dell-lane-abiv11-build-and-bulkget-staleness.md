@@ -53,6 +53,23 @@ LINK       -nostartfiles -no-pie  $SDK/lib/startup.o -lamiga -lmui -lintuition
 
 **Corollary for the audit:** a green `ri_audit.sh` and a green Dell run are independent facts. Never let one stand in for the other, and never let the audit's link gate be quoted as evidence that the change was proved on target.
 
+> **Added 2026-10-03 — the same trap has a second instance, for measurement tools
+> rather than for the application.** A standalone AHI probe needs its own v11
+> build script for exactly this reason: `build_v11.sh` above is RIAPP-only (a
+> hardcoded 65-file list plus Amiga/MUI/CyberGraphics), and routing a probe
+> through it would both force a full rebuild per probe and leave the probe's lane
+> implicit in a script named for the application. `build_probe_v11.sh` now
+> asserts `r12moves > 0` rather than reporting it, so the wrong-lane build
+> **fails** instead of producing a binary that takes a `Software Failure!`
+> requester before its first log line.
+>
+> The link line differs too, and the shorter one is correct rather than a
+> workaround: the v1 lane needs `-lstdcio -lposixc` behind its rename shim, the
+> v11 toolchain **has neither** (`cannot find -lstdcio`), and a probe needs only
+> `-ldos -lexec` because `Printf` is a dos.library function. ELF `Type:` and size
+> identify nothing on either lane — both probes are `REL` files differing by
+> 1984 B. Full record: [the AHI probe build contract](2026-10-03-the-ahi-probe-build-contract.md).
+
 ## Trap 2: `--get` on a file the guest still has open returns stale bytes, silently
 
 I spent time convinced that the running app was not logging. It was logging. The reader was lying.

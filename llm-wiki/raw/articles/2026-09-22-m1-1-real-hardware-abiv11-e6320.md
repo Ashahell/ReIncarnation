@@ -63,6 +63,17 @@ include tree does NOT ship ahi.h). Flags:
 `-mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing
 -ffixed-r12 -nostartfiles -no-pie`, link `startup.o` from
 `$V11SDK/lib/startup.o` (v11 SDK) + `-ldos -lexec`. Result:
+
+> **Confirmed and generalised 2026-10-03.** This record's `-ldos -lexec` link was
+> right, and it is right for a reason that was not visible at the time: `Printf`
+> is a **dos.library** function (`clib/dos_protos.h`), so a probe needs no
+> `-lstdcio`. That matters because the v11 toolchain **has no `libstdcio` or
+> `libposixc` at all** (`cannot find -lstdcio`), while the v1 lane's build pairs
+> them behind a `libcrt`/`libstdlib`/`libcrtprog` rename shim. A second AHI probe
+> on the v11 lane also needs `-I` to the source-tree `ahi.h` exactly as recorded
+> here, and a tag list handed to `AHI_AllocAudioA` must carry an explicit
+> compile-time size. Full record:
+> [the AHI probe build contract](2026-10-03-the-ahi-probe-build-contract.md).
 `probe_ahi_v11` 24064 B, UND=1, task.resource string count = 0, 225
 `mov.*%r12` (the r12 convention is LIVE in this build).
 
