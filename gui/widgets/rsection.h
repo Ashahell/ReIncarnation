@@ -72,6 +72,13 @@ struct RSectionDiag {
      * with an identical (why, x0, y0, x1, y1) are counted separately from the
      * ones that differ. Neither is a verdict -- it is the measurement that
      * decides between "cache it" and "do not bother".
+     *
+     * CORRECTED 2026-10-04: this is a CALLER-SPAM counter, NOT a cache oracle.
+     * An identical damage rect does not mean identical work -- two requests for
+     * the same rectangle can bracket a state change -- so dpr_rep counts how
+     * often the same box was asked for twice, which is useful, and says nothing
+     * about whether the result was the same. Reading it as "a cache would hit"
+     * is a category error: a cache can only skip work whose RESULT is unchanged.
      */
     ULONG dpr_rep;        /* repeats: same why AND same rect as the previous */
     ULONG dpr_new;        /* first-of-a-kind: differed from the previous */

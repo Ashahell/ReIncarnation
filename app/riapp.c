@@ -1186,8 +1186,12 @@ static void meter_round(ULONG mix_freq) {
         {
             const struct RIGeoSection *g = ri_geo_section(strip_sec[k]);
             int x0, y0, x1, y1;
+            /* Zoom must be the CANVAS's zoom, not a literal 0 (2026-10-04). A
+             * bbox computed at another zoom is a rectangle in a different
+             * coordinate space, so it is clamped into something that looks
+             * valid and repaints the wrong art. */
             if (g && ri_geo_bbox(g, (uint16_t)(((uint32_t)strip_sec[k] << 8) | RI_SMIX_METER),
-                0, &x0, &y0, &x1, &y1) == 0)
+                s_zoom[c_mix_canvas[k]], &x0, &y0, &x1, &y1) == 0)
                 ri_rsection_refresh_box(s_canvas[c_mix_canvas[k]], x0, y0, x1, y1);
             else
                 ri_rsection_refresh(s_canvas[c_mix_canvas[k]]);
@@ -1209,7 +1213,7 @@ static void meter_round(ULONG mix_freq) {
             ri_smix_meter_set(u->u.mix.board, RI_SEC_MASTER, (uint32_t)ch, lvl);
             g = ri_geo_section(RI_SEC_MASTER);
             if (g && ri_geo_bbox(g, (uint16_t)(((uint32_t)RI_SEC_MASTER << 8) | (1u + (uint32_t)ch)),
-                0, &x0, &y0, &x1, &y1) == 0)
+                s_zoom[C_MST], &x0, &y0, &x1, &y1) == 0)
                 ri_rsection_refresh_box(s_canvas[C_MST], x0, y0, x1, y1);
             else
                 ri_rsection_refresh(s_canvas[C_MST]);
@@ -1250,8 +1254,23 @@ static void meter_round(ULONG mix_freq) {
                 /* song mode: the Song Position display followed the song */
                 const struct RIGeoSection *g = ri_geo_section(sec);
                 int x0, y0, x1, y1;
+                /* s_zoom[C_TR], NOT a literal 0 (2026-10-04). The transport
+                 * canvas is unconditionally RI_GEO_ZOOM_COMPACT, so asking for
+                 * zoom 0 asked for a rectangle in the wrong coordinate space:
+                 *
+                 *   asked (zoom 0)      : 540,52..622,92
+                 *   real  (compact = 3) : 404,38..467,70
+                 *   DISJOINT
+                 *
+                 * So the RI_STALE_BAR path was repainting a region that does not
+                 * contain the Song Position display, clamped into something that
+                 * looked valid and was therefore attributed to box_bar and read
+                 * as innocent. Verified disjoint on the host, not reasoned about.
+                 * This is a visible-behaviour bug (the bar digits were not being
+                 * repainted by this path), filed separately from the stall. */
                 if (g && ri_geo_bbox(g,
-                    (uint16_t)(((uint32_t)RI_SEC_TRANSPORT << 8) | RI_STR_BAR), 0,
+                    (uint16_t)(((uint32_t)RI_SEC_TRANSPORT << 8) | RI_STR_BAR),
+                    s_zoom[C_TR],
                     &x0, &y0, &x1, &y1) == 0)
                     ri_rsection_refresh_box_why(s_canvas[k], x0, y0, x1, y1,
                         RI_RSEC_BOX_BAR);
@@ -1279,7 +1298,7 @@ static void meter_round(ULONG mix_freq) {
                         int x0, y0, x1, y1;
                         if (steps[s] < 0 || steps[s] > 15)
                             continue;
-                        if (ri_geo_bbox(g, (uint16_t)(base + (uint32_t)steps[s]), 0,
+                        if (ri_geo_bbox(g, (uint16_t)(base + (uint32_t)steps[s]), s_zoom[k],
                             &x0, &y0, &x1, &y1) == 0)
                             ri_rsection_refresh_box_why(s_canvas[k], x0, y0, x1, y1,
                                 RI_RSEC_BOX_STEPS);
@@ -2661,6 +2680,15 @@ int main(int argc, char **argv) {
                  * longest single run survives being read. */
                 dg->dpr_rep = 0u;
                 dg->dpr_new = 0u;
+                /* dpr_run_now IS reset with its siblings (corrected 2026-10-04).
+                 * Leaving it running was defended as "so a burst spanning
+                 * windows stays visible", but dpr_run_max already does that and
+                 * is never reset. Worse, dpr_rep/dpr_new are zeroed here, so
+                 * the first invalidation of each window was classified as a
+                 * REPEAT whenever it matched the previous window's last -- a
+                 * spurious dpr_rep per canvas per window, landing in the quiet
+                 * windows, biasing the ratio toward "cache it". */
+                dg->dpr_run_now = 0u;
                 dg->blit_max = 0u;
                 dg->alloc_n = 0u;
                 dg->df_max = dg->df_sum = 0u;
