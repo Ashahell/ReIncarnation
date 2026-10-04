@@ -2399,6 +2399,17 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: **New result** (completes the experiment opened in the previous entry)
 - Raw figures below; artefact is the same `Vk4aros:RIAPP.LOG` column the prior entries quote.
 - **THE DELL WEDGE IS *IDLE-TIME*, AND THAT IS A DIFFERENT BUG FROM ANYTHING MEASURED SO FAR.** Owner: the mixed build "played fine, and we switched tabs no issues, then left it unattended for minutes and found it wedged" — no requester. So the signature is **play fine → idle → wedge**, not load-driven. Ruled out on inspection: the stopped path in `engine/live.c` is a memset loop and cannot wedge, and the GUI's 100 ms timer **is** re-armed every loop iteration (`app/riapp.c`, `CheckIO`/`WaitIO`/`SendIO` in the message block). The remaining suspect is the **AHI render task's wait loop**, which is `Wait(s_hook_mask | SIGBREAKF_CTRL_C)` with **no fallback timer** — it wakes only on an AHI interrupt. If the card stops requesting buffers when the song ends, nothing pokes the task, and an interrupt-driven loop with no fallback has nothing to break it out. **Stated as a hypothesis from code inspection, not measured.**
+- **⚠ SUPERSEDED MINUTES LATER, AND THE OWNER'S OWN WIKI SAYS SO.** Consulting the wiki after writing the above turned up a **root-caused** wedge dated **2026-09-25**, and the Dell runs the exact vulnerable driver:
+
+  ```
+  [exec] 'version e1000.device' -> rc=0 (62 ms)
+         e1000.device 1.1
+  ```
+
+  Proven cause (2026-09-25, reproduced on a private QEMU e1000 lane): **`e1000.device` allocates a Tx frame with `AllocMem()` per outgoing packet in its Tx soft interrupt and frees it with `FreeMem()` from the HARDWARE interrupt handler.** exec's memory lists are guarded by `MEM_LOCK` = `Forbid()`, which **does not stop interrupts**, so the handler's `FreeMem()` races task allocations and corrupts the TLSF lists — a `Software Failure!` with `Error: 0x80000008 - Privilege violation` in `tlsf_freevec`, reached from `e1000func_clean_tx_irq`. The article names the Dell's own deployed `e1000.device 1.1 (21.7.2026)` as carrying the pattern **by disassembly**, and records that the upstream e1000 rebuild **did not help because it is the same code**. A patch exists: `e1000-tx-no-alloc-in-interrupt.v{1,11}.patch`.
+- **THIS EXPLAINS MY SYMPTOMS, INCLUDING THE PART I MISREAD.** The Dell "played fine, tabs fine, then wedged while unattended" — and the failure I actually observed was **not an RIAPP stall**: the machine **stopped answering ARP** (`No route to host` on 9292, with the route intact and the host IP unchanged). That is a dead NIC, not a wedged application. The reproduction's trigger is **repeated large bulk transfers** ("845 KB bulk get per round"), and **my own evidence pulls are exactly that: 535 127 B and 412 336 B single `--get`s.**
+- **CORRECTION TO MY OWN RECOMMENDATION.** I proposed adding a fallback `TIMEOUT` to the AHI wait loop as the next change. **That would have been fixing the wrong system.** No amount of poking the render task revives a guest whose exec heap has been corrupted by a NIC driver; RIAPP was a bystander. The fix belongs on the transport, and the transport fix is already written and waiting to be deployed.
+- **THE LESSON, WHICH IS THE PART WORTH KEEPING.** An unexplained machine-level wedge on a lane whose wiki **already has a root cause** is a **lookup failure, not a new investigation** — and the index had carried this since September. Two other Dell-lane traps from 2026-10-02 were likewise already documented (a bare-path `--exec` launch wedges the agent; `--ui-capture` can hang forever), so the lane now has **three** recorded ways to lose it and I hit a fourth. **Consult the wiki before proposing a fix for any lane-level failure, and check whether the evidence-pull size is itself the trigger.**
 - **THE MIXED BUILD, MEASURED.** `RIAPP-mix.v11`, 1008384 B, `engine/` 29 TUs at `-O2` and the rest at `-O0`:
 
   | build | µs/voice-sample | xruns | render_max | overloads | wake_max |
@@ -2410,3 +2421,17 @@ Register (same visibility-only bit); activation later. t98 reverts to
   **The mixed build captures 93 % of the `-O2` win** and takes **2.66×** off the `-O0` DSP cost, while the app and GUI stay unoptimised for debuggability. Fits are `r = 0.9992` (mixed) and `r = 0.9983` (`-O2`).
 - **WHY THE MIXED BUILD MATCHES `-O2` AND NOT `-O0`, WHICH IS THE WHOLE POINT.** The DSP translation units are compiled `-O2` in both, so their cost is the same by construction; what `-O2` also changes is the **scheduling** — at `-O0` a buffer overruns budget, the overload guard trips and drops the render task below the GUI, and xruns follow. In the mixed build the render is fast enough that **the guard never arms** (`overloads = 0`, `load` peaking at 673/1000), so the mixed build inherits `-O2`'s *runtime* behaviour as well as its *code* speed. **The 2026-09-28 debug-only rule is therefore not actually in tension with the `-O2` measurements: the scheduling win comes from the DSP being fast, not from the GUI being optimised.**
 - CAVEAT: 4 slope points on the mixed run and 3 on the `-O2` run, so the 1.15× gap between mixed and pure `-O2` is within the noise of these sample counts and should not be read as a real regression. The `fixed` intercepts are meaningless where noted (negative, from extrapolating a 4-point fit below its lowest point).
+- **THE BULK-GET PROTOCOL HAS NO RANGED READ, SO "JUST PULL THE TAIL" IS NOT AVAILABLE.**
+  `bulk_get_begin` carries only `{path, port}` and the agent streams the whole file,
+  SHA-256 verifying as it goes; the transport is already windowed lock-step with an ACK
+  per window, and its own docstring records that this is *the only outbound mode the
+  AROSTCP stack survives* (the 2026-08-14 unfettered-stream wedge). **So the transport is
+  already doing the safest thing it can, and a helper that trims the file after the fact
+  reduces the analysis artefact but NOT the wedge risk — the bytes crossed before the trim.**
+  Recorded because I first wrote such a helper and briefly described it as a mitigation.
+- **THE REAL LEVER IS LOG SIZE, AND THAT IS A DEFECT OF OURS.** `RIAPP.LOG` is append-only
+  across every run on the stick and had reached **575 791 B** on a machine whose NIC driver
+  wedges under repeated bulk transfer. A log that grows without bound is itself a bug, it
+  makes every evidence pull larger than it needs to be, and it is the one thing here that
+  is ours to fix rather than the driver's. **Bounded or rotated per session is the correct
+  answer**, and it is now the top transport-hygiene item.
