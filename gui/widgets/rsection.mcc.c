@@ -238,10 +238,44 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
                     d->diag.dp_build_max = us_build;
                 d->diag.dp_build_sum += us_build;
             }
-            if (replay_dl_dmg(&d->brp, &dl, ri_skin_aros_for(d->ui.section),
-                x0, y0, x1, y1)) {
+            /* Replay and blit timed SEPARATELY (2026-10-04). Previously only
+             * the build and the total were measured, so a stall could not be
+             * split between them -- and `build_max ~= part_max` was read as a
+             * build problem when one window said 99.8 % build and the next said
+             * 9.7 %. Two extra ReadEClock pairs, ~24 us of clock on a path that
+             * costs 200 us-1.36 s, and the split is available every time after
+             * this. The three components deliberately sum to `dp_*`. */
+            {
+                struct EClockVal tr;
+                if (timed)
+                    ReadEClock(&tr);
+                if (!replay_dl_dmg(&d->brp, &dl, ri_skin_aros_for(d->ui.section),
+                        x0, y0, x1, y1))
+                    goto bail_out;   /* nothing drawn: no dp_* sample either */
+                if (timed) {
+                    struct EClockVal te;
+                    ULONG ur;
+                    ReadEClock(&te);
+                    ur = eclock_us(&tr, &te);
+                    if (ur > d->diag.dp_replay_max)
+                        d->diag.dp_replay_max = ur;
+                    d->diag.dp_replay_sum += ur;
+                }
+                if (timed)
+                    ReadEClock(&tr);
                 BltBitMapRastPort(d->bm, x0, y0, wrp, _mleft(obj) + x0, _mtop(obj) + y0,
                     x1 - x0 + 1, y1 - y0 + 1, 0xC0);
+                if (timed) {
+                    struct EClockVal te;
+                    ULONG ub;
+                    ReadEClock(&te);
+                    ub = eclock_us(&tr, &te);
+                    if (ub > d->diag.dp_blit_max)
+                        d->diag.dp_blit_max = ub;
+                    d->diag.dp_blit_sum += ub;
+                }
+            }
+            {
                 if (timed) {
                     struct EClockVal t2;
                     ReadEClock(&t2);
@@ -258,9 +292,10 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
                     d->diag.dpw_sum[why] += us;
                     d->diag.dpw_n[why]++;
                 }
-                return;
             }
+            return;
             /* bail-out (system text / imageless skin): full below */
+            bail_out:
         }
     }
     draw_section(&d->brp, d, 0, 0);

@@ -59,6 +59,25 @@ struct RSectionDiag {
      * a tab-switch box cost 46-91 ms and build_dl is the suspect; the
      * damage path does not know yet, so it is measured). */
     ULONG dp_build_max, dp_build_sum;
+    /* PARTIAL-PATH REPLAY AND BLIT, timed separately (2026-10-04).
+     *
+     * Why this exists, and it is a gap that cost a wrong conclusion. `blit_max`
+     * is written ONLY on the full-draw path; the partial path recorded `dp_*`
+     * and `dpw_*` and returned without ever timing its own replay or blit. So
+     * `build_max ~= part_max` was the only split available, and that reading is
+     * true in one window and false by 10x in the other -- which is how a
+     * 1.36 s draw got filed as a display-list BUILD problem when at least 90 % of
+     * it was replay and blit. **The number that would have settled it was never
+     * collected.**
+     *
+     * These three therefore cover the whole partial path, and the three must
+     * sum to `dp_*`:
+     *   dp_replay_max/sum  replay_dl_dmg
+     *   dp_blit_max/sum    BltBitMapRastPort
+     *   dp_build_max/sum   build_dl (already present, kept here for symmetry)
+     */
+    ULONG dp_replay_max, dp_replay_sum;
+    ULONG dp_blit_max, dp_blit_sum;
     /* REDUNDANT-INVALIDATION COUNTERS (2026-10-04). The 1.36 s Dell stall was
      * attributed to this path -- box_bar with dp_build ~= dp_max, 25 refreshes
      * in one window at 74.6 ms average, against 202 us in the quiet windows --

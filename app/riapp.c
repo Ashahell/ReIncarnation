@@ -2638,6 +2638,10 @@ int main(int argc, char **argv) {
              * ratio is the whole question: a burst dominated by repeats is a
              * cache waiting to happen, one dominated by new work is real cost. */
             ULONG dpr_rep = 0u, dpr_new = 0u, dpr_run = 0u;
+            /* Partial-path split: replay vs blit, which were never timed
+             * separately and whose absence is what let a 90 %-not-build stall
+             * be filed as a build problem (2026-10-04). */
+            ULONG rp_max = 0u, rp_sum = 0u, bl_max = 0u, bl_sum = 0u;
             int w;
             hb = 0u;
             for (i = 0; i < C_N; i++) {
@@ -2658,6 +2662,10 @@ int main(int argc, char **argv) {
                 if (dg->dp_build_max > dpbmax)
                     dpbmax = dg->dp_build_max;
                 dpbsum += dg->dp_build_sum;
+                rp_max = dg->dp_replay_max > rp_max ? dg->dp_replay_max : rp_max;
+                rp_sum += dg->dp_replay_sum;
+                bl_max = dg->dp_blit_max > bl_max ? dg->dp_blit_max : bl_max;
+                bl_sum += dg->dp_blit_sum;
                 dpr_rep += dg->dpr_rep;
                 dpr_new += dg->dpr_new;
                 if (dg->dpr_run_max > dpr_run)
@@ -2678,6 +2686,8 @@ int main(int argc, char **argv) {
                  * windows -- which is what a 1.36 s stall does. dpr_run_max
                  * keeps the high-water mark across the whole session, so the
                  * longest single run survives being read. */
+                dg->dp_replay_max = dg->dp_replay_sum = 0u;
+                dg->dp_blit_max = dg->dp_blit_sum = 0u;
                 dg->dpr_rep = 0u;
                 dg->dpr_new = 0u;
                 /* dpr_run_now IS reset with its siblings (corrected 2026-10-04).
@@ -2698,7 +2708,7 @@ int main(int argc, char **argv) {
             }
             /* box_* splits the partials by RI_RSEC_BOX_*: steps (drum lamps), bar (Song
              * Position), other. An expensive partial now names its caller. */
-            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us boxrep=%lu/%lu/%lu\n",
+            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us boxrep=%lu/%lu/%lu rpl_max=%lu us rpl_avg=%lu us blt_max=%lu us blt_avg=%lu us\n",
                 dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn, blmax, alln,
                 dpwn[RI_RSEC_BOX_STEPS] ? dpwsum[RI_RSEC_BOX_STEPS] / dpwn[RI_RSEC_BOX_STEPS] : 0u,
                 dpwmax[RI_RSEC_BOX_STEPS], dpwn[RI_RSEC_BOX_STEPS],
@@ -2709,7 +2719,8 @@ int main(int argc, char **argv) {
                 dpwn[RI_RSEC_BOX_NONE] ? dpwsum[RI_RSEC_BOX_NONE] / dpwn[RI_RSEC_BOX_NONE] : 0u,
                 dpwmax[RI_RSEC_BOX_NONE], dpwn[RI_RSEC_BOX_NONE],
                 dpn ? dpbsum / dpn : 0u, dpbmax,
-                dpr_rep, dpr_new, dpr_run);
+                dpr_rep, dpr_new, dpr_run,
+                rp_max, dpn ? rp_sum / dpn : 0u, bl_max, dpn ? bl_sum / dpn : 0u);
             /* Render-stage breakdown (Dell 2026-10-02): avg and max per stage,
              * with the playing and stopped paths counted separately, so an idle
              * average can never be quoted as a playing cost again. Sticky
