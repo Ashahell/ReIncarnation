@@ -630,6 +630,11 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 levi_seq_block(&e->slevi, sr, cc, e->tr_playing, e->tr_tick, e->tr_ppq);
                 RI_ESTAGE_E(e, RI_ENGINE_ST_LEVSEQ, ts);
                 RI_ESTAGE_T(e, RI_ENGINE_ST_LEVVOICE, ts);
+                /* Per-block work counters for the hot function. Reset here so
+                 * the figures describe THIS block rather than accumulating since
+                 * load -- the same discipline the stage table follows, and the
+                 * reason these are read per block at all. */
+                levi_voice_counters_reset(&e->slevi);
                 levi_voice_render_sum_stereo(&e->slevi, e->scratch, e->scratchR, cc, sr);
                 RI_ESTAGE_E(e, RI_ENGINE_ST_LEVVOICE, ts);
                 RI_ESTAGE_T(e, RI_ENGINE_ST_LEVMIX, ts);

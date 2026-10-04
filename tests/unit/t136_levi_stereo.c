@@ -25,6 +25,7 @@ static void mono(struct RILeviSet *s, float *o) {
 }
 
 static void stereo(struct RILeviSet *s, float *l, float *r) {
+    levi_voice_counters_reset(s);
     levi_voice_render_sum_stereo(s, l, r, N, SR);
 }
 
@@ -129,6 +130,25 @@ int main(void) {
     levi_note_on(&B, 60u);
     stereo(&B, oa, ob);
     RI_ASSERT(differ(oa, ob, N), "spread opens image");
+
+    /* Work-counter contract (2026-10-04). These count WORK rather than time,
+     * because a clock read costs 4-6 us and this function averages ~3 us per
+     * sample -- timing its regions would cost more than the code. Pinning the
+     * arithmetic here means the counters cannot silently stop describing the
+     * loop if the loop is ever restructured. */
+    RI_ASSERT(B.vc_samples == N, "one sample counted per rendered sample (%lu of %u)",
+        (unsigned long)B.vc_samples, (unsigned)N);
+    RI_ASSERT(B.vc_voice_calls == N * RI_LEVI_NVOICES,
+        "every voice is walked every sample (%lu of %lu)",
+        (unsigned long)B.vc_voice_calls, (unsigned long)(N * RI_LEVI_NVOICES));
+    RI_ASSERT(B.vc_voice_active > 0u && B.vc_voice_active <= B.vc_voice_calls,
+        "active voices are counted and bounded by the calls (%lu of %lu)",
+        (unsigned long)B.vc_voice_active, (unsigned long)B.vc_voice_calls);
+    RI_ASSERT(B.vc_lfo_iters % RI_LEVI_NVOICES == 0u,
+        "LFO iterations come in whole voice spans (%lu)",
+        (unsigned long)B.vc_lfo_iters);
+    RI_ASSERT(B.vc_lfo_samples <= N && B.vc_fx_samples <= N,
+        "per-sample counters cannot exceed the sample count");
 
     /* DO_PAN matrix destination is live. */
     levi_init_set(&A);

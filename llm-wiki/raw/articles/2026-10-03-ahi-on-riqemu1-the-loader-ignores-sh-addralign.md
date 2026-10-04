@@ -156,6 +156,23 @@ activate the gadget, and this host has no mouse-injection tool (`ydotool` and
 > which also rules out launching anything via `hyprctl` as a workaround. Full
 > record: [proving the VM window is actually visible](2026-10-03-proving-the-vm-window-is-actually-visible.md).
 
+> **Addendum 2026-10-04: `utility.library` is unpatched too, and has now
+> faulted.** The three binaries patched guest-side for this class were `ahi.device`,
+> `ac97.audio` and `void.audio`. A render task then died with:
+>
+> ```
+> Task: 0x00000004BEFC980 - RIAPP render
+> Error: 0x00000008 - Privilege violation
+> Module utility.library Segment 5.text  Offset 0x0000000019D2
+> ```
+>
+> Same shape — privilege violation in a library segment — and a *fixed* offset,
+> which is what an alignment-sensitive instruction site looks like rather than a
+> data-dependent one. **So the patch list is not complete**: if the fault is the
+> loader's 12-mod-16 placement, every unpatched SSE-using library on the guest is
+> a candidate, and `utility.library` is now a measured one. Full record:
+> [the guest crashed in utility.library](2026-10-04-the-guest-crashed-in-utility-library.md).
+
 ## The two requesters, resolved
 
 Neither was a ReIncarnation bug.

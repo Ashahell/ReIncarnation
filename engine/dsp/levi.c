@@ -4009,6 +4009,17 @@ void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
 }
 
 /* Stereo sum (fidelity P6c): per-voice stereo into out_l/out_r. */
+void levi_voice_counters_reset(struct RILeviSet *s) {
+    if (!s)
+        return;
+    s->vc_samples = 0u;
+    s->vc_lfo_samples = 0u;
+    s->vc_lfo_iters = 0u;
+    s->vc_voice_calls = 0u;
+    s->vc_voice_active = 0u;
+    s->vc_fx_samples = 0u;
+}
+
 void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
     float *out_r, uint32_t n, float sr) {
     uint32_t i, v;
@@ -4048,11 +4059,18 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
     for (i = 0u; i < n; i++) {
         float ml = 0.0f, mr = 0.0f, vl, vr;
         uint32_t o;
+        uint32_t lfo_hit = 0u;   /* did any LFO fire this sample? */
+        s->vc_samples++;
         for (o = 0u; o < RI_LEVI_NLFO; o++) {
             struct RILeviLFO *g = &s->glfo[o];
             if (!g->trig)
                 continue;
+            lfo_hit = 1u;
             lfo_advance(g, sr);
+            /* Every voice is walked whether or not it reads this LFO, so the
+             * iteration count is the whole voice span per trigged LFO. That is
+             * the cost this counter exists to make visible. */
+            s->vc_lfo_iters += RI_LEVI_NVOICES;
             for (v = 0u; v < RI_LEVI_NVOICES; v++) {
                 struct RILeviLFO *l = &s->v[v].lfo[o];
                 float ph = g->phase;
@@ -4067,6 +4085,9 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
             }
         }
         for (v = 0u; v < RI_LEVI_NVOICES; v++) {
+            s->vc_voice_calls++;
+            if (s->v[v].active)
+                s->vc_voice_active++;
             levi_voice_render_stereo(&s->v[v], &s->mx, sr, &vl, &vr);
             ml += vl;
             mr += vr;
@@ -4139,9 +4160,11 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
                 s->fx.post.mxm_on = 0u;
             }
             levi_fx_mod(&s->fx.post, sr, ml, mr, &ml, &mr);
+            s->vc_fx_samples++;
         }
         out_l[i] = ml;
         out_r[i] = mr;
+        s->vc_lfo_samples += lfo_hit;
     }
 }
 

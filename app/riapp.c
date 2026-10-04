@@ -2510,6 +2510,23 @@ int main(int argc, char **argv) {
                     rlog("RIAPP dstg %-6s avg=%lu us max=%lu us", nm[q],
                         (unsigned long)(h->n[q] ? h->sum_us[q] / h->n[q] : 0u),
                         (unsigned long)h->max_us[q]);
+                /* Work counters from inside levi_voice_render_sum_stereo, for
+                 * THIS block (the engine resets them per block). Counts, not
+                 * times: a clock read costs 4-6 us and that function averages
+                 * ~3 us per sample, so timing its regions would cost more than
+                 * the code being measured. lfo_iters is the suspect to watch --
+                 * it is RI_LEVI_NLFO * RI_LEVI_NVOICES per trigged LFO. */
+                {
+                    const struct RILeviSet *L = &s_lv.drv.session->eng.slevi;
+                    rlog("RIAPP vcount: samples=%lu lfo_samples=%lu lfo_iters=%lu"
+                        " voice_calls=%lu voice_active=%lu fx_samples=%lu",
+                        (unsigned long)L->vc_samples,
+                        (unsigned long)L->vc_lfo_samples,
+                        (unsigned long)L->vc_lfo_iters,
+                        (unsigned long)L->vc_voice_calls,
+                        (unsigned long)L->vc_voice_active,
+                        (unsigned long)L->vc_fx_samples);
+                }
             }
             if (s_live)
             /* wake_max/wake_n/prio separate "late" (the render task was not

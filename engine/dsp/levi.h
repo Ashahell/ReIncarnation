@@ -803,6 +803,23 @@ struct RILeviSet {
     uint8_t anotes[16];     /* held notes in arrival order */
     uint8_t an;             /* held count */
     uint8_t apad[2];
+    /* Work counters for levi_voice_render_sum_stereo (2026-10-04).
+     *
+     * NOT TIMES, deliberately. This function averages ~3 us per sample and a
+     * clock read on this lane costs 4-6 us (measured: RI_ENGINE_ST_LEVPROBE,
+     * 6 us on riqemu1 and 4 us on the Dell). Timing its regions per sample
+     * would therefore cost more than the code being measured, and a per-block
+     * region split is impossible because the regions interleave inside the
+     * sample loop. So these count WORK, which answers the same question
+     * without perturbing the answer.
+     *
+     * Accumulate across a block; reset with levi_voice_counters_reset(). */
+    uint32_t vc_samples;      /* samples the render loop actually ran */
+    uint32_t vc_lfo_samples;  /* samples with at least one trigged LFO */
+    uint32_t vc_lfo_iters;    /* LFO inner iterations actually executed */
+    uint32_t vc_voice_calls;  /* levi_voice_render_stereo calls */
+    uint32_t vc_voice_active; /* of those, calls that found an active voice */
+    uint32_t vc_fx_samples;   /* samples that ran levi_fx_mod */
 };
 
 /* Matrix route / macro route fields (P5b), 7-bit UI values. 0 ok, 2 bad. */
@@ -908,6 +925,10 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
  * per channel. Idle voices write exact 0. */
 void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     float sr, float *l, float *r);
+/* Zero the vc_* work counters. Called by the engine once per block, before
+ * levi_voice_render_sum_stereo, so a block's figures are that block's alone and
+ * not a running total since load. NULL-safe. */
+void levi_voice_counters_reset(struct RILeviSet *s);
 /* Sum all voices into out (render mix, rb909 pattern). */
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
     float sr);
