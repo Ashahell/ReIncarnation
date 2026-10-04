@@ -2497,3 +2497,27 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - **The failure mode is worth naming: an index row can look perfectly formed and still point nowhere.** Every one of these had correct markdown, a real slug and a real article — only the directory was missing. **A link that renders as text is not a link that resolves**, and only resolving all of them found it.
 - **Reported, not fixed (11 files):** 11 articles are absent from `log.md` by filename (2026-09-27 through 2026-10-03, including `riqemu1-cannot-be-driven-by-injection` and the AHI-rate records). They are indexed and their content is intact; they were logged by another session under a different convention. **Not force-corrected**: inventing log lines for work this session did not do and cannot verify would corrupt the operation history, which is the one file in the wiki whose value is that it is true.
 - Post-lint state: **229 articles + 17 evidence files, 0 unindexed, 0 dead index rows, 635 links, 0 broken.**
+
+## [2026-10-04] ingest | mut_fixM9 closed: 4/4 song-name guards killed by a display-list assertion
+- Disposition: **Update** (closes a recorded survivor set); **New** (one real defect found by the new test)
+- `AUDIT 0/0 PASS`. `t93_raster_goldens` gains `songname_checks`, a **display-list** assertion rather than a raster one — which is exactly what the earlier record said was missing ("Closing them properly needs a display-list assertion on the transport section, which t93's raster goldens are the right place for and which this change did not add").
+- **THE THREE SURVIVORS, NOW 4/4 KILLED** (measured by the test's EXIT STATUS, after getting that measurement wrong twice — see below):
+  ```
+    drop the whole song-name block                    -> KILLED
+    drop the fitted-name guard                        -> KILLED
+    move the name right (PX(25) -> PX(900))           -> KILLED
+    move the name up (PX(190) -> PX(197))             -> KILLED   <- the documented regression
+  ```
+- **WHY A DISPLAY LIST AND NOT A PIXEL HASH.** The guards are "draw only when a name is set", "draw only when the fit produced something" and "left-aligned". A pixel hash cannot attribute *which* of those broke: an absent TEXT command and a misplaced one both change the hash, uninformatively. Asserting on `RI_D_TEXT` commands pins the actual property — count, content, `x0`, `y0`.
+- **⚠ A REAL DEFECT THE NEW TEST FOUND, NOT YET FIXED: A SONG NAME OVER 39 CHARACTERS IS SILENTLY HARD-CUT, WITH NO ELLIPSIS.** `art_tr.c` passes `char name[40]` to `ri_art_tr_fit`, and `ri_art_tr_copy` fills at most `cap-1` = **39** characters. Measured from this call site the ellipsis branch is therefore **UNREACHABLE AT EVERY ZOOM**:
+  ```
+    label cap          : 39 chars
+    host advance       : 6 px  ->  233 px wide at most
+    room = PX(1560)    : z0 390 px | z1 585 | z2 780 | compact 292   <- smallest is 292
+    233 < 292 at every zoom, so the fit never shortens.
+  ```
+  So a 59-character name is emitted as 39 characters with no ellipsis — **"the name looks complete while being cut off", which is the exact failure the ellipsis was added to prevent.** The ellipsis logic is not wrong; it is unreachable because its buffer is too small to need it. Today's behaviour is pinned (so changing `art_tr` becomes a visible test failure rather than a silent golden change) and an assertion computes the room from `ri_geo_px` so that **if the buffer ever grows, this test fails and says why**. **Not fixed here: it changes the transport golden, so it is the owner's call.**
+- **TWO WAYS I MEASURED THE MUTATIONS WRONG BEFORE GETTING IT RIGHT, BOTH WORTH RECORDING.**
+  1. **The stale-object trap, again.** `ri_build_host.sh test` links the prebuilt `.o` files, so mutating `gui/draw/art_tr.c` and re-running the test recompiles nothing. The first mutation run reported **0 failures for all three mutants** — for a mutant set that was in fact partly dead. `art_tr.o`'s mtime is the tell.
+  2. **A segfault is a kill, and grepping for `^FAIL` misses it.** After rebuilding correctly, two mutants crashed the test binary. My counter was `grep -c '^FAIL'`, which returns **0 for a crash** — so two killed mutants were reported as survivors. **Measure a test's verdict by its exit status, never by pattern-matching its output.**
+- **AND ONE MUTANT SURVIVED A FIRST, WEAKER ASSERTION — WHICH IS THE POINT OF THE EXERCISE.** "Leftmost on its row" is true of a label moved to `PX(900)`, because that row is otherwise empty, so the mutant lived. The assertion now pins the **exact anchor the code documents** — `x == ri_geo_px(25, z)` and `y == ri_geo_px(190, z)`, with `PX(197)` being the documented regression. **A guard can be present, pass, and still describe the property too weakly to catch the bug it was written for.**

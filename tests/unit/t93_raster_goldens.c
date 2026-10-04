@@ -329,6 +329,241 @@ static void headerface_checks(void) {
 
 /* Legend-face parity (S2): a face-M line centres by ri_face_width with
  * its left edge exactly at cx - W/2 (same math on host and AROS). */
+/* Transport song-name display list (mut_fixM9 survivors, 2026-10-04).
+ *
+ * These three guards in ri_art_bg_tr were mutation survivors because a pixel
+ * hash cannot tell "drew no name" from "drew the wrong name": an absent TEXT
+ * command and a misplaced one both change the hash, but not in a way a single
+ * pin can attribute. The transport section is the right place to close them
+ * because it is the only section whose draw path reaches art_tr, and this is
+ * now a DISPLAY-LIST assertion rather than a raster one -- which is what the
+ * earlier record said was missing.
+ *
+ * What is pinned, per the guard that was mutated:
+ *  - a name set means exactly one extra TEXT command, and its text is the
+ *    fitted string (draw only when a name is set);
+ *  - an empty name means NO extra TEXT command at all (draw only when the fit
+ *    produced something);
+ *  - the fitted string is left-aligned at the documented x, not merely
+ *    somewhere on the row.
+ *
+ * The row is asserted as a RANGE, not a single x: the left edge is the
+ * contract, the right edge is the fit. Pinning both would re-pin the font.
+ */
+static const char *dl_find_text(const struct ri_dlist *dl, const char *s) {
+    uint32_t i;
+    for (i = 0u; i < dl->n; i++)
+        if (dl->cmd[i].op == RI_D_TEXT && dl->cmd[i].text && strcmp(dl->cmd[i].text, s) == 0)
+            return dl->cmd[i].text;
+    return 0;
+}
+
+static int has_ellipsis(const struct ri_dlist *dl) {
+    uint32_t i;
+    for (i = 0u; i < dl->n; i++) {
+        const char *p = dl->cmd[i].text;
+        size_t L;
+        if (dl->cmd[i].op != RI_D_TEXT || !p)
+            continue;
+        L = strlen(p);
+        if (L >= 3u && p[L - 1] == '.' && p[L - 2] == '.' && p[L - 3] == '.')
+            return 1;
+    }
+    return 0;
+}
+
+/* Is (x,y)-row's leftmost TEXT command at exactly x? Used for the left-align
+ * guard: the song name must be the leftmost label on its own row, which is a
+ * stronger statement than "it is somewhere on the row". */
+static int is_leftmost_text_row(const struct ri_dlist *dl, int y, int x) {
+    uint32_t i;
+    int best = 1 << 30;
+    for (i = 0u; i < dl->n; i++) {
+        if (dl->cmd[i].op != RI_D_TEXT || !dl->cmd[i].text)
+            continue;
+        if (dl->cmd[i].y0 != y)
+            continue;
+        if (dl->cmd[i].x0 < best)
+            best = dl->cmd[i].x0;
+    }
+    return best == x;
+}
+
+static uint32_t dl_count_text(const struct ri_dlist *dl) {
+    uint32_t i, n = 0u;
+    for (i = 0u; i < dl->n; i++)
+        if (dl->cmd[i].op == RI_D_TEXT)
+            n++;
+    return n;
+}
+
+/* One transport paint, returning the display list so the caller can inspect it.
+ * The caller owns clearing the song name. */
+static void tr_dl(struct ri_dlist *dl, int z) {
+    struct RISectUI ui;
+    struct ri_text_metrics tm;
+    const struct RIGeoSection *g;
+    ri_sui_init(&ui, RI_SEC_TRANSPORT);
+    tm.width = ri_raster_text_width;
+    tm.height = 7;
+    tm.baseline = 5;
+    tm.ctx = 0;
+    g = ri_geo_section(RI_SEC_TRANSPORT);
+    RI_ASSERT(g != 0, "transport geo");
+    ri_dlist_init(dl, T_BACK, 24576u, T_SPOOL, sizeof T_SPOOL);
+    ri_draw_section(dl, &ui, RI_SEC_TRANSPORT, z, 0, 0, &tm, 0, 0);
+    RI_ASSERT(dl->n > 0u && dl->n < dl->cap, "transport emitted %u", dl->n);
+}
+
+static void songname_checks(void) {
+    struct ri_dlist dl;
+    uint32_t base_text, with_text;
+    const char *t;
+    int x_named = -1;
+    uint32_t i;
+    /* Long enough to be cut: 59 characters, against a 64-byte song buffer and
+     * art_tr.c's 40-byte fit buffer. */
+    static const char LONGNAME[] =
+        "A VERY LONG SONG NAME THAT WILL NOT FIT IN THE SPACE AT ALL";
+
+    /* ---- guard 1: draw only when a name is set ---- */
+    ri_art_tr_set_song("");
+    tr_dl(&dl, 0);
+    base_text = dl_count_text(&dl);
+    RI_ASSERT(dl_find_text(&dl, "SONG MODE") != 0, "transport baseline keeps its legends");
+    RI_ASSERT(dl_count_text(&dl) == base_text, "baseline is stable");
+    RI_ASSERT(!has_ellipsis(&dl), "no song name means no ellipsis in the list");
+
+    /* A name set adds EXACTLY one TEXT command, carrying the name. */
+    ri_art_tr_set_song("ZOMBIE NATION");
+    tr_dl(&dl, 0);
+    with_text = dl_count_text(&dl);
+    RI_ASSERT(dl_find_text(&dl, "ZOMBIE NATION") != 0, "a set name reaches the list");
+    RI_ASSERT(with_text == base_text + 1u,
+        "a set name adds exactly one TEXT command (%u -> %u)", base_text, with_text);
+    for (i = 0u; i < dl.n; i++)
+        if (dl.cmd[i].op == RI_D_TEXT && dl.cmd[i].text &&
+            strcmp(dl.cmd[i].text, "ZOMBIE NATION") == 0)
+            x_named = dl.cmd[i].x0;
+    RI_ASSERT(x_named > 0, "the song name is left-aligned at x=%d", x_named);
+
+    /* ---- guard 3: left-aligned at every zoom ---- */
+    {
+        int zs[4], k;
+        for (k = 0; k < 4; k++) {
+            zs[k] = -1;
+            ri_art_tr_set_song("ZOMBIE NATION");
+            tr_dl(&dl, k);
+            for (i = 0u; i < dl.n; i++)
+                if (dl.cmd[i].op == RI_D_TEXT && dl.cmd[i].text &&
+                    strcmp(dl.cmd[i].text, "ZOMBIE NATION") == 0)
+                    zs[k] = dl.cmd[i].x0;
+            RI_ASSERT(zs[k] > 0, "song name present at zoom %d", k);
+        }
+        /* Anchored to the plate's left margin: it scales WITH the plate, so the
+         * invariant is that every zoom puts it left of the legends that sit to
+         * its right, and that it is the same fraction of the row. Simpler and
+         * stronger: it must be the leftmost TEXT on the row at every zoom. */
+        for (k = 0; k < 4; k++) {
+            int y = -1;
+            ri_art_tr_set_song("ZOMBIE NATION");
+            tr_dl(&dl, k);
+            /* The row is the name's OWN row, which scales with zoom (95 at z0,
+             * 143 at z1, 190 at z2, 71 at compact). Hardcoding a y is how this
+             * check would have passed for the wrong reason: on an empty row the
+             * leftmost TEXT is trivially the name. */
+            for (i = 0u; i < dl.n; i++)
+                if (dl.cmd[i].op == RI_D_TEXT && dl.cmd[i].text &&
+                    strcmp(dl.cmd[i].text, "ZOMBIE NATION") == 0)
+                    y = dl.cmd[i].y0;
+            RI_ASSERT(y >= 0, "zoom %d: name row found", k);
+            /* THE EXACT ANCHOR, which is the contract art_tr states:
+             * "left-aligned under the transport row ... the earlier PX(900)/
+             * PX(197) put the label at x=18 y=73, i.e. inside the SYNC/MIDI
+             * legend row". So x = PX(25), y = PX(190), in plate units, scaling
+             * with zoom. Checking only "leftmost on its row" is NOT enough: a
+             * label moved to PX(900) is still leftmost on an otherwise empty
+             * row, and that mutant survived the weaker check. */
+            RI_ASSERT(zs[k] == ri_geo_px(25, k),
+                "zoom %d: name anchored at PX(25)=%d, got %d", k, ri_geo_px(25, k), zs[k]);
+            RI_ASSERT(y == ri_geo_px(190, k),
+                "zoom %d: name baseline at PX(190)=%d, got %d", k, ri_geo_px(190, k), y);
+            RI_ASSERT(is_leftmost_text_row(&dl, y, zs[k]),
+                "at zoom %d the song name is leftmost on its row (x=%d, y=%d)",
+                k, zs[k], y);
+        }
+    }
+
+    /* ---- guard 2: the fit, and what it actually does ----
+     *
+     * ri_art_tr_fit truncates when the label is wider than the room. Measured
+     * from this call site, it NEVER does:
+     *
+     *   - art_tr.c passes `char name[40]`, and ri_art_tr_copy fills at most
+     *     cap-1 = 39 characters, so the label can never exceed 39 chars;
+     *   - the host advance is 6 px, so 39 chars = 233 px;
+     *   - the room is PX(1560) = ri_geo_px(1560, z), which at its SMALLEST
+     *     (compact, zoom 3) is 292 px.
+     *
+     * 233 < 292 at every zoom, so the ellipsis branch is UNREACHABLE from the
+     * transport display. The observable behaviour for a name longer than 39
+     * characters is therefore a SILENT HARD CUT -- no ellipsis -- which is
+     * precisely the "name looks complete while being cut off" failure the
+     * ellipsis was added to prevent.
+     *
+     * Both facts are pinned here. The room is computed rather than hardcoded so
+     * the day art_tr's buffer grows, this assertion fails and says why.
+     */
+    {
+        int room_min = ri_geo_px(1560, RI_GEO_ZOOM_COMPACT);
+        RI_ASSERT(room_min > 0, "compact room %d", room_min);
+        RI_ASSERT((int)(39 * RI_RASTER_ADVANCE - 1) < room_min,
+            "the 39-char label (%d px) must fit the smallest room (%d px): if this"
+            " fails, art_tr's buffer grew and the ellipsis path became reachable,"
+            " so assert the truncation case instead of the silent cut",
+            (int)(39 * RI_RASTER_ADVANCE - 1), room_min);
+    }
+    for (i = 0; i < 4u; i++) {
+        static const int zs[4] = { 0, 1, 2, RI_GEO_ZOOM_COMPACT };
+        size_t L;
+        int xe = -1;
+        ri_art_tr_set_song(LONGNAME);
+        tr_dl(&dl, zs[i]);
+        t = 0;
+        for (uint32_t k = 0u; k < dl.n; k++)
+            if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
+                strncmp(dl.cmd[k].text, "A VERY", 6) == 0) {
+                t = dl.cmd[k].text;
+                xe = dl.cmd[k].x0;
+            }
+        RI_ASSERT(t != 0, "the long name reaches the list at zoom %d", zs[i]);
+        L = strlen(t);
+        /* Today: cut to 39 chars, never ellipsised. Pinned so that changing
+         * art_tr's buffer -- to fix the silent cut, or to shorten it -- is a
+         * visible test failure rather than a silent golden change. */
+        RI_ASSERT(L == 39u, "zoom %d: label is the 39-char buffer cut (%u)",
+            zs[i], (unsigned)L);
+        RI_ASSERT(strcmp(t, LONGNAME) != 0,
+            "zoom %d: the 59-char name is NOT emitted whole", zs[i]);
+        RI_ASSERT(t[L - 1] != '.',
+            "zoom %d: the cut carries no ellipsis -- the known defect", zs[i]);
+        /* Left edge survives the cut: same anchor, whatever the length. */
+        ri_art_tr_set_song("ZOMBIE NATION");
+        tr_dl(&dl, zs[i]);
+        {
+            int xw = -1;
+            for (uint32_t k = 0u; k < dl.n; k++)
+                if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
+                    strcmp(dl.cmd[k].text, "ZOMBIE NATION") == 0)
+                    xw = dl.cmd[k].x0;
+            RI_ASSERT(xe == xw, "zoom %d: cut label keeps the left edge (%d vs %d)",
+                zs[i], xe, xw);
+        }
+    }
+
+    ri_art_tr_set_song("");
+}
+
 static void textface_checks(uint32_t *px) {
     struct ri_raster r;
     struct ri_dlist dl;
@@ -563,6 +798,7 @@ int main(void) {
     rack_checks(px);
     levi_checks(px);
     tab_checks(px);
+    songname_checks();
     textface_checks(px);
     headerface_checks();
     RI_RESULT("raster_goldens");
