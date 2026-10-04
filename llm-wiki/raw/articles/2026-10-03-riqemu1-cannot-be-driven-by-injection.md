@@ -124,6 +124,20 @@ this lane has to be sequenced: launch, measure, **close, then read.**
 
 Not root-caused. It is reproducible and it is not the input path.
 
+> **Correction 2026-10-04: the `exec`/ui split is riqemu1-SPECIFIC, not a
+> general lane law.** On the Dell, with `RAM:RIPP-VCOUNT` live as Process 8 and its
+> panel up, `exec` works normally:
+>
+> ```
+> [exec] 'status' -> rc=0 (48 ms)
+> ```
+>
+> So "RIAPP running kills the guest exec channel" belongs to riqemu1 alone. It had
+> been recorded here in general terms, and the lane sequencing rule derived from it
+> ("launch, measure, close, then read") is still the right practice on riqemu1 —
+> it is simply not a property every lane has. Record:
+> [the LFO path never runs](2026-10-04-the-lfo-path-never-runs.md).
+
 ## Method
 
 - **`screendump` before theorising.** It converted "black screen" into "width 0",
