@@ -66,10 +66,35 @@ at `-O0` removes the priority drop exactly as predicted, which is the proof.
 20405 µs → **4095 µs**, `wake_max` 5817 µs → **47 µs**. Owner switched tabs by
 hand during the `-O2` run: no issues, song sounded correct.
 
-**A separate, real problem this exposed:** the `-O0`+NOGOVERNOR run showed
-`part_max = 1364359 µs` — a **1.36 second** GUI stall, with 2505 xruns behind it.
-That is not a governor artefact. A tab repaint blocking audio for over a second
-is its own defect and is now the most interesting thing in the log.
+**A separate, real problem this exposed, now attributed:** the
+`-O0`+NOGOVERNOR run showed `part_max = 1364359 µs` — a **1.36 second** GUI stall
+with 2505 xruns behind it. Not a governor artefact. The `box_*` split that exists
+precisely to name an expensive partial's caller names it:
+
+```
+  part_max=1364359 part_avg=74648 n=25
+  box_steps=0/0/0  box_bar=74648/1364359/25  box_other=0/0/0  box_none=0/0/0
+  build_max=132813
+```
+
+`box_bar` is the **Song Position display** (`RI_RSEC_BOX_BAR`), and
+`build_max ≈ part_max` (490523 vs 490609 in the row before it too) means the cost
+is the **display-list build, not the blit**. A repaint blocked audio for 1.36 s
+while rebuilding that box's display list.
+
+**It is a burst, not a steady cost** — which is what makes it interesting rather
+than merely slow. The same field in the quiet windows reads:
+
+```
+  part_max=204 part_avg=202 n=8  box_bar=202/204/8  build_max=116
+```
+
+202 µs normally, 74.6 ms on average across a 25-refresh burst. Twenty-five Song
+Position rebuilds in one 30 s window, when a tick-driven BAR refresh is otherwise
+cheap. This lands on the **existing** `mut_fixM9` / `t93_raster_goldens`
+transport display-list track rather than opening a new one: the transport display
+list is already the known-expensive one, and that track's missing assertion is
+exactly the one that would pin this.
 
 ## The host bench: what it settled, and what it killed
 
@@ -128,8 +153,9 @@ owner's ledger should start.
 
 ## Open
 
-- **The 1.36 s GUI stall** (`part_max=1364359 µs`) behind 2505 xruns. Real,
-  unexplained, and now the largest single anomaly in the Dell log.
+- **The 1.36 s GUI stall is now attributed** to the Song Position display-list
+  build (`box_bar`, `build_max ≈ part_max`), in a 25-refresh burst — but *why* it
+  bursts, when the same refresh costs 202 µs quietly, is not established.
 - **Control-rate updates** — the only remaining meaningful cut, and it changes
   the sound. Owner's call.
 - **A mixed build** (engine/DSP at `-O2`, GUI/app at `-O0`) is untested. The

@@ -179,3 +179,45 @@ AROS RIAPP v11 BUILD OK (/tmp/opencode/RIAPP-O0.v11, 1104032 bytes, build=3c826b
 ```
 
 `rc=5 object not found` on the follow-up `Getenv` is the unset taking effect.
+## 9. The 1.36 s stall, attributed by the box split
+
+The draw line's `box_*` fields are `avg/max/n` per caller. The expensive window:
+
+```
+  part_max=490609   part_avg=34551 n=15
+  box_steps=0/0/0   box_bar=34551/490609/15   box_other=0/0/0   box_none=0/0/0   build_max=490523
+  part_max=1364359  part_avg=74648 n=25
+  box_steps=0/0/0   box_bar=74648/1364359/25  box_other=0/0/0   box_none=0/0/0   build_max=132813
+```
+
+and a quiet window from the same run, same field:
+
+```
+  part_max=204      part_avg=202   n=8
+  box_steps=0/0/0   box_bar=202/204/8         box_other=0/0/0   box_none=0/0/0   build_max=116
+```
+
+`build_max ≈ part_max` in both expensive rows (490523/490609, 132813/1364359):
+the time is in the display-list build, not the blit. `box_bar` is
+`RI_RSEC_BOX_BAR`, defined in `gui/panelui.h`:
+
+```c
+#define RI_RSEC_BOX_BAR   2  /* the Song Position display */
+```
+
+and set from `app/riapp.c` on the `RI_STALE_BAR` path:
+
+```c
+            if (stale == RI_STALE_BAR) {
+                /* song mode: the Song Position display followed the song */
+                const struct RIGeoSection *g = ri_geo_section(sec);
+                int x0, y0, x1, y1;
+                if (g && ri_geo_bbox(g,
+                    (uint16_t)(((uint32_t)RI_SEC_TRANSPORT << 8) | RI_STR_BAR), 0,
+                    &x0, &y0, &x1, &y1) == 0)
+                    ri_rsection_refresh_box_why(s_canvas[k], x0, y0, x1, y1,
+                        RI_RSEC_BOX_BAR);
+```
+
+So the burst is 25 tick-driven Song Position refreshes, each costing ~74.6 ms on
+average, where the same refresh costs 202 us in the quiet windows.
