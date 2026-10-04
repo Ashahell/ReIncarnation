@@ -852,6 +852,20 @@ static void audio_fail(long err) {
     EasyRequestArgs(NULL, &es, NULL, NULL);
 }
 
+/* One-level dir scan for the demo-song lookup (see the demo block in main).
+ * ri_pal_list_dirs is a callback walk with no context argument, so the names
+ * land in file-scope storage rather than in a closure. Bounded: a library with
+ * more subdirectories than this is not a layout we ship. */
+#define RI_DEMO_DIRS_MAX 32
+static char s_demo_dirs[RI_DEMO_DIRS_MAX][64];
+static uint32_t s_demo_dir_n;
+static int demo_dir_cb(void *u, const char *name) {
+    (void)u;
+    if (s_demo_dir_n < RI_DEMO_DIRS_MAX && name && name[0])
+        snprintf(s_demo_dirs[s_demo_dir_n++], sizeof s_demo_dirs[0], "%s", name);
+    return 0;
+}
+
 static int song_load_path(const char *path) {
     static char err[160];
     struct RICoreSong cs;
@@ -970,10 +984,25 @@ static int song_pick(const char *title, const char *pattern, char *path, ULONG c
         rlog("RIAPP %s: no file chosen (drawer %s)\n", title,
             fr->fr_Drawer ? (const char *)fr->fr_Drawer : "-");
     else {
+        char leaf[128];
+        uint32_t n = 0u;
+        /* ASL returns the file gadget's text, which pads a partial name out to
+         * the pattern with DOTS -- "zombie-nation.rbng" followed by ~150 of
+         * them (observed 2026-10-04, Dell). That padding is what lands in
+         * fr_File, so it must be stripped or the path cannot open. Trimming
+         * trailing dots is the whole fix; anything else would mangle a real
+         * name. Bounded copy because fr_File is ASL-owned memory. */
+        while (fr->fr_File[n] && n + 1u < sizeof leaf) {
+            leaf[n] = fr->fr_File[n];
+            n++;
+        }
+        leaf[n] = 0;
+        while (n > 0u && leaf[n - 1u] == '.')
+            leaf[--n] = 0;
         strncpy(path, fr->fr_Drawer ? (const char *)fr->fr_Drawer : "", cap - 1u);
         path[cap - 1u] = '\0';
-        ok = AddPart((STRPTR)path, fr->fr_File, cap) ? 1 : 0;
-        rlog("RIAPP %s: picked %s%s\n", title, path, ok ? "" : " (path too long)");
+        ok = (n > 0u && AddPart((STRPTR)path, (CONST_STRPTR)leaf, cap)) ? 1 : 0;
+        rlog("RIAPP %s: picked %s%s\n", title, path, ok ? "" : " (no usable file)");
     }
     FreeAslRequest(fr);
     return ok ? 0 : 2;
@@ -2325,11 +2354,31 @@ int main(int argc, char **argv) {
                 (LONG)sizeof demo - 1L, 0L) > 0)
             want = demo;
         if (try_demo && !s_song_on) {
-            if (ri_pal_path(RI_PATH_SONGS, demo, sizeof demo) == 0 &&
-                ri_pal_path_join(demo, sizeof demo, demo, want) == 0) {
-                if (song_load_path(demo) != 0)
-                    rlog("RIAPP demo song %s not found; built-in demo only\n",
-                        want, 0, 0, 0, 0);
+            if (ri_pal_path(RI_PATH_SONGS, demo, sizeof demo) == 0) {
+                /* The library root is not always the song's own directory: the
+                 * shipped layout is <root>/<song-dir>/<song>.rbng, so a flat
+                 * join of root+leaf misses on the Dell even with a correct root
+                 * -- "open failed" on a song that was present two levels down
+                 * (2026-10-04). Try flat first (riqemu1's layout), then walk
+                 * the root's subdirectories and take the first that holds the
+                 * file. */
+                char root[RI_PLAYLIST_PATH], probe[RI_PLAYLIST_PATH];
+                int loaded = 0;
+                snprintf(root, sizeof root, "%s", demo);
+                if (ri_pal_path_join(probe, sizeof probe, root, want) == 0)
+                    loaded = (song_load_path(probe) == 0);
+                if (!loaded && ri_pal_list_dirs(root, demo_dir_cb, 0) == 0) {
+                    uint32_t i;
+                    for (i = 0u; !loaded && i < s_demo_dir_n; i++) {
+                        if (ri_pal_path_join(probe, sizeof probe, root,
+                                s_demo_dirs[i]) == 0 &&
+                            ri_pal_path_join(probe, sizeof probe, probe, want) == 0)
+                            loaded = (song_load_path(probe) == 0);
+                    }
+                }
+                if (!loaded)
+                    rlog("RIAPP demo song %s not found under %s; built-in demo only\n",
+                        want, root, 0, 0, 0);
             } else {
                 rlog("RIAPP demo song: no songs volume\n", 0, 0, 0, 0, 0);
             }
@@ -2515,17 +2564,25 @@ int main(int argc, char **argv) {
                  * times: a clock read costs 4-6 us and that function averages
                  * ~3 us per sample, so timing its regions would cost more than
                  * the code being measured. lfo_iters is the suspect to watch --
-                 * it is RI_LEVI_NLFO * RI_LEVI_NVOICES per trigged LFO. */
+                 * it is RI_LEVI_NLFO * RI_LEVI_NVOICES per trigged LFO.
+                 *
+                 * vus is the exception: the engine's own clock for THIS block's
+                 * whole call (RI_ESTAGE_E_STORE, same pair, no extra reads). It
+                 * rides along here because its only use is the pairing with
+                 * voice_active -- across blocks, cost = fixed + per-active-voice
+                 * x n. That regression is what gets inside a function whose
+                 * regions interleave inside the sample loop. */
                 {
                     const struct RILeviSet *L = &s_lv.drv.session->eng.slevi;
                     rlog("RIAPP vcount: samples=%lu lfo_samples=%lu lfo_iters=%lu"
-                        " voice_calls=%lu voice_active=%lu fx_samples=%lu",
+                        " voice_calls=%lu voice_active=%lu fx_samples=%lu vus=%lu",
                         (unsigned long)L->vc_samples,
                         (unsigned long)L->vc_lfo_samples,
                         (unsigned long)L->vc_lfo_iters,
                         (unsigned long)L->vc_voice_calls,
                         (unsigned long)L->vc_voice_active,
-                        (unsigned long)L->vc_fx_samples);
+                        (unsigned long)L->vc_fx_samples,
+                        (unsigned long)L->vc_voice_us);
                 }
             }
             if (s_live)

@@ -22,6 +22,55 @@
 /* First mounted sticky volume, else "" when there is none. Never opens a
  * requester and never allocates. The candidate list is in
  * platform/pal/ri_pal_sticky.h so the host test can read the same one. */
+/* Probe for <vol><sub> across the sticky candidates, in table order. Returns
+ * the first that locks. Used for SONGS, which is NOT at a fixed location: the
+ * Dell keeps its library on the stick (Vk4aros:ReIncarnation/songs/) and
+ * riqemu1 keeps it under SYS: (SYS:Classes/ReIncarnation/Songs/). One static
+ * path cannot serve both, and getting it wrong is invisible until a song fails
+ * to open -- which is exactly how it presented (owner, 2026-10-04: "riapp
+ * fails to open songs").
+ *
+ * No requester on a miss, for the same reason as ri_pal_sticky_vol: the Dell
+ * boots unattended. SYS: is appended to the END of the probe list rather than
+ * tried first, so a stick-mounted library wins where both exist. */
+int ri_pal_probe_sub(const char *sub, char *out, uint32_t cap) {
+    uint32_t i;
+    struct Process *me;
+    if (!out || cap == 0u || !sub)
+        return 1;
+    out[0] = 0;
+    if (!DOSBase)
+        return 1;
+    me = (struct Process *)FindTask(NULL);
+    /* +1 on the count: SYS: is probed last, after the whole sticky table. */
+    for (i = 0u; i <= RI_PAL_STICKY_COUNT; i++) {
+        const char *v = (i < RI_PAL_STICKY_COUNT) ? ri_pal_sticky_vols[i] : "SYS:";
+        char cand[160];
+        uint32_t vl = 0u, sl = 0u;
+        BPTR lock;
+        APTR oldwin;
+        while (v[vl] && vl + 1u < sizeof cand)
+            cand[vl] = v[vl], vl++;
+        while (sub[sl] && vl + sl + 1u < sizeof cand)
+            cand[vl + sl] = sub[sl], sl++;
+        cand[vl + sl] = 0;
+        oldwin = me ? me->pr_WindowPtr : 0;
+        if (me)
+            me->pr_WindowPtr = (APTR)-1; /* a miss must not raise a requester */
+        lock = Lock((CONST_STRPTR)cand, ACCESS_READ);
+        if (me)
+            me->pr_WindowPtr = oldwin;
+        if (!lock)
+            continue;
+        UnLock(lock);
+        for (vl = 0u; vl + 1u < cap && cand[vl]; vl++)
+            out[vl] = cand[vl];
+        out[vl] = 0;
+        return 0;
+    }
+    return 1;
+}
+
 int ri_pal_sticky_vol(char *out, uint32_t cap) {
     uint32_t i, k;
     struct Process *me;
@@ -59,7 +108,25 @@ int ri_pal_path(enum ri_path p, char *out, uint32_t cap) {
         return 1;
     switch (p) {
     case RI_PATH_MODS: s = "SYS:Classes/ReIncarnation/Mods/"; break;
-    case RI_PATH_SONGS: s = "SYS:Classes/ReIncarnation/Songs/"; break;
+    /* PROBED, not fixed (2026-10-04). Songs live in two different places: the
+     * Dell's library is on the stick at Vk4aros:ReIncarnation/songs/, while
+     * riqemu1 has SYS:Classes/ReIncarnation/Songs/. A single static path served
+     * one lane and silently failed the other -- the symptom was "riapp fails to
+     * open songs" with a correct file sitting there (owner, 2026-10-04).
+     * Probing costs one Lock per candidate and needs no requester. */
+    case RI_PATH_SONGS:
+        /* Tried in order, and the ORDER IS THE CONTRACT: the shipped layout is
+         * <vol>/songs/local/<song-dir>/<song>.rbng, so the leaf is one level
+         * below the library root, while riqemu1 keeps the file directly in the
+         * library dir. Probing the deeper layout first is what makes the demo
+         * song resolve on both lanes (2026-10-04). */
+        if (ri_pal_probe_sub("ReIncarnation/songs/local/", out, cap) == 0)
+            return 0;
+        if (ri_pal_probe_sub("ReIncarnation/songs/", out, cap) == 0)
+            return 0;
+        if (ri_pal_probe_sub("Classes/ReIncarnation/Songs/", out, cap) == 0)
+            return 0;
+        return 1;
     /* The log is evidence and RAM: is wiped by every reboot, so TEMP is
      * the durable volume when one is present. No stick, no scratch disk:
      * a machine with neither still logs somewhere rather than not at all. */

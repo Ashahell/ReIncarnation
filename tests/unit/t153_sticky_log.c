@@ -33,6 +33,7 @@
 #include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include "platform/pal/ri_pal_sticky.h"
+#include "platform/pal/ri_pal_fs.h"
 
 int main(void) {
     int i, j;
@@ -96,6 +97,22 @@ int main(void) {
     RI_ASSERT(strstr(ri_pal_sticky_vols[3], "UMSD") != 0, "a mass-storage name is listed");
     RI_ASSERT(strstr(ri_pal_sticky_vols[5], "USBDISK") != 0, "a boot-stick name is listed");
     RI_ASSERT(strstr(ri_pal_sticky_vols[1], "USB") != 0, "a plain USB name is listed");
+
+    /* SONGS is probed across the same candidate set, because a song library is
+     * not at one fixed location: the Dell keeps it on the stick
+     * (Vk4aros:ReIncarnation/songs/) and riqemu1 under SYS:. A static path
+     * served exactly one lane, which is how "riapp fails to open songs" was
+     * reported with a valid file sitting right there (2026-10-04).
+     *
+     * The host stub returns 1 (nothing to probe), so this asserts the two
+     * things that must hold on every build: the probe is DECLARED (so a host
+     * link cannot miss it) and it is declared in the shared header rather than
+     * re-invented per backend. */
+    {
+        char cand[64];
+        int rc = ri_pal_probe_sub("ReIncarnation/songs/", cand, sizeof cand);
+        RI_ASSERT((rc == 0 || rc == 1), "probe returns a defined code (%d)", rc);
+    }
 
     RI_RESULT("sticky_log");
 }

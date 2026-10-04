@@ -820,6 +820,17 @@ struct RILeviSet {
     uint32_t vc_voice_calls;  /* levi_voice_render_stereo calls */
     uint32_t vc_voice_active; /* of those, calls that found an active voice */
     uint32_t vc_fx_samples;   /* samples that ran levi_fx_mod */
+    /* THIS BLOCK's elapsed time for the whole call, in us (2026-10-04). The one
+     * time value here, and it is measured by the ENGINE, not by levi: levi has
+     * no clock and must not take one. Written by RI_ESTAGE_E_STORE in engine.c
+     * using the same clock pair the LEVVOICE stage already pays, so it adds no
+     * reads. 0 when the engine has no clock.
+     *
+     * Why it exists: pairing this with vc_voice_active across many blocks turns
+     * an unsplittable function into a regression -- cost = fixed + per-active-
+     * voice x n. That is the only way in, because the regions interleave inside
+     * the sample loop and a clock read costs more than the code. */
+    uint32_t vc_voice_us;
 };
 
 /* Matrix route / macro route fields (P5b), 7-bit UI values. 0 ok, 2 bad. */

@@ -70,6 +70,19 @@ on both, at 81 % and 91 % of LEVI.
 
 ## Three things the run also settled
 
+**An explicit `SONG=` appeared not to win. It did — see the correction below,
+which matters more than the point it was making.**
+
+> **Correction 2026-10-04: `RIAPP.LOG` APPENDS ACROSS RUNS.** The The Knife line
+> read here was from an earlier session; this run's own line is further down the
+> file and reads `RIAPP song RAM:zombie-nation.rbng: 151 bars at 140 BPM`. The
+> override worked, and the code's precedence comment is correct. The mistake was
+> reading the FIRST matching line of an appending log instead of the last run's.
+> Record: [songs could not open](2026-10-04-songs-could-not-open.md).
+>
+> The original claim is left in place below because the reasoning error, not the
+> finding, is what is worth remembering.
+
 **An explicit `SONG=` did not win.** The run was launched
 `Run RAM:RIPP-VCOUNT SONG=RAM:zombie-nation.rbng`, and what loaded was:
 

@@ -149,6 +149,20 @@ int main(void) {
         (unsigned long)B.vc_lfo_iters);
     RI_ASSERT(B.vc_lfo_samples <= N && B.vc_fx_samples <= N,
         "per-sample counters cannot exceed the sample count");
+    /* vc_voice_us is the odd one out: a TIME, and owned by the ENGINE rather than
+     * by levi, because levi has no clock and must not take one. Pin the ownership
+     * so a future edit cannot quietly move the measurement into the hot function
+     * and make it pay for its own instrumentation. */
+    B.vc_voice_us = 0xDEADBEEFu;
+    levi_voice_counters_reset(&B);
+    RI_ASSERT(B.vc_voice_us == 0xDEADBEEFu,
+        "levi_voice_counters_reset must not touch vc_voice_us (engine-owned: %lu)",
+        (unsigned long)B.vc_voice_us);
+    stereo(&B, oa, ob);
+    RI_ASSERT(B.vc_voice_us == 0xDEADBEEFu,
+        "levi_voice_render_sum_stereo must not write vc_voice_us itself (%lu)",
+        (unsigned long)B.vc_voice_us);
+    B.vc_voice_us = 0u;
 
     /* DO_PAN matrix destination is live. */
     levi_init_set(&A);

@@ -40,6 +40,15 @@ int ri_pal_path(enum ri_path p, char *out, uint32_t cap) {
     return 0;
 }
 
+int ri_pal_probe_sub(const char *sub, char *out, uint32_t cap) {
+    /* AROS-only concept: the host has one filesystem and one songs dir, so
+     * there is nothing to probe. Declared here so a host build links. */
+    (void)sub;
+    (void)out;
+    (void)cap;
+    return 1;
+}
+
 int ri_pal_path_join(char *out, uint32_t cap, const char *dir, const char *leaf) {
     uint32_t d = 0u, l = 0u;
     if (!out || cap == 0u || !dir || !leaf)

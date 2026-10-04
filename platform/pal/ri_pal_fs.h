@@ -23,6 +23,12 @@ int ri_pal_path(enum ri_path p, char *out, uint32_t cap);
  * Lives beside ri_pal_path so the volume list stays in platform/ — the
  * app must not hold its own copy of it. */
 int ri_pal_sticky_vol(char *out, uint32_t cap);
+/* Probe <sticky volume><sub> for each candidate in turn (plus SYS: last) and
+ * return the first that mounts, in out[cap]. AROS only; 1 on every host.
+ * Exists because a song library is not at ONE fixed location: the Dell keeps
+ * it on the stick, riqemu1 under SYS:, and a static path serves exactly one of
+ * them. Never raises a requester on a miss. 0 ok. */
+int ri_pal_probe_sub(const char *sub, char *out, uint32_t cap);
 /* Join dir + leaf with the platform separator (':' vs '\\' vs '/'). 0 ok. */
 int ri_pal_path_join(char *out, uint32_t cap, const char *dir, const char *leaf);
 /* List subdirectories of dir via cb(name). Stops if cb returns nonzero. */

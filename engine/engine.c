@@ -531,6 +531,24 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
         (e)->estg.n[k]++; \
     } \
 } while (0)
+/* Same as RI_ESTAGE_E, but also hands the measured span to `store`. Used for
+ * the one stage whose per-block figure is needed PAIRED with the work counters
+ * inside it -- levi_voice_render_sum_stereo. Pairing them is what turns an
+ * unsplit function into a regression (cost = fixed + per-active-voice x n),
+ * which is the only way into it here: a clock read costs 4-6 us and the function
+ * averages ~8 us per sample, so timing its REGIONS per sample would cost more
+ * than the code. This macro adds NO clock reads over RI_ESTAGE_E -- same pair,
+ * same accounting, one extra store. */
+#define RI_ESTAGE_E_STORE(e, k, t, store) do { \
+    if ((e)->now_us) { \
+        uint64_t u_ = (e)->now_us() - (t); \
+        if (u_ > 0xFFFFFFFFu) u_ = 0xFFFFFFFFu; \
+        (store) = (uint32_t)u_; \
+        (e)->estg.sum_us[k] += u_; \
+        if ((uint32_t)u_ > (e)->estg.max_us[k]) (e)->estg.max_us[k] = (uint32_t)u_; \
+        (e)->estg.n[k]++; \
+    } \
+} while (0)
 
 void ri_engine_set_clock(struct RIEngine *e, uint64_t (*now_us)(void)) {
     if (e)
@@ -635,8 +653,12 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                  * load -- the same discipline the stage table follows, and the
                  * reason these are read per block at all. */
                 levi_voice_counters_reset(&e->slevi);
+                e->slevi.vc_voice_us = 0;
                 levi_voice_render_sum_stereo(&e->slevi, e->scratch, e->scratchR, cc, sr);
-                RI_ESTAGE_E(e, RI_ENGINE_ST_LEVVOICE, ts);
+                /* E_STORE, not E: hands this block's span to vc_voice_us so it can
+                 * be logged PAIRED with vc_voice_active. Same single clock pair
+                 * E would have used -- no extra reads, no extra distortion. */
+                RI_ESTAGE_E_STORE(e, RI_ENGINE_ST_LEVVOICE, ts, e->slevi.vc_voice_us);
                 RI_ESTAGE_T(e, RI_ENGINE_ST_LEVMIX, ts);
                 engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr);
                 RI_ESTAGE_E(e, RI_ENGINE_ST_LEVMIX, ts);
