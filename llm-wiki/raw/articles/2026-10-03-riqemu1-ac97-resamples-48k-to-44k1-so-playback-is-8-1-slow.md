@@ -176,6 +176,23 @@ asked for. Every figure derived from it is on the wrong clock, on both lanes,
 and the only thing that settles it is reading `AHIDB_Frequency` back off the
 allocated handle.
 
+> **An unattributed 48 kHz stream was seen alongside the guest's 44.1 kHz one
+> (2026-10-04) — recorded because it bears on the bound above, and explicitly not
+> counted as evidence against it.** Two uncorked sink inputs at different rates:
+>
+> ```
+> Sink Input #403  s16le      44100   application.name = "riqemu1"
+> Sink Input #440  float32le  48000   (application.name NOT captured)
+> ```
+>
+> This is the one host-side datum suggesting 48000 is reachable at all on this
+> machine. **It is not the guest** — its format is `float32le` where every QEMU
+> `pa` stream here has been `s16le`, other lanes were live at the time, and the
+> stream did not survive to be re-inspected (a later listing showed **0** sink
+> inputs). **It says nothing about what the guest's AC97 path can be made to do.**
+> Full record, and what would settle it:
+> [a 48 kHz stream coexisted with the guest's 44.1 kHz one](../evidence/2026-10-04-a-48khz-stream-coexisted-with-the-guests-44k1.md).
+
 ## See Also
 
 - [AHI on riqemu1: the loader ignores `sh_addralign`](2026-10-03-ahi-on-riqemu1-the-loader-ignores-sh-addralign.md) — what made AHI usable there at all
