@@ -59,6 +59,26 @@ struct RSectionDiag {
      * a tab-switch box cost 46-91 ms and build_dl is the suspect; the
      * damage path does not know yet, so it is measured). */
     ULONG dp_build_max, dp_build_sum;
+    /* REDUNDANT-INVALIDATION COUNTERS (2026-10-04). The 1.36 s Dell stall was
+     * attributed to this path -- box_bar with dp_build ~= dp_max, 25 refreshes
+     * in one window at 74.6 ms average, against 202 us in the quiet windows --
+     * and nothing recorded WHY a BAR refresh that normally costs 202 us
+     * sometimes costs 74 ms, twenty-five times over.
+     *
+     * The leading question is whether the burst is the SAME invalidation
+     * repeated. If it is, a cached display list collapses the whole burst to one
+     * build and the stall is an optimisation. If each one differs, the cost is
+     * real work and caching will not help. So: consecutive box invalidations
+     * with an identical (why, x0, y0, x1, y1) are counted separately from the
+     * ones that differ. Neither is a verdict -- it is the measurement that
+     * decides between "cache it" and "do not bother".
+     */
+    ULONG dpr_rep;        /* repeats: same why AND same rect as the previous */
+    ULONG dpr_new;        /* first-of-a-kind: differed from the previous */
+    ULONG dpr_run_max;    /* longest run of consecutive repeats */
+    ULONG dpr_run_now;    /* current run, reset by dpr_new */
+    int dpr_why;          /* reason of the previous invalidation */
+    int dpr_x0, dpr_y0, dpr_x1, dpr_y1;
 };
 
 struct MUI_CustomClass *ri_rsection_class(void);

@@ -2615,6 +2615,10 @@ int main(int argc, char **argv) {
             ULONG dfmax = 0u, dpmax = 0u, dfsum = 0u, dpsum = 0u, dfn = 0u, dpn = 0u, blmax = 0u, alln = 0u;
             ULONG dpwmax[4] = { 0u, 0u, 0u, 0u }, dpwsum[4] = { 0u, 0u, 0u, 0u }, dpwn[4] = { 0u, 0u, 0u, 0u };
             ULONG dpbmax = 0u, dpbsum = 0u;
+            /* boxrep = repeats / new / longest-run, summed over canvases. The
+             * ratio is the whole question: a burst dominated by repeats is a
+             * cache waiting to happen, one dominated by new work is real cost. */
+            ULONG dpr_rep = 0u, dpr_new = 0u, dpr_run = 0u;
             int w;
             hb = 0u;
             for (i = 0; i < C_N; i++) {
@@ -2635,6 +2639,10 @@ int main(int argc, char **argv) {
                 if (dg->dp_build_max > dpbmax)
                     dpbmax = dg->dp_build_max;
                 dpbsum += dg->dp_build_sum;
+                dpr_rep += dg->dpr_rep;
+                dpr_new += dg->dpr_new;
+                if (dg->dpr_run_max > dpr_run)
+                    dpr_run = dg->dpr_run_max;
                 dg->dp_build_max = dg->dp_build_sum = 0u;
                 for (w = 0; w < 4; w++) {
                     if (dg->dpw_max[w] > dpwmax[w])
@@ -2644,6 +2652,15 @@ int main(int argc, char **argv) {
                     dg->dpw_max[w] = dg->dpw_sum[w] = 0u;
                     dg->dpw_n[w] = 0L;
                 }
+                /* Redundant-invalidation counters are per-window like the rest
+                 * of this block, BUT dpr_run_now is deliberately NOT reset: it
+                 * is the length of the CURRENT run, and zeroing it would make
+                 * every window report a run of 1 and hide a burst that spans
+                 * windows -- which is what a 1.36 s stall does. dpr_run_max
+                 * keeps the high-water mark across the whole session, so the
+                 * longest single run survives being read. */
+                dg->dpr_rep = 0u;
+                dg->dpr_new = 0u;
                 dg->blit_max = 0u;
                 dg->alloc_n = 0u;
                 dg->df_max = dg->df_sum = 0u;
@@ -2653,7 +2670,7 @@ int main(int argc, char **argv) {
             }
             /* box_* splits the partials by RI_RSEC_BOX_*: steps (drum lamps), bar (Song
              * Position), other. An expensive partial now names its caller. */
-            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us\n",
+            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us boxrep=%lu/%lu/%lu\n",
                 dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn, blmax, alln,
                 dpwn[RI_RSEC_BOX_STEPS] ? dpwsum[RI_RSEC_BOX_STEPS] / dpwn[RI_RSEC_BOX_STEPS] : 0u,
                 dpwmax[RI_RSEC_BOX_STEPS], dpwn[RI_RSEC_BOX_STEPS],
@@ -2663,7 +2680,8 @@ int main(int argc, char **argv) {
                 dpwmax[RI_RSEC_BOX_OTHER], dpwn[RI_RSEC_BOX_OTHER],
                 dpwn[RI_RSEC_BOX_NONE] ? dpwsum[RI_RSEC_BOX_NONE] / dpwn[RI_RSEC_BOX_NONE] : 0u,
                 dpwmax[RI_RSEC_BOX_NONE], dpwn[RI_RSEC_BOX_NONE],
-                dpn ? dpbsum / dpn : 0u, dpbmax);
+                dpn ? dpbsum / dpn : 0u, dpbmax,
+                dpr_rep, dpr_new, dpr_run);
             /* Render-stage breakdown (Dell 2026-10-02): avg and max per stage,
              * with the playing and stopped paths counted separately, so an idle
              * average can never be quoted as a playing cost again. Sticky

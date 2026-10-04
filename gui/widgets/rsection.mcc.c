@@ -584,6 +584,35 @@ void ri_rsection_refresh_box_why(APTR obj, int x0, int y0, int x1, int y1, int w
         MUI_Redraw(o, MADF_DRAWOBJECT);
         return;
     }
+    /* Redundant-invalidation accounting (2026-10-04). Counted HERE, at the
+     * point the box is described, rather than in the draw path: this is where
+     * "the same box was invalidated again" is still knowable, and it runs even
+     * when the redraw is coalesced away by MUI. Counting in draw_damage would
+     * miss exactly the repeats that matter, because a repeat is often the one
+     * that never becomes a draw at all.
+     *
+     * The comparison is against the PREVIOUS invalidation of THIS canvas, so it
+     * answers the question the 1.36 s stall poses: was the burst the same box
+     * asked for over and over, or genuinely different work? A cache collapses
+     * the first and not the second. */
+    {
+        int why_n = ri_rsection_box_why(why);
+        if (d->diag.dpr_why == why_n && d->diag.dpr_x0 == x0 && d->diag.dpr_y0 == y0 &&
+            d->diag.dpr_x1 == x1 && d->diag.dpr_y1 == y1 && d->diag.dpr_run_now > 0u) {
+            d->diag.dpr_rep++;
+            d->diag.dpr_run_now++;
+        } else {
+            d->diag.dpr_new++;
+            d->diag.dpr_run_now = 1u;
+        }
+        if (d->diag.dpr_run_now > d->diag.dpr_run_max)
+            d->diag.dpr_run_max = d->diag.dpr_run_now;
+        d->diag.dpr_why = why_n;
+        d->diag.dpr_x0 = x0;
+        d->diag.dpr_y0 = y0;
+        d->diag.dpr_x1 = x1;
+        d->diag.dpr_y1 = y1;
+    }
     d->dmg_x0 = x0;
     d->dmg_y0 = y0;
     d->dmg_x1 = x1;
