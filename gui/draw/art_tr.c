@@ -26,7 +26,7 @@
  * be large enough on the day. The form below leaves no gap between the last
  * byte written and the byte after it.
  */
-#define TR_SONG_MAX 64u
+#define TR_SONG_MAX RI_ART_TR_SONG_MAX
 
 static char tr_song_name[TR_SONG_MAX];
 
@@ -121,7 +121,22 @@ void ri_art_text_at(struct ri_dlist *dl, int x, int cy, const char *t, int col, 
 void ri_art_bg_tr(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z,
     const struct ri_text_metrics *tm) {
 #define PX(q) ri_geo_px((q), z)
-    char name[40];
+    /* Sized from tr_song_name, not guessed (2026-10-04).
+     *
+     * This was `char name[40]`, and ri_art_tr_copy fills at most cap-1, so the
+     * fit buffer held 39 characters against a 64-byte song buffer. Measured from
+     * this call site that made the ellipsis branch UNREACHABLE AT EVERY ZOOM:
+     * 39 chars x 6 px advance = 233 px, while the row is PX(1560) = 390 / 585 /
+     * 780 / 292 px (compact is the smallest). 233 < 292 everywhere, so the fit
+     * never shortened anything and any name over 39 characters was emitted
+     * hard-cut with no ellipsis -- "the name looks complete while being cut
+     * off", which is precisely what the ellipsis exists to prevent.
+     *
+     * TR_SONG_MAX + slack for the ellipsis logic, which writes dst[len] on the
+     * way down. With this size a 63-character name now reaches the fit intact
+     * and is shortened WITH an ellipsis at the one zoom whose row is narrow
+     * enough to need it. */
+    char name[TR_SONG_MAX + 8];
     ri_art_panel(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, ri_art_rgb(C_TR_PANEL), 0);
     ri_art_text_c(dl, ox + PX(25), oy + PX(150), "0", C_MIX_TEXT);
     ri_art_text_c(dl, ox + PX(132), oy + PX(150), "10", C_MIX_TEXT);

@@ -2521,3 +2521,23 @@ Register (same visibility-only bit); activation later. t98 reverts to
   1. **The stale-object trap, again.** `ri_build_host.sh test` links the prebuilt `.o` files, so mutating `gui/draw/art_tr.c` and re-running the test recompiles nothing. The first mutation run reported **0 failures for all three mutants** — for a mutant set that was in fact partly dead. `art_tr.o`'s mtime is the tell.
   2. **A segfault is a kill, and grepping for `^FAIL` misses it.** After rebuilding correctly, two mutants crashed the test binary. My counter was `grep -c '^FAIL'`, which returns **0 for a crash** — so two killed mutants were reported as survivors. **Measure a test's verdict by its exit status, never by pattern-matching its output.**
 - **AND ONE MUTANT SURVIVED A FIRST, WEAKER ASSERTION — WHICH IS THE POINT OF THE EXERCISE.** "Leftmost on its row" is true of a label moved to `PX(900)`, because that row is otherwise empty, so the mutant lived. The assertion now pins the **exact anchor the code documents** — `x == ri_geo_px(25, z)` and `y == ri_geo_px(190, z)`, with `PX(197)` being the documented regression. **A guard can be present, pass, and still describe the property too weakly to catch the bug it was written for.**
+
+## [2026-10-04] ingest | CORRECTION: my room arithmetic was wrong; the fix stands, the explanation did not
+- Disposition: **Disputed→Resolved** (corrects the previous entry's stated evidence), **New** (the defect is fixed)
+- `AUDIT 0/0 PASS`. `t93` **6/6 mutants KILLED**, measured by exit status from a baseline of the FIXED file:
+  ```
+    drop the song-name block                          -> KILLED
+    drop the fitted-name guard                        -> KILLED
+    move the name right (PX(25)->PX(900))             -> KILLED
+    move the name up (PX(190)->PX(197), documented)   -> KILLED
+    revert the buffer to 40 (re-open the defect)      -> KILLED
+    shrink TR_SONG_MAX below a real song name         -> KILLED
+  ```
+- **⚠ CORRECTION TO THE PREVIOUS ENTRY. THE ROOM FIGURES WERE WRONG.** That entry derived `PX(1560)` as **390 / 585 / 780 / 292 px** and concluded "39 chars = 233 px cannot fit the smallest room, so the ellipsis is unreachable". The rooms are actually **780 / 1170 / 1560 / 585 px**. The error came from reading `RI_GEO_BASE_SCALE_NUM/DEN` as 1/1 when it is **2/1**, which halves every derived room. A probe against the real build settled it:
+  ```
+    z=0 room= 780 | z=1 room=1170 | z=2 room=1560 | z=3(compact) room= 585
+  ```
+  **The conclusion survives, for a stronger reason than I gave.** The longest possible name is `(RI_ART_TR_SONG_MAX-1) = 63` chars = **377 px**, and the narrowest row is **585 px**. `377 < 585`, so **`ri_art_tr_fit` never shortens at any zoom at any buffer size** — the truncation is dead code from this call site, permanently, not because of a small buffer.
+- **SO THE FIX IS SMALLER THAN I DESCRIBED AND MORE NECESSARY THAN IT SOUNDED.** The buffer change was still correct and was still fixing a real defect: `char name[40]` cut a 59-character name to **39 characters with no ellipsis**, and that cut was observable. What it did **not** do is make the ellipsis reachable. **The ellipsis is left in place** — the function is shared and reachable with other metrics and rooms, and deleting it would remove protection from callers that need it. The test now asserts the truth about *this* caller: the longest possible name fits the narrowest row, so a whole name is emitted at every zoom, and shrinking the buffer kills the test.
+- **AND A MUTANT SURVIVED ON THE FIRST ATTEMPT BECAUSE OF THE BAD ARITHMETIC, WHICH IS THE PART TO KEEP.** The test's "shortened name must carry an ellipsis" branch **never executed** — the room was wrongly believed to be 292 px, so it looked reachable when it was not. `drop the ellipsis -> 'z'` therefore SURVIVED. The room is now computed with `ri_geo_px` and the reachability is asserted as a precondition, so **a branch that cannot run cannot hide a mutant**: the test now proves the whole-name case always holds before it would accept a shortened one.
+- **TWO MORE PROCESS NOTES, BOTH FROM GETTING THIS WRONG FIRST.** (1) My mutation harness used `git show HEAD:` as its baseline while the fix was still uncommitted, so it **clobbered the working-tree fix** and one mutant reported NOT APPLIED against a stale file. Baselines must be the file under test, saved explicitly. (2) `TR_SONG_MAX` was private to `art_tr.c`, so the test could not name the capacity it was reasoning about; it is now `RI_ART_TR_SONG_MAX` in `gui/draw/art.h`, and `art_tr.c` derives from it. **A constant mirrored in a test is a constant that can drift silently.**

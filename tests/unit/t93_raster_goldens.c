@@ -420,7 +420,7 @@ static void songname_checks(void) {
     uint32_t base_text, with_text;
     const char *t;
     int x_named = -1;
-    uint32_t i;
+    uint32_t i, k;
     /* Long enough to be cut: 59 characters, against a 64-byte song buffer and
      * art_tr.c's 40-byte fit buffer. */
     static const char LONGNAME[] =
@@ -494,71 +494,101 @@ static void songname_checks(void) {
         }
     }
 
-    /* ---- guard 2: the fit, and what it actually does ----
+    /* ---- guard 2: the fit, and that it never silently cuts ----
      *
-     * ri_art_tr_fit truncates when the label is wider than the room. Measured
-     * from this call site, it NEVER does:
+     * A real defect lived here, and it is fixed. art_tr.c passed
+     * `char name[40]` to ri_art_tr_fit, and ri_art_tr_copy fills at most cap-1,
+     * so the label held 39 characters against a 64-byte song buffer: a longer
+     * name was emitted hard-cut mid-word with no ellipsis, looking complete
+     * while being cut off. The buffer is now sized from the song capacity.
      *
-     *   - art_tr.c passes `char name[40]`, and ri_art_tr_copy fills at most
-     *     cap-1 = 39 characters, so the label can never exceed 39 chars;
-     *   - the host advance is 6 px, so 39 chars = 233 px;
-     *   - the room is PX(1560) = ri_geo_px(1560, z), which at its SMALLEST
-     *     (compact, zoom 3) is 292 px.
+     * THE SECOND HALF OF THAT STORY, WHICH THE FIRST HALF GOT WRONG. The
+     * original note claimed the ellipsis branch became reachable once the buffer
+     * grew. It does not, and the reason is stronger than a buffer size:
      *
-     * 233 < 292 at every zoom, so the ellipsis branch is UNREACHABLE from the
-     * transport display. The observable behaviour for a name longer than 39
-     * characters is therefore a SILENT HARD CUT -- no ellipsis -- which is
-     * precisely the "name looks complete while being cut off" failure the
-     * ellipsis was added to prevent.
+     *   longest possible name : (RI_ART_TR_SONG_MAX-1) chars = 63 -> 377 px
+     *   narrowest row         : ri_geo_px(1560, COMPACT)    = 585 px
+     *   377 < 585, so the fit NEVER shortens, at any zoom, at any buffer size.
      *
-     * Both facts are pinned here. The room is computed rather than hardcoded so
-     * the day art_tr's buffer grows, this assertion fails and says why.
+     * An earlier version of this comment derived the rooms as 390/585/780/292
+     * and therefore as "233 px against 292 px". Those room figures were wrong --
+     * they came from reading RI_GEO_BASE_SCALE as 1/1 when it is 2/1 -- and the
+     * probe on the real build says 780/1170/1560/585. The conclusion survived;
+     * the arithmetic did not.
+     *
+     * So ri_art_tr_fit's truncation is DEAD CODE from this call site,
+     * permanently. It is left in place because the function is shared and
+     * reachable with other metrics and other rooms, and deleting the ellipsis
+     * would remove the protection from the paths that do need it. What is
+     * asserted here is the truth about THIS caller.
      */
     {
-        int room_min = ri_geo_px(1560, RI_GEO_ZOOM_COMPACT);
-        RI_ASSERT(room_min > 0, "compact room %d", room_min);
-        RI_ASSERT((int)(39 * RI_RASTER_ADVANCE - 1) < room_min,
-            "the 39-char label (%d px) must fit the smallest room (%d px): if this"
-            " fails, art_tr's buffer grew and the ellipsis path became reachable,"
-            " so assert the truncation case instead of the silent cut",
-            (int)(39 * RI_RASTER_ADVANCE - 1), room_min);
+        static const int ZS[4] = { 0, 1, 2, RI_GEO_ZOOM_COMPACT };
+        int narrowest = 1 << 30, k;
+        size_t longest = (size_t)RI_ART_TR_SONG_MAX - 1u;
+        int longest_px = (int)(longest * RI_RASTER_ADVANCE - 1u);
+        for (k = 0; k < 4; k++) {
+            int r = ri_geo_px(1560, ZS[k]);
+            if (r > 0 && r < narrowest)
+                narrowest = r;
+        }
+        RI_ASSERT(narrowest > 0, "the Song Position row has a width at every zoom");
+        RI_ASSERT(longest_px < narrowest,
+            "the longest possible name (%d px) must fit the narrowest row (%d px);"
+            " if this fails the fit can shorten again, so assert the truncation"
+            " case (ellipsis present, label shorter) instead of the whole-name case",
+            longest_px, narrowest);
     }
+    /* Every zoom must emit the whole name: the assertion above proves the row
+     * is wide enough, and this proves the code agrees. A name is only ever cut
+     * if the buffer shrinks, which the mutants below cover. */
     for (i = 0; i < 4u; i++) {
-        static const int zs[4] = { 0, 1, 2, RI_GEO_ZOOM_COMPACT };
-        size_t L;
-        int xe = -1;
+        static const int ZS[4] = { 0, 1, 2, RI_GEO_ZOOM_COMPACT };
+        size_t L, whole = strlen(LONGNAME);
+        int xw = -1, xe = -1;
         ri_art_tr_set_song(LONGNAME);
-        tr_dl(&dl, zs[i]);
+        tr_dl(&dl, ZS[i]);
         t = 0;
-        for (uint32_t k = 0u; k < dl.n; k++)
+        for (k = 0u; k < dl.n; k++)
             if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
                 strncmp(dl.cmd[k].text, "A VERY", 6) == 0) {
                 t = dl.cmd[k].text;
                 xe = dl.cmd[k].x0;
             }
-        RI_ASSERT(t != 0, "the long name reaches the list at zoom %d", zs[i]);
+        RI_ASSERT(t != 0, "zoom %d: the long name reaches the list", ZS[i]);
         L = strlen(t);
-        /* Today: cut to 39 chars, never ellipsised. Pinned so that changing
-         * art_tr's buffer -- to fix the silent cut, or to shorten it -- is a
-         * visible test failure rather than a silent golden change. */
-        RI_ASSERT(L == 39u, "zoom %d: label is the 39-char buffer cut (%u)",
-            zs[i], (unsigned)L);
-        RI_ASSERT(strcmp(t, LONGNAME) != 0,
-            "zoom %d: the 59-char name is NOT emitted whole", zs[i]);
-        RI_ASSERT(t[L - 1] != '.',
-            "zoom %d: the cut carries no ellipsis -- the known defect", zs[i]);
-        /* Left edge survives the cut: same anchor, whatever the length. */
+        RI_ASSERT(L == whole,
+            "zoom %d: room %d px holds all %u chars, got %u ('%s')",
+            ZS[i], ri_geo_px(1560, ZS[i]), (unsigned)whole, (unsigned)L, t);
         ri_art_tr_set_song("ZOMBIE NATION");
-        tr_dl(&dl, zs[i]);
-        {
-            int xw = -1;
-            for (uint32_t k = 0u; k < dl.n; k++)
-                if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
-                    strcmp(dl.cmd[k].text, "ZOMBIE NATION") == 0)
-                    xw = dl.cmd[k].x0;
-            RI_ASSERT(xe == xw, "zoom %d: cut label keeps the left edge (%d vs %d)",
-                zs[i], xe, xw);
-        }
+        tr_dl(&dl, ZS[i]);
+        for (k = 0u; k < dl.n; k++)
+            if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
+                strcmp(dl.cmd[k].text, "ZOMBIE NATION") == 0)
+                xw = dl.cmd[k].x0;
+        RI_ASSERT(xe == xw, "zoom %d: the label keeps the left edge (%d vs %d)",
+            ZS[i], xe, xw);
+    }
+    /* And the defect itself, stated as its own contract: a name LONGER than the
+     * song buffer is stored truncated by the setter, and what reaches the list
+     * is that stored value, never a 40-byte remnant of it. */
+    {
+        char big[RI_ART_TR_SONG_MAX + 16];
+        memset(big, 'W', sizeof big);
+        big[sizeof big - 1u] = '\0';
+        ri_art_tr_set_song(big);
+        RI_ASSERT(strlen(ri_art_tr_song()) == (size_t)RI_ART_TR_SONG_MAX - 1u,
+            "the setter caps at the song buffer (%u)", (unsigned)strlen(ri_art_tr_song()));
+        tr_dl(&dl, 0);
+        t = 0;
+        for (k = 0u; k < dl.n; k++)
+            if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
+                strncmp(dl.cmd[k].text, "WWW", 3) == 0)
+                t = dl.cmd[k].text;
+        RI_ASSERT(t != 0, "an over-long name still reaches the list");
+        RI_ASSERT(strlen(t) == (size_t)RI_ART_TR_SONG_MAX - 1u,
+            "the list shows the full stored name, not a 40-byte remnant (%u)",
+            (unsigned)strlen(t));
     }
 
     ri_art_tr_set_song("");

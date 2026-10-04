@@ -132,6 +132,11 @@ void ri_art_bg_tr(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int
  * read-only label, not an automatable or steppable control. */
 void ri_art_tr_set_song(const char *name);
 const char *ri_art_tr_song(void);
+/* Capacity of the song-name buffer, in bytes (2026-10-04). Exposed because the
+ * fit buffer in ri_art_bg_tr is sized from it, and a host test has to reason
+ * about "how long can a song name get" without mirroring the constant. Mirrored
+ * in a test, this number would drift silently and re-open the defect below. */
+#define RI_ART_TR_SONG_MAX 64u
 /* The bounded copy and the width-aware fit, exposed because t159 has to pin
  * them directly: the first version of that test re-implemented the fit in the
  * test file, and a mirror of the thing under test cannot fail when the thing
