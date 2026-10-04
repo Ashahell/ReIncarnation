@@ -78,6 +78,25 @@ struct RSectionDiag {
      */
     ULONG dp_replay_max, dp_replay_sum;
     ULONG dp_blit_max, dp_blit_sum;
+    /* THE GAP: wall time inside draw_frame attributable to NO phase, i.e.
+     * `us - (us_build + us_replay + us_blit)`. It is the four intervals between
+     * the ReadEClock pairs, which contain no code at all -- so a large gap is not
+     * an unmeasured phase, it is the CPU not being there.
+     *
+     * This is the number that would have made the second expensive window
+     * readable without help: there all three components read normal while the
+     * total was ~2950 us, i.e. 92 % of the draw sat in the gaps. One blit was
+     * interrupted in the other window, where the gap stayed at ~19 us. Same
+     * fault, two different victims, and only the gap tells them apart.
+     *
+     * Costs nothing: it is a subtraction of numbers already logged, not another
+     * ReadEClock (each read is ~2.2 us here, ~8 % of a quiet partial). */
+    ULONG dp_gap_max, dp_gap_sum;
+    /* Minimum, not another average: preemption is ONE-SIDED, so the minimum of
+     * N samples is a lower bound on the real work and needs no perturbation of
+     * the thing being measured. `blt_max` beside `blt_min` is a direct
+     * preemption-amplitude readout. */
+    ULONG dp_blit_min;
     /* REDUNDANT-INVALIDATION COUNTERS (2026-10-04). The 1.36 s Dell stall was
      * attributed to this path -- box_bar with dp_build ~= dp_max, 25 refreshes
      * in one window at 74.6 ms average, against 202 us in the quiet windows --

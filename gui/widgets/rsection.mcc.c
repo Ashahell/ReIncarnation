@@ -185,6 +185,9 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
     struct EClockVal t0, t1, tb;
     int timed = 0;
     ULONG us;
+    /* Per-partial replay and blit spans, kept at function scope so the total can
+     * subtract them and yield the GAP: wall time attributable to no phase. */
+    ULONG dp_ur_here = 0u, dp_ub_here = 0u;
     if (w <= 0 || h <= 0)
         return;
     if (!d->bm || d->bw != w || d->bh != h) {
@@ -257,6 +260,7 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
                     ULONG ur;
                     ReadEClock(&te);
                     ur = eclock_us(&tr, &te);
+                    dp_ur_here = ur;
                     if (ur > d->diag.dp_replay_max)
                         d->diag.dp_replay_max = ur;
                     d->diag.dp_replay_sum += ur;
@@ -270,8 +274,11 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
                     ULONG ub;
                     ReadEClock(&te);
                     ub = eclock_us(&tr, &te);
+                    dp_ub_here = ub;
                     if (ub > d->diag.dp_blit_max)
                         d->diag.dp_blit_max = ub;
+                    if (ub < d->diag.dp_blit_min || d->diag.dp_n == 0)
+                        d->diag.dp_blit_min = ub;  /* lower bound: no average */
                     d->diag.dp_blit_sum += ub;
                 }
             }
@@ -280,6 +287,22 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
                     struct EClockVal t2;
                     ReadEClock(&t2);
                     us = eclock_us(&t0, &t2);
+                    /* The gap: wall time minus the three phases. Nothing runs
+                     * in the intervals between the ReadEClock pairs, so this is
+                     * unattributed time, not an unmeasured phase. A partial
+                     * whose gap dominates was INTERRUPTED, not slow -- which is
+                     * the distinction that was impossible before this existed. */
+                    {
+                        ULONG acct = us_build;
+                        if (dp_ur_here > acct) acct = dp_ur_here;
+                        if (dp_ub_here > acct) acct = dp_ub_here;
+                        if (acct < us) {
+                            ULONG g = us - acct;
+                            if (g > d->diag.dp_gap_max)
+                                d->diag.dp_gap_max = g;
+                            d->diag.dp_gap_sum += g;
+                        }
+                    }
                     if (us > d->diag.dp_max)
                         d->diag.dp_max = us;
                     d->diag.dp_sum += us;
@@ -620,11 +643,19 @@ void ri_rsection_refresh_box_why(APTR obj, int x0, int y0, int x1, int y1, int w
         return;
     }
     /* Redundant-invalidation accounting (2026-10-04). Counted HERE, at the
-     * point the box is described, rather than in the draw path: this is where
-     * "the same box was invalidated again" is still knowable, and it runs even
-     * when the redraw is coalesced away by MUI. Counting in draw_damage would
-     * miss exactly the repeats that matter, because a repeat is often the one
-     * that never becomes a draw at all.
+     * point the box is described, rather than in the draw path, because it
+     * counts the REQUESTS rather than the draws.
+     *
+     * CORRECTED 2026-10-04: an earlier version of this comment claimed the
+     * count was needed because a repeat "is often the one that never becomes a
+     * draw at all", on the assumption that MUI coalesces redraws. **On AROS
+     * Zune it does not** -- workbench/libs/muimaster/mui_redraw.c calls
+     * `DoMethod(obj, MUIM_Draw, 0)` inline, with no deferral. So requests and
+     * draws are 1:1 on this platform, the count could equally have lived in
+     * draw_damage, and this comment's premise was simply wrong. Kept at the
+     * request site because it is the cheaper place and because the distinction
+     * would matter on any backend that DOES coalesce -- but the reason is
+     * portability, not this platform.
      *
      * The comparison is against the PREVIOUS invalidation of THIS canvas, so it
      * answers the question the 1.36 s stall poses: was the burst the same box

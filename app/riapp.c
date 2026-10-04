@@ -2642,6 +2642,10 @@ int main(int argc, char **argv) {
              * separately and whose absence is what let a 90 %-not-build stall
              * be filed as a build problem (2026-10-04). */
             ULONG rp_max = 0u, rp_sum = 0u, bl_max = 0u, bl_sum = 0u;
+            /* gap = wall time attributable to no phase; bl_min = the blit's
+             * lower bound. gap_max large with everything else normal means the
+             * draw was INTERRUPTED; bl_max >> bl_min is the amplitude. */
+            ULONG gp_max = 0u, gp_sum = 0u, bl_min = 0u;
             int w;
             hb = 0u;
             for (i = 0; i < C_N; i++) {
@@ -2662,6 +2666,12 @@ int main(int argc, char **argv) {
                 if (dg->dp_build_max > dpbmax)
                     dpbmax = dg->dp_build_max;
                 dpbsum += dg->dp_build_sum;
+                if (dg->dp_gap_max > gp_max)
+                    gp_max = dg->dp_gap_max;
+                gp_sum += dg->dp_gap_sum;
+                if (dg->dp_n > 0 &&
+                    (bl_min == 0u || dg->dp_blit_min < bl_min))
+                    bl_min = dg->dp_blit_min;
                 rp_max = dg->dp_replay_max > rp_max ? dg->dp_replay_max : rp_max;
                 rp_sum += dg->dp_replay_sum;
                 bl_max = dg->dp_blit_max > bl_max ? dg->dp_blit_max : bl_max;
@@ -2688,6 +2698,9 @@ int main(int argc, char **argv) {
                  * longest single run survives being read. */
                 dg->dp_replay_max = dg->dp_replay_sum = 0u;
                 dg->dp_blit_max = dg->dp_blit_sum = 0u;
+                dg->dp_gap_max = dg->dp_gap_sum = 0u;
+                /* dp_blit_min is NOT reset: a minimum that is re-zeroed every
+                 * window is not a minimum, it is the same average in disguise. */
                 dg->dpr_rep = 0u;
                 dg->dpr_new = 0u;
                 /* dpr_run_now IS reset with its siblings (corrected 2026-10-04).
@@ -2708,7 +2721,7 @@ int main(int argc, char **argv) {
             }
             /* box_* splits the partials by RI_RSEC_BOX_*: steps (drum lamps), bar (Song
              * Position), other. An expensive partial now names its caller. */
-            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us boxrep=%lu/%lu/%lu rpl_max=%lu us rpl_avg=%lu us blt_max=%lu us blt_avg=%lu us\n",
+            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us boxrep=%lu/%lu/%lu rpl_max=%lu us rpl_avg=%lu us blt_max=%lu us blt_avg=%lu us blt_min=%lu us gap_max=%lu us gap_avg=%lu us\n",
                 dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn, blmax, alln,
                 dpwn[RI_RSEC_BOX_STEPS] ? dpwsum[RI_RSEC_BOX_STEPS] / dpwn[RI_RSEC_BOX_STEPS] : 0u,
                 dpwmax[RI_RSEC_BOX_STEPS], dpwn[RI_RSEC_BOX_STEPS],
@@ -2720,7 +2733,8 @@ int main(int argc, char **argv) {
                 dpwmax[RI_RSEC_BOX_NONE], dpwn[RI_RSEC_BOX_NONE],
                 dpn ? dpbsum / dpn : 0u, dpbmax,
                 dpr_rep, dpr_new, dpr_run,
-                rp_max, dpn ? rp_sum / dpn : 0u, bl_max, dpn ? bl_sum / dpn : 0u);
+                rp_max, dpn ? rp_sum / dpn : 0u, bl_max, dpn ? bl_sum / dpn : 0u,
+                bl_min, gp_max, dpn ? gp_sum / dpn : 0u);
             /* Render-stage breakdown (Dell 2026-10-02): avg and max per stage,
              * with the playing and stopped paths counted separately, so an idle
              * average can never be quoted as a playing cost again. Sticky
