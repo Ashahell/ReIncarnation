@@ -26,7 +26,21 @@ echo "== Phase 0d: no test ships ungated =="
 # so its assertions that the slot is a dead one now describe the pre-RIBBON map.
 # Left ungated deliberately -- fixing it is a decision about which contract is
 # right, and guessing would make the suite green without making the code right.
-UNGATED_ALLOW=" t107_levi_sect "
+#
+# levi_bench is a BENCHMARK, not a test, and is deliberately ungated (owner
+# 2026-10-04). It prints a cost table; it asserts no bound, because a
+# nanosecond figure depends on the host CPU, its governor, and what else is
+# running. Gating it would either freeze today's machine into the suite or
+# invite someone to weaken the threshold until it went green -- both worse than
+# leaving it as the measurement tool it is. It DOES assert one thing that is
+# machine-independent: that the bench patch produces signal, since a bench that
+# measures an early-out reports zero work and looks like a result.
+#
+# Run it deliberately, not as part of the gate:
+#   ./scripts/ri_build_host.sh all
+#   gcc -std=gnu99 -O2 -I. -o /tmp/levi_bench tests/unit/levi_bench.c \
+#       /tmp/ri/build/*.o -lm -lpng && /tmp/levi_bench
+UNGATED_ALLOW=" t107_levi_sect levi_bench "
 for f in "$ROOT"/tests/unit/*.c; do
   t="$(basename "$f" .c)"
   grep -qE "(test[[:space:]]+|\b)$t\b" "$SELF" && continue
@@ -34,7 +48,7 @@ for f in "$ROOT"/tests/unit/*.c; do
   echo "FAIL: $t is not gated by this audit — add a gate, or an exemption with a reason"
   exit 1
 done
-echo "-- every test reachable from a gate; sole exemption: t107_levi_sect (known-red, RIBBON encoder map) --"
+echo "-- every test reachable from a gate; exemptions: t107_levi_sect (known-red, RIBBON encoder map), levi_bench (benchmark, asserts no machine-dependent bound) --"
 echo "== Phase 1: first-light goldens (Task 4, gate G4) =="
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 G="$ROOT/tests/golden/303"

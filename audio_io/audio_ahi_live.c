@@ -33,6 +33,7 @@
 #include <proto/dos.h>
 #include <proto/ahi.h>
 #include <proto/timer.h>
+#include <proto/utility.h>
 #include "audio_io/audio_ahi_live.h"
 #include "engine/live.h"
 #include "platform/pal/ri_pal_fpu.h"
@@ -141,6 +142,39 @@ static uint32_t wake_us_now(void) {
  * glitch). At 21: 0 xruns, render_max 3.1 ms (owner Dell 2026-10-01). */
 #define AU_LIVE_PRI 21
 #define AU_LIVE_PRI_YIELD (-1)
+
+/* Owner 2026-10-04: the tab-cycle figures from the -O2/-O0 comparison are not
+ * interpretable until this is settled, because the two builds do not merely
+ * differ in speed. -O0 lets a buffer overrun trip the overload guard, which
+ * drops the render task to AU_LIVE_PRI_YIELD and hands the GUI free CPU; -O2
+ * keeps every buffer under budget, so the render holds priority 21 throughout.
+ * A GUI that wins or loses scheduling therefore looks like a compiler effect.
+ *
+ * These two helpers make that testable instead of arguable, by reading
+ * ENVARC at startup:
+ *
+ *   RIAPP_AUDIO_PRI=<n>     pin the working priority (default AU_LIVE_PRI)
+ *   RIAPP_AUDIO_NOGOVERNOR  ignore the guard entirely; never yield
+ *
+ * Both are diagnostic-only and default to the shipped behaviour. */
+static LONG ri_au_live_pri(void) {
+    LONG v = 0;
+    if (GetVar((STRPTR)"RIAPP_AUDIO_PRI", (STRPTR)&v, sizeof v, 0L) > 0 &&
+        v >= -128 && v <= 127)
+        return v;
+    return AU_LIVE_PRI;
+}
+
+static LONG ri_au_live_pri_yield(void) {
+    LONG v = 0;
+    /* Yielding is the thing under test: with the guard forced off there is
+     * nothing to yield to, so this must come back equal to the working
+     * priority. That equality is what makes "governor forced off" readable in
+     * the log rather than merely asserted here. */
+    if (GetVar((STRPTR)"RIAPP_AUDIO_NOGOVERNOR", (STRPTR)&v, sizeof v, 0L) > 0 && v != 0L)
+        return ri_au_live_pri();
+    return AU_LIVE_PRI_YIELD;
+}
 
 /* Render one half through the portable driver (T4): transport at the
  * buffer boundary, one device buffer through the session, s16 halves,
@@ -313,7 +347,8 @@ static void live_task(void) {
         queued = free_half;
         if (ri_livedrv_overloaded(&lv->drv) != yielding) {
             yielding = !yielding;
-            SetTaskPri(FindTask(NULL), yielding ? AU_LIVE_PRI_YIELD : AU_LIVE_PRI);
+            SetTaskPri(FindTask(NULL),
+                yielding ? ri_au_live_pri_yield() : (LONG)ri_au_live_pri());
         }
     }
 done:

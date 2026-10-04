@@ -712,6 +712,10 @@ static struct RIPlaylist s_pl;
 static int s_pl_on;
 static uint32_t s_pl_cur;
 static int s_song_on;             /* a song is loaded (Song mode) */
+/* Set while the automatic demo-song probe loads. Suppresses the modal
+ * failure requester for that load only -- see song_fail. A user-initiated load
+ * from the Songs menu still gets the requester. */
+static int s_song_probe;
 
 /* Stop the transport and wait until the render task has applied it: the
  * load below rewrites banks/track/automation it reads while playing. */
@@ -807,11 +811,26 @@ static void song_ui_sync(void) {
 }
 
 /* Tell the user why a song or playlist did not load (owner Dell
- * 2026-10-01: a silent failure reads as "nothing happens"). */
+ * 2026-10-01: a silent failure reads as "nothing happens").
+ *
+ * QUIET MODE, and it is not optional for the automatic probe (2026-10-04).
+ * EasyRequestArgs is MODAL: it blocks main() until a human clicks OK. The
+ * demo-song lookup calls song_load_path up to three times, so a miss stacked
+ * three requesters on the Dell and froze startup with the log cut mid-line --
+ * which reads exactly like a hang, and it did: a stalled run was misdiagnosed
+ * as an infinite loop in a directory walk before the requesters were spotted.
+ *
+ * The demo block's own contract already said "a miss is NOT an error and must
+ * not raise a requester". This enforces it. In quiet mode the log line below
+ * IS the response, and deliberately so: it is reachable over atcpbin with no
+ * human at the keyboard, which a modal box on an unattended Dell is not. */
 static void song_fail(const char *what, const char *path, const char *why) {
     struct EasyStruct es;
     IPTR args[3];
-    rlog("RIAPP %s %s: %s\n", what, path, why);
+    rlog("RIAPP %s %s: %s%s\n", what, path, why,
+        s_song_probe ? " (probe; requester suppressed)" : "");
+    if (s_song_probe)
+        return;
     es.es_StructSize = sizeof es;
     es.es_Flags = 0;
     es.es_Title = (CONST_STRPTR)"RIAPP";
@@ -1939,8 +1958,19 @@ int main(int argc, char **argv) {
             /* No AHI hardware is a documented quiet fallback; a device we
              * reached and then lost is a failure the user must be told about
              * (t158). */
-            if (ri_core_audio_failure_is_loud((long)s_lv.err))
+            if (ri_core_audio_failure_is_loud((long)s_lv.err)) {
+                /* Name the usual cause in the LOG, not only in the box. The
+                 * box is modal and blocks startup until a human clicks it,
+                 * while this line is readable over atcpbin with nobody at the
+                 * keyboard -- which is the whole difference between diagnosing
+                 * this in seconds and losing a run to it (owner, 2026-10-04:
+                 * "the soundcard could not be opened ... check if a version of
+                 * RIAPP is running before you try to run a new version"). */
+                rlog("RIAPP audio: another RIAPP instance is the usual cause;"
+                    " check `status` for a running RIAPP and close it before"
+                    " starting another (err %ld)\n", (IPTR)s_lv.err, 0, 0, 0, 0);
                 audio_fail((long)s_lv.err);
+            }
         }
     }
 
@@ -2348,13 +2378,13 @@ int main(int argc, char **argv) {
                  * (2026-10-04).
                  *
                  * The relative shapes are TRIED, not DISCOVERED. An earlier
-                 * version walked the root with ri_pal_list_dirs and it hung
-                 * RIAPP's startup outright: ExAll returned more=TRUE with zero
-                 * entries pending, the walker's empty-page `continue` re-tested
-                 * its own condition, and the app sat silent before it could
-                 * play -- no crash, no requester, log simply stopped. A startup
-                 * path that can hang is not worth a directory enumeration, and
-                 * these three shapes are the layout we actually ship. */
+                 * version walked the root with ri_pal_list_dirs. That walk was
+                 * NOT the stall that cost this lane a cycle: the real blocker was
+                 * EasyRequestArgs being MODAL (see song_fail), and a stalled run
+                 * was misdiagnosed as an infinite loop before anyone noticed the
+                 * requesters. The enumeration still came out, because a startup
+                 * that can block or spin before the app can play is not worth a
+                 * directory walk, and three bounded shapes cannot do either. */
                 /* probe is deliberately larger than root: it holds root + a fixed middle
                  * segment + the leaf, and truncating a path silently is how you
                  * get "open failed" on a file that exists. */
@@ -2367,15 +2397,27 @@ int main(int argc, char **argv) {
                 ext = strrchr(stem, '.');
                 if (ext)
                     stem[ext - stem] = 0; /* "zombie-nation.rbng" -> "zombie-nation" */
+                /* Quiet for the whole probe: every one of these misses is
+                 * expected on some lane, and three modal boxes before the app
+                 * can play is the failure mode, not the fix. */
+                s_song_probe = 1;
                 for (k = 0u; !loaded && k < 3u; k++) {
                     if (k == 0u)
                         snprintf(probe, sizeof probe, "%s%s", root, want);
                     else if (k == 1u)
                         snprintf(probe, sizeof probe, "%slocal/%s", root, want);
-                    else
+                    else if (k == 2u)
                         snprintf(probe, sizeof probe, "%slocal/%s/%s", root, stem, want);
                     loaded = (song_load_path(probe) == 0);
                 }
+                s_song_probe = 0;
+                /* Every shape tried, in order, so a miss is diagnosable remotely
+                 * over atcpbin instead of by clicking a requester on an
+                 * unattended Dell (owner, 2026-10-04). */
+                if (!loaded)
+                    rlog("RIAPP demo song: no layout matched under %s"
+                        " (tried %s%s | %slocal/%s | %slocal/%s/%s)\n",
+                        root, root, want, root, want, root, stem, want);
                 if (!loaded)
                     rlog("RIAPP demo song %s not found under %s; built-in demo only\n",
                         want, root, 0, 0, 0);

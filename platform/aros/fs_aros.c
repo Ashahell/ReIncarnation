@@ -115,13 +115,12 @@ int ri_pal_path(enum ri_path p, char *out, uint32_t cap) {
      * open songs" with a correct file sitting there (owner, 2026-10-04).
      * Probing costs one Lock per candidate and needs no requester. */
     case RI_PATH_SONGS:
-        /* Tried in order, and the ORDER IS THE CONTRACT: the shipped layout is
-         * <vol>/songs/local/<song-dir>/<song>.rbng, so the leaf is one level
-         * below the library root, while riqemu1 keeps the file directly in the
-         * library dir. Probing the deeper layout first is what makes the demo
-         * song resolve on both lanes (2026-10-04). */
-        if (ri_pal_probe_sub("ReIncarnation/songs/local/", out, cap) == 0)
-            return 0;
+        /* The LIBRARY ROOT, and only that. Which subdirectory a given song
+         * lives in is the loader's business, not the path's: returning
+         * ".../songs/local/" here made the demo lookup append "local/" a
+         * second time and miss a song that was present (2026-10-04). Probing
+         * the deeper layout was solving the caller's problem inside the
+         * callee, and the two then disagreed. */
         if (ri_pal_probe_sub("ReIncarnation/songs/", out, cap) == 0)
             return 0;
         if (ri_pal_probe_sub("Classes/ReIncarnation/Songs/", out, cap) == 0)
