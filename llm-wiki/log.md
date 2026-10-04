@@ -2435,3 +2435,20 @@ Register (same visibility-only bit); activation later. t98 reverts to
   makes every evidence pull larger than it needs to be, and it is the one thing here that
   is ours to fix rather than the driver's. **Bounded or rotated per session is the correct
   answer**, and it is now the top transport-hygiene item.
+
+## [2026-10-04] ingest | RIAPP.LOG is now bounded by ROTATION, and getting the size right took three tries
+- Disposition: **New capability** (`app/riapp.c`), **New trap** (three silent ways to ask a file's size on this stick)
+- `AUDIT 0/0 PASS` after each step. Verified on the Dell against the real 662 KB log, not simulated.
+- **WHY.** `RIAPP.LOG` is append-only across every run on the stick and had reached **662 006 B**. Two costs: every evidence pull must move the whole file (the bulk protocol has no ranged read), and the Dell's `e1000.device 1.1` is the driver whose Tx-interrupt/`FreeMem` race wedges the guest under exactly that kind of repeated bulk transfer (2026-09-25, proven). **An unbounded log is a standing contribution to losing the lane.**
+- **ROTATE, DO NOT TRUNCATE.** The append-only behaviour is deliberate and load-bearing: lane records read several runs out of one file, and instances are told apart by a changed log line. So at startup the previous session is **renamed to `RIAPP.LOG.1`** and the current one starts clean. Two generations, bounded at ~512 KB worst case, with the run-before-this one preserved — which is what cross-run analysis actually needs. **A log is never worth failing over: if the rename fails, it appends and says so.**
+- **⚠ THE TRAP, AND IT IS THE PART WORTH REMEMBERING: THREE OBVIOUS WAYS TO ASK A FILE ITS SIZE ARE ALL SILENTLY WRONG ON THIS STICK.**
+  1. `Seek(f, 0, OFFSET_END)` — **returns 0** for a 600 KB file. A cap built on it never fires and looks exactly like a cap that works.
+  2. `Lock()` straight onto the **file** — **fails** while the log is being appended. The roll reported `size UNKNOWN -> keeping`.
+  3. The 4-arg `Examine(dir, fib, leaf, len)` that would settle it — **not in the v1 SDK** (only the 2-arg form is). And the 64-bit build's `FileInfoBlock32` has **`fib_Size`, not `fib_FileSize`**.
+  **What works: read the file once and count the bytes.** No dependence on `Seek`, `Lock` or `Examine` semantics at all — which is the entire point, because each of those three produces a *plausible wrong answer* rather than an error. Bounded at 4 MB, above which the decision is already made. Once per process, so the steady-state cost is one flag check.
+- **THE SECOND-ORDER LESSON, WHICH COST THREE BUILD/DEPLOY CYCLES.** The first version shipped, passed the audit, built clean, and **did nothing** — and the only reason I found out is that I later added a line logging the roll *decision*. **A silent optimisation that quietly never fires is indistinguishable from one that works.** Hence the permanent one-shot line every session now emits:
+  ```
+  RIAPP log: session start, 662006 B of 262144 -> ROLLING to RIAPP.LOG.1
+  ```
+  If that line ever reads `keeping` on a 600 KB log again, the cap is broken and says so in the artefact rather than in my head.
+- **RESULT: `RIAPP.LOG` went 662 006 B -> 2 409 B on the next launch, a 275x reduction in pull size**, with `RIAPP.LOG.1` verified byte-identical at 662 006 B holding all 16 prior sessions, and the new session logging the roll, loading the song (`151 bars`) and playing.

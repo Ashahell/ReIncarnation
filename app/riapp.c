@@ -60,6 +60,7 @@
 #include <proto/graphics.h>
 #include <proto/intuition.h>
 #include <proto/dos.h>
+#include <dos/dos.h>
 #include <dos/dosextens.h>
 #include <proto/muimaster.h>
 #include <proto/timer.h>
@@ -373,6 +374,104 @@ static int rlog_base(char *out, uint32_t cap) {
     return ri_pal_path(RI_PATH_TEMP, out, cap);
 }
 
+/* Roll the log once per process when it has grown past the cap.
+ *
+ * WHY (owner 2026-10-04). RIAPP.LOG is append-only and lives on the Dell's
+ * stick, so it only ever grows: it had reached 575791 B. That is a defect of
+ * ours with two costs. Every evidence pull has to move the whole file, because
+ * the bulk-get protocol has no ranged read -- and the Dell's e1000.device 1.1
+ * is the driver whose Tx-interrupt/FreeMem race wedges the guest under exactly
+ * that (llm-wiki 2026-09-25, proven and reproduced). So an unbounded log is a
+ * standing contribution to losing the lane.
+ *
+ * WHY ROTATE RATHER THAN TRUNCATE. The append-only behaviour is deliberate and
+ * useful: every lane record reads several runs out of one file, and instances
+ * are told apart by a changed log line. So the previous session is KEPT as
+ * RIAPP.LOG.1 and the current one starts clean. That bounds the footprint at two
+ * generations while preserving exactly what cross-run analysis needs -- the
+ * run before this one.
+ *
+ * Roll happens BEFORE the first append of the process, so the size test costs
+ * one open and the steady-state cost is one flag check.
+ */
+#define RIAPP_LOG_ROLL_BYTES 262144u   /* 256 KB; two generations ~= 512 KB worst case */
+#define RIAPP_LOG_ROLL_MAX   4194304u  /* stop counting past 4 MB: the decision is already made */
+static int s_log_rolled;
+
+static void log_roll_if_big(const char *dir, const char *leaf) {
+    ULONG size = 0;
+    int have = 0;
+    char fn[160], prev[176];
+    struct Process *me = 0;
+    APTR oldwin = 0;
+    char note[200];
+    if (s_log_rolled)
+        return;
+    s_log_rolled = 1;
+    if (ri_pal_path_join(fn, sizeof fn, dir, leaf) != 0)
+        return;
+    /* SIZE BY COUNTING THE BYTES, ONCE PER SESSION (2026-10-04). Two obvious
+     * ways to ask "how big is this file" are both silently wrong on this stick:
+     * Seek(f, 0, OFFSET_END) returns 0 for a 600 KB file, and Lock() straight
+     * onto the FILE fails while the log is being appended. The 4-arg Examine
+     * that would settle it is not in the v1 SDK. So the file is READ once and
+     * its length counted: no dependence on Seek, Lock or Examine semantics,
+     * which is the point -- a cap built on any of the three reads exactly like
+     * a cap that works when it silently does nothing.
+     *
+     * Bounded on purpose. Above RIAPP_LOG_ROLL_MAX the answer does not change
+     * the decision (roll either way), so the read is skipped rather than
+     * growing with the file. 4 MB at a USB stick's read rate is well under a
+     * second, and it happens exactly once per process. */
+    {
+        static UBYTE buf[4096];
+        BPTR rf = Open((CONST_STRPTR)fn, MODE_OLDFILE);
+        if (rf) {
+            for (;;) {
+                LONG got = Read(rf, buf, (ULONG)sizeof buf);
+                if (got <= 0)
+                    break;
+                size += (ULONG)got;
+                if (size > RIAPP_LOG_ROLL_MAX)
+                    break;              /* far past the cap; stop counting */
+            }
+            Close(rf);
+            have = 1;
+        }
+    }
+    if (!have) {
+        snprintf(note, sizeof note, "RIAPP log: session start, size UNKNOWN -> keeping\n");
+    } else if (size < RIAPP_LOG_ROLL_BYTES) {
+        snprintf(note, sizeof note, "RIAPP log: session start, %lu B of %lu -> keeping\n",
+            (unsigned long)size, (unsigned long)RIAPP_LOG_ROLL_BYTES);
+    } else {
+        snprintf(note, sizeof note, "RIAPP log: session start, %lu B of %lu -> ROLLING to RIAPP.LOG.1\n",
+            (unsigned long)size, (unsigned long)RIAPP_LOG_ROLL_BYTES);
+        snprintf(prev, sizeof prev, "%s.1", fn);
+        DeleteFile((CONST_STRPTR)prev);
+        if (!Rename((CONST_STRPTR)fn, (CONST_STRPTR)prev)) {
+            snprintf(note, sizeof note,
+                "RIAPP log: %lu B but RENAME FAILED -> keeping, never lose a log\n",
+                (unsigned long)size);
+        } else {
+            strncat(note, "RIAPP log: previous session kept as RIAPP.LOG.1\n",
+                sizeof note - strlen(note) - 1u);
+        }
+    }
+    if (me)
+        me->pr_WindowPtr = oldwin;
+    /* Always say what was decided: a silent optimisation that quietly never
+     * fires is indistinguishable from one that works, and this one did. */
+    {
+        BPTR g = Open((CONST_STRPTR)fn, MODE_READWRITE);
+        if (g) {
+            Seek(g, 0, OFFSET_END);
+            FPuts(g, (STRPTR)note);
+            Close(g);
+        }
+    }
+}
+
 static void rlog(const char *fmt, ...) {
     char buf[512], base[48], fn[96];
     va_list ap;
@@ -387,6 +486,7 @@ static void rlog(const char *fmt, ...) {
         return;
     if (ri_pal_path_join(fn, sizeof fn, base, "RIAPP.LOG") != 0)
         return;
+    log_roll_if_big(base, "RIAPP.LOG");
     f = Open((STRPTR)fn, MODE_READWRITE);
     if (!f)
         return;
