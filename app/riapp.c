@@ -852,20 +852,6 @@ static void audio_fail(long err) {
     EasyRequestArgs(NULL, &es, NULL, NULL);
 }
 
-/* One-level dir scan for the demo-song lookup (see the demo block in main).
- * ri_pal_list_dirs is a callback walk with no context argument, so the names
- * land in file-scope storage rather than in a closure. Bounded: a library with
- * more subdirectories than this is not a layout we ship. */
-#define RI_DEMO_DIRS_MAX 32
-static char s_demo_dirs[RI_DEMO_DIRS_MAX][64];
-static uint32_t s_demo_dir_n;
-static int demo_dir_cb(void *u, const char *name) {
-    (void)u;
-    if (s_demo_dir_n < RI_DEMO_DIRS_MAX && name && name[0])
-        snprintf(s_demo_dirs[s_demo_dir_n++], sizeof s_demo_dirs[0], "%s", name);
-    return 0;
-}
-
 static int song_load_path(const char *path) {
     static char err[160];
     struct RICoreSong cs;
@@ -2359,22 +2345,36 @@ int main(int argc, char **argv) {
                  * shipped layout is <root>/<song-dir>/<song>.rbng, so a flat
                  * join of root+leaf misses on the Dell even with a correct root
                  * -- "open failed" on a song that was present two levels down
-                 * (2026-10-04). Try flat first (riqemu1's layout), then walk
-                 * the root's subdirectories and take the first that holds the
-                 * file. */
-                char root[RI_PLAYLIST_PATH], probe[RI_PLAYLIST_PATH];
+                 * (2026-10-04).
+                 *
+                 * The relative shapes are TRIED, not DISCOVERED. An earlier
+                 * version walked the root with ri_pal_list_dirs and it hung
+                 * RIAPP's startup outright: ExAll returned more=TRUE with zero
+                 * entries pending, the walker's empty-page `continue` re-tested
+                 * its own condition, and the app sat silent before it could
+                 * play -- no crash, no requester, log simply stopped. A startup
+                 * path that can hang is not worth a directory enumeration, and
+                 * these three shapes are the layout we actually ship. */
+                /* probe is deliberately larger than root: it holds root + a fixed middle
+                 * segment + the leaf, and truncating a path silently is how you
+                 * get "open failed" on a file that exists. */
+                char root[RI_PLAYLIST_PATH], probe[RI_PLAYLIST_PATH * 4], stem[RI_PLAYLIST_PATH];
+                const char *ext;
+                uint32_t k;
                 int loaded = 0;
                 snprintf(root, sizeof root, "%s", demo);
-                if (ri_pal_path_join(probe, sizeof probe, root, want) == 0)
+                snprintf(stem, sizeof stem, "%s", want);
+                ext = strrchr(stem, '.');
+                if (ext)
+                    stem[ext - stem] = 0; /* "zombie-nation.rbng" -> "zombie-nation" */
+                for (k = 0u; !loaded && k < 3u; k++) {
+                    if (k == 0u)
+                        snprintf(probe, sizeof probe, "%s%s", root, want);
+                    else if (k == 1u)
+                        snprintf(probe, sizeof probe, "%slocal/%s", root, want);
+                    else
+                        snprintf(probe, sizeof probe, "%slocal/%s/%s", root, stem, want);
                     loaded = (song_load_path(probe) == 0);
-                if (!loaded && ri_pal_list_dirs(root, demo_dir_cb, 0) == 0) {
-                    uint32_t i;
-                    for (i = 0u; !loaded && i < s_demo_dir_n; i++) {
-                        if (ri_pal_path_join(probe, sizeof probe, root,
-                                s_demo_dirs[i]) == 0 &&
-                            ri_pal_path_join(probe, sizeof probe, probe, want) == 0)
-                            loaded = (song_load_path(probe) == 0);
-                    }
                 }
                 if (!loaded)
                     rlog("RIAPP demo song %s not found under %s; built-in demo only\n",

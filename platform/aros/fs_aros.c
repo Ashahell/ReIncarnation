@@ -205,8 +205,14 @@ int ri_pal_list_dirs(const char *dir, int (*cb)(void *u, const char *name), void
                 rc = 1;
                 break;
             }
+            /* eac_Entries == 0 with more == TRUE means the driver has nothing
+             * pending but does not know it yet. `continue` here re-tested
+             * `while (more)` and spun FOREVER: it hung RIAPP's startup on the
+             * Dell's stick on 2026-10-04, silently, with no requester and no
+             * crash -- the log simply stopped mid-startup. An empty page is
+             * also not worth another call, so treat it as the end. */
             if (eac->eac_Entries == 0)
-                continue;
+                break;
             ead = (struct ExAllData *)exbuf;
             while (ead) {
                 if (ead->ed_Type > 0) {
