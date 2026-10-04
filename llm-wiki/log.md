@@ -2452,3 +2452,25 @@ Register (same visibility-only bit); activation later. t98 reverts to
   ```
   If that line ever reads `keeping` on a 600 KB log again, the cap is broken and says so in the artefact rather than in my head.
 - **RESULT: `RIAPP.LOG` went 662 006 B -> 2 409 B on the next launch, a 275x reduction in pull size**, with `RIAPP.LOG.1` verified byte-identical at 662 006 B holding all 16 prior sessions, and the new session logging the roll, loading the song (`151 bars`) and playing.
+
+## [2026-10-04] ingest | the owner rejected two runs on AUDIT ALONE — and the cause was my build flag, not my code
+- Disposition: **Correction** (process), **New evidence** (the shipping candidate, measured)
+- `AUDIT 0/0 PASS` on the code in question. The counters were clean too. **Both were wrong, and listening was the only instrument that noticed.**
+- **THE FEEDBACK, verbatim in substance: the last two runs' audio was not smooth, and "whatever you did, fails based on that alone."** The log-roll change was the code under test, so that is where the finger pointed — and it was innocent.
+- **THE ACTUAL CAUSE: EVERY LOG-ROLL BUILD I DEPLOYED WAS `-O0`.** Sizes say it plainly:
+  ```
+  1106072  RIAPP-logroll.v11
+  1107224  RIAPP-logroll2.v11
+  1107576  RIAPP-logroll3.v11
+  1107000  RIAPP-logroll4.v11
+  1011384  RIAPP-ship.v11        <- mixed: engine/ -O2, rest -O0
+  ```
+  Four `-O0` builds at ~1.107 MB, then one mixed build at 1.011 MB. **I verified a feature on the one configuration whose audio the owner had already rejected**, carrying the old "shipping is `-O0`" habit into the exact runs whose purpose was to be heard. The two measurements that matter here agree with the ear rather than against it: **`-O0` costs ~3x on the DSP (6.04 vs 1.97 µs/voice-sample), and the mixed build measures 0 xruns, `render_max` 4091 µs, `wake_max` 38 µs.**
+- **WHY THE TELEMETRY COULD NOT CATCH IT, WHICH IS THE PART TO KEEP.** Every `-O0` log-roll run reported **`xruns=0`, `render_max` ~3525 µs, `wake_max` ~36 µs, `overloads=0`** — indistinguishable from the mixed build's numbers, and comfortably "green". **A droppy, audible artefact produced a clean telemetry report.** The DSP is not overrun, so the audio path never complains; audible smoothness is simply not one of the things these counters measure. **"All counters green" is not "it sounds right", and on this lane the two have now come apart.**
+- **THE RULE THIS ESTABLISHES, WHICH SUPERSEDES THE OLD ONE.** Verification runs must be **the configuration that ships**. A feature verified on `-O0` is verified on a configuration nobody will listen to, which is not verification. Concretely: **the shipping candidate is now the MIXED build** (engine/ `-O2`, app+GUI `-O0`), it is what gets deployed by default, and any future lane run is built with `RI_V11_MIXED=1`. The log-roll change is unchanged and now rides on that build.
+- **THE ROLL MECHANISM IS CONFIRMED ON THE SHIPPING CANDIDATE**, across two consecutive sessions rather than one, which is the case that matters for a size check:
+  ```
+  RIAPP log: session start, 662006 B of 262144 -> ROLLING to RIAPP.LOG.1
+  RIAPP log: session start,  36010 B of 262144 -> keeping
+  ```
+  Roll once when over the cap, keep when under, and a second instance sees the first one's output rather than a stale size.
