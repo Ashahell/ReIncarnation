@@ -672,6 +672,19 @@ RIAPP_BUILD_LOG="$(bash "$ROOT/scripts/ri_build_aros.sh" riapp)" || { echo "$RIA
 # only prove what the script says.
 echo "$RIAPP_BUILD_LOG" | grep -q '^AROS RIAPP MIXED VERIFIED: [1-9][0-9]* engine objects at -O2, [1-9][0-9]* app/GUI objects at -O0' || { echo "FAIL: RIAPP objects not verified as the mixed build"; exit 1; }
 echo "$RIAPP_BUILD_LOG" | grep '^AROS RIAPP MIXED VERIFIED'
+# Every RIAPP log format ends in \n (2026-10-05): five rlog calls without
+# one ran the stg/dstg/vcount tables together into a single unreadable line.
+RLOG_NONL="$(python3 - "$ROOT/app/riapp.c" <<'PYEOF'
+import re, sys
+s = open(sys.argv[1]).read()
+for m in re.finditer(r'\brlog\(\s*((?:"(?:[^"\\]|\\.)*"\s*)+)', s):
+    lit = ''.join(re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1)))
+    if not lit.endswith('\\n'):
+        print(s[:m.start()].count('\n') + 1)
+PYEOF
+)"
+test -z "$RLOG_NONL" || { echo "FAIL: rlog format without trailing \\n at app/riapp.c line(s): $RLOG_NONL"; exit 1; }
+echo "-- RIAPP log lines: every rlog format ends in a newline --"
 echo "== Phase 13: formats full + MIDI + automation + ARexx + datatypes + fuzz (Task 13, gate G13) =="
 T13=/tmp/ri/run/audit13
 mkdir -p "$T13/c1" "$T13/c2" "$T13/rs" "$T13/regen"

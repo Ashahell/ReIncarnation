@@ -174,6 +174,11 @@ static struct RIVisSet s_vis;
 static Object *s_devrow[5];
 static Object *s_devbtn[5];
 static Object *s_devled[5];
+/* Rail as a page group, one page per tab (owner 2026-10-05): each page holds
+ * its own copies of the power buttons, so a tab switch flips a page instead
+ * of MUIA_ShowMe on buttons, which relayouted the whole window (5-37 ms). */
+static Object *s_railpages;
+static Object *s_railbtn[RI_TAB_COUNT][5];
 static Object *s_mixslot[5]; /* Mix tab strip per device (follows s_vis) */
 static Object *s_pages;      /* page group: rail follows its active page */
 static Object *s_tabs[5];    /* hardware tab keys (S1, one per tab) */
@@ -1758,10 +1763,14 @@ static Object *rack_page_gap(Object *const *mods, uint32_t n, Object **slots, ui
 /* Mirror each device's active bit into its power glyph (the class redraws
  * itself when the state changes). */
 static void rail_leds_show(void) {
-    uint32_t d;
-    for (d = 0u; d < 5u; d++)
-        if (s_devled[d])
-            SetAttrs(s_devled[d], MUIA_RArt_On, (IPTR)(ri_vis_get(&s_vis, d) > 0 ? TRUE : FALSE), TAG_DONE);
+    uint32_t d, g;
+    if (!s_art_mcc)
+        return;
+    for (g = 0u; g < RI_TAB_COUNT; g++)
+        for (d = 0u; d < 5u; d++)
+            if (s_railbtn[g][d])
+                SetAttrs(s_railbtn[g][d], MUIA_RArt_On,
+                    (IPTR)(ri_vis_get(&s_vis, d) > 0 ? TRUE : FALSE), TAG_DONE);
 }
 
 /* Tab a device's rows live on (t98 model, all devices shown), or
@@ -1785,65 +1794,78 @@ static uint32_t dev_tab(uint32_t dev) {
  * machines, Levi its own chip; Mix and FX serve every device, so they
  * show all five. Mouse-only tab keys (ledger S1: F1-F4/Ctrl+1..4 need an
  * owner key decision, #2). */
+static int rail_shows(uint32_t page, uint32_t d) {
+    return (page == RI_TAB_MIX || page == RI_TAB_FX) ? 1 : dev_tab(d) == page;
+}
+
 static void rail_for_tab(void) {
-    static int shown[5] = { -1, -1, -1, -1, -1 };
-    IPTR page = 0;
-    uint32_t d;
-    if (!s_pages)
+    IPTR page = 0, now = 0;
+    if (!s_pages || !s_railpages)
         return;
     GetAttr(MUIA_Group_ActivePage, s_pages, &page);
-    for (d = 0u; d < 5u; d++) {
-        int show = (page == RI_TAB_MIX || page == RI_TAB_FX) ? 1 : dev_tab(d) == (uint32_t)page;
-        if (s_devbtn[d] && show != shown[d]) {
-            SetAttrs(s_devbtn[d], MUIA_ShowMe, show ? TRUE : FALSE, TAG_DONE);
-            shown[d] = show;
-        }
-    }
+    GetAttr(MUIA_Group_ActivePage, s_railpages, &now);
+    if (now != page)
+        SetAttrs(s_railpages, MUIA_Group_ActivePage, page, TAG_DONE);
 }
 
 /* Device rail (owner 2026-09-27, power buttons 2026-09-28): a brushed
  * strip above the Register with one power button per device; the glyph
- * is the device's LED. Labels live in s_devlbl (kept, static). Without
- * the classes the chips fall back to plain buttons. */
+ * is the device's LED. One rail page per tab holds that tab's buttons
+ * (2026-10-05), switched with the main pages by rail_for_tab. Labels live
+ * in s_devlbl (kept, static). Without the classes the chips fall back to
+ * plain buttons. */
 static Object *tab_rail(void) {
-    Object *rail, *fill;
+    Object *pages, *rail, *fill;
     struct TagItem tags[6];
-    uint32_t d;
+    uint32_t d, g;
     tags[0].ti_Tag = MUIA_Group_Horiz;   tags[0].ti_Data = TRUE;
     tags[1].ti_Tag = MUIA_Group_Spacing; tags[1].ti_Data = 6;
     tags[2].ti_Tag = MUIA_InnerLeft;     tags[2].ti_Data = 8;
     tags[3].ti_Tag = MUIA_InnerTop;      tags[3].ti_Data = 3;
     tags[4].ti_Tag = MUIA_InnerBottom;   tags[4].ti_Data = 3;
     tags[5].ti_Tag = TAG_DONE;           tags[5].ti_Data = 0;
-    rail = bay_group(tags);
-    if (!rail)
+    pages = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_PageMode, TRUE, TAG_DONE);
+    if (!pages)
         return 0;
     for (d = 0u; d < 5u; d++) {
         const struct RIPanelDesc *pd = ri_panel_get(d);
-        const char *nm = (pd && pd->name) ? pd->name : "?";
-        Object *btn;
-        snprintf(s_devlbl[d], sizeof s_devlbl[d], "%s", nm);
-        if (s_art_mcc)
-            btn = (Object *)NewObject(s_art_mcc->mcc_Class, NULL,
-                MUIA_RArt_Kind, RART_POWER,
-                MUIA_RArt_Label, (IPTR)s_devlbl[d],
-                MUIA_RArt_On, (IPTR)(ri_vis_get(&s_vis, d) > 0 ? TRUE : FALSE),
-                MUIA_InputMode, MUIV_InputMode_RelVerify,
-                MUIA_ShowSelState, FALSE,
-                MUIA_FillArea, TRUE,
-                TAG_DONE);
-        else
-            btn = (Object *)MUI_MakeObject(MUIO_Button, (IPTR)s_devlbl[d]);
-        if (!btn)
-            return 0;
-        s_devbtn[d] = btn;
-        s_devled[d] = s_art_mcc ? btn : 0;
-        DoMethod(rail, OM_ADDMEMBER, (IPTR)btn);
+        snprintf(s_devlbl[d], sizeof s_devlbl[d], "%s", (pd && pd->name) ? pd->name : "?");
     }
-    fill = (Object *)MUI_NewObject(MUIC_Rectangle, TAG_DONE);
-    if (fill)
-        DoMethod(rail, OM_ADDMEMBER, (IPTR)fill);
-    return rail;
+    for (g = 0u; g < RI_TAB_COUNT; g++) {
+        rail = bay_group(tags);
+        if (!rail)
+            return 0;
+        for (d = 0u; d < 5u; d++) {
+            Object *btn;
+            if (!rail_shows(g, d))
+                continue;
+            if (s_art_mcc)
+                btn = (Object *)NewObject(s_art_mcc->mcc_Class, NULL,
+                    MUIA_RArt_Kind, RART_POWER,
+                    MUIA_RArt_Label, (IPTR)s_devlbl[d],
+                    MUIA_RArt_On, (IPTR)(ri_vis_get(&s_vis, d) > 0 ? TRUE : FALSE),
+                    MUIA_InputMode, MUIV_InputMode_RelVerify,
+                    MUIA_ShowSelState, FALSE,
+                    MUIA_FillArea, TRUE,
+                    TAG_DONE);
+            else
+                btn = (Object *)MUI_MakeObject(MUIO_Button, (IPTR)s_devlbl[d]);
+            if (!btn)
+                return 0;
+            s_railbtn[g][d] = btn;
+            if (!s_devbtn[d]) {
+                s_devbtn[d] = btn;
+                s_devled[d] = s_art_mcc ? btn : 0;
+            }
+            DoMethod(rail, OM_ADDMEMBER, (IPTR)btn);
+        }
+        fill = (Object *)MUI_NewObject(MUIC_Rectangle, TAG_DONE);
+        if (fill)
+            DoMethod(rail, OM_ADDMEMBER, (IPTR)fill);
+        DoMethod(pages, OM_ADDMEMBER, (IPTR)rail);
+    }
+    s_railpages = pages;
+    return pages;
 }
 
 /* Hardware tab strip (S1): an RBay HGroup of RART_TAB keys, one per tab,
@@ -2712,9 +2734,10 @@ int main(int argc, char **argv) {
     }
     DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, (IPTR)app, 2,
         MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
-    for (i = 0; i < 5; i++)
-        DoMethod(s_devbtn[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
-            MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)i);
+    for (i = 0; i < (int)(RI_TAB_COUNT * 5u); i++)
+        if (s_railbtn[i / 5][i % 5])
+            DoMethod(s_railbtn[i / 5][i % 5], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
+                MUIM_Application_ReturnID, RIAPP_ID_DEV0 + (ULONG)(i % 5));
     for (i = 0; i < (int)RI_TAB_COUNT; i++)
         DoMethod(s_tabs[i], MUIM_Notify, MUIA_Pressed, FALSE, (IPTR)app, 3,
             MUIM_Application_ReturnID, RIAPP_ID_TAB0 + (ULONG)i);
@@ -3122,12 +3145,12 @@ int main(int argc, char **argv) {
             if (s_live && s_lv.drv.session) {
                 const struct RILiveStages *g = ri_live_stages(s_lv.drv.session);
                 unsigned q;
-                rlog("RIAPP stg: playing=%lu stopped=%lu stopped_avg=%lu us",
+                rlog("RIAPP stg: playing=%lu stopped=%lu stopped_avg=%lu us\n",
                     (unsigned long)g->playing_buffers, (unsigned long)g->stopped_buffers,
                     (unsigned long)(g->n[RI_LIVE_ST_STOPPED]
                         ? g->sum_us[RI_LIVE_ST_STOPPED] / g->n[RI_LIVE_ST_STOPPED] : 0u));
                 for (q = 0; q < RI_LIVE_ST_COUNT; q++)
-                    rlog("RIAPP stg[%d]: avg=%lu us max=%lu us n=%lu", q,
+                    rlog("RIAPP stg[%d]: avg=%lu us max=%lu us n=%lu\n", q,
                         (unsigned long)(g->n[q] ? g->sum_us[q] / g->n[q] : 0u),
                         (unsigned long)g->max_us[q], (unsigned long)g->n[q]);
             }
@@ -3146,9 +3169,9 @@ int main(int argc, char **argv) {
                     "lev-arp", "lev-seq", "lev-voice", "lev-mix",
                     "lev-tempo", "lev-probe", "lev-probe2", "block" };
                 unsigned q;
-                rlog("RIAPP dstg n=%lu", (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
+                rlog("RIAPP dstg n=%lu\n", (unsigned long)h->n[RI_ENGINE_ST_TOTAL]);
                 for (q = 0; q < RI_ENGINE_ST_COUNT; q++)
-                    rlog("RIAPP dstg %-6s avg=%lu us max=%lu us", nm[q],
+                    rlog("RIAPP dstg %-6s avg=%lu us max=%lu us\n", nm[q],
                         (unsigned long)(h->n[q] ? h->sum_us[q] / h->n[q] : 0u),
                         (unsigned long)h->max_us[q]);
                 /* Work counters from inside levi_voice_render_sum_stereo, for
@@ -3167,7 +3190,7 @@ int main(int argc, char **argv) {
                 {
                     const struct RILeviSet *L = &s_lv.drv.session->eng.slevi;
                     rlog("RIAPP vcount: samples=%lu lfo_samples=%lu lfo_iters=%lu"
-                        " voice_calls=%lu voice_active=%lu fx_samples=%lu vus=%lu",
+                        " voice_calls=%lu voice_active=%lu fx_samples=%lu vus=%lu\n",
                         (unsigned long)L->vc_samples,
                         (unsigned long)L->vc_lfo_samples,
                         (unsigned long)L->vc_lfo_iters,
