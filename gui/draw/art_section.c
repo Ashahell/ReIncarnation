@@ -106,6 +106,31 @@ void ri_draw_section(struct ri_dlist *out, const struct RISectUI *ui, uint8_t se
         int v;
         if (!d)
             continue;
+        /* ITEM CULL (2026-10-05). The damage clip drops commands at PUSH time,
+         * so it saves the replay but not the drawing: every item in the section
+         * is still resolved, measured and emitted, and 98 % of that is thrown
+         * away. Measured on the host (tests/unit/bench_build.c), the item loop is
+         * 70-93 % of a build -- 808 emits 3431 of its 3605 commands from 95
+         * items, 909 4603 of 4967 from 87 -- while a 64x16 damage box keeps 2 %.
+         *
+         * So skip an item whose own box is disjoint from the clip box. This is
+         * exact, not approximate: ri_geo_item_box is the region the item paints
+         * into, and the clipped replay already drops every command that misses
+         * the box, so a disjoint item could only have produced commands the
+         * replay was going to throw away. t169 proves it command-for-command
+         * over every item of every section, and t112 already proved the pixels.
+         *
+         * Two deliberate non-culls. A shape with no damage box (static legends
+         * and dividers) returns 2 and is DRAWN, because "no box" is not "no
+         * pixels". And the section background is left alone: it is section-wide
+         * by construction, so it has no per-item box to test. */
+        if (out->clip) {
+            int bx0, by0, bx1, by1;
+            if (ri_geo_item_box(it, z, &bx0, &by0, &bx1, &by1) == 0 &&
+                (bx1 + ox < out->cx0 || bx0 + ox > out->cx1 ||
+                 by1 + oy < out->cy0 || by0 + oy > out->cy1))
+                continue;
+        }
         if (islevi) {                 /* hardware panel controls (fidelity P1) */
             ri_art_levi_item(out, it, d, ui, cx, cy, hw, hh, z);
             continue;

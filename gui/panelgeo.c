@@ -625,6 +625,43 @@ uint16_t ri_geo_hit(const struct RIGeoSection *s, int x, int y, int zoom) {
     return ri_geo_hit_opt(s, x, y, zoom, 0);
 }
 
+int ri_geo_item_box(const struct RIGeoItem *it, int zoom,
+    int *x0, int *y0, int *x1, int *y1) {
+    int cx, cy, hw, hh, ix0, iy0, ix1, iy1;
+    if (!it || !zoom_num(zoom) || !x0 || !y0 || !x1 || !y1)
+        return 2;
+    /* Knobs paint body + tick ring: cover the larger of the two, like
+     * the hit disc covers the ring. Decorations that follow the value
+     * (LEDs) join the union; static legends/dividers do not. */
+    if (it->shape == RI_GEO_KNOB) {
+        int r = ri_geo_px(it->w, zoom) > ri_geo_px(it->h, zoom)
+            ? ri_geo_px(it->w, zoom) : ri_geo_px(it->h, zoom);
+        cx = ri_geo_px(it->cx, zoom);
+        cy = ri_geo_px(it->cy, zoom);
+        ix0 = cx - r / 2;
+        iy0 = cy - r / 2;
+        ix1 = cx + r / 2;
+        iy1 = cy + r / 2;
+    } else if (it->shape == RI_GEO_RECT || it->shape == RI_GEO_OPTION ||
+        it->shape == RI_GEO_STEPPER || it->shape == RI_GEO_LED) {
+        cx = ri_geo_px(it->cx, zoom);
+        cy = ri_geo_px(it->cy, zoom);
+        hw = ri_geo_px(it->w, zoom) / 2;
+        hh = ri_geo_px(it->h, zoom) / 2;
+        ix0 = cx - hw;
+        iy0 = cy - hh;
+        ix1 = cx + hw;
+        iy1 = cy + hh;
+    } else {
+        return 2;
+    }
+    *x0 = ix0 - RI_GEO_BBOX_MARGIN;
+    *y0 = iy0 - RI_GEO_BBOX_MARGIN;
+    *x1 = ix1 + RI_GEO_BBOX_MARGIN;
+    *y1 = iy1 + RI_GEO_BBOX_MARGIN;
+    return 0;
+}
+
 int ri_geo_bbox(const struct RIGeoSection *g, uint16_t reg_id, int zoom,
     int *x0, int *y0, int *x1, int *y1) {
     uint32_t i, found = 0u;
@@ -633,34 +670,14 @@ int ri_geo_bbox(const struct RIGeoSection *g, uint16_t reg_id, int zoom,
         return 2;
     for (i = 0u; i < g->nitems; i++) {
         const struct RIGeoItem *it = &g->items[i];
-        int cx, cy, hw, hh, ix0, iy0, ix1, iy1;
+        int ix0, iy0, ix1, iy1;
         if ((it->reg_id & 0xFFu) != (reg_id & 0xFFu))
             continue;
-        /* Knobs paint body + tick ring: cover the larger of the two, like
-         * the hit disc covers the ring. Decorations that follow the value
-         * (LEDs) join the union; static legends/dividers do not. */
-        if (it->shape == RI_GEO_KNOB) {
-            int r = ri_geo_px(it->w, zoom) > ri_geo_px(it->h, zoom)
-                ? ri_geo_px(it->w, zoom) : ri_geo_px(it->h, zoom);
-            cx = ri_geo_px(it->cx, zoom);
-            cy = ri_geo_px(it->cy, zoom);
-            ix0 = cx - r / 2;
-            iy0 = cy - r / 2;
-            ix1 = cx + r / 2;
-            iy1 = cy + r / 2;
-        } else if (it->shape == RI_GEO_RECT || it->shape == RI_GEO_OPTION ||
-            it->shape == RI_GEO_STEPPER || it->shape == RI_GEO_LED) {
-            cx = ri_geo_px(it->cx, zoom);
-            cy = ri_geo_px(it->cy, zoom);
-            hw = ri_geo_px(it->w, zoom) / 2;
-            hh = ri_geo_px(it->h, zoom) / 2;
-            ix0 = cx - hw;
-            iy0 = cy - hh;
-            ix1 = cx + hw;
-            iy1 = cy + hh;
-        } else {
+        /* The box rule lives in ri_geo_item_box, which the build cull in
+         * art_section.c also calls: one formula, two callers, so the damage
+         * box and the cull cannot disagree about where an item paints. */
+        if (ri_geo_item_box(it, zoom, &ix0, &iy0, &ix1, &iy1) != 0)
             continue;
-        }
         if (!found) {
             a0 = ix0;
             b0 = iy0;
@@ -676,10 +693,10 @@ int ri_geo_bbox(const struct RIGeoSection *g, uint16_t reg_id, int zoom,
     }
     if (!found)
         return 2;
-    *x0 = a0 - RI_GEO_BBOX_MARGIN;
-    *y0 = b0 - RI_GEO_BBOX_MARGIN;
-    *x1 = a1 + RI_GEO_BBOX_MARGIN;
-    *y1 = b1 + RI_GEO_BBOX_MARGIN;
+    *x0 = a0;
+    *y0 = b0;
+    *x1 = a1;
+    *y1 = b1;
     return 0;
 }
 

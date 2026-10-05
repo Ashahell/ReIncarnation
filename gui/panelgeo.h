@@ -66,6 +66,16 @@ uint16_t ri_geo_hit(const struct RIGeoSection *s, int x, int y, int zoom);
 #define RI_GEO_BBOX_MARGIN 3
 int ri_geo_bbox(const struct RIGeoSection *g, uint16_t reg_id, int zoom,
     int *x0, int *y0, int *x1, int *y1);
+/* ONE item's box, same rule and same margin, in section coords at zoom. The
+ * union above is built from these, and the build cull in art_section.c needs
+ * the single item's box rather than the control's, because the cull's claim is
+ * about the commands THIS item emits. Returns 2 for a shape that carries no
+ * damage box (static legends/dividers) -- which the cull must treat as "draw
+ * it", never as "skip it". Growing each box by the margin and then unioning
+ * equals unioning and then growing, for axis-aligned rectangles, so factoring
+ * the rule out changed no result. */
+int ri_geo_item_box(const struct RIGeoItem *it, int zoom,
+    int *x0, int *y0, int *x1, int *y1);
 /* Wide controls (S3): changing them repaints beyond their own box, so the
  * canvas repaints whole (no damage shortcut). SELECTORs re-label/re-light
  * whole sections (pattern bank swaps the length readout, Levi Algo swaps

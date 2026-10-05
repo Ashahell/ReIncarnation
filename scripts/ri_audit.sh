@@ -40,7 +40,16 @@ echo "== Phase 0d: no test ships ungated =="
 #   ./scripts/ri_build_host.sh all
 #   gcc -std=gnu99 -O2 -I. -o /tmp/levi_bench tests/unit/levi_bench.c \
 #       /tmp/ri/build/*.o -lm -lpng && /tmp/levi_bench
-UNGATED_ALLOW=" t107_levi_sect levi_bench "
+#
+# bench_build is the display-list build, same shape: it prints, per section, how
+# many commands the whole section emits against how many a 64x16 damage box
+# keeps, and where the time goes with and without the clip. It exists because
+# the build is the largest remaining term in a box repaint (233 us = 112 build +
+# 33 replay + 69 blit + 18 unattributed, 2026-10-05) and this is the only place
+# that split is visible per section.
+#   ./scripts/ri_build_host.sh gui && ./scripts/ri_build_host.sh draw
+#   ./scripts/ri_build_host.sh test bench_build
+UNGATED_ALLOW=" t107_levi_sect levi_bench bench_build "
 for f in "$ROOT"/tests/unit/*.c; do
   t="$(basename "$f" .c)"
   grep -qE "(test[[:space:]]+|\b)$t\b" "$SELF" && continue
@@ -48,7 +57,7 @@ for f in "$ROOT"/tests/unit/*.c; do
   echo "FAIL: $t is not gated by this audit — add a gate, or an exemption with a reason"
   exit 1
 done
-echo "-- every test reachable from a gate; exemptions: t107_levi_sect (known-red, RIBBON encoder map), levi_bench (benchmark, asserts no machine-dependent bound) --"
+echo "-- every test reachable from a gate; exemptions: t107_levi_sect (known-red, RIBBON encoder map), levi_bench (benchmark, asserts no machine-dependent bound), bench_build (benchmark, prints the build/clip split; the same property is pinned by t169, which IS gated) --"
 echo "== Phase 1: first-light goldens (Task 4, gate G4) =="
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 G="$ROOT/tests/golden/303"
@@ -263,6 +272,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t93_raster_goldens >/dev/null || { ec
 bash "$ROOT/scripts/ri_build_host.sh" test t166_bbox_zoom >/dev/null || { echo "FAIL: t166_bbox_zoom (gui: damage boxes must use the canvas zoom)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t167_chase_box_union >/dev/null || { echo "FAIL: t167_chase_box_union (gui: the chase box union must be lossless)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t168_gap_accounting >/dev/null || { echo "FAIL: t168_gap_accounting (gui: the GAP must subtract the SUM of the phases)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t169_item_cull_parity >/dev/null || { echo "FAIL: t169_item_cull_parity (gui: the build item cull must not change a pixel)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t111_legend_face >/dev/null || { echo "FAIL: t111_legend_face (S2 legend face)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t112_partial_redraw >/dev/null || { echo "FAIL: t112_partial_redraw (S3 dirty rect)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_master_live >/dev/null || { echo "FAIL: t115_master_live (S4 master live)"; exit 1; }
