@@ -77,6 +77,11 @@ struct RSectionDiag {
      *   dp_build_max/sum   build_dl (already present, kept here for symmetry)
      */
     ULONG dp_replay_max, dp_replay_sum;
+    /* dp_blit_* now reads ZERO for partials by construction (2026-10-05):
+     * partials direct-paint into the window, so there is nothing to blit. Kept
+     * because the full-draw path still blits, and because a non-zero reading
+     * here would mean a partial had been routed back through the buffer --
+     * which is exactly the regression worth catching. */
     ULONG dp_blit_max, dp_blit_sum;
     /* THE GAP: wall time inside draw_frame attributable to NO phase, i.e.
      * `us - (us_build + us_replay + us_blit)`. It is the four intervals between

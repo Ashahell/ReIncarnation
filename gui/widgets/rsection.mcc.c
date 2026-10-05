@@ -233,7 +233,30 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
              * drawn anyway. Dell 2026-10-02 measured build_dl at 59 % of a box
              * repaint with ~96 chase boxes per window; the full-section build
              * was the cost, and the replay already culls identically. */
-            build_dl(&d->brp, d, 0, 0, &dl, x0, y0, x1, y1);
+            /* DIRECT-PAINT PARTIALS (2026-10-05).
+             *
+             * This used to build into the offscreen friend bitmap and then
+             * BltBitMapRastPort the damaged rect onto the window. For a FULL
+             * repaint that is right -- it is what stops flicker, and it is why
+             * the buffer exists. For a PARTIAL it buys nothing: a damage box is
+             * already one complete rectangle painted in one pass, so there is no
+             * whole-frame tear to hide, and the buffer costs a measured
+             * BltBitMapRastPort (~69 us of real work, `blt_min` is the lower
+             * bound) plus the allocation and a whole class of
+             * buffer-vs-window divergence bug.
+             *
+             * So partials build at the WINDOW origin and replay straight into
+             * wrp, with no blit. The full path below is untouched and keeps
+             * d->brp, because that is where flicker actually happens.
+             *
+             * Equivalence: the display list is built with the same offset the
+             * full path uses (_mleft/_mtop), and the damage clip is the same
+             * canvas-local box, so the same commands land in the same places --
+             * they are simply rasterised into the window rather than into the
+             * buffer first. t112 already proves that a clipped replay over a box
+             * equals the full render, which is the property this relies on.
+             */
+            build_dl(wrp, d, _mleft(obj), _mtop(obj), &dl, x0, y0, x1, y1);
             if (timed) {
                 ReadEClock(&t1);
                 us_build = eclock_us(&tb, &t1);
@@ -252,7 +275,7 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
                 struct EClockVal tr;
                 if (timed)
                     ReadEClock(&tr);
-                if (!replay_dl_dmg(&d->brp, &dl, ri_skin_aros_for(d->ui.section),
+                if (!replay_dl_dmg(wrp, &dl, ri_skin_aros_for(d->ui.section),
                         x0, y0, x1, y1))
                     goto bail_out;   /* nothing drawn: no dp_* sample either */
                 if (timed) {
@@ -265,22 +288,20 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
                         d->diag.dp_replay_max = ur;
                     d->diag.dp_replay_sum += ur;
                 }
-                if (timed)
-                    ReadEClock(&tr);
-                BltBitMapRastPort(d->bm, x0, y0, wrp, _mleft(obj) + x0, _mtop(obj) + y0,
-                    x1 - x0 + 1, y1 - y0 + 1, 0xC0);
-                if (timed) {
-                    struct EClockVal te;
-                    ULONG ub;
-                    ReadEClock(&te);
-                    ub = eclock_us(&tr, &te);
-                    dp_ub_here = ub;
-                    if (ub > d->diag.dp_blit_max)
-                        d->diag.dp_blit_max = ub;
-                    if (ub < d->diag.dp_blit_min || d->diag.dp_n == 0)
-                        d->diag.dp_blit_min = ub;  /* lower bound: no average */
-                    d->diag.dp_blit_sum += ub;
-                }
+                /* NO BLIT: the replay above already painted into wrp, and the
+                 * window IS the destination now. The blit's timing block is
+                 * GONE, not merely idle -- an earlier version of this change
+                 * removed the BltBitMapRastPort call and left its clock pair,
+                 * which then re-timed the replay: `blt` came back as a duplicate
+                 * of `rpl` (~103 us against ~100), the three components stopped
+                 * summing to dp_*, and the GAP was silently clamped by its own
+                 * `if (acct < us)` guard. An instrument that reports a phase that
+                 * does not exist is worse than one that omits it.
+                 *
+                 * dp_blit_* is left in the struct reading ZERO for partials,
+                 * which is the proof the blit is gone and not bypassed. The
+                 * full-draw path still blits, and still records it. */
+                dp_ub_here = 0u;
             }
             {
                 if (timed) {
