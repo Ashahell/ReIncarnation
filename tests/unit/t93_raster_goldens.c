@@ -219,10 +219,10 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 12u, 1u, 0x2ec3d1f4u },
     { 12u, 2u, 0x94e3467eu },
     { 12u, 3u, 0xda4318cbu },
-    { 13u, 0u, 0xbfae0587u },
-    { 13u, 1u, 0x01a16d77u },
-    { 13u, 2u, 0x326d005au },
-    { 13u, 3u, 0x8f296ed2u },
+    { 13u, 0u, 0xd56f984au },
+    { 13u, 1u, 0xe6000621u },
+    { 13u, 2u, 0x7b1ed16du },
+    { 13u, 3u, 0x01d7c835u },
     { 14u, 0u, 0x01149021u },
     { 14u, 1u, 0x10d88c9cu },
     { 14u, 2u, 0x1a01eb0eu },
@@ -372,22 +372,6 @@ static int has_ellipsis(const struct ri_dlist *dl) {
     return 0;
 }
 
-/* Is (x,y)-row's leftmost TEXT command at exactly x? Used for the left-align
- * guard: the song name must be the leftmost label on its own row, which is a
- * stronger statement than "it is somewhere on the row". */
-static int is_leftmost_text_row(const struct ri_dlist *dl, int y, int x) {
-    uint32_t i;
-    int best = 1 << 30;
-    for (i = 0u; i < dl->n; i++) {
-        if (dl->cmd[i].op != RI_D_TEXT || !dl->cmd[i].text)
-            continue;
-        if (dl->cmd[i].y0 != y)
-            continue;
-        if (dl->cmd[i].x0 < best)
-            best = dl->cmd[i].x0;
-    }
-    return best == x;
-}
 
 static uint32_t dl_count_text(const struct ri_dlist *dl) {
     uint32_t i, n = 0u;
@@ -417,161 +401,27 @@ static void tr_dl(struct ri_dlist *dl, int z) {
 
 static void songname_checks(void) {
     struct ri_dlist dl;
-    uint32_t base_text, with_text;
-    const char *t;
-    int x_named = -1;
-    uint32_t i, k;
-    /* Long enough to be cut: 59 characters, against a 64-byte song buffer and
-     * art_tr.c's 40-byte fit buffer. */
-    static const char LONGNAME[] =
-        "A VERY LONG SONG NAME THAT WILL NOT FIT IN THE SPACE AT ALL";
-
-    /* ---- guard 1: draw only when a name is set ---- */
-    ri_art_tr_set_song("");
-    tr_dl(&dl, 0);
-    base_text = dl_count_text(&dl);
-    RI_ASSERT(dl_find_text(&dl, "SONG MODE") != 0, "transport baseline keeps its legends");
-    RI_ASSERT(dl_count_text(&dl) == base_text, "baseline is stable");
-    RI_ASSERT(!has_ellipsis(&dl), "no song name means no ellipsis in the list");
-
-    /* A name set adds EXACTLY one TEXT command, carrying the name. */
-    ri_art_tr_set_song("ZOMBIE NATION");
-    tr_dl(&dl, 0);
-    with_text = dl_count_text(&dl);
-    RI_ASSERT(dl_find_text(&dl, "ZOMBIE NATION") != 0, "a set name reaches the list");
-    RI_ASSERT(with_text == base_text + 1u,
-        "a set name adds exactly one TEXT command (%u -> %u)", base_text, with_text);
-    for (i = 0u; i < dl.n; i++)
-        if (dl.cmd[i].op == RI_D_TEXT && dl.cmd[i].text &&
-            strcmp(dl.cmd[i].text, "ZOMBIE NATION") == 0)
-            x_named = dl.cmd[i].x0;
-    RI_ASSERT(x_named > 0, "the song name is left-aligned at x=%d", x_named);
-
-    /* ---- guard 3: left-aligned at every zoom ---- */
-    {
-        int zs[4], k;
-        for (k = 0; k < 4; k++) {
-            zs[k] = -1;
-            ri_art_tr_set_song("ZOMBIE NATION");
-            tr_dl(&dl, k);
-            for (i = 0u; i < dl.n; i++)
-                if (dl.cmd[i].op == RI_D_TEXT && dl.cmd[i].text &&
-                    strcmp(dl.cmd[i].text, "ZOMBIE NATION") == 0)
-                    zs[k] = dl.cmd[i].x0;
-            RI_ASSERT(zs[k] > 0, "song name present at zoom %d", k);
-        }
-        /* Anchored to the plate's left margin: it scales WITH the plate, so the
-         * invariant is that every zoom puts it left of the legends that sit to
-         * its right, and that it is the same fraction of the row. Simpler and
-         * stronger: it must be the leftmost TEXT on the row at every zoom. */
-        for (k = 0; k < 4; k++) {
-            int y = -1;
-            ri_art_tr_set_song("ZOMBIE NATION");
-            tr_dl(&dl, k);
-            /* The row is the name's OWN row, which scales with zoom (95 at z0,
-             * 143 at z1, 190 at z2, 71 at compact). Hardcoding a y is how this
-             * check would have passed for the wrong reason: on an empty row the
-             * leftmost TEXT is trivially the name. */
-            for (i = 0u; i < dl.n; i++)
-                if (dl.cmd[i].op == RI_D_TEXT && dl.cmd[i].text &&
-                    strcmp(dl.cmd[i].text, "ZOMBIE NATION") == 0)
-                    y = dl.cmd[i].y0;
-            RI_ASSERT(y >= 0, "zoom %d: name row found", k);
-            /* THE EXACT ANCHOR, which is the contract art_tr states:
-             * "left-aligned under the transport row ... the earlier PX(900)/
-             * PX(197) put the label at x=18 y=73, i.e. inside the SYNC/MIDI
-             * legend row". So x = PX(25), y = PX(190), in plate units, scaling
-             * with zoom. Checking only "leftmost on its row" is NOT enough: a
-             * label moved to PX(900) is still leftmost on an otherwise empty
-             * row, and that mutant survived the weaker check. */
-            RI_ASSERT(zs[k] == ri_geo_px(25, k),
-                "zoom %d: name anchored at PX(25)=%d, got %d", k, ri_geo_px(25, k), zs[k]);
-            RI_ASSERT(y == ri_geo_px(190, k),
-                "zoom %d: name baseline at PX(190)=%d, got %d", k, ri_geo_px(190, k), y);
-            RI_ASSERT(is_leftmost_text_row(&dl, y, zs[k]),
-                "at zoom %d the song name is leftmost on its row (x=%d, y=%d)",
-                k, zs[k], y);
-        }
-    }
-
-    /* ---- guard 2: the fit, and that it never silently cuts ----
-     *
-     * A real defect lived here, and it is fixed. art_tr.c passed
-     * `char name[40]` to ri_art_tr_fit, and ri_art_tr_copy fills at most cap-1,
-     * so the label held 39 characters against a 64-byte song buffer: a longer
-     * name was emitted hard-cut mid-word with no ellipsis, looking complete
-     * while being cut off. The buffer is now sized from the song capacity.
-     *
-     * THE SECOND HALF OF THAT STORY, WHICH THE FIRST HALF GOT WRONG. The
-     * original note claimed the ellipsis branch became reachable once the buffer
-     * grew. It does not, and the reason is stronger than a buffer size:
-     *
-     *   longest possible name : (RI_ART_TR_SONG_MAX-1) chars = 63 -> 377 px
-     *   narrowest row         : ri_geo_px(1560, COMPACT)    = 585 px
-     *   377 < 585, so the fit NEVER shortens, at any zoom, at any buffer size.
-     *
-     * An earlier version of this comment derived the rooms as 390/585/780/292
-     * and therefore as "233 px against 292 px". Those room figures were wrong --
-     * they came from reading RI_GEO_BASE_SCALE as 1/1 when it is 2/1 -- and the
-     * probe on the real build says 780/1170/1560/585. The conclusion survived;
-     * the arithmetic did not.
-     *
-     * So ri_art_tr_fit's truncation is DEAD CODE from this call site,
-     * permanently. It is left in place because the function is shared and
-     * reachable with other metrics and other rooms, and deleting the ellipsis
-     * would remove the protection from the paths that do need it. What is
-     * asserted here is the truth about THIS caller.
-     */
-    {
-        static const int ZS[4] = { 0, 1, 2, RI_GEO_ZOOM_COMPACT };
-        int narrowest = 1 << 30, k;
-        size_t longest = (size_t)RI_ART_TR_SONG_MAX - 1u;
-        int longest_px = (int)(longest * RI_RASTER_ADVANCE - 1u);
-        for (k = 0; k < 4; k++) {
-            int r = ri_geo_px(1560, ZS[k]);
-            if (r > 0 && r < narrowest)
-                narrowest = r;
-        }
-        RI_ASSERT(narrowest > 0, "the Song Position row has a width at every zoom");
-        RI_ASSERT(longest_px < narrowest,
-            "the longest possible name (%d px) must fit the narrowest row (%d px);"
-            " if this fails the fit can shorten again, so assert the truncation"
-            " case (ellipsis present, label shorter) instead of the whole-name case",
-            longest_px, narrowest);
-    }
-    /* Every zoom must emit the whole name: the assertion above proves the row
-     * is wide enough, and this proves the code agrees. A name is only ever cut
-     * if the buffer shrinks, which the mutants below cover. */
-    for (i = 0; i < 4u; i++) {
-        static const int ZS[4] = { 0, 1, 2, RI_GEO_ZOOM_COMPACT };
-        size_t L, whole = strlen(LONGNAME);
-        int xw = -1, xe = -1;
-        ri_art_tr_set_song(LONGNAME);
-        tr_dl(&dl, ZS[i]);
-        t = 0;
-        for (k = 0u; k < dl.n; k++)
-            if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
-                strncmp(dl.cmd[k].text, "A VERY", 6) == 0) {
-                t = dl.cmd[k].text;
-                xe = dl.cmd[k].x0;
-            }
-        RI_ASSERT(t != 0, "zoom %d: the long name reaches the list", ZS[i]);
-        L = strlen(t);
-        RI_ASSERT(L == whole,
-            "zoom %d: room %d px holds all %u chars, got %u ('%s')",
-            ZS[i], ri_geo_px(1560, ZS[i]), (unsigned)whole, (unsigned)L, t);
+    uint32_t base_text;
+    uint32_t i;
+    int k;
+    /* The plate draws no song name (owner Dell 2026-10-05): no strip of it
+     * fits a text line at every zoom, and the old PX(25)/PX(190) anchor ran
+     * the name off the left edge and over the SHUFFLE legend. RIAPP shows
+     * the name in the window title instead. So: setting a name - short, or
+     * longer than the song buffer - must not add a single TEXT command at any
+     * zoom, and the setter still caps at the buffer for the title's sake. */
+    for (k = 0; k < 4; k++) {
+        ri_art_tr_set_song("");
+        tr_dl(&dl, k);
+        base_text = dl_count_text(&dl);
+        RI_ASSERT(dl_find_text(&dl, "SONG MODE") != 0, "zoom %d: transport keeps its legends", k);
         ri_art_tr_set_song("ZOMBIE NATION");
-        tr_dl(&dl, ZS[i]);
-        for (k = 0u; k < dl.n; k++)
-            if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
-                strcmp(dl.cmd[k].text, "ZOMBIE NATION") == 0)
-                xw = dl.cmd[k].x0;
-        RI_ASSERT(xe == xw, "zoom %d: the label keeps the left edge (%d vs %d)",
-            ZS[i], xe, xw);
+        tr_dl(&dl, k);
+        RI_ASSERT(dl_count_text(&dl) == base_text,
+            "zoom %d: a set name adds no TEXT command (%u -> %u)", k, base_text, dl_count_text(&dl));
+        RI_ASSERT(dl_find_text(&dl, "ZOMBIE NATION") == 0, "zoom %d: the name is not on the plate", k);
+        RI_ASSERT(!has_ellipsis(&dl), "zoom %d: no ellipsis on the plate", k);
     }
-    /* And the defect itself, stated as its own contract: a name LONGER than the
-     * song buffer is stored truncated by the setter, and what reaches the list
-     * is that stored value, never a 40-byte remnant of it. */
     {
         char big[RI_ART_TR_SONG_MAX + 16];
         memset(big, 'W', sizeof big);
@@ -580,17 +430,10 @@ static void songname_checks(void) {
         RI_ASSERT(strlen(ri_art_tr_song()) == (size_t)RI_ART_TR_SONG_MAX - 1u,
             "the setter caps at the song buffer (%u)", (unsigned)strlen(ri_art_tr_song()));
         tr_dl(&dl, 0);
-        t = 0;
-        for (k = 0u; k < dl.n; k++)
-            if (dl.cmd[k].op == RI_D_TEXT && dl.cmd[k].text &&
-                strncmp(dl.cmd[k].text, "WWW", 3) == 0)
-                t = dl.cmd[k].text;
-        RI_ASSERT(t != 0, "an over-long name still reaches the list");
-        RI_ASSERT(strlen(t) == (size_t)RI_ART_TR_SONG_MAX - 1u,
-            "the list shows the full stored name, not a 40-byte remnant (%u)",
-            (unsigned)strlen(t));
+        for (i = 0u; i < dl.n; i++)
+            RI_ASSERT(!(dl.cmd[i].op == RI_D_TEXT && dl.cmd[i].text &&
+                strncmp(dl.cmd[i].text, "WWW", 3) == 0), "an over-long name is not on the plate");
     }
-
     ri_art_tr_set_song("");
 }
 

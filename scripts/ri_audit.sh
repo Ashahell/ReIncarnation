@@ -280,6 +280,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t167_chase_box_union >/dev/null || { 
 bash "$ROOT/scripts/ri_build_host.sh" test t168_gap_accounting >/dev/null || { echo "FAIL: t168_gap_accounting (gui: the GAP must subtract the SUM of the phases)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t169_item_cull_parity >/dev/null || { echo "FAIL: t169_item_cull_parity (gui: the build item cull must not change a pixel)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t170_ctlreg_index >/dev/null || { echo "FAIL: t170_ctlreg_index (gui: ri_ctlreg_find must match a linear scan on all 65536 ids)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t171_tr_layout >/dev/null || { echo "FAIL: t171_tr_layout (gui: TAP must clear the slot, controls and legends; the plate draws no song name)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t111_legend_face >/dev/null || { echo "FAIL: t111_legend_face (S2 legend face)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t112_partial_redraw >/dev/null || { echo "FAIL: t112_partial_redraw (S3 dirty rect)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_master_live >/dev/null || { echo "FAIL: t115_master_live (S4 master live)"; exit 1; }

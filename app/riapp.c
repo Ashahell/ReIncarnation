@@ -1025,6 +1025,20 @@ static void audio_fail(long err) {
     EasyRequestArgs(NULL, &es, NULL, NULL);
 }
 
+/* The loaded song's name lives in the window title (owner Dell 2026-10-05):
+ * the transport plate has no strip that fits a line of text at every zoom. */
+static Object *s_win;
+static char s_wintitle[96];
+
+static void win_title_song(const char *leaf) {
+    if (leaf && leaf[0])
+        snprintf(s_wintitle, sizeof s_wintitle, "RIAPP live panel - %s", leaf);
+    else
+        snprintf(s_wintitle, sizeof s_wintitle, "RIAPP live panel");
+    if (s_win)
+        SetAttrs(s_win, MUIA_Window_Title, (IPTR)s_wintitle, TAG_DONE);
+}
+
 static int song_load_path(const char *path) {
     static char err[160];
     struct RICoreSong cs;
@@ -1077,8 +1091,7 @@ static int song_load_path(const char *path) {
             if (*q == ':' || *q == '/')
                 leaf = q + 1;
         ri_art_tr_set_song(leaf);
-        if (s_canvas[C_TR])
-            ri_rsection_refresh(s_canvas[C_TR]);
+        win_title_song(ri_art_tr_song());
     }
     rlog("RIAPP song %s: %ld bars at %ld BPM\n", path, (long)s_core.song_bars, (long)s_song.tempo);
     evlog("SONG", "load %s bars=%lu bpm=%lu", path, (unsigned long)s_core.song_bars, (unsigned long)s_song.tempo);
@@ -2766,6 +2779,7 @@ static int riapp_main(int argc, char **argv) {
             MUIA_Window_RootObject, (IPTR)row,
             TAG_DONE);
     }
+    s_win = win;
     if (!win) {
         if (s_live)
             au_live_close(&s_lv);

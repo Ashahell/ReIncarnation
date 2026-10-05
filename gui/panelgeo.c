@@ -528,7 +528,11 @@ static const struct RIGeoItem RI_GEO_TRANSPORT[] = {
     { TR(6), RI_GEO_RECT, 0, 706, 137, 120, 76 },
     { TR(7), RI_GEO_RECT, 0, 834, 137, 120, 76 },
     { TR(8), RI_GEO_RECT, 0, 962, 137, 120, 76 },
-    { TR(14), RI_GEO_RECT, 0, 490, 58, 120, 76 },   /* Tap (P9e): above Play */
+    /* Tap (P9e): on the lever row, in the free run between the SONG MODE
+     * legend and the Loop lever, clear of the BAR legend below. Above Play it
+     * sat on the button slot and, with AROS's wider face, covered the
+     * right-aligned PATTERN legend (owner Dell 2026-10-05). */
+    { TR(14), RI_GEO_RECT, 0, 1150, 44, 100, 44 },
     { TR(3), RI_GEO_RECT, 0, 1139, 143, 110, 70 },
     { TR(3), RI_GEO_STEPPER, 1, 1222, 127, 32, 28 },
     { TR(3), RI_GEO_STEPPER, 0, 1222, 158, 32, 28 },

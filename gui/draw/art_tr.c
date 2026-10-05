@@ -148,20 +148,11 @@ void ri_art_bg_tr(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int
     ri_art_line(dl, ox + PX(1330), oy + PX(38), ox + PX(1400), oy + PX(38), C_MIX_TEXT);
     ri_art_text_c(dl, ox + PX(1444), oy + PX(38), "LOOP", C_MIX_TEXT);
     ri_art_line(dl, ox + PX(1488), oy + PX(38), ox + PX(1560), oy + PX(38), C_MIX_TEXT);
-    /* Song name, left-aligned under the transport row. Empty until a song
-     * loads, which is the correct state for a pattern-mode session.
-     *
-     * The baseline is 196, below the transport's own 180-tall slot, because
-     * the panel is only 208 tall and the plate text at 45 sits above it. */
-    if (tr_song_name[0] != '\0') {
-        /* Width 1560 of 1684 and baseline 190 of 208: the plate's own text
-         * sits at 45 and 150, so 190 is the last row clear of the bar, and
-         * 1560 leaves the right-hand LOOP legend alone. Both are in plate
-         * units -- PX() halves them at zoom 1, and the earlier PX(900)/PX(197)
-         * put the label at x=18 y=73, i.e. inside the SYNC/MIDI legend row. */
-        ri_art_tr_fit(name, sizeof name, tr_song_name, tm, PX(1560));
-        if (name[0] != '\0')
-            ri_art_text_at(dl, ox + PX(25), oy + PX(190), name, C_MIX_TEXT, 0, tm);
-    }
+    /* The song name is no longer drawn on the plate: no strip of it is tall
+     * and wide enough for the face at every zoom (compact leaves 10 px under
+     * the slot for a 17 px line), and at x=25 it ran off the left edge and
+     * over the SHUFFLE legend (owner Dell 2026-10-05). RIAPP shows it in the
+     * window title; ri_art_tr_song() still holds it for that. */
+    (void)name;
 #undef PX
 }
