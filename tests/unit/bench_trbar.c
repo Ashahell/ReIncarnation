@@ -144,5 +144,76 @@ int main(void) {
     printf("  kept %u of %u  (%.1f%% kept, %.1f%% of the cost removed)\n", dl.n,
         nfull, nfull ? 100.0 * (double)dl.n / (double)nfull : 0.0,
         uf > 0.0 ? 100.0 * (1.0 - uc / uf) : 0.0);
+
+    /* IS THE VALUE TEXT A MONOSPACE ROW OF FIXED-WIDTH CELLS?  This is the
+     * gate on narrowing the BAR box to only the characters that changed, and it
+     * has to be MEASURED rather than assumed: the display is drawn by
+     * ri_art_text_c, i.e. a centred string, so a per-character box needs both
+     * that the face is monospaced and that the alignment divides evenly. This
+     * lane has been bitten by exactly this shape of assumption (a bbox computed
+     * in the wrong coordinate space came out DISJOINT from what it named).
+     *
+     * Read the TEXT commands' own recorded extents at several values and look
+     * for three equal cells. A TEXT command's bbox is what the replay and the
+     * clip both use, so this reads production's own answer rather than
+     * re-deriving it. */
+    printf("\n  value text extents (the gate on a narrowed box):\n");
+    {
+        static const int vals[6] = { 0, 9, 99, 100, 101, 999 };
+        uint32_t vi;
+        int prevx0 = -1, uniform = 1;
+        int nblankw = -1;   /* outer: the verdict line reads it after the loop */
+        for (vi = 0u; vi < 6u; vi++) {
+            ri_sui_set(&ui, RI_STR_BAR, vals[vi]);
+            ri_dlist_init(&dl, FULL, 24576u, SPOOL_FULL, sizeof SPOOL_FULL);
+            ri_draw_section(&dl, &ui, RI_SEC_TRANSPORT, z, 0, 0, &TM, 0, 0);
+            printf("    v=%-4d", vals[vi]);
+            for (k = 0u; k < dl.n; k++) {
+                struct ri_dcmd *c = &dl.cmd[k];
+                int a0, b0, a1, b1;
+                if (c->op != (uint8_t)RI_D_TEXT)
+                    continue;
+                if (ri_dcmd_bbox(c, &a0, &b0, &a1, &b1) != 0)
+                    continue;
+                printf("  text[%d,%d..%d,%d] w=%d \"%s\"", a0, b0, a1, b1,
+                    a1 - a0 + 1, c->text ? c->text : "");
+            }
+            printf("\n");
+            /* The decisive comparison is between strings of IDENTICAL
+             * structure, because only those must agree if the face is
+             * fixed-width. The two Song Position readouts differ by one digit
+             * and nothing else -- same length, same leading blanks -- so if the
+             * face were monospaced their extents would be equal. */
+            {
+                int nblank = -1;
+                for (k = 0u; k < dl.n; k++) {
+                    struct ri_dcmd *c = &dl.cmd[k];
+                    int a0, b0, a1, b1, nb = 0;
+                    const char *t;
+                    if (c->op != (uint8_t)RI_D_TEXT)
+                        continue;
+                    if (ri_dcmd_bbox(c, &a0, &b0, &a1, &b1) != 0)
+                        continue;
+                    t = c->text;
+                    if (!t || t[0] == '8')
+                        continue;          /* the static "888" ghost */
+                    while (t[nb] == ' ')
+                        nb++;
+                    if (nb < 2)
+                        continue;          /* not a Song Position readout */
+                    if (nblank < 0) { nblank = nb; nblankw = a1 - a0 + 1; prevx0 = a0; }
+                    else if (nblankw != a1 - a0 + 1)
+                        uniform = 0;
+                }
+            }
+        }
+        printf("\n    two Song Position readouts of IDENTICAL structure"
+            " (3 chars, 2 leading blanks, 1 digit): %s\n",
+            uniform ? "same width -- a fixed-cell split would be measurable"
+                    : "DIFFERENT WIDTH -- THE FACE IS PROPORTIONAL, so a"
+                      " fixed-cell split is NOT sound and the narrowed-box"
+                      " cut is DEAD. Raw: \"  1\" and \"  4\" measure 12 and 13.");
+        printf("    first such readout: x0=%d width=%d\n", prevx0, nblankw);
+    }
     return 0;
 }
