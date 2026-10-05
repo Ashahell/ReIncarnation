@@ -58,19 +58,62 @@ int main(void) {
 
     RI_ASSERT(n > 0u, "the registry is empty, so nothing can be checked");
 
-    /* (1) A GLOBAL binary search is refuted by the table itself: the ids do not
-     * ascend across it. Named rather than merely counted, because the inversions
-     * are the whole argument. */
+    /* (1) EVERY ordering-based replacement is refuted by the table itself, and
+     * the two failures are different in kind, so both are checked.
+     *
+     *   (a) A GLOBAL binary search: the ids do not ascend across the table.
+     *
+     *   (b) A BINARY SEARCH INSIDE A PER-SECTION RANGE: the ids do not ascend
+     *       WITHIN a section either. This is the one that looked safest and was
+     *       installed anyway -- bounds as literals, no mutable state, 6
+     *       comparisons instead of 224 -- and it returned NULL for every LEVI
+     *       control from reg_id 4822 upward.
+     *
+     * The cause is LEVI's run being ordered BY SUB-PANEL, each sub-panel
+     * ascending in reg_id but the sub-panels themselves not in idx order: the
+     * table goes ... 4835 at index 445, then 4822 at index 446. So the table is
+     * grouped by section and then by sub-panel, and NEITHER grouping ascends in
+     * reg_id. Any search that assumes otherwise is wrong here.
+     *
+     * ⚠ AND THE MEASUREMENT THAT TOLD ME OTHERWISE WAS MY OWN BUG, which is why
+     * this is pinned rather than left as prose. The probe that "proved" every
+     * section ascends stored `prev = i` -- the INDEX -- instead of
+     * `prev = d->reg_id`, so it compared a reg_id against an index and reported
+     * `ascending: yes` for all 21 sections. It was wrong, it was believed, and an
+     * implementation shipped on the strength of it and had to be reverted. **This
+     * is the second invented-or-mishandled constant in this lane in two days**
+     * (the geometry-shape enum, which reversed a published conclusion), and the
+     * failure mode is identical: an instrument that reports a property the code
+     * does not have. So the check below computes ascendingness from reg_id, and
+     * names the inversions rather than only counting them. */
     {
-        uint32_t inversions = 0;
+        uint32_t glob = 0, within = 0;
+        const struct RICtlDef *sample_lo = 0, *sample_hi = 0;
         for (i = 1; i < n; i++) {
             const struct RICtlDef *a = ri_ctlreg_at(i - 1);
             const struct RICtlDef *b = ri_ctlreg_at(i);
-            if (a && b && b->reg_id < a->reg_id)
-                inversions++;
+            if (!a || !b)
+                continue;
+            if (b->reg_id < a->reg_id)
+                glob++;
+            if ((uint32_t)(a->reg_id >> 8) == (uint32_t)(b->reg_id >> 8) &&
+                b->reg_id < a->reg_id) {
+                if (!within) {
+                    sample_lo = a;
+                    sample_hi = b;
+                }
+                within++;
+            }
         }
-        RI_ASSERT(inversions > 0u, "the ids ascend across the whole table, so a "
-            "GLOBAL binary search may be viable after all -- re-check it");
+        RI_ASSERT(glob > 0u, "the ids ascend across the whole table, so a GLOBAL "
+            "binary search may be viable after all -- re-check it");
+        RI_ASSERT(within > 0u, "the ids ascend WITHIN every section, so a "
+            "PER-SECTION RANGE search may be viable after all -- re-check it "
+            "(it was installed on exactly that false belief and returned NULL for "
+            "every LEVI control from reg_id 4822 upward)");
+        RI_ASSERT(sample_lo && sample_hi && sample_hi->reg_id < sample_lo->reg_id,
+            "the within-section inversion is gone; the named pair should be "
+            "replaced with whatever supersedes it");
     }
 
     /* (2) The shipped lookup, checked per section. */
