@@ -190,6 +190,9 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
     ULONG dp_ur_here = 0u, dp_ub_here = 0u;
     if (w <= 0 || h <= 0)
         return;
+    /* Written from the same source the draw reads, so it cannot go stale, and
+     * once per draw rather than once per window. */
+    d->diag.dp_sec = (uint8_t)d->ui.section;
     if (!d->bm || d->bw != w || d->bh != h) {
         buf_free(d);
         d->bm = AllocBitMap((ULONG)w, (ULONG)h, GetBitMapAttr(wrp->BitMap, BMA_DEPTH), BMF_MINPLANES, wrp->BitMap);

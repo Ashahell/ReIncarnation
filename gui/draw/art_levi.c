@@ -19,6 +19,7 @@
 #include "engine/dsp/kernels.h"
 #include "gui/ctlreg.h"
 #include "gui/draw/font_legend.h"
+#include "gui/draw/canvas.h"
 #include "gui/knob_logic.h"
 #include "gui/panelgeo.h"
 #include "gui/sectlevi.h"
@@ -304,13 +305,22 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
     ri_art_rect(dl, ox, oy, ox + PX(g->w) - 1, oy + PX(g->h) - 1, C_LEVI_PANEL);
     for (i = 0u; i < sizeof(BOX) / sizeof(BOX[0]); i++)
         levi_box(dl, ox, oy, z, &BOX[i]);
-    /* Dashed dividers: filter groups, main systems. */
-    for (k = PX(LEVI_DIV_Y0); k < PX(LEVI_DIV_Y1); k += PX(6) > 2 ? PX(6) : 2) {
-        ri_art_rect(dl, ox + PX(LEVI_DIV1_X), oy + k, ox + PX(LEVI_DIV1_X), oy + k + PX(2), C_LEVI_EDGE);
-        ri_art_rect(dl, ox + PX(LEVI_DIV2_X), oy + k, ox + PX(LEVI_DIV2_X), oy + k + PX(2), C_LEVI_EDGE);
-    }
-    for (k = PX(LEVI_MSDIV_Y0); k < PX(LEVI_MSDIV_Y1); k += PX(6) > 2 ? PX(6) : 2)
-        ri_art_rect(dl, ox + PX(LEVI_MSDIV_X), oy + k, ox + PX(LEVI_MSDIV_X), oy + k + PX(2), C_LEVI_EDGE);
+    /* Dashed dividers: filter groups, main systems. 2026-10-05: these two loops
+     * walk a contiguous Y band two-pixel dashes at a time, and bench_build put
+     * the Levi background at 54 % of a clipped build (22.8 us of 42.8, 761 rects
+     * of 916), so a band test that skips the loop outright is worth having.
+     * Exact for the same reason the item cull is: every dash is inside the
+     * band, and the clipped replay drops every command that misses the box.
+     * WITH NO CLIP SET the tests are 0 and the loops run unchanged, which is what
+     * keeps the goldens still. */
+    if (!ri_dlist_band_missed(dl, oy + PX(LEVI_DIV_Y0), oy + PX(LEVI_DIV_Y1) + PX(2)))
+        for (k = PX(LEVI_DIV_Y0); k < PX(LEVI_DIV_Y1); k += PX(6) > 2 ? PX(6) : 2) {
+            ri_art_rect(dl, ox + PX(LEVI_DIV1_X), oy + k, ox + PX(LEVI_DIV1_X), oy + k + PX(2), C_LEVI_EDGE);
+            ri_art_rect(dl, ox + PX(LEVI_DIV2_X), oy + k, ox + PX(LEVI_DIV2_X), oy + k + PX(2), C_LEVI_EDGE);
+        }
+    if (!ri_dlist_band_missed(dl, oy + PX(LEVI_MSDIV_Y0), oy + PX(LEVI_MSDIV_Y1) + PX(2)))
+        for (k = PX(LEVI_MSDIV_Y0); k < PX(LEVI_MSDIV_Y1); k += PX(6) > 2 ? PX(6) : 2)
+            ri_art_rect(dl, ox + PX(LEVI_MSDIV_X), oy + k, ox + PX(LEVI_MSDIV_X), oy + k + PX(2), C_LEVI_EDGE);
     /* Oscillator group edit well + module chain rules (teal). */
     ri_art_rect(dl, ox + PX(LEVI_GROUP_X0), oy + PX(LEVI_GROUP_Y0), ox + PX(LEVI_GROUP_X1),
         oy + PX(LEVI_GROUP_Y1), C_LEVI_BOX);

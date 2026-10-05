@@ -55,6 +55,16 @@ void ri_dlist_clear_clip(struct ri_dlist *dl) {
         dl->clip = 0u;
 }
 
+int ri_dlist_band_missed(const struct ri_dlist *dl, int y0, int y1) {
+    if (!dl || !dl->clip)
+        return 0;
+    /* Disjoint in Y is sufficient on its own: a band is only a bound, and a
+     * band that cannot overlap the box vertically cannot overlap it at all. The
+     * caller is free to be more precise (a key also has an X extent) and should
+     * be -- this is the cheap half. */
+    return y1 < dl->cy0 || y0 > dl->cy1;
+}
+
 static int emit(struct ri_dlist *dl, uint8_t op, int x0, int y0, int x1, int y1,
     uint32_t rgb, uint16_t img, uint16_t frame, uint8_t align, uint8_t face, const char *text) {
     struct ri_dcmd c;

@@ -113,7 +113,7 @@ static double us_since(const struct timespec *t0) {
 
 int main(void) {
     uint32_t sec;
-    double tot_wasted = 0.0, tot_full = 0.0, tot_clip = 0.0;
+    double tot_wasted = 0.0, tot_full = 0.0, tot_clip = 0.0, tot_bg = 0.0;
     uint32_t tot_items = 0u, tot_built = 0u, tot_kept = 0u;
 
     TM.width = bench_width;
@@ -122,8 +122,9 @@ int main(void) {
     TM.ctx = 0;
     ri_smix_init(&BOARD);
 
-    printf("%-11s %6s %7s %6s %6s %8s %6s %6s %9s %9s\n", "section", "items",
-        "built", "bg", "items", "wasted", "txt_b", "txt_k", "us_built", "us_clip");
+    printf("%-11s %6s %7s %6s %6s %8s %6s %6s %9s %9s %9s\n", "section",
+        "items", "built", "bg", "items", "wasted", "txt_b", "txt_k",
+        "us_built", "us_clip", "us_bg");
     for (sec = 0u; sec < RI_SEC_COUNT; sec++) {
         const struct RIGeoSection *g =
             ri_geo_section(sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec);
@@ -132,7 +133,8 @@ int main(void) {
         struct timespec t0;
         int w, h, bx, by, r;
         uint32_t built, kept, tb, tk, k, bg;
-        double uf, uc;
+        uint32_t bgrect, bglne, bgcirc, bgimg, bgtext;
+        double uf, uc, ubg;
 
         if (!g)
             continue;
@@ -184,16 +186,41 @@ int main(void) {
         kept = dl.n;
         tk = count_op(&dl, (uint32_t)RI_D_TEXT);
 
-        /* Background alone, unclipped: how much of `built` the item loop is
-         * not responsible for. */
+        /* Background alone, unclipped: how much of `built` the item loop is not
+         * responsible for, and WHAT KIND of commands it is. The op split is the
+         * point: text is measured per string (the classic suspect) while a rect
+         * is four additions, so the two need different cuts and the counts say
+         * which is which. */
         ri_dlist_init(&dl, CMD, 24576u, SP, sizeof SP);
         draw_bg(&dl, g, (uint8_t)sec, 0, 0, 0);
         bg = dl.n;
+        bgrect = count_op(&dl, (uint32_t)RI_D_RECT);
+        bglne = count_op(&dl, (uint32_t)RI_D_LINE);
+        bgcirc = count_op(&dl, (uint32_t)RI_D_CIRCLE);
+        bgimg = count_op(&dl, (uint32_t)RI_D_IMAGE);
+        bgtext = count_op(&dl, (uint32_t)RI_D_TEXT);
 
-        printf("%-11s %6u %7u %6u %6u %8u %6u %6u %9.2f %9.2f%s\n",
+        /* The background half alone, WITH the clip -- i.e. exactly what the item cull
+         * cannot touch, and therefore the floor the section-wide background
+         * imposes on every clipped build. Time it separately so the next
+         * attribution has a number rather than a suspicion. */
+        clock_gettime(CLOCK_MONOTONIC, &t0);
+        for (k = 0; k < REPS; k++) {
+            ri_dlist_init(&dl, CMD, 24576u, SP, sizeof SP);
+            ri_dlist_set_clip(&dl, bx, by, bx + 63, by + 15);
+            draw_bg(&dl, g, (uint8_t)sec, 0, 0, 0);
+            ri_dlist_clear_clip(&dl);
+        }
+        ubg = us_since(&t0) / (double)REPS;
+
+        printf("%-11s %6u %7u %6u %6u %8u %6u %6u %9.2f %9.2f %9.2f%s\n",
             SECNAME[sec], (unsigned)g->nitems, built, bg, built - bg,
-            built - kept, tb, tk, uf, uc,
-            (built > 40u && kept * 4u < built) ? "  <- 98% discarded" : "");
+            built - kept, tb, tk, uf, uc, ubg,
+            (ubg * 2.0 > uc) ? "  <- bg is >half the clipped build" : "");
+        printf("%-11s   bg ops: %4u rect %4u line %4u circ %4u image %4u text"
+               "   (%.1f us clipped, %.1f ns/cmd)\n", SECNAME[sec], bgrect, bglne,
+            bgcirc, bgimg, bgtext, ubg,
+            bg ? ubg * 1000.0 / (double)bg : 0.0);
 
         tot_items += g->nitems;
         tot_built += built;
@@ -201,12 +228,14 @@ int main(void) {
         tot_wasted += uf - uc;
         tot_full += uf;
         tot_clip += uc;
+        tot_bg += ubg;
         (void)r;
     }
     printf("\nTOTAL items %u | built %u | kept %u (%.1f%% kept) | "
-        "us whole %.1f | us clipped %.1f | recoverable %.1f us\n",
+        "us whole %.1f | us clipped %.1f | recoverable %.1f us | bg share %.0f%%\n",
         tot_items, tot_built, tot_kept,
         tot_built ? 100.0 * (double)tot_kept / (double)tot_built : 0.0,
-        tot_full, tot_clip, tot_wasted);
+        tot_full, tot_clip, tot_wasted,
+        tot_clip > 0.0 ? 100.0 * tot_bg / tot_clip : 0.0);
     return 0;
 }

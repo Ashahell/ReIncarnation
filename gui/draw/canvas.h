@@ -26,6 +26,28 @@ void ri_dlist_clear(struct ri_dlist *dl);
  * RI_D_CLIP is a no-op for replay and is dropped when clipping. */
 void ri_dlist_set_clip(struct ri_dlist *dl, int x0, int y0, int x1, int y1);
 void ri_dlist_clear_clip(struct ri_dlist *dl);
+/* True when a run of art confined to the band [y0,y1] (absolute, the same space
+ * as the commands) cannot paint inside the damage clip, so the code that would
+ * emit it can be skipped outright.
+ *
+ * This is the second half of the item cull in art_section.c. That cull works at
+ * item granularity; the background has no items, it is one function that fills
+ * band-structured art -- a 303 keyboard key is ~28 horizontal strips, each with
+ * two colour computations and a division, and a 64x16 damage box wants perhaps
+ * two of them. bench_build measures the background at 39 % of the remaining
+ * clipped build (67 % of SYNTH1, 54 % of LEVI) and its op split says it is
+ * ~760 plain RECTs, not text, so the cost is the strips and not font
+ * measurement.
+ *
+ * A band test is exact here for the same reason the item cull is: the clipped
+ * replay already drops every command that misses the box, so anything this
+ * rejects could only have produced commands the replay was going to throw
+ * away. Bands are tested in absolute coordinates, exactly like the commands,
+ * which is the only convention ri_dcmd_hits_box uses.
+ *
+ * With no clip set this returns 0, so the full-draw path is unchanged -- which
+ * is what keeps the goldens (t92/t93) still. */
+int ri_dlist_band_missed(const struct ri_dlist *dl, int y0, int y1);
 /* Push one command; returns 0 ok, 1 full (counts on the caller to size). */
 int ri_dlist_push(struct ri_dlist *dl, const struct ri_dcmd *c);
 

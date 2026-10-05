@@ -2677,6 +2677,8 @@ int main(int argc, char **argv) {
              * lower bound. gap_max large with everything else normal means the
              * draw was INTERRUPTED; bl_max >> bl_min is the amplitude. */
             ULONG gp_max = 0u, gp_sum = 0u, bl_min = 0u;
+            /* Build cost attributed to the section that owned most of it. */
+            ULONG dpbsecsum = 0u, dpb_sec = 0u, dpb_seci = 0u;
             int w;
             hb = 0u;
             for (i = 0; i < C_N; i++) {
@@ -2696,6 +2698,18 @@ int main(int argc, char **argv) {
                 alln += dg->alloc_n;
                 if (dg->dp_build_max > dpbmax)
                     dpbmax = dg->dp_build_max;
+                /* Which SECTION the build cost belonged to (2026-10-05). Argmax
+                 * of the per-window build SUM, not of the max: one canvas is one
+                 * section, so the sums are already partitioned by section and the
+                 * largest is the target. dpb_seci records whether any canvas
+                 * reported at all, so an all-zero window reads "none" rather than
+                 * "section 0" -- a floor reading is indistinguishable from one
+                 * that never ran, which this lane has been bitten by twice. */
+                if (dg->dp_build_sum > dpbsecsum) {
+                    dpbsecsum = dg->dp_build_sum;
+                    dpb_sec = (ULONG)dg->dp_sec;
+                    dpb_seci = 1u;
+                }
                 dpbsum += dg->dp_build_sum;
                 if (dg->dp_gap_max > gp_max)
                     gp_max = dg->dp_gap_max;
@@ -2752,7 +2766,7 @@ int main(int argc, char **argv) {
             }
             /* box_* splits the partials by RI_RSEC_BOX_*: steps (drum lamps), bar (Song
              * Position), other. An expensive partial now names its caller. */
-            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us boxrep=%lu/%lu/%lu rpl_max=%lu us rpl_avg=%lu us blt_max=%lu us blt_avg=%lu us blt_min=%lu us gap_max=%lu us gap_avg=%lu us\n",
+            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us boxrep=%lu/%lu/%lu rpl_max=%lu us rpl_avg=%lu us blt_max=%lu us blt_avg=%lu us blt_min=%lu us gap_max=%lu us gap_avg=%lu us bsec=%lu bsecsum=%lu us\n",
                 dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn, blmax, alln,
                 dpwn[RI_RSEC_BOX_STEPS] ? dpwsum[RI_RSEC_BOX_STEPS] / dpwn[RI_RSEC_BOX_STEPS] : 0u,
                 dpwmax[RI_RSEC_BOX_STEPS], dpwn[RI_RSEC_BOX_STEPS],
@@ -2765,7 +2779,10 @@ int main(int argc, char **argv) {
                 dpn ? dpbsum / dpn : 0u, dpbmax,
                 dpr_rep, dpr_new, dpr_run,
                 rp_max, dpn ? rp_sum / dpn : 0u, bl_max, dpn ? bl_sum / dpn : 0u,
-                bl_min, gp_max, dpn ? gp_sum / dpn : 0u);
+                bl_min, gp_max, dpn ? gp_sum / dpn : 0u,
+                /* bsec prints 255 when no canvas reported any build at all, so
+                 * "nothing built" cannot be read as "section 0 built". */
+                dpb_seci ? dpb_sec : 255ul, dpbsecsum);
             /* Render-stage breakdown (Dell 2026-10-02): avg and max per stage,
              * with the playing and stopped paths counted separately, so an idle
              * average can never be quoted as a playing cost again. Sticky

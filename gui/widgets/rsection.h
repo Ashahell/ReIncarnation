@@ -48,6 +48,13 @@ struct RSectionDiag {
     LONG df_n;            /* ... and count */
     ULONG dp_max, dp_sum; /* S3: partial-draw us, max + window sum */
     LONG dp_n;            /* ... and count */
+    /* WHICH SECTION this canvas is (2026-10-05). One canvas is one section, so
+     * this is constant per widget and the heartbeat can pick the argmax of
+     * dp_build_sum across widgets and report which section the build cost
+     * actually belonged to. Added because the item cull was aimed using an
+     * ASSUMPTION about which section the lane repaints, and the assumption had
+     * never been measured -- the same mistake shape as the gap's `max`. */
+    uint8_t dp_sec;
     ULONG blit_max;       /* full draw: BltBitMapRastPort share, max us */
     ULONG alloc_n;        /* back-buffer (re)allocations */
     /* Box repaints split by the reason they were asked for (RI_RSEC_BOX_*),
