@@ -3043,3 +3043,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Scope: commits `52fc452` (housekeeping + closed path) and `530f662` (latency). One evidence record carries the metric lines verbatim at each stage — first run, after seeding, after drift became a checked equality — plus the two audit-gate negative controls and the `TAB` event line.
 - **Retained, not smoothed:** the latency self-check reported `ok` on its first real run while printing `late_max=2805650769 us` and `cyc=0` beside five non-zero `per_tab` values. Both the failure and the correction are in the article, because the failure is the transferable part: a check that is true on everything it tests can still be printing a lie three fields away.
 - **Two open items carried into the article rather than resolved here:** the recorded tab click map is stale (5 of 6 clicks missed) and needs re-deriving from a capture before per-tab cost is measured; and the next cut is aimed at the tab switch, which costs 18.2x a full repaint.
+
+## [2026-10-05] ingest | Review of the latency instrumentation and advisor guidance log
+- Disposition: New; Update (reviews the 2026-10-05 latency record; condenses advice given 2026-10-02..05)
+- Raw: llm-wiki/raw/articles/2026-10-05-review-latency-instrumentation-and-advice-log.md
+- Updated: llm-wiki/index.md (Live app entry list)
