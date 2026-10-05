@@ -97,6 +97,7 @@ static int s_box_why;
 __attribute__((weak)) struct Device *TimerBase;
 static struct MsgPort *s_tport;
 static struct timerequest *s_treq;
+static ULONG s_draw_calls;   /* MUIM_Draw calls, all canvases (tab-switch probe) */
 static ULONG s_efreq;
 
 /* DIAGNOSTIC SWITCH (owner 2026-10-05): the per-phase draw timing is OFF BY
@@ -590,6 +591,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
     case MUIM_Draw:
         DoSuperMethodA(cl, obj, msg);
         d = (struct RSectionData *)INST_DATA(cl, obj);
+        s_draw_calls++;
         /* Only our own DRAWUPDATE may use the damage box. A box queued
          * while the canvas sat on a hidden tab (meters, chase lamps)
          * would otherwise turn the page switch's full draw into a box
@@ -694,6 +696,10 @@ APTR ri_rsection_create(ULONG section, LONG zoom) {
         MUIA_FillArea, FALSE,
         MUIA_ShortHelp, (IPTR)" ", /* non-NULL so Zune asks MUIM_CreateShortHelp */
         TAG_DONE);
+}
+
+ULONG ri_rsection_draw_calls(void) {
+    return s_draw_calls;
 }
 
 void ri_rsection_refresh(APTR obj) {

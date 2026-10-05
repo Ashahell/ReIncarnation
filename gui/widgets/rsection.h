@@ -147,6 +147,8 @@ void ri_rsection_dispose_class(void);
 /* section = RI_SEC_*; zoom 0 = 1x, 1 = 1.5x, 2 = 2x. NULL = class failed. */
 APTR ri_rsection_create(ULONG section, LONG zoom);
 /* Redraw after the state was changed from outside (demo / automation). */
+/* MUIM_Draw calls across every canvas since start (tab-switch probe). */
+ULONG ri_rsection_draw_calls(void);
 void ri_rsection_refresh(APTR obj);
 /* S3: redraw a canvas-local box after a meter/chase change (meters, lamps);
  * anything invalid falls back to a full redraw. Coordinates are canvas px

@@ -1428,6 +1428,10 @@ static void art_clip(struct ri_dlist *dl, int x0, int y0, int x1, int y1) {
     dl->n = n;
 }
 
+/* Tab-switch probe counters: rack-art draws, bay background requests and
+ * the commands they built vs kept after the clip. */
+static ULONG s_cnt_art, s_cnt_bay, s_cnt_bay_built, s_cnt_bay_kept;
+
 struct RArtData {
     LONG kind;
     BOOL on;
@@ -1519,6 +1523,7 @@ BOOPSI_DISPATCHER(IPTR, rart_dispatcher, cl, obj, msg) {
         if (!(m->flags & (MADF_DRAWOBJECT | MADF_DRAWUPDATE)))
             return 0;
         d = (struct RArtData *)INST_DATA(cl, obj);
+        s_cnt_art++;
         x0 = _mleft(obj);
         y0 = _mtop(obj);
         x1 = _mright(obj);
@@ -1549,7 +1554,47 @@ BOOPSI_DISPATCHER_END
 
 struct RBayData {
     BOOL shown;
+    struct BitMap *bm;      /* the plate, rendered once per size (see below) */
+    LONG bw, bh;
 };
+
+/* The bay plate is ~one RECT per pixel row plus streaks, and Zune asks for
+ * the background once per child box: a MIX page switch made 59 requests,
+ * rebuilt the plate 59 times (30137 commands) and replayed 12377 RectFills
+ * through the layer (owner Dell 2026-10-05). The plate depends only on the
+ * bay's size, so it is rendered once into a friend bitmap and every request
+ * is one blit of its box. */
+static int rbay_plate(Object *obj, struct RBayData *d) {
+    LONG w = _width(obj), h = _height(obj);
+    struct RastPort brp;
+    struct ri_dlist dl;
+    if (w <= 0 || h <= 0)
+        return 0;
+    if (d->bm && d->bw == w && d->bh == h)
+        return 1;
+    if (d->bm)
+        FreeBitMap(d->bm);
+    d->bm = AllocBitMap((ULONG)w, (ULONG)h, GetBitMapAttr(_rp(obj)->BitMap, BMA_DEPTH),
+        BMF_MINPLANES, _rp(obj)->BitMap);
+    if (!d->bm)
+        return 0;
+    d->bw = w;
+    d->bh = h;
+    InitRastPort(&brp);
+    brp.BitMap = d->bm;
+    ri_dlist_init(&dl, s_art_back, 16384u, s_art_spool, sizeof s_art_spool);
+    ri_art_bay(&dl, 0, 0, (int)w - 1, (int)h - 1);
+    s_cnt_bay_built += dl.n;
+    ri_rsection_replay(&brp, &dl);
+    return 1;
+}
+
+static void rbay_plate_free(struct RBayData *d) {
+    if (d->bm)
+        FreeBitMap(d->bm);
+    d->bm = NULL;
+    d->bw = d->bh = 0;
+}
 
 BOOPSI_DISPATCHER_PROTO(IPTR, rbay_dispatcher, Class *, Object *, Msg);
 
@@ -1564,18 +1609,37 @@ BOOPSI_DISPATCHER(IPTR, rbay_dispatcher, cl, obj, msg) {
     case MUIM_Hide:
         ((struct RBayData *)INST_DATA(cl, obj))->shown = FALSE;
         return DoSuperMethodA(cl, obj, msg);
+    case MUIM_Cleanup:                  /* the window's bitmap may change */
+        rbay_plate_free((struct RBayData *)INST_DATA(cl, obj));
+        return DoSuperMethodA(cl, obj, msg);
     case MUIM_DrawBackground: {
-        /* The whole plate is built from the bay's own box (grain keyed to
-         * it) and clipped to the requested box. */
+        /* One blit of the requested box out of the cached plate (grain
+         * keyed to the bay's own box, as before). */
         struct MUIP_DrawBackground *m = (struct MUIP_DrawBackground *)msg;
         struct ri_dlist dl;
         d = (struct RBayData *)INST_DATA(cl, obj);
         if (!d->shown || m->width <= 0 || m->height <= 0)
             return FALSE;
+        s_cnt_bay++;
+        if (rbay_plate(obj, d)) {
+            LONG sx = m->left - _left(obj), sy = m->top - _top(obj);
+            LONG bw = m->width, bh = m->height;
+            if (sx < 0) { bw += sx; sx = 0; }
+            if (sy < 0) { bh += sy; sy = 0; }
+            if (sx + bw > d->bw) bw = d->bw - sx;
+            if (sy + bh > d->bh) bh = d->bh - sy;
+            if (bw > 0 && bh > 0)
+                BltBitMapRastPort(d->bm, sx, sy, _rp(obj), _left(obj) + sx, _top(obj) + sy,
+                    bw, bh, 0xC0);
+            return TRUE;
+        }
+        /* No bitmap (memory): the old per-request build, clipped. */
         ri_dlist_init(&dl, s_art_back, 16384u, s_art_spool, sizeof s_art_spool);
         ri_art_bay(&dl, _left(obj), _top(obj), _right(obj), _bottom(obj));
+        s_cnt_bay_built += dl.n;
         art_clip(&dl, (int)m->left, (int)m->top, (int)(m->left + m->width - 1),
             (int)(m->top + m->height - 1));
+        s_cnt_bay_kept += dl.n;
         ri_rsection_replay(_rp(obj), &dl);
         return TRUE;
     }
@@ -1949,22 +2013,41 @@ static void tab_switch(uint32_t g) {
     if (g >= RI_TAB_COUNT || !s_pages)
         return;
     ULONG x0 = s_live ? ri_atomic_load_acq(&s_lv.drv.xruns) : 0u, us = 0u, efreq = 0u;
-    struct EClockVal e0, e1;
+    ULONG c_sec = ri_rsection_draw_calls(), c_art = s_cnt_art, c_bay = s_cnt_bay;
+    ULONG c_built = s_cnt_bay_built, c_kept = s_cnt_bay_kept;
+    struct EClockVal e0, e1, e2, e3;
+    ULONG pg_us = 0u, tb_us = 0u, rl_us = 0u;
     if (TimerBase)
         efreq = ReadEClock(&e0);
     SetAttrs(s_pages, MUIA_Group_ActivePage, (IPTR)g, TAG_DONE);
+    if (efreq)
+        ReadEClock(&e1);
     for (k = 0u; k < RI_TAB_COUNT; k++)
         if (s_tabs[k])
             SetAttrs(s_tabs[k], MUIA_RArt_Active, (IPTR)(k == g ? TRUE : FALSE), TAG_DONE);
+    if (efreq)
+        ReadEClock(&e2);
     rail_for_tab();
     if (efreq) {                      /* tab-stall probe (owner Dell 2026-10-01) */
-        uint64_t a, b;
-        ReadEClock(&e1);
+        uint64_t a, b, c, dd;
+        ReadEClock(&e3);
         a = ((uint64_t)e0.ev_hi << 32) | e0.ev_lo;
         b = ((uint64_t)e1.ev_hi << 32) | e1.ev_lo;
-        us = (ULONG)((b - a) * 1000000ULL / efreq);
+        c = ((uint64_t)e2.ev_hi << 32) | e2.ev_lo;
+        dd = ((uint64_t)e3.ev_hi << 32) | e3.ev_lo;
+        us = (ULONG)((dd - a) * 1000000ULL / efreq);
+        pg_us = (ULONG)((b - a) * 1000000ULL / efreq);
+        tb_us = (ULONG)((c - b) * 1000000ULL / efreq);
+        rl_us = (ULONG)((dd - c) * 1000000ULL / efreq);
     }
-    evlog("TAB", "page=%d us=%lu xruns+%lu", g, (unsigned long)us,
+    /* Phases partition the switch: page + tabs + rail == us (to rounding).
+     * Draw counts say who painted: canvases (sec), rack art (art), bay
+     * background requests (bay) and the commands those built vs kept. */
+    evlog("TAB", "page=%d us=%lu page_us=%lu tabs_us=%lu rail_us=%lu sec=%lu art=%lu bay=%lu built=%lu kept=%lu xruns+%lu",
+        g, (unsigned long)us, (unsigned long)pg_us, (unsigned long)tb_us, (unsigned long)rl_us,
+        (unsigned long)(ri_rsection_draw_calls() - c_sec), (unsigned long)(s_cnt_art - c_art),
+        (unsigned long)(s_cnt_bay - c_bay), (unsigned long)(s_cnt_bay_built - c_built),
+        (unsigned long)(s_cnt_bay_kept - c_kept),
         (unsigned long)((s_live ? ri_atomic_load_acq(&s_lv.drv.xruns) : 0u) - x0));
     /* Latency cycle (owner 2026-10-05): one bucket per tab slot, and a cycle is
      * only counted when all five slots are filled, so a partial cycle is never

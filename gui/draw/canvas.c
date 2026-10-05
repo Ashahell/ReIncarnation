@@ -39,6 +39,10 @@ int ri_dlist_push(struct ri_dlist *dl, const struct ri_dcmd *c) {
 void ri_dlist_set_clip(struct ri_dlist *dl, int x0, int y0, int x1, int y1) {
     if (!dl)
         return;
+    /* A clip applies to a fresh build: drop anything already pushed, so a
+     * list built twice cannot come back longer than an unclipped build. */
+    dl->n = 0u;
+    dl->spn = 0u;
     if (x1 < x0 || y1 < y0) {   /* an empty box can paint nothing */
         dl->clip = 0u;
         return;

@@ -62,7 +62,6 @@ struct RILiveDriver {
 
 #define RI_LIVEDRV_OVER_PM 850u
 #define RI_LIVEDRV_OVER_US 2000000u
-#define RI_LIVEDRV_LOAD_CAP_PM 1200u
 #define RI_LIVEDRV_ARM_US 2000000u
 
 void ri_livedrv_init(struct RILiveDriver *d, struct RILiveSession *s,

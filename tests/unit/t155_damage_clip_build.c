@@ -181,14 +181,19 @@ int main(void) {
             "an empty box must clear the clip, not keep the stale one (%u)",
             (unsigned)d3.clip);
 
+        /* set_clip starts a fresh build (review 2026-10-05): the command
+         * pushed under the first box is gone, so a list built twice cannot
+         * come back longer than an unclipped build. */
+        RI_ASSERT(d3.n == 0u, "set_clip empties the list (%u)", d3.n);
+
         /* And the consequence: with clip off, a far-away command is kept. */
         memset(&c, 0, sizeof c);
         c.op = RI_D_RECT;
         c.x0 = 0; c.y0 = 0; c.x1 = 20; c.y1 = 20;
         ri_dlist_push(&d3, &c);
         kept_empty = d3.n;
-        RI_ASSERT(kept_empty == 2u,
-            "after clearing, the far command is kept too (%u)", kept_empty);
+        RI_ASSERT(kept_empty == 1u,
+            "after clearing, the far command is kept (%u)", kept_empty);
     }
 
     /* A cleared clip must let everything through afterwards. build_dl pairs

@@ -95,15 +95,18 @@ if [ "${1:-}" = riapp ]; then
   #
   # The two halves are independent, and the reason is measured. -O2 engine
   # removes every xrun (xruns 5420 -> 0, render_max 20.4 ms -> 4.1 ms) because
-  # the render stage is the audio deadline. -O0 app+GUI keeps GUI latency down.
+  # the render stage is the audio deadline. app+GUI stay -O0 for the owner's
+  # debug-build rule (2026-09-28), not for speed: the "-O2 tabs are slower"
+  # reading was the load governor yielding to the GUI at -O0.
   # The old claim that "-O2 makes tabs 2.4x slower" was the LOAD GOVERNOR giving
   # the GUI a hand at -O0 -- at -O0 a buffer overruns, the guard trips and drops
   # the render task to pri -1, BELOW the GUI. Proven by `prio` across four runs,
   # not inferred.
-  CF9_O2="${CFLAGS_AROS} -Werror -fno-stack-protector -I$ROOT -DPCF_TABLE_VERIFIED=1 -DRIAPP_BUILD_HASH=\"$HASH\""
-  CF9_O0="${CFLAGS_AROS/-O2/-O0} -Werror -fno-stack-protector -I$ROOT -DPCF_TABLE_VERIFIED=1 -DRIAPP_BUILD_HASH=\"$HASH\""
+  CF9_O2="${CFLAGS_AROS} -frecord-gcc-switches -Werror -fno-stack-protector -I$ROOT -DPCF_TABLE_VERIFIED=1 -DRIAPP_BUILD_HASH=\"$HASH\""
+  CF9_O0="${CFLAGS_AROS/-O2/-O0} -frecord-gcc-switches -Werror -fno-stack-protector -I$ROOT -DPCF_TABLE_VERIFIED=1 -DRIAPP_BUILD_HASH=\"$HASH\""
   # Owner 2026-09-28: RIAPP ships debug builds only (-O0); audit-gated below.
   OBJS9=""
+  ENGINE_OBJS9=""
   # Split by directory prefix, so a file added to either list later is compiled
   # at the level its half of the program needs and the split cannot rot.
   for f in app/riapp.c app/core/live_driver.c app/core/canvas_events.c app/core/riapp_core.c project/rbnm.c project/rbng.c project/playlist.c gui/draw/canvas.c gui/draw/font_legend.c gui/draw/art_shared.c gui/draw/art_303.c gui/draw/art_808.c gui/draw/art_909.c gui/draw/art_levi.c gui/draw/art_mix.c gui/draw/art_fx.c gui/draw/art_pat.c gui/draw/art_tr.c gui/draw/art_section.c platform/aros/fs_aros.c platform/aros/log_aros.c platform/aros/image_dt.c platform/aros/fpu_aros.c platform/aros/pack_909.c audio_io/audio_ahi_live.c engine/engine.c engine/live.c engine/seq/clock.c engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c engine/seq/pattern.c engine/seq/pattern_emit.c engine/seq/transport.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c engine/seq/ctlplane.c engine/dsp/kernels.c engine/dsp/rb303.c engine/dsp/params.c engine/dsp/rb808.c engine/dsp/rb909.c engine/dsp/levi.c engine/dsp/levi_arp.c engine/dsp/levi_matrix.c engine/dsp/levi_fx.c engine/fx/fx.c engine/fx/route.c engine/fx/reverb.c engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c project/sha256.c gui/panelctl.c gui/ctlreg.c gui/panelgeo.c gui/zoomfit.c gui/skinsect.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectlevi.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/knob_logic.c gui/knob_art.c gui/panels.c gui/visdev.c gui/tabpages.c gui/catalog.c gui/skin.c gui/skin_aros.c gui/widgets/rsection.mcc.c; do
@@ -113,11 +116,23 @@ if [ "${1:-}" = riapp ]; then
     esac
     x86_64-aros-gcc $CF -c "$ROOT/$f" -o "$O9/$(basename "$f" .c).o"
     OBJS9="$OBJS9 $O9/$(basename "$f" .c).o"
+    case "$f" in engine/*) ENGINE_OBJS9="$ENGINE_OBJS9 $O9/$(basename "$f" .c).o" ;; esac
   done
-  # The gate the audit greps for: engine objects at -O2, the rest at -O0. If
-  # this loop ever collapses to one flag for everything, the audit fails.
-  NO2=$(for o in $OBJS9; do case "$o" in */riapp.o|*/rsection.mcc.o|*/gui_*.o) echo x;; esac; done | wc -l)
-  echo "AROS RIAPP MIXED: engine/ at -O2, app+GUI at -O0 ($NO2 non-engine objects at -O0)"
+  # Object-level gate: every object records its own flags
+  # (-frecord-gcc-switches), so the split is checked on what was compiled,
+  # not on this script's text. engine/ objects must say -O2, the rest -O0.
+  N_O2=0; N_O0=0
+  for o in $OBJS9; do
+    REC=$(x86_64-aros-readelf -p .GCC.command.line "$o" 2>/dev/null)
+    if echo " $ENGINE_OBJS9 " | grep -q " $o "; then
+      echo "$REC" | grep -q -- '-O2' || { echo "FAIL: $o (engine) not built at -O2"; exit 1; }
+      N_O2=$((N_O2 + 1))
+    else
+      echo "$REC" | grep -q -- '-O0' || { echo "FAIL: $o (app/GUI) not built at -O0"; exit 1; }
+      N_O0=$((N_O0 + 1))
+    fi
+  done
+  echo "AROS RIAPP MIXED VERIFIED: $N_O2 engine objects at -O2, $N_O0 app/GUI objects at -O0"
   x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/RIAPP" $OBJS9 "${STARTUP[@]}" \
     -L "$SHIM" -L "$SDK/../lib" -lamiga -lposixc -lstdcio -lmui -lintuition -lgraphics -lutility -ldos -lexec -lautoinit
   test "$(x86_64-aros-readelf -s "$OUT/RIAPP" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: RIAPP unresolved"; exit 1; }

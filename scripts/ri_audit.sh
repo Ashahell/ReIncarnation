@@ -666,7 +666,12 @@ x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/app/knobproof.c" -o "$OUT/aros/app_knobpro
 echo "-- AROS RISECT/MIDISEND link (all GUI TUs incl. G8 skins, C1) --"
 bash "$ROOT/scripts/ri_build_aros.sh" sections >/dev/null || { echo "FAIL: AROS sections link (GUI TUs)"; exit 1; }
 echo "-- AROS RIAPP link (G9 live shell: session + control + AHI task) --"
-bash "$ROOT/scripts/ri_build_aros.sh" riapp >/dev/null || { echo "FAIL: AROS RIAPP link"; exit 1; }
+RIAPP_BUILD_LOG="$(bash "$ROOT/scripts/ri_build_aros.sh" riapp)" || { echo "$RIAPP_BUILD_LOG" | grep FAIL; echo "FAIL: AROS RIAPP link"; exit 1; }
+# Object-level mixed-build gate (review 2026-10-05): the build reads each
+# object's recorded flags back (-frecord-gcc-switches); the text gates above
+# only prove what the script says.
+echo "$RIAPP_BUILD_LOG" | grep -q '^AROS RIAPP MIXED VERIFIED: [1-9][0-9]* engine objects at -O2, [1-9][0-9]* app/GUI objects at -O0' || { echo "FAIL: RIAPP objects not verified as the mixed build"; exit 1; }
+echo "$RIAPP_BUILD_LOG" | grep '^AROS RIAPP MIXED VERIFIED'
 echo "== Phase 13: formats full + MIDI + automation + ARexx + datatypes + fuzz (Task 13, gate G13) =="
 T13=/tmp/ri/run/audit13
 mkdir -p "$T13/c1" "$T13/c2" "$T13/rs" "$T13/regen"
