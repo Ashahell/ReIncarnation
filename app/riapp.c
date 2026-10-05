@@ -1293,19 +1293,50 @@ static void meter_round(ULONG mix_freq) {
                 if (st == s_chase_last[k])
                     continue; /* lamp already where it belongs */
                 {
+                    /* ONE INVALIDATION FOR BOTH LAMPS, NOT TWO (2026-10-04).
+                     *
+                     * The old lamp and the new lamp are separate boxes, and this
+                     * used to refresh them separately. That cost twice what it
+                     * needed to because **MUI_Redraw is SYNCHRONOUS on AROS Zune**
+                     * -- workbench/libs/muimaster/mui_redraw.c calls
+                     * `DoMethod(obj, MUIM_Draw, 0)` inline, with no deferral -- so
+                     * each call was a COMPLETE draw cycle, not a queued one.
+                     *
+                     * Measured on the Dell (2026-10-05): a quiet box repaint is
+                     * ~234 us, of which ~122 us is the fixed per-partial cost that
+                     * no phase timer covers. Two of them is ~714 us per step
+                     * change; the drum chase moves constantly.
+                     *
+                     * The union is equivalent because build_dl and replay_dl_dmg
+                     * are both clip-aware: one invalidation over the union paints
+                     * both controls identically, and nothing between them is
+                     * stale because everything inside the union is repainted.
+                     * t167 asserts exactly that against the two-separate-boxes
+                     * result.
+                     */
                     int steps[2] = { s_chase_last[k], st }, s, ok = 1;
+                    int ux0 = 0, uy0 = 0, ux1 = -1, uy1 = -1;
                     for (s = 0; s < 2; s++) {
                         int x0, y0, x1, y1;
                         if (steps[s] < 0 || steps[s] > 15)
                             continue;
                         if (ri_geo_bbox(g, (uint16_t)(base + (uint32_t)steps[s]), s_zoom[k],
-                            &x0, &y0, &x1, &y1) == 0)
-                            ri_rsection_refresh_box_why(s_canvas[k], x0, y0, x1, y1,
-                                RI_RSEC_BOX_STEPS);
-                        else
+                            &x0, &y0, &x1, &y1) == 0) {
+                            if (ux1 < ux0) {  /* first box seeds the union */
+                                ux0 = x0; uy0 = y0; ux1 = x1; uy1 = y1;
+                            } else {
+                                if (x0 < ux0) ux0 = x0;
+                                if (y0 < uy0) uy0 = y0;
+                                if (x1 > ux1) ux1 = x1;
+                                if (y1 > uy1) uy1 = y1;
+                            }
+                        } else
                             ok = 0;
                     }
-                    if (!ok)
+                    if (ok && ux1 >= ux0 && uy1 >= uy0)
+                        ri_rsection_refresh_box_why(s_canvas[k], ux0, uy0, ux1, uy1,
+                            RI_RSEC_BOX_STEPS);
+                    else
                         ri_rsection_refresh(s_canvas[k]);
                     s_chase_last[k] = (int8_t)st;
                 }

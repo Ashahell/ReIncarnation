@@ -261,6 +261,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t91_canvas_events >/dev/null || { ech
 bash "$ROOT/scripts/ri_build_host.sh" test t92_draw_hash >/dev/null || { echo "FAIL: t92_draw_hash (portability T2)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t93_raster_goldens >/dev/null || { echo "FAIL: t93_raster_goldens (portability T2)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t166_bbox_zoom >/dev/null || { echo "FAIL: t166_bbox_zoom (gui: damage boxes must use the canvas zoom)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t167_chase_box_union >/dev/null || { echo "FAIL: t167_chase_box_union (gui: the chase box union must be lossless)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t111_legend_face >/dev/null || { echo "FAIL: t111_legend_face (S2 legend face)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t112_partial_redraw >/dev/null || { echo "FAIL: t112_partial_redraw (S3 dirty rect)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_master_live >/dev/null || { echo "FAIL: t115_master_live (S4 master live)"; exit 1; }
