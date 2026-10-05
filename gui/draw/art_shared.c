@@ -92,10 +92,41 @@ static int art_hw(int r, int dy) {
 }
 
 void ri_art_disc_grad(struct ri_dlist *dl, int cx, int cy, int r, uint32_t top, uint32_t bot) {
-    int dy;
+    int dy, dy0 = -r, dy1 = r;
     if (r < 0)
         return;
-    for (dy = -r; dy <= r; dy++) {
+    /* CLIP-AWARE ROWS (2026-10-05). This is the most expensive primitive in the
+     * build: art_hw walks dx down from r, so one disc is O(r^2), and ri_art_knob
+     * is 11 tick discs plus 6 gradient discs -- a few hundred commands and a few
+     * hundred iterations for ONE knob. bench_build measured the Levi background
+     * at 24 ns/command against SYNTH1's 8, and this is why: the Levi's DKNOB
+     * table is 108 knobs.
+     *
+     * Exact, and simpler than the 303 strip seek that preceded it. Each row is a
+     * ONE-PIXEL-TALL rect, so a row can intersect the damage box iff its y lies
+     * inside the box: there is no straddling case and therefore no seek
+     * arithmetic here to get wrong, which is exactly the arithmetic that was
+     * wrong the first time it was written. The x test rejects the whole disc
+     * (art_hw never exceeds r, so r bounds every row's half-width) and the y
+     * test clamps the row range to the box's overlap. Rows outside it could only
+     * have produced commands the clipped replay was going to drop.
+     *
+     * With no clip set dy0/dy1 are the full range and the loop is the original
+     * one, which is what keeps the goldens (t93) still. Verified by t169, which
+     * compares the culled build against the unclipped build filtered by
+     * ri_dcmd_hits_box, command for command, over every box of every item. */
+    if (dl->clip) {
+        if (cx + r < dl->cx0 || cx - r > dl->cx1 ||
+            ri_dlist_band_missed(dl, cy - r, cy + r))
+            return;
+        if (dl->cy0 > cy + dy0)
+            dy0 = dl->cy0 - cy;
+        if (dl->cy1 < cy + dy1)
+            dy1 = dl->cy1 - cy;
+        if (dy0 > dy1)
+            return;
+    }
+    for (dy = dy0; dy <= dy1; dy++) {
         int w = art_hw(r, dy);
         int t = r > 0 ? (dy + r) * 256 / (2 * r) : 128;
         ri_draw_rect(dl, cx - w, cy + dy, cx + w, cy + dy, ri_art_mix(top, bot, t));
