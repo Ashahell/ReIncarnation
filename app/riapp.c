@@ -402,6 +402,7 @@ static int rlog_base(char *out, uint32_t cap) {
 #define RIAPP_LOG_ROLL_BYTES 262144u   /* 256 KB; two generations ~= 512 KB worst case */
 #define RIAPP_LOG_ROLL_MAX   4194304u  /* stop counting past 4 MB: the decision is already made */
 static int s_log_rolled;
+static char s_roll_note[200];      /* the roll decision, written by rlog */
 
 static void log_roll_if_big(const char *dir, const char *leaf) {
     ULONG size = 0;
@@ -467,20 +468,43 @@ static void log_roll_if_big(const char *dir, const char *leaf) {
         me->pr_WindowPtr = oldwin;
     /* Always say what was decided: a silent optimisation that quietly never
      * fires is indistinguishable from one that works, and this one did. */
-    {
-        BPTR g = Open((CONST_STRPTR)fn, MODE_READWRITE);
-        if (g) {
-            Seek(g, 0, OFFSET_END);
-            FPuts(g, (STRPTR)note);
-            Close(g);
-        }
+    snprintf(s_roll_note, sizeof s_roll_note, "%s", note);  /* rlog writes it */
+}
+
+/* RIAPP.LOG stays open for the whole run (owner Dell 2026-10-05). The old
+ * open-append-close per line lost every line written while any other
+ * process had the file open: on the stick's FAT handler a MODE_READWRITE
+ * open is refused while a reader holds the file (a `Type` or an evidence
+ * pull), while a reader can still open a file a writer already holds, and
+ * every write during that read lands. So: open once and Flush each line;
+ * lines that cannot be written yet wait in a bounded buffer and go out on
+ * the next successful open; a failed write (stick pulled) closes the
+ * handle so the next line reopens, wherever RIAPP_LOG points by then. */
+static BPTR s_logfh;
+static char s_logfn[96];
+static char s_logpend[16384];
+static ULONG s_logpend_n, s_logpend_lost;
+
+static void rlog_close(void) {
+    if (s_logfh) {
+        Close(s_logfh);
+        s_logfh = 0;
     }
+}
+
+static void rlog_hold(const char *buf) {
+    ULONG n = (ULONG)strlen(buf);
+    if (s_logpend_n + n >= sizeof s_logpend) {
+        s_logpend_lost++;
+        return;
+    }
+    memcpy(s_logpend + s_logpend_n, buf, n);
+    s_logpend_n += n;
 }
 
 static void rlog(const char *fmt, ...) {
     char buf[512], base[48], fn[96];
     va_list ap;
-    BPTR f;
     if (!DOSBase)
         return;
     va_start(ap, fmt);
@@ -492,12 +516,37 @@ static void rlog(const char *fmt, ...) {
     if (ri_pal_path_join(fn, sizeof fn, base, "RIAPP.LOG") != 0)
         return;
     log_roll_if_big(base, "RIAPP.LOG");
-    f = Open((STRPTR)fn, MODE_READWRITE);
-    if (!f)
-        return;
-    Seek(f, 0, OFFSET_END);
-    FPuts(f, (STRPTR)buf);
-    Close(f);
+    if (s_roll_note[0]) {
+        rlog_hold(s_roll_note);         /* goes out first, with the log's own path */
+        s_roll_note[0] = 0;
+    }
+    if (s_logfh && strcmp(fn, s_logfn) != 0)
+        rlog_close();                   /* RIAPP_LOG moved the log */
+    if (!s_logfh) {
+        s_logfh = Open((STRPTR)fn, MODE_READWRITE);
+        if (!s_logfh) {
+            rlog_hold(buf);             /* busy (a reader holds it): keep */
+            return;
+        }
+        strncpy(s_logfn, fn, sizeof s_logfn - 1u);
+        s_logfn[sizeof s_logfn - 1u] = '\0';
+        Seek(s_logfh, 0, OFFSET_END);
+        if (s_logpend_n) {
+            Write(s_logfh, s_logpend, (LONG)s_logpend_n);
+            s_logpend_n = 0u;
+        }
+        if (s_logpend_lost) {
+            char note[96];
+            snprintf(note, sizeof note, "RIAPP log: %lu lines lost while the log was busy\n",
+                (unsigned long)s_logpend_lost);
+            FPuts(s_logfh, (STRPTR)note);
+            s_logpend_lost = 0u;
+        }
+    }
+    if (FPuts(s_logfh, (STRPTR)buf) != 0 || !Flush(s_logfh)) {
+        rlog_close();                   /* stick pulled: reopen next line */
+        rlog_hold(buf);
+    }
 }
 
 /* Transport state edge -> the render task (or the null session). */
@@ -2306,7 +2355,7 @@ static ULONG riapp_arg_frames(int argc, char **argv) {
     return (v >= 64u && v <= AU_LIVE_MAXFRAMES) ? v : RIAPP_DEV_FRAMES;
 }
 
-int main(int argc, char **argv) {
+static int riapp_main(int argc, char **argv) {
     Object *app, *win, *row;
     LONG ret;
     ULONG sigs = 0;
@@ -3206,6 +3255,13 @@ int main(int argc, char **argv) {
              * alone cannot. arm_us is the governor's own accumulation: with
              * overloads=0 it distinguishes "never over budget" from "over
              * budget and reset many times". */
+            {   /* wall clock on every heartbeat (2026-10-05): a gap between
+                 * lines must be visible as a gap in time, not inferred */
+                struct DateStamp ds;
+                DateStamp(&ds);
+                rlog("RIAPP hb: t=%02ld:%02ld:%02ld\n", (long)(ds.ds_Minute / 60),
+                    (long)(ds.ds_Minute % 60), (long)(ds.ds_Tick / TICKS_PER_SECOND));
+            }
             rlog("RIAPP hb: buffers=%lu xruns=%lu render_max=%lu us wake_max=%lu us wake_n=%lu prio=%ld arm_us=%llu load=%lu/1000 overloads=%lu snd=%u/%u/%u/%u pend=%u/%u/%u/%u\n",
                 ri_atomic_load_acq(&s_lv.drv.buffers),
                 ri_atomic_load_acq(&s_lv.drv.xruns),
@@ -3284,4 +3340,12 @@ int main(int argc, char **argv) {
         s_evfh = 0;
     }
     return 0;
+}
+
+/* Every return path of riapp_main leaves through here, so the long-lived
+ * log handle is always closed (no atexit in the v11 link). */
+int main(int argc, char **argv) {
+    int rc = riapp_main(argc, argv);
+    rlog_close();
+    return rc;
 }
