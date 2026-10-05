@@ -1,0 +1,148 @@
+/* bench_trbar — what is LEFT in the transport's build, against the REAL damage
+ * box, not a synthetic one.
+ *
+ * WHY (2026-10-05). On target, `bsec` reads 13 = RI_SEC_TRANSPORT in 16 of 16
+ * windows, with `bsecsum` 447 of `build_avg` 55 x n=8, and `box_bar`
+ * 175/177/8. So the transport's build is the whole story, and the box is
+ * `ri_geo_bbox(g, (RI_SEC_TRANSPORT << 8) | RI_STR_BAR, zoom)` -- the Song
+ * Position display, at the canvas's own zoom (RI_GEO_ZOOM_COMPACT, NOT 0; that
+ * was the bbox-zoom bug, e8b766b).
+ *
+ * bench_build measures a synthetic 64x16 box at the section centre. That is the
+ * right shape for a step lamp and the WRONG box for this lane, so every number
+ * it produced for the transport was about a box nobody repaints. This bench uses
+ * the real one.
+ *
+ * The question it answers: after the item cull and the disc-row clamp, is the
+ * remaining cost the digits being legitimately repainted, or is something else
+ * still being drawn? Prints, for the real box:
+ *   built/kept  commands with and without the clip
+ *   us_clip     the clipped build's cost
+ *   ns/kept     cost per SURVIVING command -- high means the survivors are
+ *               expensive primitives, low means there is still dead weight
+ *   ops         the op histogram of the survivors, and of what was discarded
+ *
+ * A bench, not a test: it asserts nothing, because a diagnosis that can fail is
+ * a test pretending to be a measurement.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <time.h>
+#include "gui/sectui.h"
+#include "gui/sectmix.h"
+#include "gui/ctlreg.h"
+#include "gui/panelgeo.h"
+#include "gui/draw/canvas.h"
+#include "gui/draw/art.h"
+#include "gui/secttr.h"
+#include "platform/pal/ri_pal_draw.h"
+
+static struct ri_dcmd FULL[24576], CLIP[24576];
+static char SPOOL_FULL[65536], SPOOL_CLIP[65536];
+static struct RIMixBoard BOARD;
+static struct ri_text_metrics TM;
+
+static int tw(void *ctx, const char *s) {
+    (void)ctx;
+    return s ? (int)strlen(s) * 6 : 0;
+}
+
+static void hist(const struct ri_dlist *dl, const char *tag) {
+    uint32_t r = 0u, l = 0u, c = 0u, t = 0u, i = 0u;
+    uint32_t k;
+    for (k = 0u; k < dl->n; k++) {
+        switch (dl->cmd[k].op) {
+        case RI_D_RECT: r++; break;
+        case RI_D_LINE: l++; break;
+        case RI_D_CIRCLE: c++; break;
+        case RI_D_TEXT: t++; break;
+        case RI_D_IMAGE: i++; break;
+        default: break;
+        }
+    }
+    printf("    %-9s n=%-5u rect=%-5u line=%-4u circ=%-4u text=%-3u image=%-3u\n",
+        tag, dl->n, r, l, c, t, i);
+}
+
+static double us_since(const struct timespec *t0) {
+    struct timespec t1;
+    clock_gettime(CLOCK_MONOTONIC, &t1);
+    return (double)(t1.tv_sec - t0->tv_sec) * 1e6 +
+        (double)(t1.tv_nsec - t0->tv_nsec) / 1e3;
+}
+
+#define REPS 400
+
+int main(void) {
+    const struct RIGeoSection *g;
+    struct RISectUI ui;
+    struct ri_dlist dl;
+    struct timespec t0;
+    int x0 = 0, y0 = 0, x1 = 0, y1 = 0, z;
+    uint32_t k, rc, nfull;
+    double uf, uc;
+
+    TM.width = tw;
+    TM.height = 7;
+    TM.baseline = 5;
+    TM.ctx = 0;
+    ri_smix_init(&BOARD);
+
+    g = ri_geo_section(RI_SEC_TRANSPORT);
+    if (!g || ri_sui_init(&ui, RI_SEC_TRANSPORT) != 0) {
+        printf("no transport\n");
+        return 0;
+    }
+    ri_sui_bind_board(&ui, &BOARD);
+
+    /* THE box the app really asks for, at the zoom the canvas really uses. */
+    z = RI_GEO_ZOOM_COMPACT;
+    rc = (uint32_t)ri_geo_bbox(g,
+        (uint16_t)(((uint32_t)RI_SEC_TRANSPORT << 8) | RI_STR_BAR), z,
+        &x0, &y0, &x1, &y1);
+    printf("RI_STR_BAR bbox at zoom %d -> rc=%u  %d,%d..%d,%d  (%d x %d px)\n",
+        z, rc, x0, y0, x1, y1, x1 - x0 + 1, y1 - y0 + 1);
+    if (rc != 0) {
+        printf("no bbox for RI_STR_BAR; the cull cannot be measured here\n");
+        return 0;
+    }
+    printf("section is %d x %d px at this zoom; items %u\n",
+        ri_geo_px((int)g->w, z), ri_geo_px((int)g->h, z), (unsigned)g->nitems);
+
+    ri_dlist_init(&dl, FULL, 24576u, SPOOL_FULL, sizeof SPOOL_FULL);
+    ri_draw_section(&dl, &ui, RI_SEC_TRANSPORT, z, 0, 0, &TM, 0, 0);
+    hist(&dl, "unclipped");
+
+    nfull = dl.n;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    for (k = 0; k < REPS; k++) {
+        ri_dlist_init(&dl, FULL, 24576u, SPOOL_FULL, sizeof SPOOL_FULL);
+        ri_draw_section(&dl, &ui, RI_SEC_TRANSPORT, z, 0, 0, &TM, 0, 0);
+    }
+    uf = us_since(&t0) / (double)REPS;
+
+    ri_dlist_init(&dl, CLIP, 24576u, SPOOL_CLIP, sizeof SPOOL_CLIP);
+    ri_dlist_set_clip(&dl, x0, y0, x1, y1);
+    ri_draw_section(&dl, &ui, RI_SEC_TRANSPORT, z, 0, 0, &TM, 0, 0);
+    ri_dlist_clear_clip(&dl);
+    hist(&dl, "clipped");
+
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    for (k = 0; k < REPS; k++) {
+        ri_dlist_init(&dl, CLIP, 24576u, SPOOL_CLIP, sizeof SPOOL_CLIP);
+        ri_dlist_set_clip(&dl, x0, y0, x1, y1);
+        ri_draw_section(&dl, &ui, RI_SEC_TRANSPORT, z, 0, 0, &TM, 0, 0);
+        ri_dlist_clear_clip(&dl);
+    }
+    uc = us_since(&t0) / (double)REPS;
+
+    printf("\n  unclipped %8.2f us over %u commands  (%.1f ns/cmd)\n", uf, nfull,
+        nfull ? uf * 1000.0 / (double)nfull : 0.0);
+    printf("  clipped   %8.2f us -> %.1f ns per SURVIVING command\n", uc,
+        dl.n ? uc * 1000.0 / (double)dl.n : 0.0);
+    printf("  kept %u of %u  (%.1f%% kept, %.1f%% of the cost removed)\n", dl.n,
+        nfull, nfull ? 100.0 * (double)dl.n / (double)nfull : 0.0,
+        uf > 0.0 ? 100.0 * (1.0 - uc / uf) : 0.0);
+    return 0;
+}

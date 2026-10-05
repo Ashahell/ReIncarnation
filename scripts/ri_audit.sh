@@ -49,7 +49,13 @@ echo "== Phase 0d: no test ships ungated =="
 # that split is visible per section.
 #   ./scripts/ri_build_host.sh gui && ./scripts/ri_build_host.sh draw
 #   ./scripts/ri_build_host.sh test bench_build
-UNGATED_ALLOW=" t107_levi_sect levi_bench bench_build "
+#
+# bench_trbar is narrower and, for this lane, more relevant: `bsec` reads
+# RI_SEC_TRANSPORT in 16 of 16 windows on target, so it measures that one section
+# against the box the app really asks for -- ri_geo_bbox(RI_STR_BAR) at
+# RI_GEO_ZOOM_COMPACT -- rather than the synthetic centre box bench_build uses.
+#   ./scripts/ri_build_host.sh test bench_trbar
+UNGATED_ALLOW=" t107_levi_sect levi_bench bench_build bench_trbar "
 for f in "$ROOT"/tests/unit/*.c; do
   t="$(basename "$f" .c)"
   grep -qE "(test[[:space:]]+|\b)$t\b" "$SELF" && continue
@@ -57,7 +63,7 @@ for f in "$ROOT"/tests/unit/*.c; do
   echo "FAIL: $t is not gated by this audit — add a gate, or an exemption with a reason"
   exit 1
 done
-echo "-- every test reachable from a gate; exemptions: t107_levi_sect (known-red, RIBBON encoder map), levi_bench (benchmark, asserts no machine-dependent bound), bench_build (benchmark, prints the build/clip split; the same property is pinned by t169, which IS gated) --"
+echo "-- every test reachable from a gate; exemptions: t107_levi_sect (known-red, RIBBON encoder map), levi_bench (benchmark, asserts no machine-dependent bound), bench_build (benchmark, prints the build/clip split; the same property is pinned by t169, which IS gated), bench_trbar (benchmark, prints the transport clipped build against the REAL RI_STR_BAR damage box) --"
 echo "== Phase 1: first-light goldens (Task 4, gate G4) =="
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 G="$ROOT/tests/golden/303"
