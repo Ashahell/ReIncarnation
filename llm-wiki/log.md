@@ -3058,3 +3058,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New; Update (closes the rail_us remainder named in the tab-switch plate-cache record)
 - Raw: llm-wiki/raw/articles/2026-10-05-rail-page-group-and-log-newlines.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-05] ingest | Lost stick log lines: FAT refuses a read-write open while a reader holds the file
+- Disposition: New; Update (qualifies earlier Dell RIAPP.LOG evidence; closes the menu-hang check with the owner's result)
+- Raw: llm-wiki/raw/articles/2026-10-05-stick-log-lost-lines-fat-readwrite-refused-while-read.md
+- Updated: llm-wiki/index.md (Live app entry list)
