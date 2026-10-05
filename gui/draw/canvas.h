@@ -24,6 +24,16 @@ void ri_dlist_clear(struct ri_dlist *dl);
  * and is kept, so partial coverage is unchanged. With no clip set the push
  * path is byte-for-byte the old one, which is what keeps the goldens.
  * RI_D_CLIP is a no-op for replay and is dropped when clipping. */
+/* Set the damage clip. ⚠ IT DOES NOT RESET `n` (found 2026-10-05). Setting a
+ * clip on a list that already holds commands APPENDS the newly-kept commands to
+ * the old ones, so the list can come back LONGER than an unclipped build:
+ * measured on SYNTH1, unclipped 3009, then setting a clip on that same list and
+ * building again gave 3248 -- 3009 plus the 239 the clip kept. Every caller in
+ * the tree does the right thing (ri_dlist_init first, in build_dl and in t169),
+ * so this is a trap for the next caller rather than a live bug, and it is
+ * documented here because it cost an afternoon once already: an unexplained
+ * "237 where 23 was expected" turned out to be arithmetic over a list that had
+ * been built twice. */
 void ri_dlist_set_clip(struct ri_dlist *dl, int x0, int y0, int x1, int y1);
 void ri_dlist_clear_clip(struct ri_dlist *dl);
 /* True when a run of art confined to the band [y0,y1] (absolute, the same space

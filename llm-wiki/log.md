@@ -2911,3 +2911,27 @@ Register (same visibility-only bit); activation later. t98 reverts to
   **gap 18.0 → 16.7 µs, which is the ~2.2 µs one read predicts, and part_avg 167.0 → 162.8.** Build moves with it (45.9 → 43.0) because the build span also shortened by the sample it shares. Replay and blit unmoved. Partition invariant: **51 rows, 0 mismatches beyond truncation.**
 - **⚠ SIX READS REMAIN, ~14 µs, AND DROPPING THEM IS NOT FREE.** The obvious next step is to stop splitting the phases and keep only the total plus the build span: **4 reads, ~9 µs, 5 % of the repaint.** The cost is specific and worth naming: **the on-target partition invariant goes with it**, since two components always sum. That invariant is what caught the `max`-where-`sum` bug on target, and it is now **pinned at the source by `t168`**, so the on-target copy is a redundant confirmation — but it is the copy that caught a live 119 µs phantom, and giving it up for 5 % needs to be a decision, not a tidy-up. **The phases it would drop (replay 33 µs, blit 69 µs) are both already established as not-a-lever and rock-steady, so nothing is lost in what they are telling me — only in what they would tell me next.**
 - **THE BUDGET AFTER THIS, HONESTLY.** 163 µs per quiet repaint = **69 blit (42 %) + 43 build (26 %) + 33 replay (20 %) + 17 gap (10 %, ~14 of it my own clock reads)**. Blit and replay are established as not-a-lever, the LCD background inside the box is a floor, the gap's structural floor is ~2 µs. **So of the 163 µs, roughly 14 is instrumentation I chose to pay and roughly 100 is code or pixels that the damage model requires.**
+
+## [2026-10-05] ingest | The panel anomaly does NOT reproduce, and `ri_dlist_set_clip` does not reset `n`
+- Disposition: **Unreproduced** (a two-day-old unexplained failure), **New** (a documented API hazard), **Retraction of a hypothesis**
+- `AUDIT 0/0 PASS`. Host-measured. No guest run, no production change beyond a comment.
+- **THE ANOMALY: `culled 237 commands, the clip alone would keep 23`, FOR `sec=0 item=3 box=143,22..209,88`. IT DOES NOT HAPPEN.** On the current tree, for that exact section and box:
+  ```
+  unclipped 3009 | real clip keeps 239
+
+     op   bbox-ok   hits_box
+    RECT     2628        195
+    LINE      362         44
+    TEXT       19          0
+    expect_count equivalent = 239   (bbox errors: 0)
+  ```
+  **The shipped clip and the reference predicate agree exactly, 239 = 239.** So the two counts that disagreed have never agreed on this tree, and **the panel cut's justification rests on a failure I cannot reproduce.**
+- **⚠ AND `clip == 0 INSIDE ri_art_panel`, WHICH WAS MY EXPLANATION, IS REFUTED BY COUNT.** The hypothesis was that the panel's `dl->clip` read 0, which would have made it emit its full hairline set — and 237 is about twice the 119 a full brushed panel emits, so the arithmetic was suggestive. **Measured: a standalone `ri_art_panel` at SYNTH1's size (732×230) emits 119 commands, not 237.** The hypothesis predicted a specific number and the number is wrong.
+- **⚠⚠ BUT THE MEASUREMENT THAT EXPOSED ALL OF THIS FOUND A REAL DEFECT IN THE API.** Setting a clip on a **populated** list appends instead of replacing:
+  ```
+  SYNTH1 unclipped 3009 | clipped to 143,22..209,88 -> 3248 kept
+  ```
+  **3248 = 3009 + 239.** `ri_dlist_set_clip` assigns `cx0..cy1` and `clip`, and **never touches `dl->n`.** Every caller in the tree does the right thing — `build_dl` calls `ri_dlist_init` first, and so does `t169` — so **this is a trap for the next caller, not a live bug.** It is documented at the prototype because it is exactly the shape of thing that produces "a count nobody can account for": I hit a 237-vs-23 discrepancy, and the mechanism that produces *unaccountable counts* turns out to be a list built twice and summed. **That is a candidate explanation for the anomaly, and it is NOT established** — `t169` does initialise, so it cannot explain that specific run.
+- **THE HONEST STATE OF THE PANEL CUT.** The idea is sound and was measured at a real win (SYNTH1 background 4.76 → 2.07 µs): a panel is one rectangle of horizontal strips and a damage box usually covers a sliver of it. The clip-aware version **failed a parity test for a reason that does not reproduce**, and the two explanations I have since offered for it were both wrong — first "the table is not grouped", then "clip reads 0 inside the panel". **So it should be retried from a clean tree with the failure recorded as unreproduced, and the retry must be judged by `t169` alone.** It is not retried here.
+- **WHAT IT IS WORTH, SO THE RETRY CAN BE JUDGED.** The transport's background is **64 horizontal bands** — `ri_art_panel(..., brushed=0)` takes its `bands = h < 64 ? h : 64` path — and that is ~0.9 µs of the host build's 2.02 µs floor, so roughly **13 µs of the Dell's 43 µs `build_avg`, about 8 % of a 163 µs repaint.** Not urgent, not free, and worth doing only once.
+- **METHOD, and this is the fourth entry in this shape.** *An unexplained failure is not a specification.* Twice today a plausible mechanism was adopted and then refuted by a number, and the standing temptation in both cases was to explain the anomaly well enough to proceed. **The correct disposition for a failure that will not reproduce is to record it as unreproduced and re-derive the case from the measurement** — the panel cut's case never depended on the anomaly; the anomaly only ever looked like a reason to abandon it.
