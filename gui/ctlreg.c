@@ -566,9 +566,46 @@ const struct RICtlDef *ri_ctlreg_at(uint32_t i) {
     return i < RI_CTLREG_N ? &RI_CTLREG[i] : 0;
 }
 
+/* Per-section index range into RI_CTLREG, and why the lookup is a bounded scan
+ * rather than a binary search (2026-10-05).
+ *
+ * ri_ctlreg_find used to scan all RI_CTLREG_N (485) entries, so a repaint paid a
+ * cost proportional to where a control sat in the table. Measured: the transport's
+ * 31 items resolve at a mean depth of 224, i.e. 6949 comparisons per repaint, and
+ * timed inside one process that scan is 45 % of the section's disjoint-clip build
+ * (ratio 0.4448-0.4527 over three runs).
+ *
+ * THE TABLE IS GROUPED BY SECTION, and every section's entries are ADJACENT --
+ * t170 verifies exactly that, for all 21 sections, against the table itself. So
+ * the scan can be bounded to the section's own run: the transport's is 15 entries
+ * rather than 485, and a lookup of an id in that section now costs at most 15
+ * comparisons instead of a mean of 224.
+ *
+ * WHY NOT A BINARY SEARCH, since a bounded scan is already most of the win. Two
+ * attempts were installed and both failed, and the reason is worth writing down:
+ * **the ids do not ascend in reg_id, at either level.** Across the whole table they
+ * invert at section boundaries, and INSIDE a section they invert too -- LEVI's run
+ * is ordered by sub-panel, so table[445] is reg_id 4835 and table[446] is 4822. So
+ * a binary search over the table, or over a section's range, returns NULL for ids
+ * that exist. A bounded linear scan needs no ordering assumption at all, which is
+ * why it is what ships.
+ *
+ * The bounds are literals, with no run-time state and nothing to initialise, and
+ * they are VERIFIED AGAINST THE TABLE by t170_ctlreg_index along with exhaustive
+ * equivalence to a full linear scan over all 65536 possible reg_ids. That matters:
+ * this session twice believed a measurement that reported a property the code did
+ * not have -- a geometry-shape enum written from memory, and a probe that compared
+ * a reg_id against an index -- and both looked like clean answers. */
+static const uint16_t RI_CTLREG_SEC_LO[RI_SEC_COUNT] = {0, 30, 60, 104, 150, 158, 166, 174, 190, 194, 202, 208, 212, 217, 232, 237, 242, 247, 252, 480, 182};
+static const uint16_t RI_CTLREG_SEC_HI[RI_SEC_COUNT] = {29, 59, 103, 149, 157, 165, 173, 181, 193, 201, 207, 211, 216, 231, 236, 241, 246, 251, 479, 484, 189};
+
 const struct RICtlDef *ri_ctlreg_find(uint16_t reg_id) {
-    uint32_t i;
-    for (i = 0; i < RI_CTLREG_N; i++)
+    uint32_t sec = (uint32_t)(reg_id >> 8), i, lo, hi;
+    if (sec >= RI_SEC_COUNT)
+        return 0;
+    lo = RI_CTLREG_SEC_LO[sec];
+    hi = RI_CTLREG_SEC_HI[sec];
+    for (i = lo; i <= hi; i++)
         if (RI_CTLREG[i].reg_id == reg_id)
             return &RI_CTLREG[i];
     return 0;
