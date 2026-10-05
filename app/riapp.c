@@ -2057,6 +2057,20 @@ int main(int argc, char **argv) {
     int noaudio = riapp_arg_noaudio(argc, argv);
 
     ri_core_demo(&s_core);
+    /* BUILD HASH AND DIAG MODE, STAMPED INTO THE MAIN LOG (owner 2026-10-05).
+     *
+     * The ev log already carried `build=`, but RIAPP.LOG -- the file every
+     * on-target number is judged from -- did not, and this session logged three
+     * stale-binary readings that a hash would have ended immediately ("the
+     * optimisation does nothing", "it does not reproduce", a stale
+     * ctlreg_index failure). "stale binary" is only a usable explanation if the
+     * log says WHICH binary, so both line sets now carry it.
+     *
+     * `diag=` rides along because with the per-phase timing OFF by default the
+     * gap column reads 0, and 0 must not be readable as a measured zero. */
+    if (DOSBase)
+        rlog("RIAPP LOG build=%s diag=%lu\n", RIAPP_BUILD_HASH,
+            (unsigned long)rsection_diag_enabled());
     evlog_open();
     if (rack_classes_make() != 0 && DOSBase)
         rlog("RIAPP rack classes unavailable (plain buttons, flat bay)\n", 0, 0, 0, 0, 0);
@@ -2766,7 +2780,7 @@ int main(int argc, char **argv) {
             }
             /* box_* splits the partials by RI_RSEC_BOX_*: steps (drum lamps), bar (Song
              * Position), other. An expensive partial now names its caller. */
-            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us boxrep=%lu/%lu/%lu rpl_max=%lu us rpl_avg=%lu us blt_max=%lu us blt_avg=%lu us blt_min=%lu us gap_max=%lu us gap_avg=%lu us bsec=%lu bsecsum=%lu us\n",
+            rlog("RIAPP draw: full_max=%lu us full_avg=%lu us n=%lu part_max=%lu us part_avg=%lu us n=%lu blit_max=%lu us allocs=%lu box_steps=%lu/%lu/%lu box_bar=%lu/%lu/%lu box_other=%lu/%lu/%lu box_none=%lu/%lu/%lu build_avg=%lu us build_max=%lu us boxrep=%lu/%lu/%lu rpl_max=%lu us rpl_avg=%lu us blt_max=%lu us blt_avg=%lu us blt_min=%lu us gap_max=%lu us gap_avg=%lu us bsec=%lu bsecsum=%lu us diag=%lu\n",
                 dfmax, dfn ? dfsum / dfn : 0u, dfn, dpmax, dpn ? dpsum / dpn : 0u, dpn, blmax, alln,
                 dpwn[RI_RSEC_BOX_STEPS] ? dpwsum[RI_RSEC_BOX_STEPS] / dpwn[RI_RSEC_BOX_STEPS] : 0u,
                 dpwmax[RI_RSEC_BOX_STEPS], dpwn[RI_RSEC_BOX_STEPS],
@@ -2782,7 +2796,12 @@ int main(int argc, char **argv) {
                 bl_min, gp_max, dpn ? gp_sum / dpn : 0u,
                 /* bsec prints 255 when no canvas reported any build at all, so
                  * "nothing built" cannot be read as "section 0 built". */
-                dpb_seci ? dpb_sec : 255ul, dpbsecsum);
+                dpb_seci ? dpb_sec : 255ul, dpbsecsum,
+                /* diag=0 means the per-phase timing is OFF by default (owner
+                 * 2026-10-05), so gap_avg 0 there means NOT MEASURED, not
+                 * zero. The partition invariant is likewise only meaningful
+                 * when this reads 1. */
+                (ULONG)rsection_diag_enabled());
             /* Render-stage breakdown (Dell 2026-10-02): avg and max per stage,
              * with the playing and stopped paths counted separately, so an idle
              * average can never be quoted as a playing cost again. Sticky

@@ -22,6 +22,7 @@
 #error "rsection.mcc.c is AROS-only: Zune custom class, never in the host build"
 #endif
 
+#include <stdlib.h>
 #include <exec/types.h>
 #include <exec/devices.h>
 #include <stdint.h>
@@ -97,6 +98,58 @@ __attribute__((weak)) struct Device *TimerBase;
 static struct MsgPort *s_tport;
 static struct timerequest *s_treq;
 static ULONG s_efreq;
+
+/* DIAGNOSTIC SWITCH (owner 2026-10-05): the per-phase draw timing is OFF BY
+ * DEFAULT, and all six clock reads stay intact when it is on.
+ *
+ * WHY IT IS A SWITCH AND NOT A DELETION. `timed` was 1 whenever the EClock opened,
+ * so every partial repaint in a RELEASE build paid six `ReadEClock` calls -- and
+ * on this AROS that is 8254 PIT channel 0 by port I/O, ~2.2 us per call, measured
+ * at ~13 us of a 149.5 us repaint. That is 9 % of a repaint spent measuring it.
+ * The obvious alternative, dropping the split entirely, was rejected because the
+ * on-target partition invariant is what caught the `max`-where-`sum` bug on a live
+ * 119 us phantom -- so the reading is kept, and only its default is changed.
+ *
+ * WHY THE MODE IS REPORTED. With the switch off, `dp_gap_*` stays zero, and a zero
+ * gap is indistinguishable from a measured zero unless the reader knows which. This
+ * lane has been bitten by exactly that shape twice (a floor reading read as "never
+ * ran"; `dpr_run_now` reset wrongly), so the heartbeat carries `diag=` and the
+ * distinction is in the log rather than in the reader's memory. */
+static int s_diag = -1;          /* -1 = not yet decided */
+
+/* GetVar, declared here because the v11 SDK ships no header for it.
+ *
+ * audio_ahi_live.c has always called it (for RIAPP_AUDIO_PRI) and gets away with
+ * it only because that TU is not built -Werror. The `sections` target IS -Werror,
+ * so an implicit declaration here is a hard error rather than a warning -- and
+ * the two call sites must agree, or the ENVARC means different things in the audio
+ * path and the GUI path.
+ *
+ * Stable AmigaOS/AROS signature; the symbol resolves (the RIAPP link gate
+ * requires zero undefined symbols, and it passes). If a future SDK does ship the
+ * header, this declaration must go rather than duplicate it. */
+extern LONG GetVar(STRPTR name, STRPTR buf, ULONG size, void *lock);
+
+int rsection_diag_enabled(void) {
+    /* Decided once, on the first draw, so the hot path is a load of a static
+     * rather than an ENVARC read per repaint.
+     *
+     * GetVar, not getenv, and that is not a style choice: getenv pulled
+     * __aros_getbase_StdCIOBase into this TU and broke the `sections` link gate
+     * (RISECT must have no undefined symbols), while GetVar is the mechanism
+     * audio_ahi_live.c already uses for RIAPP_AUDIO_PRI, so the two read
+     * ENVARC the same way. */
+    if (s_diag < 0) {
+        char v[4];
+        ULONG n = 0;
+        s_diag = 0;
+        if (GetVar((STRPTR)"RIAPP_DIAG", (STRPTR)v, (ULONG)sizeof v, 0L) > 0 &&
+            v[0] == '1')
+            n = 1;
+        s_diag = (int)n;
+    }
+    return s_diag;
+}
 
 static void eclock_open(void) {
     struct EClockVal t0;
@@ -211,7 +264,7 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
     }
     SetFont(&d->brp, wrp->Font);
     eclock_open();
-    if (TimerBase && s_efreq) {
+    if (TimerBase && s_efreq && rsection_diag_enabled()) {
         ReadEClock(&t0);
         timed = 1;
     }

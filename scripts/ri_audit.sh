@@ -347,7 +347,23 @@ bash "$ROOT/scripts/ri_build_host.sh" test t123_reverb >/dev/null || { echo "FAI
 bash "$ROOT/scripts/ri_build_host.sh" test t125_midi_follow >/dev/null || { echo "FAIL: t125_midi_follow (midi clock follower)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t126_midi_rt >/dev/null || { echo "FAIL: t126_midi_rt (midi realtime parser)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t127_midi_sync >/dev/null || { echo "FAIL: t127_midi_sync (midi sync source)"; exit 1; }
-grep '^  CF9=' "$ROOT/scripts/ri_build_aros.sh" | grep -q '\-O0' || { echo "FAIL: RIAPP must build -O0 (owner 2026-09-28 debug-only rule)"; exit 1; }
+# MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
+# This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
+# approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo
+# script built -O0 throughout, so it disagreed with every number measured since.
+#
+# It checks the SPLIT, not the presence of a flag. A gate that only looked for
+# "-O0 somewhere" would pass a script that had lost the engine half, which is
+# precisely the regression worth catching.
+RIAPP_CF9_LINES="$(grep -E '^  CF9(_O[02])?=' "$ROOT/scripts/ri_build_aros.sh" || true)"
+echo "$RIAPP_CF9_LINES" | grep -q '^  CF9_O2="${CFLAGS_AROS} ' || { echo "FAIL: RIAPP needs a CF9_O2 line holding engine/'s -O2 flags (owner 2026-10-04 mixed build)"; exit 1; }
+echo "$RIAPP_CF9_LINES" | grep -q '^  CF9_O0="${CFLAGS_AROS/-O2/-O0} ' || { echo "FAIL: RIAPP needs a CF9_O0 line holding app+GUI's -O0 flags"; exit 1; }
+grep -q '^      engine/\*) CF="$CF9_O2" ;;' "$ROOT/scripts/ri_build_aros.sh" || { echo "FAIL: ri_build_aros.sh must route engine/ to -O2; a single flag for every file is the regression this gate exists for"; exit 1; }
+grep -q '^      \*)        CF="$CF9_O0" ;;' "$ROOT/scripts/ri_build_aros.sh" || { echo "FAIL: ri_build_aros.sh must route everything else to -O0"; exit 1; }
+# The v11 lane builds the SAME approved configuration, from the repo now, so the
+# two scripts cannot drift into disagreeing about what a logged number means.
+grep -q 'RI_V11_MIX_OPT' "$ROOT/scripts/ri_build_v11.sh" || { echo "FAIL: ri_build_v11.sh lost its mixed-build option (RI_V11_MIX_OPT)"; exit 1; }
+echo "-- mixed build: RIAPP is engine/ -O2 + app+GUI -O0 in BOTH the v1 and v11 lane scripts --"
 echo "-- portability T8: headless core runs without AROS (WAV; PNG after T2) --"
 gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I"$ROOT" -o "$OUT/headless" "$ROOT/platform/host/main_headless.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: headless build"; exit 1; }
 rm -f /tmp/ri/null.wav
@@ -846,7 +862,19 @@ grep -q "No beta ran" "$ROOT/docs/evidence/formats/beta-exit.md" || { echo "FAIL
 for f in ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_fuzz.sh ri_soak.sh; do
   test -f "$ROOT/scripts/$f" || { echo "FAIL: missing scripts/$f"; exit 1; }
 done
-test "$(ls "$ROOT/scripts" | wc -l)" = "5" || { echo "FAIL: scripts/ holds non-shared files"; exit 1; }
+# An ALLOWLIST, not a bare count (2026-10-05). The count was "exactly 5", which
+# made adding the v11 lane script -- the owner's explicit direction, and the fix
+# for a build script living outside the repo -- look like a hygiene violation. A
+# count cannot say WHICH files belong; an allowlist can, and adding one is then a
+# deliberate act rather than an arithmetic accident.
+RI_SCRIPTS_OK="ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_build_v11.sh ri_fuzz.sh ri_soak.sh"
+for f in $(ls "$ROOT/scripts"); do
+  case " $RI_SCRIPTS_OK " in *" $f "*) ;; *) echo "FAIL: scripts/$f is not on the shared-script allowlist (${RI_SCRIPTS_OK})"; exit 1 ;; esac
+done
+for f in $RI_SCRIPTS_OK; do
+  test -f "$ROOT/scripts/$f" || { echo "FAIL: missing scripts/$f (on the allowlist)"; exit 1; }
+done
+test -x "$ROOT/scripts/ri_build_v11.sh" || { echo "FAIL: scripts/ri_build_v11.sh is not executable"; exit 1; }
 if git -C "$ROOT" status --porcelain | grep -E "\.o$|\.library$"; then echo "FAIL: build artifacts in tree"; exit 1; fi
 if grep -rnw "TODO\|TBD\|FIXME" "$ROOT/docs/ReIncarnation.guide" "$ROOT/docs/autodoc" "$ROOT/locale" "$ROOT/Install" 2>/dev/null; then echo "FAIL: placeholder in REL docs"; exit 1; fi
 echo "-- clean-room: no maker or product marks in panel strings (Leviasynth fidelity P1) --"

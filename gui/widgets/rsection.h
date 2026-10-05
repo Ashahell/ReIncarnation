@@ -166,4 +166,10 @@ void ri_rsection_set_box_why(int why); /* meter_round's next refresh_box call */
  * colour path; needs a section canvas set up on the same screen. */
 struct ri_dlist;
 void ri_rsection_replay(struct RastPort *rp, const struct ri_dlist *dl);
+/* Whether the per-phase draw timing is running. Reported on the heartbeat's
+ * `draw:` line, because with it OFF the dp_gap_* fields stay ZERO and a zero
+ * gap must not be readable as a measured one. Off by default: set RIAPP_DIAG=1
+ * for a diagnostic build, which keeps all six clock reads and therefore the
+ * on-target partition invariant. */
+int rsection_diag_enabled(void);
 #endif
