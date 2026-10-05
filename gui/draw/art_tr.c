@@ -142,8 +142,20 @@ void ri_art_bg_tr(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int
     ri_art_text_c(dl, ox + PX(132), oy + PX(150), "10", C_MIX_TEXT);
     ri_art_text_c(dl, ox + PX(242), oy + PX(40), "SYNC", C_MIX_TEXT);
     ri_art_text_c(dl, ox + PX(372), oy + PX(40), "MIDI", C_MIX_TEXT);
-    ri_art_text_at(dl, ox + PX(642), oy + PX(45), "PATTERN", C_MIX_TEXT, -1, tm);
-    ri_art_text_at(dl, ox + PX(740), oy + PX(45), "SONG MODE", C_MIX_TEXT, 1, tm);
+    /* PATTERN / SONG MODE flank the mode lever's LEDs (655 and 725, 10 Q
+     * wide) in the legend face like every other plate legend, each kept a
+     * fixed gap outside its LED by its measured width. They used the system
+     * font from fixed anchors, which at the compact zoom ran PATTERN into
+     * the left LED and SONG MODE under the lever and the right LED (owner
+     * Dell 2026-10-05). */
+    {
+        const struct ri_face *f = dl && dl->cur_face ? ri_face_by_id(dl->cur_face) : 0;
+        int wp = f ? ri_face_width(f, "PATTERN") : (tm && tm->width ? tm->width(tm->ctx, "PATTERN") : 0);
+        int ws = f ? ri_face_width(f, "SONG MODE") : (tm && tm->width ? tm->width(tm->ctx, "SONG MODE") : 0);
+        int gap = PX(14) > 3 ? PX(14) : 3;
+        ri_art_text_c(dl, ox + PX(650) - gap - wp / 2, oy + PX(45), "PATTERN", C_MIX_TEXT);
+        ri_art_text_c(dl, ox + PX(730) + gap + (ws + 1) / 2, oy + PX(45), "SONG MODE", C_MIX_TEXT);
+    }
     ri_art_rect(dl, ox + PX(384), oy + PX(94), ox + PX(1028), oy + PX(180), C_MIX_SLOT);
     ri_art_line(dl, ox + PX(1330), oy + PX(38), ox + PX(1400), oy + PX(38), C_MIX_TEXT);
     ri_art_text_c(dl, ox + PX(1444), oy + PX(38), "LOOP", C_MIX_TEXT);

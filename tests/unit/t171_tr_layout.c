@@ -40,6 +40,14 @@ static void check_zoom(int z, const char *song) {
             ri_geo_item_box(&g->items[i], z, &tx0, &ty0, &tx1, &ty1) == 0)
             have_tap = 1;
     RI_ASSERT(have_tap, "z=%d: TAP has a box", z);
+    {   /* TAP is centred over the BAR display, which it serves visually */
+        int b0, c0, b1, c1;
+        RI_ASSERT(ri_geo_bbox(g, (uint16_t)((RI_SEC_TRANSPORT << 8) | RI_STR_BAR), z, &b0, &c0, &b1, &c1) == 0,
+            "z=%d: BAR has a box", z);
+        for (i = 0u; i < g->nitems; i++)
+            if (g->items[i].reg_id == tap)
+                RI_ASSERT(g->items[i].cx == 1139, "TAP centred over the BAR display (cx=%d)", g->items[i].cx);
+    }
     RI_ASSERT(!overlap(tx0, ty0, tx1, ty1, sx0, sy0, sx1, sy1), "z=%d: TAP clears the button slot", z);
     for (i = 0u; i < g->nitems; i++) {
         int a0, b0, a1, b1;
@@ -68,6 +76,19 @@ static void check_zoom(int z, const char *song) {
         found++;
         RI_ASSERT(a0 >= 0 && b0 >= 0 && a1 < w && b1 < h,
             "z=%d: text '%s' inside the panel (%d,%d)-(%d,%d) in %dx%d", z, c->text, a0, b0, a1, b1, w, h);
+        if (strcmp(c->text, "PATTERN") == 0 || strcmp(c->text, "SONG MODE") == 0) {
+            /* the mode legends clear the lever and both its LEDs (and every
+             * other control): the 2026-10-05 layout ran into them */
+            for (i = 0u; i < g->nitems; i++) {
+                int c0, d0, c1, d1;
+                if (ri_geo_item_box(&g->items[i], z, &c0, &d0, &c1, &d1) != 0)
+                    continue;
+                RI_ASSERT(!overlap(a0, b0, a1, b1, c0, d0, c1, d1),
+                    "z=%d: %s (%d..%d) overlaps item %u (reg %04x, %d..%d)", z, c->text,
+                    a0, a1, i, g->items[i].reg_id, c0, c1);
+            }
+            RI_ASSERT(c->pad[0] != 0, "z=%d: %s uses the legend face like the other legends", z, c->text);
+        }
         RI_ASSERT(strcmp(c->text, "TAP") == 0 || !overlap(a0, b0, a1, b1, tx0, ty0, tx1, ty1), "z=%d: TAP (%d,%d)-(%d,%d) covers text %s (%d,%d)-(%d,%d)", z, tx0, ty0, tx1, ty1, c->text, a0, b0, a1, b1);
     }
     RI_ASSERT(found > 0, "z=%d: the plate has legends to check", z);
