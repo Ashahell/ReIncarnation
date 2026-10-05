@@ -145,6 +145,94 @@ int main(void) {
         nfull, nfull ? 100.0 * (double)dl.n / (double)nfull : 0.0,
         uf > 0.0 ? 100.0 * (1.0 - uc / uf) : 0.0);
 
+    /* THE DECOMPOSITION THAT DECIDES WHETHER ANYTHING IS LEFT (2026-10-05).
+     *
+     * Three builds, differing only in the clip box:
+     *
+     *   unclipped            every item is emitted
+     *   DISJOINT clip        every item WITH a damage box is culled, so what
+     *                        survives is the BACKGROUND plus the items the cull
+     *                        deliberately cannot skip -- the shapes with no
+     *                        declared box, which it draws rather than skips
+     *   the real box         the above, plus the items that intersect
+     *
+     * So `unclipped - disjoint` is the work the item cull removes, and
+     * `real - disjoint` is the work the SURVIVORS cost. That second number is
+     * the one that matters: the LCD background and the two text commands were
+     * established to be inside the box by construction and therefore
+     * unreachable, so if the survivors are all of it, this path is finished and
+     * the residue is not a target at all.
+     */
+    {
+        struct timespec t2;
+        double t_far;
+        clock_gettime(CLOCK_MONOTONIC, &t2);
+        for (k = 0; k < REPS; k++) {
+            ri_dlist_init(&dl, CLIP, 24576u, SPOOL_CLIP, sizeof SPOOL_CLIP);
+            ri_dlist_set_clip(&dl, -9, -9, -1, -1);   /* disjoint: nothing survives */
+            ri_draw_section(&dl, &ui, RI_SEC_TRANSPORT, z, 0, 0, &TM, 0, 0);
+            ri_dlist_clear_clip(&dl);
+        }
+        t_far = us_since(&t2) / (double)REPS;
+        printf("\n  DECOMPOSITION\n");
+        printf("    unclipped                 %7.2f us   (everything)\n", uf);
+        printf("    disjoint clip             %7.2f us   (background + the items"
+            " the cull cannot skip)\n", t_far);
+        printf("    the real box              %7.2f us   (that, plus the"
+            " survivors)\n", uc);
+        printf("    -> the item cull removes  %7.2f us  (%.0f%% of the build)\n",
+            uf - t_far, uf > 0.0 ? 100.0 * (uf - t_far) / uf : 0.0);
+        printf("    -> the SURVIVORS cost     %7.2f us  (%.0f%% of the clipped"
+            " build)\n", uc - t_far, uc > 0.0 ? 100.0 * (uc - t_far) / uc : 0.0);
+        printf("    -> unreachable floor      %7.2f us  (%.0f%% of the clipped"
+            " build)\n", t_far, uc > 0.0 ? 100.0 * t_far / uc : 0.0);
+        /* RATIO, because absolute microseconds on this host are bimodal by ~25 %
+         * with CPU frequency and cannot be compared across runs. The ratio of
+         * two builds in the SAME process is the stable quantity. */
+        printf("    RATIO floor/unclipped = %.4f   survivors/unclipped = %.4f\n",
+            uf > 0.0 ? t_far / uf : 0.0, uf > 0.0 ? (uc - t_far) / uf : 0.0);
+    }
+
+    /* WHAT IS THE 80 % FLOOR MADE OF?  The disjoint-clip build costs 3.62 us and
+     * emits the background plus every item the cull cannot skip. Count the
+     * transport's items by shape and by whether ri_geo_item_box gives them a
+     * box, because "no declared box" is precisely the population the cull draws
+     * unconditionally. */
+    {
+        /* READ FROM gui/panelgeo.h, NOT REMEMBERED. An earlier version of this
+         * probe guessed the enum and got it wrong in a way that INVERTED the
+         * conclusion: it labelled index 3 "OPTION" when index 3 is RI_GEO_LEGEND
+         * and index 5 is RI_GEO_OPTION, so "5 items have no damage box" came out
+         * as OPTIONs when they are the legends -- which is exactly the
+         * hypothesis the guess was used to refute. This is the RI_RAW_SPACE
+         * lesson (0x40, not 57) in a new form: do not reason from a constant
+         * that has not been read. */
+        static const char *SH[16] = { "KNOB", "RECT", "LED", "LEGEND",
+            "DIVIDER", "OPTION", "STEPPER", "?", "?", "?", "?", "?", "?", "?", "?", "?" };
+        uint32_t cnt[16], boxed[16], ci;
+        memset(cnt, 0, sizeof cnt);
+        memset(boxed, 0, sizeof boxed);
+        for (ci = 0u; ci < g->nitems; ci++) {
+            uint8_t sh = g->items[ci].shape;
+            int bx0, by0, bx1, by1;
+            cnt[sh & 15u]++;
+            if (ri_geo_item_box(&g->items[ci], z, &bx0, &by0, &bx1, &by1) == 0)
+                boxed[sh & 15u]++;
+        }
+        printf("\n  the floor's population: transport items by shape\n");
+        printf("    %-9s %6s %8s %10s\n", "shape", "items", "boxed", "UNCULLED");
+        for (ci = 0u; ci < 16u; ci++)
+            if (cnt[ci])
+                printf("    %-9s %6u %8u %10u%s\n", SH[ci], cnt[ci], boxed[ci],
+                    cnt[ci] - boxed[ci],
+                    (cnt[ci] - boxed[ci]) ? "  <- drawn every repaint" : "");
+        {
+            uint32_t tb = 0u, tu = 0u, q;
+            for (q = 0u; q < 16u; q++) { tb += boxed[q]; tu += cnt[q] - boxed[q]; }
+            printf("    %-9s %6u %8u %10u\n", "TOTAL", (unsigned)g->nitems, tb, tu);
+        }
+    }
+
     /* IS THE VALUE TEXT A MONOSPACE ROW OF FIXED-WIDTH CELLS?  This is the
      * gate on narrowing the BAR box to only the characters that changed, and it
      * has to be MEASURED rather than assumed: the display is drawn by
