@@ -1826,6 +1826,122 @@ static Object *tab_strip(void) {
 }
 
 /* Switch the page group to g: set ActivePage, latch the tab keys, rail. */
+/* ═══ USER-FACING LATENCY (owner 2026-10-05) ═══════════════════════════════
+ *
+ * The box-repaint path is closed, and the owner redirected the work to what a
+ * person actually feels: a click or knob drag that takes long to appear, slow tab
+ * switches, and a loop tick that arrives late because the GUI was starved. Three
+ * numbers, and -- the rule this lane most needs -- EACH ONE CARRIES A SELF-CHECK,
+ * because six instruments this session reported a property the code did not have.
+ *
+ * The self-checks are of the same kind as the gap counter's partition invariant:
+ * they can FAIL, they are printed next to the number they protect, and each one
+ * is a statement about arithmetic rather than about intent.
+ *
+ *   ticks  vs elapsed   ticks x 100 ms must account for the span, within one
+ *                       tick. A late tick therefore cannot hide inside a count.
+ *   hist   sums to n    the four buckets must partition the observations. A
+ *                       dropped or double-counted sample fails here.
+ *   cycle  sums to total the five per-tab times must not exceed the measured
+ *                       cycle, and a cycle is only reported when all five are
+ *                       present, so a partial cycle is never averaged in.
+ *
+ * Clock: EClock, the same PIT source the draw timing uses, and gated on
+ * RIAPP_DIAG like it -- these are diagnostics and must not cost a release build
+ * anything. With the switch off every field reads 0 and `latdiag=0` says so.
+ */
+typedef struct {
+    ULONG ticks, late_n, late_max, late_sum, hist[4], span_lo;
+    int tick_seeded;
+    ULONG lat_n, lat_max, lat_sum, lat_hist[4];
+    struct { uint32_t lo, hi; } lat_in_at;   /* input stamp */
+    int lat_have;
+    ULONG cyc_n, cyc_total, cyc_max, cyc_tab[RI_TAB_COUNT], cyc_fill;
+    ULONG cyc_acc[RI_TAB_COUNT];   /* summed over cycles; mean at report */
+    int armed;
+} RILatency;
+static RILatency s_lat;
+static ULONG s_efreq;   /* EClock rate, read once; see lat_efreq() */
+
+/* EClock rate for the latency arithmetic, read ONCE on first use.
+ *
+ * ReadEClock returns the RATE in its return value and the CURRENT value in the
+ * struct, so this is both the rate and the probe that tells us timer.device is
+ * there at all. `TimerBase` is a weak extern owned by the audio side, so this
+ * does not add a dependency or a startup ordering requirement. */
+static ULONG lat_efreq(void) {
+    struct EClockVal t;
+    if (!s_efreq && TimerBase)
+        s_efreq = ReadEClock(&t);
+    return s_efreq;
+}
+
+/* Bucket edges in microseconds: <1 ms, <5, <20, >=20. Chosen at the scale a
+ * person would notice rather than at round numbers. */
+static void lat_bucket(ULONG *h, ULONG us) {
+    if (us < 1000UL) h[0]++;
+    else if (us < 5000UL) h[1]++;
+    else if (us < 20000UL) h[2]++;
+    else h[3]++;
+}
+
+static int lat_on(void) {
+    return rsection_diag_enabled();
+}
+
+static void lat_report(void) {
+    ULONG i, hsum = 0u, lsum = 0u, span_us, expect_us, drift;
+    if (!lat_on())
+        return;
+    for (i = 0u; i < 4u; i++) { hsum += s_lat.hist[i]; lsum += s_lat.lat_hist[i]; }
+    span_us = s_lat.span_lo;                    /* accumulated clock since arm */
+    expect_us = s_lat.ticks * 100000UL;         /* one period per tick */
+    /* Self-check 1: the tick count must account for the elapsed span, to within
+     * one period. Printed as `drift`, which is the honest residual. */
+    drift = span_us > expect_us ? span_us - expect_us : expect_us - span_us;
+    rlog("RIAPP lat: ticks=%lu late=%lu late_max=%lu us hist=%lu/%lu/%lu/%lu"
+        " hs=%lu | input=%lu in_max=%lu us in_avg=%lu us ihist=%lu/%lu/%lu/%lu"
+        " is=%lu | cyc=%lu cyc_avg=%lu us cyc_max=%lu us per_tab=%lu/%lu/%lu/%lu/%lu"
+        " sumtab=%lu | span=%lu us expect=%lu us drift=%lu us latesum=%lu us SELFCHK=%s\n",
+        (unsigned long)s_lat.ticks, (unsigned long)s_lat.late_n,
+        (unsigned long)s_lat.late_max,
+        (unsigned long)s_lat.hist[0], (unsigned long)s_lat.hist[1],
+        (unsigned long)s_lat.hist[2], (unsigned long)s_lat.hist[3],
+        (unsigned long)hsum,
+        (unsigned long)s_lat.lat_n, (unsigned long)s_lat.lat_max,
+        (unsigned long)(s_lat.lat_n ? s_lat.lat_sum / s_lat.lat_n : 0u),
+        (unsigned long)s_lat.lat_hist[0], (unsigned long)s_lat.lat_hist[1],
+        (unsigned long)s_lat.lat_hist[2], (unsigned long)s_lat.lat_hist[3],
+        (unsigned long)lsum,
+        (unsigned long)s_lat.cyc_n,
+        (unsigned long)(s_lat.cyc_n ? s_lat.cyc_total / s_lat.cyc_n : 0u),
+        (unsigned long)s_lat.cyc_max,
+        (unsigned long)(s_lat.cyc_n ? s_lat.cyc_acc[0] / s_lat.cyc_n : 0u),
+        (unsigned long)(s_lat.cyc_n ? s_lat.cyc_acc[1] / s_lat.cyc_n : 0u),
+        (unsigned long)(s_lat.cyc_n ? s_lat.cyc_acc[2] / s_lat.cyc_n : 0u),
+        (unsigned long)(s_lat.cyc_n ? s_lat.cyc_acc[3] / s_lat.cyc_n : 0u),
+        (unsigned long)(s_lat.cyc_n ? s_lat.cyc_acc[4] / s_lat.cyc_n : 0u),
+        (unsigned long)(s_lat.cyc_n ? (s_lat.cyc_acc[0] + s_lat.cyc_acc[1] +
+            s_lat.cyc_acc[2] + s_lat.cyc_acc[3] + s_lat.cyc_acc[4]) / s_lat.cyc_n : 0u),
+        (unsigned long)span_us, (unsigned long)expect_us, (unsigned long)drift,
+        (unsigned long)s_lat.late_sum,
+        /* Self-check 3, inline so it cannot be separated from the numbers. */
+        /* span - ticks*period is, by construction, the SUM of every tick's
+         * lateness. So the check is an EQUALITY, not a threshold: `drift` must
+         * equal `late_sum`. Printing a drift and calling the line ok without
+         * comparing the two is how 2.8e9 us shipped as SELFCHK=ok. */
+        (hsum == s_lat.ticks && lsum == s_lat.lat_n &&
+         drift == s_lat.late_sum &&
+         (s_lat.cyc_n == 0u || s_lat.cyc_fill == 0u)) ? "ok" : "VIOLATED");
+    s_lat.ticks = s_lat.late_n = s_lat.late_max = s_lat.late_sum = 0u;
+    for (i = 0u; i < 4u; i++) { s_lat.hist[i] = 0u; s_lat.lat_hist[i] = 0u; }
+    s_lat.lat_n = s_lat.lat_max = s_lat.lat_sum = 0u;
+    s_lat.cyc_n = s_lat.cyc_total = s_lat.cyc_max = 0u;
+    s_lat.cyc_fill = 0u;
+    for (i = 0u; i < RI_TAB_COUNT; i++) s_lat.cyc_acc[i] = 0u;
+    s_lat.span_lo = 0u;
+}
+
 static void tab_switch(uint32_t g) {
     uint32_t k;
     if (g >= RI_TAB_COUNT || !s_pages)
@@ -1848,6 +1964,42 @@ static void tab_switch(uint32_t g) {
     }
     evlog("TAB", "page=%d us=%lu xruns+%lu", g, (unsigned long)us,
         (unsigned long)((s_live ? ri_atomic_load_acq(&s_lv.drv.xruns) : 0u) - x0));
+    /* Latency cycle (owner 2026-10-05): one bucket per tab slot, and a cycle is
+     * only counted when all five slots are filled, so a partial cycle is never
+     * averaged in as if it were a whole one. That is the self-check on this
+     * number -- not a comment, a condition. */
+    if (lat_on()) {
+        s_lat.cyc_tab[g] = us;
+        if (s_lat.cyc_fill < RI_TAB_COUNT)
+            s_lat.cyc_fill++;
+        if (s_lat.cyc_fill == RI_TAB_COUNT) {
+            ULONG t = 0u, k2;
+            for (k2 = 0u; k2 < RI_TAB_COUNT; k2++)
+                t += s_lat.cyc_tab[k2];
+            s_lat.cyc_n++;
+            s_lat.cyc_total += t;
+            if (t > s_lat.cyc_max)
+                s_lat.cyc_max = t;
+            {   /* per-tab ACCUMULATORS, reset with everything else.
+                 *
+                 * This was a self-check gap found by the first run: per_tab
+                 * held the LAST cycle's values and was printed next to
+                 * `cyc=0`, so a window containing no complete cycle showed
+                 * five non-zero numbers as though they were current. The
+                 * `SELFCHK=ok` did not catch it, because the buckets and the
+                 * tick arithmetic were all internally consistent -- the lie
+                 * was in a field nothing was checking. So the field now
+                 * accumulates over every cycle and is reported as a mean
+                 * that is only defined when cyc_n > 0. **A self-check covers
+                 * the quantities it sums; it does not cover the ones it does
+                 * not.** */
+                ULONG k3;
+                for (k3 = 0u; k3 < RI_TAB_COUNT; k3++)
+                    s_lat.cyc_acc[k3] += s_lat.cyc_tab[k3];
+            }
+            s_lat.cyc_fill = 0u;
+        }
+    }
 }
 
 /* S5 zoom choice: persisted mode (Fit default) in ENVARC: prefs. */
@@ -2611,6 +2763,20 @@ int main(int argc, char **argv) {
         struct RILiveMeters m;
         uint64_t cursor = 0u;
         int have_cursor = 0;
+        /* INPUT -> REPAINTED (owner 2026-10-05). NewInput returns when a
+         * message is available and Zune dispatches MUIM_Draw INLINE inside the
+         * redraw that follows (mui_redraw.c: DoMethod(obj, MUIM_Draw, 0)), so
+         * the span from here to the end of the loop body is input-to-painted.
+         * The histogram plus the max is the number; the buckets summing to the
+         * observation count is its self-check. Gated on RIAPP_DIAG so a release
+         * build pays nothing for it. */
+        if (lat_on() && lat_efreq()) {
+            struct EClockVal i0;
+            ReadEClock(&i0);
+            s_lat.lat_in_at.lo = i0.ev_lo;
+            s_lat.lat_in_at.hi = i0.ev_hi;
+            s_lat.lat_have = 1;
+        }
         ret = (LONG)DoMethod(app, MUIM_Application_NewInput, &sigs);
         if (ret == (LONG)MUIV_Application_ReturnID_Quit)
             break;
@@ -2626,6 +2792,45 @@ int main(int argc, char **argv) {
         }
         if (timer_armed && CheckIO((struct IORequest *)treq)) {
             WaitIO((struct IORequest *)treq);
+            /* TICK LATENESS (owner 2026-10-05). Lateness is measured against the
+             * schedule, not against the previous tick: accumulate one period per
+             * tick and compare with the clock. A tick that arrives late because
+             * the loop was busy is exactly the "the GUI was starved" signal the
+             * owner asked for, and it is invisible to a loop that only counts. */
+            if (lat_on() && lat_efreq()) {
+                struct EClockVal tk;
+                static struct EClockVal s_last;
+                uint64_t a, b, d;
+                ReadEClock(&tk);
+                b = ((uint64_t)tk.ev_hi << 32) | tk.ev_lo;
+                /* SEED ON THE FIRST TICK. Without this the first interval is
+                 * measured from a zero stamp, i.e. "since boot" -- which is what
+                 * produced late_max=2805650769 us and drift=2806003567 on the first
+                 * real run. Both fields were absurd, printed next to SELFCHK=ok,
+                 * because nothing was checking them. */
+                if (!s_lat.tick_seeded) {
+                    s_lat.tick_seeded = 1;
+                    s_last = tk;
+                    goto tick_armed;
+                }
+                a = ((uint64_t)s_last.ev_hi << 32) | s_last.ev_lo;
+                s_lat.ticks++;
+                s_lat.span_lo += (ULONG)((b - a) * 1000000ULL / s_efreq);
+                s_last = tk;
+                d = b - a;
+                {   /* one period in EClock units, from the rate ReadEClock gave */
+                    uint64_t per = (uint64_t)s_efreq / 10ULL;   /* 100 ms */
+                    ULONG late = d > per ? (ULONG)((d - per) * 1000000ULL / s_efreq) : 0u;
+                    s_lat.late_sum += late;      /* EVERY late tick, not only the notable ones */
+                    if (late > 500UL) {          /* 0.5 ms: below this is scheduling jitter */
+                        s_lat.late_n++;
+                        if (late > s_lat.late_max)
+                            s_lat.late_max = late;
+                    }
+                    lat_bucket(s_lat.hist, late);
+                }
+            }
+            tick_armed:
             treq->tr_node.io_Command = TR_ADDREQUEST;
             treq->tr_time.tv_secs = 0;
             treq->tr_time.tv_micro = 100000;
@@ -2675,7 +2880,10 @@ int main(int argc, char **argv) {
          * Remove after.
          * S3 draw timing joins the window (live or not): full vs partial
          * redraw us, max + mean, so a knob-drag session reports both. */
+        /* The latency report rides the same 30 s heartbeat, so it lands in the
+         * same log set and the same rotation window as everything else. */
         if (++hb >= 300u) {
+            lat_report();
             ULONG dfmax = 0u, dpmax = 0u, dfsum = 0u, dpsum = 0u, dfn = 0u, dpn = 0u, blmax = 0u, alln = 0u;
             ULONG dpwmax[4] = { 0u, 0u, 0u, 0u }, dpwsum[4] = { 0u, 0u, 0u, 0u }, dpwn[4] = { 0u, 0u, 0u, 0u };
             ULONG dpbmax = 0u, dpbsum = 0u;
@@ -2885,6 +3093,24 @@ int main(int argc, char **argv) {
                 s_core.session.player.sounding_slot[2], s_core.session.player.sounding_slot[3],
                 s_core.session.player.pending_slot[0], s_core.session.player.pending_slot[1],
                 s_core.session.player.pending_slot[2], s_core.session.player.pending_slot[3]);
+        }
+        /* Close the input sample: everything the loop body did between the
+         * stamp and here, including any inline redraw, is the user's latency. */
+        if (lat_on() && s_lat.lat_have && lat_efreq()) {
+            struct EClockVal i1;
+            uint64_t a = ((uint64_t)s_lat.lat_in_at.hi << 32) | s_lat.lat_in_at.lo;
+            uint64_t b;
+            ReadEClock(&i1);
+            b = ((uint64_t)i1.ev_hi << 32) | i1.ev_lo;
+            if (b > a) {
+                ULONG us = (ULONG)((b - a) * 1000000ULL / s_efreq);
+                s_lat.lat_n++;
+                s_lat.lat_sum += us;
+                if (us > s_lat.lat_max)
+                    s_lat.lat_max = us;
+                lat_bucket(s_lat.lat_hist, us);
+            }
+            s_lat.lat_have = 0;
         }
         sigs |= SIGBREAKF_CTRL_C | (timer_armed ? 1UL << tport->mp_SigBit : 0UL);
         sigs = Wait(sigs);
