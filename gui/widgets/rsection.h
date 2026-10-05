@@ -88,11 +88,15 @@ struct RSectionDiag {
      * the ReadEClock pairs, which contain no code at all -- so a large gap is not
      * an unmeasured phase, it is the CPU not being there.
      *
-     * This is the number that would have made the second expensive window
-     * readable without help: there all three components read normal while the
-     * total was ~2950 us, i.e. 92 % of the draw sat in the gaps. One blit was
-     * interrupted in the other window, where the gap stayed at ~19 us. Same
-     * fault, two different victims, and only the gap tells them apart.
+     * This is the number that distinguishes "this phase is slow" from "this draw
+     * was interrupted", and it must be the SUM of the phases that is subtracted:
+     * they are disjoint intervals, so subtracting the maximum instead silently
+     * books the other two phases into this bucket (2026-10-05, see the
+     * implementation note). With the sum it behaves as intended -- ~16 us quiet,
+     * and ~2722 us during the 1.36 s stall, where all three components read
+     * normal. One blit was interrupted in a different window, where the gap
+     * stayed at ~19 us. Same fault, two different victims, and only the gap
+     * tells them apart.
      *
      * Costs nothing: it is a subtraction of numbers already logged, not another
      * ReadEClock (each read is ~2.2 us here, ~8 % of a quiet partial). */
