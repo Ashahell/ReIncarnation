@@ -3048,3 +3048,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New; Update (reviews the 2026-10-05 latency record; condenses advice given 2026-10-02..05)
 - Raw: llm-wiki/raw/articles/2026-10-05-review-latency-instrumentation-and-advice-log.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-05] ingest | Tab switch: rack plate cached in a bitmap, plus housekeeping
+- Disposition: New; Update (resolves the tab-switch target named in the review/advice log; supersedes the stall cap in the clipping/tab-stall record)
+- Raw: llm-wiki/raw/articles/2026-10-05-tab-switch-bay-plate-cache-and-housekeeping.md
+- Updated: llm-wiki/index.md (Live app entry list)
