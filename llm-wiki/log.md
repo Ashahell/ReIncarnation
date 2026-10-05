@@ -3053,3 +3053,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New; Update (resolves the tab-switch target named in the review/advice log; supersedes the stall cap in the clipping/tab-stall record)
 - Raw: llm-wiki/raw/articles/2026-10-05-tab-switch-bay-plate-cache-and-housekeeping.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-05] ingest | Rail page group, log newlines, stick deploy
+- Disposition: New; Update (closes the rail_us remainder named in the tab-switch plate-cache record)
+- Raw: llm-wiki/raw/articles/2026-10-05-rail-page-group-and-log-newlines.md
+- Updated: llm-wiki/index.md (Live app entry list)
