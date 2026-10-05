@@ -2880,3 +2880,34 @@ Register (same visibility-only bit); activation later. t98 reverts to
   **build 55.4 → 45.9 µs (1.21×), and replay, blit and gap are unmoved — which is the claim.** Partition invariant: **34 rows, 0 mismatches beyond truncation.** `bsec` still `[13]`, `box_bar` still the Song Position box.
 - **⚠ AND THE HOST PREDICTED 1.62× WHILE THE DELL DELIVERED 1.21×, WHICH IS WORTH THE EXPLANATION RATHER THAN A ROUNDED-OFF.** The host cut is arithmetic — 224 comparisons to 15 — so it should transfer. It does not, and the reason is that the host's `-O2` build and the Dell's `-O0` build are bound by **different things**: on the host the scan is branch-bound and the reduction is nearly free, while at `-O0` on a 2010-era mobile chip the 485-entry table is **cold cache** and the win is bounded by memory, not by comparisons. **A comparison-count argument predicts a speedup; a cache-footprint argument predicts less, and only one machine can tell you which applies.** The lesson generalises to every count-based optimisation in this wiki: **`built 829 → 97 kept` and `224 → 15 comparisons` are exact and neither is a time.**
 - **WHERE THE BUILD NOW STANDS.** 167 µs per quiet repaint = **69 blit (41 %) + 46 build (28 %) + 33 replay (20 %) + 18 gap (11 %)**. The blit and the replay are both established as not-a-lever, the gap's structural floor is ~2 µs, and the LCD background inside the box is established as a floor. **So ~46 µs of build remains, of which the ~37 %-that-was floor is now ~10 %, and the direct-mapped index is no longer needed to get most of it** — the bounded scan already has it.
+
+## [2026-10-05] ingest | The instrumentation is 8 % of every repaint, one read was a pure duplicate, and this AROS has no cheaper clock
+- Disposition: **New** (the fix), **On target**, **Closed question** (is there a cheaper clock — no), **Open** (6 of the 7 remaining reads)
+- `AUDIT 0/0 PASS`. t93/t112/t168/t169 pass. Mixed build 1016256 B, `r12moves=42`, `RIPP-CLK`. **`xruns=0`, `wake_max=46 µs`, `overloads=0`, `prio=21`.**
+- **THE GAP IS MOSTLY MY OWN INSTRUMENTATION, AND IT IS PAID UNCONDITIONALLY.** The corrected budget left 18 µs "unattributed" with **~14 of it the eight `ReadEClock` calls** this lane added. `draw_frame` sets `timed = 1` whenever the EClock opened, with no gate, so **every partial repaint in the shipped binary pays ~17.6 µs of measurement** — about **8–10 % of a 167 µs repaint**. It is the one term in the budget that exists only because it was put there.
+- **⚠ AND IT IS NOT A CHEAP CLOCK; IT IS AN EXPENSIVE ONE, AND THERE IS NO CHEAPER ONE HERE.** `ReadEClock` on AROS x86-64 is not an rdtsc. `src/abi/v11/AROS/arch/all-pc/timer/ticks.c`:
+  ```c
+  void EClockUpdate(struct TimerBase *TimerBase)
+  {
+      outb(CH0|ACCESS_LATCH, PIT_CONTROL);   /* Latch the current time value */
+      time = ch_read(PIT_CH0);               /* Read out current 16-bit time */
+  ```
+  **8254 PIT channel 0, by port I/O**, ~2.2 µs per call. The header comment says *"one channel of the PIT for simplicity"* and `tb_eclock_rate = 1193180Hz`.
+- **THE CONSULTANT'S QUESTION — "IS THERE A CHEAPER CLOCK?" — IS NOW ANSWERED, AND THE ANSWER IS NO.** Searched the v11 tree and the SDK we build against: **no `ReadNanoseconds`, no exposed TSC counter, no cheaper monotonic API.** AROS *does* use raw `rdtsc` internally (`AROS/rom/graphics/gfxfuncsupport.c`, `__asm__ __volatile__("rdtsc" : "=A" (val))`), but it is not published. **So the available win is fewer reads, not cheaper ones** — which is the opposite of what I assumed when I first asked the question.
+- **⚠ AND ONE OF THE EIGHT WAS A PURE DUPLICATE.** The read ending the replay span and the read starting the blit span were **two `ReadEClock` calls of the same instant** — nothing happens between them but the arithmetic:
+  ```c
+  ReadEClock(&te);  ur = eclock_us(&tr, &te);   /* end of replay */
+  ...
+  ReadEClock(&tr);                              /* start of blit -- SAME INSTANT */
+  ```
+  One read now serves both. **7 calls instead of 8, and strictly more accurate**, because two reads of one instant can differ by the PIT's own advance, whereas the shared sample makes the replay and blit spans abut exactly. **The three components still partition the total, which is the invariant `t168` pins.**
+- **ON TARGET, `RIPP-CLK`, 47 quiet windows:**
+  ```
+    part_avg 162.8 | build 43.0 | replay 33.2 | blit 68.9 | gap 16.7
+    bsec [13] | box_bar 161/165/3
+
+    RIPP-SCAN (8 reads) : part_avg 167.0 | build 45.9 | gap 18.0
+  ```
+  **gap 18.0 → 16.7 µs, which is the ~2.2 µs one read predicts, and part_avg 167.0 → 162.8.** Build moves with it (45.9 → 43.0) because the build span also shortened by the sample it shares. Replay and blit unmoved. Partition invariant: **51 rows, 0 mismatches beyond truncation.**
+- **⚠ SIX READS REMAIN, ~14 µs, AND DROPPING THEM IS NOT FREE.** The obvious next step is to stop splitting the phases and keep only the total plus the build span: **4 reads, ~9 µs, 5 % of the repaint.** The cost is specific and worth naming: **the on-target partition invariant goes with it**, since two components always sum. That invariant is what caught the `max`-where-`sum` bug on target, and it is now **pinned at the source by `t168`**, so the on-target copy is a redundant confirmation — but it is the copy that caught a live 119 µs phantom, and giving it up for 5 % needs to be a decision, not a tidy-up. **The phases it would drop (replay 33 µs, blit 69 µs) are both already established as not-a-lever and rock-steady, so nothing is lost in what they are telling me — only in what they would tell me next.**
+- **THE BUDGET AFTER THIS, HONESTLY.** 163 µs per quiet repaint = **69 blit (42 %) + 43 build (26 %) + 33 replay (20 %) + 17 gap (10 %, ~14 of it my own clock reads)**. Blit and replay are established as not-a-lever, the LCD background inside the box is a floor, the gap's structural floor is ~2 µs. **So of the 163 µs, roughly 14 is instrumentation I chose to pay and roughly 100 is code or pixels that the damage model requires.**

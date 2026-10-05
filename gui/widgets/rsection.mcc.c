@@ -252,15 +252,36 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
              * costs 200 us-1.36 s, and the split is available every time after
              * this. The three components deliberately sum to `dp_*`. */
             {
-                struct EClockVal tr;
+                struct EClockVal tr, te;
                 if (timed)
                     ReadEClock(&tr);
                 if (!replay_dl_dmg(&d->brp, &dl, ri_skin_aros_for(d->ui.section),
                         x0, y0, x1, y1))
                     goto bail_out;   /* nothing drawn: no dp_* sample either */
                 if (timed) {
-                    struct EClockVal te;
                     ULONG ur;
+                    /* ONE read serves both the end of the replay span and the
+                     * start of the blit span (2026-10-05). They were two
+                     * separate ReadEClock calls of the SAME instant -- nothing
+                     * happens between them but the arithmetic -- so the second
+                     * was a pure duplicate.
+                     *
+                     * ReadEClock on AROS x86-64 is not a rdtsc: it latches and
+                     * reads 8254 PIT channel 0 by port I/O (arch/all-pc/timer/
+                     * ticks.c: `outb(CH0|ACCESS_LATCH, PIT_CONTROL)` then
+                     * `ch_read(PIT_CH0)`), measured at ~2.2 us per call. Eight
+                     * calls per partial repaint is ~17.6 us of real work in the
+                     * GUI thread, about 8-10 % of a 167 us repaint, and it is
+                     * paid unconditionally because `timed` is set whenever the
+                     * EClock opened. There is NO cheaper public monotonic source
+                     * in this AROS -- no ReadNanoseconds, no exposed TSC counter --
+                     * so the available win is fewer reads, not cheaper ones.
+                     *
+                     * And sharing the sample is strictly MORE accurate than two
+                     * reads of one instant, which can differ by the PIT's own
+                     * advance. The replay span and the blit span now abut exactly,
+                     * so the three components still partition the total -- the
+                     * invariant t168 pins. */
                     ReadEClock(&te);
                     ur = eclock_us(&tr, &te);
                     dp_ur_here = ur;
@@ -268,15 +289,13 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
                         d->diag.dp_replay_max = ur;
                     d->diag.dp_replay_sum += ur;
                 }
-                if (timed)
-                    ReadEClock(&tr);
                 BltBitMapRastPort(d->bm, x0, y0, wrp, _mleft(obj) + x0, _mtop(obj) + y0,
                     x1 - x0 + 1, y1 - y0 + 1, 0xC0);
                 if (timed) {
-                    struct EClockVal te;
+                    struct EClockVal te2;
                     ULONG ub;
-                    ReadEClock(&te);
-                    ub = eclock_us(&tr, &te);
+                    ReadEClock(&te2);
+                    ub = eclock_us(&te, &te2);
                     dp_ub_here = ub;
                     if (ub > d->diag.dp_blit_max)
                         d->diag.dp_blit_max = ub;
