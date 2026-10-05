@@ -1852,6 +1852,7 @@ static Object *tab_strip(void) {
  */
 typedef struct {
     ULONG ticks, late_n, late_max, late_sum, hist[4], span_lo;
+    uint64_t span_ec, late_ec, early_ec;  /* exact EClock sums for the identity */
     int tick_seeded;
     ULONG lat_n, lat_max, lat_sum, lat_hist[4];
     struct { uint32_t lo, hi; } lat_in_at;   /* input stamp */
@@ -1931,8 +1932,8 @@ static void lat_report(void) {
          * equal `late_sum`. Printing a drift and calling the line ok without
          * comparing the two is how 2.8e9 us shipped as SELFCHK=ok. */
         (hsum == s_lat.ticks && lsum == s_lat.lat_n &&
-         drift == s_lat.late_sum &&
-         (s_lat.cyc_n == 0u || s_lat.cyc_fill == 0u)) ? "ok" : "VIOLATED");
+         s_lat.span_ec + s_lat.early_ec ==
+             (uint64_t)s_lat.ticks * ((uint64_t)s_efreq / 10ULL) + s_lat.late_ec) ? "ok" : "VIOLATED");
     s_lat.ticks = s_lat.late_n = s_lat.late_max = s_lat.late_sum = 0u;
     for (i = 0u; i < 4u; i++) { s_lat.hist[i] = 0u; s_lat.lat_hist[i] = 0u; }
     s_lat.lat_n = s_lat.lat_max = s_lat.lat_sum = 0u;
@@ -1940,6 +1941,7 @@ static void lat_report(void) {
     s_lat.cyc_fill = 0u;
     for (i = 0u; i < RI_TAB_COUNT; i++) s_lat.cyc_acc[i] = 0u;
     s_lat.span_lo = 0u;
+    s_lat.span_ec = s_lat.late_ec = s_lat.early_ec = 0u;
 }
 
 static void tab_switch(uint32_t g) {
@@ -1969,10 +1971,12 @@ static void tab_switch(uint32_t g) {
      * averaged in as if it were a whole one. That is the self-check on this
      * number -- not a comment, a condition. */
     if (lat_on()) {
+        /* cyc_fill is a bit mask of the tabs visited (review 2026-10-05): a
+         * count of switches let five switches between two tabs close a
+         * "cycle" whose other three slots were stale from an older one. */
         s_lat.cyc_tab[g] = us;
-        if (s_lat.cyc_fill < RI_TAB_COUNT)
-            s_lat.cyc_fill++;
-        if (s_lat.cyc_fill == RI_TAB_COUNT) {
+        s_lat.cyc_fill |= 1UL << g;
+        if (s_lat.cyc_fill == (1UL << RI_TAB_COUNT) - 1UL) {
             ULONG t = 0u, k2;
             for (k2 = 0u; k2 < RI_TAB_COUNT; k2++)
                 t += s_lat.cyc_tab[k2];
@@ -1998,6 +2002,8 @@ static void tab_switch(uint32_t g) {
                     s_lat.cyc_acc[k3] += s_lat.cyc_tab[k3];
             }
             s_lat.cyc_fill = 0u;
+            for (k2 = 0u; k2 < RI_TAB_COUNT; k2++)
+                s_lat.cyc_tab[k2] = 0u;
         }
     }
 }
@@ -2770,7 +2776,11 @@ int main(int argc, char **argv) {
          * The histogram plus the max is the number; the buckets summing to the
          * observation count is its self-check. Gated on RIAPP_DIAG so a release
          * build pays nothing for it. */
-        if (lat_on() && lat_efreq()) {
+        /* Only wakes caused by input count (review 2026-10-05): sampling
+         * every pass made the 10 Hz timer iterations most of the "input"
+         * population, and the heartbeat's file writes its maximum. */
+        if (lat_on() && lat_efreq() &&
+            (sigs & ~(SIGBREAKF_CTRL_C | (timer_armed ? 1UL << tport->mp_SigBit : 0UL)))) {
             struct EClockVal i0;
             ReadEClock(&i0);
             s_lat.lat_in_at.lo = i0.ev_lo;
@@ -2821,6 +2831,16 @@ int main(int argc, char **argv) {
                 {   /* one period in EClock units, from the rate ReadEClock gave */
                     uint64_t per = (uint64_t)s_efreq / 10ULL;   /* 100 ms */
                     ULONG late = d > per ? (ULONG)((d - per) * 1000000ULL / s_efreq) : 0u;
+                    /* Exact sums in EClock units (review 2026-10-05): the us
+                     * figures are rounded per tick and an early tick (d < per)
+                     * adds 0 to late but subtracts from span, so a us equality
+                     * can only hold by luck. In EClock units the identity
+                     * span == ticks*per + late - early is exact. */
+                    s_lat.span_ec += d;
+                    if (d > per)
+                        s_lat.late_ec += d - per;
+                    else
+                        s_lat.early_ec += per - d;
                     s_lat.late_sum += late;      /* EVERY late tick, not only the notable ones */
                     if (late > 500UL) {          /* 0.5 ms: below this is scheduling jitter */
                         s_lat.late_n++;
@@ -2884,6 +2904,7 @@ int main(int argc, char **argv) {
          * same log set and the same rotation window as everything else. */
         if (++hb >= 300u) {
             lat_report();
+            s_lat.lat_have = 0;    /* this pass writes the log: not input latency */
             ULONG dfmax = 0u, dpmax = 0u, dfsum = 0u, dpsum = 0u, dfn = 0u, dpn = 0u, blmax = 0u, alln = 0u;
             ULONG dpwmax[4] = { 0u, 0u, 0u, 0u }, dpwsum[4] = { 0u, 0u, 0u, 0u }, dpwn[4] = { 0u, 0u, 0u, 0u };
             ULONG dpbmax = 0u, dpbsum = 0u;
