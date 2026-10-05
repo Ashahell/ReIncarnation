@@ -2935,3 +2935,30 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - **THE HONEST STATE OF THE PANEL CUT.** The idea is sound and was measured at a real win (SYNTH1 background 4.76 → 2.07 µs): a panel is one rectangle of horizontal strips and a damage box usually covers a sliver of it. The clip-aware version **failed a parity test for a reason that does not reproduce**, and the two explanations I have since offered for it were both wrong — first "the table is not grouped", then "clip reads 0 inside the panel". **So it should be retried from a clean tree with the failure recorded as unreproduced, and the retry must be judged by `t169` alone.** It is not retried here.
 - **WHAT IT IS WORTH, SO THE RETRY CAN BE JUDGED.** The transport's background is **64 horizontal bands** — `ri_art_panel(..., brushed=0)` takes its `bands = h < 64 ? h : 64` path — and that is ~0.9 µs of the host build's 2.02 µs floor, so roughly **13 µs of the Dell's 43 µs `build_avg`, about 8 % of a 163 µs repaint.** Not urgent, not free, and worth doing only once.
 - **METHOD, and this is the fourth entry in this shape.** *An unexplained failure is not a specification.* Twice today a plausible mechanism was adopted and then refuted by a number, and the standing temptation in both cases was to explain the anomaly well enough to proceed. **The correct disposition for a failure that will not reproduce is to record it as unreproduced and re-derive the case from the measurement** — the panel cut's case never depended on the anomaly; the anomaly only ever looked like a reason to abandon it.
+
+## [2026-10-05] ingest | THE PANEL ANOMALY IS SOLVED: a LINE's bbox is ±1, and the clamp used the nominal line. build 43.0 → 32.7 µs.
+- Disposition: **Resolved** (a two-day-old unexplained failure, fully traced), **New** (the cut, shipped), **On target**, **⚠ Correction** (my "does not reproduce" claim was itself wrong — it was a stale build)
+- `AUDIT 0/0 PASS`. t93/t112/t155/t166/t167/t168/t169/t170 pass. Mixed build, `RIPP-PAN`. **`xruns=0`, `wake_max=46 µs`, `overloads=0`, `prio=21`.**
+- **⚠⚠ FIRST: MY "IT DOES NOT REPRODUCE" FROM THE PREVIOUS ENTRY WAS WRONG, AND IT WAS A STALE BUILD — THE SAME TRAP, SEVENTH OCCURRENCE.** I probed `SYNTH1 box 143,22..209,88` on the *reverted* tree, saw unclipped 3009 / clip 239 / `expect_count` 239, and concluded the failure could not happen. **But the reverted tree is the tree where it does NOT happen, because the offending code was gone.** Re-implementing the cut reproduced it **immediately**: `culled 237 commands, the clip alone would keep 239`. **The earlier reading of `23` rather than `239` was likewise a stale `art_shared.o`.** So the failure was real, reproducible, and diagnosable from the start, and I twice declared it unreproducible because I tested a tree where it was absent. **"Does not reproduce" and "I reverted it and it went away" are different claims, and only one of them is evidence.**
+- **THE BUG, IN ONE LINE OF THE PLATFORM.** `gui/draw/canvas.c`, `ri_dcmd_bbox`:
+  ```c
+  case RI_D_LINE:
+      /* 1-px strokes on both backends; grow one for raster rounding. */
+      *x0 = (c->x0 < c->x1 ? c->x0 : c->x1) - 1;
+      *y0 = (c->y0 < c->y1 ? c->y0 : c->y1) - 1;
+      *x1 = (c->x0 < c->x1 ? c->x1 : c->x0) + 1;
+      *y1 = (c->y0 < c->y1 ? c->y1 : c->y0) + 1;
+  ```
+  **A hairline at nominal `y` is KEPT by the clip whenever `y` is in `[cy0-1, cy1+1]`, not `[cy0, cy1]`.** My clamp used the nominal line, so it dropped the row just above and the row just below the box — **exactly the two commands missing**, at `y=21` and `y=89`, confirmed by dumping both streams side by side.
+- **THE RULE, AND IT IS THE GENERAL ONE.** *When trimming a primitive, use the extent the CLIP uses, not the extent the primitive nominally occupies.* They differ by one pixel per side for a line, and by zero for a rect (which is why the `disc_grad` row clamp, on one-pixel **rects**, was right first time and the panel's **line** clamp was wrong). **The 303 strip seek was a third case — strips are rects one pixel tall — and it was wrong for a different reason (the straddling row).** Three trims, three different bugs, all caught by `t169`, and the lesson is that **a trim is only as correct as its model of what the clip considers inside**, which is a property of the *command*, not of the drawing routine that emitted it.
+- **HOST, `bench_trbar`:** floor/unclipped **0.257 → 0.194** (1.33× on the floor), the real box **2.79 → 2.63 µs**.
+- **ON TARGET, `RIPP-PAN`, 15 quiet windows:**
+  ```
+    part_avg 149.5 | build 32.7 | replay 32.9 | blit 69.0 | gap 14.1
+    bsec [13] | box_bar 152/159/3
+
+    RIPP-CLK : part_avg 162.8 | build 43.0 | gap 16.7
+  ```
+  **build 43.0 → 32.7 µs (1.31×), part_avg 162.8 → 149.5 µs**, replay and blit unmoved. Partition invariant **17 rows, 0 mismatches beyond truncation.**
+- **THE SESSION'S TOTALS, HONESTLY.** The quiet repaint is now **149.5 µs**, from **232.6 µs** when the gap counter was first corrected — **1.56×** — and the composition is **69 blit (46 %) + 33 build (22 %) + 33 replay (22 %) + 14 gap (10 %, ~13 of it my own clock reads)**. **The blit is now 46 % of a repaint and is the only large term that has never been successfully attacked**: direct painting traded it for a layer lock per drawing primitive, and the AROS reason (`do_render_with_gc` branching on `rp->Layer`) means the buffered path pays that once. **So roughly 100 of the remaining 149 µs is established as floors — the blit, the LCD background, and the digits inside the damage box — and ~13 µs is instrumentation I chose to pay.**
+- **METHOD, AND THIS IS THE FIFTH ENTRY IN THE "MY INSTRUMENT LIED" SHAPE.** *Distinguish "I reverted it and it went away" from "it does not happen."* The first is a single observation of one tree; the second is a claim about the code. I made the second from the first **twice in one entry**, and the cost was a full day of the panel cut sitting on a shelf as "unexplainable" when `ri_dcmd_bbox` had the answer in a comment. **A failure you cannot reproduce has usually been reproduced on a tree that no longer contains the code.**

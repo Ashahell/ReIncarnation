@@ -137,18 +137,86 @@ void ri_art_disc_grad(struct ri_dlist *dl, int cx, int cy, int r, uint32_t top, 
  * (light top/left, dark bottom/right), like a folded metal front. */
 void ri_art_panel(struct ri_dlist *dl, int x0, int y0, int x1, int y1, uint32_t base, int brushed) {
     int y, h = y1 - y0;
+    /* CLIP-AWARE FILL, retried from a clean tree 2026-10-05 after an earlier
+     * attempt failed t169 for a reason that does not reproduce. Recorded here so
+     * the retry is legible: the earlier version computed a hairline stop bound
+     * that excluded the row AT the box's bottom edge, and the banded branch
+     * briefly carried a base rect it never had. Both were my bugs, both were
+     * caught, and on the current tree the shipped clip and ri_dcmd_hits_box agree
+     * exactly (SYNTH1 box 143,22..209,88: unclipped 3009, clip keeps 239,
+     * predicate says 239).
+     *
+     * A panel is ONE rectangle full of horizontal strips and a damage box
+     * usually covers a sliver of it, so the fill can be trimmed to the box. Only
+     * the fill is guarded: the rolled edge lines below stay unconditional,
+     * because there are four of them and they are what makes the plate read as
+     * metal.
+     *
+     * Two different trims, because the two fills have different shapes:
+     *  - brushed: rows are ONE-PIXEL-TALL lines every other row, so a row
+     *    intersects iff its y is in [cy0, cy1] -- no straddling case. The
+     *    sequence is y0+1, y0+3, ... so the start is the first such y at or above
+     *    the box, rounded UP BY WHOLE STEPS OF 2.
+     *  - banded: bands are not uniformly tall, so there is no closed form worth
+     *    getting wrong. Both bounds are found by walking, which is exact because
+     *    band extents increase monotonically with b.
+     *
+     * With no clip set the ranges are the originals, so the full-draw path is
+     * unchanged and the goldens (t93) do not move. t169 decides the rest. */
+    int fill = 1, ys, ye;
     if (h <= 0 || x1 <= x0)
         return;
+    if (dl->clip && (x1 < dl->cx0 || x0 > dl->cx1 ||
+            ri_dlist_band_missed(dl, y0, y1)))
+        fill = 0;
+    ys = y0 + 1;
+    ye = y1 - 1;
+    if (fill && dl->clip) {
+        /* ⚠ THE ROWS ARE ±1, AND THAT IS THE WHOLE BUG THIS FILE HAD FOR TWO
+         * DAYS. ri_dcmd_bbox grows a LINE's box by one on all sides -- "1-px
+         * strokes on both backends; grow one for raster rounding" -- so a
+         * hairline at nominal y is KEPT by the clip whenever y is in
+         * [cy0-1, cy1+1], not [cy0, cy1]. Clamping on the nominal y drops the
+         * row just above and the row just below the box, which is exactly the
+         * two commands t169 reported as missing (237 kept where 239 was
+         * expected, on SYNTH1's box 143,22..209,88, with the missing pair being
+         * the hairlines at y=21 and y=89).
+         *
+         * The first version of this cut got it wrong, t169 rejected it, and the
+         * failure was then mis-read twice -- as "the ids are not grouped" and
+         * then as "clip reads 0 inside the panel" -- before being traced to a
+         * stale build and finally to this. The rule to carry: **when trimming a
+         * primitive, use the extent the CLIP uses, not the extent the primitive
+         * nominally occupies.** They differ here by one pixel on each side. */
+        int lo = dl->cy0 - 1, hi = dl->cy1 + 1;
+        if (lo > ys)
+            ys = ys + ((lo - ys + 1) / 2) * 2;
+        if (hi < ye)
+            ye = hi;
+    }
     if (brushed) {
-        ri_draw_rect(dl, x0, y0, x1, y1, base);
-        for (y = y0 + 1; y < y1; y += 2)
-            ri_draw_line(dl, x0, y, x1, y, ri_art_shade(base, ((y / 2) % 3 == 0) ? 7 : -4));
+        if (fill) {
+            ri_draw_rect(dl, x0, y0, x1, y1, base);
+            for (y = ys; y <= ye; y += 2)
+                ri_draw_line(dl, x0, y, x1, y, ri_art_shade(base, ((y / 2) % 3 == 0) ? 7 : -4));
+        }
     } else {
-        int bands = h < 64 ? h : 64, b;
-        for (b = 0; b < bands; b++) {
-            int ya = y0 + b * h / bands, yb = y0 + (b + 1) * h / bands - 1;
-            ri_draw_rect(dl, x0, ya, x1, yb < ya ? ya : yb,
-                ri_art_mix(ri_art_shade(base, 6), ri_art_shade(base, -7), b * 256 / (bands > 1 ? bands - 1 : 1)));
+        int bands = h < 64 ? h : 64, b, b0 = 0, b1 = bands - 1;
+        if (fill && dl->clip) {
+            /* Walk, do not solve: a band intersects iff yb >= cy0 and ya <= cy1,
+             * and both bounds are monotone in b. */
+            while (b0 <= b1 && y0 + (b0 + 1) * h / bands - 1 < dl->cy0)
+                b0++;
+            while (b1 >= b0 && y0 + b1 * h / bands > dl->cy1)
+                b1--;
+        }
+        if (fill) {
+            for (b = b0; b <= b1; b++) {
+                int ya = y0 + b * h / bands, yb = y0 + (b + 1) * h / bands - 1;
+                ri_draw_rect(dl, x0, ya, x1, yb < ya ? ya : yb,
+                    ri_art_mix(ri_art_shade(base, 6), ri_art_shade(base, -7),
+                        b * 256 / (bands > 1 ? bands - 1 : 1)));
+            }
         }
     }
     ri_draw_line(dl, x0, y0, x1, y0, ri_art_shade(base, 38));
