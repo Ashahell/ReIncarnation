@@ -464,6 +464,20 @@ struct RILeviVoice {
      * in bank_load, the single writer of live[]. Zero-init safe. */
     uint8_t liveB_empty;
     uint8_t liveB_pad[3];
+    /* Bank-skip resume flag (P3 O2, default off): 1 = bank B was skipped
+     * (bank A live), 2 = bank A was skipped. Zero-init safe. */
+    uint8_t bank_skipped;
+    uint8_t bank_pad[3];
+#ifdef RI_LEVI_OPT_CTRLRATE
+    /* Control-rate latch (P3 O1, default off): e* values, dc/ac/vpitch
+     * segment ends and the control clock. Layout differs from shipping;
+     * bench variants only. */
+    float ctl_e[15];
+    float ctl_dc0, ctl_dc1, ctl_ac0, ctl_ac1, ctl_vp0, ctl_vp1;
+    uint32_t ctl_k;
+    uint8_t ctl_init;
+    uint8_t ctl_pad[3];
+#endif
 #ifdef RI_LEVI_PROFILE
     /* Host-only work counters (levi-perf P1): per voice-sample evidence for
      * the H1-H9 cost model. The bench aggregates across voices; shipping
@@ -988,6 +1002,10 @@ void levi_profile_reset(struct RILeviSet *s);
 /* tpt_g call total for the process (bench normalises per voice-sample). */
 extern uint64_t ri_prof_tptg;
 void ri_prof_tptg_reset(void);
+#endif
+#ifdef RI_LEVI_OPT_SUBNORM_PROBE
+/* Host-only subnormal census (P3 O5): counts subnormal L/R mix samples. */
+extern uint64_t ri_levi_subnorm_count;
 #endif
 /* Sum all voices into out (render mix, rb909 pattern). */
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,

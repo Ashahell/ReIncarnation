@@ -160,6 +160,7 @@ int main(int argc, char **argv) {
     /* P0 oracle: FNV-1a 64 over the raw float L/R bit patterns. */
     uint64_t fhash = 1469598103934665603ULL;
     int do_hash = 0;
+    const char *f32path = 0;
     double sum = 0.0, peak = 0.0;
     float secpk[RI_ROUTE_NSECTIONS];
     FILE *f;
@@ -177,6 +178,8 @@ int main(int argc, char **argv) {
     for (i = 3u; i < (uint32_t)argc; i++)
         if (!strcmp(argv[i], "--hash"))
             do_hash = 1;
+        else if (!strcmp(argv[i], "--f32") && i + 1u < (uint32_t)argc)
+            f32path = argv[i + 1u];
     if (load(argv[1], &cs, err, sizeof err) != 0) {
         printf("songplay: %s: %s\n", argv[1], err);
         return 2;
@@ -213,6 +216,14 @@ int main(int argc, char **argv) {
     for (i = 0u; i < RI_ROUTE_NSECTIONS; i++)
         secpk[i] = 0.0f;
     ri_core_play(&core);
+    FILE *ff = 0;
+    if (f32path) {
+        ff = fopen(f32path, "wb");
+        if (!ff) {
+            printf("songplay: cannot write %s\n", f32path);
+            return 2;
+        }
+    }
     while (done < frames) {
         uint32_t want = frames - done > CHUNK ? CHUNK : (uint32_t)(frames - done), k;
         const struct RILiveMeters *m;
@@ -226,6 +237,8 @@ int main(int argc, char **argv) {
             uint32_t c;
             s[0] = L[k];
             s[1] = R[k];
+            if (ff)
+                fwrite(s, sizeof(float), 2u, ff);
             if (do_hash) {
                 uint32_t u;
                 memcpy(&u, &s[0], 4);
@@ -253,6 +266,8 @@ int main(int argc, char **argv) {
         done += want;
     }
     fclose(f);
+    if (ff)
+        fclose(ff);
     printf("songplay: %s -> %s: %u bars at %.0f BPM, %.1f s, peak %.3f, rms %.4f, clipped %llu, xruns %u\n",
         argv[1], argv[2], (unsigned)bars, (double)cs.bpm, (double)frames / SR, peak,
         sqrt(sum / (double)(frames * 2u)), (unsigned long long)clip, (unsigned)core.session.xruns);
@@ -262,5 +277,12 @@ int main(int argc, char **argv) {
     printf("\n");
     if (do_hash)
         printf("songplay: f32 fnv1a64 %016llx\n", (unsigned long long)fhash);
+#ifdef RI_LEVI_OPT_SUBNORM_PROBE
+    {
+        extern uint64_t ri_levi_subnorm_count;
+        printf("songplay: subnormal mix samples %llu\n",
+            (unsigned long long)ri_levi_subnorm_count);
+    }
+#endif
     return 0;
 }

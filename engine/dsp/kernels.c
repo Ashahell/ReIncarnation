@@ -183,6 +183,61 @@ float ri_sin(float x) {
     return (float)(p * y);
 }
 
+#ifdef RI_LEVI_OPT_FLOATK
+/* Single-precision variants (P3 O3, default off): lower-order polynomials
+ * in float throughout. Max error ~2e-6 relative for sin on |x| < 40,
+ * ~4e-6 for pow2 on (-8, 8); reduction is float, so large inputs lose
+ * more (voice phases stay small; measured in dB on songs). */
+float ri_sin_f(float x) {
+    float ft = x * 0.15915494f;
+    float y, y2, p;
+    int q;
+    if (ft >= 0.0f) {
+        q = (int)(ft + 0.5f);
+    } else {
+        q = (int)(ft - 0.5f);
+    }
+    y = x - (float)q * 6.2831853f;
+    if (y > 1.5707964f) {
+        y = 3.1415927f - y;
+    } else if (y < -1.5707964f) {
+        y = -3.1415927f - y;
+    }
+    y2 = y * y;
+    p = -0.000198409f;
+    p = p * y2 + 0.008333068f;
+    p = p * y2 - 0.16666652f;
+    p = p * y2 + 1.0f;
+    return p * y;
+}
+
+float ri_pow2_f(float x) {
+    float f, g, p;
+    int n, ni;
+    if (x >= 128.0f) {
+        return ri_inff();
+    }
+    if (x <= -127.0f) {
+        return 0.0f;
+    }
+    ni = (int)x;
+    if ((float)ni > x) {
+        ni = ni - 1;
+    }
+    n = ni;
+    f = x - (float)ni;
+    g = f * 0.69314718f;
+    p = 0.001388888f;
+    p = p * g + 0.008333334f;
+    p = p * g + 0.041666664f;
+    p = p * g + 0.16666667f;
+    p = p * g + 0.5f;
+    p = p * g + 1.0f;
+    p = p * g + 1.0f;
+    return ri_scale2(p, n);
+}
+#endif
+
 /* log2(x): bit-split exponent + double Taylor of log(1+u)/ln2.
  * x > 0 normal: e = expbits - 127, m in [1,2), u = m - 1 in [0,1).
  * x <= 0: -Inf (deterministic; slide never queries it — floor is 35 Hz).

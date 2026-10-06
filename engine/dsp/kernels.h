@@ -45,4 +45,10 @@ float ri_pow2(float x);
  * double polynomial, no libm. */
 float ri_log2(float x);
 #endif
+#ifdef RI_LEVI_OPT_FLOATK
+/* Single-precision variants (P3 O3, default off). Levi render TU maps its
+ * kernel calls onto these (see levi.c); every other caller keeps exact. */
+float ri_sin_f(float x);
+float ri_pow2_f(float x);
+#endif
 #endif

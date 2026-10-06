@@ -237,3 +237,11 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
 
 ## Done
 - (none yet)
+
+## Levi performance: owner decisions (levi-perf P3, evidence docs/evidence/levi-perf/2026-10-06-p3-options.md)
+- [ ] O1 control rate: enable at N = 8 / 16 / 32 (measured -17pc routed at all N; deviations -56dB N8, -52dB N16, -47dB N32; static patches identical)
+- [ ] O2 bank skip at morph endpoints (measured -30pc endpoint-held; slam up to full-scale on morph moves, silent static)
+- [ ] O3 float kernels (measured -12 to -17pc; knife worst -59dB relative)
+- [ ] O4 voice cap 4/6/8 or a lite mode (cap6 -25pc block, cap4 -50pc block on live storms; songs bypass, deviation 0)
+- [ ] O5 denormals: no action (zero subnormal traffic measured; FTZ would change nothing)
+- [ ] Ship the P2 exact cuts to the stick (`Vk4aros:ReIncarnation/RIAPP`)
