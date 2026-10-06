@@ -157,6 +157,9 @@ int main(int argc, char **argv) {
     uint32_t bars = 0u, i;
     const char *pack = "reference/packs/classic-01/pack.rbnm";
     uint64_t frames, done = 0u, clip = 0u;
+    /* P0 oracle: FNV-1a 64 over the raw float L/R bit patterns. */
+    uint64_t fhash = 1469598103934665603ULL;
+    int do_hash = 0;
     double sum = 0.0, peak = 0.0;
     float secpk[RI_ROUTE_NSECTIONS];
     FILE *f;
@@ -171,6 +174,9 @@ int main(int argc, char **argv) {
             bars = (uint32_t)atoi(argv[i + 1u]);
         else if (!strcmp(argv[i], "--pack"))
             pack = argv[i + 1u];
+    for (i = 3u; i < (uint32_t)argc; i++)
+        if (!strcmp(argv[i], "--hash"))
+            do_hash = 1;
     if (load(argv[1], &cs, err, sizeof err) != 0) {
         printf("songplay: %s: %s\n", argv[1], err);
         return 2;
@@ -220,6 +226,15 @@ int main(int argc, char **argv) {
             uint32_t c;
             s[0] = L[k];
             s[1] = R[k];
+            if (do_hash) {
+                uint32_t u;
+                memcpy(&u, &s[0], 4);
+                fhash ^= (uint64_t)u;
+                fhash *= 1099511628211ULL;
+                memcpy(&u, &s[1], 4);
+                fhash ^= (uint64_t)u;
+                fhash *= 1099511628211ULL;
+            }
             for (c = 0u; c < 2u; c++) {
                 double a = fabs((double)s[c]);
                 long q;
@@ -245,5 +260,7 @@ int main(int argc, char **argv) {
     for (i = 0u; i < RI_ROUTE_NSECTIONS; i++)
         printf(" %.3f", (double)secpk[i]);
     printf("\n");
+    if (do_hash)
+        printf("songplay: f32 fnv1a64 %016llx\n", (unsigned long long)fhash);
     return 0;
 }
