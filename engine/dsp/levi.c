@@ -844,6 +844,14 @@ static void bank_load(struct RILeviVoice *v, uint32_t bank, uint32_t algo) {
             live[i] = 0u;
         }
     }
+    if (bank) {
+        /* P2 C6: a bank with no live operators renders nothing (voice_pass
+         * only zeroes its local opout), so the render may skip the call. */
+        uint32_t e = 0u;
+        for (i = 0u; i < RI_LEVI_NOPS; i++)
+            e |= live[i];
+        v->liveB_empty = e == 0u ? 1u : 0u;
+    }
     order_compute(f, ord);
 }
 
@@ -3912,7 +3920,14 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
     vpan = vpan < -1.0f ? -1.0f : vpan > 1.0f ? 1.0f : vpan;
     vwidth = vwidth < 0.0f ? 0.0f : vwidth > 1.0f ? 1.0f : vwidth;
     mixAL = voice_pass(v, 0u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixAR, &any_on);
-    mixBL = voice_pass(v, 1u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixBR, &any_on);
+    if (v->liveB_empty) {
+        /* P2 C6: no live operator in bank B; the call would only zero its
+         * local opout (no state, no any_on, mix stays 0). */
+        mixBL = 0.0f;
+        mixBR = 0.0f;
+    } else {
+        mixBL = voice_pass(v, 1u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixBR, &any_on);
+    }
     if (emorph <= 0.0f) {
         mixL = mixAL;
         mixR = mixAR;
@@ -4118,7 +4133,10 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     }
     vpitch = voice_pitch_step(v, sr, &afwob);
     mixA = voice_pass(v, 0u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
-    mixB = voice_pass(v, 1u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
+    if (v->liveB_empty)
+        mixB = 0.0f;
+    else
+        mixB = voice_pass(v, 1u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
     /* Exact endpoints (bit-identity with no-morph / pure-B voices);
      * the slide blends between them. */
     if (emorph <= 0.0f)

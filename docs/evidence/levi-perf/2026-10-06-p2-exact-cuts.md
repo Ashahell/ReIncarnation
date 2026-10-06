@@ -152,6 +152,38 @@ Bench, back-to-back medians of 7 (before = P2.3 matched objects):
 | dfilt HP_MOD (DUO) | 0.2935 | 0.2411 (-17.8%) | | - | - |
 | panmode spread 0/1/2 | +0.4/+0.3/+0.0% (tax gone) | | - | - |
 
+## P2.5 C6 (H1 exact part): skip bank-B voice_pass when liveB[] is empty
+
+P1 numbers: SILENCE-bank rows render 8/2 ops in bank B for nothing but an
+8-iteration no-op loop.
+
+What it does: `bank_load` (the single writer of `live[]`) maintains
+`liveB_empty`; both render twins skip bank B's `voice_pass` (mix 0) when
+set. `voice_pass` with no live op touches only its local `opout`, so the
+skip changes no output and no state.
+
+Exactness: provably unused computation. t172 pins unchanged. Wrong variant
+(inverted condition) FAILs morph-held/morph-move/worst. Song hashes
+unchanged.
+
+Bench, matched pairs (general prize under the 2% P2 stop line; SILENCE
+content only):
+
+| row | -O2 before | -O2 after | | -O0 before | -O0 after |
+|---|---|---|---|---|---|
+| A8+B0 slot SILENCE | 0.3149 | 0.3061 (-2.8%) | | 0.8682 | 0.8547 (-1.6%) |
+| A2+B0 slot SILENCE | 0.1702 | 0.1605 (-5.7%) | | 0.5287 | 0.5149 (-2.6%) |
+| morph0 SILENCE-B | 0.2825 | 0.2743 (-2.9%) | | 0.8477 | 0.8235 (-2.8%) |
+| worst-silB | 0.3068 | 0.2994 (-2.4%) | | 0.8570 | 0.8335 (-2.7%) |
+| worst (live B) | 0.8097 | 0.8142 (+0.6%) | | 2.1110 | 2.1050 (-0.3%) |
+| matrix empty (live B) | 0.4835 | 0.4807 (-0.6%) | | 1.3109 | 1.3076 (-0.3%) |
+
+P2 STOP: the next candidates (C7-inline call overhead, C8 pan memo, C9 env
+fast paths, C10 hoisting) were bounded below the 2% line by the P1 unit
+costs (pan POWER sins ~= 1%, sustain ticks ~= 0, hoisted flops ~= 10 of
+~1000s); the general C6 prize is itself under 2%. The general bank-B skip
+(19%) is sound-changing and belongs to P3 O2.
+
 Note: without the spread gate the first C5 cut taxed spread patches
 +3.3-3.7% (non-overlapping min/max); the gate returns them to baseline.
 Method note: an earlier before/after compared binaries with mismatched

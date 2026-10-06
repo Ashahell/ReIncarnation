@@ -459,6 +459,11 @@ struct RILeviVoice {
      * the end of the last sample. Pure cache over history; zero-init safe. */
     uint8_t dual_lock;
     uint8_t dual_pad[3];
+    /* Bank-B empty flag (P2 C6): 1 when liveB[] is all zero (SILENCE bank).
+     * voice_pass then touches no state, so the call is skipped. Maintained
+     * in bank_load, the single writer of live[]. Zero-init safe. */
+    uint8_t liveB_empty;
+    uint8_t liveB_pad[3];
 #ifdef RI_LEVI_PROFILE
     /* Host-only work counters (levi-perf P1): per voice-sample evidence for
      * the H1-H9 cost model. The bench aggregates across voices; shipping
