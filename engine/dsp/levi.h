@@ -1010,10 +1010,6 @@ void levi_profile_reset(struct RILeviSet *s);
 extern uint64_t ri_prof_tptg;
 void ri_prof_tptg_reset(void);
 #endif
-#ifdef RI_LEVI_OPT_SUBNORM_PROBE
-/* Host-only subnormal census (P3 O5): counts subnormal L/R mix samples. */
-extern uint64_t ri_levi_subnorm_count;
-#endif
 /* Sum all voices into out (render mix, rb909 pattern). */
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
     float sr);

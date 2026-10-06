@@ -8,15 +8,6 @@
 #include <string.h>
 #include "engine/dsp/levi_matrix.h"
 #include "engine/dsp/kernels.h"
-#ifdef RI_LEVI_OPT_FLOATK
-/* P3 O3 (default off): levi render calls use the single-precision kernels.
- * Never combined with RI_LEVI_PROFILE (both rename the same symbols). */
-#ifdef RI_LEVI_PROFILE
-#error "RI_LEVI_OPT_FLOATK and RI_LEVI_PROFILE are exclusive"
-#endif
-#define ri_sin ri_sin_f
-#define ri_pow2 ri_pow2_f
-#endif
 
 /* E0 DAHDSR shape: fast pluck (delays/holds 0, attack 5 ms, decay
  * 300 ms to sustain 0.8, release 150 ms). Panel owns these later. */
@@ -2031,21 +2022,6 @@ static int note_on_core(struct RILeviSet *s, uint8_t note, int hold) {
     if (hold)
         alloc_hold_add(s, note);
     note = perf_note(s, note);
-#ifdef RI_LEVI_OPT_VOICECAP
-    /* P3 O4 (default off): refuse new live notes once N voices sound.
-     * Songs bypass the allocator (direct triggers), so corpus and song
-     * output are unchanged by construction; live storms drop notes. */
-    {
-        uint32_t av = 0u, vv;
-#ifndef RI_LEVI_OPT_VOICECAP_N
-#define RI_LEVI_OPT_VOICECAP_N 6u
-#endif
-        for (vv = 0u; vv < RI_LEVI_NVOICES; vv++)
-            av += s->v[vv].active ? 1u : 0u;
-        if (av >= RI_LEVI_OPT_VOICECAP_N)
-            return 0;
-    }
-#endif
     if (s->p_mode == RI_LEVI_PF_SINGLE)            /* one layer, unity */
         return zone_fire(s, note, 1.0f);
     gu = (float)s->p_bal / 64.0f;
@@ -4490,14 +4466,6 @@ void levi_voice_counters_reset(struct RILeviSet *s) {
     s->vc_fx_samples = 0u;
 }
 
-#ifdef RI_LEVI_OPT_SUBNORM_PROBE
-uint64_t ri_levi_subnorm_count = 0u;
-static int is_subnorm(float x) {
-    uint32_t u;
-    memcpy(&u, &x, 4);
-    return (u & 0x7f800000u) == 0u && (u & 0x007fffffu) != 0u;
-}
-#endif
 void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
     float *out_r, uint32_t n, float sr) {
     uint32_t i, v;
@@ -4642,9 +4610,6 @@ void levi_voice_render_sum_stereo(struct RILeviSet *s, float *out_l,
         }
         out_l[i] = ml;
         out_r[i] = mr;
-#ifdef RI_LEVI_OPT_SUBNORM_PROBE
-        ri_levi_subnorm_count += (uint64_t)(is_subnorm(ml) + is_subnorm(mr));
-#endif
         s->vc_lfo_samples += lfo_hit;
     }
 }

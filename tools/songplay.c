@@ -277,12 +277,5 @@ int main(int argc, char **argv) {
     printf("\n");
     if (do_hash)
         printf("songplay: f32 fnv1a64 %016llx\n", (unsigned long long)fhash);
-#ifdef RI_LEVI_OPT_SUBNORM_PROBE
-    {
-        extern uint64_t ri_levi_subnorm_count;
-        printf("songplay: subnormal mix samples %llu\n",
-            (unsigned long long)ri_levi_subnorm_count);
-    }
-#endif
     return 0;
 }
