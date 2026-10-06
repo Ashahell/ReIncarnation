@@ -22,7 +22,7 @@
 #define SR 48000.0f
 #define SR2 44100.0f
 #define SEC (48000u)
-#define NC 20u
+#define NC 21u
 
 static struct RILeviSet S;
 static float LB[256], RB[256];
@@ -568,14 +568,33 @@ static void c_sr44100(uint32_t blk) {
 }
 
 typedef void (*case_fn)(uint32_t blk);
+/* c20: mono sum between stereo blocks on one held, centred note. The mono
+ * render advances only the L filter states, so the dual-mono lock (P2 C5)
+ * must not survive it: a stale lock would copy L over R on the next
+ * stereo sample. The mono output is hashed too. */
+static void c_mono_stereo(uint32_t blk) {
+    float mb[256];
+    uint32_t i;
+    levi_init_set(&S);
+    levi_set_param(&S, 0u, RI_LEVI_CUTOFF, 3000.0f);
+    levi_trigger(&S, 0u, 57u);
+    seg(SEC / 4u, blk);
+    levi_voice_render_sum(&S, mb, blk, SR);
+    for (i = 0u; i < blk; i++)
+        feed(mb[i]);
+    seg(SEC / 4u, blk);
+    levi_release(&S, 0u);
+    seg(SEC / 4u, blk);
+}
+
 static const case_fn CASES[NC] = { c_algos, c_waves_classic, c_waves_family,
     c_opmodes, c_dfilt, c_afilt, c_morph_held, c_morph_move, c_matrix_families,
     c_matrix_heavy, c_lfo, c_menv, c_pans, c_vintage, c_pitch, c_perf, c_fx,
-    c_worst, c_tails, c_sr44100 };
+    c_worst, c_tails, c_sr44100, c_mono_stereo };
 static const char *CNAMES[NC] = { "algos", "waves-classic", "waves-family",
     "opmodes", "dfilt", "afilt", "morph-held", "morph-move", "matrix-families",
     "matrix-heavy", "lfo", "menv", "pans", "vintage", "pitch", "perf", "fx",
-    "worst", "tails", "sr44100" };
+    "worst", "tails", "sr44100", "mono-stereo" };
 
 static uint64_t run_case(uint32_t c, uint32_t blk) {
     HH = 1469598103934665603ULL;
@@ -606,6 +625,7 @@ static const uint64_t PIN[NC][2] = {
     { 0x034b904ad757af71ULL, 0x034b904ad757af71ULL }, /* worst */
     { 0xa55b87500bb3715dULL, 0xa55b87500bb3715dULL }, /* tails */
     { 0xc401e93e287368f7ULL, 0xc401e93e287368f7ULL }, /* sr44100 */
+    { 0xdd6b36ebb3209668ULL, 0xcd6e3e2564d36bc1ULL }, /* mono-stereo */
 };
 
 int main(void) {

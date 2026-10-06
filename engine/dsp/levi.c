@@ -4288,6 +4288,7 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     uint32_t o;
     if (!v || !v->active || !(sr > 0.0f))
         return 0.0f;
+    v->dual_lock = 0u;   /* mono advances only the L filters (P2 C5 lock) */
     lfo_on = mx || v->dlfo != 0.0f || v->alfo != 0.0f || v->vlfo != 0.0f || v->melfo;
     for (o = 0u; o < RI_LEVI_NLFO; o++)
         lfo5[o] = lfo_on ? ri_levi_lfo_step(&v->lfo[o], sr) : 0.0f;
