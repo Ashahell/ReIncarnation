@@ -449,6 +449,12 @@ struct RILeviVoice {
     uint8_t opbpm[RI_LEVI_NOPS]; /* per-op ENV BPM sync flags (P8a) */
     uint8_t mebpm[RI_LEVI_NMENV]; /* per-menv BPM sync flags (P8a) */
     uint8_t tbpad[3];
+    /* tpt_g memo keys (P2 C1): last (fc, sr) bits + g per filter instance
+     * (df L/R, af L/R, 3 vowel formants x L/R). Zero-init can never hit
+     * (fc >= 20, sr > 0 wherever tpt_g runs), so no invalidation exists. */
+    uint32_t memo_fc[10];
+    uint32_t memo_sr[10];
+    float memo_g[10];
 #ifdef RI_LEVI_PROFILE
     /* Host-only work counters (levi-perf P1): per voice-sample evidence for
      * the H1-H9 cost model. The bench aggregates across voices; shipping

@@ -44,3 +44,44 @@ Bench (us/voice-sample, median of 7):
 
 Routed rows move only via the extra refresh scan in setters (not measured
 per-sample; within noise). Unrouted rows gain 8-15%.
+
+## P2.2 C1 (H2): memoised tpt_g per filter instance
+
+P1 numbers: 8 of 29 sins per voice-sample sit in tpt_g (4 calls: dfilt L/R,
+afilt L/R; vowel adds 3 per channel); memo-hit counter reads 1.00 on every
+unmodulated row.
+
+What it does: per-voice cache of last `(fc, sr)` bits + `g` for 10 slots
+(df L/R, af L/R, 3 vowel formants x L/R). Hits return the stored bits;
+misses call `tpt_g` identically. Zero-init can never hit (fc >= 20, sr > 0
+wherever it runs), so no invalidation exists; the cache is a pure function
+of its key and filter states are untouched.
+
+Exactness: same bits in, same bits out. Output and state bit-identical by
+construction; no FP order change (G is recomputed from the memoised g by
+the unchanged expression).
+
+Proofs:
+- t172 pins unchanged (19/19 shared cases identical on P1-head vs C1
+  objects; the new sr44100 case pins the rate change).
+- New oracle case c19 (held note rendered at 48 kHz then 44.1 kHz without
+  re-trigger) catches the prescribed wrong variant (key on fc only, not
+  sr): FAIL sr44100. A first M-C1 attempt that did not compile re-ran the
+  old binary (vacuous PASS) and was redone properly.
+- Song hashes unchanged (demo/zombie/knife as in P0).
+- Process lesson: the memo fields grow RILeviVoice, so every TU including
+  levi.h must rebuild; a partial rebuild corrupted the song path (song
+  played nothing) until `ri_build_host.sh all`. Bench/t172 pins were
+  unaffected (render path consistent), but all reported numbers below are
+  from fully consistent builds.
+
+Bench (us/voice-sample, median of 7; before = C3-after):
+
+| row | -O2 before | -O2 after | | -O0 before | -O0 after |
+|---|---|---|---|---|---|
+| matrix empty (16op) | 0.5496 | 0.5007 (-8.9%) | | 1.5608 | 1.4223 (-8.9%) |
+| matrix 8 routes | 0.8578 | 0.8316 (-3.0%) | | 2.2974 | 2.1935 (-4.5%) |
+| worst | 0.8696 | 0.8425 (-3.1%) | | 2.3155 | 2.2201 (-4.1%) |
+| worst-nomx | 0.5433 | 0.4939 (-9.1%) | | 1.5744 | 1.4266 (-9.4%) |
+| pan centred (DUO) | 0.2738 | 0.2160 (-21.1%) | | 0.8844 | 0.7346 (-16.9%) |
+| dfilt VOWEL (DUO) | 0.4508 | 0.3246 (-28.0%) | | 1.2770 | 0.9811 (-23.2%) |

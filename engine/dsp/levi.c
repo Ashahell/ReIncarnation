@@ -2335,7 +2335,7 @@ static float sclip(float x) {                /* rational soft clip, |y| <= 1 */
     return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
 }
 
-static float tpt_g(float fc, float sr) {     /* tan(pi fc / sr), clamped */
+static float tpt_g(float fc, float sr) {
 #ifdef RI_LEVI_PROFILE
     ri_prof_tptg++;
 #endif
@@ -2345,6 +2345,25 @@ static float tpt_g(float fc, float sr) {     /* tan(pi fc / sr), clamped */
     if (w > 1.45f)
         w = 1.45f;
     return ri_sin(w) / ri_sin(w + 1.5707963f);
+}
+
+/* Filter-coefficient memo (P2 C1): tpt_g is a pure function of (fc, sr),
+ * so a per-instance last-key cache returns bit-identical g on repeats.
+ * Zero-init is safe: fc = 0 can never match (fc > 0 always, dc >= 20). */
+static float tpt_g_memo(struct RILeviVoice *v, uint32_t slot, float fc,
+    float sr) {
+    uint32_t fb, sb;
+    memcpy(&fb, &fc, 4);
+    memcpy(&sb, &sr, 4);
+    if (v->memo_fc[slot] == fb && v->memo_sr[slot] == sb)
+        return v->memo_g[slot];
+    {
+        float g = tpt_g(fc, sr);
+        v->memo_fc[slot] = fb;
+        v->memo_sr[slot] = sb;
+        v->memo_g[slot] = g;
+        return g;
+    }
 }
 
 static float op1(float *st, float x, float G) {   /* TPT one-pole LP */
@@ -2416,10 +2435,13 @@ static float vowel(struct RILeviVoice *v, float *df, float x, float sr, float po
         a = 3u;
     fr = p - (float)a;
     k = 0.5f - 0.45f * reso;
-    for (j = 0u; j < 3u; j++) {
-        float f = (VOWEL_F[ord[a]][j] + (VOWEL_F[ord[a + 1u]][j] - VOWEL_F[ord[a]][j]) * fr) * size, lp, bp, hp;
-        svf(&df[2u * j], x, tpt_g(f, sr), k, 0, &lp, &bp, &hp);
-        y += GAIN[j] * k * bp * 2.0f;
+    {
+        uint32_t base = (df == v->dfR ? 7u : 4u);
+        for (j = 0u; j < 3u; j++) {
+            float f = (VOWEL_F[ord[a]][j] + (VOWEL_F[ord[a + 1u]][j] - VOWEL_F[ord[a]][j]) * fr) * size, lp, bp, hp;
+            svf(&df[2u * j], x, tpt_g_memo(v, base + j, f, sr), k, 0, &lp, &bp, &hp);
+            y += GAIN[j] * k * bp * 2.0f;
+        }
     }
     return y;
 }
@@ -2443,7 +2465,7 @@ static float dfilt_step(struct RILeviVoice *v, float *df, float x, float sr, flo
         float pos = ri_log2(fc / 40.0f) / 8.5f;
         y = vowel(v, df, x, sr, pos, r);
     } else {
-        g = tpt_g(fc, sr);
+        g = tpt_g_memo(v, df == v->dfR ? 1u : 0u, fc, sr);
         G = g / (1.0f + g);
         k = 2.0f - 1.98f * r;
         switch (t) {
@@ -2499,8 +2521,9 @@ static float dfilt_step(struct RILeviVoice *v, float *df, float x, float sr, flo
 
 /* Analog 4-pole: pre-drive (gain-compensated, small-signal unity) into
  * the ladder; the soft-clipped feedback self-oscillates near 110/128. */
-static float afilt_step(float *af, float x, float sr, float fc, float reso, float drive) {
-    float g = tpt_g(fc, sr), G = g / (1.0f + g), r = reso < 0.0f ? 0.0f : reso > 1.0f ? 1.0f : reso;
+static float afilt_step(struct RILeviVoice *v, uint32_t slot, float *af, float x, float sr, float fc, float reso,
+    float drive) {
+    float g = tpt_g_memo(v, slot, fc, sr), G = g / (1.0f + g), r = reso < 0.0f ? 0.0f : reso > 1.0f ? 1.0f : reso;
     if (drive > 0.0f) {
         float pg = 1.0f + 6.0f * drive;
         x = 3.0f * sclip(x * pg / 3.0f) / pg * (1.0f + 0.5f * drive);
@@ -3746,7 +3769,7 @@ static float voice_chain(struct RILeviVoice *v, float *df, float *af,
     v->prof_chain++;
 #endif
     float out = dfilt_step(v, df, mix, sr, dc, ereso) * edlevel;
-    out = afilt_step(af, out, sr, ac, eareso, edrive);
+    out = afilt_step(v, df == v->dfR ? 3u : 2u, af, out, sr, ac, eareso, edrive);
     return out;
 }
 

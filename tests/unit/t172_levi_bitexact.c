@@ -20,8 +20,9 @@
 #include "engine/dsp/levi_matrix.h"
 
 #define SR 48000.0f
+#define SR2 44100.0f
 #define SEC (48000u)
-#define NC 19u
+#define NC 20u
 
 static struct RILeviSet S;
 static float LB[256], RB[256];
@@ -34,17 +35,21 @@ static void feed(float x) {
     HH *= 1099511628211ULL;
 }
 
-static void seg(uint32_t n, uint32_t blk) {
+static void seg_sr(uint32_t n, uint32_t blk, float sr) {
     uint32_t done = 0u;
     while (done < n) {
         uint32_t w = n - done > blk ? blk : n - done, i;
-        levi_voice_render_sum_stereo(&S, LB, RB, w, SR);
+        levi_voice_render_sum_stereo(&S, LB, RB, w, sr);
         for (i = 0u; i < w; i++) {
             feed(LB[i]);
             feed(RB[i]);
         }
         done += w;
     }
+}
+
+static void seg(uint32_t n, uint32_t blk) {
+    seg_sr(n, blk, SR);
 }
 
 static void trig_hold_rel(uint32_t voice, uint8_t note, uint32_t hold, uint32_t tail, uint32_t blk) {
@@ -526,8 +531,7 @@ static void c_worst(uint32_t blk) {
 }
 
 /* c18: sustained chord + release into a 2 s rest (state must settle exact). */
-static void c_tails(uint32_t blk) {
-    levi_init_set(&S);
+static void c_tails(uint32_t blk) {    levi_init_set(&S);
     levi_set_param(&S, 0u, RI_LEVI_RELEASE, 2.0f);
     levi_set_param(&S, 1u, RI_LEVI_RELEASE, 2.0f);
     levi_trigger(&S, 0u, 48u);
@@ -538,15 +542,29 @@ static void c_tails(uint32_t blk) {
     seg(SEC * 3u / 2u, blk);
 }
 
+/* c19: mixed sample rates on one held note (memo keys span sr). The voice
+ * stays active across the rate change with no re-trigger, so a memo keyed
+ * on fc alone reuses the 48 kHz coefficient at 44.1 kHz and is caught. */
+static void c_sr44100(uint32_t blk) {
+    levi_init_set(&S);
+    levi_set_param(&S, 0u, RI_LEVI_CUTOFF, 8000.0f);
+    levi_set_param(&S, 0u, RI_LEVI_CUTOFF2, 6000.0f);
+    levi_trigger(&S, 0u, 62u);
+    seg_sr(SEC, blk, SR);
+    seg_sr(SEC, blk, SR2);
+    levi_release(&S, 0u);
+    seg_sr(SEC / 2u, blk, SR2);
+}
+
 typedef void (*case_fn)(uint32_t blk);
 static const case_fn CASES[NC] = { c_algos, c_waves_classic, c_waves_family,
     c_opmodes, c_dfilt, c_afilt, c_morph_held, c_morph_move, c_matrix_families,
     c_matrix_heavy, c_lfo, c_menv, c_pans, c_vintage, c_pitch, c_perf, c_fx,
-    c_worst, c_tails };
+    c_worst, c_tails, c_sr44100 };
 static const char *CNAMES[NC] = { "algos", "waves-classic", "waves-family",
     "opmodes", "dfilt", "afilt", "morph-held", "morph-move", "matrix-families",
     "matrix-heavy", "lfo", "menv", "pans", "vintage", "pitch", "perf", "fx",
-    "worst", "tails" };
+    "worst", "tails", "sr44100" };
 
 static uint64_t run_case(uint32_t c, uint32_t blk) {
     HH = 1469598103934665603ULL;
@@ -576,6 +594,7 @@ static const uint64_t PIN[NC][2] = {
     { 0xf9c5eb3ca4175411ULL, 0xf9c5eb3ca4175411ULL }, /* fx */
     { 0x034b904ad757af71ULL, 0x034b904ad757af71ULL }, /* worst */
     { 0xa55b87500bb3715dULL, 0xa55b87500bb3715dULL }, /* tails */
+    { 0xc401e93e287368f7ULL, 0xc401e93e287368f7ULL }, /* sr44100 */
 };
 
 int main(void) {
