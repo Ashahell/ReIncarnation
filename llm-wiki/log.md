@@ -3063,3 +3063,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New; Update (qualifies earlier Dell RIAPP.LOG evidence; closes the menu-hang check with the owner's result)
 - Raw: llm-wiki/raw/articles/2026-10-05-stick-log-lost-lines-fat-readwrite-refused-while-read.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-06] ingest | AROS PRs closed upstream; getrusage() dispatched and reviewed
+- Disposition: New; Update (closes the AROS PR rework items in the advice log; opens the getrusage PR decision)
+- Raw: llm-wiki/raw/articles/2026-10-06-aros-prs-closed-getrusage-dispatch-and-review.md
+- Updated: llm-wiki/index.md (Live app entry list)
