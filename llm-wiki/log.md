@@ -3068,3 +3068,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New; Update (closes the AROS PR rework items in the advice log; opens the getrusage PR decision)
 - Raw: llm-wiki/raw/articles/2026-10-06-aros-prs-closed-getrusage-dispatch-and-review.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-06] ingest | Levi performance: bit-exact oracle, exact cuts, review fix, options enabled
+- Disposition: New; Update (marks the 2026-10-04 bench refutations Outdated)
+- Raw: llm-wiki/raw/articles/2026-10-06-levi-perf-exact-cuts-review-and-options.md
+- Updated: llm-wiki/raw/articles/2026-10-04-host-bench-and-the-overload-guard.md (Status: Outdated block)
+- Updated: llm-wiki/index.md (Live app entry list)

@@ -124,6 +124,14 @@ overwhelmingly per sounding voice and almost nothing is fixed.**
 
 ### Two proposed cuts, refuted by measurement
 
+> **Status: Outdated (2026-10-06).** Both refutations below rest on bench rows
+> that did not measure what they claimed. The operator sweep never changed
+> `live[]` (slots apply only via `morph_apply`), and the morph sweep cannot see
+> the prize because both banks always render. Priced properly, bank B is
+> 19–24 % of the voice render, and the exact-cut list was not empty: five cuts
+> landed, and Dell `lev-voice` fell 28.8 % on Zombie Nation. See
+> [2026-10-06-levi-perf-exact-cuts-review-and-options.md](2026-10-06-levi-perf-exact-cuts-review-and-options.md).
+
 **"Skip silent or unrouted operators" is already shipped.** `voice_pass` opens
 with `if (i >= RI_LEVI_NOPS || !live[i]) { opout[..] = 0; continue; }`, and the
 operator sweep proves it: 8 operators and 1 operator both cost ~20.8 µs. **The
