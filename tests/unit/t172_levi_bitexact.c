@@ -250,6 +250,21 @@ static void c_matrix_families(uint32_t blk) {
         ri_levi_matrix_route(&S.mx, i, srcs[i], mods[i], 0u, 50);
         seg(SEC / 8u, blk);
     }
+    /* UI setter path + ROUTE gate (empty-cache refresh coverage): clear the
+     * program (fast path), program slot 1 NOTE->DFILT via UI fields (the
+     * cache must flip), render, gate it off via ROUTE1 (must flip back). */
+    for (i = 0u; i < 14u; i++)
+        ri_levi_matrix_enable(&S.mx, i, 0u);
+    levi_trigger(&S, 1u, 64u);
+    seg(SEC / 4u, blk);
+    levi_set_mx_ui(&S, 1u, 0u, (uint8_t)ri_levi_ms_to_ui(RI_LEVI_MS_NOTE));
+    levi_set_mx_ui(&S, 1u, 1u, (uint8_t)RI_LEVI_DM_DFILT);
+    levi_set_mx_ui(&S, 1u, 2u, 0u);
+    levi_set_mx_ui(&S, 1u, 3u, 96u);
+    seg(SEC / 4u, blk);
+    levi_set_param_ui(&S, 0u, RI_CTL_LEVI_ROUTE1 & 0xFFu, 0u);
+    seg(SEC / 4u, blk);
+    levi_release(&S, 1u);
     levi_release(&S, 0u);
     seg(SEC / 4u, blk);
 }
@@ -262,7 +277,7 @@ static void c_matrix_heavy(uint32_t blk) {
     ri_levi_matrix_route(&S.mx, 1u, RI_LEVI_MS_LFO0, RI_LEVI_DM_DFILT, 0u, -60);
     ri_levi_matrix_route(&S.mx, 2u, RI_LEVI_MS_ENV0, RI_LEVI_DM_VCA, 0u, 70);
     ri_levi_matrix_route(&S.mx, 3u, RI_LEVI_MS_NOTE, RI_LEVI_DM_AFILT, 0u, 50);
-    ri_levi_matrix_route(&S.mx, 4u, RI_LEVI_MS_VELON, RI_LEVI_DM_ENV1, 0u, 30);
+    ri_levi_matrix_route(&S.mx, 4u, RI_LEVI_MS_VELON, RI_LEVI_DM_ENV1 + 2u, 5u, 30);
     ri_levi_matrix_route(&S.mx, 5u, RI_LEVI_MS_WHEEL, RI_LEVI_DM_VOICE, RI_LEVI_DVO_PAN, 80);
     ri_levi_matrix_route(&S.mx, 6u, RI_LEVI_MS_LFO1, RI_LEVI_DM_LFO1, 1u, 50);
     ri_levi_matrix_route(&S.mx, 7u, RI_LEVI_MS_BEND, RI_LEVI_DM_OSC1, RI_LEVI_DO_PITCH, 100);
@@ -274,12 +289,31 @@ static void c_matrix_heavy(uint32_t blk) {
     levi_set_mr_ui(&S, 1u, 0u, 2u, 32u);
     levi_set_mr_ui(&S, 1u, 0u, 3u, 127u);
     S.mx.mbtn[1] = 1u;
+    S.pvel = 100u;
+    levi_set_param_ui(&S, 0u, RI_CTL_LEVI_VINIT & 0xFFu, 0u);
+    levi_set_param_ui(&S, 1u, RI_CTL_LEVI_VINIT & 0xFFu, 0u);
+    levi_set_menv_ui(&S, 0u, 2u, RI_LEVI_ME_LEVEL, 64u);
+    levi_set_menv_ui(&S, 1u, 2u, RI_LEVI_ME_LEVEL, 64u);
     for (i = 0u; i < 2u; i++) {
         levi_trigger(&S, i, (uint8_t)(60u + i * 4u));
     }
     seg(SEC * 3u / 2u, blk);
     levi_release(&S, 0u);
     levi_release(&S, 1u);
+    seg(SEC / 2u, blk);
+    /* routes removed mid-note: the empty-matrix path must clear every
+     * stale offset/flag exactly (a fast path that forgets melmod or the
+     * *_on clears is caught here). */
+    levi_trigger(&S, 0u, 60u);
+    seg(SEC / 4u, blk);
+    for (i = 0u; i < 8u; i++)
+        ri_levi_matrix_enable(&S.mx, i, 0u);
+    levi_set_mr_ui(&S, 0u, 0u, 2u, 64u);
+    levi_set_mr_ui(&S, 1u, 0u, 2u, 64u);
+    S.mx.mknob[0] = 0u;
+    S.mx.mbtn[1] = 0u;
+    seg(SEC / 2u, blk);
+    levi_release(&S, 0u);
     seg(SEC / 2u, blk);
 }
 
@@ -531,8 +565,8 @@ static const uint64_t PIN[NC][2] = {
     { 0x5b9d81b00b11f339ULL, 0x5b9d81b00b11f339ULL }, /* afilt */
     { 0x9749746e2471cb37ULL, 0x9749746e2471cb37ULL }, /* morph-held */
     { 0x7daa9642007770b7ULL, 0x7daa9642007770b7ULL }, /* morph-move */
-    { 0x992e15ae34e76d9bULL, 0x992e15ae34e76d9bULL }, /* matrix-families */
-    { 0x6cbb6b06ba6d4dcbULL, 0x6cbb6b06ba6d4dcbULL }, /* matrix-heavy */
+    { 0x4f1fb54e613409f7ULL, 0x4f1fb54e613409f7ULL }, /* matrix-families */
+    { 0x77414e2c69c339b3ULL, 0x77414e2c69c339b3ULL }, /* matrix-heavy */
     { 0x4e263c195232d5e3ULL, 0x4e263c195232d5e3ULL }, /* lfo */
     { 0xf5d1cc15607002dfULL, 0xf5d1cc15607002dfULL }, /* menv */
     { 0x905c14d696354f40ULL, 0x905c14d696354f40ULL }, /* pans */

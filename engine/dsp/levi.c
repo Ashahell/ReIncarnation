@@ -514,6 +514,7 @@ int levi_set_mx_ui(struct RILeviSet *s, uint32_t slot, uint32_t field, uint8_t v
     }
     sl->on = sl->pad[0] != 0u && sl->dmod != RI_LEVI_DM_NONE;
     sl->dst = 0xFFu;                            /* module routes leave the v1 table */
+    ri_levi_matrix_refresh_empty(&s->mx);
     return 0;
 }
 
@@ -542,6 +543,7 @@ int levi_set_mr_ui(struct RILeviSet *s, uint32_t macro, uint32_t route, uint32_t
         r->bval = val > 127u ? 127u : val;
         break;
     }
+    ri_levi_matrix_refresh_empty(&s->mx);
     return 0;
 }
 
@@ -2786,6 +2788,7 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
     case (RI_CTL_LEVI_ROUTE6 & 0xFFu): case (RI_CTL_LEVI_ROUTE7 & 0xFFu):
         /* Matrix slot gates (v2 feature 4c): program stays put. */
         s->mx.slot[id - (RI_CTL_LEVI_ROUTE0 & 0xFFu)].on = val != 0u ? 1u : 0u;
+        ri_levi_matrix_refresh_empty(&s->mx);
         return 0;
     case (RI_CTL_LEVI_LFO0RATE & 0xFFu): case (RI_CTL_LEVI_LFO1RATE & 0xFFu):
     case (RI_CTL_LEVI_LFO2RATE & 0xFFu): case (RI_CTL_LEVI_LFO3RATE & 0xFFu):
@@ -3424,6 +3427,60 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     struct RILeviModOut out[RI_LEVI_MODOUT_MAX];
     uint32_t n, i, o, touch_op = 0u, touch_me = 0u, touch_vo = 0u, touch_fx = 0u, touch_rv = 0u, touch_px = 0u,
         touch_ox = 0u, touch_ax = 0u, touch_sx = 0u;
+    if (mx->mx_empty) {
+        /* P2 C3: no slot or macro route can emit, so eval2 yields no rows.
+         * Reproduce the full path's unconditional effects bit for bit:
+         * LFO rate/level/smooth/step resets, stale-route clears, melmod
+         * zeroing and the e* clamps (which move out-of-range bases). */
+        for (o = 0u; o < RI_LEVI_NLFO; o++) {
+            v->lfo[o].rmul = 1.0f;
+            v->lfo[o].lmod = v->lfo[o].smod = v->lfo[o].stmod = 0.0f;
+        }
+        if (v->opm_on) {
+            memset(v->opm, 0, sizeof v->opm);
+            for (o = 0u; o < RI_LEVI_NOPS; o++)
+                v->st[0][o].env.susmod = v->st[1][o].env.susmod = 0.0f;
+        }
+        if (v->mem_on) {
+            memset(v->mem, 0, sizeof v->mem);
+            for (o = 0u; o < RI_LEVI_NMENV; o++) {
+                v->menv[o].susmod = 0.0f;
+                v->menv[o].cmod[0] = v->menv[o].cmod[1] = v->menv[o].cmod[2] = 0;
+            }
+        }
+        if (v->vom_on)
+            memset(v->vom, 0, sizeof v->vom);
+        if (v->dfxm_on)
+            memset(v->dfxm, 0, sizeof v->dfxm);
+        if (v->rfxm_on)
+            memset(v->rfxm, 0, sizeof v->rfxm);
+        if (v->pfxm_on)
+            memset(v->pfxm, 0, sizeof v->pfxm);
+        if (v->ofxm_on)
+            memset(v->ofxm, 0, sizeof v->ofxm);
+        if (v->axm_on)
+            memset(v->axm, 0, sizeof v->axm);
+        if (v->sxm_on)
+            memset(v->sxm, 0, sizeof v->sxm);
+        v->opm_on = v->mem_on = v->vom_on = v->dfxm_on = v->rfxm_on = 0u;
+        v->pfxm_on = v->ofxm_on = v->axm_on = v->sxm_on = 0u;
+        for (o = 0u; o < RI_LEVI_NMENV; o++)
+            v->melmod[o] = 0.0f;
+        *ecut = clampf(*ecut, 40.0f, 18000.0f);
+        *ereso = clampf(*ereso, 0.0f, 1.0f);
+        *eareso = clampf(*eareso, 0.0f, 1.0f);
+        *edrive = clampf(*edrive, 0.0f, 1.0f);
+        *edenv = clampf(*edenv, -1.0f, 1.0f);
+        *eaenv = clampf(*eaenv, -1.0f, 1.0f);
+        *edlfo = clampf(*edlfo, -1.0f, 1.0f);
+        *ealfo = clampf(*ealfo, -1.0f, 1.0f);
+        *evlfo = clampf(*evlfo, -1.0f, 1.0f);
+        *edlevel = clampf(*edlevel, 0.0f, 4.0f);
+        *emorph = clampf(*emorph, 0.0f, 100.0f);
+        *eoplevel = clampf(*eoplevel, 0.0f, 2.0f);
+        *evlevel = clampf(*evlevel, 0.0f, 2.0f);
+        return;
+    }
     for (i = 0u; i < RI_LEVI_MS_N; i++)
         src[i] = 0.0f;
     for (o = 0u; o < RI_LEVI_NOPS; o++)

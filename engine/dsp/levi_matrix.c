@@ -4,6 +4,27 @@
  * feeds openv/note and applies the offsets). */
 #include "engine/dsp/levi_matrix.h"
 
+/* Empty-program cache (P2 C3): eval2 emits no row iff no slot is on and
+ * no macro route can emit. Setters refresh it; render trusts it. */
+void ri_levi_matrix_refresh_empty(struct RILeviMatrix *m) {
+    uint32_t s, i, r;
+    if (!m)
+        return;
+    for (s = 0u; s < RI_LEVI_MX_NSLOTS; s++)
+        if (m->slot[s].on) {
+            m->mx_empty = 0u;
+            return;
+        }
+    for (i = 0u; i < RI_LEVI_NMACRO; i++)
+        for (r = 0u; r < RI_LEVI_MACRO_NR; r++)
+            if (m->mroute[i][r].dmod != RI_LEVI_DM_NONE &&
+                m->mroute[i][r].depth != 0) {
+                m->mx_empty = 0u;
+                return;
+            }
+    m->mx_empty = 1u;
+}
+
 void ri_levi_matrix_init(struct RILeviMatrix *m) {
     uint32_t i;
     if (!m)
@@ -28,6 +49,7 @@ void ri_levi_matrix_init(struct RILeviMatrix *m) {
             m->mroute[i][r].bval = 0u;
         }
     }
+    m->mx_empty = 1u;
 }
 
 /* v1 destination ids onto module + parameter. */
@@ -51,6 +73,7 @@ int ri_levi_matrix_set(struct RILeviMatrix *m, uint32_t slot, uint32_t src,
     m->slot[slot].dpar = V1_DPAR[dst];
     m->slot[slot].depth = (int8_t)depth;
     m->slot[slot].on = 1u;
+    ri_levi_matrix_refresh_empty(m);
     return 0;
 }
 
@@ -58,6 +81,7 @@ int ri_levi_matrix_enable(struct RILeviMatrix *m, uint32_t slot, uint32_t on) {
     if (!m || slot >= RI_LEVI_MX_NSLOTS)
         return 2;
     m->slot[slot].on = on != 0u ? 1u : 0u;
+    ri_levi_matrix_refresh_empty(m);
     return 0;
 }
 
@@ -106,6 +130,7 @@ int ri_levi_matrix_route(struct RILeviMatrix *m, uint32_t slot, uint32_t src, ui
     m->slot[slot].dpar = (uint8_t)dpar;
     m->slot[slot].depth = (int8_t)depth;
     m->slot[slot].on = dmod != RI_LEVI_DM_NONE ? 1u : 0u;
+    ri_levi_matrix_refresh_empty(m);
     m->slot[slot].dst = 0xFFu;                        /* no v1 twin unless it matches one */
     for (d = 0u; d < RI_LEVI_MD_N; d++)
         if (V1_DMOD[d] == dmod && V1_DPAR[d] == dpar)

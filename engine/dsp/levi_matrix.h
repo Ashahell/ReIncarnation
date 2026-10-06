@@ -187,6 +187,11 @@ struct RILeviMatrix {
     /* Macros (P5b, pp. 120-123): knob 0..127, button on = button value. */
     uint8_t mknob[RI_LEVI_NMACRO], mbtn[RI_LEVI_NMACRO];
     struct RILeviMacroRoute mroute[RI_LEVI_NMACRO][RI_LEVI_MACRO_NR];
+    /* Empty-program cache (levi-perf P2 C3): 1 when no slot is on and no
+     * macro route can emit (dmod NONE or depth 0), so eval2 returns 0 rows.
+     * Refreshed by every program setter below; render code trusts it. */
+    uint8_t mx_empty;
+    uint8_t mx_pad[3];
 };
 
 /* One evaluated contribution: destination and signed amount (depth x
@@ -204,7 +209,9 @@ int ri_levi_matrix_set(struct RILeviMatrix *m, uint32_t slot, uint32_t src,
     uint32_t dst, int depth);
 /* Gate a slot without losing its program. 0 ok, 2 bad. */
 int ri_levi_matrix_enable(struct RILeviMatrix *m, uint32_t slot, uint32_t on);
-/* Sum normalized offsets per destination: openv[8] are the 0..1 op
+/* Recompute the mx_empty cache after a program change (P2 C3). Every
+ * setter above calls it; render code reads mx_empty. */
+void ri_levi_matrix_refresh_empty(struct RILeviMatrix *m);/* Sum normalized offsets per destination: openv[8] are the 0..1 op
  * contours, lfo5[5] the bipolar LFO values, note is MIDI (keytrack
  * law). dst_out[RI_LEVI_MD_N] zeroed first. 0 ok, 2 bad. */
 int ri_levi_matrix_eval(const struct RILeviMatrix *m, const float *openv,
