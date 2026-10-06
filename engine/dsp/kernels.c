@@ -12,6 +12,27 @@
 #include "engine/dsp/kernels.h"
 #include <stdint.h>
 
+#ifdef RI_LEVI_PROFILE
+/* Host-only counters (see kernels.h). The rename keeps one definition that
+ * the counting macros call; normal builds compile the plain names. */
+uint64_t ri_prof_sin = 0u, ri_prof_pow2 = 0u, ri_prof_log2 = 0u,
+    ri_prof_tanh = 0u, ri_prof_exp = 0u;
+void ri_prof_reset(void) {
+    ri_prof_sin = ri_prof_pow2 = ri_prof_log2 = ri_prof_tanh =
+        ri_prof_exp = 0u;
+}
+#undef ri_exp
+#undef ri_tanh
+#undef ri_sin
+#undef ri_log2
+#undef ri_pow2
+#define ri_exp ri_exp_impl
+#define ri_tanh ri_tanh_impl
+#define ri_sin ri_sin_impl
+#define ri_log2 ri_log2_impl
+#define ri_pow2 ri_pow2_impl
+#endif
+
 /* +Inf without libm (audit 0b allowlists kernel-internal construction). */
 static float ri_inff(void) {
     union { uint32_t u; float f; } c;

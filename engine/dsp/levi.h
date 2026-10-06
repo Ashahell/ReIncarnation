@@ -449,6 +449,32 @@ struct RILeviVoice {
     uint8_t opbpm[RI_LEVI_NOPS]; /* per-op ENV BPM sync flags (P8a) */
     uint8_t mebpm[RI_LEVI_NMENV]; /* per-menv BPM sync flags (P8a) */
     uint8_t tbpad[3];
+#ifdef RI_LEVI_PROFILE
+    /* Host-only work counters (levi-perf P1): per voice-sample evidence for
+     * the H1-H9 cost model. The bench aggregates across voices; shipping
+     * builds (macro undefined) carry none of this (see G5 evidence). */
+    uint64_t prof_ops;      /* operator bodies rendered (both banks) */
+    uint64_t prof_passA;    /* voice_pass calls, bank 0 */
+    uint64_t prof_passB;    /* voice_pass calls, bank 1 */
+    uint64_t prof_tptg;     /* tpt_g calls attributed to this voice */
+    uint64_t prof_tptghit;  /* samples where dc+ac bits repeated (memo hit) */
+    uint64_t prof_modapply; /* levi_mod_apply calls */
+    uint64_t prof_mrows;    /* matrix output rows evaluated */
+    uint64_t prof_lfo;      /* per-voice LFO steps */
+    uint64_t prof_envop;    /* env_tick_b calls, operator envelopes */
+    uint64_t prof_envmod;   /* env_tick_b calls, mod envelopes */
+    uint64_t prof_chain;    /* voice_chain (filter) calls */
+    uint64_t prof_dual;     /* samples with mixL==mixR and L/R states equal */
+    uint64_t prof_pan;      /* pan_gains calls */
+    uint64_t prof_panhit;   /* pan inputs unchanged from the previous call */
+    uint32_t prof_dc;       /* previous sample's dc bits */
+    uint32_t prof_ac;       /* previous sample's ac bits */
+    uint32_t prof_panpp;    /* previous pan_gains pp bits */
+    uint32_t prof_panmode;  /* previous pan_gains mode */
+    uint8_t prof_have;      /* dc/ac history valid */
+    uint8_t prof_panhave;   /* pan history valid */
+    uint8_t prof_pad[2];
+#endif
 };
 
 /* Osc Env Level & Bias (manual p. 54): device-wide offsets over every
@@ -940,6 +966,14 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
  * levi_voice_render_sum_stereo, so a block's figures are that block's alone and
  * not a running total since load. NULL-safe. */
 void levi_voice_counters_reset(struct RILeviSet *s);
+#ifdef RI_LEVI_PROFILE
+/* Zero the prof_* work counters on every voice (host bench only). NULL-safe.
+ * levi_init_set already memsets the set, so fresh sets start at zero. */
+void levi_profile_reset(struct RILeviSet *s);
+/* tpt_g call total for the process (bench normalises per voice-sample). */
+extern uint64_t ri_prof_tptg;
+void ri_prof_tptg_reset(void);
+#endif
 /* Sum all voices into out (render mix, rb909 pattern). */
 void levi_voice_render_sum(struct RILeviSet *s, float *out, uint32_t n,
     float sr);
