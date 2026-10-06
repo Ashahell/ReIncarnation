@@ -245,9 +245,9 @@ const char *ri_levi_wave_name(uint32_t w) {
 float ri_levi_wave(uint32_t w, float ph, float dt) {
     const float TAU = 6.2831853f;
     uint32_t f = w >> 4, k = w & 15u;
-    float s = ri_sin(ph * TAU);
+    float s;
     if (w == 0u)
-        return s;
+        return ri_sin(ph * TAU);
     switch (f) {
     case 0u:
         switch (k) {
@@ -255,13 +255,20 @@ float ri_levi_wave(uint32_t w, float ph, float dt) {
         case 2u: return 0.5f * (w_tri(ph) + w_saw(ph, dt));
         case 3u: return w_saw(ph, dt);
         case 4u: return w_pulse(ph, dt, 0.5f);
-        case 5u: return ph < 0.5f ? 2.0f * s - 1.0f : -1.0f;
-        case 6u: return 2.0f * (s < 0.0f ? -s : s) - 1.0f;
-        case 7u: return ph < 0.25f || (ph >= 0.5f && ph < 0.75f) ? (s < 0.0f ? -s : s) * 2.0f - 1.0f : -1.0f;
-        case 8u: return s * s * s;
-        case 9u: return 0.6f * s + 0.4f * ri_sin(2.0f * ph * TAU);
-        case 10u: return 0.5f * s + 0.3f * ri_sin(2.0f * ph * TAU) + 0.2f * ri_sin(3.0f * ph * TAU);
-        case 11u: return ri_tanh(3.0f * s) / ri_tanh(3.0f);
+        case 5u: return ph < 0.5f ? 2.0f * ri_sin(ph * TAU) - 1.0f : -1.0f;
+        case 6u: s = ri_sin(ph * TAU); return 2.0f * (s < 0.0f ? -s : s) - 1.0f;
+        case 7u:
+            if (ph < 0.25f || (ph >= 0.5f && ph < 0.75f)) {
+                float q = ri_sin(ph * TAU);
+                return (q < 0.0f ? -q : q) * 2.0f - 1.0f;
+            }
+            return -1.0f;
+        case 8u: s = ri_sin(ph * TAU); return s * s * s;
+        case 9u: s = ri_sin(ph * TAU);
+            return 0.6f * s + 0.4f * ri_sin(2.0f * ph * TAU);
+        case 10u: s = ri_sin(ph * TAU);
+            return 0.5f * s + 0.3f * ri_sin(2.0f * ph * TAU) + 0.2f * ri_sin(3.0f * ph * TAU);
+        case 11u: s = ri_sin(ph * TAU); return ri_tanh(3.0f * s) / ri_tanh(3.0f);
         case 12u: return ri_tanh(2.0f * w_saw(ph, dt)) / ri_tanh(2.0f);
         case 13u: return w_pulse(ph, dt, 0.25f);
         case 14u: return w_pulse(ph, dt, 0.125f);
@@ -274,10 +281,13 @@ float ri_levi_wave(uint32_t w, float ph, float dt) {
         return w_pulse(ph, dt, 0.04f + 0.03f * (float)k);
     case 2u: { /* HARM: fundamental + one partial (2..9), two weights */
         float h = (float)(2u + (k >> 1)), a = (k & 1u) ? 0.7f : 0.35f;
+        s = ri_sin(ph * TAU);
         return (s + a * ri_sin(h * ph * TAU)) / (1.0f + a);
     }
     case 3u: { /* FOLD: triangle-folded sine, gain 1.2..4.2 */
-        float y = frac1(0.25f * s * (1.2f + 0.2f * (float)k) + 0.25f);
+        float y;
+        s = ri_sin(ph * TAU);
+        y = frac1(0.25f * s * (1.2f + 0.2f * (float)k) + 0.25f);
         return 4.0f * (y < 0.5f ? 0.5f - y : y - 0.5f) - 1.0f;
     }
     case 4u: { /* WARP: phase knee 0.05..0.95 (phase-distorted sine) */
@@ -290,9 +300,12 @@ float ri_levi_wave(uint32_t w, float ph, float dt) {
         return 2.0f * frac1(ph * r) - 1.0f;
     }
     case 6u: /* RING: sine x sine(k+2) */
+        s = ri_sin(ph * TAU);
         return s * ri_sin((float)(k + 2u) * ph * TAU);
     default: { /* CHEBY: T_n(sin) mixed with sine, n = 2..17 */
-        float t0 = 1.0f, t1 = s, tn = s;
+        float t0 = 1.0f, t1, tn;
+        s = ri_sin(ph * TAU);
+        t1 = tn = s;
         uint32_t n;
         for (n = 2u; n <= k + 2u; n++) {
             tn = 2.0f * s * t1 - t0;

@@ -85,3 +85,27 @@ Bench (us/voice-sample, median of 7; before = C3-after):
 | worst-nomx | 0.5433 | 0.4939 (-9.1%) | | 1.5744 | 1.4266 (-9.4%) |
 | pan centred (DUO) | 0.2738 | 0.2160 (-21.1%) | | 0.8844 | 0.7346 (-16.9%) |
 | dfilt VOWEL (DUO) | 0.4508 | 0.3246 (-28.0%) | | 1.2770 | 0.9811 (-23.2%) |
+
+## P2.3 C2 (H4): sine computed only on the branches that use it
+
+P1 lead: `ri_levi_wave` computed `s = ri_sin(ph*TAU)` before the switch, so
+saw/pulse/triangle/SYNC/PULSE/WARP pays for a sine it never uses.
+
+What it does: the sine moved into the NOSC/SINE/HARM/FOLD/RING/CHEBY arms
+that read it (same expression on the same input). 12 wave ids now skip it.
+
+Exactness: same expression, same input, pure function. t172 wave cases
+(all 16 classic + 7 families) hold bit-identical.
+
+Proofs: t172 pins unchanged. Wrong variant (RING sine at 2x phase) FAILs
+waves-family. Song hashes unchanged (demo/zombie/knife as in P0).
+
+Bench (new non-sine rows; sine rows show branch-layout noise only):
+
+| row | -O2 before | -O2 after | | -O0 before | -O0 after |
+|---|---|---|---|---|---|
+| waves saw x8 (ALLPAR) | 0.3047 | 0.2382 (-21.8%) | | 1.0676 | 0.7669 (-28.2%) |
+| waves pulse x8 (ALLPAR) | 0.3108 | 0.2482 (-20.1%) | | 1.0794 | 0.8193 (-24.1%) |
+| worst (sine) | 0.8465 | 0.8309 (-1.8%) | | 2.2059 | 2.2304 (+1.1%) |
+| matrix empty (sine) | 0.5028 | 0.4994 (-0.7%) | | 1.4228 | 1.4110 (-0.8%) |
+| pan centred (sine) | 0.2184 | 0.2159 (-1.1%) | | 0.7368 | 0.7384 (+0.2%) |

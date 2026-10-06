@@ -337,6 +337,27 @@ int main(void) {
     /* --- 5. filters, pans, LFO, menv, worst case --- */
     printf("\n=== 5. filters / pans / LFO / menv / worst ===\n");
     {
+        /* Non-sine waves (C2 prize rows): all 8 ALLPAR carriers on SAW,
+         * then on narrow PULSE. */
+        uint32_t o;
+        levi_init_set(&S);
+        levi_set_algo(&S, 0u, RI_LEVI_ALGO_ALLPAR);
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            levi_set_op_ui(&S, 0u, o, RI_LEVI_OP_WAVE, 3u);
+        levi_trigger(&S, 0u, 60u);
+        settle(8u);
+        (void)prof_dump(4800u, 1u);
+        trow("waves saw x8", 1u);
+        levi_init_set(&S);
+        levi_set_algo(&S, 0u, RI_LEVI_ALGO_ALLPAR);
+        for (o = 0u; o < RI_LEVI_NOPS; o++)
+            levi_set_op_ui(&S, 0u, o, RI_LEVI_OP_WAVE, 14u);
+        levi_trigger(&S, 0u, 60u);
+        settle(8u);
+        (void)prof_dump(4800u, 1u);
+        trow("waves pulse x8", 1u);
+    }
+    {
         uint32_t t;
         for (t = 0u; t < RI_LEVI_NDF; t++) {
             char lb[48];
