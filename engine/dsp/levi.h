@@ -455,6 +455,10 @@ struct RILeviVoice {
     uint32_t memo_fc[10];
     uint32_t memo_sr[10];
     float memo_g[10];
+    /* Dual-mono lockstep (P2 C5): 1 when the L/R filter states are equal at
+     * the end of the last sample. Pure cache over history; zero-init safe. */
+    uint8_t dual_lock;
+    uint8_t dual_pad[3];
 #ifdef RI_LEVI_PROFILE
     /* Host-only work counters (levi-perf P1): per voice-sample evidence for
      * the H1-H9 cost model. The bench aggregates across voices; shipping

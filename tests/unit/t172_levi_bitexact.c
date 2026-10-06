@@ -383,6 +383,17 @@ static void c_pans(uint32_t blk) {
     levi_release(&S, 0u);
     levi_release(&S, 1u);
     seg(SEC / 4u, blk);
+    /* centre-then-spread on one held note (dual-mono lock coverage): the
+     * lock engages while centred; spreading must resume the R chain from
+     * live states, not stale ones. */
+    levi_init_set(&S);
+    levi_set_param_ui(&S, 0u, RI_CTL_LEVI_VPAN & 0xFFu, 64u);
+    levi_trigger(&S, 0u, 60u);
+    seg(SEC / 2u, blk);
+    levi_set_param_ui(&S, 0u, RI_CTL_LEVI_VPAN & 0xFFu, 96u);
+    seg(SEC / 2u, blk);
+    levi_release(&S, 0u);
+    seg(SEC / 4u, blk);
 }
 
 /* c13: vintage decimation + exact bypass. */
@@ -587,7 +598,7 @@ static const uint64_t PIN[NC][2] = {
     { 0x77414e2c69c339b3ULL, 0x77414e2c69c339b3ULL }, /* matrix-heavy */
     { 0x4e263c195232d5e3ULL, 0x4e263c195232d5e3ULL }, /* lfo */
     { 0xf5d1cc15607002dfULL, 0xf5d1cc15607002dfULL }, /* menv */
-    { 0x905c14d696354f40ULL, 0x905c14d696354f40ULL }, /* pans */
+    { 0xb1d307ef7bb661cfULL, 0xb1d307ef7bb661cfULL }, /* pans */
     { 0x03ee4487947b6ab7ULL, 0x03ee4487947b6ab7ULL }, /* vintage */
     { 0x87c18d650c9d8d11ULL, 0x87c18d650c9d8d11ULL }, /* pitch */
     { 0x0077fcf3691f9513ULL, 0x0077fcf3691f9513ULL }, /* perf */

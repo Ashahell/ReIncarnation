@@ -3,7 +3,13 @@
 Base for all before/after: P1 head `dd31d19` objects in `/tmp/ri/before*`
 vs the cut. Bench binary identical. Medians of 7, min/max in the logs.
 
-## P2.1 C3 (H5): empty-matrix fast path in levi_mod_apply
+## P2.1 C3 (H5): empty-matrix fast path in levi_mod_apply [numbers corrected]
+
+Correction (2026-10-06, second session): the first C3/C1/C2 before/after
+tables compared binaries with mismatched bench-TU headers (the bench TU
+was compiled against newer headers than its objects), which corrupted the
+before runs. All tables below are re-measured matched pairs (objects and
+bench TU from the same tree). The mechanism and proofs are unchanged.
 
 P1 numbers: empty `eval2` alone = 12% of the typical patch; modapply 1.00 +
 mrows 0.00 on every unrouted voice-sample.
@@ -29,21 +35,20 @@ Proofs:
 - Song hashes unchanged: demo 238113a7962c112f, zombie 26eb9a9911173c20,
   knife fe26f4ac652d2561.
 
-Bench (us/voice-sample, median of 7):
+Bench (us/voice-sample, median of 7, matched P1 vs P2.1 pairs):
 
-| row | -O2 before | -O2 after | | -O0 before | -O0 after |
-|---|---|---|---|---|---|
-| matrix empty (16op) | 0.6011 | 0.5496 (-8.6%) | | 1.7005 | 1.5608 (-8.2%) |
-| matrix 1 route | 0.6424 | 0.6322 (-1.6%) | | - | - |
-| matrix 8 routes | 0.8779 | 0.8578 (-2.3%) | | 2.2993 | 2.2974 (-0.1%) |
-| worst | 0.8775 | 0.8696 (-0.9%) | | 2.3390 | 2.3155 (-1.0%) |
-| worst-nomx | 0.5911 | 0.5433 (-8.1%) | | 1.7056 | 1.5744 (-7.7%) |
-| worst-silB | 0.4279 | 0.3781 (-11.6%) | | - | - |
-| pan centred (DUO) | 0.3213 | 0.2738 (-14.8%) | | 1.0285 | 0.8844 (-14.0%) |
-| dfilt VOWEL (DUO) | 0.4987 | 0.4508 (-9.6%) | | 1.4212 | 1.2770 (-10.1%) |
+| row | -O2 before | -O2 after |
+|---|---|---|
+| matrix empty (16op) | 0.5918 | 0.5495 (-7.1%) |
+| matrix 8 routes | 0.8782 | 0.8603 (-2.0%) |
+| worst | 0.8807 | 0.8745 (-0.7%) |
+| worst-nomx | 0.5931 | 0.5418 (-8.6%) |
+| pan centred (DUO) | 0.3215 | 0.2717 (-15.5%) |
+| dfilt VOWEL (DUO) | 0.4991 | 0.4499 (-9.8%) |
 
-Routed rows move only via the extra refresh scan in setters (not measured
-per-sample; within noise). Unrouted rows gain 8-15%.
+Routed rows move only via the extra refresh scan in setters (within
+noise). Unrouted rows gain 7-16%. (-O0 pairs below in the cumulative
+table.)
 
 ## P2.2 C1 (H2): memoised tpt_g per filter instance
 
@@ -75,16 +80,17 @@ Proofs:
   unaffected (render path consistent), but all reported numbers below are
   from fully consistent builds.
 
-Bench (us/voice-sample, median of 7; before = C3-after):
+Bench (us/voice-sample, median of 7, matched P2.1 vs P2.2 pairs; before =
+C3-after):
 
-| row | -O2 before | -O2 after | | -O0 before | -O0 after |
-|---|---|---|---|---|---|
-| matrix empty (16op) | 0.5496 | 0.5007 (-8.9%) | | 1.5608 | 1.4223 (-8.9%) |
-| matrix 8 routes | 0.8578 | 0.8316 (-3.0%) | | 2.2974 | 2.1935 (-4.5%) |
-| worst | 0.8696 | 0.8425 (-3.1%) | | 2.3155 | 2.2201 (-4.1%) |
-| worst-nomx | 0.5433 | 0.4939 (-9.1%) | | 1.5744 | 1.4266 (-9.4%) |
-| pan centred (DUO) | 0.2738 | 0.2160 (-21.1%) | | 0.8844 | 0.7346 (-16.9%) |
-| dfilt VOWEL (DUO) | 0.4508 | 0.3246 (-28.0%) | | 1.2770 | 0.9811 (-23.2%) |
+| row | -O2 before | -O2 after |
+|---|---|---|
+| matrix empty (16op) | 0.5495 | 0.5021 (-8.6%) |
+| matrix 8 routes | 0.8603 | 0.8371 (-2.7%) |
+| worst | 0.8745 | 0.8518 (-2.6%) |
+| worst-nomx | 0.5418 | 0.4956 (-8.5%) |
+| pan centred (DUO) | 0.2717 | 0.2179 (-19.8%) |
+| dfilt VOWEL (DUO) | 0.4499 | 0.3264 (-27.5%) |
 
 ## P2.3 C2 (H4): sine computed only on the branches that use it
 
@@ -100,12 +106,68 @@ Exactness: same expression, same input, pure function. t172 wave cases
 Proofs: t172 pins unchanged. Wrong variant (RING sine at 2x phase) FAILs
 waves-family. Song hashes unchanged (demo/zombie/knife as in P0).
 
-Bench (new non-sine rows; sine rows show branch-layout noise only):
+Bench (new non-sine rows; sine rows show branch-layout noise only;
+matched P2.2 vs P2.3 pairs):
+
+| row | -O2 before | -O2 after |
+|---|---|---|
+| waves saw x8 (ALLPAR) | 0.2979 | 0.2292 (-23.1%) |
+| waves pulse x8 (ALLPAR) | 0.3103 | 0.2426 (-21.8%) |
+| worst (sine) | 0.8518 | 0.8544 (+0.3%) |
+| matrix empty (sine) | 0.5021 | 0.4986 (-0.7%) |
+| pan centred (sine) | 0.2179 | 0.2161 (-0.8%) |
+
+## P2.4 C5 (H6): dual-mono filter collapse
+
+P1 numbers: stereo runs two full chains always; `dual` counter reads 1.000
+on every centred row, 0.000 spread.
+
+What it does: when `mixL == mixR` bitwise and the L/R filter states are
+bitwise equal (a `dual_lock` flag carries the verdict across samples; the
+inputs are checked every sample and the flag only skips the state compare),
+one `voice_chain` runs and its output and end states copy to R. Spread
+voices (`vspread != 0`, hence `panoff != 0` on every voice) can never match
+and skip the check entirely on the old path.
+
+Exactness: equal inputs + equal states through the same deterministic chain
+give equal outputs and equal end states; the copy reproduces them. Vintage
+runs per-channel afterwards, untouched. Correctness never depends on the
+flag (inputs re-checked per sample).
+
+Proofs: t172 pins unchanged. New corpus segment (centre-then-spread on one
+held note, no re-trigger) catches the prescribed wrong variant (output
+copied, states not): FAIL pans. Song hashes unchanged.
+
+Bench, back-to-back medians of 7 (before = P2.3 matched objects):
 
 | row | -O2 before | -O2 after | | -O0 before | -O0 after |
 |---|---|---|---|---|---|
-| waves saw x8 (ALLPAR) | 0.3047 | 0.2382 (-21.8%) | | 1.0676 | 0.7669 (-28.2%) |
-| waves pulse x8 (ALLPAR) | 0.3108 | 0.2482 (-20.1%) | | 1.0794 | 0.8193 (-24.1%) |
-| worst (sine) | 0.8465 | 0.8309 (-1.8%) | | 2.2059 | 2.2304 (+1.1%) |
-| matrix empty (sine) | 0.5028 | 0.4994 (-0.7%) | | 1.4228 | 1.4110 (-0.8%) |
-| pan centred (sine) | 0.2184 | 0.2159 (-1.1%) | | 0.7368 | 0.7384 (+0.2%) |
+| matrix empty (16op) | 0.4976 | 0.4849 (-2.6%) | | 1.4017 | 1.3114 (-6.4%) |
+| matrix 8 routes | 0.8307 | 0.8017 (-3.5%) | | 2.1817 | 2.0853 (-4.4%) |
+| worst | 0.8310 | 0.8138 (-2.1%) | | 2.2105 | 2.1092 (-4.6%) |
+| worst-nomx | 0.4905 | 0.4765 (-2.9%) | | 1.4041 | 1.3145 (-6.4%) |
+| worst-silB | 0.3223 | 0.3075 (-4.6%) | | 0.9469 | 0.8564 (-9.6%) |
+| pan centred (DUO) | 0.2178 | 0.2034 (-6.6%) | | 0.7369 | 0.6404 (-13.1%) |
+| dfilt VOWEL (DUO) | 0.3212 | 0.2593 (-19.3%) | | 0.9743 | 0.7751 (-20.4%) |
+| dfilt HP_MOD (DUO) | 0.2935 | 0.2411 (-17.8%) | | - | - |
+| panmode spread 0/1/2 | +0.4/+0.3/+0.0% (tax gone) | | - | - |
+
+Note: without the spread gate the first C5 cut taxed spread patches
++3.3-3.7% (non-overlapping min/max); the gate returns them to baseline.
+Method note: an earlier before/after compared binaries with mismatched
+bench-TU headers (stale-object trap, second occurrence); all C5 numbers
+above are matched pairs. The C3/C1/C2 tables below were re-measured the
+same way; the superseded mismatched figures are struck through, not
+deleted.
+
+## Cumulative P1 -> P2.3 (matched pairs, median of 7)
+
+| row | -O2 P1 | -O2 P2.3 | | -O0 P1 | -O0 P2.3 |
+|---|---|---|---|---|---|
+| matrix empty (16op) | 0.5918 | 0.4986 (-15.7%) | | 1.6821 | 1.4057 (-16.4%) |
+| matrix 8 routes | 0.8782 | 0.8413 (-4.2%) | | 2.2820 | 2.1892 (-4.1%) |
+| worst | 0.8807 | 0.8544 (-3.0%) | | 2.3153 | 2.2204 (-4.1%) |
+| worst-nomx | 0.5931 | 0.4912 (-17.2%) | | 1.6861 | 1.4061 (-16.6%) |
+| pan centred (DUO) | 0.3215 | 0.2161 (-32.8%) | | 1.0114 | 0.7373 (-27.1%) |
+| dfilt VOWEL (DUO) | 0.4991 | 0.3217 (-35.5%) | | 1.4031 | 0.9763 (-30.4%) |
+| waves saw x8 | 0.4157 | 0.2292 (-44.9%) | | 1.3459 | 0.7554 (-43.9%) |

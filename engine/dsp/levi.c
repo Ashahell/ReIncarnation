@@ -3971,8 +3971,44 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
                 v->prof_dual++;
         }
 #endif
-        outL = voice_chain(v, v->df, v->af, mixL, sr, dc, ac, ereso, eareso, edrive, edlevel);
-        outR = voice_chain(v, v->dfR, v->afR, mixR, sr, dc, ac, ereso, eareso, edrive, edlevel);
+        /* P2 C5: dual-mono collapse. Spread voices (panoff != 0 for every
+         * voice) can never be dual-mono, so they skip the check entirely
+         * and take the old path. Otherwise mixL == mixR bitwise is checked
+         * every sample; the lock (states equal at last sample end) lets a
+         * locked voice skip the state compare. */
+        if (v->vspread != 0.0f) {
+            outL = voice_chain(v, v->df, v->af, mixL, sr, dc, ac, ereso,
+                eareso, edrive, edlevel);
+            outR = voice_chain(v, v->dfR, v->afR, mixR, sr, dc, ac, ereso,
+                eareso, edrive, edlevel);
+            v->dual_lock = 0u;
+        } else {
+            uint32_t la, ra;
+            uint8_t same_st = 0u;
+            memcpy(&la, &mixL, 4);
+            memcpy(&ra, &mixR, 4);
+            if (la == ra) {
+                if (v->dual_lock)
+                    same_st = 1u;
+                else if (!memcmp(v->df, v->dfR, sizeof v->df) &&
+                    !memcmp(v->af, v->afR, sizeof v->af))
+                    same_st = 1u;
+            }
+            if (same_st) {
+                outL = voice_chain(v, v->df, v->af, mixL, sr, dc, ac, ereso,
+                    eareso, edrive, edlevel);
+                outR = outL;
+                memcpy(v->dfR, v->df, sizeof v->df);
+                memcpy(v->afR, v->af, sizeof v->af);
+                v->dual_lock = 1u;
+            } else {
+                outL = voice_chain(v, v->df, v->af, mixL, sr, dc, ac, ereso,
+                    eareso, edrive, edlevel);
+                outR = voice_chain(v, v->dfR, v->afR, mixR, sr, dc, ac, ereso,
+                    eareso, edrive, edlevel);
+                v->dual_lock = 0u;
+            }
+        }
         v->dmorph = dmsave;
         amp = v->vcalvl * (v->vinit + (1.0f - v->vinit) * levi_menv_value(v, 2u));
         if (v->vvel != 0.0f || v->vpat != 0.0f) {  /* VCA > velocity / polyat */
