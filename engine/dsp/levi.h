@@ -464,20 +464,25 @@ struct RILeviVoice {
      * in bank_load, the single writer of live[]. Zero-init safe. */
     uint8_t liveB_empty;
     uint8_t liveB_pad[3];
-    /* Bank-skip resume flag (P3 O2, default off): 1 = bank B was skipped
+    /* Bank-skip resume flag (owner 2026-10-06, always on): 1 = bank B was skipped
      * (bank A live), 2 = bank A was skipped. Zero-init safe. */
     uint8_t bank_skipped;
     uint8_t bank_pad[3];
-#ifdef RI_LEVI_OPT_CTRLRATE
-    /* Control-rate latch (P3 O1, default off): e* values, dc/ac/vpitch
-     * segment ends and the control clock. Layout differs from shipping;
-     * bench variants only. */
+/* Control rate (owner 2026-10-06, always on): e* values, dc/ac/vpitch
+     * segment ends and the control clock at N = 8 samples. Legato retune
+     * keeps interpolating (no envelope restart, pitch slides); every other
+     * note start recomputes fresh targets (filt_clear resets, see levi.c). */
+#define RI_LEVI_CTRL_N 8u
     float ctl_e[15];
     float ctl_dc0, ctl_dc1, ctl_ac0, ctl_ac1, ctl_vp0, ctl_vp1;
+    float ctl_g0[3], ctl_g1[3];
     uint32_t ctl_k;
     uint8_t ctl_init;
     uint8_t ctl_pad[3];
-#endif
+    /* Static-morph gate (owner 2026-10-06, always on): skip a bank only
+     * when morph sits exactly at the endpoint for >= 1 engine block. */
+    uint32_t morph_hold;
+    uint8_t bank_pad2[3];
 #ifdef RI_LEVI_PROFILE
     /* Host-only work counters (levi-perf P1): per voice-sample evidence for
      * the H1-H9 cost model. The bench aggregates across voices; shipping
@@ -505,6 +510,8 @@ struct RILeviVoice {
     uint8_t prof_pad[2];
 #endif
 };
+/* Compile-time power-of-two check (host is -std=c99, no _Static_assert). */
+typedef char ri_levi_ctrl_n_pow2[(RI_LEVI_CTRL_N & (RI_LEVI_CTRL_N - 1u)) == 0u ? 1 : -1];
 
 /* Osc Env Level & Bias (manual p. 54): device-wide offsets over every
  * oscillator envelope. 64 = no bias. Keys 0x0E27..0x0E2A. */

@@ -5,24 +5,40 @@
 #include "engine/dsp/levi_matrix.h"
 
 /* Empty-program cache (P2 C3): eval2 emits no row iff no slot is on and
- * no macro route can emit. Setters refresh it; render trusts it. */
+ * no macro route can emit. Setters refresh it; render trusts it. The
+ * ALGO-route cache (owner 2026-10-06) rides the same refresh: 1 when any
+ * live slot or macro route targets RI_LEVI_DM_ALGO, so the O2 static-morph
+ * gate trusts it. */
 void ri_levi_matrix_refresh_empty(struct RILeviMatrix *m) {
     uint32_t s, i, r;
     if (!m)
         return;
+    m->mx_has_algo = 0u;
     for (s = 0u; s < RI_LEVI_MX_NSLOTS; s++)
         if (m->slot[s].on) {
             m->mx_empty = 0u;
-            return;
+            goto scan_algo;
         }
     for (i = 0u; i < RI_LEVI_NMACRO; i++)
         for (r = 0u; r < RI_LEVI_MACRO_NR; r++)
             if (m->mroute[i][r].dmod != RI_LEVI_DM_NONE &&
                 m->mroute[i][r].depth != 0) {
                 m->mx_empty = 0u;
-                return;
+                goto scan_algo;
             }
     m->mx_empty = 1u;
+scan_algo:
+    for (s = 0u; s < RI_LEVI_MX_NSLOTS; s++)
+        if (m->slot[s].on && m->slot[s].dmod == RI_LEVI_DM_ALGO && m->slot[s].depth != 0) {
+            m->mx_has_algo = 1u;
+            return;
+        }
+    for (i = 0u; i < RI_LEVI_NMACRO; i++)
+        for (r = 0u; r < RI_LEVI_MACRO_NR; r++)
+            if (m->mroute[i][r].dmod == RI_LEVI_DM_ALGO && m->mroute[i][r].depth != 0) {
+                m->mx_has_algo = 1u;
+                return;
+            }
 }
 
 void ri_levi_matrix_init(struct RILeviMatrix *m) {
@@ -50,6 +66,7 @@ void ri_levi_matrix_init(struct RILeviMatrix *m) {
         }
     }
     m->mx_empty = 1u;
+    m->mx_has_algo = 0u;
 }
 
 /* v1 destination ids onto module + parameter. */

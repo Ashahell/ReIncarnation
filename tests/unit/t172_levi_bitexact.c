@@ -5,9 +5,15 @@
  * of 256 at 48000 Hz for >= 2 s (release tails included). The hash is FNV-1a
  * 64 over the uint32 bit pattern of every L and R sample (memcpy, no UB).
  *
- * Pins generated on HEAD ebc94ec before any engine change (see evidence
- * docs/evidence/levi-perf/2026-10-06-p0-oracle.md). PASS by construction.
- * Any single-bit change to Levi's output or state sequencing FAILs.
+ * Pins: regression pins of the shipping engine (owner 2026-10-06: O1
+ * control rate N=8 + O2 static-morph skip always on). Static cases
+ * (algos waves-classic waves-family opmodes dfilt afilt morph-held menv
+ * pans vintage perf fx tails sr44100 mono-stereo) still equal the ebc94ec
+ * pins (evidence docs/evidence/levi-perf/2026-10-06-p0-oracle.md); the 6
+ * moving cases were re-pinned on the Q1 HEAD (evidence
+ * docs/evidence/levi-perf/2026-10-06-q-enable.md section Q2). 64 == 256
+ * every case. Any single-bit change to Levi's output or state sequencing
+ * FAILs.
  *
  * Pin regeneration (owner-supervised only): compile with -DRI_T172_GEN
  * and run the binary; it prints the pin table.
@@ -612,17 +618,17 @@ static const uint64_t PIN[NC][2] = {
     { 0x16d74a0fd96af697ULL, 0x16d74a0fd96af697ULL }, /* dfilt */
     { 0x5b9d81b00b11f339ULL, 0x5b9d81b00b11f339ULL }, /* afilt */
     { 0x9749746e2471cb37ULL, 0x9749746e2471cb37ULL }, /* morph-held */
-    { 0x7daa9642007770b7ULL, 0x7daa9642007770b7ULL }, /* morph-move */
-    { 0x4f1fb54e613409f7ULL, 0x4f1fb54e613409f7ULL }, /* matrix-families */
-    { 0x77414e2c69c339b3ULL, 0x77414e2c69c339b3ULL }, /* matrix-heavy */
-    { 0x4e263c195232d5e3ULL, 0x4e263c195232d5e3ULL }, /* lfo */
+    { 0x43d664ef82756b93ULL, 0x43d664ef82756b93ULL }, /* morph-move */
+    { 0x0ae8c726af1b4e8fULL, 0x0ae8c726af1b4e8fULL }, /* matrix-families */
+    { 0x2a94b63736dc98b3ULL, 0x2a94b63736dc98b3ULL }, /* matrix-heavy */
+    { 0xaa30e01c3843dc03ULL, 0xaa30e01c3843dc03ULL }, /* lfo */
     { 0xf5d1cc15607002dfULL, 0xf5d1cc15607002dfULL }, /* menv */
     { 0xb1d307ef7bb661cfULL, 0xb1d307ef7bb661cfULL }, /* pans */
     { 0x03ee4487947b6ab7ULL, 0x03ee4487947b6ab7ULL }, /* vintage */
-    { 0x87c18d650c9d8d11ULL, 0x87c18d650c9d8d11ULL }, /* pitch */
+    { 0x3df68ce184101353ULL, 0x3df68ce184101353ULL }, /* pitch */
     { 0x0077fcf3691f9513ULL, 0x0077fcf3691f9513ULL }, /* perf */
     { 0xf9c5eb3ca4175411ULL, 0xf9c5eb3ca4175411ULL }, /* fx */
-    { 0x034b904ad757af71ULL, 0x034b904ad757af71ULL }, /* worst */
+    { 0x3d34325a483a7e45ULL, 0x3d34325a483a7e45ULL }, /* worst */
     { 0xa55b87500bb3715dULL, 0xa55b87500bb3715dULL }, /* tails */
     { 0xc401e93e287368f7ULL, 0xc401e93e287368f7ULL }, /* sr44100 */
     { 0xdd6b36ebb3209668ULL, 0xcd6e3e2564d36bc1ULL }, /* mono-stereo */

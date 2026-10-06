@@ -191,7 +191,10 @@ struct RILeviMatrix {
      * macro route can emit (dmod NONE or depth 0), so eval2 returns 0 rows.
      * Refreshed by every program setter below; render code trusts it. */
     uint8_t mx_empty;
-    uint8_t mx_pad[3];
+    /* ALGO-route cache (owner 2026-10-06): 1 when any live slot or macro
+     * route targets RI_LEVI_DM_ALGO. Same setters refresh it; O2 trusts it. */
+    uint8_t mx_has_algo;
+    uint8_t mx_pad[2];
 };
 
 /* One evaluated contribution: destination and signed amount (depth x

@@ -2582,6 +2582,14 @@ static void filt_clear(struct RILeviVoice *v) {
         v->df[i] = v->dfR[i] = 0.0f;
     for (i = 0u; i < 5u; i++)
         v->af[i] = v->afR[i] = 0.0f;
+    /* Control-rate + bank-skip reset (owner 2026-10-06): the first sample
+     * of a note recomputes fresh targets, so a retrigger never smears
+     * pitch/filter from the previous note. Legato retune (alloc_retune)
+     * deliberately skips this: no envelope restart, pitch keeps sliding. */
+    v->ctl_init = 0u;
+    v->ctl_k = 0u;
+    v->morph_hold = 0u;
+    v->bank_skipped = 0u;
 }
 
 static void kt_update(struct RILeviVoice *v) {
@@ -3733,22 +3741,9 @@ static void levi_mod_apply(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     *evlevel = clampf(*evlevel, 0.0f, 2.0f);
 }
 
-/* Per-sample voice pitch (P6b laws + P6c spreads): detune spread,
- * analog drift, vibrato and glide as one semitone offset, then a
- * single pow2. Exact 1 when every feature rests (afwob exact 0),
- * so the legacy path stays bit-identical. */
-#ifdef RI_LEVI_OPT_CTRLRATE
-/* P3 O1 (default off): control-rate update every N samples. LFOs, matrix,
- * mod fold and pitch step run at control points; dc/ac/vpitch linearly
- * interpolate between points; envelopes and banks stay per-sample. */
-#ifndef RI_LEVI_OPT_CTRLRATE_N
-#define RI_LEVI_OPT_CTRLRATE_N 16u
-#endif
-#endif
-#ifdef RI_LEVI_OPT_CTRLRATE
-/* Per-sample time integrals of voice_pitch_step, mirrored exactly (same
- * increments, same gates over held inputs; live bend lags by < N samples).
- * The evaluation runs at control points; the trajectory stays exact. */
+/* Voice pitch (P6b laws + P6c spreads, owner 2026-10-06 always on):
+ * control-rate update every RI_LEVI_CTRL_N samples. Time integrals run
+ * per sample (trajectory exact); evaluation at control points. */
 static void voice_pitch_advance(struct RILeviVoice *v, float sr) {
     float va = v->vvibamt + (v->vom_on ? 4.0f * v->vom[RI_LEVI_DVO_VIBAMT] : 0.0f);
     float vr = v->vvibrate * (v->vom_on ? ri_pow2(2.0f * v->vom[RI_LEVI_DVO_VIBRATE]) : 1.0f);
@@ -3794,8 +3789,17 @@ static float voice_pitch_eval(struct RILeviVoice *v, float sr, float *afwob) {
         if (v->vom_on && v->vom[RI_LEVI_DVO_GLIDETGL] != 0.0f)
             gm = v->vom[RI_LEVI_DVO_GLIDETGL] > 0.0f ? 1u : 0u;
         if (gm && v->glt < 1.0f) {
+            float gt = v->vgltime * (v->vom_on ? ri_pow2(4.0f * v->vom[RI_LEVI_DVO_GLTIME]) : 1.0f);
             float gc = v->vglcurve + (v->vom_on ? v->vom[RI_LEVI_DVO_GLCURVE] : 0.0f);
-            float e = v->glt, ee;
+            float e, ee;
+            /* Instant glide (time 0) lands at once, exactly like the
+             * per-sample path (which updates glt before evaluating): e
+             * reads 1.0 here so the offset is exactly 0. Finite-time
+             * glide keeps its control-rate sampling (re-pinned in t172). */
+            if (gt <= 0.0f)
+                e = 1.0f;
+            else
+                e = v->glt;
             ee = e + (gc - 1.0f) * e * (1.0f - e);
             ee = ee < 0.0f ? 0.0f : ee > 1.0f ? 1.0f : ee;
             if (gm == 2u) {
@@ -3818,74 +3822,7 @@ static float voice_pitch_eval(struct RILeviVoice *v, float sr, float *afwob) {
         vpitch = ri_pow2(vsemi / 12.0f);
     return vpitch;
 }
-#else
-static float voice_pitch_step(struct RILeviVoice *v, float sr, float *afwob) {
-    float vpitch;
-    /* Voice pitch (fidelity P6b, manual pp. 87-96): detune spread,
-     * analog drift, vibrato and glide as one semitone offset, then
-     * a single pow2. Exact 0 (hence vpitch exactly 1) when every
-     * feature rests, so the legacy path stays bit-identical.
-     * Bend folds in with the P9 MIDI data (its source reads 0). */
-    float det = v->vdetune + (v->vom_on ? v->vom[RI_LEVI_DVO_DETUNE] : 0.0f);
-    float feel = v->vafeel + (v->vom_on ? v->vom[RI_LEVI_DVO_AFEEL] : 0.0f);
-    float va = v->vvibamt + (v->vom_on ? 4.0f * v->vom[RI_LEVI_DVO_VIBAMT] : 0.0f);
-    float vr = v->vvibrate * (v->vom_on ? ri_pow2(2.0f * v->vom[RI_LEVI_DVO_VIBRATE]) : 1.0f);
-    float hc = ((float)RI_LEVI_NVOICES - 1.0f) * 0.5f;
-    float vsemi = 0.0f;
-    vpitch = 1.0f;
-    *afwob = 0.0f;
-    det = det < -1.0f ? -1.0f : det > 1.0f ? 1.0f : det;
-    feel = feel < 0.0f ? 0.0f : feel > 1.0f ? 1.0f : feel;
-    if (det != 0.0f)
-        vsemi += det * (((float)v->vidx - hc) / hc) * 50.0f;
-    if (va != 0.0f) {
-        float dg = v->vvibdly <= 0.0f ? 1.0f
-            : v->vibtime >= v->vvibdly ? 1.0f : v->vibtime / v->vvibdly;
-        vsemi += va * ri_sin(6.2831853f * v->vibphase) * dg;
-        v->vibtime += 1.0f / sr;
-    }
-    if (v->bsrc != 0.0f)
-        vsemi += v->bsrc * v->vbendrng;   /* pitch bend (P9a) */
-    v->vibphase += vr / sr;
-    v->vibphase -= (float)(int)v->vibphase;
-    {
-        /* Glide (P6b) with the glide button (P9d) as a momentary
-         * override: the voice's own mode wins, then the button (which
-         * forces glide, never glissando), then the DM_VOICE toggle. */
-        uint32_t gm = v->vglide ? v->vglide : (v->gforce ? 1u : 0u);
-        if (v->vom_on && v->vom[RI_LEVI_DVO_GLIDETGL] != 0.0f)
-            gm = v->vom[RI_LEVI_DVO_GLIDETGL] > 0.0f ? 1u : 0u;
-        if (gm && v->glt < 1.0f) {
-            float gt = v->vgltime * (v->vom_on ? ri_pow2(4.0f * v->vom[RI_LEVI_DVO_GLTIME]) : 1.0f);
-            float gc = v->vglcurve + (v->vom_on ? v->vom[RI_LEVI_DVO_GLCURVE] : 0.0f);
-            float e = gt <= 0.0f ? 1.0f : v->glt + 1.0f / (gt * sr);
-            float ee;
-            e = e > 1.0f ? 1.0f : e;
-            v->glt = e;
-            ee = e + (gc - 1.0f) * e * (1.0f - e);
-            ee = ee < 0.0f ? 0.0f : ee > 1.0f ? 1.0f : ee;
-            if (gm == 2u) { /* glissando: step the slide in semitones */
-                float ns = v->glsemi < 0.0f ? -v->glsemi : v->glsemi;
-                uint32_t nst = (uint32_t)(ns + 0.5f);
-                if (nst < 1u)
-                    nst = 1u;
-                ee = ((float)(int)(ee * (float)nst + 0.5f)) / (float)nst;
-            }
-            vsemi += v->glsemi * (1.0f - ee);
-        }
-    }
-    if (feel != 0.0f) {
-        float w1 = ri_sin(6.2831853f * (v->wtime / 7.3f + (float)v->vidx * 0.13f));
-        float w2 = ri_sin(6.2831853f * (v->wtime / 11.7f + (float)v->vidx * 0.29f));
-        vsemi += feel * (3.6f * w1 + 2.4f * w2);
-        *afwob = feel * (0.3f * w1 + 0.2f * w2);
-    }
-    v->wtime += 1.0f / sr;
-    if (vsemi != 0.0f)
-        vpitch = ri_pow2(vsemi / 12.0f);
-    return vpitch;
-}
-#endif
+
 
 /* One filtered channel: digital (+ D.Filt level) + analog (P6c stereo
  * shares it per channel; the dmorph save/restore stays with the
@@ -3937,10 +3874,7 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
     float sr, float *l, float *r) {
     float mixAL, mixAR, mixBL, mixBR, mixL, mixR, outL, outR;
     float ecut, ereso, edrive, emorph, eoplevel, evlevel, amp, lfo5[RI_LEVI_NLFO];
-    float vpitch, afwob;
-#ifdef RI_LEVI_OPT_CTRLRATE
-    (void)afwob;
-#endif
+    float vpitch;
     float edm, edenv, eaenv, edlfo, ealfo, evlfo, edlevel, eacut = 1.0f, eareso;
     float vpan, vwidth, panoff, hc2;
     uint32_t pmode;
@@ -4014,11 +3948,13 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
     evlfo = v->vlfo;
     edlevel = v->dlevel;
     eareso = v->reso2;
-#ifdef RI_LEVI_OPT_CTRLRATE
     {
-        /* P3 O1: matrix fold, pitch evaluate and dc/ac targets run at
-         * control points; e-values and vpitch interpolate between them. */
-        uint32_t ph = v->ctl_k % RI_LEVI_OPT_CTRLRATE_N;
+        /* Control rate (owner 2026-10-06, N = RI_LEVI_CTRL_N): matrix fold,
+         * pitch evaluate and dc/ac/gain targets run at control points.
+         * dc/ac/vpitch/evlevel/eoplevel/edlevel interpolate linearly;
+         * ereso/edrive/edenv/eaenv/edlfo/ealfo/evlfo/emorph hold.
+         * emorph stays held so the O2 endpoint test sees exact values. */
+        uint32_t ph = v->ctl_k % RI_LEVI_CTRL_N;
         if (!v->ctl_init || ph == 0u) {
             float tdc, tac, tvp, tafw;
             if (mx)
@@ -4058,11 +3994,17 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
                 v->ctl_dc0 = v->ctl_dc1 = tdc;
                 v->ctl_ac0 = v->ctl_ac1 = tac;
                 v->ctl_vp0 = v->ctl_vp1 = tvp;
+                v->ctl_g0[0] = v->ctl_g1[0] = evlevel;
+                v->ctl_g0[1] = v->ctl_g1[1] = eoplevel;
+                v->ctl_g0[2] = v->ctl_g1[2] = edlevel;
                 v->ctl_init = 1u;
             } else {
                 v->ctl_dc0 = v->ctl_dc1; v->ctl_dc1 = tdc;
                 v->ctl_ac0 = v->ctl_ac1; v->ctl_ac1 = tac;
                 v->ctl_vp0 = v->ctl_vp1; v->ctl_vp1 = tvp;
+                v->ctl_g0[0] = v->ctl_g1[0]; v->ctl_g1[0] = evlevel;
+                v->ctl_g0[1] = v->ctl_g1[1]; v->ctl_g1[1] = eoplevel;
+                v->ctl_g0[2] = v->ctl_g1[2]; v->ctl_g1[2] = edlevel;
             }
         }
         ecut = v->ctl_e[0]; ereso = v->ctl_e[1]; edm = v->ctl_e[2];
@@ -4071,23 +4013,15 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
         eaenv = v->ctl_e[9]; ealfo = v->ctl_e[10]; evlevel = v->ctl_e[11];
         evlfo = v->ctl_e[12]; eoplevel = v->ctl_e[13]; emorph = v->ctl_e[14];
         {
-            float t = (float)(v->ctl_k % RI_LEVI_OPT_CTRLRATE_N) /
-                (float)RI_LEVI_OPT_CTRLRATE_N;
+            float t = (float)(v->ctl_k % RI_LEVI_CTRL_N) /
+                (float)RI_LEVI_CTRL_N;
             vpitch = v->ctl_vp0 + (v->ctl_vp1 - v->ctl_vp0) * t;
+            evlevel = v->ctl_g0[0] + (v->ctl_g1[0] - v->ctl_g0[0]) * t;
+            eoplevel = v->ctl_g0[1] + (v->ctl_g1[1] - v->ctl_g0[1]) * t;
+            edlevel = v->ctl_g0[2] + (v->ctl_g1[2] - v->ctl_g0[2]) * t;
         }
-        afwob = 0.0f;
     }
     voice_pitch_advance(v, sr);
-#else
-    if (mx) {
-#ifdef RI_LEVI_PROFILE
-        v->prof_modapply++;
-#endif
-        levi_mod_apply(v, mx, lfo5, &ecut, &ereso, &edm, &edenv, &edlfo, &edlevel, &eacut, &eareso, &edrive, &eaenv,
-            &ealfo, &evlevel, &evlfo, &eoplevel, &emorph);
-    }
-    vpitch = voice_pitch_step(v, sr, &afwob);
-#endif
     vpan = v->vpan + (v->vom_on ? v->vom[RI_LEVI_DVO_PAN] : 0.0f);
     vwidth = v->vwidth + (v->vom_on ? v->vom[RI_LEVI_DVO_PANWIDTH] : 0.0f);
     hc2 = ((float)RI_LEVI_NVOICES - 1.0f) * 0.5f;
@@ -4103,39 +4037,42 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
         mixAL = voice_pass(v, 0u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixAR, &any_on);
         v->bank_skipped = 0u;
     }
-#ifdef RI_LEVI_OPT_BANKSKIP
-    /* P3 O2 (default off): skip the discarded bank at the morph endpoints.
-     * Resync rule: a resumed bank restarts from the live bank's states
-     * (same join as levi_set_morph), so the join is defined; the click
-     * is measured, not hidden. */
-    else if (emorph <= 0.0f) {
-        mixAL = voice_pass(v, 0u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixAR, &any_on);
-        mixBL = 0.0f;
-        mixBR = 0.0f;
-        v->bank_skipped = 1u;
-    } else if (emorph >= 100.0f) {
-        mixAL = 0.0f;
-        mixAR = 0.0f;
-        mixBL = voice_pass(v, 1u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixBR, &any_on);
-        v->bank_skipped = 2u;
-    } else {
-        uint32_t bko;
-        if (v->bank_skipped == 1u)
-            for (bko = 0u; bko < RI_LEVI_NOPS; bko++)
-                v->st[1][bko] = v->st[0][bko];
-        else if (v->bank_skipped == 2u)
-            for (bko = 0u; bko < RI_LEVI_NOPS; bko++)
-                v->st[0][bko] = v->st[1][bko];
-        v->bank_skipped = 0u;
-        mixAL = voice_pass(v, 0u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixAR, &any_on);
-        mixBL = voice_pass(v, 1u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixBR, &any_on);
-    }
-#else
     else {
-        mixAL = voice_pass(v, 0u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixAR, &any_on);
-        mixBL = voice_pass(v, 1u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixBR, &any_on);
+        /* Static-morph gate (owner 2026-10-06): skip only with no ALGO
+         * route and morph exactly at the endpoint for >= 64 samples.
+         * LFO-driven morph never skips (bit-exact); knob moves resync
+         * once per leave. Composes with liveB_empty above (empty skips,
+         * no resync). */
+        int has_algo = mx ? mx->mx_has_algo : 0;
+        if (!has_algo && (emorph == 0.0f || emorph == 100.0f)) {
+            if (v->morph_hold < 64u)
+                v->morph_hold++;
+        } else {
+            v->morph_hold = 0u;
+        }
+        if (!has_algo && v->morph_hold >= 64u && emorph == 0.0f) {
+            mixAL = voice_pass(v, 0u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixAR, &any_on);
+            mixBL = 0.0f;
+            mixBR = 0.0f;
+            v->bank_skipped = 1u;
+        } else if (!has_algo && v->morph_hold >= 64u && emorph == 100.0f) {
+            mixAL = 0.0f;
+            mixAR = 0.0f;
+            mixBL = voice_pass(v, 1u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixBR, &any_on);
+            v->bank_skipped = 2u;
+        } else {
+            uint32_t bko;
+            if (v->bank_skipped == 1u)
+                for (bko = 0u; bko < RI_LEVI_NOPS; bko++)
+                    v->st[1][bko] = v->st[0][bko];
+            else if (v->bank_skipped == 2u)
+                for (bko = 0u; bko < RI_LEVI_NOPS; bko++)
+                    v->st[0][bko] = v->st[1][bko];
+            v->bank_skipped = 0u;
+            mixAL = voice_pass(v, 0u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixAR, &any_on);
+            mixBL = voice_pass(v, 1u, sr, vpitch, vpan, vwidth, panoff, pmode, &mixBR, &any_on);
+        }
     }
-#endif
     if (emorph <= 0.0f) {
         mixL = mixAL;
         mixR = mixAR;
@@ -4157,36 +4094,11 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
         return;
     }
     {
-#ifdef RI_LEVI_OPT_CTRLRATE
-        float t = (float)(v->ctl_k % RI_LEVI_OPT_CTRLRATE_N) /
-            (float)RI_LEVI_OPT_CTRLRATE_N;
+        float t = (float)(v->ctl_k % RI_LEVI_CTRL_N) /
+            (float)RI_LEVI_CTRL_N;
         float dc = v->ctl_dc0 + (v->ctl_dc1 - v->ctl_dc0) * t;
         float ac = v->ctl_ac0 + (v->ctl_ac1 - v->ctl_ac0) * t;
-#else
-        float dc = ecut * v->dktm, ac = v->cutoff2 * v->aktm * eacut;
-#endif
         uint8_t dmsave = v->dmorph;
-#ifndef RI_LEVI_OPT_CTRLRATE
-        if (afwob != 0.0f) {
-            dc *= ri_pow2(afwob);
-            ac *= ri_pow2(afwob);
-        }
-        if (lfo_on && edlfo != 0.0f)
-            dc *= ri_pow2(4.0f * edlfo * lfo5[0]);     /* +/-4 octaves full scale */
-        if (lfo_on && ealfo != 0.0f)
-            ac *= ri_pow2(4.0f * ealfo * lfo5[1]);
-        if (edenv != 0.0f)                             /* ENV 1 > digital, +/-8 octaves */
-            dc *= ri_pow2(8.0f * edenv * levi_menv_value(v, 0u));
-        if (eaenv != 0.0f)                             /* ENV 2 > analog */
-            ac *= ri_pow2(8.0f * eaenv * levi_menv_value(v, 1u));
-        {                                               /* P9b amounts */
-            float velb = 2.0f * v->vel01 - 1.0f;
-            if (v->dvel != 0.0f || v->dpat != 0.0f)
-                dc *= ri_pow2(8.0f * (v->dvel * velb + v->dpat * v->pat01));
-            if (v->avel != 0.0f || v->apat != 0.0f)
-                ac *= ri_pow2(8.0f * (v->avel * velb + v->apat * v->pat01));
-        }
-#endif
         dc = dc < 20.0f ? 20.0f : dc > 20000.0f ? 20000.0f : dc;
         ac = ac < 20.0f ? 20.0f : ac > 20000.0f ? 20000.0f : ac;
 #ifdef RI_LEVI_PROFILE
@@ -4265,9 +4177,7 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
     vintage_pair(v, &outL, &outR);
     *l = outL;
     *r = outR;
-#ifdef RI_LEVI_OPT_CTRLRATE
     v->ctl_k++;
-#endif
 }
 
 float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
@@ -4277,10 +4187,7 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
      * plain path stays bit-identical (x*1.0 and x+0.0 are exact; morph
      * keeps its integer branches through emorph). */
     float ecut, ereso, edrive, emorph, eoplevel, evlevel, amp, lfo5[RI_LEVI_NLFO];
-    float vpitch, afwob; /* voice pitch mult + analog filter wobble (P6b) */
-#ifdef RI_LEVI_OPT_CTRLRATE
-    (void)afwob;
-#endif
+    float vpitch;
     float edm, edenv, eaenv, edlfo, ealfo, evlfo, edlevel, eacut = 1.0f, eareso;
     /* LFOs step once per sample when the matrix or a pre-wired amount
      * (LFO 1 > digital, 2 > analog, 3 > VCA; P4) listens. */
@@ -4348,16 +4255,8 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     evlfo = v->vlfo;
     edlevel = v->dlevel;
     eareso = v->reso2;
-    if (mx) {
-#ifdef RI_LEVI_PROFILE
-        v->prof_modapply++;
-#endif
-        levi_mod_apply(v, mx, lfo5, &ecut, &ereso, &edm, &edenv, &edlfo, &edlevel, &eacut, &eareso, &edrive, &eaenv,
-            &ealfo, &evlevel, &evlfo, &eoplevel, &emorph);
-    }
-#ifdef RI_LEVI_OPT_CTRLRATE
     {
-        uint32_t ph = v->ctl_k % RI_LEVI_OPT_CTRLRATE_N;
+        uint32_t ph = v->ctl_k % RI_LEVI_CTRL_N;
         if (!v->ctl_init || ph == 0u) {
             float tdc, tac, tvp, tafw;
             if (mx)
@@ -4397,11 +4296,17 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
                 v->ctl_dc0 = v->ctl_dc1 = tdc;
                 v->ctl_ac0 = v->ctl_ac1 = tac;
                 v->ctl_vp0 = v->ctl_vp1 = tvp;
+                v->ctl_g0[0] = v->ctl_g1[0] = evlevel;
+                v->ctl_g0[1] = v->ctl_g1[1] = eoplevel;
+                v->ctl_g0[2] = v->ctl_g1[2] = edlevel;
                 v->ctl_init = 1u;
             } else {
                 v->ctl_dc0 = v->ctl_dc1; v->ctl_dc1 = tdc;
                 v->ctl_ac0 = v->ctl_ac1; v->ctl_ac1 = tac;
                 v->ctl_vp0 = v->ctl_vp1; v->ctl_vp1 = tvp;
+                v->ctl_g0[0] = v->ctl_g1[0]; v->ctl_g1[0] = evlevel;
+                v->ctl_g0[1] = v->ctl_g1[1]; v->ctl_g1[1] = eoplevel;
+                v->ctl_g0[2] = v->ctl_g1[2]; v->ctl_g1[2] = edlevel;
             }
         }
         ecut = v->ctl_e[0]; ereso = v->ctl_e[1]; edm = v->ctl_e[2];
@@ -4410,48 +4315,49 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
         eaenv = v->ctl_e[9]; ealfo = v->ctl_e[10]; evlevel = v->ctl_e[11];
         evlfo = v->ctl_e[12]; eoplevel = v->ctl_e[13]; emorph = v->ctl_e[14];
         {
-            float t = (float)(v->ctl_k % RI_LEVI_OPT_CTRLRATE_N) /
-                (float)RI_LEVI_OPT_CTRLRATE_N;
+            float t = (float)(v->ctl_k % RI_LEVI_CTRL_N) /
+                (float)RI_LEVI_CTRL_N;
             vpitch = v->ctl_vp0 + (v->ctl_vp1 - v->ctl_vp0) * t;
+            evlevel = v->ctl_g0[0] + (v->ctl_g1[0] - v->ctl_g0[0]) * t;
+            eoplevel = v->ctl_g0[1] + (v->ctl_g1[1] - v->ctl_g0[1]) * t;
+            edlevel = v->ctl_g0[2] + (v->ctl_g1[2] - v->ctl_g0[2]) * t;
         }
-        afwob = 0.0f;
     }
     voice_pitch_advance(v, sr);
-#else
-    vpitch = voice_pitch_step(v, sr, &afwob);
-#endif
     if (v->liveB_empty) {
         mixB = 0.0f;
         mixA = voice_pass(v, 0u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
         v->bank_skipped = 0u;
     }
-#ifdef RI_LEVI_OPT_BANKSKIP
-    else if (emorph <= 0.0f) {
-        mixA = voice_pass(v, 0u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
-        mixB = 0.0f;
-        v->bank_skipped = 1u;
-    } else if (emorph >= 100.0f) {
-        mixA = 0.0f;
-        mixB = voice_pass(v, 1u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
-        v->bank_skipped = 2u;
-    } else {
-        uint32_t bko;
-        if (v->bank_skipped == 1u)
-            for (bko = 0u; bko < RI_LEVI_NOPS; bko++)
-                v->st[1][bko] = v->st[0][bko];
-        else if (v->bank_skipped == 2u)
-            for (bko = 0u; bko < RI_LEVI_NOPS; bko++)
-                v->st[0][bko] = v->st[1][bko];
-        v->bank_skipped = 0u;
-        mixA = voice_pass(v, 0u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
-        mixB = voice_pass(v, 1u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
-    }
-#else
     else {
-        mixA = voice_pass(v, 0u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
-        mixB = voice_pass(v, 1u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
+        int has_algo = mx ? mx->mx_has_algo : 0;
+        if (!has_algo && (emorph == 0.0f || emorph == 100.0f)) {
+            if (v->morph_hold < 64u)
+                v->morph_hold++;
+        } else {
+            v->morph_hold = 0u;
+        }
+        if (!has_algo && v->morph_hold >= 64u && emorph == 0.0f) {
+            mixA = voice_pass(v, 0u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
+            mixB = 0.0f;
+            v->bank_skipped = 1u;
+        } else if (!has_algo && v->morph_hold >= 64u && emorph == 100.0f) {
+            mixA = 0.0f;
+            mixB = voice_pass(v, 1u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
+            v->bank_skipped = 2u;
+        } else {
+            uint32_t bko;
+            if (v->bank_skipped == 1u)
+                for (bko = 0u; bko < RI_LEVI_NOPS; bko++)
+                    v->st[1][bko] = v->st[0][bko];
+            else if (v->bank_skipped == 2u)
+                for (bko = 0u; bko < RI_LEVI_NOPS; bko++)
+                    v->st[0][bko] = v->st[1][bko];
+            v->bank_skipped = 0u;
+            mixA = voice_pass(v, 0u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
+            mixB = voice_pass(v, 1u, sr, vpitch, 0.0f, 0.0f, 0.0f, 0u, 0, &any_on);
+        }
     }
-#endif
     /* Exact endpoints (bit-identity with no-morph / pure-B voices);
      * the slide blends between them. */
     if (emorph <= 0.0f)
@@ -4471,36 +4377,11 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
     {
         /* Signal flow (p. 67): OSCs level > digital filter > D.Filt
          * level > analog pre-drive + filter > VCA level > patch level. */
-#ifdef RI_LEVI_OPT_CTRLRATE
-        float t = (float)(v->ctl_k % RI_LEVI_OPT_CTRLRATE_N) /
-            (float)RI_LEVI_OPT_CTRLRATE_N;
+        float t = (float)(v->ctl_k % RI_LEVI_CTRL_N) /
+            (float)RI_LEVI_CTRL_N;
         float dc = v->ctl_dc0 + (v->ctl_dc1 - v->ctl_dc0) * t;
         float ac = v->ctl_ac0 + (v->ctl_ac1 - v->ctl_ac0) * t;
-#else
-        float dc = ecut * v->dktm, ac = v->cutoff2 * v->aktm * eacut;
-        if (afwob != 0.0f) { /* analog-feel cutoff wander (P6b) */
-            dc *= ri_pow2(afwob);
-            ac *= ri_pow2(afwob);
-        }
-#endif
         uint8_t dmsave = v->dmorph;
-#ifndef RI_LEVI_OPT_CTRLRATE
-        if (lfo_on && edlfo != 0.0f)
-            dc *= ri_pow2(4.0f * edlfo * lfo5[0]);     /* +/-4 octaves full scale */
-        if (lfo_on && ealfo != 0.0f)
-            ac *= ri_pow2(4.0f * ealfo * lfo5[1]);
-        if (edenv != 0.0f)                             /* ENV 1 > digital, +/-8 octaves */
-            dc *= ri_pow2(8.0f * edenv * levi_menv_value(v, 0u));
-        if (eaenv != 0.0f)                             /* ENV 2 > analog */
-            ac *= ri_pow2(8.0f * eaenv * levi_menv_value(v, 1u));
-#endif
-        {                                               /* P9b amounts */
-            float velb = 2.0f * v->vel01 - 1.0f;
-            if (v->dvel != 0.0f || v->dpat != 0.0f)
-                dc *= ri_pow2(8.0f * (v->dvel * velb + v->dpat * v->pat01));
-            if (v->avel != 0.0f || v->apat != 0.0f)
-                ac *= ri_pow2(8.0f * (v->avel * velb + v->apat * v->pat01));
-        }
         dc = dc < 20.0f ? 20.0f : dc > 20000.0f ? 20000.0f : dc;
         ac = ac < 20.0f ? 20.0f : ac > 20000.0f ? 20000.0f : ac;
 #ifdef RI_LEVI_PROFILE
@@ -4529,9 +4410,7 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
         filt_clear(v);
         return 0.0f;
     }
-#ifdef RI_LEVI_OPT_CTRLRATE
     v->ctl_k++;
-#endif
     return out * amp * v->patchlvl * v->level * evlevel;
 }
 

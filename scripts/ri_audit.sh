@@ -282,6 +282,8 @@ bash "$ROOT/scripts/ri_build_host.sh" test t169_item_cull_parity >/dev/null || {
 bash "$ROOT/scripts/ri_build_host.sh" test t170_ctlreg_index >/dev/null || { echo "FAIL: t170_ctlreg_index (gui: ri_ctlreg_find must match a linear scan on all 65536 ids)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t171_tr_layout >/dev/null || { echo "FAIL: t171_tr_layout (gui: TAP must clear the slot, controls and legends; the plate draws no song name)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t172_levi_bitexact >/dev/null || { echo "FAIL: t172_levi_bitexact (levi output must be bit-identical to the pinned corpus)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t173_levi_ctrlrate >/dev/null || { echo "FAIL: t173_levi_ctrlrate (levi control rate N=8: fresh targets per note, interpolated gains)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t174_levi_bankskip >/dev/null || { echo "FAIL: t174_levi_bankskip (levi static-morph bank skip: gated, resynced, mono-safe)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t111_legend_face >/dev/null || { echo "FAIL: t111_legend_face (S2 legend face)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t112_partial_redraw >/dev/null || { echo "FAIL: t112_partial_redraw (S3 dirty rect)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_master_live >/dev/null || { echo "FAIL: t115_master_live (S4 master live)"; exit 1; }
