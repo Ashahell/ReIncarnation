@@ -3074,3 +3074,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-10-06-levi-perf-exact-cuts-review-and-options.md
 - Updated: llm-wiki/raw/articles/2026-10-04-host-bench-and-the-overload-guard.md (Status: Outdated block)
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-07] ingest | Levi control rate (N = 8) and static-morph bank skip enabled; Dell A/B
+- Disposition: New; Update (closes the P3 owner decisions; adds the Dell before/after for the shipped engine)
+- Raw: llm-wiki/raw/articles/2026-10-06-levi-control-rate-and-bank-skip-enabled.md
+- Updated: llm-wiki/index.md (Live app entry list)
