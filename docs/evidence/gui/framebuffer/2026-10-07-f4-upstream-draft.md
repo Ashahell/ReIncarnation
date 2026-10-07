@@ -57,7 +57,7 @@ no code; no project names in the text).
 
 ## Review addendum (advisor, 2026-10-07): facts not in issue #1508
 
-These are candidate follow-ups for the issue. Posting them is the owner's
+POSTED 2026-10-07 on owner instruction: https://github.com/aros-development-team/AROS/issues/1508#issuecomment-6044926251 . These were the candidate follow-ups; posting them was the owner's
 call; nothing has been posted.
 
 - The machine's firmware left a **disabled WC MTRR (MTRR8) staged at the
