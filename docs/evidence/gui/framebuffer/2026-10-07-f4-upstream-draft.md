@@ -54,3 +54,18 @@ Whether/when this goes upstream is the owner's decision (prompt §9.2).
 2026-10-07, on the owner's explicit instruction: filed as
 https://github.com/aros-development-team/AROS/issues/1508 (proposal issue,
 no code; no project names in the text).
+
+## Review addendum (advisor, 2026-10-07): facts not in issue #1508
+
+These are candidate follow-ups for the issue. Posting them is the owner's
+call; nothing has been posted.
+
+- The machine's firmware left a **disabled WC MTRR (MTRR8) staged at the
+  framebuffer base** (`0xD0000000`, 64 MiB, V=0, stray mask bit 16). This
+  supports option (b), and shows that the range is free of UC carve-outs.
+- On Sandy Bridge the IntelGMA driver's device IDs are commented out, so
+  `vesagfx` is the only driver on such machines. That makes the
+  write-combining change the only lever for them.
+- Doing it at runtime needs a CPU rendezvous: the kernel's
+  `core_DoCallIPI` exists, but no public LVO. So option (b) belongs in the
+  kernel (or in `vesagfx` through a new kernel entry), not in user code.
