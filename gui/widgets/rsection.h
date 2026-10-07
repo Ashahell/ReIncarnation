@@ -46,6 +46,20 @@ struct RSectionDiag {
     LONG setups, shows;   /* lifecycle calls seen */
     ULONG df_max, df_sum; /* S3: full-draw us, max + window sum */
     LONG df_n;            /* ... and count */
+    /* FULL-DRAW BUILD/REPLAY/BLIT SPLIT (tab-switch B0): a tab switch pays
+     * one full draw per canvas on the new page, and only the split says
+     * whether that cost is ours (build + replay, removable by a replay
+     * skip) or MUI's and the blit's (not removable). The three spans abut
+     * exactly — one shared EClock sample ends the build and starts the
+     * replay, another ends the replay and starts the blit — so fb + fr +
+     * fl partition the draw the way dp_build/dp_replay/dp_blit partition
+     * a partial (t168's rule, one level up). df_sum stays the wall total
+     * (it also covers the µs of prologue before the build starts).
+     * Read by the TAB probe as per-switch deltas; all zero with RIAPP_DIAG
+     * off, like every other per-phase field. */
+    ULONG df_build_max, df_build_sum;
+    ULONG df_replay_max, df_replay_sum;
+    ULONG df_blit_sum;    /* full-draw blit sum (its max stays blit_max) */
     ULONG dp_max, dp_sum; /* S3: partial-draw us, max + window sum */
     LONG dp_n;            /* ... and count */
     /* WHICH SECTION this canvas is (2026-10-05). One canvas is one section, so

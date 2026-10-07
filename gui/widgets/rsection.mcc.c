@@ -408,20 +408,50 @@ static void draw_frame(Object *obj, struct RSectionData *d) {
             bail_out:
         }
     }
-    draw_section(&d->brp, d, 0, 0);
-    if (timed)
-        ReadEClock(&tb);
-    BltBitMapRastPort(d->bm, 0, 0, wrp, _mleft(obj), _mtop(obj), w, h, 0xC0);
-    if (timed) {
-        ReadEClock(&t1);
-        us = eclock_us(&tb, &t1);
-        if (us > d->diag.blit_max)
-            d->diag.blit_max = us;
-        us = eclock_us(&t0, &t1);
-        if (us > d->diag.df_max)
-            d->diag.df_max = us;
-        d->diag.df_sum += us;
-        d->diag.df_n++;
+    /* FULL-DRAW BUILD/REPLAY/BLIT SPLIT (tab-switch B0). A tab switch pays
+     * one full draw per canvas on the new page; only this split says whether
+     * that cost is ours (build + replay, removable by a replay skip) or MUI's
+     * and the blit's. The same two calls draw_section makes, timed as three
+     * abutting spans sharing samples (the 2026-10-05 partial-path pattern):
+     * one read ends the build and starts the replay, the next ends the replay
+     * and starts the blit — so fb + fr + fl partition the draw exactly, the
+     * invariant t176 pins on the host. Untouched when the diag switch is off:
+     * same calls, no reads. Costs one extra ReadEClock (~2.2 us) per full
+     * draw when on (four reads where three were). */
+    {
+        struct ri_dlist dl;
+        ULONG ufb = 0u, ufr = 0u;
+        build_dl(&d->brp, d, 0, 0, &dl, -1, -1, -2, -2); /* inverted => whole */
+        if (timed) {
+            ReadEClock(&tb);
+            ufb = eclock_us(&t0, &tb);
+            if (ufb > d->diag.df_build_max)
+                d->diag.df_build_max = ufb;
+            d->diag.df_build_sum += ufb;
+        }
+        replay_dl(&d->brp, &dl, ri_skin_aros_for(d->ui.section));
+        if (timed) {
+            ReadEClock(&t1);
+            ufr = eclock_us(&tb, &t1);
+            if (ufr > d->diag.df_replay_max)
+                d->diag.df_replay_max = ufr;
+            d->diag.df_replay_sum += ufr;
+        }
+        BltBitMapRastPort(d->bm, 0, 0, wrp, _mleft(obj), _mtop(obj), w, h, 0xC0);
+        if (timed) {
+            struct EClockVal t2;
+            ULONG ubl;
+            ReadEClock(&t2);
+            ubl = eclock_us(&t1, &t2);
+            if (ubl > d->diag.blit_max)
+                d->diag.blit_max = ubl;
+            d->diag.df_blit_sum += ubl;
+            us = eclock_us(&t0, &t2);
+            if (us > d->diag.df_max)
+                d->diag.df_max = us;
+            d->diag.df_sum += us;
+            d->diag.df_n++;
+        }
     }
 }
 

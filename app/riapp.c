@@ -321,7 +321,7 @@ static void evlog_putu(char *buf, uint32_t *n, ULONG v) {
 }
 
 static void evlog(const char *kind, const char *fmt, ...) {
-    char buf[192];
+    char buf[256]; /* TAB carries fn/fb/fr/fl/mui since B0: 192 truncated it */
     va_list ap;
     ULONG bufs;
     uint32_t n = 0u, k;
@@ -2099,8 +2099,21 @@ static void tab_switch(uint32_t g) {
     ULONG x0 = s_live ? ri_atomic_load_acq(&s_lv.drv.xruns) : 0u, us = 0u, efreq = 0u;
     ULONG c_sec = ri_rsection_draw_calls(), c_art = s_cnt_art, c_bay = s_cnt_bay;
     ULONG c_built = s_cnt_bay_built, c_kept = s_cnt_bay_kept;
+    /* Full-draw split baseline (tab-switch B0): per-canvas df_* sums at
+     * entry; the same sums after the rail give this switch's fb/fr/fl/fn
+     * as deltas. Integer adds only — no clock reads of its own, so this
+     * costs a release build nothing measurable. */
+    ULONG c_fb = 0u, c_fr = 0u, c_fl = 0u;
+    LONG c_fn = 0;
     struct EClockVal e0, e1, e2, e3;
     ULONG pg_us = 0u, tb_us = 0u, rl_us = 0u;
+    for (k = 0u; k < (uint32_t)C_N; k++)
+        if (s_dg[k]) {
+            c_fb += s_dg[k]->df_build_sum;
+            c_fr += s_dg[k]->df_replay_sum;
+            c_fl += s_dg[k]->df_blit_sum;
+            c_fn += s_dg[k]->df_n;
+        }
     if (TimerBase)
         efreq = ReadEClock(&e0);
     SetAttrs(s_pages, MUIA_Group_ActivePage, (IPTR)g, TAG_DONE);
@@ -2126,13 +2139,37 @@ static void tab_switch(uint32_t g) {
     }
     /* Phases partition the switch: page + tabs + rail == us (to rounding).
      * Draw counts say who painted: canvases (sec), rack art (art), bay
-     * background requests (bay) and the commands those built vs kept. */
-    evlog("TAB", "page=%d us=%lu page_us=%lu tabs_us=%lu rail_us=%lu sec=%lu art=%lu bay=%lu built=%lu kept=%lu xruns+%lu",
-        g, (unsigned long)us, (unsigned long)pg_us, (unsigned long)tb_us, (unsigned long)rl_us,
-        (unsigned long)(ri_rsection_draw_calls() - c_sec), (unsigned long)(s_cnt_art - c_art),
-        (unsigned long)(s_cnt_bay - c_bay), (unsigned long)(s_cnt_bay_built - c_built),
-        (unsigned long)(s_cnt_bay_kept - c_kept),
-        (unsigned long)((s_live ? ri_atomic_load_acq(&s_lv.drv.xruns) : 0u) - x0));
+     * background requests (bay) and the commands those built vs kept.
+     * Full-draw split (tab-switch B0): fn full draws during the switch cost
+     * fb (display-list build) + fr (replay into the canvas bitmap) + fl
+     * (blit to the window); mui = page_us - (fb + fr + fl) is MUI's own page
+     * handling, layout, backfill and anything outside our draw. mui must
+     * never read negative: the spans are disjoint by construction (the draws
+     * run inline inside the SetAttrs above), so a negative mui means the
+     * instrument overlaps and every number from it is suspect. With
+     * RIAPP_DIAG off the df_* sums stay zero and fn/fb/fr/fl read 0 while
+     * mui == page_us — "not measured", not "free". */
+    {
+        ULONG e_fb = 0u, e_fr = 0u, e_fl = 0u;
+        LONG e_fn = 0;
+        LONG mui;
+        for (k = 0u; k < (uint32_t)C_N; k++)
+            if (s_dg[k]) {
+                e_fb += s_dg[k]->df_build_sum;
+                e_fr += s_dg[k]->df_replay_sum;
+                e_fl += s_dg[k]->df_blit_sum;
+                e_fn += s_dg[k]->df_n;
+            }
+        mui = (LONG)pg_us - (LONG)(e_fb - c_fb + e_fr - c_fr + e_fl - c_fl);
+        evlog("TAB", "page=%d us=%lu page_us=%lu tabs_us=%lu rail_us=%lu sec=%lu art=%lu bay=%lu built=%lu kept=%lu fn=%ld fb=%lu fr=%lu fl=%lu mui=%ld xruns+%lu",
+            g, (unsigned long)us, (unsigned long)pg_us, (unsigned long)tb_us, (unsigned long)rl_us,
+            (unsigned long)(ri_rsection_draw_calls() - c_sec), (unsigned long)(s_cnt_art - c_art),
+            (unsigned long)(s_cnt_bay - c_bay), (unsigned long)(s_cnt_bay_built - c_built),
+            (unsigned long)(s_cnt_bay_kept - c_kept),
+            (long)(e_fn - c_fn), (unsigned long)(e_fb - c_fb),
+            (unsigned long)(e_fr - c_fr), (unsigned long)(e_fl - c_fl), (long)mui,
+            (unsigned long)((s_live ? ri_atomic_load_acq(&s_lv.drv.xruns) : 0u) - x0));
+    }
     /* Latency cycle (owner 2026-10-05): one bucket per tab slot, and a cycle is
      * only counted when all five slots are filled, so a partial cycle is never
      * averaged in as if it were a whole one. That is the self-check on this
@@ -3261,6 +3298,25 @@ static int riapp_main(int argc, char **argv) {
                         (unsigned long)L->vc_voice_active,
                         (unsigned long)L->vc_fx_samples,
                         (unsigned long)L->vc_voice_us);
+                }
+                /* Drum-tail A0 paired samples: (stage us, active voice-samples)
+                 * per sampled block for the 808 and 909. Dumped at close so
+                 * nothing per-block goes to the log during the run; gated on
+                 * RIAPP_DIAG like the other per-phase timing, so a release
+                 * run pays no log volume. Fit us = a + b x active per song
+                 * in the evidence; the ring stops at 512 samples (~175 s). */
+                if (rsection_diag_enabled()) {
+                    const struct RIEngine *de = &s_lv.drv.session->eng;
+                    ULONG di;
+                    rlog("RIAPP drumdiag n=%lu stride=%u\n", (unsigned long)de->drum_n,
+                        (unsigned)RI_DRUMDIAG_STRIDE, 0, 0, 0);
+                    for (di = 0u; di < de->drum_n; di++)
+                        rlog("RIAPP drumdiag i=%lu us808=%lu a808=%lu us909=%lu a909=%lu\n",
+                            (unsigned long)di,
+                            (unsigned long)de->drum_ring[di].us808,
+                            (unsigned long)de->drum_ring[di].a808,
+                            (unsigned long)de->drum_ring[di].us909,
+                            (unsigned long)de->drum_ring[di].a909);
                 }
             }
             if (s_live)
