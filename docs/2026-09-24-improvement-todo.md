@@ -136,6 +136,15 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
     Dell ring + dump. Evidence: `docs/evidence/drum-tail/2026-10-07-a0-measure.md`,
     `docs/evidence/drum-tail/2026-10-07-a1-tau-hoist.md`. Commits
     `bbb9f8f`/`a7bcfe3`/`6536353` + revert. No engine change shipped.
+- [x] Tab-switch page cost (owner work 2026-10-07: MUI's and the blit's, stop)
+  - **Verdict:** the 20–42 ms switch is MUI's page handling + the window
+    blit, not our re-render. TAB probe (`fn/fb/fr/fl/mui`, `t176` law):
+    `fb + fr` ≤ 19.9 % of `page_us` and ≤ 4.8 ms on every tab — both stop
+    conditions hold, so no B1 replay skip (would save ≤ 4.8 ms for
+    stale-pixel risk). `mui` never negative; xruns+0 on every switch.
+  - Instruments kept: full-draw split in `draw_frame`, TAB split line.
+    Evidence: `docs/evidence/gui/tab-switch/2026-10-07-b0-split.md`.
+    Commit `2522c79`. No GUI change shipped beyond the probe.
 - [x] Load-governor + repaint fix (owner Dell 2026-10-01, xruns while playing and switching tabs)
   - **Diagnosis** (both `RAM:RIPP9` logs, build `cdcf85c`, 19 min run, pulled after the owner quit the app): the pri-21 render task fix WORKS — all 7 tab switches logged `TAB … xruns+0` (six of them while playing, one while stopped); 13 min of playing with no tab switch at 0 xruns. xruns appear only in two windows, both "playing + tabs": buf 55227-59586 (+485, `overloads` 0→9) and buf 209690-216272 (+923, `overloads` 9→22). The last window is 923 xruns against 630 full repaints = 1.47 xruns per repaint, and repaints are only 5-12 % of a core, so this is not CPU exhaustion: while the governor holds the render task at pri -1 (below the UI), every repaint pre-empts it for a buffer or two. Two causes, both answered:
   - **Trip too eager.** Playing load hovers 585-1083 per mille around `RI_LIVEDRV_OVER_PM` 850, so the 1/8 EMA crossed the threshold constantly and re-tripped every ~2.3 s (13 entries in 19 min). The trip law now needs `RI_LIVEDRV_ARM_US` (2 s) of **continuous** over-budget load: the arm accumulates the buffer period while `load_pm >= RI_LIVEDRV_OVER_PM`, resets to 0 the moment a buffer is under it, is cleared at the probe, and is zeroed at the trip so each entry needs its own arm. Threshold 850, cap 1200, the 2 s hold and the pri -1 floor are unchanged, so a machine that genuinely cannot keep up still yields. (Owner deferred changing the floor itself: "Leave it, diagnose first.")
