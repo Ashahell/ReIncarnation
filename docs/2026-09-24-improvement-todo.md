@@ -230,6 +230,7 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   - drop the "always fails with ENOSYS / see getrusage.c" comment; keep the existing note that the library does not implement it and the struct serves code with its own fallback;
   - correct our verification note: SPIRV-Tools sets `SPIRV_TIMER_ENABLED` only for Linux/Android, so an AROS cross build never includes `sys/resource.h`; an enabled timer would need `getrusage` at link time;
   - optional follow-up, separate PR: implement `getrusage()` — replace `.skip 2` in `posixc.conf` with the entry, add it to the mmakefile, fill `ru_utime` for `RUSAGE_SELF` from the per-task `iet_CpuTime` in `rom/exec/etask.h`.
+  - [x] done: `getrusage()` for `RUSAGE_SELF` sent as aros-development-team/AROS#1490 (`484d7136b4`), approved and merged by Kalamatee 2026-10-07 (merge `a5f7f1739b`), no review comments.
 - [x] AROS#1314 (`aros/0013`, carried in Vulkan4AROS) rework as an explicitly interim fix per Kalamatee's review 2026-09-30 — done: merged by Kalamatee 2026-10-01 with the FIXME and a once-only warning:
   - keep the forward of `strto*_l` to the plain `strto*` functions so libc++ `num_get` works today;
   - replace the "AROS locales are C-locale-only objects" comment with a FIXME: the locale argument is ignored because `struct __locale` has no numeric data yet (only ctype and case tables); these must be reworked when locale objects gain numeric conventions (`strtod()` then consults the current locale, `strto*_l()` the object passed in);
