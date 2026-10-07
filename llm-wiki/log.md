@@ -3085,3 +3085,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-10-07-sampler-slicer-replaces-esx1.md
 - Updated: llm-wiki/raw/articles/2026-09-26-planned-device-korg-esx1.md (Status: Outdated block)
 - Updated: llm-wiki/index.md (ESX-1 entry marked deferred; sampler entry added)
+
+## [2026-10-07] ingest | The 909/808 spikes are polyphony; the tab switch is bound by screen write bandwidth
+- Disposition: New; Update (closes the 909-tail gap in the 2026-10-02 five-sections article)
+- Raw: llm-wiki/raw/articles/2026-10-07-drum-tails-are-polyphony-and-the-screen-is-the-bottleneck.md
+- Updated: llm-wiki/raw/articles/2026-10-02-five-sections-one-culprit-levi-is-32-percent.md (909 tail CLOSED note)
+- Updated: llm-wiki/index.md (Live app entry list)

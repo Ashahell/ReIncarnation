@@ -207,6 +207,7 @@ across all three runs to within 1 %.
   [first sub-split run](2026-10-03-the-levi-sub-split-measured-arp-seq-voice-and-mix-are-all-at-the-floor.md)
   and [the correction, verbatim](../evidence/2026-10-03-levi-subsplit-corrected-with-a-control.md).
 - 909's tail: 174 µs average against a 316 µs worst block.
+  **CLOSED 2026-10-07: polyphony, not a defect** — at `-O2` the 909 is 31/87 µs (Zombie Nation), and Dell fits of block µs against active voice-samples give r = 0.979–0.999 for the 909 and 808. See [2026-10-07-drum-tails-are-polyphony-and-the-screen-is-the-bottleneck.md](2026-10-07-drum-tails-are-polyphony-and-the-screen-is-the-bottleneck.md).
 - Tab-switch xruns, the guest's 300–500 ms stalls, and the in-memory ring are all
   untouched by this.
 - The v11 LVO convention, which gates the `-O2` decision.
