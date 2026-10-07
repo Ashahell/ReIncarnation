@@ -48,3 +48,9 @@ Body:
 > drivers mapping the same aperture.
 
 Whether/when this goes upstream is the owner's decision (prompt §9.2).
+
+## Sent
+
+2026-10-07, on the owner's explicit instruction: filed as
+https://github.com/aros-development-team/AROS/issues/1508 (proposal issue,
+no code; no project names in the text).
