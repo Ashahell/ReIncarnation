@@ -12,9 +12,10 @@ WHAT="${1:-all}"
 build_v11() {
     TC="$VK/src/abi/v11/toolchain-core-x86_64"
     SDK="$VK/src/abi/v11/sdk/Developer"
+    GEN="$VK/src/abi/v11/core-pc-x86_64/bin/pc-x86_64/gen/buildsdks/private/include"
     [ -x "$TC/x86_64-aros-gcc" ] || { echo "FAIL: v11 toolchain absent"; exit 1; }
     [ -f "$SDK/lib/startup.o" ] || { echo "FAIL: v11 SDK absent"; exit 1; }
-    CF="-std=gnu99 -O2 -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -fno-stack-protector -Wa,-W -I$ROOT -I$ROOT/lane/memtype -I$SDK/include -I$SDK/include/aros/stdc"
+    CF="-std=gnu99 -O2 -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -fno-stack-protector -Wa,-W -I$ROOT -I$ROOT/lane/memtype -I$SDK/include -I$SDK/include/aros/stdc -I$GEN"
     "$TC/x86_64-aros-gcc" $CF -c "$ROOT/lane/memtype/memtype.c" -o "$OUT/memtype_v11.o"
     "$TC/x86_64-aros-gcc" $CF -c "$ROOT/lane/memtype/memtype_decode.c" -o "$OUT/memtype_decode_v11.o"
     "$TC/x86_64-aros-gcc" -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
@@ -24,6 +25,16 @@ build_v11() {
         echo "FAIL: MEMTYPE.v11 has unresolved symbols"; exit 1
     fi
     echo "MEMTYPE.v11 OK"
+    # CPUCOUNT (F3 gate: how many CPUs AROS runs — one SuperState window
+    # covers one CPU; count>1 stops the trial, no user-mode IPI exists).
+    "$TC/x86_64-aros-gcc" $CF -c "$ROOT/lane/memtype/cpucount.c" -o "$OUT/cpucount_v11.o"
+    "$TC/x86_64-aros-gcc" -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
+      -o "$OUT/CPUCOUNT.v11" "$OUT/cpucount_v11.o" \
+      "$SDK/lib/startup.o" -L"$SDK/lib" -lamiga -ldos -lexec -lautoinit
+    if "$TC/x86_64-aros-readelf" -s "$OUT/CPUCOUNT.v11" | awk '$7=="UND" && $8!="" { found=1 } END { exit !found }'; then
+        echo "FAIL: CPUCOUNT.v11 has unresolved symbols"; exit 1
+    fi
+    echo "CPUCOUNT.v11 OK"
 }
 
 build_v1() {
