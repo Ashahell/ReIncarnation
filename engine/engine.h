@@ -123,6 +123,22 @@ struct RIEngineStages {
     uint32_t n[RI_ENGINE_ST_COUNT];
 };
 
+/* Drum-tail A0 paired samples: one (stage us, active voice-samples) pair
+ * per sampled block, for the 808 and the 909. The us halves come from the
+ * section stages' own clock pairs (RI_ESTAGE_E_STORE into drum_last808_us /
+ * drum_last909_us — no extra reads over what the stages already pay); the
+ * active halves are the vc_voice_active counters. ri_engine_drum_sample
+ * keeps every 256th full 64-sample block, then stops at 512: 512 samples
+ * span 512 x 256 x 64 samples (~175 s at 48 kHz), enough for a whole song.
+ * Partial (event-split) slices are not blocks and never tick the stride.
+ * Recording needs an injected clock (live runs have one); with now_us NULL
+ * nothing is recorded. Plain data, no IO: the app dumps the ring at close. */
+#define RI_DRUMDIAG_N 512u
+#define RI_DRUMDIAG_STRIDE 256u
+struct RIDrumDiag {
+    uint32_t us808, a808, us909, a909;
+};
+
 struct RIEngine {
     struct RIEngineStages estg;
     uint64_t (*now_us)(void); /* injected clock; NULL disables stage timing */
@@ -167,6 +183,13 @@ struct RIEngine {
     struct RiMeter sec_meter[RI_ROUTE_NSECTIONS];
     struct RiMeter fx_meter[RI_ENGINE_FX_COUNT];
     struct RiMeter master_meter[2]; /* S4: post-master L/R peaks */
+    /* Drum-tail A0: last full-block stage spans (E_STORE targets) + the
+     * sampled (us, active) ring drained at close. Zero-cost when no clock
+     * is injected (sample returns early) and two stores per block when
+     * one is — the same discipline as the vc_* counters. */
+    uint32_t drum_last808_us, drum_last909_us;
+    struct RIDrumDiag drum_ring[RI_DRUMDIAG_N];
+    uint32_t drum_n, drum_tick;
 };
 
 void ri_engine_init(struct RIEngine *e);
@@ -178,6 +201,11 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev);
  * Chunk-agnostic: splitting n renders sample-identical output. */
 void ri_engine_set_clock(struct RIEngine *e, uint64_t (*now_us)(void));
 const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e);
+/* Drum-tail A0 sampler: record one (us, active) pair per 256th full block
+ * (see the RIDrumDiag note above). Called once per block-slice by the
+ * render loop; also directly drivable. Render-contract safe: plain stores,
+ * no clock reads of its own, no IO. */
+void ri_engine_drum_sample(struct RIEngine *e, uint32_t cc);
 
 uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
     uint32_t n, float sr);

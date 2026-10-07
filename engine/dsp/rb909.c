@@ -161,6 +161,8 @@ void rb909_init_set(struct RB909Set *s) {
         s->v[i].flam_pad[0] = s->v[i].flam_pad[1] = s->v[i].flam_pad[2] = 0u;
         s->v[i].flam_width = (float)RI_909_FLAM_DEFAULT_SMP;
     }
+    s->vc_samples = 0u;
+    s->vc_voice_active = 0u;
 }
 
 int rb909_set_layers(struct RB909Set *s, uint32_t voice,
@@ -185,6 +187,13 @@ int rb909_set_layers(struct RB909Set *s, uint32_t voice,
     s->v[voice].layers = s->v[voice].store;
     s->v[voice].n_layers = (uint8_t)n;
     return 0;
+}
+
+void rb909_voice_counters_reset(struct RB909Set *s) {
+    if (!s)
+        return;
+    s->vc_samples = 0u;
+    s->vc_voice_active = 0u;
 }
 
 void rb909_arm_flam(struct RB909Set *s, uint32_t voice, uint32_t width_smp) {
@@ -322,9 +331,19 @@ void rb909_render_mix(struct RB909Set *s, float *out, uint32_t n, float sr) {
     uint32_t i, k;
     for (i = 0; i < n; i++) {
         float acc = 0.0f;
-        for (k = 0; k < RI_909_NVOICES; k++)
-            if (s->v[k].active)
-                acc += rb909_voice_render(&s->v[k], sr);
+        for (k = 0; k < RI_909_NVOICES; k++) {
+            if (!s->v[k].active)
+                continue;
+            /* Work count BEFORE the render (the flam sample that arms
+             * pos2 inside the render reads 1 here, 2 from the next sample
+             * on: steady-state blocks are exact, the fire block reads
+             * between 1x and 2x — see t175). Never touches audio. */
+            s->vc_voice_active++;
+            if (s->v[k].pos2 >= 0.0f)
+                s->vc_voice_active++;
+            acc += rb909_voice_render(&s->v[k], sr);
+        }
+        s->vc_samples++;
         /* Linear section sum with float headroom (§2.4, same law as the
          * 808: no clipping inside a section — ReBirth manual p. 23).
          * Clipping happens only at the final integer conversion. */

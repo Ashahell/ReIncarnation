@@ -102,7 +102,21 @@ struct RB909Voice {
 
 struct RB909Set {
     struct RB909Voice v[RI_909_NVOICES];
+    /* Per-block work counters (drum-tail A0; the levi vc_* discipline).
+     * vc_samples: samples rb909_render_mix ran since reset. vc_voice_active:
+     * active voice-samples since reset — per sample, +1 per voice with active
+     * set, +1 more when that voice's flam second playhead is live. Reset once
+     * per block by the caller (the engine does it before the section render),
+     * so the figures describe the last block alone. Counting never touches
+     * audio state: the render is bit-identical with or without it. */
+    uint32_t vc_samples;
+    uint32_t vc_voice_active;
 };
+
+/* Zero the vc_* work counters. Called once per block before
+ * rb909_render_mix, so a block's figures are that block's alone and not a
+ * running total since load. NULL-safe. */
+void rb909_voice_counters_reset(struct RB909Set *s);
 
 /* Voice short names for goldens/logs ("bd", "sd", ...). */
 const char *rb909_name(uint32_t voice);

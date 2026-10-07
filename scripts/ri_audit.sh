@@ -55,7 +55,16 @@ echo "== Phase 0d: no test ships ungated =="
 # against the box the app really asks for -- ri_geo_bbox(RI_STR_BAR) at
 # RI_GEO_ZOOM_COMPACT -- rather than the synthetic centre box bench_build uses.
 #   ./scripts/ri_build_host.sh test bench_trbar
-UNGATED_ALLOW=" t107_levi_sect levi_bench bench_build bench_trbar "
+#
+# drum_bench is the drum-section timing harness (drum-tail A0): held voices
+# k=0..all, per-voice solos, flam on/off, median-of-7 with the vc_voice_active
+# counter as the positive control on every row. Same shape as levi_bench:
+# it prints, it asserts no bound, and its only assert is the non-silence
+# signal check (an unbound 909 renders exact silence through an early return,
+# so a bench without layers would measure nothing and look confident).
+#   gcc -std=gnu99 -O2 -I. -o /tmp/drum_bench tests/unit/drum_bench.c \
+#       /tmp/ri/build/*.o -lm -lpng && /tmp/drum_bench
+UNGATED_ALLOW=" t107_levi_sect levi_bench bench_build bench_trbar drum_bench "
 for f in "$ROOT"/tests/unit/*.c; do
   t="$(basename "$f" .c)"
   grep -qE "(test[[:space:]]+|\b)$t\b" "$SELF" && continue
@@ -284,6 +293,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t171_tr_layout >/dev/null || { echo "
 bash "$ROOT/scripts/ri_build_host.sh" test t172_levi_bitexact >/dev/null || { echo "FAIL: t172_levi_bitexact (levi output must be bit-identical to the pinned corpus)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t173_levi_ctrlrate >/dev/null || { echo "FAIL: t173_levi_ctrlrate (levi control rate N=8: fresh targets per note, interpolated gains)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t174_levi_bankskip >/dev/null || { echo "FAIL: t174_levi_bankskip (levi static-morph bank skip: gated, resynced, mono-safe)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t175_drum_counters >/dev/null || { echo "FAIL: t175_drum_counters (drum-tail A0: per-block 909/808 active voice-sample counters with positive controls; Dell (us, active) ring mechanics)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t111_legend_face >/dev/null || { echo "FAIL: t111_legend_face (S2 legend face)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t112_partial_redraw >/dev/null || { echo "FAIL: t112_partial_redraw (S3 dirty rect)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_master_live >/dev/null || { echo "FAIL: t115_master_live (S4 master live)"; exit 1; }

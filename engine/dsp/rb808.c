@@ -211,6 +211,15 @@ void rb808_init_set(struct RB808Set *s) {
         s->v[i].st_lp = 0.0f;
         s->v[i].tail = 1.0f;
     }
+    s->vc_samples = 0u;
+    s->vc_voice_active = 0u;
+}
+
+void rb808_voice_counters_reset(struct RB808Set *s) {
+    if (!s)
+        return;
+    s->vc_samples = 0u;
+    s->vc_voice_active = 0u;
 }
 
 void rb808_trigger(struct RB808Set *s, uint32_t voice, uint32_t accent, float tune_st) {
@@ -440,9 +449,16 @@ void rb808_render_mix(struct RB808Set *s, float *out, uint32_t n, float sr) {
     for (i = 0; i < n; i++) {
         float m = 0.0f;
         /* Slot walk in order (the mix law): each slot renders its selected
-         * sound; switch-pair partners keep silent unless selected. */
-        for (k = 0; k < RI_808_NSLOTS; k++)
+         * sound; switch-pair partners keep silent unless selected. The work
+         * count follows the same walk: a slot whose selected voice is
+         * active counts 1 (an active-but-unselected partner does no work).
+         * Never touches audio. */
+        for (k = 0; k < RI_808_NSLOTS; k++) {
+            if (s->v[s->slot[k]].active)
+                s->vc_voice_active++;
             m += rb808_voice_render(&s->v[s->slot[k]], sr);
+        }
+        s->vc_samples++;
         /* Linear section sum with float headroom (§2.4): no clipping
          * inside a section (ReBirth manual p. 23). Clipping happens
          * only at the final integer conversion. */

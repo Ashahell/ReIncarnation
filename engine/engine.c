@@ -15,6 +15,8 @@ void ri_engine_init(struct RIEngine *e) {
     if (!e)
         return;
     e->now_us = 0; /* no timing until a clock is injected */
+    e->drum_last808_us = e->drum_last909_us = 0u;
+    e->drum_n = e->drum_tick = 0u;
     for (i = 0u; i < RI_ENGINE_ST_COUNT; i++) {
         e->estg.sum_us[i] = 0u;
         e->estg.max_us[i] = 0u;
@@ -403,6 +405,9 @@ void ri_engine_load(struct RIEngine *e, const struct RIEvent *ev,
     e->cursor = 0;
     e->total = total;
     e->sections = sections;
+    /* A fresh song starts a fresh drum-tail record. */
+    e->drum_last808_us = e->drum_last909_us = 0u;
+    e->drum_n = e->drum_tick = 0u;
 }
 
 /* Shared event routing (replaces the three per-path copies): NOTE-family by
@@ -559,6 +564,24 @@ const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e) {
     return e ? &e->estg : 0;
 }
 
+void ri_engine_drum_sample(struct RIEngine *e, uint32_t cc) {
+    struct RIDrumDiag *d;
+    if (!e || !e->now_us || cc != RI_ENGINE_BLOCK)
+        return;
+    if (e->drum_tick++ % RI_DRUMDIAG_STRIDE)
+        return;
+    if (e->drum_n >= RI_DRUMDIAG_N)
+        return;
+    d = &e->drum_ring[e->drum_n++];
+    /* A disabled section contributes nothing this block: its stage did not
+     * run, so both its last span and its counters are stale by definition
+     * and must read 0 rather than a previous block's figures. */
+    d->us808 = (e->sections & RI_ENGINE_S808) ? e->drum_last808_us : 0u;
+    d->a808 = (e->sections & RI_ENGINE_S808) ? e->s808.vc_voice_active : 0u;
+    d->us909 = (e->sections & RI_ENGINE_S909) ? e->drum_last909_us : 0u;
+    d->a909 = (e->sections & RI_ENGINE_S909) ? e->s909.vc_voice_active : 0u;
+}
+
 uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
     uint32_t n, float sr) {
     uint32_t done = 0;
@@ -614,15 +637,24 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             }
             if (e->sections & RI_ENGINE_S808) {
                 RI_ESTAGE_T(e, RI_ENGINE_ST_S808, ts);
+                /* Per-block 808 work count (drum-tail A0): reset here so the
+                 * figures describe THIS block, the levi vc_* discipline. */
+                rb808_voice_counters_reset(&e->s808);
                 rb808_render_mix(&e->s808, e->scratch, cc, sr);
                 engine_section(e, 2, ml, mr, sendbus, cc, sr);
-                RI_ESTAGE_E(e, RI_ENGINE_ST_S808, ts);
+                /* E_STORE, not E: hands this block's span to drum_last808_us
+                 * for the (us, active) pairing. Same pair E would have used:
+                 * no extra reads, no extra distortion. */
+                RI_ESTAGE_E_STORE(e, RI_ENGINE_ST_S808, ts, e->drum_last808_us);
             }
             if (e->sections & RI_ENGINE_S909) {
                 RI_ESTAGE_T(e, RI_ENGINE_ST_S909, ts);
+                /* Per-block 909 work count (drum-tail A0): same discipline. */
+                rb909_voice_counters_reset(&e->s909);
                 rb909_render_mix(&e->s909, e->scratch, cc, sr);
                 engine_section(e, 3, ml, mr, sendbus, cc, sr);
-                RI_ESTAGE_E(e, RI_ENGINE_ST_S909, ts);
+                /* E_STORE: this block's span to drum_last909_us. */
+                RI_ESTAGE_E_STORE(e, RI_ENGINE_ST_S909, ts, e->drum_last909_us);
             }
             if (e->sections & RI_ENGINE_SLEVI) {
                 /* CONTROL, deliberately OUTSIDE SLEVI's interval. An empty
@@ -748,6 +780,9 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             }
             RI_ESTAGE_E(e, RI_ENGINE_ST_LIMIT, ts);
             RI_ESTAGE_E(e, RI_ENGINE_ST_TOTAL, te);
+            /* Drum-tail A0 pair sampling (plain stores; early-out with no
+             * clock or on a partial slice). */
+            ri_engine_drum_sample(e, cc);
             c += cc;
         }
         done += (uint32_t)run;

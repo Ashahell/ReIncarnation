@@ -135,7 +135,20 @@ struct RB808Set {
     struct RB808Voice v[RI_808_NSOUNDS];
     uint32_t triggered; /* bit i = sound i triggered (16 bits used) */
     uint8_t slot[RI_808_NSLOTS]; /* slot -> selected sound */
+    /* Per-block work counters (drum-tail A0; the levi vc_* discipline).
+     * vc_samples: samples rb808_render_mix ran since reset. vc_voice_active:
+     * active voice-samples since reset — per sample, +1 per SLOT whose
+     * selected voice is active (an active-but-unselected switch partner does
+     * no work and counts 0). Reset once per block by the caller; counting
+     * never touches audio state. */
+    uint32_t vc_samples;
+    uint32_t vc_voice_active;
 };
+
+/* Zero the vc_* work counters. Called once per block before
+ * rb808_render_mix, so a block's figures are that block's alone and not a
+ * running total since load. NULL-safe. */
+void rb808_voice_counters_reset(struct RB808Set *s);
 
 void rb808_init_set(struct RB808Set *s);
 /* Trigger one voice (accent 0/1; 2 reserved). tune_st in semitones. */
