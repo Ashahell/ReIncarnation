@@ -5,10 +5,9 @@
  * (each gated on its CPUID bit and on VCNT), MOV-from-CR3 and page-table
  * reads. No WRMSR, no CR writes, no page-table writes.
  *
- * Privileged reads run one MSR at a time through Supervisor(): the worker
- * (lane/memtype/memtype_sup.s) returns the 64-bit value in RAX, which is
- * the Supervisor() return value. The MSR number travels in the global
- * mt_msr (a jmp-entered worker takes no parameters).
+ * Privileged reads run inside SuperState()/UserState() windows (CPL 0):
+ * direct RDMSR / MOV-from-CR3 via inline asm, one MSR at a time, each
+ * gated on its CPUID bit (and variable MTRRs on VCNT from window 1).
  *
  * Output is fixed-format printlns; the lane redirects stdout to RAM: and
  * --get's it back. No window is opened.
@@ -32,50 +31,76 @@
 
 #define MAX_MTRR 16
 
-ULONG mt_msr;
-
 /* The bootloader protos use the BootLoaderBase data symbol directly; it is
  * a resource (not an OpenLibrary library), so autoinit provides nothing and
  * the app owns it — assigned from OpenResource() in main, same shape as the
  * vesagfx driver's local of the same name. */
 APTR BootLoaderBase = NULL;
 
-extern UQUAD mt_sup_rdmsr(void);
-extern UQUAD mt_sup_cr3(void);
+/* Privileged reads: valid ONLY inside the SuperState()/UserState() window
+ * (CPL 0), called from priv_read_all below. Direct RDMSR / MOV-from-CR3 via
+ * inline asm — integer registers only (the supervisor exit path does not
+ * restore XMM/YMM), no calls, no memory allocation.
+ *
+ * NOTE (riqemu1 2026-10-07): the Supervisor()-with-iret-worker path hangs
+ * on the guest — every binary calling Supervisor() wedged the exec and
+ * eventually dropped the agent, while SuperState()/UserState() on the same
+ * guest reads MTRRCAP and CR3 cleanly. So the probe does everything inside
+ * one SuperState window instead. The int $0xFE mechanism itself is fine
+ * (SuperState uses it); the core_Supervisor jmp-to-worker return path is
+ * what never comes back. Dell TBD. */
+static UQUAD priv_rdmsr(ULONG msr)
+{
+    ULONG lo, hi;
+    __asm__ __volatile__("rdmsr" : "=a"(lo), "=d"(hi) : "c"(msr));
+    return ((UQUAD)hi << 32) | (UQUAD)lo;
+}
 
-/* Callee-saved registers survive Supervisor(): core_Supervisor restores the
- * CPU registers from the saved frame before jumping to the worker, and the
- * worker touches only eax/ecx/edx — but the push/pop pair costs nothing
- * and holds even if that reading ever goes stale. */
-static UQUAD sup_rdmsr(ULONG msr)
+static UQUAD priv_cr3(void)
 {
     UQUAD v;
-    mt_msr = msr;
-    __asm__ __volatile__(
-        "pushq %%rbx\n\tpushq %%rbp\n\tpushq %%r12\n\t"
-        "pushq %%r13\n\tpushq %%r14\n\tpushq %%r15\n\t"
-        : : : "memory");
-    v = (UQUAD)Supervisor((APTR)mt_sup_rdmsr);
-    __asm__ __volatile__(
-        "popq %%r15\n\tpopq %%r14\n\tpopq %%r13\n\t"
-        "popq %%r12\n\tpopq %%rbp\n\tpopq %%rbx\n\t"
-        : : : "memory");
+    __asm__ __volatile__("mov %%cr3,%0" : "=r"(v));
     return v;
 }
 
-static UQUAD sup_cr3(void)
+/* One SuperState window each. Window 1 always runs when the MTRR CPUID bit
+ * is set (MTRRCAP/DEF_TYPE exist then); window 2 reads only what window 1
+ * and the CPUID bits authorize (n < VCNT, fixed iff FIX, PAT iff present).
+ * No Printf, no decode, no calls inside: integer asm + stores only. */
+static int priv_win1(UQUAD *cap, UQUAD *def)
 {
-    UQUAD v;
-    __asm__ __volatile__(
-        "pushq %%rbx\n\tpushq %%rbp\n\tpushq %%r12\n\t"
-        "pushq %%r13\n\tpushq %%r14\n\tpushq %%r15\n\t"
-        : : : "memory");
-    v = (UQUAD)Supervisor((APTR)mt_sup_cr3);
-    __asm__ __volatile__(
-        "popq %%r15\n\tpopq %%r14\n\tpopq %%r13\n\t"
-        "popq %%r12\n\tpopq %%rbp\n\tpopq %%rbx\n\t"
-        : : : "memory");
-    return v;
+    APTR ssp = SuperState();
+    if (!ssp)
+        return 0;
+    *cap = priv_rdmsr(MSR_MTRRCAP);
+    *def = priv_rdmsr(MSR_DEF_TYPE);
+    UserState(ssp);
+    return 1;
+}
+
+static int priv_win2(int nn, int want_fix, int want_pat, UQUAD *bases,
+                     UQUAD *masks, UQUAD *fixv, UQUAD *pat, UQUAD *cr3)
+{
+    int i;
+    APTR ssp = SuperState();
+    if (!ssp)
+        return 0;
+    for (i = 0; i < nn; i++) {
+        bases[i] = priv_rdmsr(0x200UL + (ULONG)(i * 2));
+        masks[i] = priv_rdmsr(0x201UL + (ULONG)(i * 2));
+    }
+    if (want_fix) {
+        fixv[0] = priv_rdmsr(MSR_FIX64K);
+        fixv[1] = priv_rdmsr(MSR_FIX16K_A);
+        fixv[2] = priv_rdmsr(MSR_FIX16K_B);
+        for (i = 0; i < 8; i++)
+            fixv[3 + i] = priv_rdmsr(MSR_FIX4K_BASE + (ULONG)i);
+    }
+    if (want_pat)
+        *pat = priv_rdmsr(MSR_PAT);
+    *cr3 = priv_cr3();
+    UserState(ssp);
+    return 1;
 }
 
 static void cpuid_raw(ULONG leaf, ULONG sub, ULONG *a, ULONG *b, ULONG *c, ULONG *d)
@@ -192,7 +217,7 @@ int main(void)
     struct VesaInfo *vi = NULL;
     UQUAD fb = 0, fbsz = 0, fbend, fbmid;
     unsigned long psz = 0;
-    int idx0, idx1, idx2, k;
+    int idx0, idx1, idx2, k, via0 = -2;
     int match[16];
     struct Library *blres;
 
@@ -200,6 +225,13 @@ int main(void)
         bases[i] = 0;
         masks[i] = 0;
     }
+
+    /* startup.o provides the DOSBase slot but leaves it NULL; Printf
+     * through it faults (found on riqemu1: first Printf wedged the exec
+     * with no Guru). Same manual open as audio_io/probe_ahi.c. */
+    DOSBase = (struct DosLibrary *)OpenLibrary("dos.library", 0);
+    if (!DOSBase)
+        return 20;
 
     Printf("MEMTYPE v1\n");
     cpl = reg_cs() & 3u;
@@ -246,14 +278,19 @@ int main(void)
 
     if (has_mtrr && maxphy >= 12) {
         int nn;
-        cap = sup_rdmsr(MSR_MTRRCAP);
+        UQUAD fixv[11];
+        for (i = 0; i < 11; i++)
+            fixv[i] = 0;
+        if (!priv_win1(&cap, &def)) {
+            Printf("MTRR no-super-window (SuperState returned NULL)\n");
+            n = 0;
+        } else {
         vcnt = (unsigned long)(cap & 0xFFu);
         fix = (unsigned long)((cap >> 8) & 1u);
         wc = (unsigned long)((cap >> 10) & 1u);
         Printf("MTRRCAP raw=");
         print_u64hex(cap);
         Printf(" VCNT=%lu FIX=%lu WC=%lu\n", vcnt, fix, wc);
-        def = sup_rdmsr(MSR_DEF_TYPE);
         deftype = (unsigned long)(def & 0xFFu);
         fe = (unsigned long)((def >> 10) & 1u);
         en = (unsigned long)((def >> 11) & 1u);
@@ -261,11 +298,13 @@ int main(void)
         print_u64hex(def);
         Printf(" deftype=%s(%lu) FE=%lu E=%lu\n", mt_name(mt_mtrr_type(def)), deftype, fe, en);
         nn = (vcnt < MAX_MTRR) ? (int)vcnt : MAX_MTRR;
+        if (!priv_win2(nn, fix ? 1 : 0, has_pat ? 1 : 0, bases, masks, fixv, &patraw, &cr3)) {
+            Printf("MTRR no-super-window-2\n");
+            n = 0;
+        } else {
         for (i = 0; i < nn; i++) {
-            UQUAD ba = sup_rdmsr(0x200UL + (ULONG)(i * 2));
-            UQUAD ma = sup_rdmsr(0x201UL + (ULONG)(i * 2));
-            bases[i] = ba;
-            masks[i] = ma;
+            UQUAD ba = bases[i];
+            UQUAD ma = masks[i];
             Printf("MTRR%lu base=", (unsigned long)i);
             print_u64hex(ba);
             Printf(" mask=");
@@ -284,35 +323,38 @@ int main(void)
             Printf("\n");
         }
         if (fix) {
-            UQUAD f;
-            f = sup_rdmsr(MSR_FIX64K);
             Printf("FIX64K=");
-            print_u64hex(f);
+            print_u64hex(fixv[0]);
             Printf("\n");
-            f = sup_rdmsr(MSR_FIX16K_A);
             Printf("FIX16K_A=");
-            print_u64hex(f);
+            print_u64hex(fixv[1]);
             Printf("\n");
-            f = sup_rdmsr(MSR_FIX16K_B);
             Printf("FIX16K_B=");
-            print_u64hex(f);
+            print_u64hex(fixv[2]);
             Printf("\n");
             for (i = 0; i < 8; i++) {
-                f = sup_rdmsr(MSR_FIX4K_BASE + (ULONG)i);
                 Printf("FIX4K_%lu=", (unsigned long)i);
-                print_u64hex(f);
+                print_u64hex(fixv[3 + i]);
                 Printf("\n");
             }
         }
         n = nn;
+        }
+        }
     } else {
         Printf("MTRR unsupported-or-no-maxphy (no RDMSR attempted)\n");
         n = 0;
+        if (has_pat) {
+            UQUAD fixv0[11];
+            for (i = 0; i < 11; i++)
+                fixv0[i] = 0;
+            if (!priv_win2(0, 0, 1, bases, masks, fixv0, &patraw, &cr3))
+                Printf("PAT no-super-window\n");
+        }
     }
 
     if (has_pat) {
         int j;
-        patraw = sup_rdmsr(MSR_PAT);
         Printf("PAT raw=");
         print_u64hex(patraw);
         for (j = 0; j < 8; j++)
@@ -340,7 +382,6 @@ int main(void)
     if (fb && has_mtrr && has_pat && maxphy >= 12) {
         fbend = fb + fbsz - 1;
         fbmid = fb + (fbsz / 2) - ((fbsz / 2) % (2UL * 1024UL * 1024UL));
-        cr3 = sup_cr3();
         Printf("CR3=");
         print_u64hex(cr3);
         Printf("\n");
@@ -350,32 +391,45 @@ int main(void)
         /* MTRR type at fb, fbmid, fbend: all three must agree. */
         for (k = 0; k < 3; k++) {
             UQUAD ad = (k == 0) ? fb : ((k == 1) ? fbmid : fbend);
-            int nm = 0, q;
+            int nm = 0, q, via = -2;
             for (q = 0; q < n; q++) {
                 if (!mt_mtrr_valid(masks[q]))
                     continue;
                 {
                     UQUAD bs = mt_mtrr_base(bases[q], masks[q]);
                     UQUAD sz = mt_mtrr_size(masks[q], maxphy);
-                    if (sz && ad >= bs && ad < bs + sz && nm < 16)
+                    if (sz && ad >= bs && ad < bs + sz && nm < 16) {
+                        if (nm == 0)
+                            via = q;
                         match[nm++] = mt_mtrr_type(bases[q]);
+                    }
                 }
             }
-            if (!en)
+            if (!en) {
                 match[nm++] = MT_UC; /* MTRRs disabled: everything UC */
-            else if (nm == 0)
+                via = -3;
+            } else if (nm == 0) {
                 match[nm++] = (int)(def & 0xFFu);
+                via = -1;
+            }
             Printf("MTRR_AT_%d=", k);
             print_u64hex(ad);
             if (nm == 1) {
                 Printf(" %s", mt_name(match[0]));
+                if (via >= 0)
+                    Printf(" via=MTRR%d", via);
+                else if (via == -1)
+                    Printf(" via=default");
+                else
+                    Printf(" via=disabled");
             } else {
                 Printf(" overlap%d=%s", nm, mt_name(mt_mtrr_overlap(match, nm)));
             }
             Printf("\n");
-            if (k == 0)
+            if (k == 0) {
                 mtrr_t = (nm == 1) ? match[0] : mt_mtrr_overlap(match, nm);
-            else {
+                via0 = (nm == 1) ? via : -4;
+            } else {
                 int tt = (nm == 1) ? match[0] : mt_mtrr_overlap(match, nm);
                 if (tt != mtrr_t)
                     Printf("NOTE MTRR type differs across FB range\n");
@@ -385,10 +439,17 @@ int main(void)
         if (idx1 != idx0 || idx2 != idx0)
             Printf("NOTE PAT index differs across FB range (%d/%d/%d)\n", idx0, idx1, idx2);
         eff = mt_effective(pat_t, mtrr_t);
-        Printf("FB effective=%s via MTRR=%s PAT[%d]=%s\n",
-            mt_name(eff), mt_name(mtrr_t), idx0, mt_name(pat_t));
+        Printf("FB effective=%s via MTRR=%s", mt_name(eff), mt_name(mtrr_t));
+        if (via0 >= 0)
+            Printf("(MTRR%d)", via0);
+        else if (via0 == -1)
+            Printf("(default)");
+        else if (via0 == -3)
+            Printf("(disabled)");
+        Printf(" PAT[%d]=%s\n", idx0, mt_name(pat_t));
     } else {
         Printf("FB effective=unknown (missing FB, MTRR, PAT or MAXPHYADDR)\n");
     }
+    CloseLibrary((struct Library *)DOSBase);
     return 0;
 }
