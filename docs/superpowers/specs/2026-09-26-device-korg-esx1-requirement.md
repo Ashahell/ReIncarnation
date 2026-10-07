@@ -1,6 +1,6 @@
 # Planned device: Korg Electribe ESX-1 (owner requirement, 2026-09-26)
 
-**Status:** planned — recorded, not designed. No code yet.
+**Status:** DEFERRED (owner 2026-10-07): "we'll drop the Korg for now and add a sampler/slicer device … We can always add the Korg later." The next rack device is the sampler/slicer (`docs/superpowers/specs/2026-10-07-device-sampler-slicer-requirement.md`). The rack rules below still apply to every device. Was: planned, recorded, not designed; no code.
 **Owner statement (2026-09-26):** "we plan to add a Korg ElecTribe ESX1".
 **Parent requirement:** the extensible device rack (spec D-k; owner requirement 2026-09-24; llm-wiki `raw/articles/2026-09-24-extensible-device-rack-requirement.md`). The ESX-1 is the **first named device beyond the four ReBirth sections** (303A, 303B, 808, 909), so it is the concrete test case for the rack architecture.
 

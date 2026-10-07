@@ -1,5 +1,9 @@
 # Planned device: Korg Electribe ESX-1 (owner plan)
 
+> **Status: Outdated (2026-10-07).** The owner deferred the ESX-1 ("we can
+> always add the Korg later"). The next rack device is a sampler/slicer. See
+> [2026-10-07-sampler-slicer-replaces-esx1.md](2026-10-07-sampler-slicer-replaces-esx1.md).
+
 - Source: owner statement in the ReIncarnation session, 2026-09-26 ("we plan to add a Korg ElecTribe ESX1")
 - Collected: 2026-09-26
 - Published: 2026-09-26

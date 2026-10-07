@@ -3079,3 +3079,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: New; Update (closes the P3 owner decisions; adds the Dell before/after for the shipped engine)
 - Raw: llm-wiki/raw/articles/2026-10-06-levi-control-rate-and-bank-skip-enabled.md
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-07] ingest | The Korg ESX-1 is deferred; the next rack device is a sampler/slicer
+- Disposition: New; Update (marks the 2026-09-26 ESX-1 plan Outdated)
+- Raw: llm-wiki/raw/articles/2026-10-07-sampler-slicer-replaces-esx1.md
+- Updated: llm-wiki/raw/articles/2026-09-26-planned-device-korg-esx1.md (Status: Outdated block)
+- Updated: llm-wiki/index.md (ESX-1 entry marked deferred; sampler entry added)
