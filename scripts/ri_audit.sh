@@ -295,7 +295,6 @@ bash "$ROOT/scripts/ri_build_host.sh" test t173_levi_ctrlrate >/dev/null || { ec
 bash "$ROOT/scripts/ri_build_host.sh" test t174_levi_bankskip >/dev/null || { echo "FAIL: t174_levi_bankskip (levi static-morph bank skip: gated, resynced, mono-safe)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t175_drum_counters >/dev/null || { echo "FAIL: t175_drum_counters (drum-tail A0: per-block 909/808 active voice-sample counters with positive controls; Dell (us, active) ring mechanics)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t176_tab_split >/dev/null || { echo "FAIL: t176_tab_split (tab-switch B0: full-draw build/replay/blit partition the switch; mui never negative)"; exit 1; }
-bash "$ROOT/scripts/ri_build_host.sh" test t177_drum_envtau >/dev/null || { echo "FAIL: t177_drum_envtau (drum-tail A1: crash/ride decay tau cached at trigger/knob, paths bit-identical)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t111_legend_face >/dev/null || { echo "FAIL: t111_legend_face (S2 legend face)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t112_partial_redraw >/dev/null || { echo "FAIL: t112_partial_redraw (S3 dirty rect)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_master_live >/dev/null || { echo "FAIL: t115_master_live (S4 master live)"; exit 1; }

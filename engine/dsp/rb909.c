@@ -74,12 +74,6 @@ float rb909_decay_scale(uint8_t voice, uint8_t tune) {
     return 1.0f;
 }
 
-/* The cached crash/ride decay constant (drum-tail A1): the one computation
- * both refresh paths share, so they cannot drift apart (t177). */
-float rb909_env_tau(uint8_t voice, uint8_t tune) {
-    return 1.2f * rb909_decay_scale(voice, tune);
-}
-
 /* Bounded Newton-sqrt on plain arithmetic (10 fixed iterations, no
  * libm, no branches on the value): the layer mixer needs an equal-power
  * normalization and the allowlisted kernel set has no sqrt. Bit-exact
@@ -163,7 +157,6 @@ void rb909_init_set(struct RB909Set *s) {
         s->v[i].pad = 0;
         s->v[i].level = 1.0f;
         s->v[i].decay_tau = -1.0f; /* bypass until the DECAY knob writes */
-        s->v[i].env_tau = rb909_env_tau((uint8_t)i, 64); /* = 1.2 s */
         s->v[i].flam = 0u;
         s->v[i].flam_pad[0] = s->v[i].flam_pad[1] = s->v[i].flam_pad[2] = 0u;
         s->v[i].flam_width = (float)RI_909_FLAM_DEFAULT_SMP;
@@ -246,7 +239,6 @@ void rb909_trigger(struct RB909Set *s, uint32_t voice, uint32_t accent,
     v->pos2 = -1.0f;
     v->shelf_lp = 0.0f;
     v->age = 0;
-    v->env_tau = rb909_env_tau(v->id, tune); /* A1 cache refresh */
     /* Flam state: accent==2 arms the compat path; anything else disarms
      * (an explicit arm_flam after trigger re-arms — the scheduler path). */
     v->flam = (v->accent == 2u) ? 1u : 0u;
@@ -257,15 +249,14 @@ void rb909_trigger(struct RB909Set *s, uint32_t voice, uint32_t accent,
     v->flam_width = (float)flam_delay_smp;
 }
 
-/* Extra crash/ride decay envelope (tau 1.2 s at tune 64, scaled). The tau
- * is cached at trigger/knob time (drum-tail A1), not recomputed per sample:
- * identical inputs, identical bits. */
+/* Extra crash/ride decay envelope (tau 1.2 s at tune 64, scaled). */
 static float decay_env(const struct RB909Voice *v, float pos, float sr) {
-    float t;
+    float tau, t;
     if (!v->accent_noop)
         return 1.0f;
+    tau = 1.2f * rb909_decay_scale(v->id, v->tune);
     t = pos / sr;
-    return ri_exp(-t / v->env_tau);
+    return ri_exp(-t / tau);
 }
 
 float rb909_voice_render(struct RB909Voice *v, float sr) {
