@@ -95,6 +95,13 @@ struct RB909Voice {
     uint8_t pad;
     float level; /* per-voice linear trim (default 1.0, §12.6a) */
     float decay_tau; /* per-voice extra decay, s; <= 0 = bypass (§12.6a) */
+    /* Crash/ride Tune-shortened decay constant, cached (drum-tail A1). The
+     * pow2 half of decay_env() depends only on (id, tune), both fixed
+     * between trigger and the next trigger/knob move, so recomputing it per
+     * sample is pure waste (~2.6 us/block on the host). Refreshed in
+     * rb909_trigger AND rb909_set_param(TUNE) — the knob writes tune
+     * directly, so a trigger-only refresh goes stale (t177). */
+    float env_tau;
     uint8_t flam; /* explicit second-hit request (§12.6b; accent==2 arms it) */
     uint8_t flam_pad[3];
     float flam_width; /* second-hit delay, layer-frame domain (§12.6b) */
@@ -155,6 +162,9 @@ float rb909_accent_gain(const struct RB909Voice *v);
 /* Tune -> extra decay scale for crash/ride only (1.0 elsewhere):
  * 2^(-(tune-64)/48), applied as an extra exp envelope. */
 float rb909_decay_scale(uint8_t voice, uint8_t tune);
+/* Cached crash/ride decay constant 1.2 * decay_scale (drum-tail A1): the
+ * single computation shared by the trigger and knob refresh paths. */
+float rb909_env_tau(uint8_t voice, uint8_t tune);
 
 /* 909 control IDs [WBS interface line for Module 2.4; order mirrors panels.c] */
 #define RI_CTL_909_TUNE    0x0900u

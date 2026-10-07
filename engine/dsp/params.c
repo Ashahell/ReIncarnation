@@ -175,6 +175,8 @@ void rb909_set_param(struct RB909Voice *v, uint32_t ctl_id, uint8_t value) {
     switch (ctl_id) {
     case RI_CTL_909_TUNE:
         v->tune = value;
+        v->env_tau = rb909_env_tau(v->id, value); /* A1: the knob writes tune
+            directly, so the cache refreshes here too (t177) */
         break;
     case RI_CTL_909_LEVEL:
         /* Per-voice linear trim (§12.6a); default 1.0 keeps goldens
