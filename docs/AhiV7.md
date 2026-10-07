@@ -62,11 +62,11 @@ G9 was stated as fact without evidence.
 |---|---|---|---|
 | G1 | Integer sample types: 8/16-bit, plus 32-bit (`AHIST_M32S`, `AHIST_S32S`) and "HiFi" 32-bit mixing (`AHIDB_HiFi`) since V6 [CHECKED `devices/ahi.h`]. **No float type. No headroom contract.** | A float DSP chain converts at every boundary. There is no defined clipping point, so headroom is wherever the mixer happens to saturate. | Replace: F32 non-interleaved is the only internal format; one clip point (§7.1). |
 | G2 | Mono and stereo, plus **one fixed layout**, `AHIST_L7_1` (8 × 32-bit, interleaved) [CHECKED]. There is no channel map, nothing beyond 8 channels, and the order is implied by a constant. | No way to describe 5.1, quad or an arbitrary bus. Two drivers can disagree about which slot is LFE with no field to tell them apart. | Replace: an explicit channel map on every stream (§7.2). |
-| G3 | Latency is neither negotiated nor reported. `AHIDB_MaxPlaySamples` is a capability hint. **The rate is not reliably reported either:** on real HDA hardware (Dell E6320, Sandy Bridge, ABIv11) a low-level client asking for 48000, 32000 or 22050 Hz reads 44100 back for every request [CHECKED: rate probe, 2026-10-03]. | An application cannot know its own output delay, or even its output rate. There is no A/V sync, no DAW and no delay compensation. | Replace: negotiation plus an itemised latency report (§9.1). |
+| G3 | Latency is neither negotiated nor reported. `AHIDB_MaxPlaySamples` is a capability hint. **The rate is not reliably reported either:** HDAudio programs the hardware to the nearest listed rate but leaves `ahiac_MixFreq` at the request, so an off-list request (e.g. 50000 Hz on hardware listing 44100/48000/…) mixes at 50000 while the hardware runs 48000, and `AHIC_MixFreq_Query` repeats the request [CHECKED: source, `Drivers/HDAudio/main.c` `_AHIsub_AllocAudio` selects `selected_freq_index` without writing `ahiac_MixFreq` back; `Device/audioctrl.c` documents "The actual mixing rate may or may not be exactly what you asked for"]. CORRECTION 2026-10-07: Draft 3 also claimed the Dell "reads 44100 back for every request" — that read `AHIDB_Frequency` with no `AHIDB_FrequencyArg` (list index 0), not the running rate. | An application cannot know its own output delay, or even its output rate. There is no A/V sync, no DAW and no delay compensation. | Replace: negotiation plus an itemised latency report (§9.1). |
 | G4 | `ahi.device` unit path (multi-client): latency is unspecified. | Believed sluggish for interactive use [MEASURE]. | Replace with a mixer whose latency is a published number. |
 | G5 | `AHIA_SoundFunc`/`AHIA_PlayerFunc` are documented as callable from interrupt or mixer context, with m68k Hook conventions. | Hostile to SMP (§11) and to C; hard to debug; "no blocking" cannot be enforced. | Change: all hooks, including legacy ones, run in task context (Decision 2), at a small compatibility cost (§15.3). |
 | G6 | Full duplex exists (`AHIDB_FullDuplex`, `AHIST_INPUT`, `AHIA_RecordFunc`) [CHECKED], but the input/output offset is neither matched nor reported. | No dependable live monitoring; a recorded take lands at an unknown offset. | Replace: duplex is a stream direction with a shared clock and reported offsets. |
-| G7 | Rate conversion happens where the application cannot see it. **Observed twice:** the Dell HDA reports 44100 for a 48000 request (G3); a QEMU AC97 guest ran AHI at 48000 while the host played 44100, so audio was 8.1 % slow with **no error anywhere in the stack** [CHECKED: 2026-10-03]. | Pitch and tempo errors that look like performance bugs. Unpredictable CPU. No guaranteed bit-exact path. | Move SRC to the core: drivers never resample (§13), and the bit-exact path is a CI test (§17.2). |
+| G7 | Rate conversion happens where the application cannot see it. **Observed twice, in different places:** a QEMU AC97 guest ran AHI at 48000 while the host played 44100, so audio was 8.1 % slow with **no error anywhere in the stack** [CHECKED: 2026-10-03; guest 48000, host 44100, conversion outside AHI]; and HDAudio runs an off-list request's hardware at the nearest listed rate while the mixer and `AHIC_MixFreq_Query` keep the request [CHECKED: source — the AHI-side example]. | Pitch and tempo errors that look like performance bugs. Unpredictable CPU. No guaranteed bit-exact path. | Move SRC to the core: drivers never resample (§13), and the bit-exact path is a CI test (§17.2). |
 | G8 | No device-change, hotplug or rate-change notification. | USB and HDMI audio are second-class; unplugging is a hang, not an event [MEASURE: which drivers hang]. | Add: device change is a stream state transition (§8.2). |
 | G9 | The driver API requires understanding the mixer. **The tree ships about 20 AHI drivers** (ac97, VIA-AC97, HDAudio, CMI8738, SB128, EMU10kx, Envy24, Envy24HT, Alsa, OSS, PulseAudio, WASAPI, Paula, Toccata, Void, Filesave …) [CHECKED `workbench/devs/AHI/Drivers`]. The problem is not that nobody writes drivers; it is **driver quality and maintenance**. Example: HDAudio's `DriverInit` faults on codec-less hardware [CHECKED, 2026-09-21]. | Drivers exist but are hard to verify: no conformance suite and no way to check latency honesty. | Replace with a nine-entry-point driver that does no mixing and no conversion (§13), plus a conformance tool (§18, `AHI2DrvTest`). |
 | G10 | Position reporting is coarse and not tied to a system clock. | Cannot timestamp; cannot sync to anything. | Add: a presentation timestamp per buffer (§9.3). |
@@ -580,7 +580,8 @@ LONG AHI2_Configure(struct AHI2Stream *s,
 ```
 
 - **`Actual.SampleRate` is the device's real rate.** G3/G7: today a client can
-  ask for 48000 and run at 44100 without being told. Under AHI2, if the device
+  ask for an off-list rate and run the mixer at the request while the hardware
+  runs the nearest listed rate, without being told. Under AHI2, if the device
   runs at 44100 and the client wants 48000, the reply is either "44100, SRC
   off" or "48000, SRC on, `LatSRC` = n". Never "48000" alone.
 - **Latency is itemised** because a single number hides which part the client
@@ -1337,8 +1338,9 @@ A Phase 1b deliverable: a corpus of real AHI applications (trackers, players,
 games, AHI-Handler, datatypes), run before and after every engine change, with
 output captured and compared.
 
-The corpus MUST include clients that hit the G3/G7 cases: a 48000 request on
-hardware that runs 44100, and a duplex client.
+The corpus MUST include clients that hit the G3/G7 cases: an off-list rate
+request (mixer at the request, hardware at the nearest listed rate), and a
+duplex client.
 
 ---
 
@@ -1627,7 +1629,7 @@ Tracked, not hidden. Each needs an owner and a resolution date.
 | Q8 | How many real applications depend on interrupt-level `SoundFunc`? | Open: decides whether `COMPAT_IRQHOOK` is ever built | §15.3 |
 | Q9 | `AllocVecTags`/`AVT_Alignment` in AROS? | **Answered: no.** Aligned allocators are `.skip` placeholders in `exec.conf`; over-allocate and align (§12.2). | §12.2 |
 | Q10 | SRC implementation: port or write? Licence? | Open | Phase 2 |
-| Q11 | Why does real HDA hardware read back 44100 for every requested rate, and is the HDAudio driver resampling or misreporting? | **New.** Open. | G3/G7; `hdaudio.audio` port |
+| Q11 | Which drivers fail to write back the selected rate? (H3: survey every `AllocAudio` for accept/round/clamp, write-back, and hardware programmed from something other than `ahiac_MixFreq`; HDAudio off-list [CHECKED: source].) | Open. | G3/G7; driver ports |
 | Q12 | Where exactly is the 48000 → 44100 conversion in the hosted/QEMU AC97 path? | **New.** Open. | `hosted.audio`, G7 |
 
 ---
@@ -1706,7 +1708,8 @@ mono -> stereo: L = R = M
 | G1: "sample formats are 8/16-bit" | 8/16/32-bit and HiFi exist; the gap is float plus a headroom contract | `devices/ahi.h` has `AHIST_M32S`, `AHIST_S32S`, `AHIDB_HiFi` |
 | G2: "mono/stereo; multichannel ad hoc" | One fixed 7.1 layout exists; the gap is an explicit map | `AHIST_L7_1` |
 | G9: "almost nobody writes AHI drivers" (stated as root cause) | About 20 drivers exist; the gap is verification and maintenance | `workbench/devs/AHI/Drivers` listing; the HDAudio `DriverInit` fault |
-| G3/G7 asserted without evidence | Two observed silent rate conversions cited | Dell HDA reads 44100 for any request; the QEMU AC97 path played 8.1 % slow |
+| G3/G7 asserted without evidence | One observed silent rate conversion cited (QEMU AC97 path: guest 48000, host 44100, 8.1 % slow) plus the HDAudio off-list write-back defect [CHECKED: source] | The "Dell HDA reads 44100 for any request" row was `AHIDB_Frequency` at index 0, not the running rate; the QEMU AC97 case stands, stated precisely |
+| 2026-10-03 "44100 for every rate" (this document's G3/G7 row, the wiki article, `probe_rate.c`) | Withdrawn: `AHIDB_Frequency` with no `AHIDB_FrequencyArg` returns list index 0 (`Device/modeinfo.c` ~297-305; `Drivers/HDAudio/main.c` ~483); the running rate is `AHIC_MixFreq_Query` (`Device/audioctrl.c` ~888), which reads `mix=48000` on the Dell | Replaced by the off-list write-back defect above |
 | No preliminary data | §3.4: wakeup max 38–68 µs at pri 21; priority vs `input.device`; `ReadEClock` = PIT, 2.2 µs; uncached framebuffer | Measured on real hardware; shapes M2 |
 | Interrupt → `Cause()` → softint → `Signal()` | Interrupt → `Signal()`; `Cause()` allowed but not required | `Signal()` is legal from interrupts; the extra hop is pure latency |
 | C8 "calls no AHI function other than the position update" vs C9 "no AHI function from interrupts" | Position is a plain store; no AHI call | Contradiction |

@@ -157,11 +157,15 @@ grep -q "#ifndef __AROS__" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_
 grep -q '#error "probe_rate.c is AROS-only' "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks AROS-only #error"; exit 1; }
 if grep -rn "probe_rate" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: probe_rate leaks into host build"; exit 1; fi
 test -f /tmp/ri/aros/probe_rate || { echo "FAIL: probe_rate artifact missing"; exit 1; }
-# The rate probe must read the negotiated mode back and never trust the request.
-# This is the whole reason it exists: on the Dell, a 48000 request comes back
-# as 44100, and a probe that only reported the request would report "the card
-# does 48 kHz" -- the exact false claim it was written to correct.
-grep -q "AHIDB_Frequency,   (IPTR)&q_freq" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate does not read the mode back"; exit 1; }
+# The rate probe must read the negotiated rate back and never trust the request.
+# CORRECTION 2026-10-07: AHIDB_Frequency without AHIDB_FrequencyArg is entry 0
+# of the codec's list, not the running rate (Device/modeinfo.c ~297-305); the
+# running rate is AHIC_MixFreq_Query (Device/audioctrl.c ~888). A probe that
+# only reported the request -- or the list entry -- would report "the card
+# does 48 kHz" or "44100 for every rate", both false claims it was written
+# to correct.
+grep -q "AHIC_MixFreq_Query" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate does not read the running rate (AHIC_MixFreq_Query)"; exit 1; }
+grep -q "mixq=" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks the req/mixq/listidx0 line"; exit 1; }
 grep -q "CONVERTED_TO" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks the resampling tell"; exit 1; }
 echo "-- ABIv1 LVO convention gate (2026-09-21 probe_ahi guest page-fault) --"
 echo "-- Guest binaries MUST emit rdx-base calls (build-pc SDK); any"

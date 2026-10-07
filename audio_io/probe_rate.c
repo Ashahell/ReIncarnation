@@ -20,8 +20,17 @@
  *      (AHIDB_Frequencies with AHIDB_FrequencyArg as the index). This is the
  *      authoritative list, and it is what a rate change should be chosen from.
  *   3. What AHI hands back for a REQUESTED rate -- read from the allocated
- *      handle, never assumed, because a request that is not met returns
- *      something else and the difference is invisible from the request alone.
+ *      handle with AHIC_MixFreq_Query (the current mixing frequency), never
+ *      assumed, because a request that is not met returns something else and
+ *      the difference is invisible from the request alone.
+ *
+ * CORRECTION 2026-10-07: an earlier version of this probe read (3) with
+ * AHIDB_Frequency and no AHIDB_FrequencyArg, which per the AHI autodoc
+ * (Device/modeinfo.c ~297-305) returns the frequency at index
+ * AHIDB_FrequencyArg (default 0) -- i.e. entry 0 of the codec's rate list,
+ * every time -- and filed it as the rate. That is why the 2026-10-03 run
+ * reported "44100 for every rate". The list dump below is the codec's list;
+ * only AHIC_MixFreq_Query (Device/audioctrl.c ~888) is the running rate.
  *
  * (3) is the one that caught the resample in the first place: the request was
  * 48000 and the host was playing 44100, and only reading the mode back showed
@@ -194,16 +203,36 @@ int main(void) {
             continue;
         }
 
-        /* Snapshot immediately: everything below reuses these query slots. */
-        got = q_freq;
+        /* Snapshot immediately: everything below reuses these query slots.
+         * got= is the RUNNING rate from AHIC_MixFreq_Query (Device/audioctrl.c:
+         * "Get the current mixing frequency"). AHIDB_Frequency without
+         * AHIDB_FrequencyArg is entry 0 of the codec's list, not the rate
+         * (2026-10-07 correction) -- it is kept below only as the list. */
+        {
+            ULONG mixq = 0, idx0 = 0;
+            struct TagItem mix_tags[] = {
+                { AHIC_MixFreq_Query, (IPTR)&mixq },
+                { TAG_DONE,           0 }
+            };
+            struct TagItem idx0_tags[] = {
+                { AHIDB_FrequencyArg, (IPTR) 0 },
+                { AHIDB_Frequency,    (IPTR)&idx0 },
+                { TAG_DONE,           0 }
+            };
+            AHI_ControlAudioA(actl, mix_tags);
+            AHI_GetAudioAttrsA(AHI_INVALID_ID, actl, idx0_tags);
+            got = mixq;
+            Printf("RI_RATE req=%lu mixq=%lu listidx0=%lu\n", s_cand[i], mixq, idx0);
+        }
 
         Printf("RI_RATE req=%lu mode=0x%08lx got=%lu bits=%lu stereo=%lu hifi=%lu maxch=%lu "
                "range=%lu-%lu nfreq=%lu\n",
                s_cand[i], mode_id, got, q_bits, q_stereo, q_hifi, q_maxch,
                q_min, q_max, nfreq);
 
-        /* The driver's own frequency list, which is the authoritative answer
-         * to "what rate is native here". Walked once, on the first mode that
+        /* The driver's own frequency list (the codec's list, NOT the running
+         * rate -- 2026-10-07 correction), which is the authoritative answer
+         * to "what rates are natively listed here". Walked once, on the first mode that
          * allocated successfully: every mode of the same driver returns the
          * same list, so repeating it per candidate is pure noise. */
         if (!listed) {

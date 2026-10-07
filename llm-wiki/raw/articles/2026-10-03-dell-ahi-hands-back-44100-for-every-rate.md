@@ -1,5 +1,27 @@
 # The Dell hands back 44100 for every rate it is asked for, and `AHI_BestAudioID` cannot select 44100 at all (2026-10-03)
 
+> **Status: Outdated (2026-10-07).** The headline reading is an API misuse, not
+> a fact about the hardware. `probe_rate.c` read the rate back with
+> `AHI_GetAudioAttrsA(AHI_INVALID_ID, actl, … AHIDB_Frequency …)` *without*
+> setting `AHIDB_FrequencyArg`, so it always returned index 0 of the codec's
+> rate list (44100 on this codec) — "entry 0 of the list, every time". Per the
+> AHI autodoc (`workbench/devs/AHI/Device/modeinfo.c`, `AHI_GetAudioAttrsA`
+> doc, ~lines 297–305), `AHIDB_Frequency` returns the frequency at index
+> `AHIDB_FrequencyArg` (default 0); the HDAudio driver's `AHIsub_GetAttr`
+> returns `card->frequencies[argument].frequency`
+> (`Drivers/HDAudio/main.c` ~line 483). The correct query is
+> `AHI_ControlAudioA(actl, AHIC_MixFreq_Query, &f)` ("Get the current mixing
+> frequency", `Device/audioctrl.c` ~line 888), which is what
+> `audio_io/audio_ahi_live.c` (~line 275) uses — and it logs `mix=48000 Hz`
+> on the Dell (e.g. `docs/evidence/portability/dell-riapp-t4.log`,
+> 2026-09-26: `audio: AHI low-level mode=0x003E0001 mix=48000 Hz buffer=256
+> frames period=5333 us`). Pitch on the Dell always sounded right. The
+> `BestAudioID`-refuses-44100 observation and the lane/method notes below
+> stand; every `got=44100` / `CONVERTED_TO=44100` row is withdrawn. The real
+> HDAudio defect is different: off-list rates run the mixer at the request
+> while the hardware runs the nearest listed rate (see the 2026-10-07
+> honest-rate record).
+
 - Source: ReIncarnation session, 2026-10-03 (opencode lane, Dell E6320, ABIv11)
 - Collected: 2026-10-03
 - Published: 2026-10-03

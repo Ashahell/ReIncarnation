@@ -3097,3 +3097,10 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-10-07-framebuffer-is-uncached-and-the-wc-trial-stops-at-four-cpus.md
 - Updated: llm-wiki/raw/articles/2026-10-07-drum-tails-are-polyphony-and-the-screen-is-the-bottleneck.md (Status: superseded block)
 - Updated: llm-wiki/index.md (bottleneck entry annotated; framebuffer entry added)
+
+## [2026-10-07] correction | The "Dell hands back 44100" reading was AHIDB_Frequency index 0, not the rate
+- Disposition: Update (marks the 2026-10-03 Dell rate article Outdated; corrects the probe and AhiV7 G3/G7/Q11/Appendix E)
+- Raw: llm-wiki/raw/articles/2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md
+- Updated: llm-wiki/raw/articles/2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md (Status: Outdated block)
+- Updated: llm-wiki/index.md (entry annotated)
+- Evidence: audio_io/probe_rate.c now reports AHIC_MixFreq_Query as got; AROS autodoc Device/modeinfo.c ~297-305, Device/audioctrl.c ~342/~888, Drivers/HDAudio/main.c ~118-160/~326-336/~483
