@@ -3104,3 +3104,11 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Updated: llm-wiki/raw/articles/2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md (Status: Outdated block)
 - Updated: llm-wiki/index.md (entry annotated)
 - Evidence: audio_io/probe_rate.c now reports AHIC_MixFreq_Query as got; AROS autodoc Device/modeinfo.c ~297-305, Device/audioctrl.c ~342/~888, Drivers/HDAudio/main.c ~118-160/~326-336/~483
+
+## [2026-10-07] ingest | AHI honest rate: misread corrected, off-list defect measured, six drivers fixed
+- Disposition: New; Update (marks the 2026-10-03 Dell rate article Outdated; corrects the AC97 article's Dell rows; corrects AhiV7 G3/G7/Q11/Appendix E)
+- Raw: llm-wiki/raw/articles/2026-10-07-ahi-honest-rate.md
+- Updated: llm-wiki/raw/articles/2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md (Status: Outdated block)
+- Updated: llm-wiki/raw/articles/2026-10-03-riqemu1-ac97-resamples-48k-to-44k1-so-playback-is-8-1-slow.md (Correction block)
+- Updated: llm-wiki/index.md (new entry; Dell entry annotated)
+- Evidence: docs/evidence/audio/ahi-rate/2026-10-07-h{1,2,3}-*.md; audio_io/probe_rate_hw.c

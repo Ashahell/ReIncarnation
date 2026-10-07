@@ -1,5 +1,15 @@
 # The AC97 resamples 48 kHz to 44.1 kHz, so riqemu1 playback is 8.1 % slow (2026-10-03)
 
+> **Correction 2026-10-07:** this article's Dell sentences ("returns 44100
+> for everything", "hands back 44100 for every rate", and the Dell row of
+> the comparability table) repeat the misread corrected in [the Dell rate
+> article](2026-10-03-dell-ahi-hands-back-44100-for-every-rate.md): the
+> probe read `AHIDB_Frequency` at index 0, not the running rate. The
+> riqemu1 measurement in this article (guest 48000, host 44100, 8.1 %
+> slow) stands; the Dell rows do not. The real HDAudio defect is an
+> off-list mixer/hardware split, measured in [the honest-rate
+> record](2026-10-07-ahi-honest-rate.md).
+
 - Source: ReIncarnation session, 2026-10-03 (opencode lane, riqemu1)
 - Collected: 2026-10-03
 - Published: 2026-10-03
