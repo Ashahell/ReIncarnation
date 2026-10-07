@@ -90,6 +90,9 @@ WIN       RectFill full    9290 us/frame  225 MB/s
   - About 220 MB/s is the typical rate for uncached writes to a PCI
     framebuffer. The Dell's MTRR/PAT state has not been read yet, so
     "uncached" is inferred, not proven.
+  - **Status (2026-10-07, superseded):** since proven — MEMTYPE read the
+    Dell twice: FB `0xD0000000` is **UC** (MTRR default, PAT[0]=WB); see
+    [2026-10-07-framebuffer-is-uncached-and-the-wc-trial-stops-at-four-cpus.md](2026-10-07-framebuffer-is-uncached-and-the-wc-trial-stops-at-four-cpus.md).
 - **Consequences:**
   - `fl` and much of `mui` (backfill and rack art drawn into the window) are
     the slow path to the display, not MUI logic or our build.

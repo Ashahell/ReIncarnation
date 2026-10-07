@@ -3091,3 +3091,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-10-07-drum-tails-are-polyphony-and-the-screen-is-the-bottleneck.md
 - Updated: llm-wiki/raw/articles/2026-10-02-five-sections-one-culprit-levi-is-32-percent.md (909 tail CLOSED note)
 - Updated: llm-wiki/index.md (Live app entry list)
+
+## [2026-10-07] ingest | The Dell VESA framebuffer is uncached; the WC trial stops at four CPUs
+- Disposition: New; Update (supersedes the "likely uncached, MTRR/PAT unread" in the 2026-10-07 bottleneck article)
+- Raw: llm-wiki/raw/articles/2026-10-07-framebuffer-is-uncached-and-the-wc-trial-stops-at-four-cpus.md
+- Updated: llm-wiki/raw/articles/2026-10-07-drum-tails-are-polyphony-and-the-screen-is-the-bottleneck.md (Status: superseded block)
+- Updated: llm-wiki/index.md (bottleneck entry annotated; framebuffer entry added)
