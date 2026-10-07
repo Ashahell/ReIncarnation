@@ -405,9 +405,12 @@ void ri_engine_load(struct RIEngine *e, const struct RIEvent *ev,
     e->cursor = 0;
     e->total = total;
     e->sections = sections;
-    /* A fresh song starts a fresh drum-tail record. */
-    e->drum_last808_us = e->drum_last909_us = 0u;
-    e->drum_n = e->drum_tick = 0u;
+    /* NOTE (drum-tail A0 fix): the drum ring is deliberately NOT reset here.
+     * The live session reloads the engine every 256-frame buffer, so a reset
+     * in load wipes the ring each buffer and it never grows past one sample
+     * (Dell 2026-10-07: n=1 after a full song). Fresh songs reset explicitly
+     * via ri_engine_drum_reset from the song-load path, which runs once per
+     * song; offline callers load once per song and keep init's zeroes. */
 }
 
 /* Shared event routing (replaces the three per-path copies): NOTE-family by
@@ -562,6 +565,13 @@ void ri_engine_set_clock(struct RIEngine *e, uint64_t (*now_us)(void)) {
 
 const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e) {
     return e ? &e->estg : 0;
+}
+
+void ri_engine_drum_reset(struct RIEngine *e) {
+    if (!e)
+        return;
+    e->drum_last808_us = e->drum_last909_us = 0u;
+    e->drum_n = e->drum_tick = 0u;
 }
 
 void ri_engine_drum_sample(struct RIEngine *e, uint32_t cc) {

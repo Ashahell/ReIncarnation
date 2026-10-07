@@ -1073,6 +1073,13 @@ static int song_load_path(const char *path) {
         rlog("RIAPP song %s: automation refused (%ld events)\n", path, (long)cs.nauto);
     s_core.session.cursor_ticks = 0u;                 /* from the top */
     s_core.session.tr.clicks = 0u;
+    /* Drum-tail A0: one song, one ring record. The render loop reloads the
+     * engine per buffer and must never reset the ring itself (Dell
+     * 2026-10-07: per-buffer reset held n at 1 for a whole song) — so the
+     * reset lives here, on the once-per-song path every load converges on
+     * (explicit, demo probe, playlist advance). s_core.session.eng is the
+     * object the live driver renders (drv.session aliases it). */
+    ri_engine_drum_reset(&s_core.session.eng);
     ri_live_set_sections(&s_core.session, ri_live_sections(&s_core.session) | s_core.song_sections);
     if (!t->u.tr.song_mode)
         ri_str_press(&t->u.tr, RI_STR_MODE);

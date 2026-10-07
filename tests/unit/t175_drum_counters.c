@@ -244,6 +244,32 @@ int main(void) {
         RI_ASSERT(e.drum_ring[RI_DRUMDIAG_N - 1u].a909 == 44u, "last kept 2");
     }
 
+    /* 10. The ring survives engine reloads; only an explicit reset starts a
+     * fresh record. Regression (Dell 2026-10-07): the live session reloads
+     * the engine every 256-frame buffer, so a reset in load held the ring
+     * at n=1 for whole songs. */
+    {
+        struct RIEngine e;
+        uint32_t i, n1, n2;
+        ri_engine_init(&e);
+        ri_engine_defaults(&e);
+        ri_engine_set_clock(&e, tick_clock);
+        e.sections = RI_ENGINE_S808 | RI_ENGINE_S909;
+        for (i = 0u; i < 300u; i++)
+            ri_engine_drum_sample(&e, 64u);
+        n1 = e.drum_n;
+        RI_ASSERT(n1 == 2u, "pre-load n %u", n1);
+        ri_engine_load(&e, 0, 0u, 300u * 64u, e.sections);
+        for (i = 0u; i < 300u; i++)
+            ri_engine_drum_sample(&e, 64u);
+        n2 = e.drum_n;
+        RI_ASSERT(n2 == n1 + 1u, "load must not reset the ring (%u -> %u)",
+            n1, n2);
+        ri_engine_drum_reset(&e);
+        RI_ASSERT(e.drum_n == 0u && e.drum_tick == 0u, "explicit reset");
+        ri_engine_drum_reset(0); /* NULL-safe */
+    }
+
     RI_RESULT("drum_counters");
     return 0;
 }

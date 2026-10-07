@@ -206,6 +206,10 @@ const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e);
  * render loop; also directly drivable. Render-contract safe: plain stores,
  * no clock reads of its own, no IO. */
 void ri_engine_drum_sample(struct RIEngine *e, uint32_t cc);
+/* Start a fresh drum-tail record (fresh song). The render loop never calls
+ * this: the live session reloads the engine per buffer, so only an explicit
+ * per-song reset keeps one song's record. NULL-safe. */
+void ri_engine_drum_reset(struct RIEngine *e);
 
 uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
     uint32_t n, float sr);
