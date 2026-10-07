@@ -167,6 +167,19 @@ test -f /tmp/ri/aros/probe_rate || { echo "FAIL: probe_rate artifact missing"; e
 grep -q "AHIC_MixFreq_Query" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate does not read the running rate (AHIC_MixFreq_Query)"; exit 1; }
 grep -q "mixq=" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks the req/mixq/listidx0 line"; exit 1; }
 grep -q "CONVERTED_TO" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks the resampling tell"; exit 1; }
+# Same hygiene contract for probe_rate_hw (2026-10-07, the mixer-vs-hardware
+# probe). It is a third AHI-only executable and the host-build leak is the
+# same hazard.
+test -f "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: missing audio_io/probe_rate_hw.c"; exit 1; }
+grep -q "#ifndef __AROS__" "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: probe_rate_hw lacks __AROS__ guard"; exit 1; }
+grep -q '#error "probe_rate_hw.c is AROS-only' "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: probe_rate_hw lacks AROS-only #error"; exit 1; }
+if grep -rn "probe_rate_hw" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: probe_rate_hw leaks into host build"; exit 1; fi
+test -f /tmp/ri/aros/probe_rate_hw || { echo "FAIL: probe_rate_hw artifact missing"; exit 1; }
+# The hardware-rate probe must timestamp SoundFunc callbacks with ReadEClock
+# and report the mixer rate from AHIC_MixFreq_Query beside the measured rate.
+grep -q "AHIC_MixFreq_Query" "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: probe_rate_hw does not read the mixer rate"; exit 1; }
+grep -q "ReadEClock" "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: probe_rate_hw lacks the EClock timing"; exit 1; }
+grep -q "RI_RATEHW" "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: probe_rate_hw lacks its log prefix"; exit 1; }
 echo "-- ABIv1 LVO convention gate (2026-09-21 probe_ahi guest page-fault) --"
 echo "-- Guest binaries MUST emit rdx-base calls (build-pc SDK); any"
 echo "-- 'mov %rax,%r12' means the stale r12 SDK leaked in and the binary"

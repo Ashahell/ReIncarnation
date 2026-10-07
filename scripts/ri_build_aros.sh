@@ -36,6 +36,11 @@ x86_64-aros-gcc $CFLAGS_AROS -c "$ROOT/audio_io/probe_ahi.c" -o "$OUT/probe_ahi.
 # safe if 44100 is really available, so the Dell's native rate has to be asked
 # rather than inferred. Same link shape and same gates as probe_ahi.
 x86_64-aros-gcc $CFLAGS_AROS -c "$ROOT/audio_io/probe_rate.c" -o "$OUT/probe_rate.o"
+# Hardware-rate probe (2026-10-07, AHI honest-rate H1): mixer rate M (from
+# AHIC_MixFreq_Query) vs TRUE hardware rate H, measured by looping one sound
+# and timestamping SoundFunc callbacks with ReadEClock. Same link shape and
+# same gates as the other probes.
+x86_64-aros-gcc $CFLAGS_AROS -c "$ROOT/audio_io/probe_rate_hw.c" -o "$OUT/probe_rate_hw.o"
 # Executable link mirrors build_cap_probes.sh: -nostartfiles + explicit
 # startup.o (guarded) + stub libs; -no-pie is mandatory (gotcha: GCC 16
 # defaults to PIE, AROS LoadSeg rejects R_X86_64_RELATIVE).
@@ -54,6 +59,9 @@ x86_64-aros-readelf -h "$OUT/probe_ahi" | grep -q "Advanced Micro Devices X86-64
 x86_64-aros-gcc $CFLAGS_AROS -nostartfiles -no-pie -Wa,-W -o "$OUT/probe_rate" "$OUT/probe_rate.o" "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" -lstdcio -lposixc -ldos -lexec
 test -f "$OUT/probe_rate" || { echo "FAIL: probe_rate not linked"; exit 1; }
 x86_64-aros-readelf -h "$OUT/probe_rate" | grep -q "Advanced Micro Devices X86-64" || { echo "FAIL: probe_rate not X86-64 ELF"; exit 1; }
+x86_64-aros-gcc $CFLAGS_AROS -nostartfiles -no-pie -Wa,-W -o "$OUT/probe_rate_hw" "$OUT/probe_rate_hw.o" "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" -lstdcio -lposixc -ldos -lexec
+test -f "$OUT/probe_rate_hw" || { echo "FAIL: probe_rate_hw not linked"; exit 1; }
+x86_64-aros-readelf -h "$OUT/probe_rate_hw" | grep -q "Advanced Micro Devices X86-64" || { echo "FAIL: probe_rate_hw not X86-64 ELF"; exit 1; }
 echo "AROS PROBE BUILD OK"
 # Optional target (2026-09-25, §12.10 G4): `ri_build_aros.sh sections` also links
 # RISECT, the RSection canvas proof (303 / 808) for the ABIv1 lane (riqemu1).
