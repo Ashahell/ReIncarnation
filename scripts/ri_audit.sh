@@ -22,10 +22,8 @@ echo "== Phase 0d: no test ships ungated =="
 # t107 asserts an encoder slot is dead after RIBBON took it).
 # Exemptions belong in the list below with a reason, so "not gated" is always a
 # recorded decision rather than an absence nobody notices.
-# t107 is KNOWN-RED, not exempt-by-omission: RIBBON (P8d) took encoder slot 5,
-# so its assertions that the slot is a dead one now describe the pre-RIBBON map.
-# Left ungated deliberately -- fixing it is a decision about which contract is
-# right, and guessing would make the suite green without making the code right.
+# t107 was KNOWN-RED (RIBBON took encoder slot 5); W1 (2026-10-08) updated
+# it to the P9b/P9c design and gated it below, so it no longer belongs here.
 #
 # levi_bench is a BENCHMARK, not a test, and is deliberately ungated (owner
 # 2026-10-04). It prints a cost table; it asserts no bound, because a
@@ -64,7 +62,7 @@ echo "== Phase 0d: no test ships ungated =="
 # so a bench without layers would measure nothing and look confident).
 #   gcc -std=gnu99 -O2 -I. -o /tmp/drum_bench tests/unit/drum_bench.c \
 #       /tmp/ri/build/*.o -lm -lpng && /tmp/drum_bench
-UNGATED_ALLOW=" t107_levi_sect levi_bench bench_build bench_trbar drum_bench "
+UNGATED_ALLOW=" levi_bench bench_build bench_trbar drum_bench "
 for f in "$ROOT"/tests/unit/*.c; do
   t="$(basename "$f" .c)"
   grep -qE "(test[[:space:]]+|\b)$t\b" "$SELF" && continue
@@ -72,7 +70,7 @@ for f in "$ROOT"/tests/unit/*.c; do
   echo "FAIL: $t is not gated by this audit — add a gate, or an exemption with a reason"
   exit 1
 done
-echo "-- every test reachable from a gate; exemptions: t107_levi_sect (known-red, RIBBON encoder map), levi_bench (benchmark, asserts no machine-dependent bound), bench_build (benchmark, prints the build/clip split; the same property is pinned by t169, which IS gated), bench_trbar (benchmark, prints the transport clipped build against the REAL RI_STR_BAR damage box) --"
+echo "-- every test reachable from a gate; exemptions: levi_bench (benchmark, asserts no machine-dependent bound), bench_build (benchmark, prints the build/clip split; the same property is pinned by t169, which IS gated), bench_trbar (benchmark, prints the transport clipped build against the REAL RI_STR_BAR damage box) --"
 echo "== Phase 1: first-light goldens (Task 4, gate G4) =="
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
 G="$ROOT/tests/golden/303"
@@ -368,6 +366,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t146_levi_perfsig >/dev/null || { ech
 bash "$ROOT/scripts/ri_build_host.sh" test t104_levi_engine >/dev/null || { echo "FAIL: t104_levi_engine (levi instance)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t105_rbng_levi >/dev/null || { echo "FAIL: t105_rbng_levi (levi song compat)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t106_levi_ctl >/dev/null || { echo "FAIL: t106_levi_ctl (levi controls)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t107_levi_sect >/dev/null || { echo "FAIL: t107_levi_sect (levi section front-panel: DVEL live since P9b, module clamps at PERF)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t113_levi_arp >/dev/null || { echo "FAIL: t113_levi_arp (levi arp stepper)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t114_levi_arp_emit >/dev/null || { echo "FAIL: t114_levi_arp_emit (levi arp emit)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_levi_arp_player >/dev/null || { echo "FAIL: t115_levi_arp_player (levi arp player)"; exit 1; }

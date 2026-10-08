@@ -141,7 +141,8 @@ int main(void) {
         RI_ASSERT(ri_slevi_value(&p, RI_SLEVI_PAGE) == (int)RI_SLEVI_M_OSC * 8, "page starts on OSC 1/5");
         RI_ASSERT(!strcmp(ri_slevi_page_title(&p), "OSC 1  1/5"), "title osc 1 p1: %s", ri_slevi_page_title(&p));
         RI_ASSERT(ri_slevi_page_count(&p) == 5u, "osc has 5 pages");
-        /* Digital filter page 1 (P4): slot 3 = CUTOFF, slot 1 = the 18 models, slot 6 (velocity) dead until P9. */
+        /* Digital filter page 1 (P4): slot 3 = CUTOFF, slot 1 = the 18 models;
+         * slot 6 is VEL>ENV (RI_SLEVI_DVEL), live since P9b. */
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, (int)RI_SLEVI_M_DFILT) == 1, "module dfilt");
         RI_ASSERT(!strcmp(ri_slevi_page_title(&p), "DIGITAL FILTER  1/2") && ri_slevi_page_count(&p) == 2u, "title dfilt");
         RI_ASSERT(ri_slevi_enc_live(&p, 2u) && !strcmp(ri_slevi_enc_name(&p, 2u), "CUTOFF"), "enc3 cutoff");
@@ -155,8 +156,17 @@ int main(void) {
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0, 127) == 1 && p.val[RI_SLEVI_DTYPE] == 17, "type max");
         ri_slevi_enc_text(&p, 0u, t, sizeof t);
         RI_ASSERT(!strcmp(t, "VOWEL"), "type text %s", t);
-        RI_ASSERT(!ri_slevi_enc_live(&p, 5u) && ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 5u, 99) == 0, "dead slot inert");
+        /* P9b: DIGITAL FILTER page-1 slot 6 is live (VEL>ENV, RI_SLEVI_DVEL). */
+        RI_ASSERT(ri_slevi_enc_live(&p, 5u), "dvel live");
+        RI_ASSERT(ri_slevi_ctl_idx(&p, RI_SLEVI_ENC0 + 5u) == RI_SLEVI_DVEL, "dvel sends DVEL");
+        RI_ASSERT(!strcmp(ri_slevi_enc_name(&p, 5u), "VEL>ENV"), "dvel name %s", ri_slevi_enc_name(&p, 5u));
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 5u, 99) == 1 && p.val[RI_SLEVI_DVEL] == 99, "dvel turn");
         ri_slevi_enc_text(&p, 5u, t, sizeof t);
+        RI_ASSERT(t[0] != 0, "dvel text %s", t);
+        /* DIGITAL FILTER page 2 slot 1 is genuinely dead (no source). */
+        RI_ASSERT(ri_slevi_press(&p, RI_SLEVI_PAGEDN) == 1, "dfilt page 2");
+        RI_ASSERT(!ri_slevi_enc_live(&p, 0u) && ri_slevi_set_value(&p, RI_SLEVI_ENC0, 99) == 0, "dead slot inert");
+        ri_slevi_enc_text(&p, 0u, t, sizeof t);
         RI_ASSERT(t[0] == 0, "dead slot blank");
         /* OSC 4 page 1: per-oscillator keys 0x0F | op << 5 | param. */
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_OPSEL, 3) == 1, "osc 4");
@@ -211,7 +221,8 @@ int main(void) {
         RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_ENC0 + 1u, 127) == 1 && p.val[RI_SLEVI_ALGO] == 63, "algo max");
         ri_slevi_enc_text(&p, 1u, t, sizeof t);
         RI_ASSERT(!strcmp(t, "64"), "algo text %s", t);
-        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, 99) == 1 && p.val[RI_SLEVI_MODULE] == 36, "module clamp (RIBBON, P8d)");
+        RI_ASSERT(RI_SLEVI_M_PERF == RI_SLEVI_NMOD - 1u, "perf is last module");
+        RI_ASSERT(ri_slevi_set_value(&p, RI_SLEVI_MODULE, 99) == 1 && p.val[RI_SLEVI_MODULE] == (int16_t)(RI_SLEVI_NMOD - 1u), "module clamp (PERF, P9c)");
         RI_ASSERT(ri_slevi_page_reaches(RI_SLEVI_CUTOFF) && ri_slevi_page_reaches(RI_SLEVI_ARPRATE) &&
             !ri_slevi_page_reaches(RI_SLEVI_KEY0) && !ri_slevi_page_reaches(RI_SLEVI_STEP0), "page reach table");
         RI_ASSERT(ri_slevi_legacy(RI_SLEVI_RATIO) && ri_slevi_legacy(RI_SLEVI_ATTACK) &&
