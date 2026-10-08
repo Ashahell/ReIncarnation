@@ -80,6 +80,8 @@ int ri_slevi_init(struct RISectLevi *s) {
             s->opbpm[o] = 0u;
         for (o = 0u; o < RI_LEVI_NMENV; o++)
             s->mebpm[o] = 0u;
+        for (o = 0u; o < RI_LEVI_NLFO; o++)
+            s->lfsc[o] = 0u, s->lfsv[o] = 0u, s->lfsr[o] = 0u; /* step editor init (W4; t145 pins VALUE 0) */
         s->bpmpad[0] = s->bpmpad[1] = s->bpmpad[2] = 0u;
     }
     ri_pattern_init(&s->pat, RI_PATTERN_KIND_LEVI, 0u);

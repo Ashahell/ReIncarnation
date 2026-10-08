@@ -334,6 +334,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t129_levi_osc >/dev/null || { echo "F
 bash "$ROOT/scripts/ri_build_host.sh" test t108_levi_algo >/dev/null || { echo "FAIL: t108_levi_algo (levi algorithms)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t109_levi_morph >/dev/null || { echo "FAIL: t109_levi_morph (levi morph)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t179_levi_mpos >/dev/null || { echo "FAIL: t179_levi_mpos (levi morph position survives slot and mode changes)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t180_levi_laws >/dev/null || { echo "FAIL: t180_levi_laws (levi delivery law + silent triage)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t130_levi_algo_modes >/dev/null || { echo "FAIL: t130_levi_algo_modes (levi algorithm modes)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t131_levi_filters >/dev/null || { echo "FAIL: t131_levi_filters (levi filters + VCA)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t132_levi_mod >/dev/null || { echo "FAIL: t132_levi_mod (levi ENV 1-5 + LFOs)"; exit 1; }
