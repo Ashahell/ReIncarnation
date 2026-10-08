@@ -2412,6 +2412,16 @@ static ULONG riapp_arg_frames(int argc, char **argv) {
     return (v >= 64u && v <= AU_LIVE_MAXFRAMES) ? v : RIAPP_DEV_FRAMES;
 }
 
+/* Chunk drain for the Leviasynth startup adoption (W2, bug 1): move the
+ * burst through the live session the same way the tail drain below does
+ * (no-op once the render task owns the session). */
+static uint32_t burst_drain(void *ctx) {
+    (void)ctx;
+    if (!s_live)
+        ri_live_render(&s_core.session, s_fl, s_fr, RIAPP_FRAMES);
+    return 1u;
+}
+
 static int riapp_main(int argc, char **argv) {
     Object *app, *win, *row;
     LONG ret;
@@ -2663,6 +2673,11 @@ static int riapp_main(int argc, char **argv) {
         struct RISectUI *mu = s_ui[C_MIX];
         ri_panel_ctl_send(&s_core.ctl, (uint16_t)((uint16_t)RI_SEC_MASTER << 8),
             ri_smix_value(mu->u.mix.board, (uint32_t)RI_SEC_MASTER, 0u));
+    }
+    {   /* Leviasynth section adopts the panel (W2, bug 1): every Levi
+         * value through the bridge, chunked with drains so the 256-entry
+         * plane never overflows. Same mapping live knob turns use. */
+        ri_panel_levi_adopt(&s_ui[C_LEVI]->u.slevi, &s_core.ctl, 0, burst_drain);
     }
     s_tr_state = s_ui[C_TR]->u.tr.tr.state;
     for (i = 0; i < C_N; i++) {

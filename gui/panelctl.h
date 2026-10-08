@@ -19,4 +19,20 @@ int ri_panel_ctl_send(struct RIControlPlane *ctl, uint16_t reg_id, int value);
 /* An explicit lane key (Levi per-oscillator params 0x0F.., fidelity P2):
  * sent when allow-listed. 0 sent, 1 refused/full, 2 NULL. */
 int ri_panel_ctl_send_key(struct RIControlPlane *ctl, uint16_t key, int value);
+struct RISectLevi;
+/* Drain hook for the Levi adoption below: move queued messages to the
+ * engine (render a buffer in RIAPP, apply events in host tests). */
+typedef uint32_t (*ri_panel_drain_fn)(void *dctx);
+/* Leviasynth startup adoption (W2, bug 1: the panel shows values the
+ * engine is not running at startup). Send every Levi panel value through
+ * the bridge so the engine adopts the panel: every keyed registry row at
+ * the panel's current value, then every live encoder slot on every module
+ * page (all 8 oscillators for the OSC module). The mapping is the live
+ * one (ri_slevi_ctl_key / ri_slevi_ctl_idx + value, same as a knob turn):
+ * no second mapping to rot. Chunked: drain() runs whenever RI_CTL_CAP/2
+ * messages are pending and once more at the end, so the 256-entry plane
+ * never overflows. Module/page/opsel are restored on return. Returns the
+ * number of messages queued. NULL panel/plane/drain sends nothing. */
+uint32_t ri_panel_levi_adopt(struct RISectLevi *s, struct RIControlPlane *ctl,
+    void *dctx, ri_panel_drain_fn drain);
 #endif

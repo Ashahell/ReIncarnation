@@ -367,6 +367,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t104_levi_engine >/dev/null || { echo
 bash "$ROOT/scripts/ri_build_host.sh" test t105_rbng_levi >/dev/null || { echo "FAIL: t105_rbng_levi (levi song compat)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t106_levi_ctl >/dev/null || { echo "FAIL: t106_levi_ctl (levi controls)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t107_levi_sect >/dev/null || { echo "FAIL: t107_levi_sect (levi section front-panel: DVEL live since P9b, module clamps at PERF)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t178_levi_adopt >/dev/null || { echo "FAIL: t178_levi_adopt (levi startup adoption: the engine adopts the panel)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t113_levi_arp >/dev/null || { echo "FAIL: t113_levi_arp (levi arp stepper)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t114_levi_arp_emit >/dev/null || { echo "FAIL: t114_levi_arp_emit (levi arp emit)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_levi_arp_player >/dev/null || { echo "FAIL: t115_levi_arp_player (levi arp player)"; exit 1; }
