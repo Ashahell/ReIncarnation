@@ -55,11 +55,14 @@ build checks only, then reverted); the carriage is the record.
 
 - Both patched files compile under the v11 16.1.0 toolchain against
   the v11 SDK; the v11 `mysprintf` object carries the fix.
-- The full `camd.library` link is blocked on this machine: the v11
+- The full `camd.library` link was blocked on this machine: the v11
   build tree (`core-pc-x86_64`, configured 2026-09-14) references gcc
   `10.5.0` internal headers, but the toolchain dir now holds only
-  `16.1.0` (`compiler/alib` fails first). Needs an owner
-  re-provision (reconfigure) of the v11 tree — out of M0 scope.
+  `16.1.0` (`compiler/alib` fails first). Worked around per owner
+  direction with a fresh build dir alongside (`core-pc-x86_64-m0`,
+  ignored by git): `make workbench-libs-camd` EXIT 0 (see
+  `riqemu1-m0-g7.md`). The Sep-14 tree was left untouched; repairing
+  its stale config stays an owner item.
 - Existing v11 binary (unbuilt here): `$VER: camd.library 41.1
   (14.9.2026)`, 54904 B, sha256 `5470d033…`.
 
@@ -86,3 +89,11 @@ build checks only, then reverted); the carriage is the record.
   installs to `LIBS:` and reboots (never `avail flush`), then re-run
   the SELFTEST above (expect `connected: 1, 1`, readable names,
   `got 2`, rc=0).
+
+## Dell post-reboot (2026-10-08 — M0 Dell gate PASS)
+
+Owner rebooted onto the staged build (`LIBS:camd.library` 41.1,
+53816 B). Re-PUT `MIDISEND` (reboot wiped RAM:) and re-ran
+`m0post SELFTEST`: `connected: 1, 1`, name `6D 30 70 6F`
+("m0po…"), echo `got 2`, rc=0. Full log:
+`dell-m0-selftest-post.txt`. M0 is green on both ABIs.

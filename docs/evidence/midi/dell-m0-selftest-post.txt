@@ -1,0 +1,21 @@
+# Dell M0 probe, post-fix (2026-10-08, agent e6320, after owner reboot)
+
+Running `camd.library`: 41.1, 53816 bytes = the fixed ABIv11 build
+(staged in RAM:, installed to LIBS: with `camd.library.m0orig` backup).
+
+`RAM:MIDISEND m0post SELFTEST` (re-PUT after the reboot wiped RAM:):
+
+    SELFTEST connected: early sender 1, late sender 1
+    SELFTEST rx err 0
+    SELFTEST cluster 0 at 3A9670 name 6D 30 70 6F
+    SELFTEST got st 90 d1 45 d2 64 raw 90456400
+    SELFTEST got st B0 d1 19 d2 40 raw B0194000
+    SELFTEST rx node 3A9760 link 3A9BD0 sig 16 signalled 1 got 2
+    rc=0
+
+- Sender links connect (`MidiLinkConnected() = 1` both).
+- Cluster name reads `6D 30 70 6F` ("m0po…", the `m0post` cluster).
+- Note + CC echo received (`got 2`).
+
+M0 Dell gate: PASS. The pre-fix log (`dell-m0-selftest-pre.txt`) is the
+exact inverse (connected 0,0; garbage names; got 0; rc=20).
