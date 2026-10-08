@@ -1,5 +1,12 @@
 # The Dell VESA framebuffer is uncached (MTRR default UC), and the WC trial stops at four CPUs (2026-10-07)
 
+> **Status update (2026-10-08):** advisor review findings:
+> - MTRR8 is a staged but *disabled* WC range at exactly the framebuffer (64 MiB, stray mask bit 16).
+> - IntelGMA has the Sandy Bridge IDs commented out, so `vesagfx` is the only driver for the HD 3000.
+> - There is no single-CPU boot switch.
+>
+> These were posted on AROS #1508. See [2026-10-08-ahi-rate-dell-proof-avail-flush-crash-and-ahi-v7-verdict.md](2026-10-08-ahi-rate-dell-proof-avail-flush-crash-and-ahi-v7-verdict.md).
+
 - Source: ReIncarnation opencode lane, 2026-10-07.
   - Opencode commits: `f31d2f3` (F0), `97dbd04` (F1a), `4c806c9` (F1b),
     `486e314` (F1c+F2), `2d4e6eb` (F4), `1459e4b` (F3), `ef329a4` (sent upstream).

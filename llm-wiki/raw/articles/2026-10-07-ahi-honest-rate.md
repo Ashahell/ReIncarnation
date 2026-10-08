@@ -1,5 +1,7 @@
 # AHI honest rate: the "44100 for every rate" misread, the real off-list defect, and six driver fixes (2026-10-07)
 
+> **Status update (2026-10-08):** the Dell proof is done. The patched HDAudio reports M = H within 0.1 % on all eight requests (50000 → 48000/48049, 100000 → 96000/96098). The RIAPP regression is clean (mix=48000, 0 xruns), and the original driver is restored. See [2026-10-08-ahi-rate-dell-proof-avail-flush-crash-and-ahi-v7-verdict.md](2026-10-08-ahi-rate-dell-proof-avail-flush-crash-and-ahi-v7-verdict.md).
+
 - Source: ReIncarnation session, 2026-10-07 (opencode lane, Dell E6320 ABIv11 + upstream master `c99cd7a6a2`)
 - Collected: 2026-10-07
 - Published: 2026-10-07

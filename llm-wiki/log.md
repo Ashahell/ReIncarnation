@@ -3112,3 +3112,10 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Updated: llm-wiki/raw/articles/2026-10-03-riqemu1-ac97-resamples-48k-to-44k1-so-playback-is-8-1-slow.md (Correction block)
 - Updated: llm-wiki/index.md (new entry; Dell entry annotated)
 - Evidence: docs/evidence/audio/ahi-rate/2026-10-07-h{1,2,3}-*.md; audio_io/probe_rate_hw.c
+
+## [2026-10-08] ingest | AHI honest rate proven on the Dell; avail flush crash; framebuffer follow-up upstream; AHI v7 verdict
+- Disposition: New; Update (closes the Dell-proof gap in the AHI honest-rate article; adds the review findings to the framebuffer article)
+- Raw: llm-wiki/raw/articles/2026-10-08-ahi-rate-dell-proof-avail-flush-crash-and-ahi-v7-verdict.md
+- Updated: llm-wiki/raw/articles/2026-10-07-ahi-honest-rate.md (status update)
+- Updated: llm-wiki/raw/articles/2026-10-07-framebuffer-is-uncached-and-the-wc-trial-stops-at-four-cpus.md (status update)
+- Updated: llm-wiki/index.md
