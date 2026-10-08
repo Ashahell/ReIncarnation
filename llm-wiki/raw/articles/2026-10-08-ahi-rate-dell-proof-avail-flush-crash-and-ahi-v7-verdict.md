@@ -39,9 +39,22 @@
   `overloads=0` over 11825 buffers.
 - **Restored:** the original driver file was put back from the stick and
   md5-verified.
-- **Still open:** the upstream branch `ahi-report-selected-rate` (six driver
-  commits plus an optional autodoc commit) is unpushed, and no PR is open.
-  That is the owner's call.
+- **Sent and merged (owner instruction, 2026-10-08):**
+  - the commits were rebased onto the current upstream master in a separate
+    worktree (the vendored v1 tree was mid-rebase with foreign WIP, so it
+    was left alone);
+  - the autodoc commit was **included**, reworded without "(optional)";
+  - pushed as `Ashahell:ahi-report-selected-rate` (`a5295e048a`);
+  - opened as **aros-development-team/AROS#1518**, "AHI: report the mixing
+    rate the hardware actually runs", with the before/after table and the
+    driver survey, and no project name;
+  - **approved and merged by Kalamatee the same day (2026-10-08 11:18 UTC),
+    all 7 commits, merge `acd9a5fe2a`.**
+- **The pattern holds:** small, measured, scoped upstream fixes land fast
+  (getrusage #1490 and AHI rate #1518 each merged within a day).
+- **Issue #1508 (framebuffer write-combining)** is a proposal, not code. It
+  is still open with no maintainer reply as of 2026-10-08; only our own
+  follow-up comment is on it.
 
 ## 2. `avail flush` crashes this AROS: a ROM-library expunge bug, not ours
 

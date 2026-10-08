@@ -3119,3 +3119,8 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Updated: llm-wiki/raw/articles/2026-10-07-ahi-honest-rate.md (status update)
 - Updated: llm-wiki/raw/articles/2026-10-07-framebuffer-is-uncached-and-the-wc-trial-stops-at-four-cpus.md (status update)
 - Updated: llm-wiki/index.md
+
+## [2026-10-08] ingest | AHI honest-rate fixes merged upstream (AROS#1518); #1508 still open
+- Disposition: Update
+- Raw: llm-wiki/raw/articles/2026-10-08-ahi-rate-dell-proof-avail-flush-crash-and-ahi-v7-verdict.md (status: sent and merged)
+- Updated: llm-wiki/index.md
