@@ -1629,7 +1629,7 @@ Tracked, not hidden. Each needs an owner and a resolution date.
 | Q8 | How many real applications depend on interrupt-level `SoundFunc`? | Open: decides whether `COMPAT_IRQHOOK` is ever built | §15.3 |
 | Q9 | `AllocVecTags`/`AVT_Alignment` in AROS? | **Answered: no.** Aligned allocators are `.skip` placeholders in `exec.conf`; over-allocate and align (§12.2). | §12.2 |
 | Q10 | SRC implementation: port or write? Licence? | Open | Phase 2 |
-| Q11 | Which drivers fail to write back the selected rate? (H3: survey every `AllocAudio` for accept/round/clamp, write-back, and hardware programmed from something other than `ahiac_MixFreq`; HDAudio off-list [CHECKED: source].) | Open. | G3/G7; driver ports |
+| Q11 | Which drivers fail to write back the selected rate? | **Answered (2026-10-07 survey, `docs/evidence/audio/ahi-rate/2026-10-07-h3-survey.md`):** HDAudio and NVHDMI (nearest listed rate, no write-back), SB128/CMI8738 (off-list falls back to 44100 at Start), Envy24/Envy24HT (fall back to 48000). All six fixed with a write-back on an upstream-ready branch. HDAudio is measured on the Dell (off-list 50000 ran the hardware at ~48027 Hz before the fix); the other five fixes are compile-proven only. Paula/SoundBlasterAWE/Wavetools: no C source to survey. | G3/G7; driver ports |
 | Q12 | Where exactly is the 48000 → 44100 conversion in the hosted/QEMU AC97 path? | **New.** Open. | `hosted.audio`, G7 |
 
 ---
