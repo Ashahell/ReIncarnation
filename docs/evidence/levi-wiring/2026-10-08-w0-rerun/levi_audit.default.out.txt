@@ -1,0 +1,1138 @@
+DEFAULT row   0              Cutoff         def 96 key 0e00
+DEFAULT row   1              Reso           def 32 key 0e01
+DEFAULT row   3              Ratio          def 32 key 0e03
+SILENT  row  38 Algo         Target         key 0e07=63
+SILENT  row  39 Algo         Morph          key 0e05=100
+SILENT  row  41 Algo         Op Mode        key 0e06=6
+DEFAULT row  44 Analog       Cutoff         def 96 key 0e0a
+SILENT  row  44 Analog       Cutoff         key 0e0a=127
+DEFAULT row  45 Analog       Reso           def 32 key 0e0b
+DEFAULT row  46 Env          Attack         def 27 key 0e0c
+DEFAULT row  47 Env          Decay          def 95 key 0e0d
+DEFAULT row  48 Env          Sustain        def 102 key 0e0e
+DEFAULT row  49 Env          Release        def 84 key 0e0f
+SILENT  row  53 Arp          Rate           key 0e12=127
+SILENT  row  54 Seq          On             key 0e13=1
+SILENT  row  55 Seq          Len            key 0e14=1
+SILENT  row  56 Matrix       R1             key 0e15=1
+SILENT  row  57 Matrix       R2             key 0e16=1
+SILENT  row  58 Matrix       R3             key 0e17=1
+SILENT  row  59 Matrix       R4             key 0e18=1
+SILENT  row  60 Matrix       R5             key 0e19=1
+SILENT  row  61 Matrix       R6             key 0e1a=1
+SILENT  row  62 Matrix       R7             key 0e1b=1
+SILENT  row  63 Matrix       R8             key 0e1c=1
+SILENT  row  86 Algo         Slot 2         key 0e2d=0
+SILENT  row  87 Algo         Slot 3         key 0e2e=0
+SILENT  row  88 Algo         Slot 4         key 0e2f=0
+SILENT  row  89 Algo         Slot 5         key 0e30=0
+SILENT  row  90 Algo         Slot 6         key 0e31=0
+SILENT  row  91 Algo         Slot 7         key 0e32=0
+SILENT  row  92 Algo         Slot 8         key 0e33=0
+STATE   row  93 Algo         Morph Pos      key 0e34=127
+SILENT  row  96 Algo         Mute 8         key 0e37=1
+SILENT  row  99 Filter       Drive Post     key 0e3a=1
+SILENT  row 100 Filter       Vowel Order    key 0e3b=7
+SILENT  row 104 Analog       A Keytrack     key 0e3f=127
+SILENT  row 111 Analog       ENV2 Amt       key 0e46=127
+SILENT  row 113 Macro        Macro 1        key 0e48=127
+SILENT  row 114 Macro        Macro 2        key 0e49=127
+SILENT  row 115 Macro        Macro 3        key 0e4a=127
+SILENT  row 116 Macro        Macro 4        key 0e4b=127
+SILENT  row 117 Macro        Macro 5        key 0e4c=127
+SILENT  row 118 Macro        Macro 6        key 0e4d=127
+SILENT  row 119 Macro        Macro 7        key 0e4e=127
+SILENT  row 120 Macro        Macro 8        key 0e4f=127
+SILENT  row 121 Macro        Button 1       key 0e50=1
+SILENT  row 122 Macro        Button 2       key 0e51=1
+SILENT  row 123 Macro        Button 3       key 0e52=1
+SILENT  row 124 Macro        Button 4       key 0e53=1
+SILENT  row 125 Macro        Button 5       key 0e54=1
+SILENT  row 126 Macro        Button 6       key 0e55=1
+SILENT  row 127 Macro        Button 7       key 0e56=1
+SILENT  row 128 Macro        Button 8       key 0e57=1
+SILENT  row 130 Voice        Density        key 0e59=0
+SILENT  row 131 Voice        Poly Limit     key 0e5a=0
+DEFAULT row 136 Voice        Width          def 64 key 0e5f
+SILENT  row 136 Voice        Width          key 0e5f=127
+SILENT  row 137 Voice        Pan Mode       key 0e60=2
+DEFAULT row 138 Voice        Bend Range     def 11 key 0e61
+SILENT  row 138 Voice        Bend Range     key 0e61=127
+DEFAULT row 139 Voice        Vibrato Rate   def 94 key 0e62
+SILENT  row 139 Voice        Vibrato Rate   key 0e62=127
+SILENT  row 141 Voice        Vibrato Delay  key 0e64=127
+SILENT  row 142 Voice        Glide          key 0e65=127
+DEFAULT row 143 Voice        Glide Time     def 57 key 0e66
+SILENT  row 143 Voice        Glide Time     key 0e66=127
+SILENT  row 144 Voice        Glide Curve    key 0e67=127
+SILENT  row 146 Voice        Scale          key 0e69=15
+SILENT  row 148 Voice        Key Lock       key 0e6b=1
+SILENT  row 151 Voice        OscPan 2       key 0e6e=127
+SILENT  row 152 Voice        OscPan 3       key 0e6f=127
+SILENT  row 153 Voice        OscPan 4       key 0e70=127
+SILENT  row 154 Voice        OscPan 5       key 0e71=127
+SILENT  row 155 Voice        OscPan 6       key 0e72=127
+SILENT  row 156 Voice        OscPan 7       key 0e73=127
+SILENT  row 157 Voice        OscPan 8       key 0e74=127
+SILENT  row 158 Delay        Type           key 0e76=3
+SILENT  row 159 Delay        Time           key 0e77=127
+SILENT  row 160 Delay        Feedback       key 0e78=127
+DEFAULT row 161 Delay        Wet Tone       def 127 key 0e79
+SILENT  row 161 Delay        Wet Tone       key 0e79=0
+DEFAULT row 162 Delay        FB Tone        def 127 key 0e7a
+SILENT  row 162 Delay        FB Tone        key 0e7a=0
+SILENT  row 163 Delay        Dry/Wet        key 0e7b=127
+SILENT  row 164 Delay        BPM Sync       key 0e7c=1
+SILENT  row 165 Reverb       Type           key 0e7e=3
+SILENT  row 166 Reverb       Pre-Dly        key 0e7f=127
+SILENT  row 167 Reverb       Time           key 0e80=127
+DEFAULT row 168 Reverb       Tone           def 127 key 0e81
+SILENT  row 168 Reverb       Tone           key 0e81=0
+DEFAULT row 169 Reverb       Hi Damp        def 127 key 0e82
+SILENT  row 169 Reverb       Hi Damp        key 0e82=0
+SILENT  row 170 Reverb       Lo Damp        key 0e83=127
+SILENT  row 171 Reverb       Dry/Wet        key 0e84=127
+SILENT  row 172 Reverb       Freeze         key 0e85=1
+SILENT  row 173 PreFx        Type           key 0e87=8
+DEFAULT row 174 PreFx        Preset         def 0 key 0e88
+SILENT  row 174 PreFx        Preset         key 0e88=3
+SILENT  row 175 PreFx        Param 1        key 0e89=127
+SILENT  row 176 PreFx        Param 2        key 0e8a=127
+SILENT  row 177 PreFx        Dry/Wet        key 0e8b=127
+SILENT  row 178 PostFx       Type           key 0e8d=8
+DEFAULT row 179 PostFx       Preset         def 0 key 0e8e
+SILENT  row 179 PostFx       Preset         key 0e8e=3
+SILENT  row 180 PostFx       Param 1        key 0e8f=127
+SILENT  row 181 PostFx       Param 2        key 0e90=127
+SILENT  row 182 PostFx       Dry/Wet        key 0e91=127
+SILENT  row 183 Arp          Oct Mode       key 0ea0=2
+SILENT  row 184 Arp          Oct Range      key 0ea1=127
+SILENT  row 185 Arp          Gate           key 0ea2=0
+SILENT  row 186 Arp          Mode           key 0ea3=8
+SILENT  row 187 Arp          Length         key 0ea4=0
+SILENT  row 188 Arp          Phrase         key 0ea5=127
+SILENT  row 189 Arp          Entropy        key 0ea6=127
+SILENT  row 190 Arp          Swing          key 0ea7=127
+SILENT  row 191 Arp          Ratchet        key 0ea8=127
+SILENT  row 192 Arp          Chance         key 0ea9=127
+SILENT  row 193 Arp          Latch          key 0eaa=1
+SILENT  row 194 Arp          ClockLock      key 0eab=0
+SILENT  row 195 Arp          Step Off       key 0eac=127
+SILENT  row 196 Seq          Rate           key 0ead=127
+SILENT  row 197 Seq          Mode           key 0eae=2
+SILENT  row 198 Seq          Swing          key 0eaf=127
+SILENT  row 199 Seq          Gate           key 0eb0=0
+SILENT  row 200 Seq          Prob           key 0eb1=0
+SILENT  row 201 Seq          Drift          key 0eb2=127
+SILENT  row 202 Seq          Transpose      key 0eb3=127
+SILENT  row 203 Seq          Trk Len        key 0eb4=0
+SILENT  row 204 Seq          Rec            key 0eb5=1
+SILENT  row 205 Seq          Step           key 0eb6=127
+STATE   row 206 Seq          Clear          key 0eb7=1
+SILENT  row 207 Seq          St Trig        key 0eb8=127
+SILENT  row 208 Seq          St Prob        key 0eb9=0
+SILENT  row 209 Seq          St Drift       key 0eba=127
+SILENT  row 210 Seq          St Entr        key 0ebb=127
+SILENT  row 211 Ribbon       Mode           key 0ebc=3
+SILENT  row 212 Ribbon       Pos            key 0ebd=127
+SILENT  row 213 Ribbon       Touch          key 0ebe=1
+SILENT  row 216 Filter       D Polyat       key 0ec0=127
+SILENT  row 217 Analog       A Vel          key 0ec1=127
+SILENT  row 218 Analog       A Polyat       key 0ec2=127
+SILENT  row 220 VCA          V Polyat       key 0ec4=127
+SILENT  row 223 Performance  Select         key 0ec7=0
+SILENT  row 224 Performance  Split          key 0ec8=1
+SILENT  row 225 Performance  Balance        key 0ec9=127
+SILENT  row 226 Performance  Glide          key 0eca=1
+SILENT  enc OSC 1  1/5             slot 1 MODE           key 0f0b=6
+DEFAULT enc OSC 1  2/5             slot 1 ATTACK         key 0f0d=14
+DEFAULT enc OSC 1  2/5             slot 2 DECAY          key 0f0f=34
+DEFAULT enc OSC 1  2/5             slot 3 SUSTAIN        key 0f10=102
+DEFAULT enc OSC 1  2/5             slot 4 RELEASE        key 0f11=28
+SILENT  enc OSC 1  3/5             slot 5 LEGATO         key 0f19=1
+SILENT  enc OSC 1  3/5             slot 6 RESET          key 0f1a=1
+SILENT  enc OSC 1  3/5             slot 7 FREERUN        key 0f1b=1
+SILENT  enc OSC 1  4/5             slot 7 STG LOOP       key 0f18=0
+SILENT  enc OSC 1  5/5             slot 2 DIRECT         key 0f0a=1
+SILENT  enc GROUP: MODE            slot 1 OSC 1          key 0f0b=6
+SILENT  enc GROUP: MODE            slot 3 OSC 3          key 0f4b=6
+SILENT  enc GROUP: MODE            slot 4 OSC 4          key 0f6b=6
+SILENT  enc GROUP: MODE            slot 5 OSC 5          key 0f8b=6
+SILENT  enc GROUP: MODE            slot 6 OSC 6          key 0fab=6
+SILENT  enc GROUP: MODE            slot 7 OSC 7          key 0fcb=6
+SILENT  enc GROUP: MODE            slot 8 OSC 8          key 0feb=6
+SILENT  enc GROUP: WAVE            slot 3 OSC 3          key 0f40=127
+SILENT  enc GROUP: WAVE            slot 4 OSC 4          key 0f60=127
+SILENT  enc GROUP: WAVE            slot 5 OSC 5          key 0f80=127
+SILENT  enc GROUP: WAVE            slot 6 OSC 6          key 0fa0=127
+SILENT  enc GROUP: WAVE            slot 7 OSC 7          key 0fc0=127
+SILENT  enc GROUP: WAVE            slot 8 OSC 8          key 0fe0=127
+SILENT  enc GROUP: PITCH           slot 3 OSC 3          key 0f43=127
+SILENT  enc GROUP: PITCH           slot 4 OSC 4          key 0f63=127
+SILENT  enc GROUP: PITCH           slot 5 OSC 5          key 0f83=127
+SILENT  enc GROUP: PITCH           slot 6 OSC 6          key 0fa3=127
+SILENT  enc GROUP: PITCH           slot 7 OSC 7          key 0fc3=127
+SILENT  enc GROUP: PITCH           slot 8 OSC 8          key 0fe3=127
+SILENT  enc GROUP: FINE            slot 3 OSC 3          key 0f44=0
+SILENT  enc GROUP: FINE            slot 4 OSC 4          key 0f64=0
+SILENT  enc GROUP: FINE            slot 5 OSC 5          key 0f84=0
+SILENT  enc GROUP: FINE            slot 6 OSC 6          key 0fa4=0
+SILENT  enc GROUP: FINE            slot 7 OSC 7          key 0fc4=0
+SILENT  enc GROUP: FINE            slot 8 OSC 8          key 0fe4=0
+SILENT  enc GROUP: FEEDBACK        slot 3 OSC 3          key 0f47=127
+SILENT  enc GROUP: FEEDBACK        slot 4 OSC 4          key 0f67=127
+SILENT  enc GROUP: FEEDBACK        slot 5 OSC 5          key 0f87=127
+SILENT  enc GROUP: FEEDBACK        slot 6 OSC 6          key 0fa7=127
+SILENT  enc GROUP: FEEDBACK        slot 7 OSC 7          key 0fc7=127
+SILENT  enc GROUP: FEEDBACK        slot 8 OSC 8          key 0fe7=127
+SILENT  enc GROUP: LEVEL           slot 3 OSC 3          key 0f45=127
+SILENT  enc GROUP: LEVEL           slot 4 OSC 4          key 0f65=127
+SILENT  enc GROUP: LEVEL           slot 5 OSC 5          key 0f85=127
+SILENT  enc GROUP: LEVEL           slot 6 OSC 6          key 0fa5=127
+SILENT  enc GROUP: LEVEL           slot 7 OSC 7          key 0fc5=127
+SILENT  enc GROUP: LEVEL           slot 8 OSC 8          key 0fe5=127
+SILENT  enc GROUP: DELAY           slot 3 OSC 3          key 0f4c=127
+SILENT  enc GROUP: DELAY           slot 4 OSC 4          key 0f6c=127
+SILENT  enc GROUP: DELAY           slot 5 OSC 5          key 0f8c=127
+SILENT  enc GROUP: DELAY           slot 6 OSC 6          key 0fac=127
+SILENT  enc GROUP: DELAY           slot 7 OSC 7          key 0fcc=127
+SILENT  enc GROUP: DELAY           slot 8 OSC 8          key 0fec=127
+DEFAULT enc GROUP: ATTACK          slot 1 OSC 1          key 0f0d=14
+DEFAULT enc GROUP: ATTACK          slot 2 OSC 2          key 0f2d=14
+DEFAULT enc GROUP: ATTACK          slot 3 OSC 3          key 0f4d=14
+SILENT  enc GROUP: ATTACK          slot 3 OSC 3          key 0f4d=127
+DEFAULT enc GROUP: ATTACK          slot 4 OSC 4          key 0f6d=14
+SILENT  enc GROUP: ATTACK          slot 4 OSC 4          key 0f6d=127
+DEFAULT enc GROUP: ATTACK          slot 5 OSC 5          key 0f8d=14
+SILENT  enc GROUP: ATTACK          slot 5 OSC 5          key 0f8d=127
+DEFAULT enc GROUP: ATTACK          slot 6 OSC 6          key 0fad=14
+SILENT  enc GROUP: ATTACK          slot 6 OSC 6          key 0fad=127
+DEFAULT enc GROUP: ATTACK          slot 7 OSC 7          key 0fcd=14
+SILENT  enc GROUP: ATTACK          slot 7 OSC 7          key 0fcd=127
+DEFAULT enc GROUP: ATTACK          slot 8 OSC 8          key 0fed=14
+SILENT  enc GROUP: ATTACK          slot 8 OSC 8          key 0fed=127
+SILENT  enc GROUP: HOLD            slot 3 OSC 3          key 0f4e=127
+SILENT  enc GROUP: HOLD            slot 4 OSC 4          key 0f6e=127
+SILENT  enc GROUP: HOLD            slot 5 OSC 5          key 0f8e=127
+SILENT  enc GROUP: HOLD            slot 6 OSC 6          key 0fae=127
+SILENT  enc GROUP: HOLD            slot 7 OSC 7          key 0fce=127
+SILENT  enc GROUP: HOLD            slot 8 OSC 8          key 0fee=127
+DEFAULT enc GROUP: DECAY           slot 1 OSC 1          key 0f0f=34
+DEFAULT enc GROUP: DECAY           slot 2 OSC 2          key 0f2f=34
+DEFAULT enc GROUP: DECAY           slot 3 OSC 3          key 0f4f=34
+SILENT  enc GROUP: DECAY           slot 3 OSC 3          key 0f4f=127
+DEFAULT enc GROUP: DECAY           slot 4 OSC 4          key 0f6f=34
+SILENT  enc GROUP: DECAY           slot 4 OSC 4          key 0f6f=127
+DEFAULT enc GROUP: DECAY           slot 5 OSC 5          key 0f8f=34
+SILENT  enc GROUP: DECAY           slot 5 OSC 5          key 0f8f=127
+DEFAULT enc GROUP: DECAY           slot 6 OSC 6          key 0faf=34
+SILENT  enc GROUP: DECAY           slot 6 OSC 6          key 0faf=127
+DEFAULT enc GROUP: DECAY           slot 7 OSC 7          key 0fcf=34
+SILENT  enc GROUP: DECAY           slot 7 OSC 7          key 0fcf=127
+DEFAULT enc GROUP: DECAY           slot 8 OSC 8          key 0fef=34
+SILENT  enc GROUP: DECAY           slot 8 OSC 8          key 0fef=127
+DEFAULT enc GROUP: SUSTAIN         slot 1 OSC 1          key 0f10=102
+DEFAULT enc GROUP: SUSTAIN         slot 2 OSC 2          key 0f30=102
+DEFAULT enc GROUP: SUSTAIN         slot 3 OSC 3          key 0f50=102
+SILENT  enc GROUP: SUSTAIN         slot 3 OSC 3          key 0f50=0
+DEFAULT enc GROUP: SUSTAIN         slot 4 OSC 4          key 0f70=102
+SILENT  enc GROUP: SUSTAIN         slot 4 OSC 4          key 0f70=0
+DEFAULT enc GROUP: SUSTAIN         slot 5 OSC 5          key 0f90=102
+SILENT  enc GROUP: SUSTAIN         slot 5 OSC 5          key 0f90=0
+DEFAULT enc GROUP: SUSTAIN         slot 6 OSC 6          key 0fb0=102
+SILENT  enc GROUP: SUSTAIN         slot 6 OSC 6          key 0fb0=0
+DEFAULT enc GROUP: SUSTAIN         slot 7 OSC 7          key 0fd0=102
+SILENT  enc GROUP: SUSTAIN         slot 7 OSC 7          key 0fd0=0
+DEFAULT enc GROUP: SUSTAIN         slot 8 OSC 8          key 0ff0=102
+SILENT  enc GROUP: SUSTAIN         slot 8 OSC 8          key 0ff0=0
+DEFAULT enc GROUP: RELEASE         slot 1 OSC 1          key 0f11=28
+DEFAULT enc GROUP: RELEASE         slot 2 OSC 2          key 0f31=28
+DEFAULT enc GROUP: RELEASE         slot 3 OSC 3          key 0f51=28
+SILENT  enc GROUP: RELEASE         slot 3 OSC 3          key 0f51=127
+DEFAULT enc GROUP: RELEASE         slot 4 OSC 4          key 0f71=28
+SILENT  enc GROUP: RELEASE         slot 4 OSC 4          key 0f71=127
+DEFAULT enc GROUP: RELEASE         slot 5 OSC 5          key 0f91=28
+SILENT  enc GROUP: RELEASE         slot 5 OSC 5          key 0f91=127
+DEFAULT enc GROUP: RELEASE         slot 6 OSC 6          key 0fb1=28
+SILENT  enc GROUP: RELEASE         slot 6 OSC 6          key 0fb1=127
+DEFAULT enc GROUP: RELEASE         slot 7 OSC 7          key 0fd1=28
+SILENT  enc GROUP: RELEASE         slot 7 OSC 7          key 0fd1=127
+DEFAULT enc GROUP: RELEASE         slot 8 OSC 8          key 0ff1=28
+SILENT  enc GROUP: RELEASE         slot 8 OSC 8          key 0ff1=127
+SILENT  enc ENV 1  1/4             slot 1 ATTACK         key 100d=127
+SILENT  enc ENV 1  1/4             slot 2 DECAY          key 100f=127
+SILENT  enc ENV 1  1/4             slot 3 SUSTAIN        key 1010=0
+SILENT  enc ENV 1  1/4             slot 4 RELEASE        key 1011=127
+SILENT  enc ENV 1  1/4             slot 5 DELAY          key 100c=127
+SILENT  enc ENV 1  1/4             slot 6 HOLD           key 100e=127
+SILENT  enc ENV 1  1/4             slot 7 SPEED          key 1012=1
+SILENT  enc ENV 1  1/4             slot 8 BPM SYNC       key 0e9b=1
+SILENT  enc ENV 1  2/4             slot 1 ATK CRV        key 1013=0
+SILENT  enc ENV 1  2/4             slot 2 DEC CRV        key 1014=0
+SILENT  enc ENV 1  2/4             slot 3 QUANTIZE       key 1016=15
+SILENT  enc ENV 1  2/4             slot 4 REL CRV        key 1015=0
+SILENT  enc ENV 1  2/4             slot 5 LEGATO         key 1019=1
+SILENT  enc ENV 1  2/4             slot 6 RESET          key 101a=1
+SILENT  enc ENV 1  2/4             slot 7 FREERUN        key 101b=1
+SILENT  enc ENV 1  2/4             slot 8 ENV LOOP       key 1017=50
+SILENT  enc ENV 1  3/4             slot 5 VEL CRV        key 101d=0
+SILENT  enc ENV 1  3/4             slot 7 STG LOOP       key 1018=0
+SILENT  enc ENV 1  3/4             slot 8 LEVEL          key 1006=0
+SILENT  enc ENV 1  4/4             slot 1 TRIG 1         key 1000=9
+SILENT  enc ENV 1  4/4             slot 2 TRIG 2         key 1001=9
+SILENT  enc ENV 1  4/4             slot 3 TRIG 3         key 1002=9
+SILENT  enc ENV 1  4/4             slot 4 TRIG 4         key 1003=9
+SILENT  enc ENV 2  1/4             slot 1 ATTACK         key 102d=127
+SILENT  enc ENV 2  1/4             slot 2 DECAY          key 102f=127
+SILENT  enc ENV 2  1/4             slot 3 SUSTAIN        key 1030=0
+SILENT  enc ENV 2  1/4             slot 4 RELEASE        key 1031=127
+SILENT  enc ENV 2  1/4             slot 5 DELAY          key 102c=127
+SILENT  enc ENV 2  1/4             slot 6 HOLD           key 102e=127
+SILENT  enc ENV 2  1/4             slot 7 SPEED          key 1032=1
+SILENT  enc ENV 2  1/4             slot 8 BPM SYNC       key 0e9c=1
+SILENT  enc ENV 2  2/4             slot 1 ATK CRV        key 1033=0
+SILENT  enc ENV 2  2/4             slot 2 DEC CRV        key 1034=0
+SILENT  enc ENV 2  2/4             slot 3 QUANTIZE       key 1036=15
+SILENT  enc ENV 2  2/4             slot 4 REL CRV        key 1035=0
+SILENT  enc ENV 2  2/4             slot 5 LEGATO         key 1039=1
+SILENT  enc ENV 2  2/4             slot 6 RESET          key 103a=1
+SILENT  enc ENV 2  2/4             slot 7 FREERUN        key 103b=1
+SILENT  enc ENV 2  2/4             slot 8 ENV LOOP       key 1037=50
+SILENT  enc ENV 2  3/4             slot 5 VEL CRV        key 103d=0
+SILENT  enc ENV 2  3/4             slot 7 STG LOOP       key 1038=0
+SILENT  enc ENV 2  3/4             slot 8 LEVEL          key 1026=0
+SILENT  enc ENV 2  4/4             slot 1 TRIG 1         key 1020=9
+SILENT  enc ENV 2  4/4             slot 2 TRIG 2         key 1021=9
+SILENT  enc ENV 2  4/4             slot 3 TRIG 3         key 1022=9
+SILENT  enc ENV 2  4/4             slot 4 TRIG 4         key 1023=9
+SILENT  enc ENV 3  1/4             slot 2 DECAY          key 104f=127
+SILENT  enc ENV 3  1/4             slot 6 HOLD           key 104e=127
+SILENT  enc ENV 3  2/4             slot 1 ATK CRV        key 1053=0
+SILENT  enc ENV 3  2/4             slot 2 DEC CRV        key 1054=0
+SILENT  enc ENV 3  2/4             slot 5 LEGATO         key 1059=1
+SILENT  enc ENV 3  2/4             slot 6 RESET          key 105a=1
+SILENT  enc ENV 3  2/4             slot 7 FREERUN        key 105b=1
+SILENT  enc ENV 3  3/4             slot 7 STG LOOP       key 1058=0
+SILENT  enc ENV 3  4/4             slot 2 TRIG 2         key 1041=9
+SILENT  enc ENV 3  4/4             slot 3 TRIG 3         key 1042=9
+SILENT  enc ENV 3  4/4             slot 4 TRIG 4         key 1043=9
+SILENT  enc ENV 4  1/4             slot 1 ATTACK         key 106d=127
+SILENT  enc ENV 4  1/4             slot 2 DECAY          key 106f=127
+SILENT  enc ENV 4  1/4             slot 3 SUSTAIN        key 1070=0
+SILENT  enc ENV 4  1/4             slot 4 RELEASE        key 1071=127
+SILENT  enc ENV 4  1/4             slot 5 DELAY          key 106c=127
+SILENT  enc ENV 4  1/4             slot 6 HOLD           key 106e=127
+SILENT  enc ENV 4  1/4             slot 7 SPEED          key 1072=1
+SILENT  enc ENV 4  1/4             slot 8 BPM SYNC       key 0e9e=1
+SILENT  enc ENV 4  2/4             slot 1 ATK CRV        key 1073=0
+SILENT  enc ENV 4  2/4             slot 2 DEC CRV        key 1074=0
+SILENT  enc ENV 4  2/4             slot 3 QUANTIZE       key 1076=15
+SILENT  enc ENV 4  2/4             slot 4 REL CRV        key 1075=0
+SILENT  enc ENV 4  2/4             slot 5 LEGATO         key 1079=1
+SILENT  enc ENV 4  2/4             slot 6 RESET          key 107a=1
+SILENT  enc ENV 4  2/4             slot 7 FREERUN        key 107b=1
+SILENT  enc ENV 4  2/4             slot 8 ENV LOOP       key 1077=50
+SILENT  enc ENV 4  3/4             slot 5 VEL CRV        key 107d=0
+SILENT  enc ENV 4  3/4             slot 7 STG LOOP       key 1078=0
+SILENT  enc ENV 4  3/4             slot 8 LEVEL          key 1066=0
+SILENT  enc ENV 4  4/4             slot 1 TRIG 1         key 1060=9
+SILENT  enc ENV 4  4/4             slot 2 TRIG 2         key 1061=9
+SILENT  enc ENV 4  4/4             slot 3 TRIG 3         key 1062=9
+SILENT  enc ENV 4  4/4             slot 4 TRIG 4         key 1063=9
+SILENT  enc ENV 5  1/4             slot 1 ATTACK         key 108d=127
+SILENT  enc ENV 5  1/4             slot 2 DECAY          key 108f=127
+SILENT  enc ENV 5  1/4             slot 3 SUSTAIN        key 1090=0
+SILENT  enc ENV 5  1/4             slot 4 RELEASE        key 1091=127
+SILENT  enc ENV 5  1/4             slot 5 DELAY          key 108c=127
+SILENT  enc ENV 5  1/4             slot 6 HOLD           key 108e=127
+SILENT  enc ENV 5  1/4             slot 7 SPEED          key 1092=1
+SILENT  enc ENV 5  1/4             slot 8 BPM SYNC       key 0e9f=1
+SILENT  enc ENV 5  2/4             slot 1 ATK CRV        key 1093=0
+SILENT  enc ENV 5  2/4             slot 2 DEC CRV        key 1094=0
+SILENT  enc ENV 5  2/4             slot 3 QUANTIZE       key 1096=15
+SILENT  enc ENV 5  2/4             slot 4 REL CRV        key 1095=0
+SILENT  enc ENV 5  2/4             slot 5 LEGATO         key 1099=1
+SILENT  enc ENV 5  2/4             slot 6 RESET          key 109a=1
+SILENT  enc ENV 5  2/4             slot 7 FREERUN        key 109b=1
+SILENT  enc ENV 5  2/4             slot 8 ENV LOOP       key 1097=50
+SILENT  enc ENV 5  3/4             slot 5 VEL CRV        key 109d=0
+SILENT  enc ENV 5  3/4             slot 7 STG LOOP       key 1098=0
+SILENT  enc ENV 5  3/4             slot 8 LEVEL          key 1086=0
+SILENT  enc ENV 5  4/4             slot 1 TRIG 1         key 1080=9
+SILENT  enc ENV 5  4/4             slot 2 TRIG 2         key 1081=9
+SILENT  enc ENV 5  4/4             slot 3 TRIG 3         key 1082=9
+SILENT  enc ENV 5  4/4             slot 4 TRIG 4         key 1083=9
+SILENT  enc DIGITAL FILTER  1/2    slot 1 TYPE           key 0e38=0
+DEFAULT enc DIGITAL FILTER  1/2    slot 3 CUTOFF         key 0e00=96
+DEFAULT enc DIGITAL FILTER  1/2    slot 4 RESO           key 0e01=32
+SILENT  enc DIGITAL FILTER  1/2    slot 7 POLYAT         key 0ec0=0
+SILENT  enc DIGITAL FILTER  2/2    slot 2 DRV POS        key 0e3a=1
+DEFAULT enc ANALOG FILTER          slot 3 CUTOFF         key 0e0a=96
+DEFAULT enc ANALOG FILTER          slot 4 RESO           key 0e0b=32
+SILENT  enc ANALOG FILTER          slot 7 POLYAT         key 0ec2=0
+SILENT  enc VCA                    slot 7 POLYAT         key 0ec4=0
+SILENT  enc PRE-FX                 slot 2 TYPE           key 0e87=8
+DEFAULT enc PRE-FX                 slot 3 PRESET         key 0e88=0
+SILENT  enc PRE-FX                 slot 3 PRESET         key 0e88=3
+SILENT  enc PRE-FX                 slot 4 PARAM 1        key 0e89=127
+SILENT  enc PRE-FX                 slot 5 PARAM 2        key 0e8a=0
+SILENT  enc PRE-FX                 slot 8 DRY/WET        key 0e8b=127
+SILENT  enc DELAY                  slot 2 TYPE           key 0e76=3
+SILENT  enc DELAY                  slot 3 TIME           key 0e77=0
+SILENT  enc DELAY                  slot 4 FEEDBACK       key 0e78=0
+DEFAULT enc DELAY                  slot 5 WET TONE       key 0e79=127
+SILENT  enc DELAY                  slot 5 WET TONE       key 0e79=0
+SILENT  enc DELAY                  slot 6 BPM SYNC       key 0e7c=1
+DEFAULT enc DELAY                  slot 7 FB TONE        key 0e7a=127
+SILENT  enc DELAY                  slot 7 FB TONE        key 0e7a=0
+SILENT  enc DELAY                  slot 8 DRY/WET        key 0e7b=127
+SILENT  enc REVERB                 slot 2 TYPE           key 0e7e=3
+SILENT  enc REVERB                 slot 3 PRE-DLY        key 0e7f=127
+SILENT  enc REVERB                 slot 4 TIME           key 0e80=0
+DEFAULT enc REVERB                 slot 5 TONE           key 0e81=127
+SILENT  enc REVERB                 slot 5 TONE           key 0e81=0
+DEFAULT enc REVERB                 slot 6 HI DAMP        key 0e82=127
+SILENT  enc REVERB                 slot 6 HI DAMP        key 0e82=0
+SILENT  enc REVERB                 slot 7 LO DAMP        key 0e83=127
+SILENT  enc REVERB                 slot 8 DRY/WET        key 0e84=127
+SILENT  enc REVERB                 slot 1 FREEZE         key 0e85=1
+SILENT  enc POST-FX                slot 2 TYPE           key 0e8d=8
+DEFAULT enc POST-FX                slot 3 PRESET         key 0e8e=0
+SILENT  enc POST-FX                slot 3 PRESET         key 0e8e=3
+SILENT  enc POST-FX                slot 4 PARAM 1        key 0e8f=127
+SILENT  enc POST-FX                slot 5 PARAM 2        key 0e90=0
+SILENT  enc POST-FX                slot 8 DRY/WET        key 0e91=127
+SILENT  enc LFO 1  1/3             slot 1 WAVE           key 10a0=10
+DEFAULT enc LFO 1  1/3             slot 2 RATE           key 10a1=36
+SILENT  enc LFO 1  1/3             slot 2 RATE           key 10a1=127
+DEFAULT enc LFO 1  1/3             slot 3 SPEED          key 10a2=0
+SILENT  enc LFO 1  1/3             slot 3 SPEED          key 10a2=1
+SILENT  enc LFO 1  1/3             slot 4 TRIG SYNC      key 10a3=2
+SILENT  enc LFO 1  1/3             slot 5 DELAY          key 10a4=127
+SILENT  enc LFO 1  1/3             slot 6 FADE IN        key 10a5=127
+SILENT  enc LFO 1  1/3             slot 7 QUANTIZE       key 10a6=15
+SILENT  enc LFO 1  1/3             slot 8 LEVEL          key 10a7=0
+SILENT  enc LFO 1  2/3             slot 2 SMOOTH         key 10a9=127
+SILENT  enc LFO 1  2/3             slot 3 BPM SYNC       key 10aa=1
+SILENT  enc LFO 1  2/3             slot 4 ONE-SHOT       key 10ab=2
+SILENT  enc LFO 1  2/3             slot 5 PHASE          key 10ac=127
+SILENT  enc LFO 1  2/3             slot 7 SEMI LOCK      key 10ae=1
+NOKEY   enc LFO 1  2/3             slot 8 STEP EDIT     
+DEFAULT enc LFO 1  3/3             slot 1 STEP           key 1300=88
+STATE   enc LFO 1  3/3             slot 1 STEP           key 1300=0
+DEFAULT enc LFO 1  3/3             slot 2 VALUE          key 1301=127
+SILENT  enc LFO 1  3/3             slot 2 VALUE          key 1301=0
+STATE   enc LFO 1  3/3             slot 3 RAMP           key 1302=1
+NOKEY   enc LFO 1  3/3             slot 8 STEP EDIT     
+SILENT  enc LFO 2  1/3             slot 1 WAVE           key 10b0=10
+DEFAULT enc LFO 2  1/3             slot 2 RATE           key 10b1=36
+SILENT  enc LFO 2  1/3             slot 2 RATE           key 10b1=127
+DEFAULT enc LFO 2  1/3             slot 3 SPEED          key 10b2=0
+SILENT  enc LFO 2  1/3             slot 3 SPEED          key 10b2=1
+SILENT  enc LFO 2  1/3             slot 4 TRIG SYNC      key 10b3=2
+SILENT  enc LFO 2  1/3             slot 5 DELAY          key 10b4=127
+SILENT  enc LFO 2  1/3             slot 6 FADE IN        key 10b5=127
+SILENT  enc LFO 2  1/3             slot 7 QUANTIZE       key 10b6=15
+SILENT  enc LFO 2  1/3             slot 8 LEVEL          key 10b7=0
+SILENT  enc LFO 2  2/3             slot 2 SMOOTH         key 10b9=127
+SILENT  enc LFO 2  2/3             slot 3 BPM SYNC       key 10ba=1
+SILENT  enc LFO 2  2/3             slot 4 ONE-SHOT       key 10bb=2
+SILENT  enc LFO 2  2/3             slot 5 PHASE          key 10bc=127
+SILENT  enc LFO 2  2/3             slot 7 SEMI LOCK      key 10be=1
+NOKEY   enc LFO 2  2/3             slot 8 STEP EDIT     
+DEFAULT enc LFO 2  3/3             slot 1 STEP           key 1304=181
+STATE   enc LFO 2  3/3             slot 1 STEP           key 1304=0
+DEFAULT enc LFO 2  3/3             slot 2 VALUE          key 1305=0
+SILENT  enc LFO 2  3/3             slot 2 VALUE          key 1305=127
+STATE   enc LFO 2  3/3             slot 3 RAMP           key 1306=1
+NOKEY   enc LFO 2  3/3             slot 8 STEP EDIT     
+SILENT  enc LFO 3  1/3             slot 1 WAVE           key 10a0=10
+DEFAULT enc LFO 3  1/3             slot 2 RATE           key 10a1=36
+SILENT  enc LFO 3  1/3             slot 2 RATE           key 10a1=127
+DEFAULT enc LFO 3  1/3             slot 3 SPEED          key 10a2=0
+SILENT  enc LFO 3  1/3             slot 3 SPEED          key 10a2=1
+SILENT  enc LFO 3  1/3             slot 4 TRIG SYNC      key 10a3=2
+SILENT  enc LFO 3  1/3             slot 5 DELAY          key 10a4=127
+SILENT  enc LFO 3  1/3             slot 6 FADE IN        key 10a5=127
+SILENT  enc LFO 3  1/3             slot 7 QUANTIZE       key 10a6=15
+SILENT  enc LFO 3  1/3             slot 8 LEVEL          key 10a7=0
+SILENT  enc LFO 3  2/3             slot 2 SMOOTH         key 10a9=127
+SILENT  enc LFO 3  2/3             slot 3 BPM SYNC       key 10aa=1
+SILENT  enc LFO 3  2/3             slot 4 ONE-SHOT       key 10ab=2
+SILENT  enc LFO 3  2/3             slot 5 PHASE          key 10ac=127
+SILENT  enc LFO 3  2/3             slot 7 SEMI LOCK      key 10ae=1
+NOKEY   enc LFO 3  2/3             slot 8 STEP EDIT     
+DEFAULT enc LFO 3  3/3             slot 1 STEP           key 1308=199
+STATE   enc LFO 3  3/3             slot 1 STEP           key 1308=0
+DEFAULT enc LFO 3  3/3             slot 2 VALUE          key 1309=0
+SILENT  enc LFO 3  3/3             slot 2 VALUE          key 1309=127
+STATE   enc LFO 3  3/3             slot 3 RAMP           key 130a=1
+NOKEY   enc LFO 3  3/3             slot 8 STEP EDIT     
+SILENT  enc LFO 4  1/3             slot 1 WAVE           key 10b0=10
+DEFAULT enc LFO 4  1/3             slot 2 RATE           key 10b1=36
+SILENT  enc LFO 4  1/3             slot 2 RATE           key 10b1=127
+DEFAULT enc LFO 4  1/3             slot 3 SPEED          key 10b2=0
+SILENT  enc LFO 4  1/3             slot 3 SPEED          key 10b2=1
+SILENT  enc LFO 4  1/3             slot 4 TRIG SYNC      key 10b3=2
+SILENT  enc LFO 4  1/3             slot 5 DELAY          key 10b4=127
+SILENT  enc LFO 4  1/3             slot 6 FADE IN        key 10b5=127
+SILENT  enc LFO 4  1/3             slot 7 QUANTIZE       key 10b6=15
+SILENT  enc LFO 4  1/3             slot 8 LEVEL          key 10b7=0
+SILENT  enc LFO 4  2/3             slot 2 SMOOTH         key 10b9=127
+SILENT  enc LFO 4  2/3             slot 3 BPM SYNC       key 10ba=1
+SILENT  enc LFO 4  2/3             slot 4 ONE-SHOT       key 10bb=2
+SILENT  enc LFO 4  2/3             slot 5 PHASE          key 10bc=127
+SILENT  enc LFO 4  2/3             slot 7 SEMI LOCK      key 10be=1
+NOKEY   enc LFO 4  2/3             slot 8 STEP EDIT     
+DEFAULT enc LFO 4  3/3             slot 1 STEP           key 130c=179
+STATE   enc LFO 4  3/3             slot 1 STEP           key 130c=0
+DEFAULT enc LFO 4  3/3             slot 2 VALUE          key 130d=0
+SILENT  enc LFO 4  3/3             slot 2 VALUE          key 130d=127
+STATE   enc LFO 4  3/3             slot 3 RAMP           key 130e=1
+NOKEY   enc LFO 4  3/3             slot 8 STEP EDIT     
+SILENT  enc LFO 5  1/3             slot 1 WAVE           key 10e0=10
+DEFAULT enc LFO 5  1/3             slot 2 RATE           key 10e1=36
+SILENT  enc LFO 5  1/3             slot 2 RATE           key 10e1=127
+DEFAULT enc LFO 5  1/3             slot 3 SPEED          key 10e2=0
+SILENT  enc LFO 5  1/3             slot 3 SPEED          key 10e2=1
+SILENT  enc LFO 5  1/3             slot 4 TRIG SYNC      key 10e3=2
+SILENT  enc LFO 5  1/3             slot 5 DELAY          key 10e4=127
+SILENT  enc LFO 5  1/3             slot 6 FADE IN        key 10e5=127
+SILENT  enc LFO 5  1/3             slot 7 QUANTIZE       key 10e6=15
+SILENT  enc LFO 5  1/3             slot 8 LEVEL          key 10e7=0
+SILENT  enc LFO 5  2/3             slot 2 SMOOTH         key 10e9=127
+SILENT  enc LFO 5  2/3             slot 3 BPM SYNC       key 10ea=1
+SILENT  enc LFO 5  2/3             slot 4 ONE-SHOT       key 10eb=2
+SILENT  enc LFO 5  2/3             slot 5 PHASE          key 10ec=127
+SILENT  enc LFO 5  2/3             slot 7 SEMI LOCK      key 10ee=1
+NOKEY   enc LFO 5  2/3             slot 8 STEP EDIT     
+DEFAULT enc LFO 5  3/3             slot 1 STEP           key 1400=253
+STATE   enc LFO 5  3/3             slot 1 STEP           key 1400=0
+DEFAULT enc LFO 5  3/3             slot 2 VALUE          key 1401=0
+SILENT  enc LFO 5  3/3             slot 2 VALUE          key 1401=127
+STATE   enc LFO 5  3/3             slot 3 RAMP           key 1402=1
+NOKEY   enc LFO 5  3/3             slot 8 STEP EDIT     
+STATE   enc ALGORITHM  1/5         slot 3 MORPH          key 0e34=127
+SILENT  enc ALGORITHM  1/5         slot 7 MUTE 8         key 0e37=1
+SILENT  enc ALGORITHM  1/5         slot 8 DIRECT         key 0f0a=1
+SILENT  enc MORPH SLOTS  2/5       slot 2 SLOT 2         key 0e2d=0
+SILENT  enc MORPH SLOTS  2/5       slot 3 SLOT 3         key 0e2e=0
+SILENT  enc MORPH SLOTS  2/5       slot 4 SLOT 4         key 0e2f=0
+SILENT  enc MORPH SLOTS  2/5       slot 5 SLOT 5         key 0e30=0
+SILENT  enc MORPH SLOTS  2/5       slot 6 SLOT 6         key 0e31=0
+SILENT  enc MORPH SLOTS  2/5       slot 7 SLOT 7         key 0e32=0
+SILENT  enc MORPH SLOTS  2/5       slot 8 SLOT 8         key 0e33=0
+SILENT  enc CUSTOM TGT 1  3/5      slot 1 OSC 1          key 0f1d=8
+DEFAULT enc CUSTOM TGT 1  3/5      slot 2 OSC 2          key 0f3d=0
+SILENT  enc CUSTOM TGT 1  3/5      slot 2 OSC 2          key 0f3d=8
+SILENT  enc CUSTOM TGT 1  3/5      slot 3 OSC 3          key 0f5d=8
+SILENT  enc CUSTOM TGT 1  3/5      slot 4 OSC 4          key 0f7d=8
+SILENT  enc CUSTOM TGT 1  3/5      slot 5 OSC 5          key 0f9d=8
+SILENT  enc CUSTOM TGT 1  3/5      slot 6 OSC 6          key 0fbd=8
+SILENT  enc CUSTOM TGT 1  3/5      slot 7 OSC 7          key 0fdd=8
+SILENT  enc CUSTOM TGT 1  3/5      slot 8 OSC 8          key 0ffd=8
+SILENT  enc CUSTOM TGT 2  4/5      slot 1 OSC 1          key 0f1e=8
+DEFAULT enc CUSTOM TGT 2  4/5      slot 2 OSC 2          key 0f3e=0
+SILENT  enc CUSTOM TGT 2  4/5      slot 2 OSC 2          key 0f3e=8
+SILENT  enc CUSTOM TGT 2  4/5      slot 3 OSC 3          key 0f5e=8
+SILENT  enc CUSTOM TGT 2  4/5      slot 4 OSC 4          key 0f7e=8
+SILENT  enc CUSTOM TGT 2  4/5      slot 5 OSC 5          key 0f9e=8
+SILENT  enc CUSTOM TGT 2  4/5      slot 6 OSC 6          key 0fbe=8
+SILENT  enc CUSTOM TGT 2  4/5      slot 7 OSC 7          key 0fde=8
+SILENT  enc CUSTOM TGT 2  4/5      slot 8 OSC 8          key 0ffe=8
+SILENT  enc CUSTOM TGT 3  5/5      slot 1 OSC 1          key 0f1f=8
+DEFAULT enc CUSTOM TGT 3  5/5      slot 2 OSC 2          key 0f3f=0
+SILENT  enc CUSTOM TGT 3  5/5      slot 2 OSC 2          key 0f3f=8
+SILENT  enc CUSTOM TGT 3  5/5      slot 3 OSC 3          key 0f5f=8
+SILENT  enc CUSTOM TGT 3  5/5      slot 4 OSC 4          key 0f7f=8
+SILENT  enc CUSTOM TGT 3  5/5      slot 5 OSC 5          key 0f9f=8
+SILENT  enc CUSTOM TGT 3  5/5      slot 6 OSC 6          key 0fbf=8
+SILENT  enc CUSTOM TGT 3  5/5      slot 7 OSC 7          key 0fdf=8
+SILENT  enc CUSTOM TGT 3  5/5      slot 8 OSC 8          key 0fff=8
+SILENT  enc ARPEGGIATOR            slot 1 DIVISION       key 0e12=0
+SILENT  enc ARPEGGIATOR            slot 2 OCT MODE       key 0ea0=2
+SILENT  enc ARPEGGIATOR            slot 3 OCT RANGE      key 0ea1=127
+SILENT  enc ARPEGGIATOR            slot 4 GATE           key 0ea2=0
+SILENT  enc ARPEGGIATOR            slot 5 MODE           key 0ea3=8
+SILENT  enc ARPEGGIATOR            slot 6 LENGTH         key 0ea4=0
+SILENT  enc ARPEGGIATOR            slot 7 PHRASE         key 0ea5=127
+SILENT  enc ARPEGGIATOR            slot 1 ENTROPY        key 0ea6=127
+SILENT  enc ARPEGGIATOR            slot 2 SWING          key 0ea7=127
+SILENT  enc ARPEGGIATOR            slot 3 RATCHET        key 0ea8=127
+SILENT  enc ARPEGGIATOR            slot 4 CHANCE         key 0ea9=127
+SILENT  enc ARPEGGIATOR            slot 5 LATCH          key 0eaa=1
+SILENT  enc ARPEGGIATOR            slot 6 CLK LOCK       key 0eab=0
+SILENT  enc ARPEGGIATOR            slot 7 STEP OFF       key 0eac=127
+SILENT  enc SEQUENCER              slot 1 LENGTH         key 0e14=1
+SILENT  enc SEQUENCER              slot 2 RATE           key 0ead=0
+SILENT  enc SEQUENCER              slot 3 MODE           key 0eae=2
+SILENT  enc SEQUENCER              slot 4 SWING          key 0eaf=127
+SILENT  enc SEQUENCER              slot 5 GATE           key 0eb0=0
+SILENT  enc SEQUENCER              slot 6 PROB           key 0eb1=0
+SILENT  enc SEQUENCER              slot 7 DRIFT          key 0eb2=0
+SILENT  enc SEQUENCER              slot 8 TRANSPOSE      key 0eb3=0
+SILENT  enc SEQUENCER              slot 1 TRK LEN        key 0eb4=0
+SILENT  enc SEQUENCER              slot 2 REC            key 0eb5=1
+SILENT  enc SEQUENCER              slot 3 STEP           key 0eb6=127
+STATE   enc SEQUENCER              slot 4 CLEAR          key 0eb7=1
+SILENT  enc SEQUENCER              slot 5 ST TRIG        key 0eb8=127
+SILENT  enc SEQUENCER              slot 6 ST PROB        key 0eb9=0
+SILENT  enc SEQUENCER              slot 7 ST DRIFT       key 0eba=0
+SILENT  enc SEQUENCER              slot 8 ST ENTR        key 0ebb=127
+DEFAULT enc MATRIX 1|2  1/16       slot 1 SOURCE         key 1100=0
+SILENT  enc MATRIX 1|2  1/16       slot 1 SOURCE         key 1100=40
+DEFAULT enc MATRIX 1|2  1/16       slot 2 MODULE         key 1101=0
+SILENT  enc MATRIX 1|2  1/16       slot 2 MODULE         key 1101=34
+DEFAULT enc MATRIX 1|2  1/16       slot 3 PARAM          key 1102=0
+NOMOVE  enc MATRIX 1|2  1/16       slot 3 PARAM         
+DEFAULT enc MATRIX 1|2  1/16       slot 4 DEPTH          key 1103=64
+SILENT  enc MATRIX 1|2  1/16       slot 4 DEPTH          key 1103=0
+DEFAULT enc MATRIX 1|2  1/16       slot 5 SOURCE         key 1104=0
+SILENT  enc MATRIX 1|2  1/16       slot 5 SOURCE         key 1104=40
+DEFAULT enc MATRIX 1|2  1/16       slot 6 MODULE         key 1105=0
+SILENT  enc MATRIX 1|2  1/16       slot 6 MODULE         key 1105=34
+DEFAULT enc MATRIX 1|2  1/16       slot 7 PARAM          key 1106=0
+NOMOVE  enc MATRIX 1|2  1/16       slot 7 PARAM         
+DEFAULT enc MATRIX 1|2  1/16       slot 8 DEPTH          key 1107=64
+SILENT  enc MATRIX 1|2  1/16       slot 8 DEPTH          key 1107=0
+DEFAULT enc MATRIX 3|4  2/16       slot 1 SOURCE         key 1108=0
+SILENT  enc MATRIX 3|4  2/16       slot 1 SOURCE         key 1108=40
+DEFAULT enc MATRIX 3|4  2/16       slot 2 MODULE         key 1109=0
+SILENT  enc MATRIX 3|4  2/16       slot 2 MODULE         key 1109=34
+DEFAULT enc MATRIX 3|4  2/16       slot 3 PARAM          key 110a=0
+NOMOVE  enc MATRIX 3|4  2/16       slot 3 PARAM         
+DEFAULT enc MATRIX 3|4  2/16       slot 4 DEPTH          key 110b=64
+SILENT  enc MATRIX 3|4  2/16       slot 4 DEPTH          key 110b=0
+DEFAULT enc MATRIX 3|4  2/16       slot 5 SOURCE         key 110c=0
+SILENT  enc MATRIX 3|4  2/16       slot 5 SOURCE         key 110c=40
+DEFAULT enc MATRIX 3|4  2/16       slot 6 MODULE         key 110d=0
+SILENT  enc MATRIX 3|4  2/16       slot 6 MODULE         key 110d=34
+DEFAULT enc MATRIX 3|4  2/16       slot 7 PARAM          key 110e=0
+NOMOVE  enc MATRIX 3|4  2/16       slot 7 PARAM         
+DEFAULT enc MATRIX 3|4  2/16       slot 8 DEPTH          key 110f=64
+SILENT  enc MATRIX 3|4  2/16       slot 8 DEPTH          key 110f=0
+DEFAULT enc MATRIX 5|6  3/16       slot 1 SOURCE         key 1110=0
+SILENT  enc MATRIX 5|6  3/16       slot 1 SOURCE         key 1110=40
+DEFAULT enc MATRIX 5|6  3/16       slot 2 MODULE         key 1111=0
+SILENT  enc MATRIX 5|6  3/16       slot 2 MODULE         key 1111=34
+DEFAULT enc MATRIX 5|6  3/16       slot 3 PARAM          key 1112=0
+NOMOVE  enc MATRIX 5|6  3/16       slot 3 PARAM         
+DEFAULT enc MATRIX 5|6  3/16       slot 4 DEPTH          key 1113=64
+SILENT  enc MATRIX 5|6  3/16       slot 4 DEPTH          key 1113=0
+DEFAULT enc MATRIX 5|6  3/16       slot 5 SOURCE         key 1114=0
+SILENT  enc MATRIX 5|6  3/16       slot 5 SOURCE         key 1114=40
+DEFAULT enc MATRIX 5|6  3/16       slot 6 MODULE         key 1115=0
+SILENT  enc MATRIX 5|6  3/16       slot 6 MODULE         key 1115=34
+DEFAULT enc MATRIX 5|6  3/16       slot 7 PARAM          key 1116=0
+NOMOVE  enc MATRIX 5|6  3/16       slot 7 PARAM         
+DEFAULT enc MATRIX 5|6  3/16       slot 8 DEPTH          key 1117=64
+SILENT  enc MATRIX 5|6  3/16       slot 8 DEPTH          key 1117=0
+DEFAULT enc MATRIX 7|8  4/16       slot 1 SOURCE         key 1118=0
+SILENT  enc MATRIX 7|8  4/16       slot 1 SOURCE         key 1118=40
+DEFAULT enc MATRIX 7|8  4/16       slot 2 MODULE         key 1119=0
+SILENT  enc MATRIX 7|8  4/16       slot 2 MODULE         key 1119=34
+DEFAULT enc MATRIX 7|8  4/16       slot 3 PARAM          key 111a=0
+NOMOVE  enc MATRIX 7|8  4/16       slot 3 PARAM         
+DEFAULT enc MATRIX 7|8  4/16       slot 4 DEPTH          key 111b=64
+SILENT  enc MATRIX 7|8  4/16       slot 4 DEPTH          key 111b=0
+DEFAULT enc MATRIX 7|8  4/16       slot 5 SOURCE         key 111c=0
+SILENT  enc MATRIX 7|8  4/16       slot 5 SOURCE         key 111c=40
+DEFAULT enc MATRIX 7|8  4/16       slot 6 MODULE         key 111d=0
+SILENT  enc MATRIX 7|8  4/16       slot 6 MODULE         key 111d=34
+DEFAULT enc MATRIX 7|8  4/16       slot 7 PARAM          key 111e=0
+NOMOVE  enc MATRIX 7|8  4/16       slot 7 PARAM         
+DEFAULT enc MATRIX 7|8  4/16       slot 8 DEPTH          key 111f=64
+SILENT  enc MATRIX 7|8  4/16       slot 8 DEPTH          key 111f=0
+DEFAULT enc MATRIX 9|10  5/16      slot 1 SOURCE         key 1120=0
+SILENT  enc MATRIX 9|10  5/16      slot 1 SOURCE         key 1120=40
+DEFAULT enc MATRIX 9|10  5/16      slot 2 MODULE         key 1121=0
+SILENT  enc MATRIX 9|10  5/16      slot 2 MODULE         key 1121=34
+DEFAULT enc MATRIX 9|10  5/16      slot 3 PARAM          key 1122=0
+NOMOVE  enc MATRIX 9|10  5/16      slot 3 PARAM         
+DEFAULT enc MATRIX 9|10  5/16      slot 4 DEPTH          key 1123=64
+SILENT  enc MATRIX 9|10  5/16      slot 4 DEPTH          key 1123=0
+DEFAULT enc MATRIX 9|10  5/16      slot 5 SOURCE         key 1124=0
+SILENT  enc MATRIX 9|10  5/16      slot 5 SOURCE         key 1124=40
+DEFAULT enc MATRIX 9|10  5/16      slot 6 MODULE         key 1125=0
+SILENT  enc MATRIX 9|10  5/16      slot 6 MODULE         key 1125=34
+DEFAULT enc MATRIX 9|10  5/16      slot 7 PARAM          key 1126=0
+NOMOVE  enc MATRIX 9|10  5/16      slot 7 PARAM         
+DEFAULT enc MATRIX 9|10  5/16      slot 8 DEPTH          key 1127=64
+SILENT  enc MATRIX 9|10  5/16      slot 8 DEPTH          key 1127=0
+DEFAULT enc MATRIX 11|12  6/16     slot 1 SOURCE         key 1128=0
+SILENT  enc MATRIX 11|12  6/16     slot 1 SOURCE         key 1128=40
+DEFAULT enc MATRIX 11|12  6/16     slot 2 MODULE         key 1129=0
+SILENT  enc MATRIX 11|12  6/16     slot 2 MODULE         key 1129=34
+DEFAULT enc MATRIX 11|12  6/16     slot 3 PARAM          key 112a=0
+NOMOVE  enc MATRIX 11|12  6/16     slot 3 PARAM         
+DEFAULT enc MATRIX 11|12  6/16     slot 4 DEPTH          key 112b=64
+SILENT  enc MATRIX 11|12  6/16     slot 4 DEPTH          key 112b=0
+DEFAULT enc MATRIX 11|12  6/16     slot 5 SOURCE         key 112c=0
+SILENT  enc MATRIX 11|12  6/16     slot 5 SOURCE         key 112c=40
+DEFAULT enc MATRIX 11|12  6/16     slot 6 MODULE         key 112d=0
+SILENT  enc MATRIX 11|12  6/16     slot 6 MODULE         key 112d=34
+DEFAULT enc MATRIX 11|12  6/16     slot 7 PARAM          key 112e=0
+NOMOVE  enc MATRIX 11|12  6/16     slot 7 PARAM         
+DEFAULT enc MATRIX 11|12  6/16     slot 8 DEPTH          key 112f=64
+SILENT  enc MATRIX 11|12  6/16     slot 8 DEPTH          key 112f=0
+DEFAULT enc MATRIX 13|14  7/16     slot 1 SOURCE         key 1130=0
+SILENT  enc MATRIX 13|14  7/16     slot 1 SOURCE         key 1130=40
+DEFAULT enc MATRIX 13|14  7/16     slot 2 MODULE         key 1131=0
+SILENT  enc MATRIX 13|14  7/16     slot 2 MODULE         key 1131=34
+DEFAULT enc MATRIX 13|14  7/16     slot 3 PARAM          key 1132=0
+NOMOVE  enc MATRIX 13|14  7/16     slot 3 PARAM         
+DEFAULT enc MATRIX 13|14  7/16     slot 4 DEPTH          key 1133=64
+SILENT  enc MATRIX 13|14  7/16     slot 4 DEPTH          key 1133=0
+DEFAULT enc MATRIX 13|14  7/16     slot 5 SOURCE         key 1134=0
+SILENT  enc MATRIX 13|14  7/16     slot 5 SOURCE         key 1134=40
+DEFAULT enc MATRIX 13|14  7/16     slot 6 MODULE         key 1135=0
+SILENT  enc MATRIX 13|14  7/16     slot 6 MODULE         key 1135=34
+DEFAULT enc MATRIX 13|14  7/16     slot 7 PARAM          key 1136=0
+NOMOVE  enc MATRIX 13|14  7/16     slot 7 PARAM         
+DEFAULT enc MATRIX 13|14  7/16     slot 8 DEPTH          key 1137=64
+SILENT  enc MATRIX 13|14  7/16     slot 8 DEPTH          key 1137=0
+DEFAULT enc MATRIX 15|16  8/16     slot 1 SOURCE         key 1138=0
+SILENT  enc MATRIX 15|16  8/16     slot 1 SOURCE         key 1138=40
+DEFAULT enc MATRIX 15|16  8/16     slot 2 MODULE         key 1139=0
+SILENT  enc MATRIX 15|16  8/16     slot 2 MODULE         key 1139=34
+DEFAULT enc MATRIX 15|16  8/16     slot 3 PARAM          key 113a=0
+NOMOVE  enc MATRIX 15|16  8/16     slot 3 PARAM         
+DEFAULT enc MATRIX 15|16  8/16     slot 4 DEPTH          key 113b=64
+SILENT  enc MATRIX 15|16  8/16     slot 4 DEPTH          key 113b=0
+DEFAULT enc MATRIX 15|16  8/16     slot 5 SOURCE         key 113c=0
+SILENT  enc MATRIX 15|16  8/16     slot 5 SOURCE         key 113c=40
+DEFAULT enc MATRIX 15|16  8/16     slot 6 MODULE         key 113d=0
+SILENT  enc MATRIX 15|16  8/16     slot 6 MODULE         key 113d=34
+DEFAULT enc MATRIX 15|16  8/16     slot 7 PARAM          key 113e=0
+NOMOVE  enc MATRIX 15|16  8/16     slot 7 PARAM         
+DEFAULT enc MATRIX 15|16  8/16     slot 8 DEPTH          key 113f=64
+SILENT  enc MATRIX 15|16  8/16     slot 8 DEPTH          key 113f=0
+DEFAULT enc MATRIX 17|18  9/16     slot 1 SOURCE         key 1140=0
+SILENT  enc MATRIX 17|18  9/16     slot 1 SOURCE         key 1140=40
+DEFAULT enc MATRIX 17|18  9/16     slot 2 MODULE         key 1141=0
+SILENT  enc MATRIX 17|18  9/16     slot 2 MODULE         key 1141=34
+DEFAULT enc MATRIX 17|18  9/16     slot 3 PARAM          key 1142=0
+NOMOVE  enc MATRIX 17|18  9/16     slot 3 PARAM         
+DEFAULT enc MATRIX 17|18  9/16     slot 4 DEPTH          key 1143=64
+SILENT  enc MATRIX 17|18  9/16     slot 4 DEPTH          key 1143=0
+DEFAULT enc MATRIX 17|18  9/16     slot 5 SOURCE         key 1144=0
+SILENT  enc MATRIX 17|18  9/16     slot 5 SOURCE         key 1144=40
+DEFAULT enc MATRIX 17|18  9/16     slot 6 MODULE         key 1145=0
+SILENT  enc MATRIX 17|18  9/16     slot 6 MODULE         key 1145=34
+DEFAULT enc MATRIX 17|18  9/16     slot 7 PARAM          key 1146=0
+NOMOVE  enc MATRIX 17|18  9/16     slot 7 PARAM         
+DEFAULT enc MATRIX 17|18  9/16     slot 8 DEPTH          key 1147=64
+SILENT  enc MATRIX 17|18  9/16     slot 8 DEPTH          key 1147=0
+DEFAULT enc MATRIX 19|20  10/16    slot 1 SOURCE         key 1148=0
+SILENT  enc MATRIX 19|20  10/16    slot 1 SOURCE         key 1148=40
+DEFAULT enc MATRIX 19|20  10/16    slot 2 MODULE         key 1149=0
+SILENT  enc MATRIX 19|20  10/16    slot 2 MODULE         key 1149=34
+DEFAULT enc MATRIX 19|20  10/16    slot 3 PARAM          key 114a=0
+NOMOVE  enc MATRIX 19|20  10/16    slot 3 PARAM         
+DEFAULT enc MATRIX 19|20  10/16    slot 4 DEPTH          key 114b=64
+SILENT  enc MATRIX 19|20  10/16    slot 4 DEPTH          key 114b=0
+DEFAULT enc MATRIX 19|20  10/16    slot 5 SOURCE         key 114c=0
+SILENT  enc MATRIX 19|20  10/16    slot 5 SOURCE         key 114c=40
+DEFAULT enc MATRIX 19|20  10/16    slot 6 MODULE         key 114d=0
+SILENT  enc MATRIX 19|20  10/16    slot 6 MODULE         key 114d=34
+DEFAULT enc MATRIX 19|20  10/16    slot 7 PARAM          key 114e=0
+NOMOVE  enc MATRIX 19|20  10/16    slot 7 PARAM         
+DEFAULT enc MATRIX 19|20  10/16    slot 8 DEPTH          key 114f=64
+SILENT  enc MATRIX 19|20  10/16    slot 8 DEPTH          key 114f=0
+DEFAULT enc MATRIX 21|22  11/16    slot 1 SOURCE         key 1150=0
+SILENT  enc MATRIX 21|22  11/16    slot 1 SOURCE         key 1150=40
+DEFAULT enc MATRIX 21|22  11/16    slot 2 MODULE         key 1151=0
+SILENT  enc MATRIX 21|22  11/16    slot 2 MODULE         key 1151=34
+DEFAULT enc MATRIX 21|22  11/16    slot 3 PARAM          key 1152=0
+NOMOVE  enc MATRIX 21|22  11/16    slot 3 PARAM         
+DEFAULT enc MATRIX 21|22  11/16    slot 4 DEPTH          key 1153=64
+SILENT  enc MATRIX 21|22  11/16    slot 4 DEPTH          key 1153=0
+DEFAULT enc MATRIX 21|22  11/16    slot 5 SOURCE         key 1154=0
+SILENT  enc MATRIX 21|22  11/16    slot 5 SOURCE         key 1154=40
+DEFAULT enc MATRIX 21|22  11/16    slot 6 MODULE         key 1155=0
+SILENT  enc MATRIX 21|22  11/16    slot 6 MODULE         key 1155=34
+DEFAULT enc MATRIX 21|22  11/16    slot 7 PARAM          key 1156=0
+NOMOVE  enc MATRIX 21|22  11/16    slot 7 PARAM         
+DEFAULT enc MATRIX 21|22  11/16    slot 8 DEPTH          key 1157=64
+SILENT  enc MATRIX 21|22  11/16    slot 8 DEPTH          key 1157=0
+DEFAULT enc MATRIX 23|24  12/16    slot 1 SOURCE         key 1158=0
+SILENT  enc MATRIX 23|24  12/16    slot 1 SOURCE         key 1158=40
+DEFAULT enc MATRIX 23|24  12/16    slot 2 MODULE         key 1159=0
+SILENT  enc MATRIX 23|24  12/16    slot 2 MODULE         key 1159=34
+DEFAULT enc MATRIX 23|24  12/16    slot 3 PARAM          key 115a=0
+NOMOVE  enc MATRIX 23|24  12/16    slot 3 PARAM         
+DEFAULT enc MATRIX 23|24  12/16    slot 4 DEPTH          key 115b=64
+SILENT  enc MATRIX 23|24  12/16    slot 4 DEPTH          key 115b=0
+DEFAULT enc MATRIX 23|24  12/16    slot 5 SOURCE         key 115c=0
+SILENT  enc MATRIX 23|24  12/16    slot 5 SOURCE         key 115c=40
+DEFAULT enc MATRIX 23|24  12/16    slot 6 MODULE         key 115d=0
+SILENT  enc MATRIX 23|24  12/16    slot 6 MODULE         key 115d=34
+DEFAULT enc MATRIX 23|24  12/16    slot 7 PARAM          key 115e=0
+NOMOVE  enc MATRIX 23|24  12/16    slot 7 PARAM         
+DEFAULT enc MATRIX 23|24  12/16    slot 8 DEPTH          key 115f=64
+SILENT  enc MATRIX 23|24  12/16    slot 8 DEPTH          key 115f=0
+DEFAULT enc MATRIX 25|26  13/16    slot 1 SOURCE         key 1160=0
+SILENT  enc MATRIX 25|26  13/16    slot 1 SOURCE         key 1160=40
+DEFAULT enc MATRIX 25|26  13/16    slot 2 MODULE         key 1161=0
+SILENT  enc MATRIX 25|26  13/16    slot 2 MODULE         key 1161=34
+DEFAULT enc MATRIX 25|26  13/16    slot 3 PARAM          key 1162=0
+NOMOVE  enc MATRIX 25|26  13/16    slot 3 PARAM         
+DEFAULT enc MATRIX 25|26  13/16    slot 4 DEPTH          key 1163=64
+SILENT  enc MATRIX 25|26  13/16    slot 4 DEPTH          key 1163=0
+DEFAULT enc MATRIX 25|26  13/16    slot 5 SOURCE         key 1164=0
+SILENT  enc MATRIX 25|26  13/16    slot 5 SOURCE         key 1164=40
+DEFAULT enc MATRIX 25|26  13/16    slot 6 MODULE         key 1165=0
+SILENT  enc MATRIX 25|26  13/16    slot 6 MODULE         key 1165=34
+DEFAULT enc MATRIX 25|26  13/16    slot 7 PARAM          key 1166=0
+NOMOVE  enc MATRIX 25|26  13/16    slot 7 PARAM         
+DEFAULT enc MATRIX 25|26  13/16    slot 8 DEPTH          key 1167=64
+SILENT  enc MATRIX 25|26  13/16    slot 8 DEPTH          key 1167=0
+DEFAULT enc MATRIX 27|28  14/16    slot 1 SOURCE         key 1168=0
+SILENT  enc MATRIX 27|28  14/16    slot 1 SOURCE         key 1168=40
+DEFAULT enc MATRIX 27|28  14/16    slot 2 MODULE         key 1169=0
+SILENT  enc MATRIX 27|28  14/16    slot 2 MODULE         key 1169=34
+DEFAULT enc MATRIX 27|28  14/16    slot 3 PARAM          key 116a=0
+NOMOVE  enc MATRIX 27|28  14/16    slot 3 PARAM         
+DEFAULT enc MATRIX 27|28  14/16    slot 4 DEPTH          key 116b=64
+SILENT  enc MATRIX 27|28  14/16    slot 4 DEPTH          key 116b=0
+DEFAULT enc MATRIX 27|28  14/16    slot 5 SOURCE         key 116c=0
+SILENT  enc MATRIX 27|28  14/16    slot 5 SOURCE         key 116c=40
+DEFAULT enc MATRIX 27|28  14/16    slot 6 MODULE         key 116d=0
+SILENT  enc MATRIX 27|28  14/16    slot 6 MODULE         key 116d=34
+DEFAULT enc MATRIX 27|28  14/16    slot 7 PARAM          key 116e=0
+NOMOVE  enc MATRIX 27|28  14/16    slot 7 PARAM         
+DEFAULT enc MATRIX 27|28  14/16    slot 8 DEPTH          key 116f=64
+SILENT  enc MATRIX 27|28  14/16    slot 8 DEPTH          key 116f=0
+DEFAULT enc MATRIX 29|30  15/16    slot 1 SOURCE         key 1170=0
+SILENT  enc MATRIX 29|30  15/16    slot 1 SOURCE         key 1170=40
+DEFAULT enc MATRIX 29|30  15/16    slot 2 MODULE         key 1171=0
+SILENT  enc MATRIX 29|30  15/16    slot 2 MODULE         key 1171=34
+DEFAULT enc MATRIX 29|30  15/16    slot 3 PARAM          key 1172=0
+NOMOVE  enc MATRIX 29|30  15/16    slot 3 PARAM         
+DEFAULT enc MATRIX 29|30  15/16    slot 4 DEPTH          key 1173=64
+SILENT  enc MATRIX 29|30  15/16    slot 4 DEPTH          key 1173=0
+DEFAULT enc MATRIX 29|30  15/16    slot 5 SOURCE         key 1174=0
+SILENT  enc MATRIX 29|30  15/16    slot 5 SOURCE         key 1174=40
+DEFAULT enc MATRIX 29|30  15/16    slot 6 MODULE         key 1175=0
+SILENT  enc MATRIX 29|30  15/16    slot 6 MODULE         key 1175=34
+DEFAULT enc MATRIX 29|30  15/16    slot 7 PARAM          key 1176=0
+NOMOVE  enc MATRIX 29|30  15/16    slot 7 PARAM         
+DEFAULT enc MATRIX 29|30  15/16    slot 8 DEPTH          key 1177=64
+SILENT  enc MATRIX 29|30  15/16    slot 8 DEPTH          key 1177=0
+DEFAULT enc MATRIX 31|32  16/16    slot 1 SOURCE         key 1178=0
+SILENT  enc MATRIX 31|32  16/16    slot 1 SOURCE         key 1178=40
+DEFAULT enc MATRIX 31|32  16/16    slot 2 MODULE         key 1179=0
+SILENT  enc MATRIX 31|32  16/16    slot 2 MODULE         key 1179=34
+DEFAULT enc MATRIX 31|32  16/16    slot 3 PARAM          key 117a=0
+NOMOVE  enc MATRIX 31|32  16/16    slot 3 PARAM         
+DEFAULT enc MATRIX 31|32  16/16    slot 4 DEPTH          key 117b=64
+SILENT  enc MATRIX 31|32  16/16    slot 4 DEPTH          key 117b=0
+DEFAULT enc MATRIX 31|32  16/16    slot 5 SOURCE         key 117c=0
+SILENT  enc MATRIX 31|32  16/16    slot 5 SOURCE         key 117c=40
+DEFAULT enc MATRIX 31|32  16/16    slot 6 MODULE         key 117d=0
+SILENT  enc MATRIX 31|32  16/16    slot 6 MODULE         key 117d=34
+DEFAULT enc MATRIX 31|32  16/16    slot 7 PARAM          key 117e=0
+NOMOVE  enc MATRIX 31|32  16/16    slot 7 PARAM         
+DEFAULT enc MATRIX 31|32  16/16    slot 8 DEPTH          key 117f=64
+SILENT  enc MATRIX 31|32  16/16    slot 8 DEPTH          key 117f=0
+SILENT  enc VOICE                  slot 2 DENSITY        key 0e59=0
+SILENT  enc VOICE                  slot 3 LIMIT          key 0e5a=0
+DEFAULT enc VOICE                  slot 8 WIDTH          key 0e5f=64
+SILENT  enc VOICE                  slot 8 WIDTH          key 0e5f=0
+SILENT  enc VOICE                  slot 1 PAN MODE       key 0e60=2
+DEFAULT enc VOICE                  slot 2 BEND RNG       key 0e61=11
+SILENT  enc VOICE                  slot 2 BEND RNG       key 0e61=127
+DEFAULT enc VOICE                  slot 3 VIB RATE       key 0e62=94
+SILENT  enc VOICE                  slot 3 VIB RATE       key 0e62=0
+SILENT  enc VOICE                  slot 5 VIB DLY        key 0e64=127
+SILENT  enc VOICE                  slot 6 GLIDE          key 0e65=127
+DEFAULT enc VOICE                  slot 7 GL TIME        key 0e66=57
+SILENT  enc VOICE                  slot 7 GL TIME        key 0e66=127
+SILENT  enc VOICE                  slot 8 GL CURVE       key 0e67=0
+SILENT  enc VOICE                  slot 2 OSCPAN 2       key 0e6e=0
+SILENT  enc VOICE                  slot 3 OSCPAN 3       key 0e6f=0
+SILENT  enc VOICE                  slot 4 OSCPAN 4       key 0e70=0
+SILENT  enc VOICE                  slot 5 OSCPAN 5       key 0e71=0
+SILENT  enc VOICE                  slot 6 OSCPAN 6       key 0e72=0
+SILENT  enc VOICE                  slot 7 OSCPAN 7       key 0e73=0
+SILENT  enc VOICE                  slot 8 OSCPAN 8       key 0e74=0
+SILENT  enc VOICE                  slot 2 SCALE          key 0e69=15
+SILENT  enc VOICE                  slot 4 KEY LOCK       key 0e6b=1
+SILENT  enc MACRO KNOBS  1/34      slot 1 MACRO 1        key 0e48=127
+SILENT  enc MACRO KNOBS  1/34      slot 2 MACRO 2        key 0e49=127
+SILENT  enc MACRO KNOBS  1/34      slot 3 MACRO 3        key 0e4a=127
+SILENT  enc MACRO KNOBS  1/34      slot 4 MACRO 4        key 0e4b=127
+SILENT  enc MACRO KNOBS  1/34      slot 5 MACRO 5        key 0e4c=127
+SILENT  enc MACRO KNOBS  1/34      slot 6 MACRO 6        key 0e4d=127
+SILENT  enc MACRO KNOBS  1/34      slot 7 MACRO 7        key 0e4e=127
+SILENT  enc MACRO KNOBS  1/34      slot 8 MACRO 8        key 0e4f=127
+SILENT  enc MACRO BUTTONS  2/34    slot 1 BUTTON 1       key 0e50=1
+SILENT  enc MACRO BUTTONS  2/34    slot 2 BUTTON 2       key 0e51=1
+SILENT  enc MACRO BUTTONS  2/34    slot 3 BUTTON 3       key 0e52=1
+SILENT  enc MACRO BUTTONS  2/34    slot 4 BUTTON 4       key 0e53=1
+SILENT  enc MACRO BUTTONS  2/34    slot 5 BUTTON 5       key 0e54=1
+SILENT  enc MACRO BUTTONS  2/34    slot 6 BUTTON 6       key 0e55=1
+SILENT  enc MACRO BUTTONS  2/34    slot 7 BUTTON 7       key 0e56=1
+SILENT  enc MACRO BUTTONS  2/34    slot 8 BUTTON 8       key 0e57=1
+SILENT  enc MACRO 1 R1|2  3/34     slot 1 MODULE         key 1200=34
+NOMOVE  enc MACRO 1 R1|2  3/34     slot 2 PARAM         
+SILENT  enc MACRO 1 R1|2  3/34     slot 3 DEPTH          key 1202=0
+SILENT  enc MACRO 1 R1|2  3/34     slot 4 BTN VAL        key 1203=127
+SILENT  enc MACRO 1 R1|2  3/34     slot 5 MODULE         key 1204=34
+NOMOVE  enc MACRO 1 R1|2  3/34     slot 6 PARAM         
+SILENT  enc MACRO 1 R1|2  3/34     slot 7 DEPTH          key 1206=0
+SILENT  enc MACRO 1 R1|2  3/34     slot 8 BTN VAL        key 1207=127
+SILENT  enc MACRO 1 R3|4  4/34     slot 1 MODULE         key 1208=34
+NOMOVE  enc MACRO 1 R3|4  4/34     slot 2 PARAM         
+SILENT  enc MACRO 1 R3|4  4/34     slot 3 DEPTH          key 120a=0
+SILENT  enc MACRO 1 R3|4  4/34     slot 4 BTN VAL        key 120b=127
+SILENT  enc MACRO 1 R3|4  4/34     slot 5 MODULE         key 120c=34
+NOMOVE  enc MACRO 1 R3|4  4/34     slot 6 PARAM         
+SILENT  enc MACRO 1 R3|4  4/34     slot 7 DEPTH          key 120e=0
+SILENT  enc MACRO 1 R3|4  4/34     slot 8 BTN VAL        key 120f=127
+SILENT  enc MACRO 1 R5|6  5/34     slot 1 MODULE         key 1210=34
+NOMOVE  enc MACRO 1 R5|6  5/34     slot 2 PARAM         
+SILENT  enc MACRO 1 R5|6  5/34     slot 3 DEPTH          key 1212=0
+SILENT  enc MACRO 1 R5|6  5/34     slot 4 BTN VAL        key 1213=127
+SILENT  enc MACRO 1 R5|6  5/34     slot 5 MODULE         key 1214=34
+NOMOVE  enc MACRO 1 R5|6  5/34     slot 6 PARAM         
+SILENT  enc MACRO 1 R5|6  5/34     slot 7 DEPTH          key 1216=0
+SILENT  enc MACRO 1 R5|6  5/34     slot 8 BTN VAL        key 1217=127
+SILENT  enc MACRO 1 R7|8  6/34     slot 1 MODULE         key 1218=34
+NOMOVE  enc MACRO 1 R7|8  6/34     slot 2 PARAM         
+SILENT  enc MACRO 1 R7|8  6/34     slot 3 DEPTH          key 121a=0
+SILENT  enc MACRO 1 R7|8  6/34     slot 4 BTN VAL        key 121b=127
+SILENT  enc MACRO 1 R7|8  6/34     slot 5 MODULE         key 121c=34
+NOMOVE  enc MACRO 1 R7|8  6/34     slot 6 PARAM         
+SILENT  enc MACRO 1 R7|8  6/34     slot 7 DEPTH          key 121e=0
+SILENT  enc MACRO 1 R7|8  6/34     slot 8 BTN VAL        key 121f=127
+SILENT  enc MACRO 2 R1|2  7/34     slot 1 MODULE         key 1220=34
+NOMOVE  enc MACRO 2 R1|2  7/34     slot 2 PARAM         
+SILENT  enc MACRO 2 R1|2  7/34     slot 3 DEPTH          key 1222=0
+SILENT  enc MACRO 2 R1|2  7/34     slot 4 BTN VAL        key 1223=127
+SILENT  enc MACRO 2 R1|2  7/34     slot 5 MODULE         key 1224=34
+NOMOVE  enc MACRO 2 R1|2  7/34     slot 6 PARAM         
+SILENT  enc MACRO 2 R1|2  7/34     slot 7 DEPTH          key 1226=0
+SILENT  enc MACRO 2 R1|2  7/34     slot 8 BTN VAL        key 1227=127
+SILENT  enc MACRO 2 R3|4  8/34     slot 1 MODULE         key 1228=34
+NOMOVE  enc MACRO 2 R3|4  8/34     slot 2 PARAM         
+SILENT  enc MACRO 2 R3|4  8/34     slot 3 DEPTH          key 122a=0
+SILENT  enc MACRO 2 R3|4  8/34     slot 4 BTN VAL        key 122b=127
+SILENT  enc MACRO 2 R3|4  8/34     slot 5 MODULE         key 122c=34
+NOMOVE  enc MACRO 2 R3|4  8/34     slot 6 PARAM         
+SILENT  enc MACRO 2 R3|4  8/34     slot 7 DEPTH          key 122e=0
+SILENT  enc MACRO 2 R3|4  8/34     slot 8 BTN VAL        key 122f=127
+SILENT  enc MACRO 2 R5|6  9/34     slot 1 MODULE         key 1230=34
+NOMOVE  enc MACRO 2 R5|6  9/34     slot 2 PARAM         
+SILENT  enc MACRO 2 R5|6  9/34     slot 3 DEPTH          key 1232=0
+SILENT  enc MACRO 2 R5|6  9/34     slot 4 BTN VAL        key 1233=127
+SILENT  enc MACRO 2 R5|6  9/34     slot 5 MODULE         key 1234=34
+NOMOVE  enc MACRO 2 R5|6  9/34     slot 6 PARAM         
+SILENT  enc MACRO 2 R5|6  9/34     slot 7 DEPTH          key 1236=0
+SILENT  enc MACRO 2 R5|6  9/34     slot 8 BTN VAL        key 1237=127
+SILENT  enc MACRO 2 R7|8  10/34    slot 1 MODULE         key 1238=34
+NOMOVE  enc MACRO 2 R7|8  10/34    slot 2 PARAM         
+SILENT  enc MACRO 2 R7|8  10/34    slot 3 DEPTH          key 123a=0
+SILENT  enc MACRO 2 R7|8  10/34    slot 4 BTN VAL        key 123b=127
+SILENT  enc MACRO 2 R7|8  10/34    slot 5 MODULE         key 123c=34
+NOMOVE  enc MACRO 2 R7|8  10/34    slot 6 PARAM         
+SILENT  enc MACRO 2 R7|8  10/34    slot 7 DEPTH          key 123e=0
+SILENT  enc MACRO 2 R7|8  10/34    slot 8 BTN VAL        key 123f=127
+SILENT  enc MACRO 3 R1|2  11/34    slot 1 MODULE         key 1240=34
+NOMOVE  enc MACRO 3 R1|2  11/34    slot 2 PARAM         
+SILENT  enc MACRO 3 R1|2  11/34    slot 3 DEPTH          key 1242=0
+SILENT  enc MACRO 3 R1|2  11/34    slot 4 BTN VAL        key 1243=127
+SILENT  enc MACRO 3 R1|2  11/34    slot 5 MODULE         key 1244=34
+NOMOVE  enc MACRO 3 R1|2  11/34    slot 6 PARAM         
+SILENT  enc MACRO 3 R1|2  11/34    slot 7 DEPTH          key 1246=0
+SILENT  enc MACRO 3 R1|2  11/34    slot 8 BTN VAL        key 1247=127
+SILENT  enc MACRO 3 R3|4  12/34    slot 1 MODULE         key 1248=34
+NOMOVE  enc MACRO 3 R3|4  12/34    slot 2 PARAM         
+SILENT  enc MACRO 3 R3|4  12/34    slot 3 DEPTH          key 124a=0
+SILENT  enc MACRO 3 R3|4  12/34    slot 4 BTN VAL        key 124b=127
+SILENT  enc MACRO 3 R3|4  12/34    slot 5 MODULE         key 124c=34
+NOMOVE  enc MACRO 3 R3|4  12/34    slot 6 PARAM         
+SILENT  enc MACRO 3 R3|4  12/34    slot 7 DEPTH          key 124e=0
+SILENT  enc MACRO 3 R3|4  12/34    slot 8 BTN VAL        key 124f=127
+SILENT  enc MACRO 3 R5|6  13/34    slot 1 MODULE         key 1250=34
+NOMOVE  enc MACRO 3 R5|6  13/34    slot 2 PARAM         
+SILENT  enc MACRO 3 R5|6  13/34    slot 3 DEPTH          key 1252=0
+SILENT  enc MACRO 3 R5|6  13/34    slot 4 BTN VAL        key 1253=127
+SILENT  enc MACRO 3 R5|6  13/34    slot 5 MODULE         key 1254=34
+NOMOVE  enc MACRO 3 R5|6  13/34    slot 6 PARAM         
+SILENT  enc MACRO 3 R5|6  13/34    slot 7 DEPTH          key 1256=0
+SILENT  enc MACRO 3 R5|6  13/34    slot 8 BTN VAL        key 1257=127
+SILENT  enc MACRO 3 R7|8  14/34    slot 1 MODULE         key 1258=34
+NOMOVE  enc MACRO 3 R7|8  14/34    slot 2 PARAM         
+SILENT  enc MACRO 3 R7|8  14/34    slot 3 DEPTH          key 125a=0
+SILENT  enc MACRO 3 R7|8  14/34    slot 4 BTN VAL        key 125b=127
+SILENT  enc MACRO 3 R7|8  14/34    slot 5 MODULE         key 125c=34
+NOMOVE  enc MACRO 3 R7|8  14/34    slot 6 PARAM         
+SILENT  enc MACRO 3 R7|8  14/34    slot 7 DEPTH          key 125e=0
+SILENT  enc MACRO 3 R7|8  14/34    slot 8 BTN VAL        key 125f=127
+SILENT  enc MACRO 4 R1|2  15/34    slot 1 MODULE         key 1260=34
+NOMOVE  enc MACRO 4 R1|2  15/34    slot 2 PARAM         
+SILENT  enc MACRO 4 R1|2  15/34    slot 3 DEPTH          key 1262=0
+SILENT  enc MACRO 4 R1|2  15/34    slot 4 BTN VAL        key 1263=127
+SILENT  enc MACRO 4 R1|2  15/34    slot 5 MODULE         key 1264=34
+NOMOVE  enc MACRO 4 R1|2  15/34    slot 6 PARAM         
+SILENT  enc MACRO 4 R1|2  15/34    slot 7 DEPTH          key 1266=0
+SILENT  enc MACRO 4 R1|2  15/34    slot 8 BTN VAL        key 1267=127
+SILENT  enc MACRO 4 R3|4  16/34    slot 1 MODULE         key 1268=34
+NOMOVE  enc MACRO 4 R3|4  16/34    slot 2 PARAM         
+SILENT  enc MACRO 4 R3|4  16/34    slot 3 DEPTH          key 126a=0
+SILENT  enc MACRO 4 R3|4  16/34    slot 4 BTN VAL        key 126b=127
+SILENT  enc MACRO 4 R3|4  16/34    slot 5 MODULE         key 126c=34
+NOMOVE  enc MACRO 4 R3|4  16/34    slot 6 PARAM         
+SILENT  enc MACRO 4 R3|4  16/34    slot 7 DEPTH          key 126e=0
+SILENT  enc MACRO 4 R3|4  16/34    slot 8 BTN VAL        key 126f=127
+SILENT  enc MACRO 4 R5|6  17/34    slot 1 MODULE         key 1270=34
+NOMOVE  enc MACRO 4 R5|6  17/34    slot 2 PARAM         
+SILENT  enc MACRO 4 R5|6  17/34    slot 3 DEPTH          key 1272=0
+SILENT  enc MACRO 4 R5|6  17/34    slot 4 BTN VAL        key 1273=127
+SILENT  enc MACRO 4 R5|6  17/34    slot 5 MODULE         key 1274=34
+NOMOVE  enc MACRO 4 R5|6  17/34    slot 6 PARAM         
+SILENT  enc MACRO 4 R5|6  17/34    slot 7 DEPTH          key 1276=0
+SILENT  enc MACRO 4 R5|6  17/34    slot 8 BTN VAL        key 1277=127
+SILENT  enc MACRO 4 R7|8  18/34    slot 1 MODULE         key 1278=34
+NOMOVE  enc MACRO 4 R7|8  18/34    slot 2 PARAM         
+SILENT  enc MACRO 4 R7|8  18/34    slot 3 DEPTH          key 127a=0
+SILENT  enc MACRO 4 R7|8  18/34    slot 4 BTN VAL        key 127b=127
+SILENT  enc MACRO 4 R7|8  18/34    slot 5 MODULE         key 127c=34
+NOMOVE  enc MACRO 4 R7|8  18/34    slot 6 PARAM         
+SILENT  enc MACRO 4 R7|8  18/34    slot 7 DEPTH          key 127e=0
+SILENT  enc MACRO 4 R7|8  18/34    slot 8 BTN VAL        key 127f=127
+SILENT  enc MACRO 5 R1|2  19/34    slot 1 MODULE         key 1280=34
+NOMOVE  enc MACRO 5 R1|2  19/34    slot 2 PARAM         
+SILENT  enc MACRO 5 R1|2  19/34    slot 3 DEPTH          key 1282=0
+SILENT  enc MACRO 5 R1|2  19/34    slot 4 BTN VAL        key 1283=127
+SILENT  enc MACRO 5 R1|2  19/34    slot 5 MODULE         key 1284=34
+NOMOVE  enc MACRO 5 R1|2  19/34    slot 6 PARAM         
+SILENT  enc MACRO 5 R1|2  19/34    slot 7 DEPTH          key 1286=0
+SILENT  enc MACRO 5 R1|2  19/34    slot 8 BTN VAL        key 1287=127
+SILENT  enc MACRO 5 R3|4  20/34    slot 1 MODULE         key 1288=34
+NOMOVE  enc MACRO 5 R3|4  20/34    slot 2 PARAM         
+SILENT  enc MACRO 5 R3|4  20/34    slot 3 DEPTH          key 128a=0
+SILENT  enc MACRO 5 R3|4  20/34    slot 4 BTN VAL        key 128b=127
+SILENT  enc MACRO 5 R3|4  20/34    slot 5 MODULE         key 128c=34
+NOMOVE  enc MACRO 5 R3|4  20/34    slot 6 PARAM         
+SILENT  enc MACRO 5 R3|4  20/34    slot 7 DEPTH          key 128e=0
+SILENT  enc MACRO 5 R3|4  20/34    slot 8 BTN VAL        key 128f=127
+SILENT  enc MACRO 5 R5|6  21/34    slot 1 MODULE         key 1290=34
+NOMOVE  enc MACRO 5 R5|6  21/34    slot 2 PARAM         
+SILENT  enc MACRO 5 R5|6  21/34    slot 3 DEPTH          key 1292=0
+SILENT  enc MACRO 5 R5|6  21/34    slot 4 BTN VAL        key 1293=127
+SILENT  enc MACRO 5 R5|6  21/34    slot 5 MODULE         key 1294=34
+NOMOVE  enc MACRO 5 R5|6  21/34    slot 6 PARAM         
+SILENT  enc MACRO 5 R5|6  21/34    slot 7 DEPTH          key 1296=0
+SILENT  enc MACRO 5 R5|6  21/34    slot 8 BTN VAL        key 1297=127
+SILENT  enc MACRO 5 R7|8  22/34    slot 1 MODULE         key 1298=34
+NOMOVE  enc MACRO 5 R7|8  22/34    slot 2 PARAM         
+SILENT  enc MACRO 5 R7|8  22/34    slot 3 DEPTH          key 129a=0
+SILENT  enc MACRO 5 R7|8  22/34    slot 4 BTN VAL        key 129b=127
+SILENT  enc MACRO 5 R7|8  22/34    slot 5 MODULE         key 129c=34
+NOMOVE  enc MACRO 5 R7|8  22/34    slot 6 PARAM         
+SILENT  enc MACRO 5 R7|8  22/34    slot 7 DEPTH          key 129e=0
+SILENT  enc MACRO 5 R7|8  22/34    slot 8 BTN VAL        key 129f=127
+SILENT  enc MACRO 6 R1|2  23/34    slot 1 MODULE         key 12a0=34
+NOMOVE  enc MACRO 6 R1|2  23/34    slot 2 PARAM         
+SILENT  enc MACRO 6 R1|2  23/34    slot 3 DEPTH          key 12a2=0
+SILENT  enc MACRO 6 R1|2  23/34    slot 4 BTN VAL        key 12a3=127
+SILENT  enc MACRO 6 R1|2  23/34    slot 5 MODULE         key 12a4=34
+NOMOVE  enc MACRO 6 R1|2  23/34    slot 6 PARAM         
+SILENT  enc MACRO 6 R1|2  23/34    slot 7 DEPTH          key 12a6=0
+SILENT  enc MACRO 6 R1|2  23/34    slot 8 BTN VAL        key 12a7=127
+SILENT  enc MACRO 6 R3|4  24/34    slot 1 MODULE         key 12a8=34
+NOMOVE  enc MACRO 6 R3|4  24/34    slot 2 PARAM         
+SILENT  enc MACRO 6 R3|4  24/34    slot 3 DEPTH          key 12aa=0
+SILENT  enc MACRO 6 R3|4  24/34    slot 4 BTN VAL        key 12ab=127
+SILENT  enc MACRO 6 R3|4  24/34    slot 5 MODULE         key 12ac=34
+NOMOVE  enc MACRO 6 R3|4  24/34    slot 6 PARAM         
+SILENT  enc MACRO 6 R3|4  24/34    slot 7 DEPTH          key 12ae=0
+SILENT  enc MACRO 6 R3|4  24/34    slot 8 BTN VAL        key 12af=127
+SILENT  enc MACRO 6 R5|6  25/34    slot 1 MODULE         key 12b0=34
+NOMOVE  enc MACRO 6 R5|6  25/34    slot 2 PARAM         
+SILENT  enc MACRO 6 R5|6  25/34    slot 3 DEPTH          key 12b2=0
+SILENT  enc MACRO 6 R5|6  25/34    slot 4 BTN VAL        key 12b3=127
+SILENT  enc MACRO 6 R5|6  25/34    slot 5 MODULE         key 12b4=34
+NOMOVE  enc MACRO 6 R5|6  25/34    slot 6 PARAM         
+SILENT  enc MACRO 6 R5|6  25/34    slot 7 DEPTH          key 12b6=0
+SILENT  enc MACRO 6 R5|6  25/34    slot 8 BTN VAL        key 12b7=127
+SILENT  enc MACRO 6 R7|8  26/34    slot 1 MODULE         key 12b8=34
+NOMOVE  enc MACRO 6 R7|8  26/34    slot 2 PARAM         
+SILENT  enc MACRO 6 R7|8  26/34    slot 3 DEPTH          key 12ba=0
+SILENT  enc MACRO 6 R7|8  26/34    slot 4 BTN VAL        key 12bb=127
+SILENT  enc MACRO 6 R7|8  26/34    slot 5 MODULE         key 12bc=34
+NOMOVE  enc MACRO 6 R7|8  26/34    slot 6 PARAM         
+SILENT  enc MACRO 6 R7|8  26/34    slot 7 DEPTH          key 12be=0
+SILENT  enc MACRO 6 R7|8  26/34    slot 8 BTN VAL        key 12bf=127
+SILENT  enc MACRO 7 R1|2  27/34    slot 1 MODULE         key 12c0=34
+NOMOVE  enc MACRO 7 R1|2  27/34    slot 2 PARAM         
+SILENT  enc MACRO 7 R1|2  27/34    slot 3 DEPTH          key 12c2=0
+SILENT  enc MACRO 7 R1|2  27/34    slot 4 BTN VAL        key 12c3=127
+SILENT  enc MACRO 7 R1|2  27/34    slot 5 MODULE         key 12c4=34
+NOMOVE  enc MACRO 7 R1|2  27/34    slot 6 PARAM         
+SILENT  enc MACRO 7 R1|2  27/34    slot 7 DEPTH          key 12c6=0
+SILENT  enc MACRO 7 R1|2  27/34    slot 8 BTN VAL        key 12c7=127
+SILENT  enc MACRO 7 R3|4  28/34    slot 1 MODULE         key 12c8=34
+NOMOVE  enc MACRO 7 R3|4  28/34    slot 2 PARAM         
+SILENT  enc MACRO 7 R3|4  28/34    slot 3 DEPTH          key 12ca=0
+SILENT  enc MACRO 7 R3|4  28/34    slot 4 BTN VAL        key 12cb=127
+SILENT  enc MACRO 7 R3|4  28/34    slot 5 MODULE         key 12cc=34
+NOMOVE  enc MACRO 7 R3|4  28/34    slot 6 PARAM         
+SILENT  enc MACRO 7 R3|4  28/34    slot 7 DEPTH          key 12ce=0
+SILENT  enc MACRO 7 R3|4  28/34    slot 8 BTN VAL        key 12cf=127
+SILENT  enc MACRO 7 R5|6  29/34    slot 1 MODULE         key 12d0=34
+NOMOVE  enc MACRO 7 R5|6  29/34    slot 2 PARAM         
+SILENT  enc MACRO 7 R5|6  29/34    slot 3 DEPTH          key 12d2=0
+SILENT  enc MACRO 7 R5|6  29/34    slot 4 BTN VAL        key 12d3=127
+SILENT  enc MACRO 7 R5|6  29/34    slot 5 MODULE         key 12d4=34
+NOMOVE  enc MACRO 7 R5|6  29/34    slot 6 PARAM         
+SILENT  enc MACRO 7 R5|6  29/34    slot 7 DEPTH          key 12d6=0
+SILENT  enc MACRO 7 R5|6  29/34    slot 8 BTN VAL        key 12d7=127
+SILENT  enc MACRO 7 R7|8  30/34    slot 1 MODULE         key 12d8=34
+NOMOVE  enc MACRO 7 R7|8  30/34    slot 2 PARAM         
+SILENT  enc MACRO 7 R7|8  30/34    slot 3 DEPTH          key 12da=0
+SILENT  enc MACRO 7 R7|8  30/34    slot 4 BTN VAL        key 12db=127
+SILENT  enc MACRO 7 R7|8  30/34    slot 5 MODULE         key 12dc=34
+NOMOVE  enc MACRO 7 R7|8  30/34    slot 6 PARAM         
+SILENT  enc MACRO 7 R7|8  30/34    slot 7 DEPTH          key 12de=0
+SILENT  enc MACRO 7 R7|8  30/34    slot 8 BTN VAL        key 12df=127
+SILENT  enc MACRO 8 R1|2  31/34    slot 1 MODULE         key 12e0=34
+NOMOVE  enc MACRO 8 R1|2  31/34    slot 2 PARAM         
+SILENT  enc MACRO 8 R1|2  31/34    slot 3 DEPTH          key 12e2=0
+SILENT  enc MACRO 8 R1|2  31/34    slot 4 BTN VAL        key 12e3=127
+SILENT  enc MACRO 8 R1|2  31/34    slot 5 MODULE         key 12e4=34
+NOMOVE  enc MACRO 8 R1|2  31/34    slot 6 PARAM         
+SILENT  enc MACRO 8 R1|2  31/34    slot 7 DEPTH          key 12e6=0
+SILENT  enc MACRO 8 R1|2  31/34    slot 8 BTN VAL        key 12e7=127
+SILENT  enc MACRO 8 R3|4  32/34    slot 1 MODULE         key 12e8=34
+NOMOVE  enc MACRO 8 R3|4  32/34    slot 2 PARAM         
+SILENT  enc MACRO 8 R3|4  32/34    slot 3 DEPTH          key 12ea=0
+SILENT  enc MACRO 8 R3|4  32/34    slot 4 BTN VAL        key 12eb=127
+SILENT  enc MACRO 8 R3|4  32/34    slot 5 MODULE         key 12ec=34
+NOMOVE  enc MACRO 8 R3|4  32/34    slot 6 PARAM         
+SILENT  enc MACRO 8 R3|4  32/34    slot 7 DEPTH          key 12ee=0
+SILENT  enc MACRO 8 R3|4  32/34    slot 8 BTN VAL        key 12ef=127
+SILENT  enc MACRO 8 R5|6  33/34    slot 1 MODULE         key 12f0=34
+NOMOVE  enc MACRO 8 R5|6  33/34    slot 2 PARAM         
+SILENT  enc MACRO 8 R5|6  33/34    slot 3 DEPTH          key 12f2=0
+SILENT  enc MACRO 8 R5|6  33/34    slot 4 BTN VAL        key 12f3=127
+SILENT  enc MACRO 8 R5|6  33/34    slot 5 MODULE         key 12f4=34
+NOMOVE  enc MACRO 8 R5|6  33/34    slot 6 PARAM         
+SILENT  enc MACRO 8 R5|6  33/34    slot 7 DEPTH          key 12f6=0
+SILENT  enc MACRO 8 R5|6  33/34    slot 8 BTN VAL        key 12f7=127
+SILENT  enc MACRO 8 R7|8  34/34    slot 1 MODULE         key 12f8=34
+NOMOVE  enc MACRO 8 R7|8  34/34    slot 2 PARAM         
+SILENT  enc MACRO 8 R7|8  34/34    slot 3 DEPTH          key 12fa=0
+SILENT  enc MACRO 8 R7|8  34/34    slot 4 BTN VAL        key 12fb=127
+SILENT  enc MACRO 8 R7|8  34/34    slot 5 MODULE         key 12fc=34
+NOMOVE  enc MACRO 8 R7|8  34/34    slot 6 PARAM         
+SILENT  enc MACRO 8 R7|8  34/34    slot 7 DEPTH          key 12fe=0
+SILENT  enc MACRO 8 R7|8  34/34    slot 8 BTN VAL        key 12ff=127
+SILENT  enc RIBBON                 slot 1 MODE           key 0ebc=3
+SILENT  enc RIBBON                 slot 2 POS            key 0ebd=0
+SILENT  enc RIBBON                 slot 3 TOUCH          key 0ebe=1
+SILENT  enc PERFORMANCE            slot 6 GLIDE          key 0eca=1
+rows: 180 keyed, 19 default-mismatch, 2 state-dead, 125 silent (default context)
+encoders: 893 live slots, 201 default-mismatch, 96 nomove, 10 nokey, 12 state-dead, 671 silent (default context)
