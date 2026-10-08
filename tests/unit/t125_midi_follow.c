@@ -69,14 +69,50 @@ int main(void) {
     /* A fresh tick clears the latch (take resumes, still locked data). */
     t += TICK120;
     RI_ASSERT(midi_follow_tick(&f, t, &it) == 0, "resume");
-    /* Transport intents. */
-    RI_ASSERT(midi_follow_start(&f, &it) == 0 && it.kind == RI_FOLLOW_PLAY_START, "start");
-    RI_ASSERT(midi_follow_continue(&f, &it) == 0 && it.kind == RI_FOLLOW_CONTINUE, "cont");
+    /* Transport intents (M1: Start/Continue arm; the next tick fires). */
+    midi_follow_init(&f);
+    RI_ASSERT(midi_follow_start(&f, &it) == 0 && it.kind == RI_FOLLOW_NONE, "start arms");
+    t += TICK120;
+    RI_ASSERT(midi_follow_tick(&f, t, &it) == 0 && it.kind == RI_FOLLOW_PLAY_START,
+        "tick fires start");
+    RI_ASSERT(midi_follow_tick(&f, t + TICK120, &it) == 0 && it.kind == RI_FOLLOW_NONE,
+        "fires once");
+    RI_ASSERT(midi_follow_stop(&f, &it) == 0 && it.kind == RI_FOLLOW_STOP, "stop take");
+    RI_ASSERT(midi_follow_continue(&f, &it) == 0 && it.kind == RI_FOLLOW_NONE, "cont arms");
+    t += 2u * TICK120;
+    RI_ASSERT(midi_follow_tick(&f, t, &it) == 0 && it.kind == RI_FOLLOW_CONTINUE,
+        "tick fires cont");
     RI_ASSERT(midi_follow_stop(&f, &it) == 0 && it.kind == RI_FOLLOW_STOP, "stop");
-    RI_ASSERT(midi_follow_spp(&f, 16u, &it) == 0 && it.kind == RI_FOLLOW_SEEK &&
-        it.seek_tick == 384u, "spp %u", it.seek_tick);
     RI_ASSERT(midi_follow_start(0, &it) == 2, "start null");
     RI_ASSERT(midi_follow_spp(&f, 16u, 0) == 2, "spp null");
+    /* M1: stop disarms, SPP running law, ignore-while-playing. */
+    midi_follow_init(&f);
+    t = 8000000u;
+    RI_ASSERT(midi_follow_start(&f, &it) == 0 && it.kind == RI_FOLLOW_NONE, "arm");
+    RI_ASSERT(midi_follow_stop(&f, &it) == 0 && it.kind == RI_FOLLOW_STOP, "disarm stop");
+    t += TICK120;
+    RI_ASSERT(midi_follow_tick(&f, t, &it) == 0 && it.kind == RI_FOLLOW_NONE,
+        "no start after stop");
+    RI_ASSERT(midi_follow_spp(&f, 16u, &it) == 0 && it.kind == RI_FOLLOW_SEEK &&
+        it.seek_tick == 384u, "spp stopped %u", it.seek_tick);
+    RI_ASSERT(midi_follow_start(&f, &it) == 0, "arm2");
+    t += TICK120;
+    RI_ASSERT(midi_follow_tick(&f, t, &it) == 0 && it.kind == RI_FOLLOW_PLAY_START, "fired");
+    RI_ASSERT(midi_follow_spp(&f, 16u, &it) == 0 && it.kind == RI_FOLLOW_NONE,
+        "spp running silent");
+    RI_ASSERT(f.spp_ignored == 1u, "spp counted %u", f.spp_ignored);
+    RI_ASSERT(midi_follow_start(&f, &it) == 0 && it.kind == RI_FOLLOW_NONE,
+        "start ignored in play");
+    t += TICK120;
+    RI_ASSERT(midi_follow_tick(&f, t, &it) == 0 && it.kind == RI_FOLLOW_NONE,
+        "no double start");
+    RI_ASSERT(midi_follow_continue(&f, &it) == 0 && it.kind == RI_FOLLOW_NONE,
+        "cont ignored in play");
+    t += TICK120;
+    RI_ASSERT(midi_follow_tick(&f, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "no cont fire");
+    RI_ASSERT(midi_follow_stop(&f, &it) == 0 && it.kind == RI_FOLLOW_STOP, "stop ends take");
+    RI_ASSERT(midi_follow_spp(&f, 16u, &it) == 0 && it.kind == RI_FOLLOW_SEEK,
+        "spp seeks again");
     /* Twin determinism: identical streams, identical estimate. */
     midi_follow_init(&g);
     {

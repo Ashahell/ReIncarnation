@@ -17,6 +17,10 @@ void midi_follow_init(struct RIFollow *f) {
     f->stop_latched = 0u;
     f->spp_pend = 0u;
     f->spp_lsb = 0u;
+    f->play_arm = 0u;
+    f->playing = 0u;
+    f->padf[0] = f->padf[1] = 0u;
+    f->spp_ignored = 0u;
 }
 
 static void intent_none(struct RIFollowIntent *it) {
@@ -32,6 +36,11 @@ int midi_follow_tick(struct RIFollow *f, uint64_t now_us,
         return 2;
     intent_none(it);
     f->stop_latched = 0u; /* traffic resumes the take */
+    if (f->play_arm) {    /* M1: an armed Start/Continue fires on this F8 */
+        it->kind = f->play_arm == 1u ? RI_FOLLOW_PLAY_START : RI_FOLLOW_CONTINUE;
+        f->play_arm = 0u;
+        f->playing = 1u;
+    }
     if (!f->have_tick) {
         f->last_us = now_us;
         f->have_tick = 1u;
@@ -74,7 +83,9 @@ int midi_follow_start(struct RIFollow *f, struct RIFollowIntent *it) {
     if (!f || !it)
         return 2;
     intent_none(it);
-    it->kind = RI_FOLLOW_PLAY_START;
+    if (f->playing)
+        return 0; /* Start while in play is ignored (MIDI law) */
+    f->play_arm = 1u;
     f->stop_latched = 0u;
     return 0;
 }
@@ -83,7 +94,9 @@ int midi_follow_continue(struct RIFollow *f, struct RIFollowIntent *it) {
     if (!f || !it)
         return 2;
     intent_none(it);
-    it->kind = RI_FOLLOW_CONTINUE;
+    if (f->playing)
+        return 0; /* Continue while in play is ignored (MIDI law) */
+    f->play_arm = 2u;
     f->stop_latched = 0u;
     return 0;
 }
@@ -94,6 +107,8 @@ int midi_follow_stop(struct RIFollow *f, struct RIFollowIntent *it) {
     intent_none(it);
     it->kind = RI_FOLLOW_STOP;
     f->stop_latched = 1u;
+    f->play_arm = 0u; /* a stopped take drops a pending arm */
+    f->playing = 0u;
     return 0;
 }
 
@@ -102,6 +117,11 @@ int midi_follow_spp(struct RIFollow *f, uint32_t spp_beats,
     if (!f || !it)
         return 2;
     intent_none(it);
+    if (f->playing) { /* E0: SPP arrives only while stopped; count and ignore it running */
+        if (f->spp_ignored < 0xFFFFFFFFu)
+            f->spp_ignored++;
+        return 0;
+    }
     it->kind = RI_FOLLOW_SEEK;
     it->seek_tick = spp_beats * 24u; /* 16ths at engine PPQ=96 */
     return 0;
@@ -121,6 +141,8 @@ int midi_follow_poll(struct RIFollow *f, uint64_t now_us,
     if (gap > limit) {
         it->kind = RI_FOLLOW_STOP;
         f->stop_latched = 1u;
+        f->play_arm = 0u; /* the take ends: a new Start is needed */
+        f->playing = 0u;
     }
     return 0;
 }

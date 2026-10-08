@@ -42,14 +42,23 @@ struct RIFollow {
     uint8_t stop_latched;
     uint8_t spp_pend; /* 0 idle, 1 want lsb, 2 want msb */
     uint8_t spp_lsb;
+    uint8_t play_arm;    /* M1: 0 none, 1 start, 2 continue: fires on next tick */
+    uint8_t playing;     /* transport running per fired intents (STOP clears) */
+    uint8_t padf[2];
+    uint32_t spp_ignored;/* SPP arrivals ignored while running (E0) */
 };
 
 void midi_follow_init(struct RIFollow *f);
-/* 24ppqn tick at now_us (monotonic). Intent always NONE here; the
- * estimate/lock update. 0 ok, 2 bad. */
+/* 24ppqn tick at now_us (monotonic). Feeds the estimate/lock update
+ * and fires an armed Start/Continue exactly once (M1). 0 ok, 2 bad. */
 int midi_follow_tick(struct RIFollow *f, uint64_t now_us,
     struct RIFollowIntent *it);
-/* Transport messages. SPP beats are MIDI beats (16ths). 0 ok, 2 bad. */
+/* Transport messages. Start/Continue ARM (M1 downbeat law: the next tick
+ * fires PLAY_START/CONTINUE, so the take starts on an F8, never early);
+ * arming while in play is ignored (MIDI law). Stop is immediate and
+ * disarms. SPP seeks while stopped; while running it is counted and
+ * ignored (E0, pending owner decision D2). SPP beats are MIDI beats
+ * (16ths). 0 ok, 2 bad. */
 int midi_follow_start(struct RIFollow *f, struct RIFollowIntent *it);
 int midi_follow_continue(struct RIFollow *f, struct RIFollowIntent *it);
 int midi_follow_stop(struct RIFollow *f, struct RIFollowIntent *it);
