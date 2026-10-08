@@ -334,7 +334,8 @@ struct RILeviVoice {
     uint8_t solo;                 /* 0 none, 1..8 soloed op */
     uint8_t cfeeds[RI_LEVI_NOPS]; /* custom grid (Custom mode) */
     uint16_t mpos;                /* morph position, 100 per slot step */
-    uint8_t padm[2];
+    uint8_t mpos_knob;            /* last 7-bit MPOS knob (W3: re-derived on slot/mode change) */
+    uint8_t padm[1];
     uint8_t order[RI_LEVI_NOPS];  /* bank-A render order */
     uint8_t orderB[RI_LEVI_NOPS]; /* bank-B render order */
     uint8_t live[RI_LEVI_NOPS];   /* bank A graph */

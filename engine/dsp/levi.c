@@ -874,6 +874,15 @@ static uint32_t morph_list(const struct RILeviVoice *v, uint8_t *out) {
     return n;
 }
 
+/* W3: the 7-bit MPOS knob mapped onto the current slot list (100 per
+ * slot step, same law the MPOS knob always used when set last). */
+static uint16_t mpos_for_knob(const struct RILeviVoice *v, uint8_t knob) {
+    uint8_t list[RI_LEVI_NSLOTS];
+    uint32_t n = morph_list(v, list);
+    uint32_t k = knob > 127u ? 127u : knob;
+    return n > 1u ? (uint16_t)((k * (n - 1u) * 100u + 63u) / 127u) : 0u;
+}
+
 /* Morph mode: banks A/B = the list entries around the position; the
  * blend is the position within the step (0..100). Crossing a step loads
  * the new pair; bank states carry over (B -> A going up, A -> B going
@@ -927,7 +936,8 @@ void levi_init_set(struct RILeviSet *s) {
         v->mute = 0u;
         v->solo = 0u;
         v->mpos = 0u;
-        v->padm[0] = v->padm[1] = 0u;
+        v->mpos_knob = 0u;
+        v->padm[0] = 0u;
         for (o = 0u; o < RI_LEVI_NOPS; o++)
             v->cfeeds[o] = RI_LEVI_PRESET_FEEDS[RI_LEVI_ALGO_DUO][o];
         for (o = 0u; o < RI_LEVI_NOPS; o++) {
@@ -2908,9 +2918,11 @@ int levi_set_param_ui(struct RILeviSet *s, uint32_t voice, uint32_t id,
             val > RI_LEVI_SLOT_OFF ? RI_LEVI_SLOT_OFF : val);
     case (RI_CTL_LEVI_MPOS & 0xFFu): {
         /* 0..127 spans the active slots (7-bit key; manual: 100 steps per
-         * slot pair, E0 resolution). */
-        uint32_t n = levi_morph_slots(s, voice);
-        return levi_set_mpos(s, voice, n > 1u ? ((uint32_t)val * (n - 1u) * 100u + 63u) / 127u : 0u);
+         * slot pair, E0 resolution). The knob is kept per voice (W3) so a
+         * later slot or mode change re-derives the same position. */
+        struct RILeviVoice *v = &s->v[voice];
+        v->mpos_knob = val > 127u ? 127u : val;
+        return levi_set_mpos(s, voice, mpos_for_knob(v, v->mpos_knob));
     }
     case (RI_CTL_LEVI_SOLO & 0xFFu):
         s->v[voice].solo = val > 8u ? 0u : val;
@@ -4692,6 +4704,7 @@ int levi_set_amode(struct RILeviSet *s, uint32_t voice, uint32_t mode) {
         for (o = 0u; o < RI_LEVI_NOPS; o++)
             v->cfeeds[o] = v->feeds[o];         /* start from what sounds now */
     v->amode = (uint8_t)mode;
+    v->mpos = mpos_for_knob(v, v->mpos_knob);   /* W3: entering MORPH lands on the knob */
     if (mode == RI_LEVI_AMODE_CUSTOM) {
         bank_load(v, 0u, RI_LEVI_ALGO_CUSTOM);
         v->algo = RI_LEVI_ALGO_CUSTOM;
@@ -4714,6 +4727,7 @@ int levi_set_slot(struct RILeviSet *s, uint32_t voice, uint32_t slot, uint32_t v
         return 2;                                /* Algo 1 is never OFF or Silence */
     v = &s->v[voice];
     v->slot[slot] = (uint8_t)val;
+    v->mpos = mpos_for_knob(v, v->mpos_knob);   /* W3: the knob survives the new list */
     if (v->amode == RI_LEVI_AMODE_MORPH)
         morph_apply(v);
     else if (slot == 0u && v->amode == RI_LEVI_AMODE_SINGLE)
