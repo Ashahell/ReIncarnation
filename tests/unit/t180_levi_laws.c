@@ -391,6 +391,7 @@ int main(void) {
         render2(&e, -1, s_bl, s_br);
         fresh_loaded(&e);
         apply(&e, RI_CTL_LEVI_RBYPASS, 1);
+        apply(&e, RI_CTL_LEVI_RDRYWET, 96);   /* same mix as the baseline: only tone differs */
         apply(&e, (uint16_t)(RI_CTL_LEVI_RTONE & 0xFFFFu), 127);
         render2(&e, -1, s_l, s_r);
         RI_ASSERT(differs(), "reverb tone moves wet signal");
