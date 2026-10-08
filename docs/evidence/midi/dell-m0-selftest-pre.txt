@@ -1,0 +1,32 @@
+# Dell M0 probe, pre-fix (2026-10-08, agent e6320 session 1)
+
+Running `camd.library`: 41.1, 54904 bytes (matches the unpatched ABIv11
+build tree binary; the two upstream fixes are absent — see m0-camd.md).
+
+Probe: ABIv11 `MIDISEND` (built 2026-10-08 from ReIncarnation HEAD with
+the v11 16.1.0 toolchain + v11 SDK, 0 unresolved, 34480 B), PUT to
+`RAM:MIDISEND`, ran `RAM:MIDISEND m0probe SELFTEST` (left in RAM: for
+the post-reboot re-probe).
+
+Result (as predicted: the Dell runs the broken camd):
+
+    SELFTEST connected: early sender 0, late sender 0
+    SELFTEST rx err 0
+    SELFTEST cluster 0 at AC18F0 name 00 61 6D 64
+    SELFTEST cluster 1 at AC1A60 name 00 00 00 00
+    SELFTEST cluster 2 at ABE260 name 00 00 4D 3A
+    SELFTEST rx node 16B5110 link AC19E0 sig 16 signalled 0 got 0
+    rc=20
+
+- Sender links never connect (`MidiLinkConnected() = 0`): every
+  `AddMidiLink` sits on a private cluster, so no two links talk.
+- Cluster names are stack garbage (`00 61 6D 64`, zeros) instead of
+  `m0probe…` — the `mysprintf` `&fmt+1` bug, fixed upstream by
+  `28ec43a517`.
+- No echo received (`got 0`). No RIAPP was running; the probe used its
+  own cluster and cleaned up its nodes.
+
+Blocked on: the fixed ABIv11 `camd.library` binary (link blocked — v11
+build tree configured for gcc 10.5.0, toolchain now 16.1.0; see
+m0-camd.md), then owner install to `LIBS:` + reboot, then re-run this
+probe (expect `connected: 1, 1`, readable names, `got 2`, rc=0).

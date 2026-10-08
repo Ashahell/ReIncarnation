@@ -63,13 +63,26 @@ build checks only, then reverted); the carriage is the record.
 - Existing v11 binary (unbuilt here): `$VER: camd.library 41.1
   (14.9.2026)`, 54904 B, sha256 `5470d033…`.
 
-## Blocked on lanes (no Dell/riqemu1 access from here)
+## Dell probe, pre-fix (2026-10-08, agent e6320 — lane is up)
+
+- Running `camd.library`: **41.1, 54904 bytes** (matches the unpatched
+  ABIv11 tree binary; both upstream fixes absent).
+- `MIDISEND m0probe SELFTEST` (ABIv11 build staged in `RAM:`): senders
+  never connect (`connected: 0, 0`), cluster names are garbage
+  (`00 61 6D 64`, zeros), no echo (`got 0`, rc=20). Full log:
+  `dell-m0-selftest-pre.txt`. Exactly the broken behavior §0.8 predicts.
+- No RIAPP was running; probe used its own cluster and cleaned up.
+
+## Still blocked (owner lane)
 
 - riqemu1: deploy the v1 binary, reboot at 1280x1024, re-run the G7
   proof (`MIDISEND` into `RISECT remote`), un-park
   `DEVS:Midi/debugdriver` and record whether the first camd open
-  still blocks. Ready when the lane is up.
-- Dell: probe the running `camd.library` (version string, size, hash;
-  `MIDISEND SELFTEST` for garbled cluster names), stage the fixed
-  ABIv11 build in `RAM:`, owner installs + reboots. Ready when the
-  lane is up.
+  still blocks. Lane down from here.
+- Dell: the fixed ABIv11 `camd.library` binary cannot be linked on
+  this machine (v11 build tree configured for gcc 10.5.0, toolchain
+  now 16.1.0 — needs an owner re-provision decision: fresh build dir
+  vs reconfigure in place). Once built: stage to `RAM:`, owner
+  installs to `LIBS:` and reboots (never `avail flush`), then re-run
+  the SELFTEST above (expect `connected: 1, 1`, readable names,
+  `got 2`, rc=0).
