@@ -77,19 +77,35 @@ int main(void) {
     t.sync.source = RI_SYNC_MIDI;
     cursor = 0u;
     feed(0xFCu, 0u, 0u, now);
+    /* SPP counts QUARTER notes: 10 beats is 40 sixteenths, and at the
+     * panel PPQ (96) a sixteenth is 24 engine ticks -> tick 960. */
     feed(0xF2u, 0x0Au, 0x00u, now);
     pump(&t, &tru, &cursor, &nf8);
-    RI_ASSERT(cursor == 240u, "spp seeks %llu", (unsigned long long)cursor);
+    RI_ASSERT(cursor == 960u, "spp seeks %llu", (unsigned long long)cursor);
     feed(0xFBu, 0u, 0u, now);
     now += TICK120;
     feed(0xF8u, 0u, 0u, now);
     pump(&t, &tru, &cursor, &nf8);
     RI_ASSERT(panel_state(&tru) == RI_TR_PLAYING, "continue plays");
-    RI_ASSERT(cursor == 240u, "continue keeps cursor %llu", (unsigned long long)cursor);
+    RI_ASSERT(cursor == 960u, "continue keeps cursor %llu", (unsigned long long)cursor);
     /* SPP while running changes nothing (M1 law, applied end to end). */
     feed(0xF2u, 0x00u, 0x01u, now);
     pump(&t, &tru, &cursor, &nf8);
-    RI_ASSERT(cursor == 240u && s_b.follow.spp_ignored == 1u, "running spp ignored");
+    RI_ASSERT(cursor == 960u && s_b.follow.spp_ignored == 1u, "running spp ignored");
+    /* A locate past the song clamps to its last tick, like the panel's own
+     * bar seeks: a master position beyond the arrangement must not leave
+     * the take parked in empty song. */
+    {
+        uint32_t sb = tru.u.tr.song_bars;
+        tru.u.tr.song_bars = 20u;                 /* 20 bars = 7680 ticks */
+        feed(0xFCu, 0u, 0u, now);
+        pump(&t, &tru, &cursor, &nf8);
+        feed(0xF2u, 0x64u, 0x00u, now);           /* SPP 100 beats = 9600 */
+        pump(&t, &tru, &cursor, &nf8);
+        RI_ASSERT(cursor == 7679u, "locate clamped %llu", (unsigned long long)cursor);
+        tru.u.tr.song_bars = sb;
+        cursor = 0u;
+    }
     /* STOP stops; tempo holds (frozen, knob live again). */
     feed(0xFCu, 0u, 0u, now);
     pump(&t, &tru, &cursor, &nf8);
@@ -248,6 +264,20 @@ int main(void) {
         err_end = (double)err;
         RI_ASSERT(err_end < 96.0, "drift %f ticks", err_end);
         RI_ASSERT(err_end <= err_mid + 96.0, "not growing (%f -> %f)", err_mid, err_end);
+    }
+    /* A LOCAL stop (panel Stop, no MIDI byte) ends the take: the clock
+     * expectation must freeze with it, or the servo trims against a
+     * parked engine cursor until it rails at the bound. */
+    {
+        uint64_t exp0;
+        uint32_t k;
+        RI_ASSERT(midi_trans_tempo_locked(&t) == 1, "still locked");
+        ri_sui_press(&tru, RI_STR_STOP);
+        exp0 = (uint64_t)t.expected;
+        for (k = 0u; k < 6u; k++)
+            out = midi_trans_tempo(&t, &tru, 4u, 1u, 120.0f, exp0);
+        RI_ASSERT((uint64_t)t.expected == exp0, "expectation frozen after local stop");
+        RI_ASSERT(fabsf(out - 120.0f) < 0.5f, "trim not railed after local stop %f", out);
     }
     RI_RESULT("miditransport");
 }

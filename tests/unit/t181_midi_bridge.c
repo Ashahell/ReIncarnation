@@ -67,8 +67,8 @@ int main(void) {
     midi_bridge_init(&b);
     feed3(&b, 0xF2u, 0x0Au, 0x00u, 1000u);
     n = midi_bridge_read_in(&b, its, 70u);
-    RI_ASSERT(n == 1u && its[0].it.kind == RI_FOLLOW_SEEK && its[0].it.seek_tick == 240u,
-        "spp seek %u", n ? its[0].it.seek_tick : 0u);
+    RI_ASSERT(n == 1u && its[0].it.kind == RI_FOLLOW_SEEK && its[0].it.seek_16ths == 40u,
+        "spp seek %u", n ? its[0].it.seek_16ths : 0u);
     feed3(&b, 0xFAu, 0u, 0u, 2000u);
     feed3(&b, 0xF8u, 0u, 0u, 3000u);
     n = midi_bridge_read_in(&b, its, 70u);

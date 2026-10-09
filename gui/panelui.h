@@ -31,6 +31,7 @@ struct RIPanelUI {
     uint8_t del_held, del_focus;                /* Shift+Tab / Shift+key held (p. 33, 44) */
     int8_t del_arg;
     uint64_t play_start_ticks;                  /* transport cursor when playback began */
+    uint64_t play_start_16ths;                  /* audio-clock count at that same edge */
     uint32_t changes;                           /* bumps on every applied change */
     const char *const *skin_installed;          /* app-owned installed mod names */
     uint32_t skin_n;

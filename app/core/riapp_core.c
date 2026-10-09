@@ -218,7 +218,16 @@ int ri_core_meters(struct RIAppCore *c, int *lvl303, int *lvl808,
         return 0;
     *lvl303 = ri_live_meter_level(m.sec_peak[0]);
     *lvl808 = ri_live_meter_level(m.sec_peak[2]);
-    *sixteenths = ri_live_16ths(m.samples, 120u, mix_freq ? mix_freq : 48000u);
+    /* The projection rides the SESSION tempo, not a fixed 120: the rate
+     * is sixteenths per second of AUDIO, so a constant runs the song
+     * position at the wrong speed for every other tempo (found by the M3
+     * Dell loopback proof — a ~60 BPM followed clock showed the position
+     * running at 120). Bounds and rounding are ri_live_set_bpm's own. */
+    {
+        float bpm = c->session.bpm;
+        uint32_t b = (bpm >= 20.0f && bpm <= 500.0f) ? (uint32_t)(bpm + 0.5f) : 120u;
+        *sixteenths = ri_live_16ths(m.samples, b, mix_freq ? mix_freq : 48000u);
+    }
     (void)playing;
     return 1;
 }

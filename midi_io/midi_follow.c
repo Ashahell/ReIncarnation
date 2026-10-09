@@ -26,7 +26,7 @@ void midi_follow_init(struct RIFollow *f) {
 static void intent_none(struct RIFollowIntent *it) {
     it->kind = RI_FOLLOW_NONE;
     it->pad[0] = it->pad[1] = it->pad[2] = 0u;
-    it->seek_tick = 0u;
+    it->seek_16ths = 0u;
 }
 
 int midi_follow_tick(struct RIFollow *f, uint64_t now_us,
@@ -123,7 +123,12 @@ int midi_follow_spp(struct RIFollow *f, uint32_t spp_beats,
         return 0;
     }
     it->kind = RI_FOLLOW_SEEK;
-    it->seek_tick = spp_beats * 24u; /* 16ths at engine PPQ=96 */
+    /* MIDI PPQN counts QUARTER notes, so a beat is four sixteenths. The
+     * intent speaks sixteenths (the panel/transport layer owns the engine
+     * PPQ and converts); M1 had this at ppq/4 per beat, a quarter of the
+     * real distance (M3 lane proof: SPP 5120 located bar 320 of a 151-bar
+     * song). */
+    it->seek_16ths = spp_beats * 4u;
     return 0;
 }
 

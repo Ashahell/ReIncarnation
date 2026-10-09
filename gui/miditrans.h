@@ -37,18 +37,24 @@ struct RIMidiTrans {
 void midi_trans_init(struct RIMidiTrans *t);
 void midi_trans_set_lat(struct RIMidiTrans *t, int16_t ms);
 void midi_trans_set_source(struct RIMidiTrans *t, uint32_t source);
-/* One follower intent onto the panel transport (cursor owned by the
- * caller): START plays from song start (+latency), CONTINUE plays
- * keeping the cursor, STOP stops (tempo held per R1), SEEK locates
- * (stopped only, per the M1 law). Ignored unless sync source is MIDI. */
+/* One follower intent onto the panel transport. `cursor` is the ENGINE's
+ * tick cursor (session ppq), read AND written: START locates it at song
+ * start (+latency) and plays, CONTINUE plays keeping it, STOP stops
+ * (tempo held per R1), SEEK locates it (stopped only, per the M1 law).
+ * The caller is responsible for putting the engine at whatever the
+ * applier wrote before the transport sync starts it. Ignored unless the
+ * sync source is MIDI. */
 void midi_trans_apply(struct RIMidiTrans *t, const struct RIFollowIntent *it,
     struct RISectUI *tru, uint64_t *cursor);
-/* Per block: nf8 clocks observed, follower lock + BPM, current panel
- * cursor. Returns 0 while internal (knob owns tempo), else the
+/* Per block: nf8 clocks observed, follower lock + BPM, and the ENGINE's
+ * own tick cursor (session ppq — the only reference in the same domain
+ * as `expected`; the panel's audio-clock projection is display-only and
+ * per-frame). Returns 0 while internal (knob owns tempo), else the
  * effective session tempo (measured + phase trim). Updates the sync
- * latch, so knob_locked/tempo display follow it. */
+ * latch, so knob_locked/tempo display follow it. Expectation advances
+ * only while the panel transport actually runs. */
 float midi_trans_tempo(struct RIMidiTrans *t, struct RISectUI *tru,
-    uint32_t nf8, uint32_t locked, float bpm, uint64_t cursor);
+    uint32_t nf8, uint32_t locked, float bpm, uint64_t engine_cursor);
 /* 1 when the panel tempo control must show measured + ignore edits. */
 int midi_trans_tempo_locked(const struct RIMidiTrans *t);
 const struct RIFollowSync *midi_trans_sync(const struct RIMidiTrans *t);

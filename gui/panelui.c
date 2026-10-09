@@ -36,6 +36,7 @@ void ri_panel_init(struct RIPanelUI *p) {
     ri_skinassign_init(&p->skin_assign);
     p->del_arg = 0;
     p->play_start_ticks = 0;
+    p->play_start_16ths = 0;
     p->tab_req = -1;
 }
 
@@ -240,8 +241,15 @@ uint32_t ri_panel_live(struct RIPanelUI *p, int playing, uint64_t sixteenths) {
     uint32_t f, ch = 0u;
     if (!p)
         return 0u;
-    if (playing && !p->playing && p->tr)
+    if (playing && !p->playing && p->tr) {
         p->play_start_ticks = p->tr->u.tr.cursor;       /* playback edge */
+        /* The audio clock is cumulative (t72) and the Song Position is
+         * not: the projection adds sixteenths PLAYED, so the edge has to
+         * rebase it. Without this a take that starts late appears already
+         * minutes into the song (M3 lane proof: BAR 22 for a take located
+         * at bar 10). */
+        p->play_start_16ths = sixteenths;
+    }
     if ((uint8_t)(playing != 0) != p->playing)
         ch |= RI_PANEL_CH_PLAYING;
     p->playing = (uint8_t)(playing != 0);
@@ -258,7 +266,8 @@ uint32_t ri_panel_live(struct RIPanelUI *p, int playing, uint64_t sixteenths) {
                 ch |= RI_PANEL_CH_TAP;
         }
     }
-    if (playing && p->tr && ri_str_follow(&p->tr->u.tr, p->play_start_ticks, sixteenths))
+    if (playing && p->tr && ri_str_follow(&p->tr->u.tr, p->play_start_ticks,
+            sixteenths > p->play_start_16ths ? sixteenths - p->play_start_16ths : 0u))
         ch |= RI_PANEL_CH_FOLLOW;
     if (ch)
         p->changes++;

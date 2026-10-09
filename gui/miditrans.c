@@ -58,13 +58,21 @@ void midi_trans_apply(struct RIMidiTrans *t, const struct RIFollowIntent *it,
         midi_sync_note_drop(&t->sync);
         t->playing = 0u;
     } else if (kind == RI_FOLLOW_SEEK) {
-        *cursor = it->seek_tick;
-        t->expected = (int64_t)it->seek_tick;
+        /* SPP speaks sixteenths; the panel's PPQ is the only authority for
+         * engine ticks, and its song_bars bound the locate exactly as they
+         * bound the panel's own bar seeks (secttr seek()). */
+        uint64_t ppq = ri_ppq_or_default(tru->u.tr.ppq);
+        uint64_t tick = (uint64_t)it->seek_16ths * (ppq / 4u);
+        uint64_t last = (uint64_t)tru->u.tr.song_bars * 4u * ppq;
+        if (last && tick >= last)
+            tick = last - 1u;
+        *cursor = tick;
+        t->expected = (int64_t)tick;
     }
 }
 
 float midi_trans_tempo(struct RIMidiTrans *t, struct RISectUI *tru,
-    uint32_t nf8, uint32_t locked, float bpm, uint64_t cursor) {
+    uint32_t nf8, uint32_t locked, float bpm, uint64_t engine_cursor) {
     int64_t err;
     float trim;
     uint32_t want_lock;
@@ -89,13 +97,17 @@ float midi_trans_tempo(struct RIMidiTrans *t, struct RISectUI *tru,
     }
     if (!want_lock)
         return 0.0f;
-    if (t->playing)
+    /* The panel is the truth about running: a LOCAL stop (no MIDI byte)
+     * parks the engine, and a clock expectation that kept advancing would
+     * trim the tempo into its rail against a cursor that never moves. */
+    if (t->playing && !(tru && tru->section == RI_SEC_TRANSPORT &&
+            tru->u.tr.tr.state == RI_TR_STOPPED))
         t->expected += (int64_t)nf8 * 4;
     /* Phase servo: the integral of tempo error is position error, so a
      * converging estimate alone leaves a standing offset. Trimming the
      * session tempo toward the clock (bounded, gentle) drives the
      * residual to zero instead of merely stopping its growth. */
-    err = t->expected - (int64_t)cursor;
+    err = t->expected - (int64_t)engine_cursor;
     trim = (float)err * RI_MTRANS_TRIM_BPM_PER_TICK;
     if (trim > RI_MTRANS_TRIM_MAX_BPM)
         trim = RI_MTRANS_TRIM_MAX_BPM;

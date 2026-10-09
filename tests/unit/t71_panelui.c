@@ -188,5 +188,34 @@ int main(void) {
         RI_ASSERT(tap_all == 0u, "a tap only stales the step rows (%u sections)", tap_all);
         RI_ASSERT(wrong == 0u, "the policy answers wrong for %u section/change pairs", wrong);
     }
+    /* The Song Position counts sixteenths FROM the playback edge. The
+     * audio clock is cumulative (t72), so a take that starts late must be
+     * rebased at its edge — the M3 lane proof read BAR 22 for a take the
+     * master had located at bar 10, seconds after the session started. */
+    {
+        static struct RISectUI tr2;
+        struct RIPanelUI pu2;
+        ri_sui_init(&tr2, RI_SEC_TRANSPORT);
+        ri_panel_init(&pu2);
+        pu2.tr = &tr2;
+        ri_sui_press(&tr2, RI_STR_MODE);          /* the lever: Song mode */
+        RI_ASSERT(tr2.u.tr.song_mode == 1u, "song mode");
+        ri_sui_press(&tr2, RI_STR_PLAY);
+        tr2.u.tr.song_bars = 64u;
+        tr2.u.tr.cursor = 0u;
+        ri_panel_live(&pu2, 1, 1000u);            /* the edge, 1000 sixteenths in */
+        RI_ASSERT(ri_sui_value(&tr2, RI_STR_BAR) == 1, "the edge shows the start bar (%d)",
+            ri_sui_value(&tr2, RI_STR_BAR));
+        ri_panel_live(&pu2, 1, 1016u);
+        RI_ASSERT(ri_sui_value(&tr2, RI_STR_BAR) == 2, "one bar after the edge (%d)",
+            ri_sui_value(&tr2, RI_STR_BAR));
+        /* A restart (stop, then play) rebases again at the new edge. */
+        ri_sui_press(&tr2, RI_STR_STOP);
+        ri_panel_live(&pu2, 0, 1016u);
+        ri_sui_press(&tr2, RI_STR_PLAY);
+        ri_panel_live(&pu2, 1, 2000u);
+        RI_ASSERT(ri_sui_value(&tr2, RI_STR_BAR) == 2, "the restart continues where it stopped (%d)",
+            ri_sui_value(&tr2, RI_STR_BAR));
+    }
     RI_RESULT("panelui");
 }

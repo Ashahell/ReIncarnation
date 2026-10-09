@@ -851,6 +851,7 @@ static void midi_drain(void) {
     uint32_t ch0;
     ULONG ns, nu, dms;
     uint32_t locked;
+    uint64_t eng_cursor;
     float bpm, tempo;
     if (!b)
         return;
@@ -878,26 +879,42 @@ static void midi_drain(void) {
         evlog("MIDI", "ignored=%u", s_midi.ignored);
         s_midi_ignored = s_midi.ignored;
     }
+    /* The applier's cursor IS the engine's tick cursor (session ppq):
+     * the panel position is a display projection, so writing it never
+     * moved the engine — a Continue after a seek played from wherever the
+     * engine had stopped, and the servo's reference was a per-frame
+     * projection at (until the meters fix) a fixed 120 BPM rate. Read by
+     * the render task; a torn read is a one-block phase error the servo
+     * removes. */
+    eng_cursor = s_core.session.cursor_ticks;
     k = midi_bridge_read_in(b, s_midi_its, 16u);
     for (i = 0u; i < k; i++) {
         uint32_t kind = s_midi_its[i].it.kind;
         if (kind < 5u)
             s_midi_intents[kind]++;
-        evlog("MIDI", "intent=%u seek=%lu", kind, (ULONG)s_midi_its[i].it.seek_tick);
-        midi_trans_apply(&s_mtrans, &s_midi_its[i].it, s_ui[C_TR],
-            &s_ui[C_TR]->u.tr.cursor);
+        evlog("MIDI", "intent=%u seek=%lu", kind, (ULONG)s_midi_its[i].it.seek_16ths);
+        midi_trans_apply(&s_mtrans, &s_midi_its[i].it, s_ui[C_TR], &eng_cursor);
+        /* START and SEEK wrote the take's start point into eng_cursor and
+         * only pressed Play on the panel. The engine has to be standing
+         * there before the transport sync (next drain) starts it. */
+        if (kind == RI_FOLLOW_PLAY_START || kind == RI_FOLLOW_SEEK) {
+            s_core.session.cursor_ticks = eng_cursor;
+            s_ui[C_TR]->u.tr.cursor = eng_cursor;  /* display until it plays */
+            evlog("MIDI", "locate=%lu", (ULONG)eng_cursor);
+        }
     }
     /* Tempo follows the measured clock while locked (M3); the panel
      * tempo shows measured and its knob + TAP stay read-only. */
     locked = midi_follow_locked(&b->follow);
     bpm = midi_follow_bpm(&b->follow);
+    eng_cursor = s_core.session.cursor_ticks;
     tempo = midi_trans_tempo(&s_mtrans, s_ui[C_TR], nf8, locked, bpm,
-        s_ui[C_TR]->u.tr.cursor);
+        eng_cursor);
     if (tempo > 0.0f) {
         ri_live_set_bpm(&s_core.session, tempo);
         if (!s_midi_was_locked)
             evlog("MIDI", "follow=%ubpm live-only @%lu",
-                (uint32_t)(tempo + 0.5f), (ULONG)s_ui[C_TR]->u.tr.cursor);
+                (uint32_t)(tempo + 0.5f), (ULONG)eng_cursor);
     }
     /* Dropout: silence past the R1 law ends the take here (the follower
      * poll cannot run app-side — the bridge task owns the follower).
@@ -919,7 +936,7 @@ static void midi_drain(void) {
             struct RIFollowIntent stop;
             stop.kind = RI_FOLLOW_STOP;
             stop.pad[0] = stop.pad[1] = stop.pad[2] = 0u;
-            stop.seek_tick = 0u;
+            stop.seek_16ths = 0u;
             midi_trans_apply(&s_mtrans, &stop, s_ui[C_TR], &s_ui[C_TR]->u.tr.cursor);
             evlog("MIDI", "dropout");
         }

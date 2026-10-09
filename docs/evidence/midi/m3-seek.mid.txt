@@ -1,0 +1,251 @@
+# M3 locate proof: stop, SPP 40 beats, Continue, steady clocks.
+# SPP byte order is F2 <lsb> <msb> (MIDI 1.0), so 40 = F2 28 00 --
+# the first run wrote F2 00 28, i.e. 5120, and located bar 320 of a
+# 151-bar song; that is what exposed the quarter-distance law.
+# Now: 40 beats = 160 sixteenths = 3840 engine ticks = bar 10.
+90 46 64   Stop (ensure stopped)
+D 300
+F2 28 00   SPP 40 beats
+D 300
+FB
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+FC

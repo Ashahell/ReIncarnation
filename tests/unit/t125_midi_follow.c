@@ -94,7 +94,7 @@ int main(void) {
     RI_ASSERT(midi_follow_tick(&f, t, &it) == 0 && it.kind == RI_FOLLOW_NONE,
         "no start after stop");
     RI_ASSERT(midi_follow_spp(&f, 16u, &it) == 0 && it.kind == RI_FOLLOW_SEEK &&
-        it.seek_tick == 384u, "spp stopped %u", it.seek_tick);
+        it.seek_16ths == 64u, "spp stopped %u", it.seek_16ths);
     RI_ASSERT(midi_follow_start(&f, &it) == 0, "arm2");
     t += TICK120;
     RI_ASSERT(midi_follow_tick(&f, t, &it) == 0 && it.kind == RI_FOLLOW_PLAY_START, "fired");

@@ -45,7 +45,7 @@ int main(void) {
     RI_ASSERT(midi_follow_rt(&f, 0xF2u, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "spp arm");
     RI_ASSERT(midi_follow_rt(&f, 0x00u, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "spp lsb");
     RI_ASSERT(midi_follow_rt(&f, 0x01u, t, &it) == 0 && it.kind == RI_FOLLOW_SEEK &&
-        it.seek_tick == 3072u, "spp done %u", it.seek_tick);
+        it.seek_16ths == 512u, "spp done %u", it.seek_16ths);
     /* Stray data byte outside SPP: ignored. */
     RI_ASSERT(midi_follow_rt(&f, 0x40u, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "stray");
     /* Channel voice bytes ignored (G7 owns notes/CC). */
@@ -58,7 +58,7 @@ int main(void) {
     RI_ASSERT(midi_follow_rt(&f, 0xF8u, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "tick inside");
     RI_ASSERT(midi_follow_rt(&f, 0x02u, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "lsb2");
     RI_ASSERT(midi_follow_rt(&f, 0x00u, t, &it) == 0 && it.kind == RI_FOLLOW_SEEK &&
-        it.seek_tick == 48u, "spp2 %u", it.seek_tick);
+        it.seek_16ths == 8u, "spp2 %u", it.seek_16ths);
     /* SPP while running is counted and ignored (E0: stopped-only seeks). */
     RI_ASSERT(midi_follow_rt(&f, 0xFAu, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "fa run");
     t += 20833u;
@@ -73,7 +73,7 @@ int main(void) {
     RI_ASSERT(midi_follow_rt(&f, 0xF2u, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "live spp");
     RI_ASSERT(midi_follow_rt(&f, 0x0Au, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "live lsb");
     RI_ASSERT(midi_follow_rt(&f, 0x00u, t, &it) == 0 && it.kind == RI_FOLLOW_SEEK &&
-        it.seek_tick == 240u, "live seek %u", it.seek_tick);
+        it.seek_16ths == 40u, "live seek %u", it.seek_16ths);
     RI_ASSERT(midi_follow_rt(&f, 0xFBu, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "live cont");
     t += 20833u;
     RI_ASSERT(midi_follow_rt(&f, 0xF8u, t, &it) == 0 && it.kind == RI_FOLLOW_CONTINUE,

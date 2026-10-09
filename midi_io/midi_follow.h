@@ -29,7 +29,7 @@
 struct RIFollowIntent {
     uint8_t kind;
     uint8_t pad[3];
-    uint32_t seek_tick; /* engine ticks, SEEK only */
+    uint32_t seek_16ths; /* sixteenths from SPP, SEEK only */
 };
 
 struct RIFollow {

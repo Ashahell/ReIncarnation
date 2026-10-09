@@ -19,7 +19,7 @@ void midi_bridge_init(struct RIMidiBridge *b) {
     for (i = 0u; i < RI_MBR_IN_CAP; i++) {
         b->in[i].it.kind = RI_FOLLOW_NONE;
         b->in[i].it.pad[0] = b->in[i].it.pad[1] = b->in[i].it.pad[2] = 0u;
-        b->in[i].it.seek_tick = 0u;
+        b->in[i].it.seek_16ths = 0u;
         b->in[i].t_us = 0u;
     }
     /* Init on the owning task before sharing; plain stores safe here. */

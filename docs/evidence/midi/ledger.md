@@ -60,3 +60,25 @@ decision is pending.
   recorded; the app logs `follow=…bpm live-only @…` on lock). E0
   pending owner decision D2; the counter-free design means there is
   nothing to migrate if recording is ever approved — only to add.
+
+## M3b: lane-found corrections (2026-10-09)
+
+- **SPP units are sixteenths, not ticks** (`midi_follow_spp` emits
+  `beats * 4`; `midi_trans_apply` converts with the panel's PPQ).
+  midi_io owns no PPQ, so the intent speaks the wire's own unit and
+  the transport layer owns the engine one — one authority each.
+  The first law (`beats * ppq/4`) was a quarter-distance bug; found on
+  the lane, not by the host tests, because a synthetic test fed the
+  same wrong unit in and compared the same wrong unit out.
+- **Locate clamps to `song_bars`** (the panel's own bound, as its bar
+  seeks do). Default 999 (E1 "playback continues to 999"): a locate
+  past the arrangement stops at the end of the written song, which is
+  the engine's law, not the applier's.
+- **Servo reference = the engine's tick cursor.** The panel position is
+  a display projection: per-frame, rebased at the playback edge, and
+  (before M3b) at a fixed 120 BPM. Any of those make it the wrong
+  number to close a phase loop against.
+- **Trim rail is a bug signal, not a setting.** During the Dell
+  loopback the ±2 BPM bound sat pinned for the whole take; that is
+  what exposed (1) and (2). If it rails on a real master again, read
+  the domains before touching the constants.

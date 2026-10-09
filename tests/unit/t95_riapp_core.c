@@ -10,6 +10,7 @@
 #include "app/core/riapp_core.h"
 #include "engine/engine.h"
 #include "engine/dsp/rb303.h"
+#include "gui/livestate.h"
 
 #define N 512u
 
@@ -87,6 +88,25 @@ int main(void) {
     RI_ASSERT(ri_core_meters(&c, &l303, &l808, &six, 48000u, 1) == 1, "meters");
     RI_ASSERT(l303 >= 0 && l808 >= 0, "levels %d %d", l303, l808);
     RI_ASSERT(ri_core_meters(0, &l303, &l808, &six, 48000u, 1) == 0, "meters null");
+    /* The 16ths projection must use the SESSION tempo. A fixed 120 makes
+     * the song position run at the wrong speed for every other tempo (M3
+     * made any tempo reachable: MIDI clock follow, and the knob's own
+     * values below 120). Read against the meter's own sample count so the
+     * law is exact, not an approximation of where the cursor happened to
+     * be when this ran. */
+    {
+        static float sl[48000], sr2[48000];
+        uint64_t smp;
+        RI_ASSERT(ri_live_render(&c.session, sl, sr2, 48000u) == 48000u, "1 s render");
+        ri_live_set_bpm(&c.session, 60.0f);
+        RI_ASSERT(ri_core_meters(&c, &l303, &l808, &six, 48000u, 1) == 1, "meters 60");
+        smp = c.session.meters.samples;
+        RI_ASSERT(smp > 0u, "samples moved");
+        RI_ASSERT(six == ri_live_16ths(smp, 60u, 48000u),
+            "16ths follow the session tempo: %llu != %llu",
+            (unsigned long long)six, (unsigned long long)ri_live_16ths(smp, 60u, 48000u));
+        ri_live_set_bpm(&c.session, 120.0f);
+    }
     /* Full-mask demo render stays finite (Dell 2026-09-28: the Levi
      * filter blew to NaN ~300 samples in and muted the device). */
     {
