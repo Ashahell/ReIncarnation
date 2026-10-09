@@ -152,3 +152,27 @@ Levi.
   owner) and the COMP *tab* On/Off is an unwired lamp — so either the
   assignment never reaches the engine on the live path, or the owner
   pressed the tab. Needs its own phase; do not fold it into M3.
+
+## M3f: the tempo map, again (2026-10-09)
+
+- **The collapse now flattens the past, it does not pretend it was never
+  there.** The map is a list of segments all anchored at tick 0, so
+  dropping history silently re-maps the PAST: M3e kept the first segment
+  (the song's own 140), the map then claimed the audio was ~4 s behind
+  where it was, and the render's forward-only walk answered by throwing
+  the tick cursor **346/497/579 ticks in a single block** (t95). That is
+  the owner's "playback speed suffers", and a skipped note-off is a
+  hanging voice. The collapse now measures where the audio really is
+  with the full list, replaces the past with one synthetic segment that
+  maps [0, cursor] exactly onto that sample position, and runs the real
+  rate from the cursor on.
+- **Law pinned in t95:** a tempo change may move the tick cursor neither
+  further nor less than the audio it just played (4..16 ticks per 4096
+  samples at 60 bpm). A jump is the walk catching up on a map that lost
+  the past; a freeze is the walk stalled behind one that invented it.
+- **MIDICLOCK (app/midiclock.c, proof tool).** MIDISEND's per-message cost
+  caps its clock at ~60 BPM, so every proof so far ran the 140 BPM song at
+  less than half its own tempo — the owner's "slow, low tempo", and a fair
+  failure of the proof, not of the app. MIDICLOCK streams F8 itself from
+  an EClock schedule and prints the tempo it achieved: **139.88 BPM when
+  asked for 140** on the Dell (ABIv11 build via `ri_build_v11.sh … midiclock`).

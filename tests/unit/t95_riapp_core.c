@@ -297,5 +297,39 @@ int main(void) {
 
         ri_core_stop(&m);
     }
+    /* The real profile (M3f): the song loads at 140, follow drops it to
+     * 60, and the tempo is rewritten constantly. Collapsing the map while
+     * keeping a STALE first segment makes the map disagree with the audio
+     * at the present, and the forward-only walk then stalls or jumps —
+     * on the Dell stress run the engine raced 2x (M3f). Law: the map
+     * always says where the audio is, within one tick. */
+    {
+        static struct RIAppCore q;
+        static float ql[4096], qrl[4096];
+        uint32_t d, i;
+        ri_core_init(&q, 96u, 48000.0f, 140.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+        ri_core_demo(&q);
+        ri_core_play(&q);
+        for (d = 0u; d < 40960u; d += 4096u)
+            ri_live_render(&q.session, ql, qrl, 4096u);
+        ri_live_set_bpm(&q.session, 60.0f);
+        for (d = 0u; d < 40960u; d += 4096u)
+            ri_live_render(&q.session, ql, qrl, 4096u);
+        for (i = 0u; i < 200u; i++) {
+            uint64_t c0 = q.session.cursor_ticks;
+            ri_live_set_bpm(&q.session, (i & 1u) ? 60.6f : 60.4f);
+            ri_live_render(&q.session, ql, qrl, 4096u);
+            /* The block just rendered 4096 samples = ~8 ticks at 60 bpm.
+             * A tempo change may move the cursor neither further NOR less
+             * than the audio it just played: a jump is the walk catching
+             * up on a map that lost the past, a freeze is the walk
+             * stalled behind one that invented it. */
+            RI_ASSERT(q.session.cursor_ticks - c0 >= 4u &&
+                q.session.cursor_ticks - c0 <= 16u,
+                "change %u moved the tick cursor %llu ticks (want 4..16)", i,
+                (unsigned long long)(q.session.cursor_ticks - c0));
+        }
+        ri_core_stop(&q);
+    }
     RI_RESULT("riapp_core");
 }

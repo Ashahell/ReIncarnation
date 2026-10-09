@@ -46,6 +46,22 @@ HASH="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo '?')"
 # on our clean build; the v1 script's -Werror is a v1-lane gate).
 CF="-std=gnu99 ${RI_V11_OPT:--O2} -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -fno-stack-protector -DPCF_TABLE_VERIFIED=1 -Wa,-W -I$ROOT -I$SDK/include -I$SDK/include/aros/posixc -I$SDK/include/aros/stdc -DRIAPP_BUILD_HASH=\"$HASH\""
 # The source list is ri_build_aros.sh's, verbatim.
+# MIDICLOCK (M3f): the proof-time clock master. MIDISEND's per-message cost
+# caps its clock at ~60 BPM, which is why every proof ran the song below its
+# own 140 BPM tempo; this streams F8 itself and prints the BPM it achieved.
+# Built here (not only in ri_build_aros.sh) because the Dell is the lane that
+# needs it. usage: ri_build_v11.sh <src> <out-riapp> midiclock
+if [ "${3:-}" = "midiclock" ]; then
+  x86_64-aros-gcc $CF -c "$ROOT/app/midiclock.c" -o "$OBJ/midiclock.o"
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
+    -o "$OUTBIN.midiclock" "$OBJ/midiclock.o" \
+    "$SDK/lib/startup.o" -L "$SDK/lib" -lamiga -ldos -lexec -lautoinit
+  test "$(x86_64-aros-readelf -s "$OUTBIN.midiclock" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 \
+    || { echo "FAIL: MIDICLOCK(v11) unresolved"; exit 1; }
+  echo "AROS MIDICLOCK v11 BUILD OK ($OUTBIN.midiclock, $(stat -c%s "$OUTBIN.midiclock") bytes)"
+  exit 0
+fi
+
 SRCS="app/riapp.c app/core/live_driver.c app/core/canvas_events.c app/core/riapp_core.c project/rbnm.c project/rbng.c project/playlist.c gui/draw/canvas.c gui/draw/font_legend.c gui/draw/art_shared.c gui/draw/art_303.c gui/draw/art_808.c gui/draw/art_909.c gui/draw/art_levi.c gui/draw/art_mix.c gui/draw/art_fx.c gui/draw/art_pat.c gui/draw/art_tr.c gui/draw/art_section.c platform/aros/fs_aros.c platform/aros/log_aros.c platform/aros/image_dt.c platform/aros/fpu_aros.c platform/aros/pack_909.c audio_io/audio_ahi_live.c engine/engine.c engine/live.c engine/seq/clock.c engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c engine/seq/pattern.c engine/seq/pattern_emit.c engine/seq/transport.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c engine/seq/ctlplane.c engine/dsp/kernels.c engine/dsp/rb303.c engine/dsp/params.c engine/dsp/rb808.c engine/dsp/rb909.c engine/dsp/levi.c engine/dsp/levi_arp.c engine/dsp/levi_matrix.c engine/dsp/levi_fx.c engine/fx/fx.c engine/fx/route.c engine/fx/reverb.c engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c project/sha256.c gui/panelctl.c gui/ctlreg.c gui/panelgeo.c gui/zoomfit.c gui/skinsect.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectlevi.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/knob_logic.c gui/knob_art.c gui/panels.c gui/visdev.c gui/tabpages.c gui/catalog.c gui/skin.c gui/skin_aros.c gui/widgets/rsection.mcc.c gui/midimap.c gui/miditrans.c midi_io/midi_bridge.c midi_io/midi_follow.c platform/aros/midi_camd.c"
 # MIXED BUILD, DEFAULT (owner-approved 2026-10-04).
 #

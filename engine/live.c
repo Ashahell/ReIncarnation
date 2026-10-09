@@ -109,19 +109,37 @@ void ri_live_set_bpm(struct RILiveSession *s, float bpm) {
      * position AHEAD of where the audio actually was, and the engine
      * froze until the audio caught up (M3c: 29 of 143 samples frozen). */
     if (s->nsegs >= RI_LIVE_MAX_SEGS) {
-        /* Collapse to TWO segments: the first keeps the played anchor, the
-         * second starts the new rate AT the current tick. The audio
-         * position is physical — M3e re-anchored it onto the new mapping
-         * and that skips or repeats seconds of music (owner's ears:
-         * playback speed collapsing and a voice hanging while they worked
-         * the Levi, a run with more tempo changes than segments). The map
-         * stays continuous across the collapse, so the tick walk keeps up
-         * without either skipping or stalling. */
-        if (s->cursor_ticks == 0u) {
-            s->segs[0].ns_per_quarter = nspq;   /* nothing played yet */
+        /* Collapse. The map is a list of segments all anchored at tick 0,
+         * so dropping history silently re-maps the PAST: M3e kept the
+         * first segment (the song's own tempo), the map then said the
+         * audio was seconds behind where it was, and the render's
+         * forward-only walk answered by throwing the tick cursor hundreds
+         * of ticks forward in one block (M3f, t95: 346/497/579 ticks).
+         * That is the owner's "playback speed suffers", and a skipped
+         * note-off is a hanging voice.
+         *
+         * So: measure where the audio REALLY is with the full list, then
+         * replace the past with ONE synthetic segment that maps [0, at]
+         * exactly onto that sample position, and run the real rate from
+         * the cursor on. The map stays continuous at the present, so the
+         * walk neither jumps nor stalls. */
+        uint64_t at = s->cursor_ticks;
+        uint64_t smp = ri_map_tick(&s->map, at);
+        uint64_t spt, n0;
+        if (at == 0u || smp == 0u || s->map.sr == 0u) {
+            s->segs[0].start_tick = 0u;
+            s->segs[0].ns_per_quarter = nspq;
+            s->nsegs = 1u;
+            s->map.n = 1u;
         } else {
-            s->segs[1].start_tick = s->cursor_ticks;
-            s->segs[1].ns_per_quarter = nspq;
+            spt = smp / at;                       /* samples per tick, whole */
+            n0 = (spt * (uint64_t)s->ppq * 1000000000ULL) / (uint64_t)s->map.sr;
+            if (n0 == 0u)
+                n0 = nspq;
+            s->segs[0].start_tick = 0u;
+            s->segs[0].ns_per_quarter = n0;       /* the played past, flattened */
+            s->segs[1].start_tick = at;
+            s->segs[1].ns_per_quarter = nspq;     /* the real rate from here */
             s->nsegs = 2u;
             s->map.n = 2u;
         }
