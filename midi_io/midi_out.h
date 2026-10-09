@@ -43,6 +43,13 @@ struct RIMidiOut {
     uint32_t dropped;       /* oldest-dropped-and-counted, P-19 style */
     uint32_t spp_ignored;   /* SPP refused because the transport runs */
     uint64_t last_tick;     /* ticks already emitted (see midi_out_render) */
+    /* Sender-side framing state, owned BY THE PRODUCER rather than kept in
+     * a function static: a static would be shared by every instance, so two
+     * devices would interleave half-built messages, and it would survive
+     * from one producer to the next with nothing to reset it. */
+    uint8_t fmsg[3];        /* the message being assembled */
+    uint8_t fn;             /* its length so far */
+    uint8_t fhave;          /* 1 while one is being assembled */
     uint8_t enabled;        /* 0 until midi_out_enable */
     uint8_t running;        /* 1 between start/continue and stop */
     uint16_t pad;
@@ -71,5 +78,25 @@ void midi_out_set_bpm(struct RIMidiOut *o, uint32_t bpm_milli,
 /* Drain the ring into `out`, oldest first. 0 when empty or NULL. */
 uint32_t midi_out_read(struct RIMidiOut *o, uint8_t *out, uint32_t cap);
 uint32_t midi_out_pending(const struct RIMidiOut *o);
+
+/* The sender side. `ri_pal_midi_send` takes a whole message (1..3 bytes),
+ * while the ring is a byte STREAM, so something has to frame them — and
+ * framing is where a MIDI sender goes wrong: send F2 and its two data
+ * bytes as three messages and the receiver reads a locate with a stale
+ * byte in it.
+ *
+ * FRAMING LAW: a byte with the high bit SET is a status byte and starts a
+ * new message; data bytes accumulate behind it; a message is emitted when
+ * the next status byte arrives or the byte budget is full. A partial tail
+ * stays buffered rather than being sent as a fragment.
+ *
+ * `sink(msg, len, user)` is called once per message, oldest first, and
+ * should return 0 on success and non-zero on failure (which stops the
+ * pump). Returns the number of bytes consumed from the ring, including a
+ * partial tail left buffered. `budget` caps the bytes pulled per call so
+ * the sender task cannot starve the render. */
+typedef int (*ri_midi_sink)(const uint8_t *msg, uint32_t len, void *user);
+uint32_t midi_out_pump(struct RIMidiOut *o, ri_midi_sink sink, void *user,
+    uint32_t budget);
 
 #endif

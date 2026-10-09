@@ -35,6 +35,13 @@ static uint32_t room_of(const struct RIMidiOut *o) {
     return RI_MIDIOUT_CAP - 1u - (o->head - o->tail);
 }
 
+/* Pull the oldest byte out of the ring. Caller has checked pending. */
+static uint8_t drain_one(struct RIMidiOut *o) {
+    uint8_t b = o->buf[o->tail & (RI_MIDIOUT_CAP - 1u)];
+    o->tail++;
+    return b;
+}
+
 /* One byte, dropping the oldest if the ring is full. */
 static void put(struct RIMidiOut *o, uint8_t b) {
     if (!o || !o->enabled)
@@ -170,4 +177,66 @@ uint32_t midi_out_read(struct RIMidiOut *o, uint8_t *out, uint32_t cap) {
 
 uint32_t midi_out_pending(const struct RIMidiOut *o) {
     return o ? o->head - o->tail : 0u;
+}
+
+/* --- the sender side ---------------------------------------------------
+ *
+ * The ring is a byte STREAM; the transport takes whole messages. Framing:
+ * a byte with the high bit set is a status byte and starts a new message,
+ * data bytes accumulate behind it, and a message is emitted when the next
+ * status byte arrives or the message is full.
+ *
+ * The partial tail is the interesting case and the reason this exists. A
+ * budget can cut a message in half; emitting the half would put a fragment
+ * on the wire, and for a 3-byte SPP that is a locate assembled from a
+ * stale byte. So a message is emitted whole or not at all.
+ *
+ * `budget` counts BYTES pulled from the ring, including the bytes of a
+ * message that is still being assembled, so a caller can bound its work
+ * per tick and the render keeps its time.
+ */
+uint32_t midi_out_pump(struct RIMidiOut *o, ri_midi_sink sink, void *user,
+    uint32_t budget) {
+    uint32_t used = 0u;
+    if (!o || !sink)
+        return 0u;
+    while (used < budget) {
+        uint8_t b, status;
+        if (midi_out_pending(o) == 0u)
+            break;
+        b = drain_one(o);
+        used++;
+        status = (uint8_t)(b & 0x80u);
+        if (!o->fhave) {
+            /* A status byte opens a message. A stray data byte with no
+             * message open is consumed and never sent. */
+            if (!status)
+                continue;
+            o->fmsg[0] = b;
+            o->fn = 1u;
+            o->fhave = 1u;
+        } else if (status) {
+            /* A new status byte closes what we were building. */
+            if (sink(o->fmsg, o->fn, user) != 0)
+                return used;
+            o->fmsg[0] = b;
+            o->fn = 1u;
+        } else if (o->fn < sizeof o->fmsg) {
+            o->fmsg[o->fn++] = b;
+        }
+        /* REALTIME is 0xF8..0xFF only: a message of exactly one byte that
+         * never takes data bytes. 0xF0..0xF7 is SYSTEM COMMON and DOES take
+         * data bytes -- SPP (0xF2) is two of them -- so testing the high
+         * nibble alone here emits an SPP with no position at all, which is
+         * precisely the half-sent-SPP lie the producer refuses to create.
+         * Everything else is emitted once complete: three bytes, or when
+         * the next status byte closes it. */
+        if (o->fhave && (o->fmsg[0] >= 0xF8u || o->fn >= 3u)) {
+            if (sink(o->fmsg, o->fn, user) != 0)
+                return used;
+            o->fhave = 0u;
+            o->fn = 0u;
+        }
+    }
+    return used;
 }

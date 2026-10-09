@@ -416,3 +416,29 @@ comments are what a reboot takes away.
   already carry in both ABI carriages; nothing in `workbench/devs/USB`
   since 2025-12-28; and zero commits in the whole repository since the
   previous check. The carriage is current.
+
+## M5d: framing the outbound stream (2026-10-09)
+
+- **Framing is the sender's job and is E0:** a byte with the high bit set
+  is a status byte and starts a new message; data bytes accumulate behind
+  it; a message is emitted **whole**, when it reaches three bytes or when
+  the next status byte closes it. A budget caps the bytes pulled per call
+  so the sender task cannot starve the render.
+- **E0 the framing state belongs to the PRODUCER, not to a function
+  static.** The first version kept it in a `static` inside the pump, which
+  meant two devices would interleave half-built messages and state would
+  survive from one producer to the next with nothing to reset it. It now
+  lives in `struct RIMidiOut`.
+- **A bug worth keeping: `>= 0xF0` is NOT "realtime".** The first framing
+  tested the high nibble, so **SPP (0xF2) was emitted as a one-byte
+  message with no position at all** — the exact half-sent-SPP lie that
+  t186 refuses to create on the producer side, arriving from the other
+  direction. **Realtime is 0xF8..0xFF; 0xF0..0xF7 is system common and
+  DOES take data bytes.** t188 pins both.
+- **Mutant AD** (no framing at all) killed. **Mutant AE** (a new status
+  byte discards the half-built message) **SURVIVED and is recorded as
+  equivalent for this producer**: clock out emits only 1-byte realtime and
+  3-byte SPP, both covered by the two emit paths above, so the path AE
+  removes would only matter for a 1- or 2-byte system-common message —
+  and nothing emits one yet. It is kept for F1/F3 when MMC out lands, and
+  it is recorded as uncovered rather than claimed as killed.

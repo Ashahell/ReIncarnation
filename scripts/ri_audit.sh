@@ -389,6 +389,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t184_midi_levi_note >/dev/null || { e
 bash "$ROOT/scripts/ri_build_host.sh" test t185_midi_clockout >/dev/null || { echo "FAIL: t185_midi_clockout (the 24 ppqn clock-out schedule)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t186_midi_out >/dev/null || { echo "FAIL: t186_midi_out (outbound MIDI bytes, off by default)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t187_midi_mmc >/dev/null || { echo "FAIL: t187_midi_mmc (MMC in on the follower intent path)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t188_midi_out_pump >/dev/null || { echo "FAIL: t188_midi_out_pump (framing the outbound byte stream)"; exit 1; }
 # MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
 # This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
 # approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo
