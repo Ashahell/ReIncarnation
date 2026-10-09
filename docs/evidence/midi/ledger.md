@@ -279,3 +279,33 @@ Levi.
   CLI prints it) and never trust a redirect; for multi-step work use
   `--run-script`. **A PASS from an exec that redirected proves only that
   the command ran.**
+
+## M5a: the clock-out schedule (2026-10-09)
+
+- **E0, and the reason the module is shaped the way it is: the tick count
+  at an absolute sample position is a pure function of that position, not
+  an accumulator.** `ticks(n) = base + floor(((n - anchor) + lead) * ppq *
+  bpm_milli / (sr * 60000))`. Nothing accumulates, so there is no residual
+  to carry and no second rounding to disagree with. 48 kHz at 140 BPM is
+  857.14 samples per tick — exactly the case an accumulator gets wrong —
+  and t185 pins exactly **33600 ticks in ten minutes** with every interval
+  857 or 858 and both values occurring (a schedule that only ever emitted
+  857 would drift a tick per second; one that only ever emitted 858 would
+  run fast).
+- **E0 lead direction**: `lead` is the audio output latency in samples and
+  the clock **leads** the audio by it. Lagging would deliver the tick after
+  the sound it describes has left the device. The tick is due *at*
+  `anchor + k*T - lead`, not one sample later.
+- **E0 a tempo change re-anchors at the change position** and keeps the
+  tick count already reached, so emitted ticks keep their sample positions.
+  This is M3f's law applied to the output side **before** it bit: dividing
+  by the new rate without re-anchoring re-times the past, which is what
+  made the M3 owner's ear report that playback speed suffers. Mutant W is
+  that exact bug.
+- **Tempo is milli-BPM** so the render path does no float; `midi_io` speaks
+  the wire's own 24 ppqn and never the app's 96 (M3b's "one authority
+  each").
+- **E0 fail-closed, including a zero PPQ.** A zero sample rate, tempo or
+  PPQ owes nothing rather than dividing by zero, and `init` deliberately
+  does **not** default a zero PPQ to 24: a silently-correct answer would
+  hide the caller getting the wire constant wrong.
