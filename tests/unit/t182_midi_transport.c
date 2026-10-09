@@ -193,6 +193,28 @@ int main(void) {
         RI_ASSERT((uint64_t)t.expected == e1 + 24u, "relock clocks count %llu",
             (unsigned long long)t.expected);
     }
+    /* The song's own tempo (140 BPM = 17.86 ms per clock): the lock law
+     * does not care about the rate, only the interval stability. Proves
+     * the lane's ~60 BPM ceiling is a CAMD delivery limit on this guest,
+     * not a follower limit. */
+    {
+        uint32_t li;
+        float b140;
+        midi_bridge_init(&s_b);
+        midi_trans_init(&t);
+        t.sync.source = RI_SYNC_MIDI;
+        cursor = 0u;
+        now = 31000000u;
+        feed(0xFAu, 0u, 0u, now);
+        for (li = 0u; li < 40u; li++) {
+            now += 17857u;                       /* 140.0 BPM */
+            feed(0xF8u, 0u, 0u, now);
+        }
+        pump(&t, &tru, &cursor, &nf8);
+        RI_ASSERT(midi_follow_locked(&s_b.follow), "140 bpm locks");
+        b140 = midi_follow_bpm(&s_b.follow);
+        RI_ASSERT(fabsf(b140 - 140.0f) < 2.0f, "140 bpm measured %f", b140);
+    }
     /* ±1 ms jitter: bounded error; ±3 ms: wider but bounded.
      * Pseudo-random (LCG) with zero mean — a real jitter profile. (A
      * perfectly alternating square wave pins the R1 running mean and

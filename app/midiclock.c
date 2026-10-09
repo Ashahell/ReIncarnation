@@ -134,10 +134,18 @@ int main(int argc, char **argv) {
         want);
     put_clock(link, 0xFAu);
     for (i = 0; i < want; i++) {
+        double due = base + next_us;
         double now = now_us();
-        LONG wait = (LONG)((base + next_us - now) / 10000.0);
+        /* Sleep in whole ticks, then spin the last stretch: Delay() is
+         * quantised to the 10 ms system tick, and at 140 BPM (17.9 ms)
+         * that quantisation IS the jitter -- enough that the follower
+         * under test never locks. The spin costs a core for ~1 ms per
+         * clock and buys microsecond-accurate arrival times. */
+        LONG wait = (LONG)((due - now - 1500.0) / 10000.0);
         if (wait > 0)
             Delay(wait);
+        while (now_us() < due)
+            ;
         put_clock(link, 0xF8u);
         sent++;
         next_us += per_us;
