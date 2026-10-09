@@ -494,8 +494,30 @@ comments are what a reboot takes away.
   min, max, mean, spread, and per-slice counts — because a count only
   proves bytes arrived, and the question is what the wire does to an exact
   schedule. AROS-only; built by `ri_build_v11.sh … midirq`.
-- **LANE PROOF PENDING, and honestly so.** The first MIDIRX run crashed on
-  the NULL base above, and the guest agent has not answered since — the
-  lane is wedged behind a requester from a proof tool of mine. The fix is
-  in and compiled; the interval numbers do not exist yet. Nothing about
-  the clock-out wire behaviour is claimed from this run.
+- **MIDIRX died TWICE on the Dell, both times the same shape.** First the
+  NULL `CamdBase` (inline CAMD calls through a library nobody resolved).
+  Then, after that was fixed, **a NULL `TimerBase`**: the tool declared
+  `struct Device *TimerBase` — as `app/stepproof.c` does — but left it
+  `NULL` and never assigned it from the opened timer device, so the very
+  first `ReadEClock` was an illegal memory access. **Declaring the inline
+  base is not the same as resolving it**, and the second time round I had
+  literally copied the declaration without the assignment. That is the
+  third time in this work a library/port base has been the crash, and the
+  lesson generalises: *an inline call's base is a runtime dependency, and
+  a declaration is not a resolution.*
+- **The EClock arithmetic was wrong in three more places**, all of which
+  would have made the tool lie rather than crash. AROS EClock is a 64-bit
+  counter split hi:lo, so hi and lo are not separate clocks:
+  `ev_hi + efreq * seconds` added microseconds to a 32-bit-of-64 counter
+  and put the run's deadline about 51 billion years out (the tool could
+  never have exited); `now.ev_hi * efreq` overflowed 32 bits; and
+  `(now.ev_lo - prev.ev_lo)` underflowed the first time the low word
+  wrapped. Everything now goes through one `ec_us()` helper in 64-bit
+  microseconds, the same shape as `midi_camd.c`'s `eclock_us()`.
+- **LANE PROOF PENDING, and honestly so.** MIDIRX has still never completed
+  a run on hardware, and the Dell agent stopped answering right after the
+  crash — so the fixed binary is **staged but unrun**. The interval
+  numbers do not exist. Nothing about the clock-out wire behaviour is
+  claimed. And the proof belongs on the **Dell**, not riqemu1: riqemu1 has
+  no real-time audio pacing, so F8 intervals there would be a lane
+  artefact for exactly the reason M3c ruled it out for drift.

@@ -38,11 +38,33 @@
 
 extern struct Library *CamdBase; /* owned by platform/aros/midi_camd.c */
 
-/* ReadEClock is an inline timer call and needs clib's TimerBase, which no
- * other TU in this link provides. Declaring it here is what app/stepproof.c
- * does for the same reason; a proof tool should not drag a library in to
- * ask the time. */
+/* ReadEClock is an inline timer call through clib's TimerBase, and no other
+ * TU in this link provides one. Declaring it is what app/stepproof.c does
+ * for the same reason -- but declaring is NOT the same as resolving: left
+ * NULL, the very first ReadEClock is an illegal memory access, which is
+ * the Software Failure this tool died of. It is assigned from the opened
+ * timer device below, exactly as stepproof.c does. */
 struct Device *TimerBase = NULL;
+
+/* EClock is a 64-bit counter split into hi:lo, where lo is the low 32
+ * bits of the hardware counter -- so hi and lo are NOT separate clocks.
+ * Every use below goes through this helper, which reassembles the 64-bit
+ * value and converts with the split form so it cannot overflow:
+ *
+ *   us = (v / efreq) * 1e6 + ((v % efreq) * 1e6) / efreq
+ *
+ * The earlier arithmetic mixed units outright -- `ev_hi + efreq * seconds`
+ * added microseconds to a 32-bit-of-64 counter, so the loop's deadline was
+ * about 51 billion years out and the tool could never have exited; and
+ * `(now.ev_lo - prev.ev_lo)` underflowed every time the low word wrapped. */
+static uint64_t ec_us(const struct EClockVal *e, ULONG efreq) {
+    uint64_t v;
+    if (!e || !efreq)
+        return 0u;
+    v = ((uint64_t)e->ev_hi << 32) | (uint64_t)e->ev_lo;
+    return (v / (uint64_t)efreq) * 1000000ULL +
+        ((v % (uint64_t)efreq) * 1000000ULL) / (uint64_t)efreq;
+}
 
 #define SLICES 10u
 
@@ -51,13 +73,13 @@ int main(int argc, char **argv) {
     struct MidiLink *link;
     struct timerequest *tr;
     struct MsgPort *port;
-    struct EClockVal base, now, prev;
-    ULONG seconds = 10UL, efreq, deadline;
+    struct EClockVal base, now;
+    ULONG seconds = 10UL, efreq;
+    uint64_t start_us, deadline_us, now_us, prev_us, slice0_us, slice_span_us;
     ULONG msg_total = 0, f8 = 0, interval = 0;
     ULONG first_us = 0, last_us = 0, mn = 0xFFFFFFFFUL, mx = 0, sum = 0;
     ULONG slice_f8[SLICES];
     ULONG i, slice, taken;
-    struct EClockVal slice0, slice_us;
     int rc = 0;
 
     if (argc < 2)
@@ -97,9 +119,14 @@ int main(int argc, char **argv) {
             DeleteMsgPort(port);
         return 5;
     }
+    /* Resolve the inline timer base from the device just opened, or the
+     * first ReadEClock below faults. */
+    TimerBase = tr->tr_node.io_Device;
     ReadEClock(&base);
     efreq = ReadEClock(&base);
-    deadline = base.ev_hi + efreq * seconds;
+    start_us = ec_us(&base, efreq);
+    deadline_us = start_us + (uint64_t)seconds * 1000000ULL;
+    slice_span_us = ((uint64_t)seconds * 1000000ULL) / SLICES;
 
     node = CreateMidi(MIDI_Name, (IPTR)"MIDIRX", TAG_END);
     if (!node) {
@@ -116,20 +143,21 @@ int main(int argc, char **argv) {
 
     for (i = 0u; i < SLICES; i++)
         slice_f8[i] = 0UL;
-    slice0 = base;
+    slice0_us = start_us;
     slice = 0UL;
-    prev.ev_hi = prev.ev_lo = 0UL;
+    prev_us = 0ULL;
     taken = 0UL;
 
     for (;;) {
         MidiMsg mm;
         ReadEClock(&now);
-        if (now.ev_hi >= deadline)
+        now_us = ec_us(&now, efreq);
+        if (now_us >= deadline_us)
             break;
         /* Drain everything queued before deciding we are done. */
         while (GetMidi(node, &mm)) {
             msg_total++;
-            taken = now.ev_hi * efreq + now.ev_lo / (1000000UL / 1000UL);
+            taken = (ULONG)now_us;
             if (mm.mm_Status != 0xF8u) {
                 if (mm.mm_Status == 0xFAu)
                     printf("MIDIRX saw Start\n");
@@ -140,11 +168,11 @@ int main(int argc, char **argv) {
             if (slice < SLICES)
                 slice_f8[slice]++;
             f8++;
-            if (prev.ev_hi != 0UL || prev.ev_lo != 0UL) {
-                interval = (now.ev_hi - prev.ev_hi) * efreq +
-                    (now.ev_lo - prev.ev_lo) / 1000UL;
-                if (interval == 0UL)
-                    interval = 1UL;
+            if (prev_us != 0ULL) {
+                /* Subtract in 64-bit microseconds: doing it on hi/lo is a
+                 * 32-bit underflow the first time the low word wraps. */
+                uint64_t d = now_us - prev_us;
+                interval = (ULONG)(d > 0ULL ? d : 1ULL);
                 if (first_us == 0UL)
                     first_us = interval;
                 last_us = interval;
@@ -154,16 +182,12 @@ int main(int argc, char **argv) {
                 if (interval > mx)
                     mx = interval;
             }
-            prev = now;
+            prev_us = now_us;
         }
         /* Slice boundaries on the wall clock, so a drifting clock shows up
          * as unequal slices rather than being averaged away. */
-        if (now.ev_hi * efreq >= slice0.ev_hi * efreq +
-                (efreq * (deadline - base.ev_hi) / SLICES)) {
-            slice_us.ev_hi = slice0.ev_hi;
-            slice_us.ev_lo = slice0.ev_lo;
-            (void)slice_us;
-            slice0 = now;
+        if (slice_span_us && now_us >= slice0_us + slice_span_us) {
+            slice0_us = now_us;
             if (slice < SLICES - 1u)
                 slice++;
         }
