@@ -13,6 +13,7 @@
 
 #include "engine/live.h"
 #include "platform/pal/ri_pal_thread.h"
+#include "midi_io/midi_out.h"
 
 #define RI_LIVE_CMD_NONE 0
 #define RI_LIVE_CMD_PLAY 1
@@ -23,6 +24,13 @@ struct RILiveDriver {
     uint32_t frames;               /* device buffer, 64..4096 */
     uint64_t (*now_us)(void);      /* backend monotonic clock (nullable) */
     ri_atomic_u32 cmd;             /* GUI -> render transport request */
+    /* M5 clock out: an OPTIONAL, caller-owned producer the render fills.
+     * The render's whole involvement is handing over the sample position
+     * and the transport edges -- it never sends, and camd cannot appear
+     * here at all (the confinement gate keeps AROS out of this file).
+     * NULL is every caller's state unless clock out is on, which is the
+     * E0 default. */
+    struct RIMidiOut *clk_out;
     ri_atomic_u32 xruns;           /* backend-observed late buffers */
     ri_atomic_u32 buffers;         /* buffers rendered */
     ri_atomic_u32 render_us_max;   /* slowest buffer render, microseconds */

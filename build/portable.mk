@@ -25,7 +25,7 @@ CORE_TU := \
   engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c \
   audio_io/audio.c audio_io/backend_null.c platform/host/audio_null.c \
   project/sha256.c project/rbng.c project/songscript.c project/playlist.c project/arexx.c project/arexx_dispatch.c \
-  project/undo.c midi_io/midi.c \
+  project/undo.c midi_io/midi.c midi_io/midi_clockout.c midi_io/midi_out.c \
   gui/knob_logic.c gui/panels.c gui/catalog.c gui/knob_art.c gui/ctlreg.c \
   gui/panelctl.c gui/panelgeo.c gui/zoomfit.c gui/skinsect.c gui/visdev.c gui/tabpages.c gui/sect303.c gui/sect808.c gui/sect909.c \
   gui/sectlevi.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c \

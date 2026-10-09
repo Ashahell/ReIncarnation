@@ -442,3 +442,30 @@ comments are what a reboot takes away.
   removes would only matter for a 1- or 2-byte system-common message —
   and nothing emits one yet. It is kept for F1/F3 when MMC out lands, and
   it is recorded as uncovered rather than claimed as killed.
+
+## M5e1: the render feeds the producer (2026-10-09)
+
+- **E0 the render's whole involvement is filling a ring.** `RILiveDriver`
+  gains an optional, caller-owned `struct RIMidiOut *clk_out`; after
+  `ri_live_render` it hands over `session->sample_cursor`, and transport
+  commands forward Play as `midi_out_start` / Stop as `midi_out_stop`.
+  **No send and no camd happens in the render path** — the confinement
+  gate keeps AROS out of `live_driver.c` entirely, so that is enforced by
+  the build rather than by discipline.
+- **E0 NULL is the default state**, so every existing caller is unchanged:
+  t189 renders 200 buffers with no producer attached and gets identical
+  behaviour and 0 xruns.
+- **E0 the clock is fed from the AUDIO clock, never a timer.** That is
+  what makes "drift over ten minutes" a question with an answer: t189 pins
+  that 51200 rendered samples owe exactly 51 ticks at 120 BPM, all `F8`,
+  and 100 further blocks owe exactly 25 more. Mutant AF feeds half the
+  audio position and gets 25 instead of 51.
+- **A process failure worth recording.** This test passed on its FIRST
+  run, because the driver was wired before the test was ever compiled —
+  so no RED was observed. Rather than call it done, the hook was reverted
+  and the test re-run to produce a real RED (4 laws failing: 0 ticks
+  instead of 51, no FC, no reopen), then restored. **A test that was
+  never seen red has not been shown to have teeth**, and the only way to
+  know is to remove the thing it is testing.
+- Mutants AF and AG killed, hash-verified (`live_driver.o` clean is
+  `75011b0c…`).

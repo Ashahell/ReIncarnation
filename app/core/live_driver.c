@@ -134,11 +134,27 @@ void ri_livedrv_render(struct RILiveDriver *d, int16_t *out,
             else if (cmd == RI_LIVE_CMD_STOP)
                 ri_live_stop(d->session);
         }
+        /* A transport edge that never reaches the wire makes a clock
+         * meaningless, so the producer is told here. The render still only
+         * fills a ring: no send, no CAMD. */
+        if (d->clk_out) {
+            if (cmd == RI_LIVE_CMD_PLAY)
+                midi_out_start(d->clk_out, d->session
+                    ? d->session->sample_cursor : 0u);
+            else if (cmd == RI_LIVE_CMD_STOP)
+                midi_out_stop(d->clk_out);
+        }
     }
     if (d->now_us)
         t0 = d->now_us();
     if (d->session) {
         uint32_t got = ri_live_render(d->session, scratch_fl, scratch_fr, frames);
+        /* M5: the clock-out schedule is driven by the AUDIO clock, so it is
+         * fed here and nowhere else. `sample_cursor` is the position the
+         * audio just reached, which is why the ticks cannot drift from it.
+         */
+        if (d->clk_out)
+            midi_out_render(d->clk_out, d->session->sample_cursor);
         for (i = got; i < frames; i++)
             scratch_fl[i] = scratch_fr[i] = 0.0f;
     } else {
