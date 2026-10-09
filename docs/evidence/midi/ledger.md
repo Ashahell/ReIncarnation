@@ -107,3 +107,21 @@ decision is pending.
   engine advances in bursts while the clock runs on), so drift is a
   Dell-lane measurement only. riqemu1 still proves intents, locate,
   lock and display.
+
+## M3d: a tempo change appends a map segment (2026-10-09)
+
+- **`RI_LIVE_MAX_SEGS = 64`** (E0). A tempo change appends a segment at
+  the current tick instead of rewriting the single segment. Sized in
+  seconds, not events: MIDI follow rewrites the tempo several times a
+  second, so 64 covers ~3.5 s of following. When it fills, the map
+  collapses to the current rate and re-anchors `sample_cursor` to the
+  same tick — that stalls nothing (it only rewrites history nothing
+  reads back). Revisit if a take ever legitimately changes tempo more
+  than 64 times between collapses; the collapse is the safety valve, not
+  a cliff.
+- **Why the old law was wrong**: the map was anchored at tick 0, so a
+  tempo *drop* mapped the current tick to a sample position AHEAD of
+  where the audio actually was; the render's forward-only tick walk then
+  froze until the audio caught up. Not MIDI-specific — the tempo knob
+  mid-song did it too. Lane cost before the fix: the engine frozen on 29
+  of 143 samples (20%) of a 5-minute take; after: 0 of 36.

@@ -17,6 +17,14 @@
 #include "platform/pal/ri_pal_thread.h"
 
 #define RI_LIVE_QUEUE 256u /* pending future-event queue (one block max) */
+/* Tempo-map segments per take (E0): a tempo change appends one at the
+ * current tick, so the played part of the map keeps its anchor. MIDI
+ * clock follow rewrites the tempo several times a second, so this is
+ * sized in seconds rather than in "musical events": 64 covers ~3.5 s of
+ * following, and when it fills, the map collapses to the current rate and
+ * re-anchors both cursors together (ri_live_set_bpm), which stalls
+ * nothing -- it only rewrites history nobody reads back. */
+#define RI_LIVE_MAX_SEGS 64u
 
 struct RILiveMeters {
     float sec_peak[RI_ROUTE_NSECTIONS];
@@ -71,7 +79,14 @@ struct RILiveSession {
      * flip applies at the next block by construction. Disabled = voice
      * never triggers (zero CPU); banks/voices/patterns keep state. */
     ri_atomic_u32 sections;
-    struct RISegment seg;
+    /* Tempo map segments. A tempo change APPENDS one at the current tick
+     * instead of rewriting the single segment: the map stays anchored for
+     * everything already played, so the tick cursor and the audio
+     * position cannot disagree. (Rewriting it moved map_tick(cursor)
+     * ahead of sample_cursor on a tempo DROP and the forward-only tick
+     * walk froze — M3c Dell run: engine frozen on 29 of 143 samples.) */
+    struct RISegment segs[RI_LIVE_MAX_SEGS];
+    uint32_t nsegs;
     struct RITempoMap map;
     struct RIPlayer player;
     const struct RISongTrack *track;

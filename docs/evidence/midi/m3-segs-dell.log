@@ -1,0 +1,54 @@
+ev 1 0 RUN frames=256 vol=RAM: build=f7f28c1
+ev 2 2 SKIN installed=4 dir=SYS:Classes/ReIncarnation/Mods/
+ev 3 2 SKIN sync=0 zoom=0 current=Classic
+ev 4 10 SONG fail Vk4aros:ReIncarnation/songs/zombie-nation.rbng
+ev 5 10 SONG fail Vk4aros:ReIncarnation/songs/local/zombie-nation.rbng
+ev 6 11 PAT c=1 inst=0 sel=1
+ev 7 12 PAT c=2 inst=1 sel=0
+ev 8 12 PAT c=3 inst=2 sel=0
+ev 9 12 PAT c=4 inst=3 sel=1
+ev 10 12 PAT c=5 inst=4 sel=0
+ev 11 15 SONG load Vk4aros:ReIncarnation/songs/local/zombie-nation/zombie-nation.rbng bars=151 bpm=140
+ev 12 15 TR PLAY
+ev 13 6988 MIDI push=44
+ev 14 6988 MIDI intent=1 seek=0
+ev 15 6988 MIDI locate=0
+ev 16 7472 MIDI follow=61bpm sess=605 eng=579 smpl=123904 exp=264 err=4294966981 f8=66/66 drop=0,0,0 xr=0 t=1133196480.904
+ev 17 7797 MIDI follow=60bpm sess=604 eng=749 smpl=207104 exp=440 err=4294966987 f8=110/110 drop=0,0,0 xr=0 t=1133196482.636
+ev 18 8915 MIDI follow=60bpm sess=604 eng=1339 smpl=493312 exp=1040 err=4294966997 f8=260/260 drop=0,0,0 xr=0 t=1133196488.594
+ev 19 9323 MIDI follow=60bpm sess=604 eng=1556 smpl=597760 exp=1260 err=4294967000 f8=315/315 drop=0,0,0 xr=0 t=1133196490.769
+ev 20 9705 MIDI follow=60bpm sess=603 eng=1759 smpl=695552 exp=1464 err=4294967001 f8=366/366 drop=0,0,0 xr=0 t=1133196492.804
+ev 21 10011 MIDI follow=60bpm sess=604 eng=1917 smpl=949463 exp=1624 err=4294967003 f8=406/406 drop=0,0,0 xr=0 t=1133196494.435
+ev 22 10201 MIDI follow=60bpm sess=604 eng=2017 smpl=998103 exp=1728 err=4294967007 f8=432/432 drop=0,0,0 xr=0 t=1133196495.447
+ev 23 10659 MIDI follow=60bpm sess=603 eng=2256 smpl=1115351 exp=1972 err=4294967012 f8=493/493 drop=0,0,0 xr=0 t=1133196497.888
+ev 24 11300 MIDI follow=60bpm sess=604 eng=2595 smpl=1279447 exp=2312 err=4294967013 f8=578/578 drop=0,0,0 xr=0 t=1133196501.304
+ev 25 11619 MIDI follow=60bpm sess=603 eng=2760 smpl=1369603 exp=2480 err=4294967016 f8=620/620 drop=0,0,0 xr=0 t=1133196503.006
+ev 26 12185 MIDI follow=60bpm sess=603 eng=3055 smpl=1514499 exp=2784 err=4294967025 f8=696/696 drop=0,0,0 xr=0 t=1133196506.020
+ev 27 12750 MIDI follow=61bpm sess=605 eng=3358 smpl=1659139 exp=3084 err=4294967022 f8=771/771 drop=0,0,0 xr=0 t=1133196509.031
+ev 28 13139 MIDI follow=60bpm sess=603 eng=3565 smpl=1758723 exp=3292 err=4294967023 f8=823/823 drop=0,0,0 xr=0 t=1133196511.104
+ev 29 13464 MIDI follow=60bpm sess=603 eng=3737 smpl=1854484 exp=3464 err=4294967023 f8=866/866 drop=0,0,0 xr=0 t=1133196512.836
+ev 30 13768 MIDI follow=61bpm sess=608 eng=3894 smpl=1932308 exp=3624 err=4294967026 f8=906/906 drop=0,0,0 xr=0 t=1133196514.456
+ev 31 14093 MIDI follow=60bpm sess=603 eng=4065 smpl=2015508 exp=3800 err=4294967031 f8=950/950 drop=0,0,0 xr=0 t=1133196516.188
+ev 32 14658 MIDI follow=60bpm sess=604 eng=4364 smpl=2161586 exp=4100 err=4294967032 f8=1025/1025 drop=0,0,0 xr=0 t=1133196519.199
+ev 33 15066 MIDI follow=60bpm sess=604 eng=4581 smpl=2266034 exp=4320 err=4294967035 f8=1080/1080 drop=0,0,0 xr=0 t=1133196521.373
+ev 34 15448 MIDI follow=60bpm sess=603 eng=4785 smpl=2363826 exp=4524 err=4294967035 f8=1131/1131 drop=0,0,0 xr=0 t=1133196523.409
+ev 35 15944 MIDI follow=60bpm sess=604 eng=5047 smpl=2490802 exp=4788 err=4294967037 f8=1197/1197 drop=0,0,0 xr=0 t=1133196526.052
+ev 36 16585 MIDI follow=61bpm sess=605 eng=5383 smpl=2670583 exp=5128 err=4294967041 f8=1282/1282 drop=0,0,0 xr=0 t=1133196529.468
+ev 37 16898 MIDI follow=60bpm sess=604 eng=5547 smpl=2750711 exp=5296 err=4294967045 f8=1324/1324 drop=0,0,0 xr=0 t=1133196531.136
+ev 38 17204 MIDI follow=61bpm sess=605 eng=5705 smpl=2829047 exp=5456 err=4294967047 f8=1364/1364 drop=0,0,0 xr=0 t=1133196532.767
+ev 39 17527 MIDI follow=61bpm sess=605 eng=5871 smpl=2910382 exp=5628 err=4294967053 f8=1407/1407 drop=0,0,0 xr=0 t=1133196534.488
+ev 40 18098 MIDI follow=61bpm sess=605 eng=6171 smpl=3056558 exp=5936 err=4294967061 f8=1484/1484 drop=0,0,0 xr=0 t=1133196537.534
+ev 41 18493 MIDI follow=60bpm sess=604 eng=6377 smpl=3157678 exp=6148 err=4294967067 f8=1537/1537 drop=0,0,0 xr=0 t=1133196539.636
+ev 42 18882 MIDI follow=60bpm sess=603 eng=6581 smpl=3257262 exp=6356 err=4294967071 f8=1589/1589 drop=0,0,0 xr=0 t=1133196541.709
+ev 43 19207 MIDI follow=60bpm sess=603 eng=6753 smpl=3340462 exp=6528 err=4294967071 f8=1632/1632 drop=0,0,0 xr=0 t=1133196543.441
+ev 44 19447 MIDI follow=61bpm sess=605 eng=6879 smpl=3401902 exp=6656 err=4294967073 f8=1664/1664 drop=0,0,0 xr=0 t=1133196544.720
+ev 45 19836 MIDI follow=60bpm sess=603 eng=7085 smpl=3505329 exp=6864 err=4294967075 f8=1716/1716 drop=0,0,0 xr=0 t=1133196546.793
+ev 46 20322 MIDI follow=60bpm sess=604 eng=7339 smpl=3629745 exp=7124 err=4294967081 f8=1781/1781 drop=0,0,0 xr=0 t=1133196549.383
+ev 47 20878 MIDI follow=60bpm sess=604 eng=7630 smpl=3772081 exp=7420 err=4294967086 f8=1855/1855 drop=0,0,0 xr=0 t=1133196552.346
+ev 48 21257 MIDI follow=60bpm sess=600 eng=7828 smpl=3891723 exp=7620 err=4294967088 f8=1905/1905 drop=0,0,0 xr=0 t=1133196554.367
+ev 49 21763 MIDI follow=60bpm sess=604 eng=8096 smpl=4021259 exp=7892 err=4294967092 f8=1973/1973 drop=0,0,0 xr=0 t=1133196557.062
+ev 50 22088 MIDI follow=60bpm sess=603 eng=8264 smpl=4104459 exp=8064 err=4294967096 f8=2016/2016 drop=0,0,0 xr=0 t=1133196558.794
+ev 51 22568 MIDI follow=60bpm sess=603 eng=8517 smpl=4227339 exp=8320 err=4294967099 f8=2080/2080 drop=0,0,0 xr=0 t=1133196561.353
+ev 52 23173 MIDI follow=61bpm sess=613 eng=8836 smpl=4382219 exp=8644 err=4294967104 f8=2161/2161 drop=0,0,0 xr=0 t=1133196564.577
+ev 53 23477 MIDI intent=3 seek=0
+ev 54 23483 TR STOP

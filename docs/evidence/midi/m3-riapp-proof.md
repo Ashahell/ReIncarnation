@@ -122,3 +122,36 @@ clock. Every clock accounted for on both sides; no bridge, intent or
 CAMD drops. Zero long-term drift: proven on the Dell, not on riqemu1
 (`m3-drift-riqemu1.log`: same intents, locate and lock, but its audio
 clock runs in bursts, so the error there is a lane artifact).
+
+## M3d: the 5-minute take (`m3-drift-dell-5min-preseg.log` → `m3-segs-dell.log`)
+
+The first full-length Dell take was clean on the wire (7500/7500 clocks,
+no drops) and ended only 170 ticks from the master's position — but the
+trace showed **the engine frozen on 29 of 143 samples (20%)** while the
+MIDI clock ran on. Cause: `ri_live_set_bpm` rewrote the one tempo-map
+segment, which is anchored at tick 0, so a tempo *drop* mapped the
+current tick to a sample position ahead of where the audio actually was
+and the render's forward-only tick walk froze until the audio caught up.
+It is not MIDI-specific: turning the tempo knob mid-song did the same.
+
+Fix: a tempo change **appends** a segment at the current tick, so
+everything already played keeps its anchor and the two cursors cannot
+disagree (t95, mutant L). When the segments fill, the map collapses to
+the current rate and re-anchors `sample_cursor` to the same tick.
+
+Same 88 s Dell script, after:
+
+| | before | after |
+|---|---|---|
+| engine frozen (of 36–143 during-take samples) | 29 (20%) | **0** |
+| session bpm while following | — | 60.0–61.3 (measured 60–63) |
+| engine tick rate | stalls masking it | **98.7 ticks/s = 60.0 bpm** |
+| audio render rate | — | 50 904 samples/s ≈ real time, xruns 0 |
+| clocks wire/app | 7500/7500 | 2161/2161, drops 0,0,0 |
+| phase error | — | -315 … -192 ticks, converging (-291 → -212 mean) |
+
+The phase error is the engine sitting ~2–3 s *ahead* of the master's
+position with the servo trimming it back in (mean -291 first third,
+-212 last third): the trim is bounded to ±2 BPM, so it converges in
+minutes rather than instantly. Zero stalls, zero xruns, audio at real
+time — the take now holds.

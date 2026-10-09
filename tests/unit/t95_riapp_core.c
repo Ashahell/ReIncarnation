@@ -217,5 +217,41 @@ int main(void) {
             (unsigned long long)h.session.cursor_ticks);
         ri_core_stop(&h);
     }
+    /* A tempo change mid-take must not stall the engine. The map was
+     * anchored at tick 0, so a tempo DROP moved map_tick(cursor) ahead of
+     * the audio position and the forward-only tick walk froze until the
+     * audio caught up — the M3c Dell run froze the engine on 29 of 143
+     * samples while the MIDI clock ran on. Law: the samples after the
+     * change map exactly as they would have if the take had started at
+     * the new tempo. */
+    {
+        static struct RIAppCore k, kr;
+        static float kl[4096], krl[4096];
+        uint32_t d;
+        uint64_t at_change, moved;
+        ri_core_init(&k, 96u, 48000.0f, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+        ri_core_demo(&k);
+        ri_core_play(&k);
+        for (d = 0u; d < 48000u; d += 4096u)
+            ri_live_render(&k.session, kl, krl, 4096u);
+        at_change = k.session.cursor_ticks;
+        ri_live_set_bpm(&k.session, 60.0f);         /* half the tempo */
+        for (d = 0u; d < 4800u; d += 4096u)
+            ri_live_render(&k.session, kl, krl, 4096u);
+        moved = k.session.cursor_ticks - at_change;
+        /* Reference: the same samples as a take that began at 60. */
+        ri_core_init(&kr, 96u, 48000.0f, 60.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+        ri_core_demo(&kr);
+        ri_core_play(&kr);
+        for (d = 0u; d < 4800u; d += 4096u)
+            ri_live_render(&kr.session, kl, krl, 4096u);
+        RI_ASSERT(moved + 1u >= kr.session.cursor_ticks &&
+            moved <= kr.session.cursor_ticks + 1u,
+            "tempo drop stalls the engine: moved %llu vs %llu",
+            (unsigned long long)moved,
+            (unsigned long long)kr.session.cursor_ticks);
+        ri_core_stop(&k);
+        ri_core_stop(&kr);
+    }
     RI_RESULT("riapp_core");
 }

@@ -929,13 +929,16 @@ static void midi_drain(void) {
              * error in ticks and is the whole point of the servo; f8 is
              * what the app counted against the bridge's wire-side f8w,
              * and the three drops say who lost anything. */
-            evlog("MIDI", "follow=%ubpm eng=%lu exp=%ld err=%ld f8=%lu/%lu "
-                "drop=%lu,%lu,%lu t=%lu.%03lu",
-                (uint32_t)(tempo + 0.5f), (ULONG)eng_cursor,
+            evlog("MIDI", "follow=%ubpm sess=%u eng=%lu smpl=%lu exp=%ld "
+                "err=%ld f8=%lu/%lu drop=%lu,%lu,%lu xr=%lu t=%lu.%03lu",
+                (uint32_t)(tempo + 0.5f),
+                (uint32_t)(s_core.session.bpm * 10.0f), (ULONG)eng_cursor,
+                (ULONG)s_core.session.meters.samples,
                 (LONG)s_mtrans.expected,
                 (LONG)(s_mtrans.expected - (int64_t)eng_cursor),
                 (ULONG)s_midi_f8n, (ULONG)midi_follow_clocks(&b->follow),
                 (ULONG)b->ch_dropped, (ULONG)b->in_dropped, (ULONG)b->camd_dropped,
+                (ULONG)s_core.session.xruns,
                 (ULONG)ns, (ULONG)(nu / 1000u));
         }
     }

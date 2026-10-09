@@ -40,9 +40,10 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     if (s->nspq == 0u)
         s->nspq = 500000000ULL;
     ri_atomic_store_rel(&s->sections, sections);
-    s->seg.start_tick = 0u;
-    s->seg.ns_per_quarter = s->nspq;
-    s->map.segs = &s->seg;
+    s->segs[0].start_tick = 0u;
+    s->segs[0].ns_per_quarter = s->nspq;
+    s->nsegs = 1u;
+    s->map.segs = s->segs;
     s->map.n = 1u;
     s->map.ppq = s->ppq;
     s->map.sr = (uint32_t)s->sr;
@@ -96,8 +97,34 @@ void ri_live_set_bpm(struct RILiveSession *s, float bpm) {
     nspq = (uint64_t)(60000000000.0 / (double)bpm);
     if (nspq == 0u)
         nspq = 500000000ULL;
+    if (s->nsegs && s->segs[s->nsegs - 1u].ns_per_quarter == nspq) {
+        s->bpm = bpm;             /* same rate: only the readout moves */
+        return;
+    }
+    /* A tempo change APPENDS a segment at the current tick: everything
+     * already played keeps its map anchor, so map_tick(cursor_ticks) and
+     * sample_cursor cannot disagree and the forward-only tick walk keeps
+     * moving. Rewriting the one segment in place was the bug: on a tempo
+     * DROP the new (slower) rate mapped the current tick to a sample
+     * position AHEAD of where the audio actually was, and the engine
+     * froze until the audio caught up (M3c: 29 of 143 samples frozen). */
+    if (s->nsegs >= RI_LIVE_MAX_SEGS) {
+        uint64_t at = s->cursor_ticks;
+        s->segs[0].start_tick = 0u;
+        s->segs[0].ns_per_quarter = nspq;
+        s->nsegs = 1u;
+        s->map.n = 1u;
+        /* Re-anchor the audio to the same tick, or the collapse stalls it
+         * exactly as the old rewrite did. */
+        s->sample_cursor = ri_map_tick(&s->map, at);
+        s->need_chase = 1;
+    } else {
+        uint32_t k = s->nsegs++;
+        s->segs[k].start_tick = s->cursor_ticks;
+        s->segs[k].ns_per_quarter = nspq;
+        s->map.n = s->nsegs;
+    }
     s->nspq = nspq;
-    s->seg.ns_per_quarter = nspq;
     s->bpm = bpm;
 }
 
