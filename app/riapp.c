@@ -91,6 +91,10 @@
 #include "gui/skin_aros.h"
 #include "gui/panelui.h"
 #include "gui/panelctl.h"
+#include "gui/midimap.h"
+#include "midi_io/midi_bridge.h"
+#include "midi_io/midi_follow.h"
+#include "platform/pal/ri_pal_midi.h"
 #include "gui/panelgeo.h"
 #include "gui/livestate.h"
 #include "gui/widgets/rsection.h"
@@ -153,6 +157,21 @@ static struct AuLive s_lv;
 static int s_live; /* AHI backend up (render task owns the session) */
 
 static struct RIPanelUI s_panel;
+/* MIDI input (M2): the 15 value canvases feed the push shadow; the
+ * bridge queues arrive here, intents are counted for M3 to consume. */
+static const int s_val_canvas[15] = {
+    C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_MXL, C_MST
+};
+static struct RIMidiIn s_midi;
+static struct RIFollowSync s_sync;
+static struct RIMidiSettings s_mset;
+static struct RISectUI *s_midi_uis[15];
+static uint8_t s_midi_sec[15];
+static uint8_t s_midi_sh[15u * 256u];
+static struct RIMidiMsg s_midi_msgs[32];
+static struct RIMidiIntent s_midi_its[16];
+static uint32_t s_midi_intents[5];
+static ULONG s_midi_lms, s_midi_lmu;
 static Object *s_canvas[C_N];
 static int s_zoom[C_N]; /* content zoom per canvas (transport: compact) */
 static int s_skin_zoom; /* content zoom mirrored into the skin registry */
@@ -812,17 +831,65 @@ static void sync_leviv(void) {
     }
 }
 
+/* MIDI input drain (M2): bridge queues into midimap (G7 behaviour,
+ * LEDs included), changed values push through the bridge, follower
+ * intents are logged and counted for the M3 transport application.
+ * Routing depends only on the panel focus — never on the visible tab —
+ * so the Levi tab cannot swallow remote notes for foci 1-4. */
+static uint32_t s_midi_ignored;
+static void midi_drain(void) {
+    struct RIMidiBridge *b = ri_pal_midi_bridge();
+    uint32_t n, k, i, sends = 0u;
+    uint32_t ch0;
+    ULONG ns, nu, dms;
+    if (!b)
+        return;
+    ch0 = s_panel.changes;
+    n = midi_bridge_read_ch(b, s_midi_msgs, 32u);
+    for (i = 0u; i < n; i++) {
+        int tr0 = s_ui[C_TR]->u.tr.tr.state;
+        ri_midi_msg(&s_midi, &s_panel, s_midi_msgs[i].b[0], s_midi_msgs[i].b[1],
+            s_midi_msgs[i].b[2]);
+        /* Transport edges are momentary commands: a Play followed by Stop
+         * in the same drained batch must still reach the engine as two
+         * transitions, rather than collapsing to the batch-final state. */
+        if (s_ui[C_TR]->u.tr.tr.state != tr0)
+            sync_transport();
+    }
+    if (n)
+        sends = ri_panel_midi_push(s_midi_uis, s_midi_sec, 15u, &s_core.ctl, s_midi_sh);
+    if (sends)
+        evlog("MIDI", "push=%u", sends);
+    if (s_midi.ignored != s_midi_ignored) {
+        evlog("MIDI", "ignored=%u", s_midi.ignored);
+        s_midi_ignored = s_midi.ignored;
+    }
+    k = midi_bridge_read_in(b, s_midi_its, 16u);
+    for (i = 0u; i < k; i++) {
+        uint32_t kind = s_midi_its[i].it.kind;
+        if (kind < 5u)
+            s_midi_intents[kind]++;
+        evlog("MIDI", "intent=%u seek=%lu", kind, (ULONG)s_midi_its[i].it.seek_tick);
+    }
+    CurrentTime(&ns, &nu);
+    dms = s_midi_lms ? (ns - s_midi_lms) * 1000u + nu / 1000u - s_midi_lmu / 1000u : 0u;
+    s_midi_lms = ns;
+    s_midi_lmu = nu;
+    ri_midi_elapse(&s_midi, &s_panel, dms);
+    if (s_panel.changes != ch0) {
+        for (i = 0u; i < 15u; i++)
+            MUI_Redraw(s_canvas[i], MADF_DRAWOBJECT);
+    }
+}
+
 /* Sounding value controls (mouse incl. drags and arrow repeats report the
  * hit control): exactly one control-plane message when the lane key is
  * nonzero (the bridge owns that law, t83). Transport and PAT canvases
  * travel their state paths above. */
 static void sync_values(void) {
-    static const int val_canvas[15] = {
-        C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_MXL, C_MST
-    };
     int i;
     for (i = 0; i < 15; i++) {
-        int c = val_canvas[i];
+        int c = s_val_canvas[i];
         IPTR ch = 0;
         GetAttr(MUIA_RSection_Changes, s_canvas[c], &ch);
         if (ch == s_changes[c])
@@ -2422,6 +2489,83 @@ static uint32_t burst_drain(void *ctx) {
     return 1u;
 }
 
+/* MIDI settings from per-machine ENVARC: (M2, E0 pending owner decision
+ * 3). Returns 1 when the variable exists (parsed into *v). */
+static int midi_getnum(const char *name, long *v) {
+    char vb[16];
+    LONG r, k = 0;
+    long sign = 1L, acc = 0L;
+    int any = 0;
+    if (!DOSBase)
+        return 0;
+    r = GetVar((STRPTR)name, (STRPTR)vb, (LONG)sizeof vb - 1u, 0L);
+    if (r <= 0)
+        return 0;
+    vb[sizeof vb - 1u] = 0;
+    while (vb[k] == ' ' || vb[k] == '\t')
+        k++;
+    if (vb[k] == '-') {
+        sign = -1L;
+        k++;
+    } else if (vb[k] == '+') {
+        k++;
+    }
+    while (vb[k] >= '0' && vb[k] <= '9') {
+        acc = acc * 10L + (long)(vb[k] - '0');
+        any = 1;
+        k++;
+    }
+    if (!any)
+        return 0;
+    *v = sign * acc;
+    return 1;
+}
+
+/* MIDI input setup (M2): ENVARC: settings, midimap + sync state, value
+ * shadow, bridge receiver. Logs the resolved setup; a missing cluster
+ * only logs (the bridge idles until gear appears). */
+static void midi_setup(void) {
+    char cb[64];
+    LONG r;
+    long v;
+    int i;
+    midi_settings_defaults(&s_mset);
+    if (DOSBase) {
+        r = GetVar((STRPTR)"RIAPP_MIDI_IN", (STRPTR)cb, (LONG)sizeof cb - 1u, 0L);
+        if (r > 0) {
+            uint32_t k = 0u;
+            cb[sizeof cb - 1u] = 0;
+            while (cb[k] && k < sizeof s_mset.cluster - 1u) {
+                s_mset.cluster[k] = cb[k];
+                k++;
+            }
+            s_mset.cluster[k] = 0;
+        }
+        if (midi_getnum("RIAPP_MIDI_CH", &v))
+            midi_settings_set(&s_mset, RI_MIDI_SET_CHANNEL, v);
+        if (midi_getnum("RIAPP_MIDI_SYNC", &v))
+            midi_settings_set(&s_mset, RI_MIDI_SET_SYNC, v);
+        if (midi_getnum("RIAPP_MIDI_LEVI", &v))
+            midi_settings_set(&s_mset, RI_MIDI_SET_LEVI_CH, v);
+        if (midi_getnum("RIAPP_MIDI_CLKOUT", &v))
+            midi_settings_set(&s_mset, RI_MIDI_SET_CLK_OUT, v);
+        if (midi_getnum("RIAPP_MIDI_LATMS", &v))
+            midi_settings_set(&s_mset, RI_MIDI_SET_LAT_MS, v);
+    }
+    rlog("RIAPP midi in=%s ch=%u sync=%u levi=%u clkout=%u lat=%d\n", s_mset.cluster,
+        s_mset.channel, s_mset.sync, s_mset.levi_ch, s_mset.clk_out, s_mset.lat_ms);
+    ri_midi_init(&s_midi, (uint8_t)(s_mset.channel - 1u));
+    midi_sync_init(&s_sync);
+    midi_sync_set_source(&s_sync, s_mset.sync);
+    for (i = 0; i < 15; i++) {
+        s_midi_uis[i] = s_ui[s_val_canvas[i]];
+        s_midi_sec[i] = (uint8_t)c_sections[s_val_canvas[i]];
+    }
+    ri_panel_midi_shadow_init(s_midi_uis, s_midi_sec, 15u, s_midi_sh);
+    if (ri_pal_midi_open_in(s_mset.cluster, 0, 0) != 0)
+        rlog("RIAPP midi: no input on %s\n", s_mset.cluster);
+}
+
 static int riapp_main(int argc, char **argv) {
     Object *app, *win, *row;
     LONG ret;
@@ -2679,6 +2823,7 @@ static int riapp_main(int argc, char **argv) {
          * plane never overflows. Same mapping live knob turns use. */
         ri_panel_levi_adopt(&s_ui[C_LEVI]->u.slevi, &s_core.ctl, 0, burst_drain);
     }
+    midi_setup(); /* MIDI input (M2): ENVARC: settings, bridge receiver */
     s_tr_state = s_ui[C_TR]->u.tr.tr.state;
     for (i = 0; i < C_N; i++) {
         IPTR ch = 0;
@@ -3102,6 +3247,7 @@ static int riapp_main(int argc, char **argv) {
         sync_drumv(1u);
         sync_leviv();
         sync_values();
+        midi_drain(); /* bridge MIDI into midimap + the bridge (M2) */
         /* Owner 2026-09-29: Ctrl+1..4 tab keys arrive via the panel. */
         if (s_panel.tab_req >= 0 && s_panel.tab_req < (int8_t)RI_TAB_COUNT) {
             uint32_t g = (uint32_t)s_panel.tab_req;
@@ -3404,6 +3550,7 @@ static int riapp_main(int argc, char **argv) {
     if (tport)
         DeleteMsgPort(tport);
     capture_finish("quit");
+    ri_pal_midi_close(); /* bridge task teardown (M2) */
     if (s_live) {
         au_live_close(&s_lv);
         if (s_cap_mem) {

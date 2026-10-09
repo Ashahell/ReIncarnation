@@ -35,4 +35,15 @@ typedef uint32_t (*ri_panel_drain_fn)(void *dctx);
  * number of messages queued. NULL panel/plane/drain sends nothing. */
 uint32_t ri_panel_levi_adopt(struct RISectLevi *s, struct RIControlPlane *ctl,
     void *dctx, ri_panel_drain_fn drain);
+struct RISectUI;
+/* MIDI value push (M2): send every registry value control (knob, fader,
+ * switch, selector, display) whose panel value differs from its shadow
+ * byte, then refresh the shadow. Keyless controls never send (same as a
+ * live turn). shadow holds nsec * 256 bytes; index [i * 256 + idx].
+ * push returns messages queued; shadow_init fills from current values
+ * (no sends) and returns controls covered. NULL-safe (0/0). */
+uint32_t ri_panel_midi_push(struct RISectUI **uis, const uint8_t *sections,
+    uint32_t nsec, struct RIControlPlane *ctl, uint8_t *shadow);
+uint32_t ri_panel_midi_shadow_init(struct RISectUI **uis,
+    const uint8_t *sections, uint32_t nsec, uint8_t *shadow);
 #endif

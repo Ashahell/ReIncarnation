@@ -1,0 +1,20 @@
+ev 1 0 RUN frames=256 vol=RAM: build=e0f1c48
+ev 2 2 SKIN installed=3 dir=SYS:Classes/ReIncarnation/Mods/
+ev 3 2 SKIN sync=0 zoom=0 current=Classic
+ev 4 26 PAT c=1 inst=0 sel=1
+ev 5 26 PAT c=2 inst=1 sel=0
+ev 6 26 PAT c=3 inst=2 sel=0
+ev 7 26 PAT c=4 inst=3 sel=1
+ev 8 26 PAT c=5 inst=4 sel=0
+ev 9 26 SONG load SYS:Classes/ReIncarnation/Songs/zombie-nation.rbng bars=151 bpm=140
+ev 10 26 TR PLAY
+ev 11 44410 TR STOP
+ev 12 44410 MIDI push=44
+ev 13 47684 MIDI ignored=1
+ev 14 50946 TR PLAY
+ev 15 50946 TR STOP
+ev 16 50946 MIDI push=2
+ev 17 51382 DSTEP v=0 slot=0 step=0 lane=0 st=1
+ev 18 51382 DSTEP v=0 slot=0 step=4 lane=0 st=1
+ev 19 51382 DSTEP v=0 slot=0 step=8 lane=0 st=1
+ev 20 51382 DSTEP v=0 slot=0 step=12 lane=0 st=1

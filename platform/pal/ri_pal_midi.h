@@ -9,9 +9,14 @@
 typedef void (*ri_midi_in)(void *user, const uint8_t *msg, uint32_t len,
     uint64_t time_us);
 
+struct RIMidiBridge;
+
 int ri_pal_midi_open_in(const char *port, ri_midi_in cb, void *user);
 int ri_pal_midi_send(const char *port, const uint8_t *msg, uint32_t len);
 void ri_pal_midi_close(void);
+/* Bridge router (M2): the backend feeds it; queue-direct users (RIAPP)
+ * drain it. NULL until open_in succeeds. cb may be NULL (queues only). */
+struct RIMidiBridge *ri_pal_midi_bridge(void);
 /* AROS backend pump: drain one signal batch into the open callback.
  * Call from the app event loop. Host script backend delivers at open
  * (no pump needed); WinMM (T11) signals its own thread. */

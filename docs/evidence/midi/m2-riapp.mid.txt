@@ -1,0 +1,17 @@
+# M2 RIAPP proof (MIDI channel 1 unless noted). Clean transport state.
+# Run with RIAPP_DEMO=0 (no song autoplay/playlist confounds) and an
+# armed panel (Program Synth + 808 focus, the G7 setup).
+90 46 64   A#3 70 Stop (ensure stopped)
+D 200
+91 45 64   channel 2 Play: must be ignored (stays stopped)
+D 200
+90 45 64   A3 69 Play (starts)
+90 5F 64   B5 95 Program Synth ON
+90 43 64   G3 67 focus to 808
+90 0C 64   C-1 12 808 step 1
+90 10 64   E-1 16 808 step 5
+90 14 64   G#-1 20 808 step 9
+90 18 64   C0 24 808 step 13
+B0 26 7F   CC 38 808 BD Level 127
+B0 11 1E   CC 17 808 mixer Level 30
+90 46 64   A#3 70 Stop (stops)

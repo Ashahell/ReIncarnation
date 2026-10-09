@@ -25,3 +25,21 @@ decision is pending.
   a new take needs a new Start). E0: the spec is silent on arms across
   silence. Revisit if a master is found that sends FA once and clocks
   much later.
+
+## M2: bridge + live-app MIDI in (2026-10-09)
+
+- **P-19 flood cap: 256 channel messages + 64 intents** (`RI_MBR_CH_CAP`,
+  `RI_MBR_IN_CAP`, t181). Oldest dropped and counted, per the spec's
+  stated policy; no per-key coalescing (a stream, not a state).
+  Revisit with P-19 if a flood profile ever needs shaping instead.
+- **Input cluster default `riapp`** (t181-pinned string). A distinct
+  cluster from `ri.remote` so a concurrent RISECT session keeps its
+  lane. Revisit (owner decision 3): any other default name.
+- **Remote channel default 1** (ReBirth manual's one channel; G7 keeps
+  it). **Sync source default Internal** (no behavior change until the
+  owner opts into MIDI clock in M3). **Latency offset default 0 ms**
+  (M3 measures and corrects; the knob exists now so songs never carry
+  it). **Leviasynth channel default 2** (M4 map; G7 stays on 1).
+  **Clock/MMC out default off** (M5, pending owner decision 1).
+  All six live in `ENVARC:` (`RIAPP_MIDI_IN/CH/SYNC/LEVI/CLKOUT/LATMS`),
+  never in the song.

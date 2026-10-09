@@ -3,6 +3,7 @@
 #include "gui/panelctl.h"
 #include "gui/ctlreg.h"
 #include "gui/sectlevi.h"
+#include "gui/sectui.h"
 #include "engine/seq/ctlplane.h"
 #include "engine/seq/autolane.h"
 
@@ -133,4 +134,61 @@ uint32_t ri_panel_levi_adopt(struct RISectLevi *s, struct RIControlPlane *ctl,
     if (ri_ctl_pending(ctl))
         drain(dctx);
     return sent;
+}
+
+/* MIDI value push: what changed on the panel since the shadow was taken
+ * rides the bridge, exactly one message per control (the live law). */
+static int push_is_value(uint32_t kind) {
+    return kind == RI_CK_KNOB || kind == RI_CK_FADER || kind == RI_CK_SWITCH ||
+        kind == RI_CK_SELECTOR || kind == RI_CK_DISPLAY;
+}
+
+static uint32_t push_walk(struct RISectUI **uis, const uint8_t *sections,
+    uint32_t nsec, struct RIControlPlane *ctl, uint8_t *shadow, int send) {
+    uint32_t i, k, out = 0u;
+    uint32_t n = ri_ctlreg_count();
+    if (!uis || !sections || !shadow)
+        return 0u;
+    for (i = 0u; i < nsec; i++) {
+        struct RISectUI *u = uis[i];
+        if (!u)
+            continue;
+        for (k = 0u; k < n; k++) {
+            const struct RICtlDef *d = ri_ctlreg_at(k);
+            uint32_t idx;
+            int v;
+            if (!d || d->section != sections[i] || !push_is_value(d->kind))
+                continue;
+            idx = d->reg_id & 0xFFu;
+            v = ri_sui_value(u, idx);
+            if (v < 0)
+                v = 0;
+            if (v > 127)
+                v = 127;
+            if (send) {
+                if (shadow[i * 256u + idx] == (uint8_t)v)
+                    continue;
+                if (ri_panel_ctl_send(ctl, d->reg_id, v) != 0)
+                    continue;
+                shadow[i * 256u + idx] = (uint8_t)v;
+                out++;
+            } else {
+                shadow[i * 256u + idx] = (uint8_t)v;
+                out++;
+            }
+        }
+    }
+    return out;
+}
+
+uint32_t ri_panel_midi_push(struct RISectUI **uis, const uint8_t *sections,
+    uint32_t nsec, struct RIControlPlane *ctl, uint8_t *shadow) {
+    if (!ctl)
+        return 0u;
+    return push_walk(uis, sections, nsec, ctl, shadow, 1);
+}
+
+uint32_t ri_panel_midi_shadow_init(struct RISectUI **uis,
+    const uint8_t *sections, uint32_t nsec, uint8_t *shadow) {
+    return push_walk(uis, sections, nsec, 0, shadow, 0);
 }
