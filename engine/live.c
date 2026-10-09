@@ -109,15 +109,22 @@ void ri_live_set_bpm(struct RILiveSession *s, float bpm) {
      * position AHEAD of where the audio actually was, and the engine
      * froze until the audio caught up (M3c: 29 of 143 samples frozen). */
     if (s->nsegs >= RI_LIVE_MAX_SEGS) {
-        uint64_t at = s->cursor_ticks;
-        s->segs[0].start_tick = 0u;
-        s->segs[0].ns_per_quarter = nspq;
-        s->nsegs = 1u;
-        s->map.n = 1u;
-        /* Re-anchor the audio to the same tick, or the collapse stalls it
-         * exactly as the old rewrite did. */
-        s->sample_cursor = ri_map_tick(&s->map, at);
-        s->need_chase = 1;
+        /* Collapse to TWO segments: the first keeps the played anchor, the
+         * second starts the new rate AT the current tick. The audio
+         * position is physical — M3e re-anchored it onto the new mapping
+         * and that skips or repeats seconds of music (owner's ears:
+         * playback speed collapsing and a voice hanging while they worked
+         * the Levi, a run with more tempo changes than segments). The map
+         * stays continuous across the collapse, so the tick walk keeps up
+         * without either skipping or stalling. */
+        if (s->cursor_ticks == 0u) {
+            s->segs[0].ns_per_quarter = nspq;   /* nothing played yet */
+        } else {
+            s->segs[1].start_tick = s->cursor_ticks;
+            s->segs[1].ns_per_quarter = nspq;
+            s->nsegs = 2u;
+            s->map.n = 2u;
+        }
     } else {
         uint32_t k = s->nsegs++;
         s->segs[k].start_tick = s->cursor_ticks;

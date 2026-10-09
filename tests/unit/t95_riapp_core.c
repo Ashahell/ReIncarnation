@@ -253,5 +253,49 @@ int main(void) {
         ri_core_stop(&k);
         ri_core_stop(&kr);
     }
+    /* More tempo changes than the map has segments must not move the
+     * AUDIO. The collapse (M3e) used to re-anchor sample_cursor onto the
+     * new mapping, which skips or repeats seconds of music and throws the
+     * tick cursor forward — the owner's ears on the Dell: playback speed
+     * collapsing and a voice hanging while they worked the Levi, which
+     * is exactly a run with more tempo changes than segments. Law: a
+     * tempo change only ever appends; the audio position is physical. */
+    {
+        static struct RIAppCore m;
+        static float ml[4096], mrl[4096];
+        uint32_t d, i;
+        uint64_t t0, moved;
+        ri_core_init(&m, 96u, 48000.0f, 60.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+        ri_core_demo(&m);
+        ri_core_play(&m);
+        for (d = 0u; d < 40960u; d += 4096u)
+            ri_live_render(&m.session, ml, mrl, 4096u);
+        t0 = m.session.cursor_ticks;
+        for (i = 0u; i < 200u; i++) {         /* 200 changes > 64 segments */
+            uint64_t smp = m.session.sample_cursor;
+            uint64_t at;
+            ri_live_set_bpm(&m.session, (i & 1u) ? 61.0f : 59.0f);
+            RI_ASSERT(m.session.sample_cursor == smp,
+                "tempo change %u moved the audio position (%llu -> %llu)", i,
+                (unsigned long long)smp, (unsigned long long)m.session.sample_cursor);
+            ri_live_render(&m.session, ml, mrl, 4096u);
+            /* The render's invariant, checked every block: the map must
+             * never say the current tick is EARLIER than where the audio
+             * already is, or the forward-only walk stalls behind it. */
+            at = ri_map_tick(&m.session.map, m.session.cursor_ticks);
+            RI_ASSERT(at >= m.session.sample_cursor,
+                "change %u put the map behind the audio: map %llu, audio %llu", i,
+                (unsigned long long)at, (unsigned long long)m.session.sample_cursor);
+        }
+        moved = m.session.cursor_ticks - t0;
+        /* 200 x 4096 samples at ~60 bpm is ~1650 ticks; a collapse that
+         * threw the cursor shows up far outside this. */
+        RI_ASSERT(moved > 1200u && moved < 2100u, "collapse threw the engine: %llu ticks",
+            (unsigned long long)moved);
+        /* The render's own invariant, and the one a collapse breaks: the
+         * map must still say where the audio is, within one tick. */
+
+        ri_core_stop(&m);
+    }
     RI_RESULT("riapp_core");
 }

@@ -125,3 +125,30 @@ decision is pending.
   froze until the audio caught up. Not MIDI-specific — the tempo knob
   mid-song did it too. Lane cost before the fix: the engine frozen on 29
   of 143 samples (20%) of a 5-minute take; after: 0 of 36.
+
+## M3e: the owner's ear proof failed, and why (2026-10-09)
+
+**M3 does not pass.** The owner ran the 5-minute take and reported
+(`m3-owner-fail.log`): a hanging tone, the Mixer/Master Comp button
+doing nothing, and playback speed collapsing while they worked the
+Levi.
+
+- **Hanging tone + speed collapse: mine (M3d's collapse).** When the
+  tempo map filled, the collapse re-anchored `sample_cursor` onto the
+  NEW mapping. That skips or repeats music (a skipped note-off hangs a
+  voice; a repeated/skipped region moves the song position fast). Their
+  run is exactly the stress case: more tempo changes than segments.
+  Host RED: `tempo change 63 moved the audio position (299008 ->
+  294098)`. Law now: **a tempo change only appends; the audio position
+  is physical** (t95). Their run also shows the tell — 6126 of 7500
+  clocks arrived and the take ended 12500 ticks ahead.
+- **NOT killed by the host test, said out loud:** anchoring the
+  collapsed segment at tick 0 instead of at the cursor (mutant M2) also
+  leaves the audio alone, and t95 does not distinguish it — it rewrites
+  the map's history, which nothing reads back on a live take. The Dell
+  lane is where that would show, not the host.
+- **Still open, not mine:** the Mixer/Master Comp switch. It is an
+  insert-assign switch (`RI_BIND_INSERT`, engine honours the route
+  owner) and the COMP *tab* On/Off is an unwired lamp — so either the
+  assignment never reaches the engine on the live path, or the owner
+  pressed the tab. Needs its own phase; do not fold it into M3.
