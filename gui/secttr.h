@@ -51,6 +51,7 @@ struct RISectTr {
     uint32_t tap_last;       /* ms of the last counted tap */
     uint8_t tap_n;           /* how many intervals are kept */
     uint8_t tap_have;        /* a first tap is on record */
+    uint8_t tempo_lock;      /* M3: tempo knob + TAP ignore edits while following MIDI clock */
 };
 
 int ri_str_init(struct RISectTr *s);
@@ -76,4 +77,7 @@ int ri_str_goto_loop(struct RISectTr *s, int end);
  * (p. 73). One-way display projection; returns 1 when the bar changed. */
 int ri_str_follow(struct RISectTr *s, uint64_t start_tick, uint64_t sixteenths);
 void ri_str_indicator_set(struct RISectTr *s, uint32_t idx, int v); /* MIDI / Sync feed */
+/* M3: while the tempo follows MIDI clock the knob is read-only (the
+ * display shows the measured tempo) and TAP is disabled. */
+void ri_str_set_tempo_lock(struct RISectTr *s, uint32_t locked);
 #endif

@@ -383,6 +383,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t125_midi_follow >/dev/null || { echo
 bash "$ROOT/scripts/ri_build_host.sh" test t126_midi_rt >/dev/null || { echo "FAIL: t126_midi_rt (midi realtime parser)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t127_midi_sync >/dev/null || { echo "FAIL: t127_midi_sync (midi sync source)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t181_midi_bridge >/dev/null || { echo "FAIL: t181_midi_bridge (midi bridge router)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t182_midi_transport >/dev/null || { echo "FAIL: t182_midi_transport (midi clock to transport)"; exit 1; }
 # MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
 # This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
 # approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo

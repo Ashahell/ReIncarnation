@@ -92,6 +92,7 @@
 #include "gui/panelui.h"
 #include "gui/panelctl.h"
 #include "gui/midimap.h"
+#include "gui/miditrans.h"
 #include "midi_io/midi_bridge.h"
 #include "midi_io/midi_follow.h"
 #include "platform/pal/ri_pal_midi.h"
@@ -163,7 +164,7 @@ static const int s_val_canvas[15] = {
     C_303A, C_303B, C_808, C_909, C_LEVI, C_MIX, C_FX0, C_FX1, C_FX2, C_FX3, C_MXA, C_MXB, C_MX9, C_MXL, C_MST
 };
 static struct RIMidiIn s_midi;
-static struct RIFollowSync s_sync;
+static struct RIMidiTrans s_mtrans;
 static struct RIMidiSettings s_mset;
 static struct RISectUI *s_midi_uis[15];
 static uint8_t s_midi_sec[15];
@@ -172,6 +173,7 @@ static struct RIMidiMsg s_midi_msgs[32];
 static struct RIMidiIntent s_midi_its[16];
 static uint32_t s_midi_intents[5];
 static ULONG s_midi_lms, s_midi_lmu;
+static ULONG s_efreq;   /* EClock rate, read once; see lat_efreq() */
 static Object *s_canvas[C_N];
 static int s_zoom[C_N]; /* content zoom per canvas (transport: compact) */
 static int s_skin_zoom; /* content zoom mirrored into the skin registry */
@@ -650,10 +652,14 @@ static void capture_finish(const char *why) {
 static void sync_transport(void) {
     int st = s_ui[C_TR]->u.tr.tr.state;
     /* Owner 2026-09-29: the tempo knob drives the session (was
-     * display-only); the live render adopts bpm into the engine. */
+     * display-only); the live render adopts bpm into the engine.
+     * M3: while MIDI clock is followed the session tracks the measured
+     * tempo (float, set by the MIDI drain after this), so the integer
+     * knob value must not overwrite it here. */
     {
         int tempo = ri_sui_value(s_ui[C_TR], RI_STR_TEMPO);
-        if (tempo >= 20 && tempo <= 500 && (float)tempo != s_core.session.bpm)
+        if (!s_ui[C_TR]->u.tr.tempo_lock && tempo >= 20 && tempo <= 500 &&
+            (float)tempo != s_core.session.bpm)
             ri_live_set_bpm(&s_core.session, (float)tempo);
     }
     if (st == s_tr_state)
@@ -837,11 +843,15 @@ static void sync_leviv(void) {
  * Routing depends only on the panel focus — never on the visible tab —
  * so the Levi tab cannot swallow remote notes for foci 1-4. */
 static uint32_t s_midi_ignored;
+static uint64_t s_midi_last_f8;
+static int s_midi_was_locked;
 static void midi_drain(void) {
     struct RIMidiBridge *b = ri_pal_midi_bridge();
-    uint32_t n, k, i, sends = 0u;
+    uint32_t n, k, i, sends = 0u, nf8 = 0u;
     uint32_t ch0;
     ULONG ns, nu, dms;
+    uint32_t locked;
+    float bpm, tempo;
     if (!b)
         return;
     ch0 = s_panel.changes;
@@ -855,6 +865,10 @@ static void midi_drain(void) {
          * transitions, rather than collapsing to the batch-final state. */
         if (s_ui[C_TR]->u.tr.tr.state != tr0)
             sync_transport();
+        if (s_midi_msgs[i].b[0] == 0xF8u) {
+            nf8++;
+            s_midi_last_f8 = s_midi_msgs[i].t_us;
+        }
     }
     if (n)
         sends = ri_panel_midi_push(s_midi_uis, s_midi_sec, 15u, &s_core.ctl, s_midi_sh);
@@ -870,7 +884,47 @@ static void midi_drain(void) {
         if (kind < 5u)
             s_midi_intents[kind]++;
         evlog("MIDI", "intent=%u seek=%lu", kind, (ULONG)s_midi_its[i].it.seek_tick);
+        midi_trans_apply(&s_mtrans, &s_midi_its[i].it, s_ui[C_TR],
+            &s_ui[C_TR]->u.tr.cursor);
     }
+    /* Tempo follows the measured clock while locked (M3); the panel
+     * tempo shows measured and its knob + TAP stay read-only. */
+    locked = midi_follow_locked(&b->follow);
+    bpm = midi_follow_bpm(&b->follow);
+    tempo = midi_trans_tempo(&s_mtrans, s_ui[C_TR], nf8, locked, bpm,
+        s_ui[C_TR]->u.tr.cursor);
+    if (tempo > 0.0f) {
+        ri_live_set_bpm(&s_core.session, tempo);
+        if (!s_midi_was_locked)
+            evlog("MIDI", "follow=%ubpm live-only @%lu",
+                (uint32_t)(tempo + 0.5f), (ULONG)s_ui[C_TR]->u.tr.cursor);
+    }
+    /* Dropout: silence past the R1 law ends the take here (the follower
+     * poll cannot run app-side — the bridge task owns the follower).
+     * Self-latching: it only fires while the panel still plays. */
+    if (midi_trans_tempo_locked(&s_mtrans) &&
+        s_ui[C_TR]->u.tr.tr.state != RI_TR_STOPPED && bpm > 0.0f) {
+        uint64_t tick_us = 60000000u / ((uint64_t)(bpm * 24.0f) + 1u);
+        uint64_t limit = 96u * tick_us;
+        struct EClockVal tk;
+        uint64_t now_us = 0u;
+        if (s_efreq) {
+            ReadEClock(&tk);
+            now_us = ((uint64_t)tk.ev_hi << 32) | tk.ev_lo;
+            now_us = now_us / s_efreq * 1000000u + (now_us % s_efreq) * 1000000u / s_efreq;
+        }
+        if (limit < 2000000u)
+            limit = 2000000u;
+        if (now_us > s_midi_last_f8 && now_us - s_midi_last_f8 > limit) {
+            struct RIFollowIntent stop;
+            stop.kind = RI_FOLLOW_STOP;
+            stop.pad[0] = stop.pad[1] = stop.pad[2] = 0u;
+            stop.seek_tick = 0u;
+            midi_trans_apply(&s_mtrans, &stop, s_ui[C_TR], &s_ui[C_TR]->u.tr.cursor);
+            evlog("MIDI", "dropout");
+        }
+    }
+    s_midi_was_locked = midi_trans_tempo_locked(&s_mtrans);
     CurrentTime(&ns, &nu);
     dms = s_midi_lms ? (ns - s_midi_lms) * 1000u + nu / 1000u - s_midi_lmu / 1000u : 0u;
     s_midi_lms = ns;
@@ -2084,7 +2138,6 @@ typedef struct {
     int armed;
 } RILatency;
 static RILatency s_lat;
-static ULONG s_efreq;   /* EClock rate, read once; see lat_efreq() */
 
 /* EClock rate for the latency arithmetic, read ONCE on first use.
  *
@@ -2555,8 +2608,9 @@ static void midi_setup(void) {
     rlog("RIAPP midi in=%s ch=%u sync=%u levi=%u clkout=%u lat=%d\n", s_mset.cluster,
         s_mset.channel, s_mset.sync, s_mset.levi_ch, s_mset.clk_out, s_mset.lat_ms);
     ri_midi_init(&s_midi, (uint8_t)(s_mset.channel - 1u));
-    midi_sync_init(&s_sync);
-    midi_sync_set_source(&s_sync, s_mset.sync);
+    midi_trans_init(&s_mtrans);
+    midi_trans_set_source(&s_mtrans, s_mset.sync);
+    midi_trans_set_lat(&s_mtrans, s_mset.lat_ms);
     for (i = 0; i < 15; i++) {
         s_midi_uis[i] = s_ui[s_val_canvas[i]];
         s_midi_sec[i] = (uint8_t)c_sections[s_val_canvas[i]];

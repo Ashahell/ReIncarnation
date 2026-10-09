@@ -1,0 +1,486 @@
+# M3 tempo proof: long steady run for the lock (script playback
+# jitters ~±10 ms per message; 240 clocks give the 25-tick streak
+# room). FA starts on the next F8; no stop (quit ends the take).
+90 46 64   Stop (ensure stopped)
+D 200
+FA
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21

@@ -43,3 +43,20 @@ decision is pending.
   **Clock/MMC out default off** (M5, pending owner decision 1).
   All six live in `ENVARC:` (`RIAPP_MIDI_IN/CH/SYNC/LEVI/CLKOUT/LATMS`),
   never in the song.
+
+## M3: transport follows clock (2026-10-09)
+
+- **Lock deadline 2 beats** (`RI_MTRANS_LOCK_BEATS`, t182). The
+  follower needs just over one beat of steady clock; two is the
+  announced bound with margin. Revisit if a master ramps tempo
+  through the lock window and the deadline starts to bite.
+- **Phase servo 0.01 BPM/tick, max 2.0 BPM** (`RI_MTRANS_TRIM_*`,
+  t182). A converging estimate alone leaves a standing offset (the
+  integral of its transient); the bounded trim drives it to zero
+  instead. A one-bar local jump recovers in ~2 min; normal-op trims
+  stay micro. Revisit with measured master drift (Ableton Link
+  experience: masters wander; if the trim rails often, widen it).
+- **Followed takes are live-only** (no tempo/transport history is
+  recorded; the app logs `follow=…bpm live-only @…` on lock). E0
+  pending owner decision D2; the counter-free design means there is
+  nothing to migrate if recording is ever approved — only to add.

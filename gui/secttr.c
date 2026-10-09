@@ -22,6 +22,7 @@ int ri_str_init(struct RISectTr *s) {
     s->tap_last = 0u;
     s->tap_n = 0u;
     s->tap_have = 0u;
+    s->tempo_lock = 0u;
     return 0;
 }
 
@@ -85,6 +86,8 @@ int ri_str_tap(struct RISectTr *s, uint32_t ms) {
     int bpm;
     if (!s || ms == 0u)
         return 0;                     /* no clock: ignore, never guess */
+    if (s->tempo_lock)
+        return 0;                     /* M3: TAP disabled while following */
     if (!s->tap_have) {               /* first tap of a run: reference only */
         s->tap_have = 1u;
         s->tap_n = 0u;
@@ -122,6 +125,8 @@ int ri_str_set_value(struct RISectTr *s, uint32_t idx, int v) {
         return 0;
     switch (idx) {
     case RI_STR_TEMPO:
+        if (s->tempo_lock)
+            return 0;                 /* M3: read-only while following */
         old = s->tempo;
         s->tempo = (int16_t)(v < 20 ? 20 : v > 500 ? 500 : v);
         return s->tempo != old;
@@ -228,4 +233,9 @@ void ri_str_indicator_set(struct RISectTr *s, uint32_t idx, int v) {
         s->midi_led = (uint8_t)(v != 0);
     else if (idx == RI_STR_SYNC)
         s->sync_led = (uint8_t)(v < 0 ? 0 : v > 2 ? 2 : v);
+}
+
+void ri_str_set_tempo_lock(struct RISectTr *s, uint32_t locked) {
+    if (s)
+        s->tempo_lock = locked ? 1u : 0u;
 }
