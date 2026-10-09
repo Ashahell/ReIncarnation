@@ -309,3 +309,40 @@ Levi.
   PPQ owes nothing rather than dividing by zero, and `init` deliberately
   does **not** default a zero PPQ to 24: a silently-correct answer would
   hide the caller getting the wire constant wrong.
+
+## riqemu1 restored after the host reboot (2026-10-09)
+
+The private ABIv1 lane had **no unit at all** — it was started by hand
+every time, which is precisely the failure the 2026-09-29 recovery record
+warns about ("a second reboot would have silently dropped the proof
+lane"). Both halves are now user units and **enabled**, so the next cold
+reboot brings the lane back without a hand:
+
+- `spike-riqemu1.service` — port 9295, bulk 9195, spool
+  `/tmp/spike_spool_priv`, pairs copied from the durable master
+  `~/.config/spike/pairs.anon-riqemu1.json` (the guest agent dials
+  `10.0.2.2:9295` with no name, so it lands in the anonymous slot).
+- `riqemu1-vm.service` — runs `~/Work/vms/start_riqemu1.sh` unchanged.
+  Its hard-won args stay in the launcher and are not to be edited from the
+  unit: `-vga vmware` (the VMWare monitor driver unlocks wide modes; std
+  VGA has no matching driver), rtl8139 (e1000 wedges on bursts under
+  user-net), AC97 only (sb128 and hdaudio fault in DriverInit), monitor
+  4477.
+
+**Verified, not assumed:**
+
+- Agent back on its own: `anon`, session 1, ping 3 ms.
+- **1280x1024** (`screendump` PPM header `P6 1280 1024`; agent
+  `ui-windows` reports a 1280x1024 screen) — the required resolution.
+- `Kickstart 51.51, Workbench 40.0`; the agent window is on a clean desktop
+  (`docs/evidence/lane/2026-10-09-riqemu1-back-1280x1024.png`).
+- **Bulk dial-back works here**: the 1129544 B RIAPP transferred in 15401 ms.
+  That is the empirical answer to "is 9195 actually up?" — the bulk port is
+  advertised to the agent and opens on demand, so its absence from
+  `ss -ltn` at rest is expected, not the "configured flag, no listener"
+  failure the Dell lane hit on 2026-10-05.
+
+`/tmp/opencode/hmp.py` was rewritten rather than recovered: it now
+**refuses** `quit`, `system_reset`, `system_powerdown`, `stop` and `cont`
+by list, because "never send quit to the monitor" was a comment and
+comments are what a reboot takes away.
