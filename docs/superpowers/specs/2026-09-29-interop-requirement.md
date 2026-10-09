@@ -1,6 +1,14 @@
 # Interoperability with other music programs (owner requirement, 2026-09-29)
 
-**Status:** requirement recorded, not designed. No code yet.
+**Status:** requirement recorded; **R1–R4 implemented** (2026-10-08 – 2026-10-09,
+commits `7c9fe32`…`7b178c4`, all tagged `[levi-midi]`). P1 sync-in is done and
+**parked, not passed**: following is proven at ~60 BPM on the Dell and the lock
+law at the song's 140 BPM on the host, but **not at 140 BPM on real hardware**,
+because this guest's CAMD delivers clocks in 10 ms system-tick batches.
+**Remaining:** R5 (303/808/909 note input), R6, R7 (SMF), P3, P4, and all of M5
+(clock out, MMC, clock-out LED) — off by default, pending owner decision 1.
+Full record: `llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md`;
+E0 defaults in `docs/evidence/midi/ledger.md`.
 
 **Owner question (2026-09-29):** "can ReIncarnation work with Ableton?"
 
@@ -22,13 +30,17 @@
 - Notes 12–96 drive the switches, pattern select and Program Synth (manual ch. 13, pp. 127–134 and Appendix C).
 - Proven through real `camd.library` on riqemu1.
 
-**MIDI clock in:**
-- **Display only.** It drives the Sync LED: red on the downbeat, green on the other beats, counted from MIDI Start (p. 145).
-- The tempo does **not** follow it, and playback is not started, stopped or positioned by it.
-- `midi_io/midi.h` has a simulated 24-ppqn clock counter with drift measurement (`midi_clock_*`) and an MMC transport parser. Neither is wired to the transport.
+**MIDI clock in (M0–M3, done 2026-10-08/09; parked, not passed):**
+- **Following is live.** A scripted master starts, stops, seeks and sets the tempo: `FA`/`FB` arm and the **next `F8`** fires Start/Continue (MIDI 1.0), 3 s of silence latches exactly one Stop, `SPP` locates while stopped (and is counted-and-ignored while running), and the session tempo follows the measured clock through a **bounded phase servo** (0.01 BPM/tick, max ±2.0 BPM; lock deadline 2 beats — all E0, ledgered). The tempo knob goes read-only and TAP goes dead while following; the display shows the measured value.
+- **Proven on the Dell:** a 5-minute take at ~62 BPM — **7500/7500 clocks on both sides, drops 0,0,0, 0 xruns**, engine frozen 0 of 155 samples, phase error −125…−32 ticks **converging** (mean −82.9 → −39.3), ending 43 ticks (0.45 s) from the master after five minutes.
+- **Not proven:** 140 BPM on real hardware. The lock law accepts steady 17.857 ms intervals (proven on the host) but this guest's CAMD batches clocks at the 10 ms system tick. `MIDICLOCK` sends a clean 139.88 BPM and the app cannot see it through the batching. Closing this needs a **USB-MIDI interface and a real master** (the actual use case) or a batch-tolerant estimator.
+- Followed takes are **live-only** — no tempo/transport history is recorded (E0, pending owner decision D2).
+- The Sync LED still works as before, driven off the same stream.
+- `midi_io/midi.h`'s `midi_clock_*` display model and `midi_mmc_cmd` are still **unwired and untouched**. Two clock models still coexist; only `midi_follow_*` can drive tempo, and it is the one wired.
+- **Second device (M4).** G7 still owns channel 1 alone; the Leviasynth owns channel 2 with its own CC map (manual pp. 168–169). A CC on one channel can never move the other device's controls, pinned by t183. **No note input for the 303s, 808 or 909 yet** — that is R5.
 
 **Output:**
-- **Nothing is sent.** The G7 receiver "never transmits" (manual p. 127). There is no MIDI out of clock, notes, CC or MMC.
+- **Nothing is sent.** The G7 receiver "never transmits" (manual p. 127). There is no MIDI out of clock, notes, CC or MMC. (M5; off by default, pending owner decision 1.)
 
 **Audio:**
 - the offline renderer writes WAV;

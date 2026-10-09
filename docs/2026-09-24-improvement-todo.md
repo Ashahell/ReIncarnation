@@ -263,6 +263,23 @@ Rules: TDD RED-first per change; `ri_audit.sh` 0/0 before each commit; feat:/doc
   - replace the "AROS locales are C-locale-only objects" comment with a FIXME: the locale argument is ignored because `struct __locale` has no numeric data yet (only ctype and case tables); these must be reworked when locale objects gain numeric conventions (`strtod()` then consults the current locale, `strto*_l()` the object passed in);
   - keep the `AROS_FUNCTION_NOT_IMPLEMENTED` visibility without firing on every call, e.g. a static once-only flag around a debug message saying the locale argument is ignored.
 
+## MIDI interop (R1–R4, 2026-10-08/09; commits `7c9fe32`…`7b178c4`, tag `[levi-midi]`)
+Spec `docs/superpowers/specs/2026-09-29-interop-requirement.md`; record `llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md`; E0 defaults `docs/evidence/midi/ledger.md`.
+
+- [x] **M0** — AROS CAMD prerequisites. Both blockers were **upstream AROS bugs**, not ours: `28ec43a517` (cluster names through a `va_list`; no two CAMD links could connect on x86-64) and `cb8c4c5f39` (arena hunks; `LoadDriver()` walked ~4 GB off the end). Carried verbatim into both ABI carriages; G7's local diff retired. Dell SELFTEST `connected: 0,0` → `1,1`, echo `got 0` → `got 2`.
+- [x] **M1** — follower conformance: `FA`/`FB` arm, **the next `F8`** fires Start/Continue; dropout latches one Stop; SPP counted-and-ignored while running (E0).
+- [x] **M2** — bridge task + G7 inside RIAPP; P-19 flood caps (256 channel / 64 intent, oldest-dropped-and-counted, no per-key coalesce); transient transport edges sync **per message**, not batch-final.
+- [x] **M3** — transport follows the clock, tempo with a bounded phase servo. **PARKED, not passed**: proven at ~60 BPM on the Dell (7500/7500 clocks, 0 drops, 0 xruns, phase error converging to −39 ticks after 5 min) and the lock law at the song's own 140 BPM on the host. **Not proven at 140 BPM on real hardware** — this guest's CAMD batches clocks at the 10 ms system tick.
+- [x] **M4** — the Leviasynth on its own channel (E0: remote 1, Leviasynth 2), its own CC map cited to manual pp. 168–169, live notes + bend/wheel/channel+poly AT into the engine. Lane proof staged for the owner; **ear proof pending**.
+- [ ] **M5** — clock out (24 ppqn off the render task's sample clock) and MMC in/out, clock-out LED. Off by default, pending owner decision 1 (Classic extension vs Power Mode).
+- [ ] **R5** — note input for the 303s, 808 and 909. The Leviasynth has it; the four ReBirth devices do not.
+- [ ] **R6**, **R7** (SMF import/export), **P3**, **P4** — untouched.
+- [ ] **140 BPM on real hardware.** Needs a USB-MIDI interface and a real master (the actual use case), or a follower that tolerates batched arrivals (M1 estimator work). riqemu1 cannot prove this or drift at all: no real-time audio pacing there.
+- [ ] **Panel `TR STOP` mid-take**, unexplained: both Dell runs, no MIDI intent and no dropout log, not reproduced since.
+- [ ] **Mixer/Master Comp switch.** The COMP *tab* On/Off is an unwired lamp; the strip row is an insert-assign switch. Needs its own phase — do not fold it into MIDI.
+- [ ] **SILENT ear-test list (W4).** The audit reads **638 SILENT rows** (208 MACRO, 102 ENV, 96 MATRIX, 72 LFO, 24 CUSTOM, 15 SEQUENCER, 14 VOICE, …) and 559 encoder slots SILENT across all contexts. **This is not a bug list** — a control can be stored, delivered and inaudible by design, and "fixing" one into audibility by widening its range needs an E1 reason, not an audit row. What is wanted is an owner ear pass over the SILENT set, module by module, to say which of them *should* make sound.
+- [ ] **BPM-flagged automation keys lack registry rows.** Observed during W2 on the AROS lane only; song-loaded automation reaches the engine, the panel cannot address those keys.
+
 ## Done
 - (none yet)
 

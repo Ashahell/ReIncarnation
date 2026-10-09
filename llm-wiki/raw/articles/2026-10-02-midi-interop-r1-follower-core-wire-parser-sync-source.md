@@ -57,17 +57,31 @@ The companion scar from the same session: a stray `git checkout HEAD -- midi_io/
 
 ## What is deliberately not here
 
-- **No CAMD wiring and no transport application.** The intents exist; nothing consumes them yet. `ri_tr_play/stop/seek` are the intended application point.
-- **No clock out, no MMC out, no note/CC out.** Whether those are Classic extensions or Power Mode is still open owner decision 1 in the spec.
+- **No CAMD wiring and no transport application.** The intents exist; nothing consumes them yet. `ri_tr_play/stop/seek` are the intended application point. → **Superseded 2026-10-09**: M2 wired the bridge (`midi_bridge`, 256 channel messages + 64 intents, P-19, oldest-dropped-and-counted) and M3 applied the intents through `gui/miditrans.c`, with a bounded phase servo. See the Status block below.
+- **No clock out, no MMC out, no note/CC out.** Whether those are Classic extensions or Power Mode is still open owner decision 1 in the spec. → Still true. M5 is unstarted. (M4 added *note in* and performance in for the Leviasynth channel, which is a different direction: device input, not output.)
 - **No focus-5 / Levi keyboard-focus slot.** That sits in the sibling's keyboard/panel territory (`gui/keymap.c`), so it is a spec-and-hand-over, not a trespass.
-- **No latency offset and no phase lock.** The spec's P1 asks for both; a follower core can produce the intent, but the *offset* is a property of the sender's clock and the audio device, so it belongs with the wiring.
+- **No latency offset and no phase lock.** The spec's P1 asks for both; a follower core can produce the intent, but the *offset* is a property of the sender's clock and the audio device, so it belongs with the wiring. → Partly superseded: M3 added the **phase** servo (0.01 BPM/tick, bounded to ±2.0 BPM, ledgered). The **latency offset** knob exists and defaults to 0 ms (`RIAPP_MIDI_LATMS`), measured later with the wiring.
 - **The old `midi_clock_*` and `midi_mmc_cmd` are untouched** and still unwired. Two clock models now coexist, one for the LED and one for following; only the second can drive tempo.
+
+> **Status: Superseded (2026-10-09) by M2 and M3.** This article's central
+> claim — that the intents exist and nothing consumes them — is no longer true.
+> `midi_bridge` routes them out of CAMD into RIAPP, `gui/miditrans.c` applies
+> them to the panel transport, and a Dell 5-minute take followed a scripted
+> clock with **7500/7500 clocks, 0 drops, 0 xruns** and a converging phase
+> error. Recorded here rather than rewritten: the article's own analysis of
+> *why a follower core is the right shape* still holds, and it is the reason
+> the wiring had nowhere to put a bug — every M3b defect was a wrong **unit**
+> or a wrong **reference**, not a wrong intent. Note also that the R1 lock law
+> (24 in-tolerance intervals) turns out to be the thing that blocks 140 BPM
+> on this guest, because its CAMD batches clocks at the 10 ms system tick.
+>
+> Full record: [2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md](2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md).
 
 ## Status relative to the requirement
 
-Against the spec's own inventory, R1 closes the *"tempo does not follow MIDI clock"* gap at the **core** level and leaves every **wiring** gap open. The application-layer claim in the wiki's requirement record — MIDI clock only drives the Sync LED — is still true of the shipped app and is left standing.
+~~Against the spec's own inventory, R1 closes the *"tempo does not follow MIDI clock"* gap at the **core** level and leaves every **wiring** gap open.~~ (Superseded 2026-10-09 — see the Status block above; M2/M3 closed the wiring gaps, and M3 is **parked** rather than passed: following is proven at ~60 BPM on the Dell and at the song's 140 BPM on the host, but not at 140 BPM on real hardware.)
 
-The spec's testing plan puts the proof on riqemu1 with real `camd.library` loopback (a `MIDISEND` sender on a cluster → the RIAPP receiver, as the G7 proof did), and that is the next slice: wire the bridge, apply the intents, and prove a real `0xF8` stream moves the transport. The Dell/USB-MIDI and post-port Link tests stay with the owner.
+The spec's testing plan puts the proof on riqemu1 with real `camd.library` loopback (a `MIDISEND` sender on a cluster → the RIAPP receiver, as the G7 proof did), and that is the next slice: wire the bridge, apply the intents, and prove a real `0xF8` stream moves the transport. → **Done 2026-10-08/09.** The Dell/USB-MIDI and post-port Link tests stay with the owner, and the USB-MIDI part is now the *known blocker* on the 140 BPM proof rather than an untried one.
 
 ## See Also
 

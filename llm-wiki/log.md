@@ -3124,3 +3124,18 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Disposition: Update
 - Raw: llm-wiki/raw/articles/2026-10-08-ahi-rate-dell-proof-avail-flush-crash-and-ahi-v7-verdict.md (status: sent and merged)
 - Updated: llm-wiki/index.md
+
+## [2026-10-09] ingest | Leviasynth wiring W0–W4 and MIDI interop M0–M4
+- Disposition: New; Update; Disputed (not raised — the interop spec's "Where we are today" was **stale rather than wrong**: "MIDI clock in: display only" was true in September and stopped being true in October, which is why it is annotated rather than deleted)
+- Raw: llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md
+- Updated: llm-wiki/raw/articles/2026-10-02-midi-interop-r1-follower-core-wire-parser-sync-source.md (Status: Superseded — "nothing consumes the intents" no longer true)
+- Updated: llm-wiki/raw/articles/2026-09-26-gui-remote-midi-g7.md (Status: Outdated x2 — the camd diff and the debugdriver block, both fixed upstream 2026-10-05 and now carried in both ABI carriages; plus "the receiver is extended")
+- Updated: llm-wiki/index.md (new entry; R1 entry annotated)
+- Evidence: docs/evidence/levi-wiring/2026-10-08-advisor-audit/; docs/evidence/midi/{ledger,m0-camd,m3-riapp-proof,m4-riapp-proof}.md; commits 5c71a40..7b178c4
+- Also updated (repo, not wiki): docs/superpowers/specs/2026-09-29-interop-requirement.md status + "Where we are today"; docs/2026-09-24-improvement-todo.md (MIDI interop section, including the 638-row SILENT ear-test list and the Comp switch carried out of M3)
+
+## [2026-10-09] ingest | M3 closed by owner decision: PARKED, with the gap written down
+- Disposition: Update
+- Raw: llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md
+- Updated: docs/evidence/midi/ledger.md (owner decision recorded); interop spec status line
+- Note: recorded as **parked, not passed**. Following is proven at ~60 BPM on the Dell and the lock law at the song's 140 BPM on the host; following at 140 BPM on real hardware is NOT proven, because this guest's CAMD batches clocks at the 10 ms system tick. Closing it needs a USB-MIDI interface and a real master, or a batch-tolerant estimator.
