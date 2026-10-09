@@ -1,0 +1,95 @@
+# M4 lane proof — the Leviasynth channel (MIDI channel 2).
+#
+# Sent into cluster `riapp` with MIDISEND while RIAPP runs (RIAPP_DEMO=0).
+# Channel 2 = the Leviasynth device (E0, ledger); channel 1 = the ReBirth
+# remote. Every line here is channel 2 unless the comment says otherwise,
+# and the two "must NOT" lines are the no-collision law: a Leviasynth
+# message must not move a ReBirth control, and a ReBirth message must
+# not move a Leviasynth parameter.
+#
+# The owner listens: notes must sound, CC 55 must open the digital
+# filter (darker), CC 74 the analog filter, bend must detune, and the
+# two "must NOT" lines must be silent / unchanged.
+
+# --- 1. notes: a held chord, then a scale ---------------------------------
+91 3C 64   C4 on
+D 150
+91 40 64   E4 on
+D 150
+91 43 64   G4 on
+D 600
+81 43 00   G4 off
+D 100
+81 40 00   E4 off
+D 100
+81 3C 00   C4 off
+D 400
+
+# --- 2. a scale run, velocity varied --------------------------------------
+91 30 50   C3 on (soft)
+D 120
+81 30 00
+D 60
+91 32 64
+D 120
+81 32 00
+D 60
+91 34 78
+D 120
+81 34 00
+D 60
+91 36 96
+D 120
+81 36 00
+D 400
+
+# --- 3. CC 55 = digital filter cutoff (E1 p. 168): close then open --------
+B1 37 00   cutoff closed (dark)
+D 600
+B1 37 7F   cutoff open (bright)
+D 600
+
+# --- 4. CC 74 = analog filter cutoff (E1 p. 168) --------------------------
+B1 4A 00
+D 600
+B1 4A 7F
+D 600
+
+# --- 5. CC 1 = mod wheel (performance, not a knob) ------------------------
+B1 01 00
+D 300
+B1 01 60   mod wheel half
+D 600
+B1 01 00
+D 300
+
+# --- 6. pitch bend, 14 bit, centre 0x2000 ---------------------------------
+E1 00 40   centre
+D 200
+E1 00 60   up
+D 600
+E1 00 40   centre
+D 300
+
+# --- 7. channel aftertouch -----------------------------------------------
+D1 50   channel pressure 50
+D 400
+D1 00   release
+D 300
+
+# --- 8. the no-collision law, from both sides -----------------------------
+# Channel 2, CC 7 (Leviasynth master volume). It moves NOTHING: the
+# ReBirth master fader is a ReBirth control and this channel must not
+# reach it. Listen for silence from this one and watch the master fader.
+B2 07 7F   levi CC 7: must NOT move the ReBirth master fader
+D 600
+# Channel 1, CC 55. Same number, remote map: it moves a ReBirth control
+# and must NOT touch the Leviasynth's cutoff.
+B0 37 7F   remote CC 55: must NOT change the Leviasynth cutoff
+D 600
+
+# --- 9. a note on channel 1: not ours, must be silent ---------------------
+90 45 64   A3 on channel 1: must NOT sound a Leviasynth voice
+D 600
+80 45 00
+D 400
