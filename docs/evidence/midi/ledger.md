@@ -218,3 +218,19 @@ Levi.
   carry their reason in `midi_levi_cc_why`, e.g. oscillator pitch needs
   mode + coarse + fine (one CC cannot address them), and LFO level is a
   matrix-slot amount in our model.
+- **The live note/performance path rides the control plane's spare byte**
+  (`ri_ctl_send2`, M4c/M4d): one 7-bit value cannot carry a note number
+  or a 14-bit bend, so `RIControlMsg.flags` — which existed and was
+  always zero — now travels beside the value and lands in `RIEvent.flags`
+  bits 8-15. Layout: NOTE (val = velocity, hi = note | on<<7), BEND (val =
+  low 7, hi = high 7, 14-bit with centre 8192), PRESS, PAT (hi = note),
+  WHEEL. E0: a live note lands at the **block boundary** (256 frames =
+  5.3 ms) — it has no scheduled sample, and a deterministic one-buffer
+  quantum is honest where a fractional-sample claim would not be.
+  Revisit only if a player complains about 5 ms of latency; the fix then
+  is a per-event sample stamp, not a smaller quantum.
+- **Bend scaling**: the panel's Bend Range (`RI_CTL_LEVI_VBENDRNG`,
+  semitones 0..24) scales the 14-bit deflection, full scale at +-8191.
+- **Not routed, on the record**: sustain pedal (CC 64) and all-notes-off
+  (CC 123) reach nothing — the engine has no sustain gate and no panic.
+  The plan says list rather than fake them, so they are listed.

@@ -28,6 +28,11 @@ void ri_ctl_init(struct RIControlPlane *p);
  * value per key (coalesce in place) or drops the oldest for a new key;
  * both count one `dropped`. val is 0..127 (masked to 7 bits on drain). */
 int ri_ctl_send(struct RIControlPlane *p, uint16_t key, uint8_t val);
+/* The same, with the spare second byte (M4c/M4d): a live note needs the
+ * note number and a bend needs 14 bits, which one 7-bit value cannot
+ * carry. `flags` travels beside the value and lands in RIEvent.flags
+ * bits 8-15. Same rules (allowlist, coalesce-on-overflow). */
+int ri_ctl_send2(struct RIControlPlane *p, uint16_t key, uint8_t val, uint8_t flags);
 uint32_t ri_ctl_pending(const struct RIControlPlane *p);
 /* Drain up to cap entries in FIFO order into AUTOMATION events at `sample`
  * (the buffer's first sample). Leftover stays queued on cap pressure

@@ -9,6 +9,7 @@
 #include "engine/seq/autolane_emit.h"
 #include "engine/seq/songtrack.h" /* combined mirror test ONLY */
 #include "engine/dsp/rb303.h" /* VOLUME exemption ONLY */
+#include "engine/dsp/levi.h" /* live note/performance keys M4c/M4d */
 #include "gui/ctlreg.h" /* cross-check ONLY (read-only; sibling-owned, never edited) */
 
 #define T77_SR 48000u
@@ -268,10 +269,16 @@ int main(void) {
                      * pages' BPM SYNC slots (no registry rows). */
                     if (key >= 0x0E93u && key <= 0x0E9Fu)
                         owned = 1;
+                    /* M4c/M4d: the live note / performance keys are
+                     * INPUTS from the Leviasynth channel, not panel
+                     * controls — a key with no registry row is legal
+                     * exactly for those five, and only those. */
+                    if (key >= RI_CTL_LEVI_NOTE && key <= RI_CTL_LEVI_WHEEL)
+                        owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 1145u, "allow-list size %u (272 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
-                    "5 x 15 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys + 13 env-bpm P8a + 13 arp P8b + 15 seq P8c + 3 ribbon P8d + 15 lfo-step P8e + 6 perf amounts P9b + 5 zones P9c + 2 performance buttons P9d)", nallow);
+                RI_ASSERT(nallow == 1150u, "allow-list size %u (272 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
+                    "5 x 15 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys + 13 env-bpm P8a + 13 arp P8b + 15 seq P8c + 3 ribbon P8d + 15 lfo-step P8e + 6 perf amounts P9b + 5 zones P9c + 2 performance buttons P9d + 5 live note/performance M4c/M4d)", nallow);
             }
         }
     }

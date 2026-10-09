@@ -506,7 +506,8 @@ int main(void) {
         }
         RI_ASSERT(RI_SLEVI_GLIDE == 226u && RI_SLEVI_CHORD == 227u && RI_SLEVI_NCTL == 228u,
             "panel rows (225 + the two buttons, P9d)");
-        RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_CHORD) && !ri_auto_allowed(0x0ECCu), "0x0ECC refused");
+        RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_CHORD) && !ri_auto_allowed(0x0ED1u),
+            "0x0ED1 refused (past the live keys)");
     }
     {
         struct RISectLevi lv;

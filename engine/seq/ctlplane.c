@@ -37,7 +37,7 @@ void ri_ctl_init(struct RIControlPlane *p) {
 typedef char ri_ctl_master_key_check[(RI_CTL_MASTER_LEVEL ==
     RI_AUTO_ID_MIX(RI_AUTO_STRIP_MASTER, RI_AUTO_MIX_LEVEL)) ? 1 : -1];
 
-static int send_inner(struct RIControlPlane *p, uint16_t key, uint8_t val) {
+static int send2_inner(struct RIControlPlane *p, uint16_t key, uint8_t val, uint8_t flags) {
     uint32_t pending, i, h, t;
     h = ri_atomic_load_acq(&p->head);
     t = ri_atomic_load_acq(&p->tail);
@@ -45,7 +45,7 @@ static int send_inner(struct RIControlPlane *p, uint16_t key, uint8_t val) {
     if (pending < RI_CTL_CAP) {
         p->buf[h & RI_CTL_MASK].key = key;
         p->buf[h & RI_CTL_MASK].val = val;
-        p->buf[h & RI_CTL_MASK].flags = 0u;
+        p->buf[h & RI_CTL_MASK].flags = flags;
         ri_atomic_store_rel(&p->head, h + 1u);
         return 0;
     }
@@ -53,7 +53,7 @@ static int send_inner(struct RIControlPlane *p, uint16_t key, uint8_t val) {
         uint32_t at = (i - 1u) & RI_CTL_MASK;
         if (p->buf[at].key == key) {
             p->buf[at].val = val;
-            p->buf[at].flags = 0u;
+            p->buf[at].flags = flags;
             p->dropped++;
             return 0;
         }
@@ -74,7 +74,17 @@ int ri_ctl_send(struct RIControlPlane *p, uint16_t key, uint8_t val) {
         p->refused++;
         return 2;
     }
-    return send_inner(p, key, val);
+    return send2_inner(p, key, val, 0u);
+}
+
+int ri_ctl_send2(struct RIControlPlane *p, uint16_t key, uint8_t val, uint8_t flags) {
+    if (!p)
+        return 2;
+    if (!ri_auto_allowed(key)) {
+        p->refused++;
+        return 2;
+    }
+    return send2_inner(p, key, val, flags);
 }
 
 uint32_t ri_ctl_pending(const struct RIControlPlane *p) {
@@ -104,7 +114,7 @@ uint32_t ri_ctl_drain(struct RIControlPlane *p, struct RIEvent *out,
         out[n].device = ctl_device(m.key);
         out[n].voice = 0u;
         out[n].value = m.key;
-        out[n].flags = (uint16_t)(m.val & 127u);
+        out[n].flags = (uint16_t)(m.val & 127u) | ((uint16_t)m.flags << 8);
         out[n].seq = (*seq)++;
         t++;
         n++;

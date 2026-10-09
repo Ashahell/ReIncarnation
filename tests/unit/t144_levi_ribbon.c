@@ -203,7 +203,7 @@ int main(void) {
             RI_ASSERT(ri_auto_allowed((uint16_t)k), "rbn key %04x allowed", k);
     }
     RI_ASSERT(ri_auto_allowed(0x0EC5u), "0x0EC5 is the first zone key (P9c)");
-    RI_ASSERT(!ri_auto_allowed(0x0ECCu), "0x0ECC refused (P9d)");
+    RI_ASSERT(!ri_auto_allowed(0x0ED1u), "0x0ED1 refused (past the live keys)");
     {
         const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 211u));
         RI_ASSERT(d && d->engine_id == RI_CTL_LEVI_RBNMODE, "rbnmode row binds");

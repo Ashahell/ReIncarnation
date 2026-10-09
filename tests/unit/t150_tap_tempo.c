@@ -146,7 +146,7 @@ int main(void) {
     }
 
     /* --- the key space is unchanged: 0x0ECC is still the first refusal -- */
-    RI_ASSERT(!ri_auto_allowed(0x0ECCu), "0x0ECC refused (P9d)");
+    RI_ASSERT(!ri_auto_allowed(0x0ED1u), "0x0ED1 refused (past the live keys)");
     RI_ASSERT(ri_str_tap(0, 1100u) == 0, "null-safe");
 
     RI_RESULT("tap_tempo");

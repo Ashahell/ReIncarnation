@@ -687,6 +687,24 @@ typedef char ri_levi_ctrl_n_pow2[(RI_LEVI_CTRL_N & (RI_LEVI_CTRL_N - 1u)) == 0u 
  * from the live note-ons (never from a strike). */
 #define RI_CTL_LEVI_GLIDE 0x0ECAu
 #define RI_CTL_LEVI_CHORD 0x0ECBu
+
+/* Live performance / note path (M4c/M4d). These are NOT panel
+ * parameters: the control plane's spare second byte carries what a 7-bit
+ * value cannot (the note of a note event, the high bits of a 14-bit
+ * bend). Layout, consumed by engine_automation():
+ *   NOTE   val = velocity, hi = note | on<<7
+ *   BEND   val = low 7 bits,  hi = high 7 bits (14 bit, centre 8192)
+ *   PRESS  val = channel pressure, hi unused
+ *   PAT    val = pressure,   hi = note
+ *   WHEEL  val = mod wheel 0..127, hi unused
+ * The render applies them at the block boundary (E0: a live note has no
+ * scheduled sample; one buffer, 5.3 ms at 256 frames, is the honest
+ * quantum, and it is deterministic). */
+#define RI_CTL_LEVI_NOTE 0x0ECCu
+#define RI_CTL_LEVI_BEND 0x0ECDu
+#define RI_CTL_LEVI_PRESS 0x0ECEu
+#define RI_CTL_LEVI_PAT 0x0ECFu
+#define RI_CTL_LEVI_WHEEL 0x0ED0u
 #define RI_LEVI_POLY_ROTATE 0u
 #define RI_LEVI_POLY_REASSIGN 1u
 #define RI_LEVI_POLY_MONO 2u

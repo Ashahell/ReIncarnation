@@ -402,7 +402,7 @@ int main(void) {
                 "row %u group/legend", 221u + k);
             RI_ASSERT(ri_auto_allowed((uint16_t)KEY[k]), "key %04x allowed", KEY[k]);
         }
-        RI_ASSERT(ri_auto_allowed(0x0EC9u) && !ri_auto_allowed(0x0ECCu), "0x0ECC refused (P9d)");
+        RI_ASSERT(ri_auto_allowed(0x0EC9u) && !ri_auto_allowed(0x0ED1u), "0x0ED1 refused (past the live keys)");
     }
     {
         struct RISectLevi lv;

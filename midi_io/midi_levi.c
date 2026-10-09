@@ -187,22 +187,25 @@ int midi_levi_message(const struct RIMidiChan *t, uint8_t status, uint8_t d1,
     d2 &= 0x7Fu;
     switch (status & 0xF0u) {
     case 0x90u:                       /* note on (velocity 0 = off) */
-        if (d1 >= 128u)
-            return 0;
         out->kind = RI_LEVI_ACT_NOTE;
+        out->key = RI_CTL_LEVI_NOTE;
         out->note = d1;
         out->val = d2;
         out->on = (uint8_t)(d2 ? 1u : 0u);
+        out->hi = (uint8_t)(d1 | (out->on ? 0x80u : 0u));
         return 1;
     case 0x80u:                       /* note off */
         out->kind = RI_LEVI_ACT_NOTE;
+        out->key = RI_CTL_LEVI_NOTE;
         out->note = d1;
         out->val = 0u;
         out->on = 0u;
+        out->hi = (uint8_t)(d1 & 0x7Fu);
         return 1;
     case 0xB0u: {                     /* control change */
         if (d1 == 1u) {               /* mod wheel (E1 p. 168) */
             out->kind = RI_LEVI_ACT_PERF;
+            out->key = RI_CTL_LEVI_WHEEL;
             out->perf = RI_LEVI_PERF_WHEEL;
             out->val = d2;
             return 1;
@@ -226,21 +229,26 @@ int midi_levi_message(const struct RIMidiChan *t, uint8_t status, uint8_t d1,
     }
     case 0xD0u:                       /* channel aftertouch */
         out->kind = RI_LEVI_ACT_PERF;
+        out->key = RI_CTL_LEVI_PRESS;
         out->perf = RI_LEVI_PERF_PRESS;
         out->val = d1;
         out->on = (uint8_t)(d1 ? 1u : 0u);
         return 1;
     case 0xA0u:                       /* poly aftertouch */
         out->kind = RI_LEVI_ACT_PERF;
+        out->key = RI_CTL_LEVI_PAT;
         out->perf = RI_LEVI_PERF_POLYAT;
         out->note = d1;
         out->val = d2;
+        out->hi = (uint8_t)(d1 & 0x7Fu);
         out->on = (uint8_t)(d2 ? 1u : 0u);
         return 1;
     case 0xE0u:                       /* pitch bend, 14 bit */
         out->kind = RI_LEVI_ACT_PERF;
+        out->key = RI_CTL_LEVI_BEND;
         out->perf = RI_LEVI_PERF_BEND;
-        out->val = (uint16_t)(((uint32_t)d2 << 7) | (uint32_t)d1);
+        out->val = (uint16_t)(d1 & 0x7Fu);
+        out->hi = (uint8_t)(d2 & 0x7Fu);
         return 1;
     default:
         return 0;

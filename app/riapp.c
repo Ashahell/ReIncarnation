@@ -877,6 +877,7 @@ static void midi_drain(void) {
                 ri_ctl_send(&s_core.ctl, la.key, (uint8_t)la.val);
                 evlog("LEVI", "param %04x=%u", la.key, (unsigned)la.val);
             } else if (la.kind == RI_LEVI_ACT_NOTE) {
+                ri_ctl_send2(&s_core.ctl, la.key, (uint8_t)la.val, la.hi);
                 s_midi_levi_note++;
                 evlog("LEVI", "note %u %s vel %u", (unsigned)la.note,
                     la.on ? "on" : "off", (unsigned)la.val);

@@ -282,7 +282,11 @@ int main(void) {
     /* Keys / allow-list / pages. */
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_VINTAGE), "vintage allowed");
     RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_VOSCPAN1 + 7u), "oscpan8 allowed");
-    RI_ASSERT(!ri_auto_allowed(0x0ECCu), "0x0ECC refused (P9d)");
+    /* 0x0ECC-0x0ED0 are the live note/performance keys (M4c/M4d) and
+     * are allowed; the P9d performance buttons stop at 0x0ECB. */
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_CHORD), "0x0ECB allowed (P9d)");
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_NOTE), "live note key allowed (M4)");
+    RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_WHEEL), "live wheel key allowed (M4)");
     {
         const struct RICtlDef *d = ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | 145u));
         RI_ASSERT(d && d->engine_id == RI_CTL_LEVI_VINTAGE, "reg vintage");

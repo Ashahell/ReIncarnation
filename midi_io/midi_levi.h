@@ -36,8 +36,9 @@
 struct RIMidiLeviAction {
     uint8_t kind;
     uint8_t note;      /* NOTE/POLYAT: the note number */
-    uint16_t key;      /* PARAM: the Leviasynth control-plane key */
-    uint16_t val;      /* PARAM/PERF/NOTE value (bend is 14 bit) */
+    uint16_t key;      /* the Leviasynth control-plane key, every kind */
+    uint16_t val;      /* the 7-bit value the key takes */
+    uint8_t hi;        /* the spare byte: note | on<<7, or bend MSBs */
     uint8_t on;        /* NOTE: 1 on / 0 off; PRESS/GLIDE: the new state */
     uint8_t perf;      /* PERF: RI_LEVI_PERF_* */
     uint8_t pad;

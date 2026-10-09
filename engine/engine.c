@@ -107,7 +107,8 @@ void ri_engine_defaults(struct RIEngine *e) {
     }
 }
 
-static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val);
+static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val,
+    uint8_t hi7);
 
 /* Pan law (starting point, pending §8 ear-fit): linear wings with an
  * exact centre detent. v = 64 -> (1, 1) exactly (neutral bit-identical);
@@ -422,7 +423,10 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
     if (!e || !ev)
         return;
     if (ev->type == RI_EV_AUTOMATION) { /* keyed by lane key, any device */
-        engine_automation(e, ev->value, (uint8_t)(ev->flags & 127u));
+        /* The high byte is the control plane's spare byte (M4): all 8 bits
+         * of it, because a note's on/off rides bit 15. */
+        engine_automation(e, ev->value, (uint8_t)(ev->flags & 127u),
+            (uint8_t)((ev->flags >> 8) & 0xFFu));
         return;
     }
     /* Drum sections (§12.7a/m64): lane state arrives as NOTE_ON
@@ -846,7 +850,41 @@ int ri_engine_set_master(struct RIEngine *e, uint8_t v) {
 
 /* Automation lane keys (engine/seq/autolane.h blocks) -> the same setters
  * the knobs use. Unknown keys are ignored, never misrouted. */
-static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val) {
+static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val,
+    uint8_t hi7) {
+    /* M4c/M4d: the live note and performance path, BEFORE the generic
+     * Levi parameter block below (these keys are not parameters). */
+    switch (key) {
+    case RI_CTL_LEVI_NOTE: {
+        uint8_t note = (uint8_t)(hi7 & 0x7Fu);
+        if (hi7 & 0x80u)
+            levi_note_vel(&e->slevi, note, val);
+        else
+            levi_note_rel_vel(&e->slevi, note, val);
+        return;
+    }
+    case RI_CTL_LEVI_BEND: {
+        /* 14 bit, centre 8192; the panel's Bend Range sets the span. */
+        uint32_t raw = ((uint32_t)hi7 << 7) | (uint32_t)val;
+        /* vbendrng is the panel's Bend Range in semitones (0..24); raw is
+         * 14 bit with centre 8192 and full deflection at +-8191. */
+        float semis = ((float)raw - 8192.0f) *
+            (e->slevi.v[0].vbendrng / 8191.0f);
+        levi_bend(&e->slevi, semis);
+        return;
+    }
+    case RI_CTL_LEVI_PRESS:
+        levi_press(&e->slevi, val);
+        return;
+    case RI_CTL_LEVI_PAT:
+        levi_polyat(&e->slevi, (uint8_t)(hi7 & 0x7Fu), val);
+        return;
+    case RI_CTL_LEVI_WHEEL:
+        levi_wheel(&e->slevi, val);
+        return;
+    default:
+        break;
+    }
     uint32_t blk = key & 0xFF00u, hi = (key >> 4) & 0xFu, lo = key & 0xFu, v;
     if (blk == 0x0300u) {
         if (hi == 0u)

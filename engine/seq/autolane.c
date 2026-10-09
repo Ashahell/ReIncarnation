@@ -100,7 +100,9 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     /* Keyboard zones (fidelity P9c). */
     0x0EC5u, 0x0EC6u, 0x0EC7u, 0x0EC8u, 0x0EC9u,
     /* Performance buttons (fidelity P9d). */
-    0x0ECAu, 0x0ECBu
+    0x0ECAu, 0x0ECBu,
+    /* Live note / performance path (M4c/M4d) — not panel parameters. */
+    0x0ECCu, 0x0ECDu, 0x0ECEu, 0x0ECFu, 0x0ED0u
 };
 
 int ri_auto_allowed(uint16_t ctl) {

@@ -81,9 +81,13 @@ int main(void) {
 
     /* Performance and notes are the other two action kinds, and they are
      * equally unreachable from the remote channel. */
-    RI_ASSERT(midi_levi_message(&t, 0xE1u, 0u, 64u, &a) == 1 &&
-        a.kind == RI_LEVI_ACT_PERF && a.perf == RI_LEVI_PERF_BEND && a.val == 8192u,
-        "pitch bend is a 14-bit performance signal (perf %u, val %u)", a.perf, a.val);
+    /* A 14-bit bend does not fit one 7-bit control value, so it travels
+     * as the spare second byte: val = LSB, hi = MSB (centre 0x40/0x00). */
+    RI_ASSERT(midi_levi_message(&t, 0xE1u, 0x00u, 0x60u, &a) == 1 &&
+        a.kind == RI_LEVI_ACT_PERF && a.perf == RI_LEVI_PERF_BEND &&
+        a.key == RI_CTL_LEVI_BEND && a.val == 0u && a.hi == 0x60u,
+        "pitch bend is a 14-bit performance signal (perf %u, val %u, hi %u)",
+        a.perf, a.val, a.hi);
     RI_ASSERT(midi_levi_message(&t, 0x91u, 60u, 100u, &a) == 1 &&
         a.kind == RI_LEVI_ACT_NOTE && a.note == 60u && a.on == 1u, "note on");
     RI_ASSERT(midi_levi_message(&t, 0x91u, 60u, 0u, &a) == 1 &&
