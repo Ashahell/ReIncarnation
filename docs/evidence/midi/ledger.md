@@ -176,3 +176,22 @@ Levi.
   failure of the proof, not of the app. MIDICLOCK streams F8 itself from
   an EClock schedule and prints the tempo it achieved: **139.88 BPM when
   asked for 140** on the Dell (ABIv11 build via `ri_build_v11.sh … midiclock`).
+
+## M3 closed by owner decision (2026-10-09): PARKED
+
+- **Owner: M3 is parked, not passed.** What is proven: following at
+  ~60 BPM on the Dell (7500/7500 clocks, no stalls, no xruns, phase error
+  converging to -39 ticks, owner's ear "seems fine"), plus the lock law at
+  the song's own 140 BPM on the host (t182, 17.857 ms intervals).
+- **What is not proven: following at 140 BPM on real hardware.** This
+  guest's CAMD delivers clocks in 10 ms system-tick batches, which is more
+  jitter than the R1 lock law accepts; MIDICLOCK delivers a clean 140 BPM
+  but the app cannot see it through that batching. Closing this needs a
+  USB-MIDI interface and a real master (the actual use case), or a
+  follower that tolerates batched arrivals (M1 estimator work).
+- **Two owner ear-proof failures drove real fixes** and are recorded
+  above (M3e/M3f: the tempo-map collapse). The Comp switch is the
+  owner's own call: "this was fine", so the halved auto make-up from
+  4167e32 stands and no sound default was touched.
+- Nothing is pushed. Local: b1fa941, 1fa5675, f7f28c1, fd621e1, acc102f,
+  7b3739f, cf60bf0.
