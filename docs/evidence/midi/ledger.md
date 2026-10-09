@@ -514,6 +514,18 @@ comments are what a reboot takes away.
   `(now.ev_lo - prev.ev_lo)` underflowed the first time the low word
   wrapped. Everything now goes through one `ec_us()` helper in 64-bit
   microseconds, the same shape as `midi_camd.c`'s `eclock_us()`.
+- **The Software Failure could not be dismissed, only rebooted past.**
+  `ui-windows` on the Dell reports `Software Failure! 358,0 651x768
+  [no-close]`: **no Cancel, no OK and no close gadget.** Escape and
+  `--ui-click` do nothing to it, and while it is up the agent answers
+  `--ping`, `--ui-capture` and `--ui-windows` normally but **every `--exec`
+  returns rc=1 with no output** — the modal requester owns the screen and
+  the shell behind it cannot run. So the lane's exec path is dead until a
+  guest reboot, which is an owner action here (and `RAM:` is wiped by it,
+  so everything is re-PUT afterwards). Capture kept at
+  `docs/evidence/lane/2026-10-09-dell-midirq-software-failure.png`; its
+  own text renders garbled, but the requester and its four buttons are
+  legible and `ui-windows` names it exactly.
 - **LANE PROOF PENDING, and honestly so.** MIDIRX has still never completed
   a run on hardware, and the Dell agent stopped answering right after the
   crash — so the fixed binary is **staged but unrun**. The interval
