@@ -469,3 +469,33 @@ comments are what a reboot takes away.
   know is to remove the thing it is testing.
 - Mutants AF and AG killed, hash-verified (`live_driver.o` clean is
   `75011b0c…`).
+
+## M5e2: the sender task and the proof receiver (2026-10-09)
+
+- **E0 the sender is a task of its own, 1 ms tick.** The render fills the
+  ring and stops; the bytes still have to reach camd from somewhere that
+  is not the render, and "somewhere" matters — draining on the app's event
+  loop bunches the clock into whatever rhythm the UI is running at, which
+  is the jitter the follower's lock law on the other end rejects. The
+  **schedule** is exact (t185), so the task carries bytes in small
+  batches and nothing more; the lane proof measures what it produces.
+- **E0 a sender that cannot start means clock out is OFF**, not a
+  half-working clock: `ri_pal_midi_send_start` refuses, RIAPP disables the
+  producer again and logs it.
+- **A crashed proof tool taught the PAL a missing entry point.** camd's
+  `CreateMidi`/`AddMidiLink` are **inline calls through `CamdBase`**, and
+  `CamdBase` was only ever resolved inside `ri_pal_midi_open_in`. A tool
+  that talks CAMD directly and never opens the backend therefore took an
+  **illegal memory access on a NULL base** — MIDIRX died exactly there.
+  `ri_pal_midi_init_lib()` now resolves the library without opening a port.
+- **MIDIRX (`app/midirq.c`) is the missing half of the proof set.**
+  MIDISEND plays a script *into* a cluster and MIDICLOCK plays a clock into
+  one, but **nothing could listen**. It reports arrival INTERVALS of F8 —
+  min, max, mean, spread, and per-slice counts — because a count only
+  proves bytes arrived, and the question is what the wire does to an exact
+  schedule. AROS-only; built by `ri_build_v11.sh … midirq`.
+- **LANE PROOF PENDING, and honestly so.** The first MIDIRX run crashed on
+  the NULL base above, and the guest agent has not answered since — the
+  lane is wedged behind a requester from a proof tool of mine. The fix is
+  in and compiled; the interval numbers do not exist yet. Nothing about
+  the clock-out wire behaviour is claimed from this run.

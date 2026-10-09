@@ -96,6 +96,7 @@
 #include "midi_io/midi_bridge.h"
 #include "midi_io/midi_chan.h"
 #include "midi_io/midi_levi.h"
+#include "midi_io/midi_out.h"
 #include "midi_io/midi_follow.h"
 #include "platform/pal/ri_pal_midi.h"
 #include "gui/panelgeo.h"
@@ -850,6 +851,7 @@ static int s_midi_was_locked;
 static uint32_t s_midi_fb_n;   /* follow lines since the last drift print */
 static uint32_t s_midi_f8n;    /* F8 clocks the app has counted */
 static struct RIMidiChan s_chan;   /* M4: device instances and their channels */
+static struct RIMidiOut s_mout;    /* M5: clock-out producer (render writes it) */
 static uint32_t s_midi_levi, s_midi_levi_note, s_midi_levi_perf;
 static void midi_drain(void) {
     struct RIMidiBridge *b = ri_pal_midi_bridge();
@@ -2687,6 +2689,26 @@ static void midi_setup(void) {
     midi_chan_bind(&s_chan, RI_MCHAN_LEVI, s_mset.levi_ch);
     evlog("LEVI", "chan remote=%lu levi=%lu devices=%lu",
         (ULONG)s_mset.channel, (ULONG)s_mset.levi_ch, (ULONG)midi_chan_n(&s_chan));
+    /* M5 clock out (E0, off by default). The render fills this ring and
+     * the AROS sender task carries it to camd; the app itself sends
+     * nothing. `lat_ms` is the output latency the clock LEADS by, so a
+     * master receives the tick no later than the sound it describes. */
+    midi_out_init(&s_mout, s_lv.mix_freq ? (uint32_t)s_lv.mix_freq : 48000u,
+        (uint32_t)((s_lv.drv.session ? (double)s_lv.drv.session->bpm : 120.0) * 1000.0),
+        (uint32_t)((uint64_t)s_mset.lat_ms *
+            (s_lv.mix_freq ? s_lv.mix_freq : 48000u) / 1000u));
+    if (s_mset.clk_out) {
+        midi_out_enable(&s_mout, 1);
+        if (ri_pal_midi_send_start(s_mset.cluster, &s_mout) != 0) {
+            /* Fail closed: a sender we could not start means clock out is
+             * off, not a half-working clock. */
+            midi_out_enable(&s_mout, 0);
+            rlog("RIAPP clock out refused (no sender task)\n");
+        }
+    }
+    evlog("CLK", "out=%u enabled=%u lat_ms=%u",
+        (ULONG)s_mset.clk_out, (ULONG)midi_out_pending(&s_mout),
+        (ULONG)s_mset.lat_ms);
     midi_trans_init(&s_mtrans);
     midi_trans_set_source(&s_mtrans, s_mset.sync);
     midi_trans_set_lat(&s_mtrans, s_mset.lat_ms);
@@ -2764,6 +2786,16 @@ static int riapp_main(int argc, char **argv) {
     for (i = 1; i < argc; i++)                        /* before the task takes the buffer */
         if (argv[i] && !strncmp(argv[i], "CAPTURE=", 8))
             capture_arm(argv[i] + 8);
+    /* M5: attach the clock-out producer to the driver AFTER the session
+     * exists, so the render feeds the ring that the sender task drains.
+     * The driver only ever fills the ring; the sending is the task's. */
+    if (s_live) {
+        s_lv.drv.clk_out = s_mset.clk_out ? &s_mout : 0;
+        if (s_lv.drv.clk_out && s_lv.drv.session)
+            midi_out_set_bpm(&s_mout,
+                (uint32_t)((double)s_lv.drv.session->bpm * 1000.0),
+                s_lv.drv.session->sample_cursor);
+    }
     if (s_live && au_live_run(&s_lv, &s_core.session) != 0) {
         au_live_close(&s_lv);
         s_live = 0;

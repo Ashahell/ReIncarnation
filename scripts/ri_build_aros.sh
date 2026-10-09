@@ -82,7 +82,9 @@ if [ "${1:-}" = sections ]; then
   # MIDISEND: CAMD message-script sender for the G7 remote-MIDI proof
   x86_64-aros-gcc $CF3 -c "$ROOT/app/midisend.c" -o "$O3/midisend.o"
   x86_64-aros-gcc $CF3 -c "$ROOT/platform/aros/midi_camd.c" -o "$O3/midi_camd.o"
-  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/MIDISEND" "$O3/midisend.o" "$O3/midi_camd.o" "$O3/midi_bridge.o" "$O3/midi_follow.o" \
+  x86_64-aros-gcc $CF3 -c "$ROOT/midi_io/midi_clockout.c" -o "$O3/midi_clockout.o"
+  x86_64-aros-gcc $CF3 -c "$ROOT/midi_io/midi_out.c" -o "$O3/midi_out.o"
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/MIDISEND" "$O3/midisend.o" "$O3/midi_camd.o" "$O3/midi_bridge.o" "$O3/midi_follow.o" "$O3/midi_clockout.o" "$O3/midi_out.o" \
     "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" -lamiga -lstdcio -lposixc -ldos -lexec -lautoinit
   test "$(x86_64-aros-readelf -s "$OUT/MIDISEND" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: MIDISEND unresolved"; exit 1; }
   test "$(objdump -d "$OUT/MIDISEND" | grep -c 'mov    %rax,%r12')" = 0 || { echo "FAIL: MIDISEND r12 base moves (v1)"; exit 1; }

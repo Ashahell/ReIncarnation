@@ -67,6 +67,33 @@ fi
 # reproducible from the repo -- the exact failure this script's own header
 # warns about ("a build script outside the repo is how stale-binary mistakes
 # happen"). usage: ri_build_v11.sh <src> <out> midisend
+# MIDIRQ (M5): the clock-out PROOF receiver. MIDISEND sends and MIDICLOCK
+# clocks, but nothing could LISTEN, so there was no way to ask whether the
+# 24 ppqn schedule survives a real wire. This reports the arrival intervals
+# of F8. usage: ri_build_v11.sh <src> <out> midirq
+if [ "${3:-}" = "midirq" ]; then
+  x86_64-aros-gcc $CF -c "$ROOT/app/midirq.c" -o "$OBJ/midirq.o"
+  x86_64-aros-gcc $CF -c "$ROOT/platform/aros/midi_camd.c" -o "$OBJ/midirq_camd.o"
+  # midi_camd.c owns CamdBase and drags the bridge and the clock-out
+  # producer in with it; they are linked rather than stubbed so the probe
+  # exercises the same objects the app does.
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_bridge.c" -o "$OBJ/midirq_bridge.o"
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_clockout.c" -o "$OBJ/midirq_cko.o"
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_out.c" -o "$OBJ/midirq_out.o"
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_follow.c" -o "$OBJ/midirq_follow.o"
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
+    -o "$OUTBIN" "$OBJ/midirq.o" "$OBJ/midirq_camd.o" "$OBJ/midirq_bridge.o" \
+    "$OBJ/midirq_cko.o" "$OBJ/midirq_out.o" "$OBJ/midirq_follow.o" \
+    "$SDK/lib/startup.o" \
+    -L "$SDK/lib" -lamiga -ldos -lexec -lautoinit -lcamd
+  # printf comes from stdio.library here, linked via -lamiga's dependencies;
+  # the unresolved gate below is what proves it, so the link line stays short
+  # (same as the midisend target: the v11 SDK ships no libstdcio/libposixc).
+  test "$(x86_64-aros-readelf -s "$OUTBIN" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 \
+    || { echo "FAIL: MIDIRX(v11) unresolved"; exit 1; }
+  echo "AROS MIDIRX v11 BUILD OK ($OUTBIN, $(stat -c%s "$OUTBIN") bytes)"
+  exit 0
+fi
 if [ "${3:-}" = "midisend" ]; then
   O4="$OBJ/tools"
   mkdir -p "$O4"
@@ -91,7 +118,7 @@ fi
 # application as the message sender. A build that succeeds is not proof that
 # it built what you asked for.
 if [ -n "${3:-}" ]; then
-  echo "FAIL: unknown tool '$3' (usage: ri_build_v11.sh <src> <out-riapp> [midiclock|midisend])"
+  echo "FAIL: unknown tool '$3' (usage: ri_build_v11.sh <src> <out-riapp> [midiclock|midisend|midirq])"
   exit 2
 fi
 

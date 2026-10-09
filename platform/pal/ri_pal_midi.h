@@ -22,4 +22,32 @@ struct RIMidiBridge *ri_pal_midi_bridge(void);
  * (no pump needed); WinMM (T11) signals its own thread. */
 void ri_pal_midi_poll(void);
 
+/* M5e2: clock out's SENDER. The render only fills the producer's ring
+ * (midi_out), so the bytes still have to reach camd from somewhere that is
+ * not the render -- a task of its own, so the clock is not bunched into
+ * whatever rhythm the UI happens to be running at.
+ *
+ * `o` is BORROWED, not owned, and must outlive the sender: the render
+ * writes it, the sender reads it, and both use the ring's SPSC discipline
+ * (render = producer, sender = consumer). `port` is a camd cluster name or
+ * NULL for the one ri_pal_midi_open_in() was given.
+ *
+ * 0 started, non-zero refused (no timer device, no task, already running).
+ * `ri_pal_midi_send_stop()` joins the task. A backend that has no task
+ * concept may implement these by pumping inline on the caller's context,
+ * which is legal for correctness and only affects wire timing.
+ */
+struct RIMidiOut;
+int ri_pal_midi_send_start(const char *port, struct RIMidiOut *o);
+/* Resolve camd.library WITHOUT opening a port. camd's CreateMidi/AddMidiLink
+ * are inline calls through the library base, so any tool that talks CAMD
+ * directly must call this first or it takes an illegal memory access on a
+ * NULL base -- which is exactly how MIDIRX died on its first run.
+ * 0 ok, non-zero refused. */
+int ri_pal_midi_init_lib(void);
+void ri_pal_midi_send_stop(void);
+/* Counters for the ev-log: messages handed to camd, and refusals. */
+uint32_t ri_pal_midi_sent(void);
+uint32_t ri_pal_midi_send_errors(void);
+
 #endif

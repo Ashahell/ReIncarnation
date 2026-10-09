@@ -15,6 +15,7 @@
 #endif
 
 #include "platform/pal/ri_pal_midi.h"
+#include "midi_io/midi_out.h"
 #include "platform/pal/ri_pal_thread.h"
 #include "midi_io/midi_bridge.h"
 
@@ -69,6 +70,14 @@ static int lazy_base(void) {
     if (!CamdBase)
         CamdBase = OpenLibrary("camd.library", 0);
     return CamdBase ? 1 : 0;
+}
+
+/* Resolve the library without opening a port. camd's CreateMidi and
+ * AddMidiLink are inline calls through CamdBase, so a tool that talks
+ * CAMD directly must resolve it first -- a NULL base is an illegal memory
+ * access, not a NULL return. */
+int ri_pal_midi_init_lib(void) {
+    return lazy_base() ? 0 : 1;
 }
 
 static uint64_t eclock_us(void) {
@@ -303,3 +312,175 @@ void ri_pal_midi_close(void) {
     s_cluster[0] = 0;
     s_have_bridge = 0;
 }
+
+/* =====================================================================
+ * M5e2: the clock-out SENDER task.
+ *
+ * The render fills a ring and stops there (app/core/live_driver.c has no
+ * camd in it and never will). These bytes still have to reach camd from
+ * somewhere that is not the render, and "somewhere" matters: draining on
+ * the app's event loop bunches the clock into whatever rhythm the UI is
+ * running at, which is exactly the jitter the follower law on the other
+ * end of the wire rejects.
+ *
+ * So this is a task of its own with a 1 ms tick. That is not a real-time
+ * guarantee and does not need to be: the SCHEDULE is exact (t185: the
+ * tick count is a pure function of the audio sample clock), so all this
+ * task does is carry bytes across in small batches. The lane proof
+ * measures the intervals it actually produces.
+ * ===================================================================== */
+
+static struct RIMidiOut *s_out;          /* BORROWED: render writes it */
+static struct Task *s_stask;
+static struct MsgPort *s_sport;
+static struct timerequest *s_streq;
+static struct IORequest *s_stimer;
+static LONG s_skill_sig = -1;
+static LONG s_sparent_sig = -1;
+static struct Task *s_sparent;
+static ri_atomic_u32 s_sstop, s_stask_done, s_sready;
+static volatile uint32_t s_sent, s_send_err;
+
+static int send_sink(const uint8_t *msg, uint32_t len, void *user) {
+    (void)user;
+    if (ri_pal_midi_send(0, msg, len) != 0) {
+        s_send_err++;
+        return 1;              /* stop this pump; retry next tick */
+    }
+    s_sent++;
+    return 0;
+}
+
+static void sender_task(void) {
+    struct Task *parent = s_sparent;
+    LONG psig = s_sparent_sig;
+    s_sport = CreateMsgPort();
+    if (s_sport)
+        s_streq = (struct timerequest *)CreateIORequest(s_sport,
+            sizeof(struct timerequest));
+    if (s_streq && OpenDevice((STRPTR)"timer.device", UNIT_MICROHZ,
+            (struct IORequest *)s_streq, 0) != 0) {
+        if (s_streq) {
+            DeleteIORequest(s_streq);
+            s_streq = 0;
+        }
+    }
+    if (s_streq)
+        s_stimer = (struct IORequest *)s_streq;
+    s_skill_sig = AllocSignal(-1);
+    ri_atomic_store_rel(&s_sready, 1u);   /* timer and signal are usable */
+    Signal(parent, 1UL << psig);          /* ready, for anyone who waits */
+    while (s_streq && s_skill_sig >= 0) {
+        struct timerequest *tr;
+        ULONG sigs;
+        if (ri_atomic_load_acq(&s_sstop))
+            break;
+        /* Send everything the render produced, capped so a burst cannot
+         * hold this task: the ring holds at most CAP-1 bytes anyway. */
+        if (s_out)
+            (void)midi_out_pump(s_out, send_sink, 0, 64u);
+        /* A 1 ms wait between drains. NOT a real-time guarantee and it
+         * does not need to be: the schedule is exact (t185 derives the
+         * tick count from the audio sample clock), so all this task does
+         * is carry bytes across in small batches. The lane proof measures
+         * the intervals it actually produces.
+         *
+         * AROS's timer request here is an AllocMem'd timerequest with
+         * tr_node/tr_time -- there is no AllocTimReq and SendIO takes one
+         * argument in this SDK. */
+        tr = (struct timerequest *)CreateIORequest(s_sport,
+            sizeof(struct timerequest));
+        if (!tr)
+            break;
+        tr->tr_node.io_Command = TR_ADDREQUEST;   /* as the open handshake */
+        tr->tr_time.tv_secs = 0;
+        tr->tr_time.tv_micro = 1000;
+        SendIO((struct IORequest *)tr);
+        WaitPort(s_sport);
+        sigs = Wait(1UL << s_skill_sig);
+        (void)GetMsg(s_sport);   /* the timer reply; freed with the request */
+        if (!CheckIO((struct IORequest *)tr))
+            AbortIO((struct IORequest *)tr);
+        WaitIO((struct IORequest *)tr);
+        DeleteIORequest((struct IORequest *)tr);
+        if (sigs & (1UL << s_skill_sig))
+            break;
+    }
+    if (s_stimer) {
+        CloseDevice(s_stimer);
+        s_stimer = 0;
+        s_streq = 0;
+    }
+    if (s_sport) {
+        DeleteMsgPort(s_sport);
+        s_sport = 0;
+    }
+    if (s_skill_sig >= 0) {
+        FreeSignal(s_skill_sig);
+        s_skill_sig = -1;
+    }
+    ri_atomic_store_rel(&s_stask_done, 1u);
+}
+
+int ri_pal_midi_send_start(const char *port, struct RIMidiOut *o) {
+    uint32_t spins = 0u;
+    (void)port;               /* ri_pal_midi_send() uses the open cluster */
+    if (!o || s_stask)
+        return 1;
+    s_out = o;
+    s_sent = 0u;
+    s_send_err = 0u;
+    ri_atomic_store_rel(&s_sstop, 0u);
+    ri_atomic_store_rel(&s_stask_done, 0u);
+    ri_atomic_store_rel(&s_sready, 0u);
+    s_sparent_sig = AllocSignal(-1);
+    if (s_sparent_sig < 0)
+        return 1;
+    s_sparent = FindTask(NULL);
+    s_stask = (struct Task *)CreateNewProcTags(NP_Entry,
+        (IPTR)sender_task, NP_Name, (IPTR)"RIAPP midi-out",
+        NP_StackSize, BRIDGE_STACK, TAG_DONE);
+    if (!s_stask) {
+        FreeSignal(s_sparent_sig);
+        s_sparent_sig = -1;
+        return 1;
+    }
+    /* Bounded handshake, in the same shape as the bridge task's: the task
+     * reports ready (or failed) and a spin bound stops startup from ever
+     * wedging on it. A task that cannot get a timer device never signals,
+     * so this times out and we carry on with clock out OFF rather than
+     * blocking. Failing closed here is the whole point of the E0. */
+    while (!ri_atomic_load_acq(&s_sready) && spins < 200u) {
+        Delay(1);
+        spins++;
+    }
+    if (!ri_atomic_load_acq(&s_sready)) {
+        ri_pal_midi_send_stop();
+        FreeSignal(s_sparent_sig);
+        s_sparent_sig = -1;
+        return 1;
+    }
+    return 0;
+}
+
+void ri_pal_midi_send_stop(void) {
+    uint32_t spins = 0u;
+    if (!s_stask)
+        return;
+    ri_atomic_store_rel(&s_sstop, 1u);
+    if (s_stask && s_skill_sig >= 0)
+        Signal(s_stask, 1UL << s_skill_sig);
+    while (!ri_atomic_load_acq(&s_stask_done) && spins < 100u) {
+        Delay(1);
+        spins++;
+    }
+    s_stask = 0;
+    s_out = 0;
+    if (s_sparent_sig >= 0) {
+        FreeSignal(s_sparent_sig);
+        s_sparent_sig = -1;
+    }
+}
+
+uint32_t ri_pal_midi_sent(void) { return s_sent; }
+uint32_t ri_pal_midi_send_errors(void) { return s_send_err; }
