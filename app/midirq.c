@@ -63,12 +63,19 @@ int main(int argc, char **argv) {
     if (argc < 2)
         return 5;
     if (argc >= 3) {
+        /* From index 0, not 1: starting at 1 skipped the leading digit, so
+         * every single-digit duration parsed as 0 and was refused with rc=5
+         * -- which looked like a tool failure rather than a parser bug. */
+        const char *a2 = argv[2];
+        size_t len = strlen(a2), k;
+        if (len == 0u)
+            return 5;
         seconds = 0UL;
-        for (i = 1u; i < (ULONG)strlen(argv[2]); i++)
-            if (argv[2][i] < '0' || argv[2][i] > '9')
+        for (k = 0u; k < len; k++) {
+            if (a2[k] < '0' || a2[k] > '9')
                 return 5;
-            else
-                seconds = seconds * 10UL + (ULONG)(argv[2][i] - '0');
+            seconds = seconds * 10UL + (ULONG)(a2[k] - '0');
+        }
         if (seconds == 0UL)
             return 5;
     }
