@@ -29,34 +29,63 @@
 #include <dos/dos.h>
 #include <midi/camd.h>
 #include <proto/exec.h>
-#include <proto/dos.h>
-#include <proto/timer.h>
-#include <proto/camd.h>
-#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
-#include "platform/pal/ri_pal_midi.h"
 
-extern struct Library *CamdBase; /* owned by platform/aros/midi_camd.c */
+/* INLINE BASES ARE OURS, AND THAT IS THE WHO LESSON OF THIS TOOL.
+ *
+ * app/midiclock.c gets this right and says why in a comment: the inline
+ * timer and CAMD calls are routed through `__TIMER_LIBBASE` /
+ * `__CAMD_LIBBASE` so they use bases this file declares, rather than
+ * through globals that other TUs own. MIDIRX included <proto/timer.h>
+ * plainly, so its calls went through a global `TimerBase` that I declared
+ * as `struct Device *` -- while LIBBASETYPEPTR is `struct Library *`. The
+ * v11 link deliberately runs WITHOUT -Werror, so that type mismatch
+ * compiled, and the CPU paid for it at run time.
+ *
+ * The symptom pointed nowhere near this file: the report read
+ *
+ *     Error: 0x80000003 - Illegal address access
+ *     Function Exec_49_FindTask (0x1AA4F80) Offset 0xA
+ *     Stack: MIDIRX __startup_fromwb -> __startup_entry -> CallEntry
+ *
+ * i.e. the fault was in the C runtime's startup, BEFORE main() ever ran.
+ * Every diagnostic this tool had was past the point of failure, which is
+ * why two faults here had to be found by reading source and one by
+ * reproducing on the lane whose console is legible (riqemu1) rather than
+ * on the Dell, whose crash report renders as garbage.
+ *
+ * Hence also: this tool links STANDALONE. It does not link midi_camd.o,
+ * whose CamdBase would collide with ours, and it does not need the
+ * bridge, the clock-out producer or the follower -- it only listens.
+ */
+struct Library *CamdBase;          /* ours, for the inline CAMD calls */
+static struct Device *MidirxClockBase;
 
-/* ReadEClock is an inline timer call through clib's TimerBase, and no other
- * TU in this link provides one. Declaring it is what app/stepproof.c does
- * for the same reason -- but declaring is NOT the same as resolving: left
- * NULL, the very first ReadEClock is an illegal memory access, which is
- * the Software Failure this tool died of. It is assigned from the opened
- * timer device below, exactly as stepproof.c does. */
-struct Device *TimerBase = NULL;
+/* The SAME pattern for dos.library. A v1 exec library call passes its base
+ * in RDX, and the inline Open()/Write()/Close() in <proto/dos.h> go through
+ * a global DOSBase. With that unresolved the crash lands INSIDE Kickstart's
+ * Exec_77_SendIO with RDX = 0x50 -- a small value, not a base -- and the
+ * report points at SendIO rather than at anything this file did. Three
+ * inline bases in one tool, three ways to get it wrong, so all three are
+ * named and opened here rather than inherited. */
+static struct Library *MidirxDosBase;
+#define __DOS_LIBBASE MidirxDosBase
+#include <proto/dos.h>
+#define __TIMER_LIBBASE MidirxClockBase
+#include <proto/timer.h>
+#define __CAMD_LIBBASE CamdBase
+#include <proto/camd.h>
 
-/* EClock is a 64-bit counter split into hi:lo, where lo is the low 32
- * bits of the hardware counter -- so hi and lo are NOT separate clocks.
- * Every use below goes through this helper, which reassembles the 64-bit
- * value and converts with the split form so it cannot overflow:
+/* AROS EClock is a 64-bit counter split hi:lo, so hi and lo are NOT
+ * separate clocks and every use goes through this helper:
  *
  *   us = (v / efreq) * 1e6 + ((v % efreq) * 1e6) / efreq
  *
- * The earlier arithmetic mixed units outright -- `ev_hi + efreq * seconds`
- * added microseconds to a 32-bit-of-64 counter, so the loop's deadline was
- * about 51 billion years out and the tool could never have exited; and
- * `(now.ev_lo - prev.ev_lo)` underflowed every time the low word wrapped. */
+ * The first version added microseconds to a 32-bit-of-64 counter
+ * (`ev_hi + efreq * seconds`), which put the run's deadline about 51
+ * billion years out, and subtracted ev_lo values, which underflows the
+ * first time the low word wraps. The split form cannot do either. */
 static uint64_t ec_us(const struct EClockVal *e, ULONG efreq) {
     uint64_t v;
     if (!e || !efreq)
@@ -67,6 +96,50 @@ static uint64_t ec_us(const struct EClockVal *e, ULONG efreq) {
 }
 
 #define SLICES 10u
+
+/* REPORT TO A FILE, NOT TO STDOUT. Two reasons, both learned the hard way.
+ *
+ * The v1 SDK resolves printf through `__aros_getbase_StdCIOBase`, which a
+ * -nostartfiles link with startup.o does not provide, so the tool would not
+ * even link for the lane that could show me its console. And a lane proof
+ * wants the report as a FILE it can pull with --get anyway, not as text
+ * scraped from a requester whose own glyphs render as garbage.
+ *
+ * Open/Write/Close are dos.library, which is already linked, so this adds no
+ * dependency at all. */
+static BPTR g_out = 0;
+
+static void say(const char *s) {
+    if (g_out && s)
+        Write(g_out, (CONST_STRPTR)s, (ULONG)strlen(s));
+}
+
+static void say_u(const char *tag, unsigned long v) {
+    char buf[64];
+    int n = 0;
+    const char *p = tag;
+    while (p && *p && n < 40)
+        buf[n++] = *p++;
+    buf[n++] = '=';
+    if (v == 0UL)
+        buf[n++] = '0';
+    else {
+        char d[24];
+        int k = 0;
+        unsigned long t = v;
+        while (t && k < 22) {
+            d[k++] = (char)('0' + (int)(t % 10UL));
+            t /= 10UL;
+        }
+        while (k > 0 && n < 60)
+            buf[n++] = d[--k];
+    }
+    buf[n++] = '\n';
+    if (g_out)
+        Write(g_out, (CONST_STRPTR)buf, (ULONG)n);
+}
+
+
 
 int main(int argc, char **argv) {
     struct MidiNode *node;
@@ -79,7 +152,7 @@ int main(int argc, char **argv) {
     ULONG msg_total = 0, f8 = 0, interval = 0;
     ULONG first_us = 0, last_us = 0, mn = 0xFFFFFFFFUL, mx = 0, sum = 0;
     ULONG slice_f8[SLICES];
-    ULONG i, slice, taken;
+    ULONG i, slice;
     int rc = 0;
 
     if (argc < 2)
@@ -102,11 +175,24 @@ int main(int argc, char **argv) {
             return 5;
     }
 
-    /* camd's CreateMidi/AddMidiLink are inline calls through the library
-     * base. Without this the first CreateMidi is an illegal memory access
-     * on a NULL base -- which is how this probe died on its first run. */
-    if (ri_pal_midi_init_lib() != 0)
+    /* Resolve OUR inline bases FIRST, before a single inline call: dos for
+     * Open/Write/Close, camd for CreateMidi/AddMidiLink. A NULL base is an
+     * illegal memory access rather than a NULL return. */
+    MidirxDosBase = OpenLibrary("dos.library", 0);
+    if (!MidirxDosBase)
         return 10;
+    if (!CamdBase)
+        CamdBase = OpenLibrary("camd.library", 0);
+    if (!CamdBase)
+        return 10;
+
+    /* The report file: argv[3] if given, else MIDIRX.LOG beside us. A proof
+     * run should leave an artifact the lane can pull, not text on a
+     * console nobody captures. */
+    {
+        CONST_STRPTR rp = (CONST_STRPTR)((argc >= 4) ? argv[3] : "MIDIRX.LOG");
+        g_out = Open(rp, MODE_NEWFILE);   /* the mode name both SDKs agree on */
+    }
 
     port = CreateMsgPort();
     tr = port ? (struct timerequest *)CreateIORequest(port,
@@ -121,14 +207,24 @@ int main(int argc, char **argv) {
     }
     /* Resolve the inline timer base from the device just opened, or the
      * first ReadEClock below faults. */
-    TimerBase = tr->tr_node.io_Device;
+    MidirxClockBase = tr->tr_node.io_Device;
+    /* PROGRESS, not decoration. This tool had printed NOTHING until the
+     * first message arrived, so a crash told you nothing about how far it
+     * got -- which is why two faults in it had to be found by reading
+     * rather than by running. Every risky step now announces itself, and
+     * the LAST line printed before a Software Failure is the fault. */
+    say("MIDIRX stage=open ok\n");
     ReadEClock(&base);
     efreq = ReadEClock(&base);
+    say_u("MIDIRX efreq", (unsigned long)efreq);
+    say_u("MIDIRX secs", (unsigned long)seconds);
+    say("MIDIRX stage=clock ok\n");
     start_us = ec_us(&base, efreq);
     deadline_us = start_us + (uint64_t)seconds * 1000000ULL;
     slice_span_us = ((uint64_t)seconds * 1000000ULL) / SLICES;
 
     node = CreateMidi(MIDI_Name, (IPTR)"MIDIRX", TAG_END);
+    say("MIDIRX stage=node ok\n");
     if (!node) {
         rc = 5;
         goto out;
@@ -141,12 +237,12 @@ int main(int argc, char **argv) {
         goto out;
     }
 
+    say("MIDIRX stage=link ok\n");
     for (i = 0u; i < SLICES; i++)
         slice_f8[i] = 0UL;
     slice0_us = start_us;
     slice = 0UL;
     prev_us = 0ULL;
-    taken = 0UL;
 
     for (;;) {
         MidiMsg mm;
@@ -157,12 +253,11 @@ int main(int argc, char **argv) {
         /* Drain everything queued before deciding we are done. */
         while (GetMidi(node, &mm)) {
             msg_total++;
-            taken = (ULONG)now_us;
             if (mm.mm_Status != 0xF8u) {
                 if (mm.mm_Status == 0xFAu)
-                    printf("MIDIRX saw Start\n");
+                    say("MIDIRX saw Start\n");
                 else if (mm.mm_Status == 0xFCu)
-                    printf("MIDIRX saw Stop\n");
+                    say("MIDIRX saw Stop\n");
                 continue;
             }
             if (slice < SLICES)
@@ -210,24 +305,25 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("MIDIRX cluster=%s secs=%lu\n", argv[1], (unsigned long)seconds);
-    printf("MIDIRX messages=%lu f8=%lu first_us=%lu last_us=%lu\n",
-        (unsigned long)msg_total, (unsigned long)f8,
-        (unsigned long)first_us, (unsigned long)last_us);
+    say("MIDIRX cluster=");
+    say(argv[1]);
+    say_u("MIDIRX secs", (unsigned long)seconds);
+    say_u("MIDIRX messages", (unsigned long)msg_total);
+    say_u("MIDIRX f8", (unsigned long)f8);
+    say_u("MIDIRX first_us", (unsigned long)first_us);
+    say_u("MIDIRX last_us", (unsigned long)last_us);
     if (f8 >= 2UL) {
         ULONG mean = sum / (f8 - 1UL);
-        printf("MIDIRX interval us min=%lu max=%lu mean=%lu spread=%lu\n",
-            (unsigned long)(mn == 0xFFFFFFFFUL ? 0UL : mn),
-            (unsigned long)mx, (unsigned long)mean,
-            (unsigned long)(mx - (mn == 0xFFFFFFFFUL ? 0UL : mn)));
-        printf("MIDIRX per-slice f8:");
+        say_u("MIDIRX interval_min_us", (unsigned long)(mn == 0xFFFFFFFFUL ? 0UL : mn));
+        say_u("MIDIRX interval_max_us", (unsigned long)mx);
+        say_u("MIDIRX interval_mean_us", (unsigned long)mean);
+        say_u("MIDIRX interval_spread_us", (unsigned long)(mx - (mn == 0xFFFFFFFFUL ? 0UL : mn)));
         for (i = 0u; i < SLICES; i++)
-            printf(" %lu", (unsigned long)slice_f8[i]);
-        printf("\n");
-        printf("MIDIRX verdict %s\n",
-            (mx - mn <= (mean / 20UL) + 200UL) ? "STEADY" : "JITTERY");
+            say_u("MIDIRX slice_f8", (unsigned long)slice_f8[i]);
+        say((mx - mn <= (mean / 20UL) + 200UL) ?
+            "MIDIRX verdict STEADY\n" : "MIDIRX verdict JITTERY\n");
     } else {
-        printf("MIDIRX verdict NOTHING\n");
+        say("MIDIRX verdict NOTHING\n");
         rc = 12;
     }
 
@@ -238,5 +334,9 @@ out:
     }
     if (port)
         DeleteMsgPort(port);
+    if (g_out) {
+        Close(g_out);
+        g_out = 0;
+    }
     return rc;
 }

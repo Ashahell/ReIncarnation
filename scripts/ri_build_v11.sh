@@ -72,23 +72,22 @@ fi
 # 24 ppqn schedule survives a real wire. This reports the arrival intervals
 # of F8. usage: ri_build_v11.sh <src> <out> midirq
 if [ "${3:-}" = "midirq" ]; then
+  # STANDALONE on purpose: linking midi_camd.o would collide with this
+  # tool's own CamdBase (see the comment at the top of app/midirq.c, which
+  # records what that collision cost). The listener needs nothing but
+  # camd.library and timer.device.
   x86_64-aros-gcc $CF -c "$ROOT/app/midirq.c" -o "$OBJ/midirq.o"
-  x86_64-aros-gcc $CF -c "$ROOT/platform/aros/midi_camd.c" -o "$OBJ/midirq_camd.o"
-  # midi_camd.c owns CamdBase and drags the bridge and the clock-out
-  # producer in with it; they are linked rather than stubbed so the probe
-  # exercises the same objects the app does.
-  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_bridge.c" -o "$OBJ/midirq_bridge.o"
-  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_clockout.c" -o "$OBJ/midirq_cko.o"
-  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_out.c" -o "$OBJ/midirq_out.o"
-  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_follow.c" -o "$OBJ/midirq_follow.o"
+  # NO -lcamd, and that is the fix. Both tools that demonstrably work here
+  # (MIDICLOCK, MIDISEND) resolve camd.library at RUN TIME with OpenLibrary
+  # and none of them links -lcamd; MIDIRX did, and it died in the C
+  # runtime's startup -- `Illegal address access ... Exec_49_FindTask`
+  # under `__startup_fromwb`, i.e. before main() ever ran, at an identical
+  # PC on both lanes. Linking libcamd drags in a library-base arrangement
+  # that the v11 startup does not agree with. app/midirq.c opens the
+  # library itself, exactly as midiclock does.
   x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
-    -o "$OUTBIN" "$OBJ/midirq.o" "$OBJ/midirq_camd.o" "$OBJ/midirq_bridge.o" \
-    "$OBJ/midirq_cko.o" "$OBJ/midirq_out.o" "$OBJ/midirq_follow.o" \
-    "$SDK/lib/startup.o" \
-    -L "$SDK/lib" -lamiga -ldos -lexec -lautoinit -lcamd
-  # printf comes from stdio.library here, linked via -lamiga's dependencies;
-  # the unresolved gate below is what proves it, so the link line stays short
-  # (same as the midisend target: the v11 SDK ships no libstdcio/libposixc).
+    -o "$OUTBIN" "$OBJ/midirq.o" "$SDK/lib/startup.o" \
+    -L "$SDK/lib" -lamiga -ldos -lexec -lautoinit
   test "$(x86_64-aros-readelf -s "$OUTBIN" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 \
     || { echo "FAIL: MIDIRX(v11) unresolved"; exit 1; }
   echo "AROS MIDIRX v11 BUILD OK ($OUTBIN, $(stat -c%s "$OUTBIN") bytes)"

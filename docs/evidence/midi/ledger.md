@@ -526,6 +526,37 @@ comments are what a reboot takes away.
   `docs/evidence/lane/2026-10-09-dell-midirq-software-failure.png`; its
   own text renders garbled, but the requester and its four buttons are
   legible and `ui-windows` names it exactly.
+- **MIDIRX: what the lane actually established, after four crashes.**
+  Every fault was captured from riqemu1, whose console is legible (the
+  Dell's requester renders its own text as garbage, so nothing there is
+  readable). In order:
+  1. **NULL `CamdBase`** — inline CAMD calls through a library nothing
+     resolved. Fixed with `ri_pal_midi_init_lib()`.
+  2. **NULL `TimerBase`** — declared from `stepproof.c` without its
+     assignment. *Declaring an inline base is not resolving it.*
+  3. **A v11 binary on the ABIv1 lane.** riqemu1 is ABIv1 and
+     `ri_build_v11.sh` builds ABIv11, so the tool died in the C runtime's
+     startup — `Illegal address access ... Exec_49_FindTask` under
+     `__startup_fromwb`, at a byte-identical PC across three attempts,
+     before `main` ever ran. **The identical crash on two very different
+     guests was the clue that made it an ABI mismatch rather than a
+     fourth code defect.** Fixed by adding a `midirq` target to
+     `ri_build_aros.sh`; with a v1 build the startup completes and the
+     fault moves into `main`.
+  4. **`Exec_77_SendIO` from `main`, with `RDX = 0x50`** — in a v1 exec
+     library call RDX carries the library base, and `0x50` is not one.
+     An unresolved inline/exec base again, this time for `OpenLibrary`.
+     The pattern being copied from `app/midiclock.c` (`__TIMER_LIBBASE`,
+     `__CAMD_LIBBASE`) is **v11-only**: midiclock has never been built for
+     v1, so its workingness was never evidence about this lane.
+- **WHAT MIDIRX HAS NOT DONE: completed a single run on either lane.** It
+  has cost two owner reboots of the Dell and wedged both agents, and it has
+  produced no measurement. The recommendation is to **retire MIDIRX** and
+  take the intervals from **inside RIAPP instead**: the sender task
+  already counts what it sent (`ri_pal_midi_sent()`), and the producer is
+  portable and host-tested, so an interval histogram over the emitted
+  ticks is ordinary TDD in code that has been green all along — and it
+  needs no new AROS-only tool, hence no new unresolved library base.
 - **LANE PROOF PENDING, and honestly so.** MIDIRX has still never completed
   a run on hardware, and the Dell agent stopped answering right after the
   crash — so the fixed binary is **staged but unrun**. The interval

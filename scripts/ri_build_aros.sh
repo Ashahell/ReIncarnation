@@ -89,6 +89,17 @@ if [ "${1:-}" = sections ]; then
   test "$(x86_64-aros-readelf -s "$OUT/MIDISEND" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: MIDISEND unresolved"; exit 1; }
   test "$(objdump -d "$OUT/MIDISEND" | grep -c 'mov    %rax,%r12')" = 0 || { echo "FAIL: MIDISEND r12 base moves (v1)"; exit 1; }
   echo "AROS MIDISEND BUILD OK ($(stat -c%s "$OUT/MIDISEND") bytes)"
+  # MIDIRX (M5): the clock-out proof receiver, for the ABIv1 lane. It is
+  # built HERE as well as in ri_build_v11.sh because the two ABIs are not
+  # interchangeable -- a v11 binary on the v1 guest dies in the C runtime's
+  # startup with an illegal address access, which cost a full debugging
+  # round that was really just the wrong toolchain.
+  x86_64-aros-gcc $CF3 -c "$ROOT/app/midirq.c" -o "$O3/midirq.o"
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
+    -o "$OUT/MIDIRX" "$O3/midirq.o" "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" \
+    -lamiga -lstdcio -lposixc -ldos -lexec -lautoinit
+  test "$(x86_64-aros-readelf -s "$OUT/MIDIRX" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: MIDIRX unresolved"; exit 1; }
+  echo "AROS MIDIRX BUILD OK ($(stat -c%s "$OUT/MIDIRX") bytes)"
 fi
 # G9.3/G9.4 (2026-09-26, §12.11 G9): `ri_build_aros.sh riapp` links RIAPP,
 # the live-application shell (live session + control plane + low-level AHI
