@@ -346,3 +346,41 @@ reboot brings the lane back without a hand:
 **refuses** `quit`, `system_reset`, `system_powerdown`, `stop` and `cont`
 by list, because "never send quit to the monitor" was a comment and
 comments are what a reboot takes away.
+
+## M5b: the outbound producer (2026-10-09)
+
+- **E0 off by default, and "off" means silent on the wire.** `midi_out_init`
+  leaves the producer disabled and a disabled producer queues **no byte at
+  all** — not a transport edge, not a clock. A receiver is not obliged to
+  ignore anything, so a feature that is merely "not acted on locally" is
+  not off. `RI_MIDI_SET_CLK_OUT` / `RIAPP_MIDI_CLKOUT` carries it.
+- **E0 SPP is legal while stopped only**, counted in `spp_ignored` while
+  running — deliberately the SAME law the follower has inbound (M1). Two
+  ends that disagree about when SPP is legal is a take waiting to go
+  wrong. A locate above 16383 sixteenths is **refused, never wrapped**:
+  a wrapped SPP seeks the master somewhere nobody asked for.
+- **E0 the ring drops oldest and counts**, P-19 style, because a clock byte
+  that arrives late is worse than one that never arrives. A 3-byte SPP is
+  **all-or-nothing** — a half-sent SPP is a wire-level lie, not a dropped
+  packet.
+- **The ring's indices are monotonic counters, not masked indices.** Two
+  earlier forms were wrong and t186 found both. With masked indices
+  `head - tail` means two different things (empty and full are the same
+  value), so a full ring **silently overwrote** instead of dropping and
+  `dropped` stayed 0 while the oldest bytes were eaten; and subtracting
+  masked indices without masking the result reads **4294967295** the
+  moment the reader overtakes the writer. Monotonic counters cost one
+  reserved slot (the ring holds `CAP-1`) and make occupancy exactly
+  `head - tail`.
+- **E0 the clock emit is CUMULATIVE, not the delta between consecutive
+  render calls.** A skipped or coalesced call then emits everything it
+  owed instead of quietly losing that many clock bytes. A clock that
+  silently loses bytes is a take that silently drifts.
+- **The stale-object trap, four times in one session.** `ri_build_host.sh
+  test` does not rebuild. It bit as (1) a mutant failing `-Werror` on an
+  unused variable and the test reporting nothing at all; (2) the same
+  shape again for a second mutant; and (3) **a "clean" verification run
+  that was actually still linked against a mutant's object**, which
+  produced three confusing failures against correct code before the hash
+  was checked. `midi_out.o` clean is `46dc2654…`. Always `all` before
+  `test`, and hash-verify every mutant rebuild.
