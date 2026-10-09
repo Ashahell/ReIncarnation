@@ -845,6 +845,8 @@ static void sync_leviv(void) {
 static uint32_t s_midi_ignored;
 static uint64_t s_midi_last_f8;
 static int s_midi_was_locked;
+static uint32_t s_midi_fb_n;   /* follow lines since the last drift print */
+static uint32_t s_midi_f8n;    /* F8 clocks the app has counted */
 static void midi_drain(void) {
     struct RIMidiBridge *b = ri_pal_midi_bridge();
     uint32_t n, k, i, sends = 0u, nf8 = 0u;
@@ -868,6 +870,7 @@ static void midi_drain(void) {
             sync_transport();
         if (s_midi_msgs[i].b[0] == 0xF8u) {
             nf8++;
+            s_midi_f8n++;
             s_midi_last_f8 = s_midi_msgs[i].t_us;
         }
     }
@@ -896,9 +899,12 @@ static void midi_drain(void) {
         midi_trans_apply(&s_mtrans, &s_midi_its[i].it, s_ui[C_TR], &eng_cursor);
         /* START and SEEK wrote the take's start point into eng_cursor and
          * only pressed Play on the panel. The engine has to be standing
-         * there before the transport sync (next drain) starts it. */
+         * there: ri_live_locate hands the move to the render task, which
+         * owns both cursors (a store here is discarded while playing, and
+         * pressing Play on an already-playing panel is a no-op — the M3
+         * lane proof read tick 12095 for a Start that meant tick 0). */
         if (kind == RI_FOLLOW_PLAY_START || kind == RI_FOLLOW_SEEK) {
-            s_core.session.cursor_ticks = eng_cursor;
+            ri_live_locate(&s_core.session, eng_cursor);
             s_ui[C_TR]->u.tr.cursor = eng_cursor;  /* display until it plays */
             evlog("MIDI", "locate=%lu", (ULONG)eng_cursor);
         }
@@ -912,9 +918,26 @@ static void midi_drain(void) {
         eng_cursor);
     if (tempo > 0.0f) {
         ri_live_set_bpm(&s_core.session, tempo);
-        if (!s_midi_was_locked)
-            evlog("MIDI", "follow=%ubpm live-only @%lu",
-                (uint32_t)(tempo + 0.5f), (ULONG)eng_cursor);
+        /* The drift trace (E0 cadence, 32 blocks): the phase error in
+         * ticks is the whole point of the servo and nothing else in the
+         * log shows it. Wall clock from CurrentTime — the ev-log's
+         * counter column is audio buffers, which is not a clock. */
+        if (!s_midi_was_locked || ++s_midi_fb_n >= 32u) {
+            s_midi_fb_n = 0u;
+            CurrentTime(&ns, &nu);
+            /* The drift trace (E0 cadence, 32 blocks). err is the phase
+             * error in ticks and is the whole point of the servo; f8 is
+             * what the app counted against the bridge's wire-side f8w,
+             * and the three drops say who lost anything. */
+            evlog("MIDI", "follow=%ubpm eng=%lu exp=%ld err=%ld f8=%lu/%lu "
+                "drop=%lu,%lu,%lu t=%lu.%03lu",
+                (uint32_t)(tempo + 0.5f), (ULONG)eng_cursor,
+                (LONG)s_mtrans.expected,
+                (LONG)(s_mtrans.expected - (int64_t)eng_cursor),
+                (ULONG)s_midi_f8n, (ULONG)midi_follow_clocks(&b->follow),
+                (ULONG)b->ch_dropped, (ULONG)b->in_dropped, (ULONG)b->camd_dropped,
+                (ULONG)ns, (ULONG)(nu / 1000u));
+        }
     }
     /* Dropout: silence past the R1 law ends the take here (the follower
      * poll cannot run app-side — the bridge task owns the follower).

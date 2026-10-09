@@ -95,14 +95,17 @@ float midi_trans_tempo(struct RIMidiTrans *t, struct RISectUI *tru,
                 *shown = (int16_t)want;
         }
     }
-    if (!want_lock)
-        return 0.0f;
-    /* The panel is the truth about running: a LOCAL stop (no MIDI byte)
-     * parks the engine, and a clock expectation that kept advancing would
-     * trim the tempo into its rail against a cursor that never moves. */
+    /* Expectation counts CLOCKS, not locked windows: a relock (the follower
+     * is jitter-prone by design) must not swallow the clocks that arrived
+     * inside the unlocked window — they are read off the queue once. The
+     * panel is the truth about running: a LOCAL stop (no MIDI byte) parks
+     * the engine, and an expectation that kept advancing would trim the
+     * tempo into its rail against a cursor that never moves. */
     if (t->playing && !(tru && tru->section == RI_SEC_TRANSPORT &&
             tru->u.tr.tr.state == RI_TR_STOPPED))
         t->expected += (int64_t)nf8 * 4;
+    if (!want_lock)
+        return 0.0f;
     /* Phase servo: the integral of tempo error is position error, so a
      * converging estimate alone leaves a standing offset. Trimming the
      * session tempo toward the clock (bounded, gentle) drives the

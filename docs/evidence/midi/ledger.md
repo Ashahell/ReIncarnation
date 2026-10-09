@@ -82,3 +82,28 @@ decision is pending.
   loopback the ±2 BPM bound sat pinned for the whole take; that is
   what exposed (1) and (2). If it rails on a real master again, read
   the domains before touching the constants.
+
+## M3c: the drift trace and what it found (2026-10-09)
+
+- **Drift trace cadence: every 32 drain blocks while locked**, plus
+  every lock edge (E0). One line carries bpm, engine tick, expectation,
+  phase error in ticks, app-counted F8 / wire-side F8, the three drop
+  counters and the wall clock. Read the ev-log's SECOND column knowing
+  what it is: **audio buffer count, not a clock** (it misled a whole
+  round of drift reasoning until the trace carried CurrentTime).
+- **The expectation counts CLOCKS, not locked windows.** Under script
+  jitter the follower relocks constantly; M3b advanced `expected` only
+  while locked, so every relock swallowed the clocks already read off
+  the queue — `f8=2196/2196` on the wire against half that in the
+  expectation, and a phase error growing ~+40 s over 88 s. Fixed
+  (t182 "relock clocks count").
+- **A locate is render-owned** (`ri_live_locate` + `locate_gen`). The
+  render recomputes `cursor_ticks` from `sample_cursor` every block, so
+  a store from the app is discarded while playing; and pressing Play on
+  an already-playing panel is a no-op, so the Start intent had nothing
+  left to do. Before: a Start on the autoplaying demo left the engine
+  at tick 12095 (≈2 min in). After: tick 0.
+- **riqemu1 cannot prove drift** (no real-time audio pacing there: the
+  engine advances in bursts while the clock runs on), so drift is a
+  Dell-lane measurement only. riqemu1 still proves intents, locate,
+  lock and display.

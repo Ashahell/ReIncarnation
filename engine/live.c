@@ -64,6 +64,8 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     s->scratch_cap = scratch ? scratch_cap : 0u;
     s->qn = 0u;
     s->sample_cursor = 0u;
+    s->locate_tick = 0u;
+    s->locate_done = 0u;
     s->seq_next = 0u;
     s->xruns = 0u;
     s->meters_seq.v = 0u;
@@ -143,6 +145,39 @@ void ri_live_set_ctl(struct RILiveSession *s, struct RIControlPlane *ctl) {
     if (!s)
         return;
     s->ctl = ctl;
+}
+
+void ri_live_locate(struct RILiveSession *s, uint64_t tick) {
+    if (!s)
+        return;
+    s->locate_tick = tick;
+    ri_atomic_store_rel(&s->locate_gen, ri_atomic_load_acq(&s->locate_gen) + 1u);
+}
+
+/* Render-side half of the locate: re-anchor both cursors and re-init the
+ * player at the bar. Same anchor rule as a restart (ri_live_play), and it
+ * runs on the stopped path too, so a locate lands whether or not the take
+ * is running. One request per generation; the tick is written before the
+ * counter is published, so the render never sees a half-pair. */
+static void ri_live_locate_apply(struct RILiveSession *s) {
+    uint32_t gen = ri_atomic_load_acq(&s->locate_gen);
+    uint64_t bar, off, i;
+    if (gen == s->locate_done)
+        return;
+    s->locate_done = gen;
+    s->cursor_ticks = s->locate_tick;
+    s->sample_cursor = ri_map_tick(&s->map, s->locate_tick);
+    bar = ri_seq_bar_at_tick(s->cursor_ticks, s->ppq);
+    off = s->cursor_ticks - ri_seq_tick_of_bar(s->ppq, bar);
+    ri_player_init(&s->player, s->banks, s->track, bar);
+    for (i = 0u; i < RI_SONGTRACK_INSTANCES && off; i++)
+        if (s->banks[i]) {
+            uint64_t len = (uint64_t)s->banks[i]->pat[s->player.sounding_slot[i] & 31u].length *
+                (uint64_t)(s->ppq / 4u);
+            if (len)
+                s->player.phase_ticks[i] = off % len;
+        }
+    s->need_chase = 1;
 }
 
 void ri_live_play(struct RILiveSession *s) {
@@ -282,6 +317,8 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
         return 0u;
     if (!s->scratch || s->scratch_cap == 0u)
         return 0u;
+    /* A queued locate lands before either cursor is read (M3). */
+    ri_live_locate_apply(s);
     if (s->tr.state == RI_TR_STOPPED) {
         RI_STAGE_T(s, RI_LIVE_ST_STOPPED, ts);
         s->stages.stopped_buffers++;

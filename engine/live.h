@@ -90,6 +90,15 @@ struct RILiveSession {
     uint64_t sample_cursor;
     uint32_t seq_next;
     uint32_t xruns;
+    /* Locate request (M3 SEEK/START). The render task owns BOTH cursors:
+     * while playing it recomputes cursor_ticks from sample_cursor every
+     * block, so a store from the app is lost (M3 lane proof: a Start
+     * while the demo autoplayed left the engine at tick 12095). The
+     * request counter hands the move to the render, which re-anchors
+     * both and re-inits the player at the bar. */
+    uint64_t locate_tick;
+    ri_atomic_u32 locate_gen;
+    uint32_t locate_done;
     ri_atomic_u32 meters_seq; /* seqlock around meters (see above) */
     uint64_t tick_rem;
     struct RILiveMeters meters;
@@ -114,6 +123,10 @@ void ri_live_set_auto(struct RILiveSession *s, struct RIAutoPub *pub,
     struct RIAutoCarry *carry, struct RIAutoPass *pass);
 void ri_live_set_ctl(struct RILiveSession *s, struct RIControlPlane *ctl);
 void ri_live_play(struct RILiveSession *s);
+/* Jump the engine to `tick` (render-owned; see locate_gen above). Works
+ * stopped or playing, and returns once the request is queued — the render
+ * applies it at the next block, before it reads either cursor. */
+void ri_live_locate(struct RILiveSession *s, uint64_t tick);
 void ri_live_record(struct RILiveSession *s);
 void ri_live_stop(struct RILiveSession *s);
 /* RECORD-state knob record (G9.5 host half): control-plane send for

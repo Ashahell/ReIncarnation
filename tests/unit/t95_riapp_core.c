@@ -189,5 +189,33 @@ int main(void) {
         RI_ASSERT(memcmp(dl + 48000u, el + 48000u, 48000u * sizeof(float)) != 0,
             "delay return audible");
     }
+    /* M3: a locate moves the ENGINE. The render task owns both cursors
+     * and recomputes cursor_ticks from sample_cursor every block, so a
+     * store from the app is discarded — the M3 lane proof read tick 12095
+     * for a Start that should have been tick 0 (the demo was already
+     * playing, so the panel press was a no-op and nothing relocated).
+     * Stopped, playing, and playing-to-top are all one law. */
+    {
+        static struct RIAppCore h;
+        static float hl[48000], hr[48000];
+        ri_core_init(&h, 96u, 48000.0f, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
+        ri_core_demo(&h);
+        ri_core_play(&h);
+        RI_ASSERT(ri_live_render(&h.session, hl, hr, 48000u) == 48000u, "play 1 s");
+        ri_core_stop(&h);
+        ri_live_locate(&h.session, 9600u);              /* bar 25, stopped */
+        RI_ASSERT(ri_live_render(&h.session, hl, hr, 48000u) == 48000u, "stopped render");
+        RI_ASSERT(h.session.cursor_ticks == 9600u, "stopped locate %llu",
+            (unsigned long long)h.session.cursor_ticks);
+        ri_core_play(&h);
+        RI_ASSERT(ri_live_render(&h.session, hl, hr, 48000u) == 48000u, "resume 1 s");
+        RI_ASSERT(h.session.cursor_ticks > 9600u && h.session.cursor_ticks < 10000u,
+            "plays on from the locate %llu", (unsigned long long)h.session.cursor_ticks);
+        ri_live_locate(&h.session, 0u);                /* Start from the top */
+        RI_ASSERT(ri_live_render(&h.session, hl, hr, 48000u) == 48000u, "top render");
+        RI_ASSERT(h.session.cursor_ticks < 200u, "playing locate to the top %llu",
+            (unsigned long long)h.session.cursor_ticks);
+        ri_core_stop(&h);
+    }
     RI_RESULT("riapp_core");
 }

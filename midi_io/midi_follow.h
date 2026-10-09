@@ -38,6 +38,7 @@ struct RIFollow {
     uint64_t sum_us;
     uint32_t n;      /* intervals in ring (<= 24) */
     uint32_t streak; /* consecutive in-tolerance ticks */
+    uint32_t clocks;  /* F8 arrivals ever seen (vs the app's own count) */
     uint8_t have_tick;
     uint8_t stop_latched;
     uint8_t spp_pend; /* 0 idle, 1 want lsb, 2 want msb */
@@ -78,6 +79,9 @@ int midi_follow_poll(struct RIFollow *f, uint64_t now_us,
 /* Measured BPM (0 until two ticks); 1 when locked. 0/negative on bad. */
 float midi_follow_bpm(const struct RIFollow *f);
 int midi_follow_locked(const struct RIFollow *f);
+/* F8 arrivals counted (the wire side of the drift trace: compared with
+ * the app's own nf8 total it says whether the bridge dropped clocks). */
+uint32_t midi_follow_clocks(const struct RIFollow *f);
 
 /* Sync-source state (R1 settings core): Internal vs MIDI clock, measured
  * tempo latch, read-only law, dropout fallback. Pure; the caller owns

@@ -10,6 +10,7 @@
 #include "midi_io/midi_follow.h"
 
 int main(void) {
+    uint32_t clocks_seen = 0u;
     struct RIFollow f;
     struct RIFollowIntent it;
     uint64_t t = 5000000u;
@@ -23,8 +24,15 @@ int main(void) {
         t += 20833u;
         RI_ASSERT(midi_follow_rt(&f, 0xF8u, t, &it) == 0, "tick %u", i);
         RI_ASSERT(it.kind == RI_FOLLOW_NONE, "tick silent");
+        clocks_seen++;
     }
     RI_ASSERT(midi_follow_locked(&f) == 1, "rt locked");
+    /* The wire-side clock count: the app compares its own nf8 total with
+     * this to say whether the bridge or the drain lost clocks (M3 drift
+     * trace). Every F8 above is counted, the FA/FB/FC bytes are not. */
+    RI_ASSERT(midi_follow_clocks(&f) == clocks_seen, "clocks %u != %u",
+        midi_follow_clocks(&f), clocks_seen);
+    RI_ASSERT(midi_follow_clocks(0) == 0u, "null clocks");
     /* Transport bytes arm; the next F8 fires (MIDI 1.0 downbeat law). */
     RI_ASSERT(midi_follow_rt(&f, 0xFAu, t, &it) == 0 && it.kind == RI_FOLLOW_NONE, "fa arms");
     t += 20833u;

@@ -83,3 +83,42 @@ same take read BAR 22 with the trim railed.
 binary; the M3b build (1117936 B) is what the owner proof runs now.
 Owner 5-minute Live proof (Song mode, USB-MIDI) pending — lane ready
 when the owner is.
+## M3c: drift (`m3-drift-dell.log`) — the phase error, measured
+
+The follow line grew a drift trace (E0 cadence: every 32 drain blocks
+and every lock edge) because nothing else in the log could answer "does
+it drift". It needed a real clock too: **the ev-log's second column is
+the audio buffer count, not a time** — that misread cost a round of
+reasoning before the trace carried `CurrentTime`.
+
+Two things it found:
+
+- **Relocks swallowed clocks.** The expectation only advanced while the
+  follower was *locked*, so every jitter relock dropped the clocks that
+  had already been read off the queue. First trace: `f8=2196/2196` on
+  the wire, the expectation a third short, phase error growing to
+  +4726 ticks (~40 s) over one 88 s take. Fixed: the expectation counts
+  arrivals, lock or no lock (t182).
+- **A locate has to be render-owned.** The render recomputes the tick
+  cursor from the sample cursor every block, so the app's store was
+  discarded while playing, and pressing Play on an already-playing panel
+  does nothing — so a Start intent on the autoplaying demo left the
+  engine at tick 12095. `ri_live_locate` hands the move to the render
+  (`locate_gen`), which re-anchors both cursors and re-inits the player
+  (t95, mutants G/H).
+
+After both, the same 88 s Dell take:
+
+```
+ev 17 follow=63bpm eng=308  exp=316  err=+8    f8=79/79    drop=0,0,0
+ev 18 follow=63bpm eng=429  exp=432  err=+3    f8=108/108  drop=0,0,0
+ev 66 follow=62bpm eng=8809 exp=8800 err=-9    f8=2200/2200 drop=0,0,0
+```
+
+**Phase error over the whole take: -119 .. +75 ticks** (mean +1.8 in
+the first third, +3.8 in the last — no trend), i.e. under a second at
+worst and mostly a few ticks, against a ±10 ms-per-message scripted
+clock. Every clock accounted for on both sides; no bridge, intent or
+CAMD drops. Zero long-term drift: proven on the Dell, not on riqemu1
+(`m3-drift-riqemu1.log`: same intents, locate and lock, but its audio
+clock runs in bursts, so the error there is a lane artifact).

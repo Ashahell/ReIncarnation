@@ -164,6 +164,35 @@ int main(void) {
     t.sync.source = RI_SYNC_MIDI;
     RI_ASSERT(ri_sui_init(&tru, RI_SEC_TRANSPORT) == 0, "tr reinit");
     RI_ASSERT(ri_sui_set(&tru, RI_STR_TEMPO, 200) == 1, "knob live");
+    /* A relock must not swallow clocks. The expectation counts CLOCKS,
+     * not locked windows: under script jitter the follower relocks often,
+     * and M3b's lane run grew the phase error without bound because the
+     * clocks that arrived inside an unlocked window were read off the
+     * queue and never counted (f8=2196/2196 on the wire, exp half that). */
+    {
+        uint64_t e0, e1;
+        midi_bridge_init(&s_b);
+        midi_trans_init(&t);
+        t.sync.source = RI_SYNC_MIDI;
+        ri_sui_init(&tru, RI_SEC_TRANSPORT);
+        ri_sui_press(&tru, RI_STR_MODE);
+        ri_sui_press(&tru, RI_STR_PLAY);
+        feed(0xFAu, 0u, 0u, now);
+        now += TICK120;
+        feed(0xF8u, 0u, 0u, now);
+        pump(&t, &tru, &cursor, &nf8);
+        RI_ASSERT(panel_state(&tru) == RI_TR_PLAYING, "playing");
+        e0 = (uint64_t)t.expected;
+        out = midi_trans_tempo(&t, &tru, 4u, 1u, 120.0f, e0);
+        RI_ASSERT((uint64_t)t.expected == e0 + 16u, "locked clocks count %llu",
+            (unsigned long long)t.expected);
+        /* Unlocked (a relock window): no tempo, but the clocks still land. */
+        e1 = (uint64_t)t.expected;
+        out = midi_trans_tempo(&t, &tru, 6u, 0u, 0.0f, e1);
+        RI_ASSERT(out == 0.0f, "no tempo unlocked");
+        RI_ASSERT((uint64_t)t.expected == e1 + 24u, "relock clocks count %llu",
+            (unsigned long long)t.expected);
+    }
     /* ±1 ms jitter: bounded error; ±3 ms: wider but bounded.
      * Pseudo-random (LCG) with zero mean — a real jitter profile. (A
      * perfectly alternating square wave pins the R1 running mean and

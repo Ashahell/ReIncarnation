@@ -36,6 +36,8 @@ int midi_follow_tick(struct RIFollow *f, uint64_t now_us,
         return 2;
     intent_none(it);
     f->stop_latched = 0u; /* traffic resumes the take */
+    if (f->clocks < 0xFFFFFFFFu)
+        f->clocks++;
     if (f->play_arm) {    /* M1: an armed Start/Continue fires on this F8 */
         it->kind = f->play_arm == 1u ? RI_FOLLOW_PLAY_START : RI_FOLLOW_CONTINUE;
         f->play_arm = 0u;
@@ -251,6 +253,10 @@ float midi_follow_bpm(const struct RIFollow *f) {    uint64_t avg;
     if (avg == 0u)
         return 0.0f;
     return 60000000.0f / ((float)avg * 24.0f);
+}
+
+uint32_t midi_follow_clocks(const struct RIFollow *f) {
+    return f ? f->clocks : 0u;
 }
 
 int midi_follow_locked(const struct RIFollow *f) {
