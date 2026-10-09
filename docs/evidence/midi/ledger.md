@@ -195,3 +195,26 @@ Levi.
   4167e32 stands and no sound default was touched.
 - Nothing is pushed. Local: b1fa941, 1fa5675, f7f28c1, fd621e1, acc102f,
   7b3739f, cf60bf0.
+
+## M4: the Leviasynth on its own channel (2026-10-09)
+
+- **E0 device table** (midi_io/midi_chan.h): instance 0 = the ReBirth
+  remote on channel 1, instance 1 = the Leviasynth on channel 2
+  (`RIAPP_MIDI_LEVI_CH`, default 2). Rack rule: a channel belongs to one
+  device and a device to one channel; rebinding a **taken** channel is
+  REFUSED (RI_MCHAN_TAKEN), never stolen — the remote keeps working with
+  an instrument plugged in. Revisit if a third device appears: RI_MCHAN_MAX
+  is 4 and the table is role-indexed, so a new role is one #define plus a
+  default row.
+- **E0 unmapped-by-default CCs on the Leviasynth channel.** The two the
+  plan's no-collision law makes non-negotiable: **CC 7 (master volume)**
+  moves nothing, because the ReBirth master fader must not be reachable
+  from the Leviasynth's channel; and the manual's **reserved** CCs (6, 38,
+  98-101, 115-122, 124-127) are refused rather than guessed.
+- **E1 citations.** The CC map cites the Leviasynth Keyboard Owner's
+  Manual v1.2.1 "MIDI CC Charts" pp. 168-169 per row (manual text stays
+  out of the repo; midi.guide's CC BY-SA table is not used). Rows are
+  mapped only where ONE 7-bit value can address our parameter; the gaps
+  carry their reason in `midi_levi_cc_why`, e.g. oscillator pitch needs
+  mode + coarse + fine (one CC cannot address them), and LFO level is a
+  matrix-slot amount in our model.

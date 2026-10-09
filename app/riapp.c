@@ -94,6 +94,8 @@
 #include "gui/midimap.h"
 #include "gui/miditrans.h"
 #include "midi_io/midi_bridge.h"
+#include "midi_io/midi_chan.h"
+#include "midi_io/midi_levi.h"
 #include "midi_io/midi_follow.h"
 #include "platform/pal/ri_pal_midi.h"
 #include "gui/panelgeo.h"
@@ -847,6 +849,8 @@ static uint64_t s_midi_last_f8;
 static int s_midi_was_locked;
 static uint32_t s_midi_fb_n;   /* follow lines since the last drift print */
 static uint32_t s_midi_f8n;    /* F8 clocks the app has counted */
+static struct RIMidiChan s_chan;   /* M4: device instances and their channels */
+static uint32_t s_midi_levi, s_midi_levi_note, s_midi_levi_perf;
 static void midi_drain(void) {
     struct RIMidiBridge *b = ri_pal_midi_bridge();
     uint32_t n, k, i, sends = 0u, nf8 = 0u;
@@ -861,6 +865,26 @@ static void midi_drain(void) {
     n = midi_bridge_read_ch(b, s_midi_msgs, 32u);
     for (i = 0u; i < n; i++) {
         int tr0 = s_ui[C_TR]->u.tr.tr.state;
+        struct RIMidiLeviAction la;
+        /* Two devices, two maps, one message each: the ReBirth remote
+         * (G7, Appendix C) and the Leviasynth (M4, its own chart) each
+         * decide for themselves whether this message is theirs. Neither
+         * can reach the other's controls (t183). */
+        if (midi_levi_message(&s_chan, s_midi_msgs[i].b[0], s_midi_msgs[i].b[1],
+                s_midi_msgs[i].b[2], &la)) {
+            s_midi_levi++;
+            if (la.kind == RI_LEVI_ACT_PARAM) {
+                ri_ctl_send(&s_core.ctl, la.key, (uint8_t)la.val);
+                evlog("LEVI", "param %04x=%u", la.key, (unsigned)la.val);
+            } else if (la.kind == RI_LEVI_ACT_NOTE) {
+                s_midi_levi_note++;
+                evlog("LEVI", "note %u %s vel %u", (unsigned)la.note,
+                    la.on ? "on" : "off", (unsigned)la.val);
+            } else {
+                s_midi_levi_perf++;
+                evlog("LEVI", "perf %u val %u", (unsigned)la.perf, (unsigned)la.val);
+            }
+        }
         ri_midi_msg(&s_midi, &s_panel, s_midi_msgs[i].b[0], s_midi_msgs[i].b[1],
             s_midi_msgs[i].b[2]);
         /* Transport edges are momentary commands: a Play followed by Stop
@@ -2651,6 +2675,13 @@ static void midi_setup(void) {
     rlog("RIAPP midi in=%s ch=%u sync=%u levi=%u clkout=%u lat=%d\n", s_mset.cluster,
         s_mset.channel, s_mset.sync, s_mset.levi_ch, s_mset.clk_out, s_mset.lat_ms);
     ri_midi_init(&s_midi, (uint8_t)(s_mset.channel - 1u));
+    /* M4 channel table (E0, ledgered): the remote on its channel, the
+     * Leviasynth on RIAPP_MIDI_LEVI_CH (default 2). */
+    midi_chan_defaults(&s_chan);
+    midi_chan_bind(&s_chan, RI_MCHAN_REMOTE, s_mset.channel);
+    midi_chan_bind(&s_chan, RI_MCHAN_LEVI, s_mset.levi_ch);
+    evlog("LEVI", "chan remote=%lu levi=%lu devices=%lu",
+        (ULONG)s_mset.channel, (ULONG)s_mset.levi_ch, (ULONG)midi_chan_n(&s_chan));
     midi_trans_init(&s_mtrans);
     midi_trans_set_source(&s_mtrans, s_mset.sync);
     midi_trans_set_lat(&s_mtrans, s_mset.lat_ms);
