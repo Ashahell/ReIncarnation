@@ -384,3 +384,35 @@ comments are what a reboot takes away.
   produced three confusing failures against correct code before the hash
   was checked. `midi_out.o` clean is `46dc2654…`. Always `all` before
   `test`, and hash-verify every mutant rebuild.
+
+## M5c: MMC in (2026-10-09)
+
+- **E0 MMC emits the FOLLOWER's intents** (`RI_FOLLOW_PLAY_START`,
+  `RI_FOLLOW_STOP`, `RI_FOLLOW_SEEK`), not a parallel MMC set. A master
+  sending MIDI clock and a master sending MMC therefore drive one path
+  rather than two, and there is one Locate law instead of two.
+- **E0 LOCATE's position is 16-bit big-endian MIDI beats = SIXTEENTHS**,
+  the same unit SPP carries. Mutant AB is the little-endian reading, and
+  it is M3b's SPP bug exactly: a seek to the wrong bar, with nothing on
+  the wire to say so.
+- **E0 the accumulator RESYNCS.** An `F0` seen inside an `F0` restarts the
+  frame rather than nesting (mutant AA): nesting lets one truncated frame
+  swallow every later command. An over-long frame is dropped and the
+  parser is usable again immediately after its `F7`.
+- **E0 `overflow` counts FRAMES, not excess bytes.** A byte count scales
+  with the sender's noise rather than with the damage; "how many frames
+  were thrown away" is the number worth watching.
+- **Ableton Live neither sends nor receives MMC** (interop spec §0.9), so
+  an MMC proof against Live proves nothing about the feature. That is why
+  this is host-pinned and lane-logged rather than ear-proved against a DAW.
+- **Mutant AC is an EQUIVALENT survivor, recorded as such and not claimed
+  as a kill.** Removing the `enabled` guard from `midi_mmc_feed` leaves the
+  feature off, because `finish()` guards independently — the observable
+  law (no intent while disabled) is pinned, and the second guard is
+  belt-and-braces that no test can see from outside. Saying "all mutants
+  killed" here would be a claim the evidence does not support.
+- **AROS upstream checked 2026-10-09 (twice): nothing new.** camd's newest
+  commits are still `cb8c4c5f3` and `28ec43a51` (2026-10-05), which we
+  already carry in both ABI carriages; nothing in `workbench/devs/USB`
+  since 2025-12-28; and zero commits in the whole repository since the
+  previous check. The carriage is current.
