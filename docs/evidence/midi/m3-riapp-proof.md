@@ -155,3 +155,23 @@ position with the servo trimming it back in (mean -291 first third,
 -212 last third): the trim is bounded to ±2 BPM, so it converges in
 minutes rather than instantly. Zero stalls, zero xruns, audio at real
 time — the take now holds.
+
+## M3 final: the owner's 5-minute Dell take (`m3-final-5min-dell.log`, `m3-final-5min-dell.png`)
+
+`RAM:RIAPP.M3`, build `fd621e1`, 7500 clocks at ~40 ms (a ~62 BPM
+scripted master), ev-log in `RAM:`.
+
+- **7500/7500 clocks** counted on both sides; bridge/intent/CAMD drops
+  **0,0,0**; **0 xruns**.
+- **Engine frozen: 0 of 155** during-take samples (M3d took 29 of 143).
+- Session tempo tracked the measured clock: **61.0–62.7 bpm**; 486
+  samples/tick, i.e. the audio rate and the tempo agree.
+- **Phase error −125 … −32 ticks, converging** (mean −82.9 first third,
+  −44.7 middle, **−39.3** last). The take ended at engine tick 30043
+  against the master's 30000 — **43 ticks = 0.45 s** after five minutes,
+  and shrinking. The ±2 BPM trim is the only thing between the take and
+  the master, which is what it is for.
+- Start located to tick 0, the master's final Stop ended it.
+
+Owner ear proof on this build: **pending** (four proofs have run; no
+report yet).
