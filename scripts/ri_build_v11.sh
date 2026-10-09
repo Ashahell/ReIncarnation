@@ -61,6 +61,39 @@ if [ "${3:-}" = "midiclock" ]; then
   echo "AROS MIDICLOCK v11 BUILD OK ($OUTBIN.midiclock, $(stat -c%s "$OUTBIN.midiclock") bytes)"
   exit 0
 fi
+# MIDISEND (M4): the CAMD message-script sender. The Dell lane needs it to
+# play the proof scripts (m4-levi.mid.txt on channel 2, the M2/M3 scripts),
+# and this script had NO target for it, so a Dell MIDISEND was not
+# reproducible from the repo -- the exact failure this script's own header
+# warns about ("a build script outside the repo is how stale-binary mistakes
+# happen"). usage: ri_build_v11.sh <src> <out> midisend
+if [ "${3:-}" = "midisend" ]; then
+  O4="$OBJ/tools"
+  mkdir -p "$O4"
+  x86_64-aros-gcc $CF -c "$ROOT/app/midisend.c" -o "$O4/midisend.o"
+  x86_64-aros-gcc $CF -c "$ROOT/platform/aros/midi_camd.c" -o "$O4/midi_camd.o"
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_bridge.c" -o "$O4/midi_bridge.o"
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_follow.c" -o "$O4/midi_follow.o"
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
+    -o "$OUTBIN" "$O4/midisend.o" "$O4/midi_camd.o" "$O4/midi_bridge.o" \
+    "$O4/midi_follow.o" "$SDK/lib/startup.o" -L "$SDK/lib" \
+    -lamiga -ldos -lexec -lautoinit -lcamd
+  test "$(x86_64-aros-readelf -s "$OUTBIN" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 \
+    || { echo "FAIL: MIDISEND(v11) unresolved"; exit 1; }
+  echo "AROS MIDISEND v11 BUILD OK ($OUTBIN, $(stat -c%s "$OUTBIN") bytes)"
+  exit 0
+fi
+# An unrecognised tool name must REFUSE, not fall through. Before this, a
+# typo -- or a name added to a script before its target existed -- silently
+# built RIAPP into whatever filename was asked for: `ri_build_v11.sh .
+# /tmp/MIDISEND.v11 midisend` produced a 1129544-byte RIAPP named
+# MIDISEND.v11, one byte-identical to the app, which would have staged the
+# application as the message sender. A build that succeeds is not proof that
+# it built what you asked for.
+if [ -n "${3:-}" ]; then
+  echo "FAIL: unknown tool '$3' (usage: ri_build_v11.sh <src> <out-riapp> [midiclock|midisend])"
+  exit 2
+fi
 
 SRCS="app/riapp.c app/core/live_driver.c app/core/canvas_events.c app/core/riapp_core.c project/rbnm.c project/rbng.c project/playlist.c gui/draw/canvas.c gui/draw/font_legend.c gui/draw/art_shared.c gui/draw/art_303.c gui/draw/art_808.c gui/draw/art_909.c gui/draw/art_levi.c gui/draw/art_mix.c gui/draw/art_fx.c gui/draw/art_pat.c gui/draw/art_tr.c gui/draw/art_section.c platform/aros/fs_aros.c platform/aros/log_aros.c platform/aros/image_dt.c platform/aros/fpu_aros.c platform/aros/pack_909.c audio_io/audio_ahi_live.c engine/engine.c engine/live.c engine/seq/clock.c engine/seq/sched.c engine/seq/riseq.c engine/seq/songsteps.c engine/seq/snapbuild.c engine/seq/pattern.c engine/seq/pattern_emit.c engine/seq/transport.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c engine/seq/ctlplane.c engine/dsp/kernels.c engine/dsp/rb303.c engine/dsp/params.c engine/dsp/rb808.c engine/dsp/rb909.c engine/dsp/levi.c engine/dsp/levi_arp.c engine/dsp/levi_matrix.c engine/dsp/levi_fx.c engine/fx/fx.c engine/fx/route.c engine/fx/reverb.c engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c project/sha256.c gui/panelctl.c gui/ctlreg.c gui/panelgeo.c gui/zoomfit.c gui/skinsect.c gui/sect303.c gui/sect808.c gui/sect909.c gui/sectlevi.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c gui/keymap.c gui/panelui.c gui/livestate.c gui/knob_logic.c gui/knob_art.c gui/panels.c gui/visdev.c gui/tabpages.c gui/catalog.c gui/skin.c gui/skin_aros.c gui/widgets/rsection.mcc.c gui/midimap.c gui/miditrans.c midi_io/midi_bridge.c midi_io/midi_follow.c midi_io/midi_chan.c midi_io/midi_levi.c platform/aros/midi_camd.c"
 # MIXED BUILD, DEFAULT (owner-approved 2026-10-04).

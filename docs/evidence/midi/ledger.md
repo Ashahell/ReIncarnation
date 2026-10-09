@@ -245,3 +245,37 @@ Levi.
   `ri_ctl_send2` like NOTE), and the lane proof below is what actually
   covers `midi_drain()` until a seam for it exists. Do not read M4's
   green host tests as "the app pushes every kind".
+
+## Host reboot 2026-10-09: recovery, and two lane traps it exposed
+
+- **The repo and the record survived; `/tmp` did not.** Every host build
+  object, the `/tmp/opencode` binaries and the Dell's staged files were
+  gone. The rebuilt objects are **bit-identical** to the pre-reboot
+  hashes (`midi_levi.o d63daa5c`, `engine.o 4448eb09`,
+  `ctlplane.o ba282f4d`) and the audit is `0/0 PASS` from a cold tree,
+  which is a reproducibility check nobody had asked for.
+- **The Dell agent reconnected by itself** (agent e6320, session 1) and
+  `RAM:` in fact survived — the earlier "Dell RAM: was wiped" reading was
+  wrong, and the files that looked wiped were the ones my own broken
+  shell redirects had failed to write (below).
+- **TRAP 1 — a build-script target that falls through builds the wrong
+  thing under the name you asked for.** `ri_build_v11.sh` had a
+  `midiclock` tool target and no `midisend` one, and an unrecognised
+  third argument silently fell through to the RIAPP build:
+  `ri_build_v11.sh . /tmp/opencode/MIDISEND.v11 midisend` produced a
+  **1129544-byte RIAPP named MIDISEND.v11**. Staging that would have run
+  the application twice in one proof. Fixed: a real `midisend` target,
+  and an unknown tool now **refuses with exit 2** and writes nothing.
+  The v11 SDK ships no `libstdcio`/`libposixc`, so the link is
+  `-lamiga -ldos -lexec -lautoinit -lcamd`; `Open`/`Close`/`FGets` are
+  dos.library. Verified on the Dell, not just at link time: SELFTEST
+  through real camd.library reported `connected 1,1`, a readable cluster
+  name (`6D 34 73 74`), and `got 2`.
+- **TRAP 2 — the lane's `--exec` is not a shell, and a redirect inside it
+  fails silently.** `version > RAM:ver.txt 2>&1` returns **rc=0** while
+  writing nothing: the command is tokenised and the `>` becomes an
+  argument. An earlier staging check in this same session read that rc=0
+  as "the file was written" and it was not. Read `--exec` stdout (the
+  CLI prints it) and never trust a redirect; for multi-step work use
+  `--run-script`. **A PASS from an exec that redirected proves only that
+  the command ran.**
