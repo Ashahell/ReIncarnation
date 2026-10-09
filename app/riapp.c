@@ -882,8 +882,12 @@ static void midi_drain(void) {
                 evlog("LEVI", "note %u %s vel %u", (unsigned)la.note,
                     la.on ? "on" : "off", (unsigned)la.val);
             } else {
+                /* Performance signals ride the spare byte too: a bend
+                 * needs 14 bits, a poly-aftertouch needs its note. */
+                ri_ctl_send2(&s_core.ctl, la.key, (uint8_t)la.val, la.hi);
                 s_midi_levi_perf++;
-                evlog("LEVI", "perf %u val %u", (unsigned)la.perf, (unsigned)la.val);
+                evlog("LEVI", "perf %u val %u hi %u", (unsigned)la.perf,
+                    (unsigned)la.val, (unsigned)la.hi);
             }
         }
         ri_midi_msg(&s_midi, &s_panel, s_midi_msgs[i].b[0], s_midi_msgs[i].b[1],

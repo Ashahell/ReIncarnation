@@ -234,3 +234,14 @@ Levi.
 - **Not routed, on the record**: sustain pedal (CC 64) and all-notes-off
   (CC 123) reach nothing — the engine has no sustain gate and no panic.
   The plan says list rather than fake them, so they are listed.
+- **Defect found after M4d was committed, and a coverage gap it
+  exposes.** RIAPP's `midi_drain()` pushed PARAM and NOTE to the control
+  plane but only *logged* the PERF branch — so a bend, a mod wheel or an
+  aftertouch arriving on the Leviasynth channel was counted and traced,
+  and never reached the engine. t184 did not catch it because t184 drives
+  its own push helper; `midi_drain()` itself is AROS-app code with no
+  host test. Two honest consequences, recorded rather than papered over:
+  the branch is fixed (all three kinds now push, PERF through
+  `ri_ctl_send2` like NOTE), and the lane proof below is what actually
+  covers `midi_drain()` until a seam for it exists. Do not read M4's
+  green host tests as "the app pushes every kind".
