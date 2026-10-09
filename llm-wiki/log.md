@@ -3139,3 +3139,9 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md
 - Updated: docs/evidence/midi/ledger.md (owner decision recorded); interop spec status line
 - Note: recorded as **parked, not passed**. Following is proven at ~60 BPM on the Dell and the lock law at the song's 140 BPM on the host; following at 140 BPM on real hardware is NOT proven, because this guest's CAMD batches clocks at the 10 ms system tick. Closing it needs a USB-MIDI interface and a real master, or a batch-tolerant estimator.
+
+## [2026-10-09] correction | Host reboot recovery: two lane traps, and the "Dell RAM: is wiped" reading was wrong
+- Disposition: Update
+- Raw: llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md (lane-discipline section)
+- Updated: llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md
+- Note: (1) A **missing build-script target built the wrong binary under the right name** — `ri_build_v11.sh . out midisend` fell through to the RIAPP build and wrote a 1129544-byte RIAPP named MIDISEND.v11; now an unknown tool refuses with exit 2. (2) The lane's `--exec` is **not a shell**: `cmd > RAM:file` returns rc=0 having written nothing, and an earlier staging check in this session read that as success — which also falsifies the "Dell RAM: was wiped" reading in the 2026-09-29 recovery record. The Dell agent reconnected on its own and RAM: survived. (3) The cold rebuild came back bit-identical and the audit is 0/0 PASS from a cold tree.
