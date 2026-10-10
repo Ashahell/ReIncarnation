@@ -162,6 +162,10 @@ void midi_settings_defaults(struct RIMidiSettings *s) {
     s->clk_out = 0u;
     s->lat_ms = 0;
     s->mmc_out = 0u;   /* E0: off */
+    s->dev_out = 0u;   /* E0: off -- a separate switch from clk_out, for
+                        * the reason in RI_MIDI_SET_DEV_OUT */
+    s->note_ch = 0u;   /* UNASSIGNED, never defaulted: there is no channel
+                        * a 303 can go on that we are entitled to pick */
     s->pad = 0;
 }
 
@@ -201,6 +205,22 @@ int midi_settings_set(struct RIMidiSettings *s, uint32_t field, long v) {
         if (v != 0L && v != 1L)
             return 1;
         s->mmc_out = (uint8_t)v;
+        return 0;
+    case RI_MIDI_SET_DEV_OUT:
+        /* Strictly 0/1, for MMC_OUT's reason: a truthy value here would
+         * put notes on the wire from a control that reads as a slider. */
+        if (v != 0L && v != 1L)
+            return 1;
+        s->dev_out = (uint8_t)v;
+        return 0;
+    case RI_MIDI_SET_NOTE_CH:
+        /* 0..16, and NEVER WRAPPED. 17 wrapping to 1 would put the 303 on
+         * a channel nobody chose; 0 wrapping to 16 would put it on the
+         * G7 remote, which is a documented one-channel path (manual
+         * p. 134) that has to keep working. */
+        if (v < 0L || v > 16L)
+            return 1;
+        s->note_ch = (uint8_t)v;
         return 0;
     default:
         break;

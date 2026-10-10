@@ -127,6 +127,26 @@ static void governor(struct RILiveDriver *d, uint32_t us, uint32_t frames) {
  * The late accent emits nothing and is counted. See ri_devout_record(). */
 #define RI_LIVEDRV_DEVBUDGET 32u
 
+void ri_livedrv_devout_attach(struct RILiveDriver *d) {
+    uint8_t buf[3];
+    uint32_t w;
+    if (!d || !d->dev_out || !d->clk_out)
+        return;                     /* fail closed: announce nothing */
+    if (d->note_ch >= 0 && d->note_ch <= 15)
+        ri_devout_assign(d->dev_out, 0u, (uint8_t)d->note_ch);
+    if (d->prog_sent)
+        return;                     /* the session has been told already */
+    /* No melodic channel means no melodic instrument to name. The DRUMS do
+     * not need one and still work -- so this announces nothing rather than
+     * guessing a channel to announce on. */
+    if (d->note_ch < 0 || d->note_ch > 15)
+        return;
+    w = ri_devout_program_change(d->dev_out, buf, sizeof buf,
+        (uint8_t)d->note_ch);
+    if (w && midi_out_put(d->clk_out, buf, w) == w)
+        d->prog_sent = 1u;          /* only when the bytes actually landed */
+}
+
 static void livedrv_devout(struct RILiveDriver *d) {
     struct RINoteTapRec rec[RI_LIVEDRV_DEVBUDGET];
     uint32_t got, i;

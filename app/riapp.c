@@ -97,6 +97,7 @@
 #include "midi_io/midi_chan.h"
 #include "midi_io/midi_levi.h"
 #include "midi_io/midi_out.h"
+#include "midi_io/midi_devout.h"
 #include "midi_io/midi_mmc.h"
 #include "midi_io/midi_follow.h"
 #include "platform/pal/ri_pal_midi.h"
@@ -881,6 +882,11 @@ static uint32_t s_midi_fb_n;   /* follow lines since the last drift print */
 static uint32_t s_midi_f8n;    /* F8 clocks the app has counted */
 static struct RIMidiChan s_chan;   /* M4: device instances and their channels */
 static struct RIMidiOut s_mout;    /* M5: clock-out producer (render writes it) */
+/* R6: the note producer. It fills the SAME ring above -- notes ride the
+ * clock's sender task and the same status-byte framer, which is why R6
+ * needed no transport of its own -- but it has its OWN E0 switch, because
+ * clock and notes are different consequences on a slave. */
+static struct RIDevOut s_devout;
 /* M5h: MMC out (R3's "and add sending"). Separate E0 from clock out on
  * purpose -- driving another machine's transport is a bigger consequence
  * than sending it a clock, so the safe choice (clock only) has to be
@@ -2749,18 +2755,30 @@ static void midi_setup(void) {
         (uint32_t)((s_lv.drv.session ? (double)s_lv.drv.session->bpm : 120.0) * 1000.0),
         (uint32_t)((uint64_t)s_mset.lat_ms *
             (s_lv.mix_freq ? s_lv.mix_freq : 48000u) / 1000u));
-    if (s_mset.clk_out) {
+    /* R6 note out (E0, off by default, its OWN switch). The ring and the
+     * sender task are shared with clock out -- that is why this costs a
+     * setting and not a second transport -- but the SENDER STARTS IF
+     * EITHER is on, because notes with no sender is a producer filling a
+     * ring nobody drains. */
+    ri_devout_init(&s_devout, s_mset.dev_out);
+    if (s_mset.dev_out)
+        ri_devout_enable(&s_devout, 1);
+    if (s_mset.clk_out || s_mset.dev_out) {
         midi_out_enable(&s_mout, 1);
         if (ri_pal_midi_send_start(s_mset.cluster, &s_mout) != 0) {
-            /* Fail closed: a sender we could not start means clock out is
-             * off, not a half-working clock. */
+            /* Fail closed: a sender we could not start means BOTH are off,
+             * not a half-working clock or a producer nobody is draining. */
             midi_out_enable(&s_mout, 0);
+            ri_devout_enable(&s_devout, 0);
             rlog("RIAPP clock out refused (no sender task)\n");
         }
     }
     evlog("CLK", "out=%u enabled=%u lat_ms=%u",
         (ULONG)s_mset.clk_out, (ULONG)midi_out_pending(&s_mout),
         (ULONG)s_mset.lat_ms);
+    evlog("DEV", "out=%u ch=%u prog=%u",
+        (ULONG)s_mset.dev_out, (ULONG)s_mset.note_ch,
+        (ULONG)ri_devout_program());
     /* MMC out (R3 sending). Off by default like everything else here. */
     midi_mmc_out_init(&s_mmcout, s_mset.mmc_out);
     evlog("MMC", "out=%u", (ULONG)midi_mmc_out_enabled(&s_mmcout));
@@ -2845,11 +2863,23 @@ static int riapp_main(int argc, char **argv) {
      * exists, so the render feeds the ring that the sender task drains.
      * The driver only ever fills the ring; the sending is the task's. */
     if (s_live) {
-        s_lv.drv.clk_out = s_mset.clk_out ? &s_mout : 0;
-        if (s_lv.drv.clk_out && s_lv.drv.session)
+        s_lv.drv.clk_out = &s_mout;     /* the RING is shared; the SWITCHES
+                                         * are not (RI_MIDI_SET_DEV_OUT) */
+        s_lv.drv.dev_out = s_mset.dev_out ? &s_devout : 0;
+        /* 0 means UNASSIGNED and is passed through as such: the drain
+         * refuses melodic notes on an unclaimed channel rather than
+         * defaulting one. The drums need no channel and still work. */
+        s_lv.drv.note_ch = s_mset.note_ch ? (int)(s_mset.note_ch - 1u) : -1;
+        s_lv.drv.prog_sent = 0u;
+        if (s_lv.drv.session && s_mset.clk_out)
             midi_out_set_bpm(&s_mout,
                 (uint32_t)((double)s_lv.drv.session->bpm * 1000.0),
                 s_lv.drv.session->sample_cursor);
+        /* Announce the instrument once, now that both the producer and the
+         * ring are attached. No channel means no announcement -- and the
+         * drums still play. */
+        if (s_mset.dev_out)
+            ri_livedrv_devout_attach(&s_lv.drv);
     }
     if (s_live && au_live_run(&s_lv, &s_core.session) != 0) {
         au_live_close(&s_lv);

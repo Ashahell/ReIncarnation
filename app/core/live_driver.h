@@ -50,6 +50,12 @@ struct RILiveDriver {
      * can measure is a limit nobody can decide about. */
     uint32_t late_accents;
     uint32_t devout_refused;
+    /* 1 once the program change has gone out. The program change NAMES THE
+     * INSTRUMENT FOR THE SESSION, so it is pushed on attach and never
+     * again -- a drain that announced on every attach would fill a slave's
+     * channel with them. Only set when the bytes actually landed, so a
+     * disabled ring can still announce once it is enabled. */
+    uint8_t prog_sent;
     ri_atomic_u32 xruns;           /* backend-observed late buffers */
     ri_atomic_u32 buffers;         /* buffers rendered */
     ri_atomic_u32 render_us_max;   /* slowest buffer render, microseconds */
@@ -102,6 +108,16 @@ void ri_livedrv_report_late(struct RILiveDriver *d, uint32_t n);
 void ri_livedrv_report_wake(struct RILiveDriver *d, uint32_t us, uint32_t prio);
 /* Render exactly one device buffer of stereo s16 into out[2*frames].
  * scratch_fl/scratch_fr are caller float buffers of >= frames. */
+/* R6f: attach the note producer. Claims the melodic channel, announces the
+ * instrument ONCE with a program change, and refuses everything if the
+ * producer, the ring or the channel is not there. Idempotent.
+ *
+ * NO CHANNEL MEANS NO PROGRAM CHANGE, BUT THE DRUMS STILL WORK -- channel 10
+ * is not a choice and needs no configuration, which is the whole reason the
+ * drum override exists. Fail closed: a NULL producer, a NULL ring or a
+ * disabled ring sends nothing rather than half-announcing. */
+void ri_livedrv_devout_attach(struct RILiveDriver *d);
+
 void ri_livedrv_render(struct RILiveDriver *d, int16_t *out,
     float *scratch_fl, float *scratch_fr, uint32_t frames);
 

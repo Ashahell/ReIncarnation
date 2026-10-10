@@ -65,10 +65,25 @@
 #define RI_DEVOUT_GM_PERCUSSION 10u
 
 /* THE PROGRAM, for the one program change sent on enable. GM has no 303
- * program, so ANY value here is a convention -- this one is Electric Bass
- * (pick), the closest analogue to a 303 line, and it is a named constant
- * precisely so that changing it is a one-line edit and not a search. */
-#define RI_DEVOUT_PROGRAM_ELECTRIC_BASS_PICK 34u   /* GM 35, 1-based */
+ * program, so ANY value here is a convention, and this is a named constant
+ * precisely so that changing it is a one-line edit and not a search.
+ *
+ * Synth Bass 1 (GM 38, 1-based; data byte 37). The first pick was Electric
+ * Bass (pick), which was WRONG on the articulation: that is a plucked
+ * string, and the 303 is an acid bass -- `v303a`/`v303b` are one oscillator
+ * (saw or square) into an envelope into a VCA into a resonant ladder filter
+ * with envelope modulation and an accent. Synth Bass 1 is the GM slot that
+ * sound actually is; nobody has heard this chosen and should before it is
+ * trusted, which is why the number is a constant and not a table.
+ *
+ * WHAT A PROGRAM CHANGE CANNOT FIX: GM HAS NO MONOPHONIC CATEGORY. Both
+ * 303 instances are a SINGLE voice, and every GM bass is polyphonic -- so a
+ * DAW holding our program change will play a held 303 line as a CHORD. The
+ * program change names the timbre family; the actual answer to "which synth"
+ * is whatever monophonic bass patch the user loads, which a program change
+ * can point at and never select. Same class as the late accent: a fidelity
+ * limit that is ledgered rather than hidden. */
+#define RI_DEVOUT_PROGRAM_SYNTH_BASS_1 38u   /* GM 38, 1-based */
 
 struct RIDevOut {
     uint8_t enabled;

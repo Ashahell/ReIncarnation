@@ -74,6 +74,21 @@ void midi_bridge_note_link(struct RIMidiBridge *b, uint32_t lost);
                                 * consequences on a slave, and one E0
                                 * switch for both would make the safe
                                 * choice (clock only) impossible to express. */
+#define RI_MIDI_SET_DEV_OUT  6u /* note out 0/1 (R6, off) -- SEPARATE from
+                                * clk_out for the SAME reason: someone
+                                * slaving their own drum machine to our
+                                * clock wants the clock and specifically NOT
+                                * the notes, or turning on our 808 fires the
+                                * very machine they are driving. The RING and
+                                * the SENDER stay shared. */
+#define RI_MIDI_SET_NOTE_CH  7u /* melodic note channel 0..16 (R6f); 0 =
+                                * UNASSIGNED, and never defaulted -- a
+                                * default would put the 303 on a channel
+                                * nobody chose, and channel 0 is the G7
+                                * remote. There is deliberately NO drum
+                                * channel setting: GM defines percussion on
+                                * channel 10 and it is not a choice, so a
+                                * control for it could not do anything. */
 
 struct RIMidiSettings {
     char cluster[64];  /* input cluster name */
@@ -83,6 +98,8 @@ struct RIMidiSettings {
     uint8_t clk_out;   /* 0/1 */
     int16_t lat_ms;
     uint8_t mmc_out;   /* 0/1 */
+    uint8_t dev_out;   /* 0/1, note out (R6) */
+    uint8_t note_ch;   /* 0 = unassigned, else 1..16 (R6f) */
     int16_t pad;
 };
 

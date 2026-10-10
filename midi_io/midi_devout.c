@@ -23,7 +23,7 @@ void ri_devout_enable(struct RIDevOut *d, int on) {
 }
 
 uint8_t ri_devout_program(void) {
-    return (uint8_t)RI_DEVOUT_PROGRAM_ELECTRIC_BASS_PICK;
+    return (uint8_t)RI_DEVOUT_PROGRAM_SYNTH_BASS_1;
 }
 
 uint32_t ri_devout_program_change(struct RIDevOut *d, uint8_t *buf,

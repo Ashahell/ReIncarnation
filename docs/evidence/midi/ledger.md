@@ -1376,3 +1376,107 @@ enable, and the on-panel controls for the E0 setting and the channel map.
 **Blocked on two owner answers: which E0 switch carries MIDI note output
 (the existing clock-out switch, or its own), and which channel the melodic
 303/808/909 notes play on.**
+
+## R6f: the second E0 switch, and the note channel (2026-10-10)
+
+### The switch is separate, and I was wrong to say otherwise
+
+I recommended sharing the clock-out switch with note output and then found
+the case that breaks it: **someone slaving their own drum machine to our
+clock.** They want the clock and specifically *not* the notes — otherwise
+turning on ReIncarnation's 808 fires the very machine they are driving, from
+a pattern they did not ask to play. One switch makes that state unreachable.
+
+**The codebase had already decided this once.** `RI_MIDI_SET_MMC_OUT` exists
+separate from `RI_MIDI_SET_CLK_OUT`, and its own comment says why: *"clock
+out and MMC out are different features with different consequences on a
+slave, and one E0 switch for both would make the safe choice (clock only)
+impossible to express."* This is the same argument one feature over.
+
+**The ring and the sender are still shared.** That is why this costs two
+settings and not a second transport: notes ride the clock's ring, its sender
+task and its framer. What changed is that **the sender starts if EITHER is
+on** — notes with no sender is a producer filling a ring nobody drains — and
+that a failed start turns **both** off, fail-closed.
+
+### The melodic channel, and the drum channel that is deliberately absent
+
+- `RI_MIDI_SET_NOTE_CH` is 0..16 where **0 is UNASSIGNED and never
+  defaulted** (`DC`, `DE`). There is no channel a 303 can go on that we are
+  entitled to pick. `riapp` passes 0 through as `-1` and the drain refuses
+  melodic notes on it.
+- **Refused, never wrapped** (`DB`, `DF`). 17 wrapping to 1 would put the
+  303 on a channel nobody chose; 0 wrapping to 16 would put it on the G7
+  remote, which is a documented one-channel path (manual p. 134). A negative
+  is refused too, and that one is not cosmetic — `-1` stored as a `uint8` is
+  255, which is truthy, so the "0 means unassigned" translation would turn a
+  refusal into 254, a channel nothing downstream checks for.
+- **THERE IS NO DRUM-CHANNEL SETTING, AND THERE CANNOT BE.** GM defines
+  percussion on channel 10 and it is not a choice, so a control for it could
+  not do anything.
+- `dev_out` is strictly 0/1 (`DA`), for MMC_OUT's reason: a truthy value
+  would put notes on the wire from a control that reads as a slider.
+
+### The attach, and the one program change
+
+`ri_livedrv_devout_attach()` claims the channel and announces the instrument
+**once** (`EA`): the program change names the instrument for the session, and
+a drain that announced on every attach would fill a slave's channel with
+them. It is idempotent, and it fails closed — a NULL producer, a NULL ring
+or a disabled ring announces nothing and, just as importantly, **claims
+nothing** (`ED`). `prog_sent` is set only when the bytes actually landed
+(`EB`), so a disabled ring can still announce once it is enabled.
+
+**NO CHANNEL MEANS NO PROGRAM CHANGE, BUT THE DRUMS STILL WORK.** There is no
+melodic instrument to name, so there is nothing to announce — and channel 10
+needs no configuration. That asymmetry is the entire reason the drum
+override exists.
+
+### The program number was wrong the first time
+
+I picked **Electric Bass (pick)**. That was wrong on the articulation: that
+is a plucked string, and `v303a`/`v303b` are one oscillator (saw or square)
+into an envelope into a VCA into a resonant ladder filter with envelope
+modulation and an accent — an acid bass. Now
+`RI_DEVOUT_PROGRAM_SYNTH_BASS_1` = **38** (GM 38, 1-based; data byte 37).
+
+**WHAT A PROGRAM CHANGE CANNOT FIX, LEDGERED: GM HAS NO MONOPHONIC
+CATEGORY.** Both 303 instances are a *single* voice and every GM bass is
+polyphonic, so a DAW holding our program change plays a held 303 line as a
+**chord**. The program change names the timbre family; the real answer to
+"which synth" is whatever monophonic bass patch the user loads, which a
+program change can point at and never select. Same class as the late accent.
+
+### Mutation results
+
+**t202 + the settings: 11 mutants, 11 killed.** Three survived a first pass
+and all three were test gaps, one of them worth the whole phase:
+
+- **`EC` — attach answers "no channel" by quietly setting it to 1.** It
+  announces nothing, because the producer's claim check refuses the
+  unclaimed channel downstream — so a test that only counts bytes calls it
+  equivalent. It is **not** equivalent: `note_ch` is left at 1, and the very
+  next melodic note would be emitted on channel 1. That is precisely the law
+  R6a exists to enforce, undone by the function whose whole job is to
+  configure the producer. The check has to be on what comes *after* the
+  attach, not on the attach itself.
+- **`ED`** — with no ring the put fails anyway, so a byte count reads zero
+  whether the attach did nothing or half its job. What matters is that it did
+  not leave the melodic channel **claimed** on a producer nobody is draining.
+  Attach is all-or-nothing.
+- **`DF`** — a negative channel was simply untested; 17 was pinned and -1 was
+  not, and -1 is the one that reaches 255.
+
+### Still open
+
+- **The melodic channel is still unset.** `note_ch` defaults to
+  unassigned, which is correct and also means **nothing melodic comes out
+  until an owner or user picks one.** The drums work with no channel at all.
+- **No on-panel control yet.** `RI_MIDI_SET_DEV_OUT` and
+  `RI_MIDI_SET_NOTE_CH` exist in the settings layer and are wired in
+  `riapp.c`; the MIDI panel does not yet expose them, which needs a ctlreg
+  row and a `panelgeo` slot.
+- **The ear proof is unchanged and still outstanding:** a DAW (or Live)
+  following RIAPP's clock and program change, confirming the 303 line and the
+  808 hits arrive where they should — and specifically that the program
+  change's *timbre* is one worth keeping.

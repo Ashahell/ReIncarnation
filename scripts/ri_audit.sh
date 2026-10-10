@@ -403,6 +403,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t198_devout_wire >/dev/null || { echo
 bash "$ROOT/scripts/ri_build_host.sh" test t199_engine_notetap >/dev/null || { echo "FAIL: t199_engine_notetap (R6d engine note tap)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t200_live_driver_devout >/dev/null || { echo "FAIL: t200_live_driver_devout (R6d render drain onto the wire)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t201_devout_conventions >/dev/null || { echo "FAIL: t201_devout_conventions (R6e the five owner conventions)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t202_devout_switch >/dev/null || { echo "FAIL: t202_devout_switch (R6f the second E0 switch and note channel)"; exit 1; }
 # MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
 # This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
 # approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo
