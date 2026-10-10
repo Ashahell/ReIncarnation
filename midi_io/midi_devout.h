@@ -40,6 +40,7 @@
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
 #include "engine/seq/pattern.h"   /* RI_DRUM_CLASS_808 / _909 */
+#include "engine/seq/sched.h"    /* RIEvent, RI_EVFLAG_* */
 
 /* Flags for ri_devout_note(). */
 #define RI_DEVOUT_LEGATO  0x01u  /* slide: gate stays high, no re-attack */
@@ -137,6 +138,59 @@ uint8_t ri_devout_drum909_note(uint8_t voice);
  * this one had quietly claimed it. The caller owns the device map. */
 uint32_t ri_devout_drum(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
     uint8_t channel, uint8_t drum_class, uint8_t sound);
+
+/* ---------------------------------------------------------------------
+ * R6c: the event-to-bytes translation.
+ *
+ * THE ENGINE HAS ALREADY DONE EVERYTHING ELSE. `ri_p303_note()` puts a real
+ * MIDI note in `RIStep.note` before the scheduler runs;
+ * `e->s808.slot[lane]` and `RI_LANE_TO_RB909_VOICE[lane]` resolve lanes to
+ * sounds. So R6c is not a mapping problem -- it is a TRANSLATION of four
+ * flags into three bytes, and that is all this adds.
+ * ------------------------------------------------------------------- */
+struct RIDevEvent {
+    uint8_t note;       /* MIDI note */
+    uint8_t vel;        /* accent already folded in */
+    uint8_t is_off;     /* a real note-off, not velocity 0 */
+    uint8_t is_legato;  /* rest+slide: gate stays high, emit nothing */
+};
+
+/* One RIEvent -> one outbound note. Returns 1 when the event becomes a note
+ * (on, off or slide) and 0 for every internal event -- flams, accents,
+ * pattern changes, automation, meters, transport -- which must produce NO
+ * bytes, because a DAW recording them as notes is a DAW full of ghosts. */
+int ri_devout_translate(const struct RIEvent *ev, struct RIDevEvent *out);
+
+/* The accent velocity convention. ONE convention for the live path AND the
+ * SMF exporter (t198 pins that they agree): if they drift, a loop exported
+ * from a live take comes back with different accents, which nobody hears as
+ * "wrong" and everybody notices as "this loop feels different". */
+uint8_t ri_devout_velocity(uint16_t flags);
+
+/* Emit one translated event.
+ *
+ * `device` is the ENGINE'S device id, exactly as `RIEvent.device` carries it:
+ * 0/1 are the two 303s, 2 is the 808 and 3 is the 909 (sched.h, and
+ * engine.c's own dispatch). I first keyed this on `RI_DRUM_CLASS_*` and had
+ * to throw it away: that enum has no value meaning "melodic", so the 303 path
+ * and the drums shared one parameter and the drums' 0 collided with it --
+ * which meant four mutants survived because the melodic path had never run.
+ * One parameter, one meaning, taken from the event that already has it.
+ *
+ * `sound` is the ALREADY-RESOLVED drum sound and is ignored for a melodic
+ * note: the CALLER owns the lane->sound step, because the 808's is live and
+ * user-remappable and the 909's is static, and a helper that guessed would be
+ * wrong for one of them. */
+#define RI_DEVOUT_303A 0u
+#define RI_DEVOUT_303B 1u
+#define RI_DEVOUT_808  2u
+#define RI_DEVOUT_909  3u
+uint32_t ri_devout_emit(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
+    uint8_t channel, uint8_t device, const struct RIDevEvent *x,
+    uint8_t sound);
+/* R6 resolves no lanes: the engine does. Returns 0, pinned so the fact is a
+ * test rather than a claim. */
+uint32_t ri_devout_resolves_lane(void);
 
 uint32_t ri_devout_clamped(const struct RIDevOut *d);
 uint32_t ri_devout_refused(const struct RIDevOut *d);

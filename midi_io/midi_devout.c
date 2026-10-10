@@ -213,3 +213,76 @@ uint32_t ri_devout_drum(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
      * refused and counted, so the G7 collision outranks the note map. */
     return ri_devout_note(d, buf, cap, channel, note, 0x64u, 0u);
 }
+
+/* ---------------------------------------------------------------------
+ * R6c: the translation. See midi_devout.h.
+ * ------------------------------------------------------------------- */
+
+uint8_t ri_devout_velocity(uint16_t flags) {
+    /* OWNER REVIEW ITEM, same convention as the exporter's
+     * `ri_smf_velocity()` and t198 pins that the two agree. Accent louder,
+     * plain middle; both inside 1..127. */
+    return (flags & RI_EVFLAG_ACCENT) ? (uint8_t)112u : (uint8_t)64u;
+}
+
+uint32_t ri_devout_resolves_lane(void) { return 0u; }
+
+int ri_devout_translate(const struct RIEvent *ev, struct RIDevEvent *out) {
+    if (!ev || !out)
+        return 0;
+    out->note = (uint8_t)(ev->value & 0x7Fu);
+    out->vel = ri_devout_velocity((uint16_t)ev->flags);
+    out->is_off = 0u;
+    out->is_legato = 0u;
+    switch (ev->type) {
+    case RI_EV_NOTE_ON:
+        return 1;
+    case RI_EV_NOTE_OFF:
+        out->is_off = 1u;
+        return 1;
+    case RI_EV_NOTE_CONTINUE:
+        /* rest + slide: the gate stays high and the pitch slews. This IS the
+         * slide, and treating it as a fresh note-on is the re-attack that
+         * midi_devout already refuses to emit. */
+        out->is_legato = 1u;
+        return 1;
+    default:
+        /* Flams, accents, pattern changes, automation, meters, transport:
+         * internal events. A DAW recording these as notes is a DAW full of
+         * ghosts, so they produce NOTHING rather than something plausible. */
+        return 0;
+    }
+}
+
+uint32_t ri_devout_emit(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
+    uint8_t channel, uint8_t device, const struct RIDevEvent *x,
+    uint8_t sound) {
+    uint8_t note, flags;
+    if (!d || !x)
+        return 0u;
+    /* The device ids are the engine's own (sched.h: 0/1 303A/303B, 2 808,
+     * 3 909), so this function and engine.c read the same field. Anything
+     * else is a device whose note mapping nobody has written, and guessing
+     * one is how a hi-hat ends up on the kick. */
+    if (device > RI_DEVOUT_909) {
+        d->refused++;
+        return 0u;
+    }
+    flags = x->is_legato ? RI_DEVOUT_LEGATO
+          : (x->is_off ? RI_DEVOUT_NOTE_OFF : 0u);
+    if (device == RI_DEVOUT_808)
+        note = ri_devout_drum808_note(sound);
+    else if (device == RI_DEVOUT_909)
+        note = ri_devout_drum909_note(sound);
+    else
+        note = x->note;   /* melodic: ri_p303_note() already resolved it */
+    if (note == 0u) {
+        d->refused++;
+        return 0u;
+    }
+    /* Every path ends at ri_devout_note, so the channel laws -- unclaimed
+     * refused, clamps counted, legato silent -- apply to drums too. And the
+     * ACCENT reaches a drum hit: routing this through ri_devout_drum()
+     * instead would have pinned every drum at one velocity. */
+    return ri_devout_note(d, buf, cap, channel, note, x->vel, flags);
+}

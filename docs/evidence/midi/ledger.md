@@ -1130,3 +1130,45 @@ comments are what a reboot takes away.
   interleave was untestable), the long stem always added first (so "first"
   and "longest" were indistinguishable), and a `static` pad buffer that was
   already zero (so a wrong-length memset looked right).
+
+## R6c: the event-to-bytes translation (2026-10-10)
+
+- **`ri_devout_translate()` / `ri_devout_emit()`**, t198. **This is not a
+  mapping problem** — the engine has already done every part of it:
+  `ri_p303_note()` puts a real MIDI note in `RIStep.note` before the
+  scheduler runs, and `e->s808.slot[lane]` / `RI_LANE_TO_RB909_VOICE[lane]`
+  resolve lanes to sounds. R6c is a **translation of four flags into three
+  bytes**, and it is deliberately the only thing it adds.
+- **THE LANE→SOUND STEP IS THE CALLER'S, AND R6 NEVER LOOKS.** The 808's
+  mapping is live and user-remappable; the 909's is static. A helper that
+  guessed would be wrong for one of them. `ri_devout_resolves_lane()`
+  returns 0 and is pinned, so the fact is a test rather than a promise.
+- **ACCENT IS VELOCITY, AND LIVE AND EXPORT MUST AGREE.** `GB` drifts the
+  live accent velocity by 8 and t198 kills it against
+  `ri_smf_velocity()`. Two conventions that disagree mean a loop exported
+  from a live take comes back with different accents — nobody hears that as
+  "wrong" and everybody notices it as *"this loop feels different"*.
+- **NOTE-CONTINUE IS THE SLIDE.** `RI_EV_NOTE_CONTINUE` is rest+slide: the
+  gate stays high and the pitch slews. Treating it as a fresh note-on is
+  exactly the re-attack R6a refuses to emit, so it is its own case and emits
+  nothing (`GC`).
+- **INTERNAL EVENTS PRODUCE NO BYTES.** Flams, accents, pattern changes,
+  automation, meters and transport translate to nothing (`GE`): a DAW
+  recording those as notes is a DAW full of ghosts.
+- **DRUMS CARRY THE ACCENT TOO.** Routing drums through `ri_devout_drum()`
+  would have pinned every drum at one velocity, so an accented kick and a
+  plain one would land in a DAW identically (`GF`). Every path now ends at
+  `ri_devout_note()`, so the channel laws apply to drums as well.
+- **A DESIGN FLAW THE MUTANTS FOUND IN ME.** I first keyed `emit` on
+  `RI_DRUM_CLASS_*`, which has **no value meaning "melodic"**, so the 303
+  path and the drums shared one parameter and the drums' 0 collided with
+  it. **Four mutants survived because the melodic path had never run.** It
+  is now keyed on the engine's own `RIEvent.device` — 0/1 the 303s, 2 the
+  808, 3 the 909, exactly as `engine.c`'s dispatch reads it. One parameter,
+  one meaning, taken from the field the event already carries.
+- **RESULT: 10 mutants, 10 killed.** Four survived a first pass and all four
+  were the same gap: `drum_class = 0` **is** `RI_DRUM_CLASS_808`, so every
+  `emit` call in the test went down the drum path. A fifth, `GJ`, survived
+  after the refactor because the event it reused had `note == 0`, so the
+  melodic fallback refused it for an unrelated reason and the test could not
+  tell the two paths apart.
