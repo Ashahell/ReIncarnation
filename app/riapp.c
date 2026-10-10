@@ -2736,9 +2736,23 @@ static void midi_setup(void) {
             midi_settings_set(&s_mset, RI_MIDI_SET_LAT_MS, v);
         if (midi_getnum("RIAPP_MIDI_MMCOUT", &v))
             midi_settings_set(&s_mset, RI_MIDI_SET_MMC_OUT, v);
+        /* R6: same ENVARC route as its six siblings, deliberately. There is
+         * no panel control for ANY of these settings -- the MIDI panel's
+         * controls are CC-triggered INPUT controls -- so exposing only the
+         * R6 pair would invent a capability under a MIDI phase and leave
+         * six siblings behind. On-panel exposure is one piece of work for
+         * all seven, not two. */
+        if (midi_getnum("RIAPP_MIDI_DEVOUT", &v))
+            midi_settings_set(&s_mset, RI_MIDI_SET_DEV_OUT, v);
+        /* 0..16, and 0 means UNASSIGNED: with no channel set, no melodic
+         * note comes out and no program change is sent. The drums need no
+         * channel and still work. */
+        if (midi_getnum("RIAPP_MIDI_NOTECH", &v))
+            midi_settings_set(&s_mset, RI_MIDI_SET_NOTE_CH, v);
     }
-    rlog("RIAPP midi in=%s ch=%u sync=%u levi=%u clkout=%u lat=%d\n", s_mset.cluster,
-        s_mset.channel, s_mset.sync, s_mset.levi_ch, s_mset.clk_out, s_mset.lat_ms);
+    rlog("RIAPP midi in=%s ch=%u sync=%u levi=%u clkout=%u lat=%d devout=%u notech=%u\n",
+        s_mset.cluster, s_mset.channel, s_mset.sync, s_mset.levi_ch,
+        s_mset.clk_out, s_mset.lat_ms, s_mset.dev_out, s_mset.note_ch);
     ri_midi_init(&s_midi, (uint8_t)(s_mset.channel - 1u));
     /* M4 channel table (E0, ledgered): the remote on its channel, the
      * Leviasynth on RIAPP_MIDI_LEVI_CH (default 2). */

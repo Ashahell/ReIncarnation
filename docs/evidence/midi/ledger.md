@@ -1480,3 +1480,74 @@ and all three were test gaps, one of them worth the whole phase:
   following RIAPP's clock and program change, confirming the 303 line and the
   808 hits arrive where they should — and specifically that the program
   change's *timbre* is one worth keeping.
+
+## R6g: the settings are reachable — and the on-panel claim was wrong (2026-10-10)
+
+### I had the scope of this backwards
+
+I had written R6g as *"the on-panel controls, which need a ctlreg row and a
+panelgeo slot."* Checking before building it: **no MIDI setting has a panel
+control at all.** All six siblings — channel, sync, Levi channel, clock out,
+latency, MMC out — are read from ENVARC at startup and nothing else. The
+MIDI panel's registered controls are CC-triggered *input* controls (note
+buttons, step keys), not outbound settings.
+
+So exposing only the R6 pair would have invented a capability under a MIDI
+phase and left six siblings behind. On-panel exposure is **one piece of work
+for all seven**, not two.
+
+What R6g actually was: make the two new settings reachable the way their six
+siblings are — `RIAPP_MIDI_DEVOUT` and `RIAPP_MIDI_NOTECH`. Ten lines,
+through the same `midi_getnum()` the other six use, and the startup `rlog`
+line now carries `devout=` and `notech=` so a boot says what it read.
+
+### What is proven and what is not
+
+**Proven:** the settings layer beneath both variables — strict 0/1, 0..16
+with 0 meaning unassigned, refused when negative, never wrapped, never
+defaulted — is pinned by t202. Both AROS ABIs (v1 and v11) compile and link
+with the new ENVARC reads and the new `s_devout` producer.
+
+**NOT proven: the ENVARC path itself.** `midi_getnum()` → `midi_settings_set`
+→ `riapp` wiring is thin glue that mirrors six calls that are known to work,
+and the only genuinely new risk in it is a **mistyped variable name** — a
+name nobody has ever booted with. Both lanes were pinged for this and **both
+timed out** (riqemu1 `spike_spool_priv` and the Dell `spike_spool_laptop`,
+45 s, jobs left queued), so no lane proof was available and none is claimed.
+
+**This is the same shape of gap as the `portable.mk` one**, and it is worth
+naming because the reasoning is the tempting one: "it compiles, it links,
+and the six siblings use the same function, so a typo is unlikely." Low
+probability is not absence of evidence.
+
+### The proof, when a lane is back
+
+Thirty seconds of work, and it needs no ear and no audio:
+
+```
+setenv RAM:RIAPP_MIDI_DEVOUT=1
+setenv RAM:RIAPP_MIDI_NOTECH=5
+setenv RAM:RIAPP_LOG=RAM:
+```
+
+Boot RIAPP, then read `RAM:RIAPP.LOG`. The `RIAPP midi in=... devout=1
+notech=5` line settles both the names and the wiring. `RIAPP_LOG=<vol>` is
+what pins the log to a readable volume.
+
+### Still open
+
+- **On-panel exposure for all seven MIDI settings** — the real R6g follow-up,
+  now correctly scoped as a single piece of work rather than two controls.
+  It needs a ctlreg row, a `panelgeo` slot, and a save path; settings are
+  "never in the song", so there is no song-save integration to extend
+  either.
+- **No runtime path.** None of the seven can be changed after startup — they
+  are ENVARC-only. Turning clock out on or off means editing the ENVARC and
+  restarting. That is a pre-existing property of all six, and R6 inherits
+  it rather than introducing it, but it is the thing that most limits R6's
+  usefulness in practice.
+- **The melodic channel is still unset**, which is correct and means nothing
+  melodic comes out until one is picked. Drums work with no channel at all.
+- **The ear proof is unchanged:** a DAW following RIAPP's clock and program
+  change, confirming the 303 line and the 808 hits arrive where they should,
+  and that Synth Bass 1 is a timbre worth keeping.
