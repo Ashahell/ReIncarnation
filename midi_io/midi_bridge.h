@@ -103,6 +103,26 @@ struct RIMidiSettings {
     int16_t pad;
 };
 
+/* The melodic note channel for R6, 0-BASED, or -1 for none.
+ *
+ * OWNER DECISION 2026-10-10: LEVIASYNTH FOR MELODIES. When `note_ch` is
+ * unset the melodic notes follow the Leviasynth channel, and the Leviasynth
+ * channel is 2 by default. This is a decision, not an accident, and it lives
+ * here rather than in `riapp` so it is one tested function rather than glue.
+ *
+ * `RIAPP_MIDI_NOTECH` still overrides it, so a user who wants the melodic
+ * output somewhere other than their Leviasynth patch can say so.
+ *
+ * NOTE THE DIRECTION. M4 receives Leviasynth notes IN on this channel and
+ * R6 sends melodic notes OUT on it -- opposite directions, so they do not
+ * collide. They CAN loop, and only through the user's own routing: a DAW
+ * that echoes channel 2 back into ReIncarnation's input would retrigger the
+ * Leviasynth. That is a property of the patch bay, not of this code, and it
+ * is the thing to check first if the Leviasynth ever plays itself.
+ *
+ * Drums are unaffected: GM channel 10, and no channel needed at all. */
+int midi_settings_note_ch(const struct RIMidiSettings *s);
+
 void midi_settings_defaults(struct RIMidiSettings *s);
 /* 0 accepted, 1 bad field/value (previous value kept). */
 int midi_settings_set(struct RIMidiSettings *s, uint32_t field, long v);

@@ -2880,10 +2880,12 @@ static int riapp_main(int argc, char **argv) {
         s_lv.drv.clk_out = &s_mout;     /* the RING is shared; the SWITCHES
                                          * are not (RI_MIDI_SET_DEV_OUT) */
         s_lv.drv.dev_out = s_mset.dev_out ? &s_devout : 0;
-        /* 0 means UNASSIGNED and is passed through as such: the drain
-         * refuses melodic notes on an unclaimed channel rather than
-         * defaulting one. The drums need no channel and still work. */
-        s_lv.drv.note_ch = s_mset.note_ch ? (int)(s_mset.note_ch - 1u) : -1;
+        /* LEVIASYNTH FOR MELODIES (owner 2026-10-10): with no explicit
+         * note channel the melodic output follows the Leviasynth's, which
+         * is 2 by default. One tested function decides it, so the rule is
+         * in midi_bridge rather than in this glue. -1 still means no
+         * channel at all, and the drums need none. */
+        s_lv.drv.note_ch = midi_settings_note_ch(&s_mset);
         s_lv.drv.prog_sent = 0u;
         if (s_lv.drv.session && s_mset.clk_out)
             midi_out_set_bpm(&s_mout,

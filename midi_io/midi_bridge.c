@@ -147,6 +147,16 @@ void midi_bridge_note_link(struct RIMidiBridge *b, uint32_t lost) {
         b->link_lost = lost ? 1u : 0u;
 }
 
+int midi_settings_note_ch(const struct RIMidiSettings *s) {
+    uint32_t ch;
+    if (!s)
+        return -1;
+    /* An EXPLICIT note_ch always wins. */
+    ch = s->note_ch ? s->note_ch : s->levi_ch;
+    /* Neither set: no channel, and it is not defaulted to 1. */
+    return ch ? (int)(ch - 1u) : -1;
+}
+
 void midi_settings_defaults(struct RIMidiSettings *s) {
     static const char dflt[] = "riapp";
     uint32_t i;

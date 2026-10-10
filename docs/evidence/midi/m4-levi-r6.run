@@ -1,0 +1,46 @@
+; m4-levi-r6.run — the COMBINED owner proof on the Dell: M4 (Leviasynth
+; inbound), R6 melodic output (Leviasynth outbound), and the clock-out lamp.
+;
+; Run with: spike_server.py submit --run-script RAM:M4-LEVI-R6.RUN
+; NOT with --exec: the lane's --exec is not a shell (a redirect inside it
+; returns rc=0 and writes nothing), and a single blocked command there
+; wedges the agent's whole command path until an owner reboot.
+;
+; COMMENTS ARE ';'. Measured on this lane, not guessed: '#', 'REM' and '/*'
+; are each executed as a command and each prints "object not found".
+;
+; ONE SESSION, THREE QUESTIONS. They are combined because they share the
+; same boot, the same two processes and the same channel, and because two of
+; them are only answerable by eye:
+;
+;   A. M4 — the Leviasynth on its own channel (INBOUND). Does a note on
+;      channel 2 sound a Leviasynth voice, does CC 55 open its digital
+;      filter, does the no-collision law hold from both sides.
+;   B. R6 — melodic note output on the Leviasynth channel (OUTBOUND).
+;      Owner decision 2026-10-10: with no explicit RIAPP_MIDI_NOTECH the
+;      melodic output FOLLOWS the Leviasynth channel, so RIAPP's own 303
+;      patterns go out on channel 2. This is the first run that puts R6d's
+;      drain on a wire.
+;   C. THE LAMP. `TR(15)` at (253, 40) is PROVISIONAL — placed by
+;      arithmetic between Sync (188) and MIDI In (318) on the row the
+;      manual puts the other two indicator lamps (p. 144-145), never seen
+;      by an eye. It lights only while bytes actually flow
+;      (ri_str_clkout_set: sending && sent_total > 0), so B is what makes
+;      it light. Look at it while B is running.
+;
+; WHY A LISTENER AND NOT A SECOND SENDER. The lane runs one script at a
+; time, so two processes cannot overlap in the script. RIAPP is a
+; long-lived app started outside the script, and MIDISEND LISTEN is the
+; other process, which is the same arrangement m5-clockout-riapp-dell.run
+; used. The script below only starts the listener; RIAPP is started by the
+; owner (see the proof doc), because it needs a window and an ear.
+;
+; WHAT THIS DOES NOT PROVE. No USB-MIDI device on the Dell, so this is the
+; camd cluster and not a cable. The physical wire remains the owner's.
+; Scripted, not played: latency and feel are not measured here.
+
+echo M4 + R6 combined proof -- starting the outbound listener
+RAM:MIDISEND RIAPP LISTEN 45 RAM:R6LISTEN.LOG
+
+echo the listener exited -- RAM:R6LISTEN.LOG is R6's outbound side
+echo M4 + R6 combined proof done

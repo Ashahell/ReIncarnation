@@ -1469,9 +1469,18 @@ and all three were test gaps, one of them worth the whole phase:
 
 ### Still open
 
-- **The melodic channel is still unset.** `note_ch` defaults to
-  unassigned, which is correct and also means **nothing melodic comes out
-  until an owner or user picks one.** The drums work with no channel at all.
+- ~~**The melodic channel is still unset.**~~ **RESOLVED 2026-10-10 —
+  LEVIASYNTH FOR MELODIES.** `midi_settings_note_ch()`: an explicit
+  `note_ch` wins, otherwise the melodic output **follows the Leviasynth
+  channel**, which is 2 by default. One tested function owns the rule rather
+  than `riapp` glue. **Neither set is still -1** — `levi_ch`'s default is 2
+  but the layer does not assume it, because defaulting here would put the
+  303 on channel 1 for a settings block built by hand. Drums are unaffected:
+  GM channel 10, no channel needed. **The loop worth checking:** M4 receives
+  Leviasynth notes IN on this channel and R6 sends melodic notes OUT on it,
+  so they are opposite directions — but a DAW that echoes channel 2 back
+  into ReIncarnation's input would retrigger the Leviasynth. Patch bay, not
+  code; first thing to check if the Leviasynth ever plays itself.
 - **No on-panel control yet.** `RI_MIDI_SET_DEV_OUT` and
   `RI_MIDI_SET_NOTE_CH` exist in the settings layer and are wired in
   `riapp.c`; the MIDI panel does not yet expose them, which needs a ctlreg
@@ -1551,3 +1560,86 @@ what pins the log to a readable volume.
 - **The ear proof is unchanged:** a DAW following RIAPP's clock and program
   change, confirming the 303 line and the 808 hits arrive where they should,
   and that Synth Bass 1 is a timbre worth keeping.
+
+## "Leviasynth for melodies" — the melodic channel, and the combined proof (2026-10-10)
+
+Owner instruction, 2026-10-10: *"do the M4 ear proof. combine with lamp
+position if possible. Leviasynth for melodies. same rules."*
+
+### The melodic channel is settled
+
+`midi_settings_note_ch()` — an explicit `RIAPP_MIDI_NOTECH` wins, otherwise
+the melodic output **follows the Leviasynth channel** (2 by default). One
+tested function owns the rule rather than `riapp` glue, because the failure
+mode of putting it in glue is a second place to be wrong about it.
+**Neither set is still -1**: `levi_ch`'s default is 2, but the layer does
+not *assume* it, because defaulting there would put the 303 on channel 1 for
+a settings block built by hand rather than by `midi_settings_defaults()`.
+
+**THE LOOP WORTH CHECKING FIRST IF THE LEVIASYNTH EVER PLAYS ITSELF:** M4
+receives Leviasynth notes IN on this channel and R6 sends melodic notes OUT
+on it. Opposite directions, so they do not collide — but a DAW that echoes
+channel 2 back into ReIncarnation's input would retrigger. That is the
+patch bay, not this code.
+
+**AND THE PART WORTH SAYING PLAINLY:** the R6 melodic source is the **303**,
+not the Leviasynth. `RIEvent.device` 0/1 is 303A/303B. What lands on
+channel 2 is *303 content played by whatever patch the receiver has there*.
+"Leviasynth for melodies" names the **channel**, not the voice.
+
+### The lamp: I nearly claimed it did not exist
+
+Looking for the clock-out lamp's draw site, I searched for `RI_STR_*` and
+`clk_out` across `gui/` and `app/` and found only `secttr.c` — the state —
+plus `sectproof.c`. By that evidence the conclusion was "**there is no draw
+site; the lamp is never rendered**", which would have gone in a commit.
+
+It is wrong. The lamp is fully wired: a `R(TRANSPORT, 15, LED, "", "Clock
+Out", ...)` row in `gui/ctlreg.c` and
+`{ TR(15), RI_GEO_RECT, 0, 253, 40, 12, 12 }` in `gui/panelgeo.c`. My
+search missed both because neither file mentions `RI_STR_CLKOUT` — the
+ctlreg row is a literal `15` and the geometry is a `TR(15)` macro.
+
+**Worth recording as a method note:** the state layer and the render layer
+share no names, so "I cannot find where it is drawn" is not evidence that it
+is not drawn. The finding that would have been reported was produced by a
+search, not by a check.
+
+### The lamp's position, and the question it needs
+
+Placed by arithmetic and never seen: between Sync (188, 40) and MIDI In
+(318, 40) on the row the manual puts the other two indicator lamps (p. 144–145),
+x=253 splitting that span, y=40 otherwise empty between them.
+
+The question is not "is it in a sensible place" — it is **"does it read as
+'the third lamp', or as clutter?"** Either answer moves it.
+
+And the test has a **negative half** that matters more than the positive:
+`ri_str_clkout_set(s, sending, sent_total)` is `(sending && sent_total > 0)`
+and is deliberately unreachable from `ri_str_indicator_set()`. So the lamp
+must be **dark before the sender starts and lit while bytes flow**. A lamp
+that glows when nothing is being sent is worse than no lamp, because it
+reports a wire that is not there.
+
+### The combined run is prepared and NOT staged
+
+`docs/evidence/midi/m4-levi-r6.run` and `m4-levi-r6-proof.md`. One session,
+three questions, sharing a boot, two processes and a channel:
+
+- **A — M4 inbound**, the 2026-09 script unchanged.
+- **B — R6 outbound**, the first run that puts R6d's drain on a wire.
+- **C — the lamp**, which **B is what makes light**.
+
+**BLOCKED ON THE LANE, NOT ON THE WORK.** Both lanes were pinged twice and
+**both timed out** every time (`spike_spool_priv`, `spike_spool_laptop`, 30 s
+and 45 s). Nothing is deployed; the binaries are built and their hashes are
+recorded so a PUT can be checked against them. Per the standing rule the
+owner runs the ear part and I read the counters.
+
+### Still open
+
+- **The combined run**, on the lane. The Dell is the only lane with real
+  audio; riqemu1 cannot answer C.
+- **R6h** — on-panel exposure for all seven MIDI settings.
+- **No runtime path** for any MIDI setting (ENVARC-only, restart to change).
+- **R8b**, **R9**, **R5**.

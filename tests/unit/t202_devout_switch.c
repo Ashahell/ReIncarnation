@@ -116,6 +116,43 @@ int main(void) {
     RI_ASSERT(midi_settings_set(&S, RI_MIDI_SET_NOTE_CH, 0L) == 0, "0 again");
     RI_ASSERT(S.note_ch == 0u, "and 0 is still unassigned, not 16");
 
+    /* --- "LEVIASYNTH FOR MELODIES" (owner, 2026-10-10) ---------------- */
+    /* The melodic note channel FOLLOWS THE LEVIASYNTH CHANNEL when it is
+     * not set explicitly. That is a decision, not an accident: the owner
+     * asked for melodies to land on their Leviasynth patch, which is channel
+     * 2 by default, and an R6 melodic note on some other channel would
+     * arrive at an instrument they did not choose. */
+    midi_settings_defaults(&S);
+    RI_ASSERT(S.note_ch == 0u, "note_ch starts unset");
+    RI_ASSERT(S.levi_ch == 2u, "and the Leviasynth is channel 2 (%u)",
+        (unsigned)S.levi_ch);
+    RI_ASSERT(midi_settings_note_ch(&S) == 1,
+        "so the melodic channel is the Leviasynth's, 0-based 1 (got %d)",
+        midi_settings_note_ch(&S));
+    /* An explicit note_ch wins -- a user whose melodic output belongs on a
+     * different patch must be able to say so. */
+    RI_ASSERT(midi_settings_set(&S, RI_MIDI_SET_NOTE_CH, 9L) == 0,
+        "an explicit channel is accepted");
+    RI_ASSERT(midi_settings_note_ch(&S) == 8,
+        "and overrides the Leviasynth's (got %d)", midi_settings_note_ch(&S));
+    /* Moving the Leviasynth moves the melodic channel with it, because the
+     * two are the same answer now. */
+    RI_ASSERT(midi_settings_set(&S, RI_MIDI_SET_NOTE_CH, 0L) == 0, "unset");
+    RI_ASSERT(midi_settings_set(&S, RI_MIDI_SET_LEVI_CH, 7L) == 0, "levi 7");
+    RI_ASSERT(midi_settings_note_ch(&S) == 6, "and it follows (got %d)",
+        midi_settings_note_ch(&S));
+    /* NEITHER SET IS STILL NO CHANNEL. Levi_ch's own default is 2, but the
+     * layer must not assume it: 0 means 0 means unassigned, and defaulting
+     * it here would put the 303 on channel 1 for a settings block built by
+     * hand rather than by midi_settings_defaults(). */
+    S.levi_ch = 0u;
+    RI_ASSERT(midi_settings_note_ch(&S) == -1,
+        "no channel anywhere is -1, not 0 (got %d)",
+        midi_settings_note_ch(&S));
+    RI_ASSERT(midi_settings_note_ch(0) == -1, "NULL settings");
+    /* Drums never consult any of this. */
+    RI_ASSERT(RI_DEVOUT_GM_PERCUSSION == 10u, "drums are still channel 10");
+
     /* --- the unknown field still refuses -------------------------------- */
     RI_ASSERT(midi_settings_set(&S, 99u, 1L) == 1, "an unknown field refuses");
 
