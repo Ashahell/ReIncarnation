@@ -5,8 +5,16 @@ commits `7c9fe32`…`7b178c4`, all tagged `[levi-midi]`). P1 sync-in is done and
 **parked, not passed**: following is proven at ~60 BPM on the Dell and the lock
 law at the song's 140 BPM on the host, but **not at 140 BPM on real hardware**,
 because this guest's CAMD delivers clocks in 10 ms system-tick batches.
-**Remaining:** R5 (303/808/909 note input), R6, R7 (SMF), P3, P4, and all of M5
-(clock out, MMC, clock-out LED) — off by default, pending owner decision 1.
+**R2/R3 implemented 2026-10-09/10** (M5a–M5e1, commits `e3ec539`…`0b04879`):
+clock out is a drift-free 24 ppqn schedule driven by the render's audio
+sample clock — the tick count at a position is a pure function of that
+position, so it cannot drift — and MMC in lands on the *follower's* intents,
+so a master sending clock and a master sending MMC drive one path.
+**Remaining:** the F8-interval measurement from a real receiver (the proof
+tool `MIDIRX` has never completed a run; the ledger records a recommendation
+to take the intervals from inside RIAPP instead), MMC out, the clock-out
+LED, R5 (303/808/909 note input), R6, R7 (SMF), P3 and P4 — everything
+still off by default, pending owner decision 1.
 Full record: `llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md`;
 E0 defaults in `docs/evidence/midi/ledger.md`.
 
@@ -40,7 +48,7 @@ E0 defaults in `docs/evidence/midi/ledger.md`.
 - **Second device (M4).** G7 still owns channel 1 alone; the Leviasynth owns channel 2 with its own CC map (manual pp. 168–169). A CC on one channel can never move the other device's controls, pinned by t183. **No note input for the 303s, 808 or 909 yet** — that is R5.
 
 **Output:**
-- **Nothing is sent.** The G7 receiver "never transmits" (manual p. 127). There is no MIDI out of clock, notes, CC or MMC. (M5; off by default, pending owner decision 1.)
+- **Clock out and MMC out are built but off by default** (`RIAPP_MIDI_CLKOUT`, default 0). The render fills a byte ring and an AROS sender task carries it to CAMD, so no CAMD call ever happens in the render path. **Nothing else is sent**: the G7 receiver still "never transmits" (manual p. 127), and there is no MIDI out of notes or CC. **Unmeasured**: the F8 intervals as they actually reach a wire — the host tests prove the schedule, not the wire.
 
 **Audio:**
 - the offline renderer writes WAV;

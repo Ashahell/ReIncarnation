@@ -124,8 +124,8 @@ W4's amendment is the same shape and worth noting as a rule change: t77's law *"
 
 ## What is not done
 
-- **M5** (clock out, MMC in/out, clock-out LED) — unstarted, behind `RIAPP_MIDI_CLKOUT`, off by default, pending owner decision 1 on whether these are a Classic extension or Power Mode.
-- **M6** — this article; the interop spec's "Where we are today", the todo and the ledger are the remaining items.
+- ~~**M5** (clock out, MMC in/out, clock-out LED) — unstarted.~~ **Partly done 2026-10-09/10:** the drift-free 24 ppqn schedule, the off-by-default outbound producer, MMC in and the render's hook all landed and are audited — see [2026-10-10-midi-clock-out-and-mmc-in.md](2026-10-10-midi-clock-out-and-mmc-in.md). **Still unstarted:** MMC out, the clock-out LED, and the F8-interval measurement from a real receiver.
+- ~~**M6** — this article; the interop spec, the todo and the ledger are the remaining items.~~ **Done for W and M0–M4** (this article plus the 2026-10-10 one).
 - **R5** (303/808/909 note input), **R6**, **R7** (SMF), **P3**, **P4** — untouched.
 - **The 140 BPM hardware gap** above, and the unexplained panel `TR STOP` mid-take (both Dell runs, no MIDI intent, no dropout log, not reproduced since).
 - **The Comp switch**: traced to `4167e32` halving the auto make-up (+18 → +9 dB). The owner's call was "this was fine", so no sound default was touched.

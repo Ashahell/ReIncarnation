@@ -3145,3 +3145,12 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Raw: llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md (lane-discipline section)
 - Updated: llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md
 - Note: (1) A **missing build-script target built the wrong binary under the right name** — `ri_build_v11.sh . out midisend` fell through to the RIAPP build and wrote a 1129544-byte RIAPP named MIDISEND.v11; now an unknown tool refuses with exit 2. (2) The lane's `--exec` is **not a shell**: `cmd > RAM:file` returns rc=0 having written nothing, and an earlier staging check in this session read that as success — which also falsifies the "Dell RAM: was wiped" reading in the 2026-09-29 recovery record. The Dell agent reconnected on its own and RAM: survived. (3) The cold rebuild came back bit-identical and the audit is 0/0 PASS from a cold tree.
+
+## [2026-10-10] ingest | MIDI clock out and MMC in: a schedule that cannot drift, and a proof tool that would not start
+- Disposition: New; Update
+- Raw: llm-wiki/raw/articles/2026-10-10-midi-clock-out-and-mmc-in.md
+- Updated: llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md (M5/M6 marked partly done, pointed at the new article)
+- Updated: llm-wiki/index.md (new entry)
+- Updated (repo): docs/superpowers/specs/2026-09-29-interop-requirement.md (status + the Output section, which claimed nothing was sent); docs/2026-09-24-improvement-todo.md (M5a-M5e1 ticked, the outstanding wire measurement and the retire-MIDIRX recommendation recorded)
+- Note: the article is deliberately split. The first half is the durable result -- a 24 ppqn schedule that cannot drift, because the tick count at a sample position is a pure function of that position rather than an accumulator, with M3f's re-anchoring law applied to the output side before it bit. The second half is the proof instrument, which **has never completed a run on either lane**, and the two are not the same kind of knowledge: the schedule is verified by mutation, the wire is not verified at all and is recorded as unmeasured.
+- Note: two mutants SURVIVED and are recorded as survivors rather than claimed as kills (AC: a second guard no test can see from outside; AE: equivalent for this producer's message set). A third mutant initially survived because the TEST was missing a law -- `init` leaving the producer off is not the same law as `enable(o, 0)` silencing the wire -- which is recorded as a test gap rather than a code survivor.
