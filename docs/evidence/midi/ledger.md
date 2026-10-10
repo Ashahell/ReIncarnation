@@ -1075,3 +1075,44 @@ comments are what a reboot takes away.
   claimed as a kill. Two earlier mutants were *compile* fails from my own
   anchors (a duplicate `default:` and a mutant that still called the guarded
   function) and were rebuilt.
+
+## R8a: the stem WAV writer, and what a mono test cannot see (2026-10-10)
+
+- **`project/stem_wav.{c,h}`**, t197. Pure C, host-tested, **no IO** — the
+  caller supplies a buffer. This is deliberately the FILE side only:
+  rendering each mixer strip is the offline renderer's job, and keeping the
+  two apart is what makes these laws testable without an engine. A WAV has
+  no schema and no error reporting, so every mistake here produces a file
+  that either will not open or will open and be subtly wrong.
+- **THE SIZES ARE REAL BYTE COUNTS, and there is no way to ask for a
+  placeholder.** Writing 0, or `0xFFFFFFFF` for "streamed", in the RIFF and
+  data sizes is the commonest way to make a WAV no DAW opens. `FA` and `FB`
+  are exactly that.
+- **STEMS ARE SAMPLE-ALIGNED AND EQUAL-LENGTH, WHICH IS A PROPERTY OF A
+  GROUP** and so cannot be enforced by a single-file writer — hence
+  `RIStemSet`, which owns the common length as **the LONGEST** stem and
+  **COUNTS** the ones it had to pad. Taking the first, the shortest or the
+  average would each silently drop or invent audio on some channel.
+- **PADDING MUST BE SILENCE**, and proving that needed the scratch buffer
+  **dirtied first**. The pad buffer is `static`, so on a first write it is
+  already zero and a writer that memsets the *wrong length* still looks
+  perfect — which is why the mutant that truncates the memset survived the
+  first pass. Writing a full-length stem first fills the tail with audio,
+  and only then is the padding visible.
+- **INTERLEAVED, WHICH A MONO TEST CANNOT SEE AT ALL.** Planar and
+  interleaved produce **identical bytes for one channel**, so every mono
+  case is blind to it. A planar file plays one channel then silence while
+  its header looks perfect. The test now writes a stereo stem with full
+  positive left and full negative right and reads the first frame back.
+- **24-BIT IS THREE BYTES A SAMPLE** — the usual off-by-one, because it is
+  not a byte count — and **IEEE float is FORMAT 3**, not format 1 with 32
+  bits, which would open and play noise. An unsupported depth is **refused,
+  not rounded**: a 20-bit request quietly becoming 24 is worse than no file.
+- **MY TEST READ BLOCK-ALIGN AND BIT-DEPTH BACKWARDS** (32 and 34), which is
+  the same class of mistake as writing 24-bit as a byte count. Fixed in the
+  test.
+- **RESULT: 10 mutants, 10 killed.** Three survived a first pass and all
+  three were gaps of the kind this slice keeps finding: no stereo case (so
+  interleave was untestable), the long stem always added first (so "first"
+  and "longest" were indistinguishable), and a `static` pad buffer that was
+  already zero (so a wrong-length memset looked right).
