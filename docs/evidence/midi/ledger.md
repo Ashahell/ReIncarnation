@@ -2183,3 +2183,124 @@ an existing directory is reused rather than refused.
 - **R9** — loop-exact renders with an optional tail.
 - **R5** — still needs an owner priority call.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane.
+
+## R8f: `--mid FILE` — the SMF finally gets a caller (2026-10-10)
+
+`ri_smf_write` has been built and tested since R7a and had **no caller at
+all**. `project/smf_bridge.{c,h}` is the conversion, and `--mid FILE` is the
+door — deliberately on the **same invocation** as `--out` and `--stems`,
+because a second export format behind a second command is a door nobody
+finds, which was the whole reason R8e folded stems into `render`.
+
+### THE ENUMS ARE NOT THE SAME NUMBERS, SO IT IS NOT A CAST
+
+`RI_EV_NOTE_ON` is **3**; `RI_SMF_EV_NOTE_ON` is **0**. `RI_EV_NOTE_OFF` is
+**2**; `RI_SMF_EV_NOTE_OFF` is **1**. Passing `RIEvent.type` straight through
+would turn every note-on into a note-off: a file of releases with no
+attacks, which imports as silence. Mutant **SA** renumbers the mapping and is
+killed by t208.
+
+### A SLIDE CANNOT CROSS, AND IS COUNTED AND ANNOUNCED
+
+`RI_EV_NOTE_CONTINUE` is rest+slide — the gate stays high and the pitch
+slews. SMF 1.0 has no legato pitch change, and **both available fakes are
+wrong in a way the listener hears**:
+
+- note-off + note-on is the **re-attack R6a exists to refuse**;
+- a bare pitch bend is a *different note* on a track that is supposed to be
+  this pattern.
+
+So the slide is dropped, `tracks[i].slides` counts it, and the **CLI prints
+it** — an SMF is opened by a human or a DAW, and a silent fidelity loss in a
+file that looks complete is exactly what nobody notices until mixdown. Mutant
+**SB** (slide becomes a note-on) is killed.
+
+`RI_SMF_SLIDE` is defined in `smf_export.h` and **referenced nowhere in the
+writer** — "the flag exists" was not "the writer handles it".
+
+### PPQ AND TEMPO ARE THE CALLER'S, AND A ZERO IS NOT A NEUTRAL DEFAULT
+
+My first version `memset` the song and left both fields zero. That is not
+harmless: `ri_smf_delta_ticks` treats ppq 0 as *every event is on tick 0*,
+producing a file that is correct only when it holds one event — and looks
+correct while it is wrong. The bridge now goes through `ri_smf_song_init`
+with the caller's ppq and tempo. Mutants **SC** (both zeroed) and **SJ**
+(ppq alone lost, tempo surviving) are both killed.
+
+### THE WRITER REFUSES A SIZE PROBE — A WORTHLESS THING TO RELY ON
+
+I sized the output buffer by calling `ri_smf_write(song, 0, 0)` and reading
+back the required size, which writers are often documented to do. **This one
+is not**: it refuses a NULL `out` and a `cap` under 14, so the probe
+returned 0 and the tool reported *"the writer refused the song"* — pointing
+at the song when the fault was entirely in the question. **A size probe that
+returns the same value as a refusal is not a size probe.**
+
+The real bound is the writer's own **internal 8192-byte per-track scratch**,
+plus 8 bytes of MTrk framing per track, so `14 + (ntr+1)*(8+8192)` is
+sufficient by the writer's construction. That scratch is also a real limit:
+a track past ~2000 events is refused, and the tool **says so** rather than
+writing a truncated track.
+
+### Evidence
+
+```
+render --song slide.txt --mid slide.mid
+render: SMF slide.mid: 1 track(s), 86 bytes, ppq 96, 140 BPM
+render: 1 slide(s) did NOT cross: SMF has no legato pitch
+```
+
+```
+MThd  format=1 ntracks=2 division=96      (2 = conductor + 1 data track)
+tempo meta 0x51 = 0x0001AC = 428 us/quarter = 140 BPM
+walk of the chunks lands EXACTLY on EOF
+
+track: ON 36 / OFF 36 / ON 43 / OFF 43 / ON 55 / OFF 55
+```
+
+Note 43 is held across the slide at **one pitch** — the bridge did not
+invent a re-attack in the gap, which is the defect it exists to avoid. Three
+note-ons, three note-offs, balanced: nothing left hanging for the importer
+to report as a stuck note.
+
+### Mutants: 7 real, 3 harness failures that prove nothing
+
+| id | mutation | result |
+|----|----------|--------|
+| SA | enums cast instead of mapped | **KILLED** |
+| SB | a slide becomes a note-on | **KILLED** |
+| SC | ppq and tempo left at zero | **KILLED** |
+| SD | accent always set | **KILLED** |
+| SE | short output array overwrites | **KILLED** |
+| SG | a slide-only **device** still gets a track | **KILLED** — *after a fix* |
+| SH | the slide counter is dropped | **KILLED** |
+| SI | one track regardless of device | **KILLED** |
+| SJ | ppq alone lost, tempo surviving | **KILLED** |
+| SF | "a device with no events gets a track" | **EQUIVALENT** |
+
+**SG SURVIVED FIRST, AND IT WAS A REAL GAP IN THE TEST, NOT A BAD
+MUTANT.** I had tested a slide-only *track* (§4) but never a slide-only
+*device* through the song path. Those take **different branches** — one
+returns 0 from the bridge, the other never calls it — so the empty-track case
+was entirely untested. A track with `count = 0` and a valid pointer builds a
+bare end-of-track meta: a track in the DAW's list that plays nothing, which
+is a file that looks longer than the music. t208 §6b now pins it.
+
+**SF is an EQUIVALANT MUTANT.** Calling the bridge with zero events returns
+0 and leaves the track empty whichever way it is written — the mutation
+cannot change behaviour, so its survival means nothing. Recorded as such
+rather than dressed up as a pass.
+
+**Two mutants failed to BUILD and therefore prove nothing.** `-Werror=unused-parameter`
+kills "ppq and tempo zeroed" before it can run, because ignoring both
+parameters is exactly the mutation. Harness lessons from earlier phases
+apply unchanged: **a build failure is not a kill**, and the fix is to
+silence the unused parameters *inside* the mutant so the compiler accepts
+the very code it is meant to test.
+
+### Still open
+
+- **Multi-stem output** — needs a song format with a per-step device.
+- **R9** — loop-exact renders with an optional tail.
+- **R5** — still needs an owner priority call.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane.

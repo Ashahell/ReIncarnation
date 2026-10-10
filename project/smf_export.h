@@ -58,6 +58,12 @@ struct RISmfTrack {
     uint32_t count;
     uint8_t channel;        /* 0..15 */
     const char *name;       /* borrowed, for the track name meta event */
+    /* R8f: engine events that could NOT cross, i.e. slides. SMF 1.0 has no
+     * legato pitch change and both available fakes are audible, so they are
+     * dropped -- and counted, because a fidelity limit nobody can measure is
+     * a limit nobody can decide about. Zero for a track that was not built
+     * by ri_smf_bridge. */
+    uint32_t slides;
 };
 
 struct RISmfSong {

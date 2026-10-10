@@ -34,6 +34,7 @@
 #include <stdint.h>
 #include "engine/engine.h"
 #include "project/stem_render.h"
+#include "project/smf_bridge.h"
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
 #include "audio_io/audio.h"
@@ -590,8 +591,97 @@ static int render_stems(const struct RIEvent *ev, uint32_t nev,
     return rc;
 }
 
+/* ---------------------------------------------------------------------
+ * R8f: the SMF. The writer (`ri_smf_write`, built since R7a) had no caller;
+ * `smf_bridge` is the conversion, and this is the one door for it.
+ *
+ * NO A RENDER HAPPENS HERE. The SMF comes from the SAME events the audio
+ * came from, so a file and its mix describe the same song by construction
+ * rather than by two parsers agreeing.
+ *
+ * THE SIZE IS DERIVED FROM THE WRITER'S OWN BOUND, not probed. I first wrote
+ * this to size the buffer by calling `ri_smf_write(song, 0, 0)` and reading
+ * back the required size -- which is a thing writers are often documented to
+ * do, and which THIS ONE DOES NOT: it refuses a NULL `out` and refuses a
+ * `cap` under 14, so the probe returned 0 and the tool reported "the writer
+ * refused the song", pointing at the song when the fault was entirely in the
+ * question. A size probe that returns the same value as a refusal is not a
+ * size probe.
+ *
+ * The real bound is the writer's INTERNAL per-track scratch, 8192 bytes, and
+ * each track's MTrk costs 8 bytes of framing on top of it. So
+ * `14 + (ntr + 1) * (8 + 8192)` is sufficient by the writer's own
+ * construction, and `ri_smf_write` then reports the length it actually
+ * wrote, which is the number the file gets.
+ *
+ * That scratch is also a REAL LIMIT and not mine to hide: a track longer than
+ * 8192 bytes -- roughly 2000 events -- is refused by the writer, and the
+ * tool surfaces that refusal rather than writing a truncated track.
+ * ------------------------------------------------------------------- */
+static int write_smf(const struct RIEvent *ev, uint32_t nev, const char *path,
+    uint16_t ppq, uint32_t bpm) {
+    static struct RISmfTrack tracks[RI_ROUTE_NSECTIONS];
+    static struct RISmfEvent out[RI_SCHED_MAX_EVENTS];
+    struct RISmfSong song;
+    uint8_t *buf = 0;
+    uint32_t ntr, need, w, slides = 0u, i;
+    int rc = 2;
+    ntr = ri_smf_bridge_song(&song, tracks, out, RI_SCHED_MAX_EVENTS, ev, nev,
+        ppq, bpm * 1000u);
+    if (ntr == 0u) {
+        printf("render: --mid: nothing in the song can cross to SMF\n");
+        return 2;
+    }
+    need = 14u + (ntr + 1u) * (8u + 8192u);
+    buf = (uint8_t *)malloc(need);
+    if (!buf) {
+        printf("render: --mid: out of memory for %u bytes\n", (unsigned)need);
+        return 2;
+    }
+    w = ri_smf_write(&song, buf, need);
+    /* A REFUSAL, not a mismatch. `w` is legitimately smaller than the bound
+     * -- that is what "the writer reports what it wrote" means -- so only 0
+     * is a failure, and 0 here is the writer declining the song or a track
+     * past its scratch, both of which the caller must hear about rather
+     * than receive as an empty file. */
+    if (w == 0u || w > need) {
+        printf("render: --mid: the writer refused the song"
+            " (a track past its 8192-byte scratch?)\n");
+        free(buf);
+        return 2;
+    }
+    {
+        FILE *f = fopen(path, "wb");
+        if (!f) {
+            printf("render: --mid: cannot open %s\n", path);
+            free(buf);
+            return 2;
+        }
+        if (fwrite(buf, 1u, w, f) != w) {
+            fclose(f);
+            printf("render: --mid: short write on %s\n", path);
+            free(buf);
+            return 2;
+        }
+        fclose(f);
+    }
+    for (i = 0u; i < song.ntracks; i++)
+        slides += tracks[i].slides;
+    /* SLIDES ARE ANNOUNCED, NOT JUST COUNTED IN A STRUCT. An SMF is opened
+     * by a human or a DAW; a silent fidelity loss in a file that looks
+     * complete is exactly the thing nobody notices until the mixdown. */
+    printf("render: SMF %s: %u track(s), %u bytes, ppq %u, %u BPM\n", path,
+        (unsigned)song.ntracks, (unsigned)w, (unsigned)ppq, (unsigned)bpm);
+    if (slides != 0u)
+        printf("render: %u slide(s) did NOT cross: SMF has no legato pitch\n",
+            (unsigned)slides);
+    rc = 0;
+    free(buf);
+    return rc;
+}
+
 static int render_song(const char *song_path, const char *out_path, const char *ev_path,
-    const char *stems_dir) {
+    const char *stems_dir, const char *mid_path) {
     struct RIStep steps[RI_MAX_STEPS];
     struct RIEvent ev[RI_SCHED_MAX_EVENTS];
     static struct RISegment segs[1];
@@ -656,6 +746,14 @@ static int render_song(const char *song_path, const char *out_path, const char *
         uint32_t depth = (g_depth == 24) ? STEM_WAV_PCM24 : STEM_WAV_PCM16;
         rc = render_stems(ev, nev, (uint32_t)total, stems_dir, g_rate, depth,
             (uint32_t)tempo * 1000u);
+        if (rc != 0)
+            return rc;
+    }
+    /* THE SMF RIDES THE SAME INVOCATION. It was always meant to: a second
+     * door for a second export format is a door nobody finds, and the
+     * whole point of folding it in was that the caller renders once. */
+    if (mid_path) {
+        rc = write_smf(ev, nev, mid_path, map.ppq, (uint32_t)tempo);
         if (rc != 0)
             return rc;
     }
@@ -1389,7 +1487,7 @@ int main(int argc, char **argv) {
     const char *song = NULL, *out = NULL, *ev = NULL, *math = NULL, *v808 = NULL;
     const char *v909 = NULL, *v909pack = NULL, *pack = NULL, *vpcf = NULL;
     const char *vfx = NULL, *vmix = NULL, *rbngsong = NULL;
-    const char *stems = NULL;
+    const char *stems = NULL, *mid = NULL;
     int i;
     if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("usage: render --song FILE --out FILE [--dump-events FILE]\n");
@@ -1402,6 +1500,7 @@ int main(int argc, char **argv) {
         printf("       render --fx dry|delay|chain --out FILE\n");
         printf("       render --mix four|solo --out FILE\n");
         printf("       [--stems DIR]  one WAV per mixer strip, into DIR\n");
+        printf("       [--mid FILE]   the same events as a Standard MIDI File\n");
         printf("       [--depth 16|24, default 16] [--rate 48000|44100, default 48000]\n");
         printf("       [--format wav|aiff, default wav]\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
@@ -1456,6 +1555,8 @@ int main(int argc, char **argv) {
                 return 2;
             }
         }
+        else if (strcmp(argv[i], "--mid") == 0 && i + 1 < argc)
+            mid = argv[++i];
         else if (strcmp(argv[i], "--stems") == 0 && i + 1 < argc)
             stems = argv[++i];
         else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
@@ -1472,11 +1573,14 @@ int main(int argc, char **argv) {
      * write a mix they did not ask for is the kind of default that ends up
      * in a folder. --out still works alongside it, which is how you get the
      * mix and the strips from one render. */
-    if (stems && !out && !song && !rbngsong) {
-        printf("render: --stems needs --song or --rbngsong\n");
+    /* --stems and --mid are each a COMPLETE INVOCATION on their own, for
+     * the same reason: the caller asked for files, and handing them a mix
+     * they did not request is a default that ends up in a folder. */
+    if ((stems || mid) && !out && !song && !rbngsong) {
+        printf("render: --stems/--mid need --song or --rbngsong\n");
         return 2;
     }
-    if (!out && !stems) {
+    if (!out && !stems && !mid) {
         printf("render: --out required\n");
         return 2;
     }
@@ -1550,5 +1654,5 @@ int main(int argc, char **argv) {
     }
     if (rbngsong)
         return render_rbngsong(rbngsong, out, ev);
-    return render_song(song, out, ev, stems);
+    return render_song(song, out, ev, stems, mid);
 }
