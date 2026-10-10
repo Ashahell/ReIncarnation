@@ -140,9 +140,14 @@ static void livedrv_devout(struct RILiveDriver *d) {
             d->late_accents++;
             continue;
         }
-        if (d->note_ch < 0 || d->note_ch > 15) {
-            /* Refused HERE, not downstream: see the note_ch comment in
-             * live_driver.h. An unassigned channel is never defaulted. */
+        /* The MELODIC channel is the user's choice and is refused when
+         * unassigned -- never defaulted, and refused HERE rather than
+         * downstream because ri_devout_note() clamps rather than refuses.
+         * The DRUM channel is not a choice at all: GM defines percussion on
+         * channel 10, so a user who only wants the 808 out does not have to
+         * configure a melodic channel first. */
+        if (rec[i].device != RI_DEVOUT_808 && rec[i].device != RI_DEVOUT_909
+            && (d->note_ch < 0 || d->note_ch > 15)) {
             d->devout_refused++;
             continue;
         }

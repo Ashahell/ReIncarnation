@@ -51,6 +51,25 @@
  * meanings in one byte that a reader has to guess between. */
 #define RI_DEVOUT_NOTE_OFF 0x02u
 
+/* ---------------------------------------------------------------------
+ * R6e: the five owner conventions (2026-10-10). Each is a decision, not a
+ * default, and each is pinned by t201 with a mutant that undoes it.
+ * ------------------------------------------------------------------- */
+
+/* DRUMS GO TO CHANNEL 10 AND IT IS NOT A CHOICE. GM defines percussion on
+ * channel 10 and nowhere else: a drum note on channel 3 selects a melodic
+ * instrument and plays a wrong pitched tone, or nothing at all. So
+ * `ri_devout_emit` OVERRIDES the channel for the 808 and the 909 and counts
+ * the override. A user who only wants the 808 out therefore needs no melodic
+ * channel configured, which is the other half of the decision. */
+#define RI_DEVOUT_GM_PERCUSSION 10u
+
+/* THE PROGRAM, for the one program change sent on enable. GM has no 303
+ * program, so ANY value here is a convention -- this one is Electric Bass
+ * (pick), the closest analogue to a 303 line, and it is a named constant
+ * precisely so that changing it is a one-line edit and not a search. */
+#define RI_DEVOUT_PROGRAM_ELECTRIC_BASS_PICK 34u   /* GM 35, 1-based */
+
 struct RIDevOut {
     uint8_t enabled;
     uint8_t assigned[16];    /* per-channel: 1 = a device claims it */
@@ -60,10 +79,28 @@ struct RIDevOut {
     uint32_t refused;        /* disabled, unassigned, or no room */
     uint32_t legato;         /* slides that emitted no note, by design */
     uint32_t emitted;        /* messages actually produced */
+    uint32_t override_ch;    /* drum notes moved onto GM channel 10 */
 };
 
 void ri_devout_init(struct RIDevOut *d, int on);
 int ri_devout_enabled(const struct RIDevOut *d);
+/* Set the enabled flag without sending anything. Disabling emits no byte and
+ * leaves no partial message: a producer that is off is silent on the wire,
+ * not merely ignored by the receiver. */
+void ri_devout_enable(struct RIDevOut *d, int on);
+
+/* R6e decision 5: ONE program change, on enable, on the MELODIC channel
+ * only -- never per note (that is a stream of noise), and never while
+ * disabled. Drums get none, because on channel 10 the kit IS the program.
+ *
+ * Two bytes: 0xCn, program. Returns 2, or 0 for any refusal: disabled, an
+ * unclaimed channel, or a channel above 15 (refused, never clamped -- 0 is
+ * the G7 remote and a clamp would select an instrument behind the user's
+ * back). The CALLER puts these in `midi_out`'s ring; this module has no ring
+ * and sends nothing. */
+uint8_t ri_devout_program(void);
+uint32_t ri_devout_program_change(struct RIDevOut *d, uint8_t *buf,
+    uint32_t cap, uint8_t channel);
 
 /* Claim / release a channel for a device. A device that has not claimed
  * one is refused; it is never defaulted. */
@@ -210,5 +247,7 @@ uint32_t ri_devout_clamped(const struct RIDevOut *d);
 uint32_t ri_devout_refused(const struct RIDevOut *d);
 uint32_t ri_devout_legato(const struct RIDevOut *d);
 uint32_t ri_devout_emitted(const struct RIDevOut *d);
+/* Drum notes whose channel was overridden onto GM channel 10, counted. */
+uint32_t ri_devout_override(const struct RIDevOut *d);
 
 #endif

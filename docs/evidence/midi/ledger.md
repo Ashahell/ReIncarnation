@@ -1295,3 +1295,84 @@ bytes.
 `midi_io/midi_devout.c` added to `ri_build_aros.sh`, `ri_build_v11.sh` and
 `build/portable.mk`. **AROS RIAPP only** — the standalone `MIDISEND` sender
 does not need it, because the sender only pumps a ring.
+
+## R6e: the five owner conventions, settled and pinned (2026-10-10)
+
+Owner decision, 2026-10-10, on the R7/R6 GM note conventions. These are
+**conventions, not placeholders** — every one is a place where a
+plausible-looking change is silently audible somewhere else, so each is
+pinned by t201 with a mutant that undoes it.
+
+1. **THE 303 GOES OUT AS-IS, NEVER TRANSPOSED.** `RI_303_BASE_NOTE` is 36
+   (key 0 = C2), a settled machine decision with its own evidence file. A GM
+   plugin puts key 0 near middle C, so the same pattern arrives two octaves
+   lower than a GM user expects. **The wire agreeing with the synth is worth
+   more than the wire agreeing with a convention**; the cost is one
+   session-level transpose in the DAW, done once. `CA` adds 24 and is killed.
+2. **DRUMS GO TO CHANNEL 10 AND IT IS NOT A CHOICE.** GM defines percussion
+   on channel 10 and nowhere else — a drum note on channel 3 selects a
+   melodic instrument and plays a wrong pitched tone, or nothing.
+   `ri_devout_emit` **overrides** the channel for the 808/909 and counts the
+   override (`CB`, `CC`). Two consequences are pinned because either one on
+   its own would be a bug:
+   - **Channel 10 is claimed implicitly** (`CD`). Without that, the override
+     moves the note to a channel nothing had claimed and every drum is
+     refused for arriving where it was just sent.
+   - **The melodic channel stays opt-in** (`CE`, and the live driver's own
+     half, `CP`). Forcing drums to 10 must not quietly make an unassigned
+     melodic channel legal — that is R6a's law and channel 0 is the G7
+     remote. The **live driver** was changed to match: drums no longer
+     require a configured melodic channel, so a user who only wants the 808
+     out is not made to configure one first.
+3. **VELOCITY IS 112 ACCENTED / 64 PLAIN, LIVE AND EXPORT ALIKE.** t198
+   already pinned that `ri_devout_velocity()` and `ri_smf_velocity()` agree;
+   `CF` and `CG` re-pin it now that it is a decision. **The 303 row is
+   `{key, flags}` with no level field, so two levels is the WHOLE dynamic
+   range of this wire** — not a stand-in for a bigger one. That is a
+   property of the machine, not a shortcut here.
+4. **A SLIDE IS SILENT.** Legato, no re-attack, no bytes (`CH`). The
+   consequence is a real fidelity limit and is recorded rather than hidden:
+   **a DAW recording a slide holds the STARTING pitch and never learns the
+   destination, so a recorded slide plays back at the wrong pitch.** Owner
+   took "accept it". Emitting pitch bend would fix it and make the wire
+   stateful; it is the obvious future answer if this limit is felt.
+5. **ONE PROGRAM CHANGE ON ENABLE, MELODIC CHANNEL ONLY** (`CI`–`CO`). Not
+   per note — that is a stream of noise — and not while disabled, since E0
+   means not one byte. Drums get none, because on channel 10 **the kit IS
+   the program.** Refusals pinned: an unclaimed channel (`CK`, it would
+   select an instrument behind the user's back), a channel above 15
+   (**refused, never clamped** — `CJ`), and a one-byte buffer (`CO` —
+   truncating `0xCn,pp` to `0xCn` selects whatever program the receiver
+   last had, the opposite of self-describing). It counts as an emitted
+   message (`CM`).
+
+**THE PROGRAM NUMBER IS THE ONE THING I PICKED.** GM has no 303 program, so
+any value is a convention. `RI_DEVOUT_PROGRAM_ELECTRIC_BASS_PICK` = 34
+(GM 35 1-based), the closest analogue to a 303 line, and a **named constant
+so that changing it is a one-line edit and not a search.**
+
+### Mutation results
+
+- **t201 + the live driver: 21 mutants, 19 killed, 2 equivalent.**
+- **CE is equivalent**: by the time the implicit claim runs, `channel` has
+  already been set to 10, so claiming `assigned[channel]` re-claims the slot
+  it just claimed. The **identical object hash** confirms it is equivalent
+  by construction, not untested.
+- Three survived a first pass and all three were test gaps, one of them the
+  same mistake as `GJ` in R6c and worth repeating: **`CJ` ran against a
+  producer with nothing assigned**, so the clamp landed on an unclaimed
+  channel and the claim check refused it for an unrelated reason. Claiming
+  channel 8 first is what makes clamping and refusing distinguishable.
+- Two mutations **failed to build and so proved nothing** (`CF`, `CH`): both
+  left a parameter unused, and `-Werror` caught it. A mutation that does not
+  compile is not a survivor and not a pass either, and a harness that scored
+  them as "killed" would be reporting a compiler error as test evidence.
+
+### Still open
+
+**R6f — the app-level switch and the melodic channel.** `s_lv.drv.dev_out` /
+`note_ch` from `riapp.c`, the one program change pushed into the ring on
+enable, and the on-panel controls for the E0 setting and the channel map.
+**Blocked on two owner answers: which E0 switch carries MIDI note output
+(the existing clock-out switch, or its own), and which channel the melodic
+303/808/909 notes play on.**

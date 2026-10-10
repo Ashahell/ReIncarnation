@@ -16,6 +16,34 @@ void ri_devout_init(struct RIDevOut *d, int on) {
     d->assigned[0] = 1u;
 }
 
+void ri_devout_enable(struct RIDevOut *d, int on) {
+    if (!d)
+        return;
+    d->enabled = on ? 1u : 0u;
+}
+
+uint8_t ri_devout_program(void) {
+    return (uint8_t)RI_DEVOUT_PROGRAM_ELECTRIC_BASS_PICK;
+}
+
+uint32_t ri_devout_program_change(struct RIDevOut *d, uint8_t *buf,
+    uint32_t cap, uint8_t channel) {
+    if (!d || !buf || cap < 2u || !d->enabled)
+        return 0u;
+    if (channel > 15u)
+        return 0u;       /* refuse, never clamp: 0 is the G7 remote */
+    if (!d->assigned[channel])
+        return 0u;       /* an unclaimed channel selects nothing on its own */
+    buf[0] = (uint8_t)(0xC0u | channel);
+    buf[1] = ri_devout_program();
+    d->emitted++;
+    return 2u;
+}
+
+uint32_t ri_devout_override(const struct RIDevOut *d) {
+    return d ? d->override_ch : 0u;
+}
+
 int ri_devout_enabled(const struct RIDevOut *d) {
     return (d && d->enabled) ? 1 : 0;
 }
@@ -294,8 +322,24 @@ uint32_t ri_devout_emit(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
         note = ri_devout_drum808_note(sound);
     else if (device == RI_DEVOUT_909)
         note = ri_devout_drum909_note(sound);
-    else
+    else {
         note = x->note;   /* melodic: ri_p303_note() already resolved it */
+    }
+    if (device == RI_DEVOUT_808 || device == RI_DEVOUT_909) {
+        /* Decision 2: GM defines percussion on channel 10 and nowhere else,
+         * so the caller's melodic channel does not apply to a drum. The
+         * override is counted: a session where most notes arrive on a
+         * channel the caller never chose should be visible, not silent. */
+        if (channel != RI_DEVOUT_GM_PERCUSSION)
+            d->override_ch++;
+        channel = RI_DEVOUT_GM_PERCUSSION;
+        /* Claimed implicitly, because it is not a choice: leaving the
+         * assignment requirement in place would mean the override moved the
+         * note to a channel nothing had claimed, and every drum would be
+         * refused for arriving where it was just sent. The MELODIC channel
+         * stays opt-in -- an unclaimed one is still refused there. */
+        d->assigned[RI_DEVOUT_GM_PERCUSSION] = 1u;
+    }
     if (note == 0u) {
         d->refused++;
         return 0u;

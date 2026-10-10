@@ -121,6 +121,32 @@ int main(void) {
         (unsigned)ri_engine_note_pending(&s_ses.eng));
     RI_ASSERT(ri_devout_emitted(&s_dev) == 0u, "nothing was emitted");
 
+    /* --- DRUMS DO NOT NEED A MELODIC CHANNEL ------------------------ */
+    /* GM defines percussion on channel 10, so the drum channel is not a
+     * choice, and making the user configure a melodic channel before the
+     * 808 can be heard is a step that buys nothing. The melodic path is
+     * still refused below -- this must not quietly make an unassigned
+     * melodic channel legal. */
+    fixture();
+    s_drv.clk_out = &s_out;
+    midi_out_enable(&s_out, 1);
+    s_drv.dev_out = &s_dev;
+    s_drv.note_ch = -1;                  /* still unassigned */
+    ev(RI_EV_NOTE_ON, 2u, 5u, 5u, 0u);  /* an 808 hit */
+    n = render();
+    RI_ASSERT(n == 3u, "a drum reaches the wire with no melodic channel (%u)",
+        (unsigned)n);
+    RI_ASSERT(s_wire[0] == (uint8_t)(0x90u | RI_DEVOUT_GM_PERCUSSION),
+        "on GM channel 10 (%02X)", (unsigned)s_wire[0]);
+    RI_ASSERT(s_drv.devout_refused == 0u,
+        "and nothing was refused (%lu)", (unsigned long)s_drv.devout_refused);
+    ev(RI_EV_NOTE_ON, 0u, 0u, 46u, 0u);  /* a 303 note, same state */
+    n = render();
+    RI_ASSERT(n == 0u, "but a melodic note with no channel still does not (%u)",
+        (unsigned)n);
+    RI_ASSERT(s_drv.devout_refused == 1u, "and IS refused (%lu)",
+        (unsigned long)s_drv.devout_refused);
+
     /* --- attached, UNASSIGNED channel: refused, and counted ----------- */
     /* s_drv.note_ch is still -1. This must NOT reach ri_devout_note, which
      * clamps a channel above 15 instead of refusing it -- 255 would clamp
