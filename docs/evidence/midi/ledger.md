@@ -938,3 +938,47 @@ comments are what a reboot takes away.
   tempo 500000 us/qn, and a data track carrying
   `FF 03 04 "303A" | 00 90 24 70 | 30 80 24 40 | FF 2F 00` — note-on with
   accent velocity, delta 48 ticks (VLQ `0x30`), a real note-off, EOT.
+
+## R7b: the SMF reader, and the exporter bug only a reader could find (2026-10-10)
+
+- **`ri_smf_read()`**, t194. Quantises to 16ths into `struct RIStep` and
+  **reports rather than guesses**: six counts (`stuck_notes`, `orphan_off`,
+  `bad_note`, `past_end`, `tempo_changes`, `tracks`) because a flag set can
+  only say *that* something went wrong, and the caller's job is to say which.
+- **WRITING THE IMPORTER FOUND A REAL EXPORTER BUG.** **Every event in a
+  track -- channel voice, meta AND sysex alike -- is preceded by a delta
+  time**, and `put_text()`/`put_tempo()` wrote none. So **the exporter's own
+  files were malformed**: a conforming reader consumes the `0xFF` as a delta
+  time and the track falls apart. Nothing in the exporter's tests could have
+  found it, because every one of them asserted on functions and never once
+  read the file back. *This is the whole argument for having both halves.*
+- **And the reader had its own version of the same bug**, one level in: the
+  meta skip advanced `2 + length` and omitted the WIDTH of the length's own
+  variable-length field, landing the cursor one byte early on **every track
+  that carries a name** -- which is every track this exporter writes.
+  Mutant TE pins it.
+- **FOUR MORE OF MY OWN WRONG BELIEFS, all caught by the round trip:**
+  - **Chunk lengths are fixed 4-byte big-endian; VLQ is for delta times
+    only.** Same error as R7a, now pinned in both directions.
+  - **`ri_smf_vlq` returns a length, not an offset.**
+  - **`0x00,0x00,0x00` is THREE bytes.** I wrote `0,0,0x0` for a two-byte
+    division field, making the header fifteen bytes and shifting every
+    following offset by one. It presented as "the importer refuses to read
+    its own file", which is the importer being correct.
+  - **48 000 samples at 48 kHz with 480 ppq is FOUR 16ths, not two** -- what
+    you get by forgetting the sample rate.
+- **THE LAWS THAT MATTER ARE ALL INVISIBLE WHEN BROKEN:** a note-on with
+  velocity 0 is a note-off (otherwise the note sounds forever); a note still
+  held at end-of-track is closed **and counted** (a DAU saving mid-note is
+  routine, and dropping it loses a hit); an orphan note-off is ignored and
+  counted, never matched to whatever is nearest; a note above 127 is clamped
+  **and counted per event**; events past the caller's array are dropped
+  **and counted**, so a long pattern's ending never disappears silently.
+- **THE IMPORTER BOUNDS A DECLARED LENGTH BEFORE STEPPING BY IT** (mutant
+  TD). A file claiming a 2 GiB track is four bytes of header and nonsense,
+  and a walk that trusts it leaves its own allocation. This is the same law
+  that killed SA in R7a, arrived at from the reading side.
+- **RESULT: 10 mutants, 10 killed**, scored on the return code so a crash
+  cannot read as a pass. Two survived a first pass -- the note clamp and the
+  past-the-end count -- because no test had built a file that reached them;
+  both cases now exist.

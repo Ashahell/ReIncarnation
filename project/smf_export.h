@@ -30,6 +30,7 @@
 #ifndef RI_SMF_EXPORT_H
 #define RI_SMF_EXPORT_H
 #include <stdint.h>
+#include "engine/seq/sched.h"
 
 /* Event types this writer consumes. Deliberately its own small set rather
  * than the engine's RI_EV_*: the SMF has a fixed vocabulary and mapping onto
@@ -101,5 +102,34 @@ uint8_t ri_smf_velocity(uint16_t flags);
 /* Write the whole file. Returns bytes written, or 0 on any refusal (NULL,
  * or a buffer too small). Never writes a partial file header. */
 uint32_t ri_smf_write(const struct RISmfSong *s, uint8_t *out, uint32_t cap);
+
+/* ---------------------------------------------------------------------
+ * IMPORT (R7b). Reads a file someone else wrote, which is the whole
+ * difficulty: most of what arrives is not what the writer intended.
+ * ------------------------------------------------------------------- */
+
+/* What the importer could not represent. Every field is a COUNT, never a
+ * flag, because the caller's job is to tell the user which of six things
+ * went wrong, and a flag set can only say that one of them did. */
+struct RISmfImport {
+    uint16_t ppq;            /* as read from the header */
+    uint32_t steps;          /* 16th steps written */
+    uint32_t stuck_notes;    /* note-ons still held at end-of-track */
+    uint32_t orphan_off;     /* note-offs with no matching note-on */
+    uint32_t bad_note;       /* note numbers clamped into 0..127 */
+    uint32_t past_end;       /* events beyond the caller's cap */
+    uint32_t tempo_changes;  /* read and REPORTED, never applied */
+    uint32_t tracks;         /* data tracks seen */
+    uint8_t  channels;       /* distinct channels carrying notes */
+};
+
+/* Quantise to 16ths of a step array. Returns the steps written, or 0 for
+ * any refusal (NULL, bad magic, ppq 0, a chunk length that runs past the
+ * buffer). A malformed file is refused rather than parsed: an importer
+ * that trusts a declared length walks off its own allocation.
+ *
+ * `ppq_in` is the caller's fallback for a header that declares 0. */
+uint32_t ri_smf_read(const uint8_t *buf, uint32_t len, struct RIStep *out,
+    uint32_t cap, uint16_t ppq_in, struct RISmfImport *rep);
 
 #endif

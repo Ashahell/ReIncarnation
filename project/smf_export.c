@@ -111,9 +111,15 @@ static uint32_t put16(uint8_t *o, uint32_t cap, uint32_t at, uint32_t v) {
     return put(o, cap, at, v & 0xFFu);
 }
 /* Meta 0x51 set-tempo, microseconds per quarter note. */
+/* EVERY event in a track -- channel voice, meta AND sysex alike -- is
+ * preceded by a delta time. My exporter wrote meta events with none, which
+ * makes its own files malformed: a reader consumes the 0xFF as a delta and
+ * the track falls apart. Only writing an IMPORTER found this, which is the
+ * argument for having both halves. */
 static uint32_t put_tempo(uint8_t *o, uint32_t cap, uint32_t at, uint32_t bpm_milli) {
     uint32_t usq = (bpm_milli > 0u)
         ? (uint32_t)((60000000ULL / (uint64_t)bpm_milli)) : 500000u;
+    at = put(o, cap, at, 0x00u);      /* delta 0 */
     at = put(o, cap, at, 0xFFu);
     at = put(o, cap, at, 0x51u);
     at = put(o, cap, at, 0x03u);
@@ -128,6 +134,7 @@ static uint32_t put_text(uint8_t *o, uint32_t cap, uint32_t at, uint8_t type,
     if (s)
         while (s[n] && n < 127u)
             n++;
+    at = put(o, cap, at, 0x00u);      /* delta 0 -- meta events need one too */
     at = put(o, cap, at, 0xFFu);
     at = put(o, cap, at, type);
     at = put(o, cap, at, n);
@@ -238,4 +245,199 @@ uint32_t ri_smf_write(const struct RISmfSong *s, uint8_t *out, uint32_t cap) {
             return 0u;
     }
     return at;
+}
+/* ---------------------------------------------------------------------
+ * IMPORT (R7b).
+ * ------------------------------------------------------------------- */
+
+/* One channel's held notes. 128 slots per channel is the whole MIDI note
+ * range, which is the point: a set would be smaller but would have to
+ * answer "is 44 already sounding", and a bitmask answers that in one
+ * operation without a scan. */
+struct HeldSet { uint8_t on[16][128]; };
+
+static void step_set(struct RIStep *out, uint32_t cap, uint32_t step,
+    uint8_t note, uint8_t accent) {
+    if (!out || step >= cap)
+        return;
+    if (out[step].flags & RI_STEP_REST) {
+        out[step].note = note;
+        out[step].flags = (uint8_t)(accent ? RI_STEP_ACCENT : 0u);
+    }
+}
+
+static void step_rest(struct RIStep *out, uint32_t cap, uint32_t step) {
+    if (out && step < cap && (out[step].flags & RI_STEP_REST) != 0u)
+        out[step].flags = (uint8_t)(out[step].flags | RI_STEP_REST);
+}
+
+uint32_t ri_smf_read(const uint8_t *buf, uint32_t len, struct RIStep *out,
+    uint32_t cap, uint16_t ppq_in, struct RISmfImport *rep) {
+    struct HeldSet held;
+    uint32_t p = 0u, i, t16;
+    uint16_t ppq;
+    int saw_hdr = 0;
+
+    if (rep)
+        memset(rep, 0, sizeof *rep);
+    if (!buf || !out || cap == 0u || len < 14u)
+        return 0u;
+    if (buf[0] != 'M' || buf[1] != 'T' || buf[2] != 'h' || buf[3] != 'd')
+        return 0u;
+    /* The header length is FIXED 4 bytes big-endian (see the writer: VLQ is
+     * for delta times only). Anything but 6 is not a header we understand. */
+    if (ri_smf_chunk_len(buf + 4u, len - 4u) != 6u)
+        return 0u;
+    ppq = (uint16_t)(((uint32_t)buf[12] << 8) | (uint32_t)buf[13]);
+    if (ppq == 0u)
+        ppq = ppq_in;
+    if (ppq == 0u)
+        return 0u;              /* refuse rather than divide */
+    saw_hdr = 1;
+    if (rep) {
+        rep->ppq = ppq;
+    }
+
+    /* Everything not a note starts as a rest, so an untouched step reads as
+     * a rest rather than as a note 0 the caller has to second-guess. */
+    for (i = 0u; i < cap; i++)
+        out[i].note = 0u, out[i].flags = (uint8_t)RI_STEP_REST;
+    memset(&held, 0, sizeof held);
+    p = 14u;
+
+    while (p + 8u <= len) {
+        uint32_t tlen, q, tick = 0u;
+        if (buf[p] != 'M' || buf[p+1] != 'T' || buf[p+2] != 'r' || buf[p+3] != 'k')
+            break;
+        tlen = ri_smf_chunk_len(buf + p + 4u, len - (p + 4u));
+        /* BOUND the declared length BEFORE stepping by it. This is the whole
+         * difference between an importer and a crash: a file that claims a
+         * 2 GiB track is four bytes of header followed by nonsense. */
+        if (tlen == 0u || (p + 8u + tlen) > len)
+            return 0u;
+        q = p + 8u;
+        if (rep)
+            rep->tracks++;
+        while (q < p + 8u + tlen) {
+            uint32_t used = 0u, d;
+            uint8_t st;
+            d = ri_smf_vlq_read(buf + q, p + 8u + tlen - q, &used);
+            if (used == 0u)
+                break;          /* unterminated delta: stop the track */
+            q += used;
+            tick += d;
+            if (q >= p + 8u + tlen)
+                break;
+            st = buf[q];
+            if (st == 0xFFu) {                        /* meta */
+                uint32_t mlen = 0u, mu = 0u;
+                uint8_t type;
+                if (q + 2u >= p + 8u + tlen)
+                    break;
+                type = buf[q + 1u];
+                mlen = ri_smf_vlq_read(buf + q + 2u, p + 8u + tlen - (q + 2u), &mu);
+                if (mu == 0u)
+                    break;
+                if (type == 0x51u && rep)
+                    rep->tempo_changes++;    /* read, reported, never applied */
+                /* 2 fixed bytes (FF, type) + the WIDTH of the length field
+                 * + the length itself. Omitting `mu` lands the cursor one
+                 * byte early on every track that carries a name, which is
+                 * every track this exporter writes. */
+                q += 2u + mu + mlen;
+                continue;
+            }
+            if (st == 0xF0u || st == 0xF7u) {         /* sysex: skip its VLQ */
+                uint32_t sl = 0u, su = 0u;
+                sl = ri_smf_vlq_read(buf + q + 1u, p + 8u + tlen - (q + 1u), &su);
+                if (su == 0u)
+                    break;
+                q += 1u + su + sl;    /* 1 status + length FIELD + payload */
+                continue;
+            }
+            /* Channel voice. NOTE_OFF is 2 data bytes; NOTE_ON with velocity
+             * 0 is a note-off too, and treating it as a note-on is how an
+             * import leaves a note sounding forever. */
+            {
+                uint8_t ch = (uint8_t)(st & 0x0Fu);
+                uint8_t note;
+                uint8_t vel;
+                int is_on, is_off;
+                if (q + 2u >= p + 8u + tlen)
+                    break;
+                note = buf[q + 1u];
+                vel = buf[q + 2u];
+                is_on = ((st & 0xF0u) == 0x90u);
+                is_off = ((st & 0xF0u) == 0x80u);
+                if (is_on && vel == 0u)
+                    is_off = 1, is_on = 0;
+                if (!is_on && !is_off) {               /* CC, pitch bend, ... */
+                    q += 3u;
+                    continue;
+                }
+                if (note > 127u) {
+                    if (rep)
+                        rep->bad_note++;
+                    note = 127u;
+                }
+                /* 16ths: ticks -> steps. ppq is per quarter note, so a 16th
+                 * is ppq/4 ticks. */
+                t16 = (ppq >= 4u) ? (tick / (uint32_t)(ppq / 4u)) : tick;
+                if (is_on) {
+                    if (t16 < cap) {
+                        step_set(out, cap, t16, note, (uint8_t)(vel >= 100u ? 1 : 0));
+                        held.on[ch][note] = 1u;
+                    } else if (rep) {
+                        rep->past_end++;
+                    }
+                } else {
+                    if (held.on[ch][note]) {
+                        held.on[ch][note] = 0u;
+                        step_rest(out, cap, t16);
+                    } else if (rep) {
+                        rep->orphan_off++;
+                    }
+                }
+                q += 3u;
+            }
+        }
+        p += 8u + tlen;
+    }
+    if (!saw_hdr)
+        return 0u;
+
+    /* Anything still sounding at end-of-track was saved mid-note, which is
+     * routine. Close it and COUNT it: the note stays in the pattern (so the
+     * hit is not lost) and the caller is told, so it can be shown. */
+    for (i = 0u; i < 16u; i++) {
+        uint32_t note;
+        for (note = 0u; note < 128u; note++) {
+            if (held.on[i][note]) {
+                held.on[i][note] = 0u;
+                if (rep)
+                    rep->stuck_notes++;
+            }
+        }
+    }
+    /* The pattern's length is where the LAST note is, not `cap` and not the
+     * first rest. A pattern with a rest in the middle is the normal case, and
+     * stopping at the first rest reports a two-step pattern for four notes. */
+    if (rep) {
+        uint32_t last = 0u;
+        for (i = 0u; i < cap; i++) {
+            if ((out[i].flags & RI_STEP_REST) == 0u)
+                last = i + 1u;
+        }
+        rep->steps = last;
+        rep->channels = 0u;
+        return last;
+    }
+    {
+        uint32_t last = 0u;
+        for (i = 0u; i < cap; i++) {
+            if ((out[i].flags & RI_STEP_REST) == 0u)
+                last = i + 1u;
+        }
+        return last;
+    }
 }
