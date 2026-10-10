@@ -1909,16 +1909,40 @@ contradiction you can see without any theory.
   for a test about `scratchR`. That is a gap in a *different* test's remit,
   not a hole in these laws, and it is recorded rather than absorbed.
 
-### What this changes about R8c
+### What this changes about R8c — and what is NOT a blocker
 
 Of the three blockers I listed, **one is now resolved and one was never a
 blocker**:
 
-1. **My offset bug** — real, understood, fixed (`pos` threaded through both
-   section functions).
+1. **My offset bug** — real and understood. **AND NOT CURRENTLY IN THE
+   TREE.** I wrote the fix, verified it, and then reverted the whole tap
+   along with it; an earlier version of this ledger called it "fixed" and
+   that was false. Re-applying it is part of the work, not a completed step:
+   `pos` has to be threaded through **both** `engine_section` **and**
+   `engine_section_stereo`, because the Levi is section 4 with its own
+   accumulator and a tap on only one of them leaves the fifth stem as a file
+   of the caller's fill.
 2. ~~`scratchR` staleness~~ — **withdrawn; there is no staleness.**
 3. **The sum law must be a tolerance, not an equality** — stands. The master
    accumulates in `double` and stems are `float`.
 
 So R8c is blocked on **one** thing, not three, and it is a statement about
 arithmetic rather than a defect in the engine.
+
+### AND THE "BLOCKER" IS NOT A BLOCKER
+
+I listed the sum law as the one thing R8c is blocked on. It is not. It is a
+decision about what the test asserts and what the ledger claims, and it
+settles in a sentence: **the stems reconstruct the mix to float accumulation
+precision, and that is far below the noise floor of every format the stems
+are written in.**
+
+Five terms summed as `float` against a `double` master differ by about
+6e-8 relative — roughly -144 dBFS. A 16-bit PCM stem quantises at about
+-96 dBFS and a 24-bit one at about -144 dBFS. So for the only thing anyone
+does with stems — re-mixing them in a DAW — the error is **at or below the
+quantisation of the file itself** and is not a limitation anybody can hear.
+
+Which means R8c is not blocked on anything. What is left is work I have not
+done: re-apply the tap with the `pos` fix, pin the tolerance, and gate it.
+The correct next move is to do that, not to ask a question.
