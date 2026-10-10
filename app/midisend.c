@@ -78,6 +78,26 @@ static char *put_kv(char *p, const char *key, uint32_t v) {
     return put_u32(p, v);
 }
 
+
+/* PROGRESS GOES TO A FILE, NOT Printf. The lane agent captures script output
+ * through a pipe, so a child's stdout is BLOCK buffered: while the tool is
+ * hung, not one byte reaches the console. That is why two hung runs showed
+ * no output at all -- not even the setup prints that had certainly executed
+ * -- and it is the same trap as MIDIRX, which wrote MIDIRX.LOG through
+ * dos.library for exactly this reason. A proof tool that only speaks on
+ * exit says nothing at all when it does not exit.
+ *
+ * dos Write() goes straight to the filesystem with no userspace buffer, so
+ * each line is on the device before the next statement runs. */
+static BPTR s_prog;
+static void prog(const char *s) {
+    LONG n = 0;
+    while (s[n])
+        n++;
+    if (s_prog)
+        Write(s_prog, (APTR)s, n);
+}
+
 static void on_midi(void *user, const uint8_t *msg, uint32_t len,
     uint64_t time_us) {
     (void)user;
@@ -102,9 +122,22 @@ static void on_midi(void *user, const uint8_t *msg, uint32_t len,
  * inside the pump with no lifetime guarantee on argv. */
 static char s_send_user[64];
 
+static uint32_t s_sent_bytes;   /* what actually left for camd */
+
 static int send_one(const uint8_t *b, uint32_t n, void *user) {
+    int r;
     (void)user;
-    return ri_pal_midi_send(s_send_user, b, n);
+    r = ri_pal_midi_send(s_send_user, b, n);
+    /* A CROSS-CHECK, not the reported figure. `sent` is reported from what
+     * midi_out_pump says it pumped; this counts what actually left the sink.
+     * An earlier version reported sent=0 because the counter was assigned
+     * inside a timing loop a later edit removed, and `lost` is computed from
+     * it -- so a zero there silently turned every run into "lost=0". A check
+     * that cannot fail is not a check, and two independent sources for one
+     * number is cheaper than discovering that again. */
+    if (r == 0)
+        s_sent_bytes += n;
+    return r;
 }
 
 /* CLOCKLOOP <secs>: send and receive inside ONE process.
@@ -128,7 +161,7 @@ static int send_one(const uint8_t *b, uint32_t n, void *user) {
  * are VM time. The interval numbers that mean something come from the Dell.
  */
 static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
-    ULONG i, sent = 0;
+    ULONG i, pumped = 0u;
     struct Device *tkb = NULL;
     BPTR lfh;
     char *p;
@@ -152,20 +185,36 @@ static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
     uint64_t s_efreq = 0ULL;
     uint64_t us0 = 0ULL;
     const uint32_t SR = 48000u;
+    {   /* Progress goes beside the caller's log, not at a hard-coded path:
+         * the portability gate (T6) forbids Amiga volume literals outside
+         * platform/aros/, and deriving it also means the progress file and
+         * the result file can never end up on different volumes. */
+        char pp[96];
+        uint32_t k = 0u;
+        while (logpath[k] && k + 3u < sizeof pp) { pp[k] = logpath[k]; k++; }
+        pp[k++] = '.';
+        pp[k++] = 'P';
+        pp[k] = 0;
+        s_prog = Open((CONST_STRPTR)pp, MODE_NEWFILE);
+    }
+    prog("A entered\n");
     if (ri_pal_midi_open_in(cluster, on_midi, NULL) != 0) {
         Printf((CONST_STRPTR)"CLOCKLOOP: receiver open refused\n");
         return 21;
     }
+    prog("B receiver open\n");
     /* A MICROHZ timer opened PROPERLY, as an OpenDevice handshake on a
      * real request -- the thing MIDIRX got wrong. */
     tp = CreateMsgPort();
     if (tp)
         trq = (struct timerequest *)CreateIORequest(tp, sizeof(struct timerequest));
+    prog("C port+request made\n");
     if (!trq || OpenDevice((STRPTR)"timer.device", UNIT_MICROHZ,
             (struct IORequest *)trq, 0L) != 0) {
         Printf((CONST_STRPTR)"CLOCKLOOP: timer.device refused\n");
         return 24;
     }
+    prog("D timer opened\n");
     if (!tkb)
         tkb = (struct Device *)trq->tr_node.io_Device;
     s_timer_base = (struct Library *)tkb;
@@ -173,6 +222,10 @@ static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
         struct EClockVal t0;
         s_efreq = ReadEClock(&t0);
     }
+    { char b[48]; char *q = b; ULONG v = (ULONG)s_efreq; const char *pr = "E eclock freq ";
+      while (*pr) *q++ = *pr++;
+      do { *q++ = (char)('0' + (int)(v % 10UL)); v /= 10UL; } while (v);
+      *q++ = '\n'; *q = 0; prog(b); }
     if (!s_efreq) {
         Printf((CONST_STRPTR)"CLOCKLOOP: no EClock frequency\n");
         return 24;
@@ -180,11 +233,30 @@ static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
     midi_out_init(&out, SR, 140000u /* 140 BPM in milli */, 0u /* no lead */);
     midi_out_enable(&out, 1);
     midi_out_start(&out, 0u);
+    /* No signal is allocated. There is nothing to wait on: this SDK's
+     * struct IORequest has no io_Signal, so the timer reply arrives as a
+     * MESSAGE and WaitPort is the whole of the wait. An earlier version
+     * allocated one and Wait()ed on it -- an unconditional hang. */
+    prog("F producer started\n");
     Printf((CONST_STRPTR)"CLOCKLOOP: %lu s on %s at 140 BPM\n", secs, (IPTR)cluster);
+    prog("G entering loop\n");
     for (i = 0UL; i < secs * 200UL; i++) {   /* 200 Hz service rate */
         struct EClockVal ec;
         uint64_t us, samp, eticks;
-        LONG sigs;
+        /* Progress, coarse. This loop has now hung the Dell twice with no
+         * crash requester, so the ONLY evidence available is which line it
+         * reached last. Printed from a lane whose console is legible
+         * (riqemu1) rather than the one that cannot be read. */
+        if ((i % 200u) == 0u) {
+            char b[80]; char *q = b; const char *pr = "H iter "; ULONG v = i;
+            while (*pr) *q++ = *pr++;
+            do { *q++ = (char)('0' + (int)(v % 10UL)); v /= 10UL; } while (v);
+            pr = " sent "; while (*pr) *q++ = *pr++;
+            v = pumped; do { *q++ = (char)('0' + (int)(v % 10UL)); v /= 10UL; } while (v);
+            pr = " clocks "; while (*pr) *q++ = *pr++;
+            v = s_clocks; do { *q++ = (char)('0' + (int)(v % 10UL)); v /= 10UL; } while (v);
+            *q++ = '\n'; *q = 0; prog(b);
+        }
         ReadEClock(&ec);
         eticks = ((uint64_t)ec.ev_hi << 32) | (uint64_t)ec.ev_lo;
         us = eticks / s_efreq * 1000000u + (eticks % s_efreq) * 1000000u / s_efreq;
@@ -193,27 +265,65 @@ static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
         samp = (us - us0) * (uint64_t)SR / 1000000ULL;
         /* Render at the sample position this wall clock has reached, then
          * carry whatever it produced to camd. */
+        if ((i % 200u) == 0u)
+            Printf((CONST_STRPTR)"CLOCKLOOP: iter %lu eclock ok samp %lu\n",
+                (ULONG)i, (ULONG)samp);
         midi_out_render(&out, samp);
-        midi_out_pump(&out, send_one, 0, 64u);
-        /* Service the 1 ms timer properly: an OPEN request, TR_ADDREQUEST
-         * set, SendIO/WaitPort/WaitIO in that order, GetMsg NOT also
-         * called (WaitIO removes the message). */
-        trq->tr_node.io_Command = TR_ADDREQUEST;
-        trq->tr_time.tv_secs = 0;
-        trq->tr_time.tv_micro = 1000;
-        SendIO((struct IORequest *)trq);
-        WaitPort(tp);
-        sigs = Wait(0L);
-        if (CheckIO((struct IORequest *)trq))
-            AbortIO((struct IORequest *)trq);
-        WaitIO((struct IORequest *)trq);
-        if (sigs != 0)
-            break;
+        if ((i % 200u) == 0u)
+            prog("   rendered\n");
+        pumped += midi_out_pump(&out, send_one, 0, 64u);
+        if ((i % 200u) == 0u)
+            prog("   pumped\n");
+        /* Service the 1 ms timer, on the pattern platform/aros/midi_camd.c
+         * already uses and proves: an allocated signal, SetSignal(0) to arm
+         * it BEFORE SendIO, then Wait on that bit.
+         *
+         * The first version of this loop did `WaitPort(tp)` then
+         * `Wait(0L)` -- waiting on NO signal bits, which is undefined and
+         * on this lane hung forever, taking the agent's whole command path
+         * with it and needing an owner reboot. SetSignal-before-SendIO is
+         * not optional: an unarmed signal can miss the reply entirely, so
+         * the wait never returns.
+         *
+         * GetMsg is deliberately NOT called here: WaitIO removes the
+         * message, and doing both corrupts the port's list. That was one
+         * of MIDIRX's four faults and the fix belongs in the code that
+         * replaces it. */
+        /* NO SendIO IN THIS LOOP, AND THAT IS THE POINT.
+         *
+         * Three attempts at servicing a 1 ms timer here all failed, and the
+         * failures were only ever visible as "the run never finished" or as
+         * a crash three layers away:
+         *
+         *  - reusing the request passed to OpenDevice: hung the lane;
+         *  - SetSignal + Wait on an allocated bit: hung the lane, because
+         *    this SDK's struct IORequest has NO io_Signal, so nothing ever
+         *    raises that bit and Wait(sigbit) is an unconditional hang;
+         *  - a fresh request per iteration: SendIO reached Exec_77_SendIO
+         *    with RSI=0, a NULL io_Request, and faulted on its first
+         *    dereference.
+         *
+         * None of that is needed. The loop wants a ~1 ms service tick, and
+         * Delay(1) provides one -- it is what the delay-loop CLOCKLOOP used,
+         * and that version COMPLETED on both lanes. ReadEClock needs the
+         * timer's library base and its frequency, both of which come from
+         * the OpenDevice handshake below, not from a running timer stream.
+         *
+         * So there is no SendIO here at all. What is being measured is the
+         * PRODUCER's schedule -- the thing this proof exists for -- and the
+         * pacing only has to be finer than a tick interval, which Delay(1)
+         * is. The one thing this gives up is 20 ms service granularity,
+         * which is recorded rather than hidden.
+         */
+        Delay(1);
         ri_pal_midi_poll();
-        sent = midi_out_pending(&out);
     }
     (void)tkb;
-    sent = midi_out_pending(&out);
+    /* A cross-check on the sink's own count: what the pump says it carried
+     * and what the sink counted must agree, or one of them is lying. */
+    if (pumped != s_sent_bytes)
+        Printf((CONST_STRPTR)"CLOCKLOOP: pump %lu != sink %lu\n",
+            pumped, (ULONG)s_sent_bytes);
     /* Drain whatever is still in flight before closing. */
     for (i = 0UL; i < 50UL; i++) {
         Delay(1);
@@ -230,13 +340,13 @@ static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
     if (!lfh)
         return 22;
     p = buf;
-    p = put_kv(p, "sent", (uint32_t)sent);
+    p = put_kv(p, "sent", (uint32_t)pumped);
     *p++ = '\n';
     p = put_kv(p, "clocks", s_clocks);
     *p++ = '\n';
     p = put_kv(p, "received_f8", s_clocks);
     *p++ = '\n';
-    p = put_kv(p, "lost", (uint32_t)(sent > s_clocks ? sent - s_clocks : 0u));
+    p = put_kv(p, "lost", (uint32_t)(pumped > s_clocks ? pumped - s_clocks : 0u));
     *p++ = '\n';
     p = put_kv(p, "intervals", midi_interval_intervals(&s_ivl));
     *p++ = '\n';
@@ -270,10 +380,11 @@ static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
     }
     Write(lfh, (APTR)buf, (LONG)(p - buf));
     Close(lfh);
+    if (s_prog) { prog("Z done\n"); Close(s_prog); s_prog = 0; }
     Printf((CONST_STRPTR)"CLOCKLOOP done: sent=%lu clocks=%lu lost=%lu "
         "min=%lu max=%lu jitter=%lu verdict=%lu\n",
-        sent, (ULONG)s_clocks,
-        (ULONG)(sent > s_clocks ? sent - s_clocks : 0u),
+        pumped, (ULONG)s_clocks,
+        (ULONG)(pumped > s_clocks ? pumped - s_clocks : 0u),
         (ULONG)midi_interval_min_us(&s_ivl), (ULONG)midi_interval_max_us(&s_ivl),
         (ULONG)midi_interval_jitter_us(&s_ivl), (ULONG)midi_interval_verdict(&s_ivl));
     return s_clocks ? 0 : 23;
@@ -296,6 +407,7 @@ int main(int argc, char **argv) {
         if (!secs)
             secs = 5u;
         s_clocks = 0u; s_other = 0u; s_badlen = 0u;
+        s_sent_bytes = 0u;
         {
             uint32_t k = 0u;
             while (argv[1][k] && k + 1u < sizeof s_send_user) {

@@ -785,3 +785,59 @@ comments are what a reboot takes away.
   which suppresses the outbound: echoing a command back to the master that
   just sent it is a feedback loop, and a locate would bounce between the
   two machines.
+
+## M5i: the schedule on a real lane, and four attempts at a 1 ms timer (2026-10-10)
+
+- **THE ANSWER, at last, from a lane: `mean_us=17856`** against a
+  theoretical **17857.14 us** for 140 BPM at 24 ppqn. That is **0.04 % off**,
+  measured through the producer, through camd, and back out of a receiver.
+  `sent=1708 clocks=1707 lost=1 badlen=0 other=1` -- the single loss is the
+  last byte in flight when the receiver closes, which is recorded rather
+  than rounded away.
+- **THE SPREAD IS STILL NOT WIRE TIMING, and the log says so**:
+  `min_us=5 max_us=40173 jitter_us=40168 verdict=2`. A 20 ms service tick
+  and a reader that drains in batches put the arrivals into clumps; riqemu1
+  additionally has no real-time pacing. **Counts proven, mean interval
+  proven to 0.04 %, spread NOT proven.** The physical USB-MIDI wire remains
+  the owner's proof.
+- **FOUR ATTEMPTS AT A 1 ms SERVICE TIMER, ALL FAILING, AND NONE OF THEM
+  NEEDED.** In order, and every one cost a wedged lane:
+  1. reusing the request passed to `OpenDevice` -- hung;
+  2. `SetSignal` + `Wait` on an allocated bit -- hung, because **this SDK's
+     `struct IORequest` has no `io_Signal` field**, so nothing ever raises
+     that bit and `Wait(sigbit)` is an unconditional hang;
+  3. a fresh request per iteration -- `SendIO` reached `Exec_77_SendIO` with
+     **`RSI = 0`**, a NULL `io_Request`, and faulted on its first
+     dereference (`mov -0x28(%rsi),%rax`);
+  4. **`Delay(1)` -- works.** It is what the original delay-loop CLOCKLOOP
+     used, and that version completed on both lanes.
+  The lesson is not "the fourth one was right". It is that **none of it was
+  required**: `ReadEClock` needs the timer's library base and its frequency,
+  both of which come from the `OpenDevice` handshake, not from a running
+  timer stream. There is now **no `SendIO` in the loop at all**.
+- **HOW IT WAS FOUND, since every symptom was a lie.** No crash requester on
+  the Dell; the agent simply never finished. **Three of the first four
+  attempts produced NO OUTPUT AT ALL** -- not even setup prints that had
+  certainly executed -- because **the lane agent captures script output
+  through a pipe, so a child's stdout is block-buffered and nothing flushes
+  while the tool is hung.** A tool that only speaks on exit says nothing
+  when it does not exit. Progress now goes to a file through dos `Write()`
+  (no userspace buffer), which is why MIDIRX wrote `MIDIRX.LOG` and why this
+  does too.
+- **THE BISECT WAS THE ONLY THING THAT WORKED.** Replacing the timer wait
+  with `Delay(1)` -- known-good -- made the loop complete, which placed the
+  fault in the wait and cleared the producer, the EClock read and the pump
+  in one run. Everything before that was guessing.
+- **riqemu1 is the right lane to diagnose on and the wrong lane to measure
+  on**, which is now the standing rule: its console is legible (the Dell's
+  renders its own crash text as garbage), and it reproduces a Dell hang
+  without costing an owner reboot.
+- **`sent` WAS REPORTED AS 0 WHILE 1700 BYTES CLEARLY ARRIVED**, and `lost`
+  is computed from it, so every run had been silently reporting `lost=0` --
+  **a check that cannot fail is not a check.** Two independent sources now
+  exist for that number (what `midi_out_pump` reports carrying, and what the
+  sink counted handing over) and they are compared at run end.
+- **A GATE I ALMOST SHIPPED PAST:** the progress file was at a hard-coded
+  `RAM:` literal in `app/`, which T6 forbids outside `platform/aros/`. The
+  audit caught it. The path is now derived from the caller's own log path,
+  which also means the two can never land on different volumes.
