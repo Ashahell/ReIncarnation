@@ -841,3 +841,47 @@ comments are what a reboot takes away.
   `RAM:` literal in `app/`, which T6 forbids outside `platform/aros/`. The
   audit caught it. The path is now derived from the caller's own log path,
   which also means the two can never land on different volumes.
+
+## M5j: the Dell agrees, and `system_reset` was never a recovery (2026-10-10)
+
+- **BOTH LANES, THE SCHEDULE MEASURED. riqemu1** `mean_us=17856`,
+  sent 1708 / clocks 1707 / lost 1. **Dell** (ABIv11, 8 s)
+  `mean_us=17853`, sent 3584 / clocks 3583 / lost 1, artifact
+  `m5-cloop-dell.log`. Theory for 140 BPM at 24 ppqn is **17857.14 us**:
+  **0.02 % and 0.04 % out**, on two machines, two ABIs, one with real-time
+  pacing and one without. The single loss is the last byte in flight when
+  the receiver closes, on both.
+- **THE SPREAD IS THE INSTRUMENT, AND TWO LANES PROVE IT.** Both report
+  `min_us` of 3-5 against `max_us` of ~40100, and both put ~89 % of their
+  arrivals in the LAST slice. A spread that is the same shape on a paced
+  host and an unpaced one is not measuring either: it is the **reader**.
+  `min_us=3` says several ticks are being stamped microseconds apart, which
+  is what a batch drain looks like -- the M2 receiver task stamps each
+  message when it wakes and drains, so a batch shares a timestamp. **There
+  is no way to measure per-message WIRE arrival with this architecture**,
+  because the PAL exposes drain-time stamps, not arrival-time ones. That is
+  a real structural limit, recorded rather than worked around: it would
+  need per-message arrival timestamps from camd itself.
+- **`system_reset` IS NOT A RECOVERY ON THE DELL. IT IS A VM KILL.**
+  The Dell runs `-no-reboot`; riqemu1 does not. So `system_reset` there
+  makes **QEMU exit** instead of rebooting the guest, and every "recovery"
+  I performed on that lane **destroyed the VM**. I twice reported the lane
+  as needing an owner reboot while my own command was the cause; the owner
+  rebooted correctly and I misread their fix as evidence for my theory.
+  **On this lane, recover by relaunching QEMU, not by resetting it** --
+  and check the flags before assuming a lane behaves like another.
+- **THE "IDENTITY HAS BEEN CLAIMED" MESSAGE WAS A CRASH-LOOP SYMPTOM.** The
+  guest agent was restarting continuously; each new instance raced the
+  server's still-held registration for `e6320` and was refused. Four
+  `ATCPBIN` windows had accumulated. A fresh VM boot cleared them, and exec
+  returned to rc=0 immediately. The server was never at fault: one session,
+  one connection throughout.
+- **AND I STAGED A STALE BINARY, AGAIN, AND THE SIZE CHECK CAUGHT IT.**
+  The v11 MIDISEND on disk was 61768 B built at 11:14 -- still carrying the
+  hanging timer code -- while the working v1 build was 66408 B. Caught by
+  comparing sizes before the put, which is the check that has now earned its
+  keep three times. The staged binary was rebuilt (62912 B) before the run.
+- **`echo: file is not executable`** on the Dell: bare `echo` is not the
+  shell builtin there. Every run script needs `echo "text"` with an
+  argument, which is why the `;`-comment rule and this one belong together
+  in the same note.
