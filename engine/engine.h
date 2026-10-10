@@ -234,6 +234,9 @@ struct RIEngine {
     /* R6d note tap. Embedded, like the C2 meters: one instance in the
      * session, drained by the caller, never read by the engine. */
     struct RINoteTap notetap;
+    /* t205: out-of-order events refused. Counted so a caller assembling its
+     * own event array finds out rather than wondering. */
+    uint32_t ev_unsorted;
 };
 
 void ri_engine_init(struct RIEngine *e);
@@ -254,6 +257,15 @@ uint32_t ri_engine_note_dropped(const struct RIEngine *e);
 /* Explicit, once-at-startup drain. NOT called by ri_engine_load -- see
  * RI_NOTETAP_CAP above for why that would be a bug. */
 void ri_notetap_reset(struct RINoteTap *t);
+
+/* Out-of-order events seen by `ri_engine_render`, which STOPS rather than
+ * rendering them (see t205). `ri_engine_load` documents its array as
+ * sample-sorted; this is what happens when a caller does not honour it.
+ * Without the guard `run = next - cursor` underflows and the slice loop
+ * writes past the caller's output buffer. The array is NOT silently
+ * repaired -- reordering it would render music the caller did not
+ * describe. */
+uint32_t ri_engine_ev_unsorted(const struct RIEngine *e);
 const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e);
 /* Drum-tail A0 sampler: record one (us, active) pair per 256th full block
  * (see the RIDrumDiag note above). Called once per block-slice by the

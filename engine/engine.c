@@ -15,6 +15,7 @@ void ri_engine_init(struct RIEngine *e) {
     if (!e)
         return;
     e->now_us = 0; /* no timing until a clock is injected */
+    e->ev_unsorted = 0u;  /* t205: the complaint is per-engine-load */
     e->drum_last808_us = e->drum_last909_us = 0u;
     e->drum_n = e->drum_tick = 0u;
     for (i = 0u; i < RI_ENGINE_ST_COUNT; i++) {
@@ -649,6 +650,10 @@ const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e) {
     return e ? &e->estg : 0;
 }
 
+uint32_t ri_engine_ev_unsorted(const struct RIEngine *e) {
+    return e ? e->ev_unsorted : 0u;
+}
+
 void ri_engine_drum_reset(struct RIEngine *e) {
     if (!e)
         return;
@@ -685,8 +690,25 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
     while (n > 0 && e->cursor < e->total) {
         uint64_t next = e->total;
         uint64_t run, c;
-        if (e->evpos < e->nev && e->ev[e->evpos].sample < next)
-            next = e->ev[e->evpos].sample;
+        if (e->evpos < e->nev) {
+            /* t205: an event BEHIND the cursor means the caller's array is
+             * not sample-sorted, and `run = next - cursor` underflows to
+             * about 2^64 -- turning the slice loop into an unbounded write
+             * past out_l. That is a memory-corrupting overrun, not a wrong
+             * answer. Stop here instead: counted, and the return says how
+             * much was really rendered. An event exactly AT the cursor is NOT
+             * behind it; that is the ordinary zero-length run most note-ons
+             * arrive as, and refusing those would refuse most music.
+             *
+             * The array is NOT sorted. Reordering it would render music the
+             * caller did not describe. */
+            if (e->ev[e->evpos].sample < e->cursor) {
+                e->ev_unsorted++;
+                return done;
+            }
+            if (e->ev[e->evpos].sample < next)
+                next = e->ev[e->evpos].sample;
+        }
         if (next > e->cursor + n)
             next = e->cursor + n;
         run = next - e->cursor;

@@ -1731,3 +1731,107 @@ survived that should not have.
 - **R5** — still needs an owner priority call.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane (both lanes
   timed out on ping for the third time this session).
+
+## R8c attempt: the app does not use the mixer, and out-of-order events overrun (2026-10-10)
+
+Two findings. **One changes what R8 is; the other is a memory-corrupting
+defect.** The stem tap itself is **NOT landed** — see the end for why.
+
+### FINDING 1: `ri_mix_render` IS NOT THE MIX THE APP USES
+
+R8b put a per-strip tap on `ri_mix_render`. Searching for its callers
+outside tests turns up exactly two: `tools/bench.c` and `tools/render.c`.
+**`engine/mixer/mixer.c` is linked into both AROS ABIs and into the portable
+build and has no application caller at all.**
+
+The app mixes in `engine_section()`, which applies the strip fader **in
+place** to `scratch`/`scratchR` and accumulates `scratch[i] * gl` into a
+**double** master. The Levi has its own copy, `engine_section_stereo`.
+
+So R8b's tap is correct for the portable/tools mixer and is **not the stem
+path**. That is worth having found before R8c built a renderer on top of it.
+
+**METHOD NOTE.** I nearly asserted the opposite — that stems could not be
+produced because the tap was on the wrong path — from a grep that searched
+`gui/` and `app/` for `RI_STR_*`. A search that finds nothing is evidence
+about the *search*, and the render layer and the state layer share no names.
+The positive evidence was simple: grep every `.c` for `ri_mix_render` and
+read the list.
+
+### FINDING 2: out-of-order events overrun the output buffer
+
+Found by my own test, while building R8c's fixture. I wrote events with
+samples **0, 512, 256** — unsorted — and the process **segfaulted inside
+`ri_engine_render`**. From the source:
+
+    next = e->total;
+    if (e->evpos < e->nev && e->ev[e->evpos].sample < next)
+        next = e->ev[e->evpos].sample;
+    ...
+    run = next - e->cursor;          /* unsigned */
+
+At cursor 512 the next event's sample is 256, so **`run = 256 - 512`
+underflows to about 2^64**, the slice loop runs effectively forever, and it
+writes `out_l[done + c + i]` far past the caller's buffer. Not a wrong
+answer — a memory-corrupting overrun, and on the render task a crash.
+
+**REACHABLE?** Not from the live path: the scheduler emits sample-sorted and
+that is `RIEvent`'s contract. **But R8 and R9 build event arrays BY HAND** —
+that is exactly what an offline stem or loop render does — so the first work
+to assemble events itself is the first work that can get this wrong. And the
+law everywhere else here is *refused, never guessed*.
+
+The guard compares and **stops**, counting `ev_unsorted` and returning what
+was really rendered. It does **not** sort: reordering the caller's array would
+render music the caller did not describe. An event exactly **at** the cursor
+is not behind it — that is the ordinary zero-length run most note-ons arrive
+as, and refusing those would refuse most music.
+
+### Mutation results
+
+**6 mutants, 5 killed, 1 equivalent.**
+
+- **`UC` is equivalent by an invariant**: returning `n` instead of `done` at
+  the guard is identical, because `done + n == total` holds at that point.
+  Worth stating rather than treating as a gap.
+- `UD` (an event at the cursor treated as behind it), `UA` (no guard), `UB`
+  (not counted), `UE` (`ri_engine_init` never resets the complaint) and `UF`
+  (counts it and renders on anyway — silent corruption instead of a stop) are
+  all killed.
+
+### Why the stem tap did NOT land
+
+It works — I verified `SL[0][0] == L[0]` exactly — but three things came out
+of it that are not yet resolved, and landing a half-verified tap on the
+audio path is the wrong trade:
+
+1. **I had a real offset bug in my own tap.** `ml`/`mr` are block-local and
+   indexed from 0; the offset is applied once at `out_l[done + c + i]`. My
+   tap wrote `tl[i]` for every slice, i.e. every slice to the head of the
+   buffer. Fixed by threading `pos` through `engine_section` **and**
+   `engine_section_stereo` — the Levi is section 4 with its own accumulator,
+   so a tap added only to `engine_section` would have left the fifth stem as
+   a file of the caller's fill.
+2. **`e->scratchR` is never written for a mono section.** `rb303_render`
+   fills `scratch` only, so the R stem for the 303s carries whatever was in
+   `scratchR` last. The master sums it too, so the tap is *faithful* — which
+   is precisely the problem: a faithful tap of an uninitialised buffer
+   exports stale audio. **This is a pre-existing engine question and it is
+   not mine to settle here.**
+3. **The sum law has to be weaker than R8b's.** The master accumulates in
+   `double` and stem buffers are `float`, so five narrowed stems cannot
+   reproduce a double sum. R8b's mixer tap *is* bit-exact because that mixer
+   accumulates in `float`. A tolerance is the law this code can keep; an
+   equality is not, and pretending otherwise would be a law that breaks on
+   the first platform with different float behaviour.
+
+### Still open
+
+- **R8c proper** — the stem tap, once (2) and (3) have answers. Not a
+  rewrite: the shape works and the offset bug is understood.
+- **The `scratchR` question**, which is its own piece of work and predates
+  R8: does a mono section's right output belong to be stale?
+- **R9** — loop-exact renders with an optional tail.
+- **R5** — still needs an owner priority call.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane (both lanes
+  timed out on ping for the fourth time this session).
