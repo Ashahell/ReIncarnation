@@ -67,45 +67,48 @@ fi
 # reproducible from the repo -- the exact failure this script's own header
 # warns about ("a build script outside the repo is how stale-binary mistakes
 # happen"). usage: ri_build_v11.sh <src> <out> midisend
-# MIDIRQ (M5): the clock-out PROOF receiver. MIDISEND sends and MIDICLOCK
-# clocks, but nothing could LISTEN, so there was no way to ask whether the
-# 24 ppqn schedule survives a real wire. This reports the arrival intervals
-# of F8. usage: ri_build_v11.sh <src> <out> midirq
-if [ "${3:-}" = "midirq" ]; then
-  # STANDALONE on purpose: linking midi_camd.o would collide with this
-  # tool's own CamdBase (see the comment at the top of app/midirq.c, which
-  # records what that collision cost). The listener needs nothing but
-  # camd.library and timer.device.
-  x86_64-aros-gcc $CF -c "$ROOT/app/midirq.c" -o "$OBJ/midirq.o"
-  # NO -lcamd, and that is the fix. Both tools that demonstrably work here
-  # (MIDICLOCK, MIDISEND) resolve camd.library at RUN TIME with OpenLibrary
-  # and none of them links -lcamd; MIDIRX did, and it died in the C
-  # runtime's startup -- `Illegal address access ... Exec_49_FindTask`
-  # under `__startup_fromwb`, i.e. before main() ever ran, at an identical
-  # PC on both lanes. Linking libcamd drags in a library-base arrangement
-  # that the v11 startup does not agree with. app/midirq.c opens the
-  # library itself, exactly as midiclock does.
-  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
-    -o "$OUTBIN" "$OBJ/midirq.o" "$SDK/lib/startup.o" \
-    -L "$SDK/lib" -lamiga -ldos -lexec -lautoinit
-  test "$(x86_64-aros-readelf -s "$OUTBIN" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 \
-    || { echo "FAIL: MIDIRX(v11) unresolved"; exit 1; }
-  echo "AROS MIDIRX v11 BUILD OK ($OUTBIN, $(stat -c%s "$OUTBIN") bytes)"
-  exit 0
-fi
+# MIDIRX is GONE (2026-10-10). MIDISEND sends and MIDICLOCK clocks, but
+# nothing could LISTEN, so the 24 ppqn schedule had no way to be measured on
+# a real wire. That is now `MIDISEND <cluster> LISTEN <secs> <logfile>`, built
+# by the midisend target below: it rides the M2 receiver task, which already
+# stamps each arrival with EClock when its signal wakes it. MIDIRX hand-rolled
+# its own timer poll and so measured how often it LOOKED rather than how often
+# bytes CAME, and it crashed four times before ever completing a run -- two
+# unresolved inline library bases, a v11 binary on the ABIv1 lane, and an
+# unresolved OpenLibrary base. See scripts/ri_build_aros.sh for the long form.
+
 if [ "${3:-}" = "midisend" ]; then
   O4="$OBJ/tools"
   mkdir -p "$O4"
   x86_64-aros-gcc $CF -c "$ROOT/app/midisend.c" -o "$O4/midisend.o"
   x86_64-aros-gcc $CF -c "$ROOT/platform/aros/midi_camd.c" -o "$O4/midi_camd.o"
-  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi.c midi_io/midi_bridge.c" -o "$O4/midi_bridge.o"
+  # One -c per source: `-c a.c b.c -o x.o` is a gcc error, and this line had
+  # two sources in it, so the v11 MIDISEND target had never actually built.
+  # That is why the only v11 MIDISEND that ever existed was made by hand --
+  # exactly the "a build script outside the repo is how stale-binary mistakes
+  # happen" failure this script's own header warns about, reproduced INSIDE it.
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi.c" -o "$O4/midi.o"
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_bridge.c" -o "$O4/midi_bridge.o"
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_interval.c" -o "$O4/midi_interval.o"
   x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_follow.c" -o "$O4/midi_follow.o"
+  # midi_camd.c pulls in the clock-out sender (midi_out_pump) for the M5
+  # sender task, so the producer and its schedule have to come along.
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_out.c" -o "$O4/midi_out.o"
+  x86_64-aros-gcc $CF -c "$ROOT/midi_io/midi_clockout.c" -o "$O4/midi_clockout.o"
   x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
     -o "$OUTBIN" "$O4/midisend.o" "$O4/midi_camd.o" "$O4/midi_bridge.o" \
-    "$O4/midi_follow.o" "$SDK/lib/startup.o" -L "$SDK/lib" \
+    "$O4/midi.o" "$O4/midi_interval.o" "$O4/midi_follow.o" \
+    "$O4/midi_out.o" "$O4/midi_clockout.o" \
+    "$SDK/lib/startup.o" -L "$SDK/lib" \
     -lamiga -ldos -lexec -lautoinit -lcamd
   test "$(x86_64-aros-readelf -s "$OUTBIN" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 \
     || { echo "FAIL: MIDISEND(v11) unresolved"; exit 1; }
+  # NOTE: no r12 gate here, deliberately. The `mov %rax,%r12` check belongs
+  # to the **v1** build (scripts/ri_build_aros.sh), where the library base
+  # lives in rdx and r12 must be preserved across calls. On ABIv11 r12 IS
+  # the library-base register, so a zero count is the wrong requirement --
+  # the working MIDICLOCK above has 28 such moves and runs on the Dell.
+  # Adding the gate here failed the build on a correct binary.
   echo "AROS MIDISEND v11 BUILD OK ($OUTBIN, $(stat -c%s "$OUTBIN") bytes)"
   exit 0
 fi
@@ -117,7 +120,7 @@ fi
 # application as the message sender. A build that succeeds is not proof that
 # it built what you asked for.
 if [ -n "${3:-}" ]; then
-  echo "FAIL: unknown tool '$3' (usage: ri_build_v11.sh <src> <out-riapp> [midiclock|midisend|midirq])"
+  echo "FAIL: unknown tool '$3' (usage: ri_build_v11.sh <src> <out-riapp> [midiclock|midisend])"
   exit 2
 fi
 

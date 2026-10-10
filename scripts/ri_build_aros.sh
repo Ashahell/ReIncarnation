@@ -84,22 +84,20 @@ if [ "${1:-}" = sections ]; then
   x86_64-aros-gcc $CF3 -c "$ROOT/platform/aros/midi_camd.c" -o "$O3/midi_camd.o"
   x86_64-aros-gcc $CF3 -c "$ROOT/midi_io/midi_clockout.c" -o "$O3/midi_clockout.o"
   x86_64-aros-gcc $CF3 -c "$ROOT/midi_io/midi_out.c" -o "$O3/midi_out.o"
-  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/MIDISEND" "$O3/midisend.o" "$O3/midi_camd.o" "$O3/midi_bridge.o" "$O3/midi_follow.o" "$O3/midi_clockout.o" "$O3/midi_out.o" \
+  # midi_interval: the LISTEN mode's arrival statistics (M5 clock-out proof).
+  x86_64-aros-gcc $CF3 -c "$ROOT/midi_io/midi_interval.c" -o "$O3/midi_interval.o"
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie -o "$OUT/MIDISEND" "$O3/midisend.o" "$O3/midi_camd.o" "$O3/midi_bridge.o" "$O3/midi_follow.o" "$O3/midi_clockout.o" "$O3/midi_out.o" "$O3/midi_interval.o" \
     "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" -lamiga -lstdcio -lposixc -ldos -lexec -lautoinit
   test "$(x86_64-aros-readelf -s "$OUT/MIDISEND" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: MIDISEND unresolved"; exit 1; }
   test "$(objdump -d "$OUT/MIDISEND" | grep -c 'mov    %rax,%r12')" = 0 || { echo "FAIL: MIDISEND r12 base moves (v1)"; exit 1; }
   echo "AROS MIDISEND BUILD OK ($(stat -c%s "$OUT/MIDISEND") bytes)"
-  # MIDIRX (M5): the clock-out proof receiver, for the ABIv1 lane. It is
-  # built HERE as well as in ri_build_v11.sh because the two ABIs are not
-  # interchangeable -- a v11 binary on the v1 guest dies in the C runtime's
-  # startup with an illegal address access, which cost a full debugging
-  # round that was really just the wrong toolchain.
-  x86_64-aros-gcc $CF3 -c "$ROOT/app/midirq.c" -o "$O3/midirq.o"
-  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
-    -o "$OUT/MIDIRX" "$O3/midirq.o" "${STARTUP[@]}" -L "$SHIM" -L "$SDK/../lib" \
-    -lamiga -lstdcio -lposixc -ldos -lexec -lautoinit
-  test "$(x86_64-aros-readelf -s "$OUT/MIDIRX" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 || { echo "FAIL: MIDIRX unresolved"; exit 1; }
-  echo "AROS MIDIRX BUILD OK ($(stat -c%s "$OUT/MIDIRX") bytes)"
+  # MIDIRX is GONE (2026-10-10). The clock-out proof receiver is now
+  # `MIDISEND <cluster> LISTEN <secs> <logfile>`, on the M2 receiver task
+  # that already stamps arrivals with EClock. MIDIRX hand-rolled its own
+  # timer poll and so measured how often it LOOKED rather than how often
+  # bytes CAME, and it crashed four times: two unresolved inline library
+  # bases, a v11 binary on this ABIv1 lane, and an unresolved OpenLibrary
+  # base. The proof rides on a proven path instead of a new tool.
 fi
 # G9.3/G9.4 (2026-09-26, §12.11 G9): `ri_build_aros.sh riapp` links RIAPP,
 # the live-application shell (live session + control plane + low-level AHI
