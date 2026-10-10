@@ -885,3 +885,56 @@ comments are what a reboot takes away.
   shell builtin there. Every run script needs `echo "text"` with an
   argument, which is why the `;`-comment rule and this one belong together
   in the same note.
+
+## R7a: the SMF writer, and three places I asserted the format wrongly (2026-10-10)
+
+- **`project/smf_export.{c,h}`** — SMF type 1 export, t193, pure C,
+  host-tested, no allocation and no IO. Built on the engine's own
+  `ri_sched_emit_sorted()` output rather than a second derivation of "what
+  notes does this pattern play", so the file and the instrument cannot
+  disagree when one of them drifts.
+- **THE MAPPING IS AN OWNER REVIEW ITEM** (spec R7) and is therefore
+  isolated in `ri_smf_velocity()` rather than scattered through the writer.
+  t193 pins it only as deterministic and in 1..127, never as a chosen
+  convention. Accent 112 / plain 64 is the default and is **recorded, not
+  defended**.
+- **I GOT THE FORMAT WRONG THREE TIMES, AND THE TEST CAUGHT ALL THREE.**
+  1. **Chunk lengths are FIXED 4-byte big-endian integers. VLQ is for DELTA
+     TIMES inside a track and for nothing else.** I "fixed" the header
+     length to a VLQ on the natural but wrong grounds that every length in
+     the format is variable — which produced an **eleven-byte header** whose
+     `MTrk` magic landed where the division field belongs. The file was not
+     an SMF at all.
+  2. **`ri_smf_vlq` returns a LENGTH, not an offset.** Writing
+     `at = ri_smf_vlq(out + at, ...)` rewinds the write cursor to 1 and the
+     track body overwrites the header. **Three sites had this**: the
+     conductor chunk, the data chunks, and the per-event delta inside
+     `build_track` — the last of which silently deleted the note-on and
+     declared a length of 8 for 19 bytes of data.
+  3. **Chunk lengths must be EXACT.** Four bytes too many shifts every
+     later track; four too few loses the tail; neither is reported.
+- **THREE MUTANTS SURVIVED THE FIRST PASS AND ALL THREE WERE TEST GAPS.**
+  A test that asserts only on `ri_smf_delta_ticks()` and
+  `ri_smf_velocity()` never once looked at **the bytes the writer emits**,
+  so a constant delta, a note-off written as note-on-velocity-0, and a
+  missing end-of-track all passed. Now the emitted bytes are decoded and
+  checked: `00 90 24 70` then `30 80 24 40`, ending `FF 2F 00`.
+- **AND ONE MUTANT WAS SCORED WRONG BY MY OWN HARNESS.** The chunk-length
+  mutant does not fail an assertion — it **segfaults the test binary**,
+  because a walk that trusts a declared length runs off the buffer on a
+  malformed file. The harness scored on `grep FAIL` and called it
+  **SURVIVED**. It now scores on the **return code**, and the test's chunk
+  walk **bounds the declared length before stepping by it**, so a malformed
+  file fails an assertion instead of killing the process. *A crash reports
+  nothing, and a harness that reads crashes as passes will one day record a
+  real kill as a survivor.*
+- **RESULT: 10 mutants, 9 killed, 1 recorded as EQUIVALENT.** `SJ` removes
+  the `ppq == 0` guard, which returns the same 0 the arithmetic already
+  produces (`d * 0 / 48000 == 0`) — identical behaviour, verified rather
+  than asserted. It is kept as a guard against a future divisor change, not
+  claimed as a kill.
+- **Verified output** (ppq 480, 120 BPM, one 303A track):
+  `MThd 00 00 00 06 | 00 01 | 00 02 | 01 E0`, a conductor track with
+  tempo 500000 us/qn, and a data track carrying
+  `FF 03 04 "303A" | 00 90 24 70 | 30 80 24 40 | FF 2F 00` — note-on with
+  accent velocity, delta 48 ticks (VLQ `0x30`), a real note-off, EOT.
