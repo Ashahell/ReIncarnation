@@ -224,6 +224,66 @@ int main(void) {
         RI_ASSERT(SL[0][0] != FILL, "sample 0 is written");
     }
 
+    /* --- 3b. RENDERED IN BLOCKS, NOT ONE CALL ------------------------- */
+    /* The whole reason `pos` is `e->cursor + c` and not `done + c`. The
+     * engine's local `done` restarts on every call, so a tap written at
+     * `done` puts every block at the head -- and the stem comes out SILENT
+     * while the mix is fine, because the last block's 64 samples are all
+     * that survive and a 303 has decayed by then. Found by the R8e CLI,
+     * which renders in 64-frame blocks because that is what a bounded tool
+     * does; the test rendered the whole song in one call and could not see
+     * it. */
+    {
+        static float BL[N], BR[N];
+        static uint32_t off;
+        load(RI_ENGINE_S303A, &nev);
+        E.level[0] = 60u;
+        attach(0);
+        fill();
+        for (off = 0u; off < N; off += RI_ENGINE_BLOCK) {
+            uint32_t want = (N - off > RI_ENGINE_BLOCK) ?
+                RI_ENGINE_BLOCK : (N - off);
+            RI_ASSERT(ri_engine_render(&E, BL, BR, want, 48000.0f) == want,
+                "block at %u rendered", (unsigned)off);
+        }
+        {
+            int tail_written = 0;
+            for (i = RI_ENGINE_BLOCK * 4u; i < N; i++)
+                if (SL[0][i] != FILL)
+                    tail_written = 1;
+            RI_ASSERT(tail_written,
+                "rendered in BLOCKS, the stem is written past the first block "
+                "(sample %u)", RI_ENGINE_BLOCK * 4u);
+        }
+        /* And the blockwise render agrees with the one-call render, which is
+         * the law a bounded caller actually depends on. */
+        {
+            static float A0[N], B0[N];
+            float worst = 0.0f, scale = 0.0f;
+            load(RI_ENGINE_S303A, &nev);
+            attach(0);
+            fill();
+            ri_engine_render(&E, A0, B0, N, 48000.0f);
+            for (i = 0u; i < N; i++) {
+                /* ONLY SECTION 0. This song enables RI_ENGINE_S303A alone,
+                 * so the other four stems still hold the fill -- and summing
+                 * four fills is 1.0, which is how a first version of this
+                 * reported an error equal to 1 against a peak of 0.88. */
+                float al = SL[0][i];
+                float e2 = al - A0[i];
+                if (e2 < 0.0f) e2 = -e2;
+                if (e2 > worst) worst = e2;
+                {
+                    float m = A0[i] < 0.0f ? -A0[i] : A0[i];
+                    if (m > scale) scale = m;
+                }
+            }
+            RI_ASSERT(worst <= scale * 1.0e-5f,
+                "blockwise and one-call stems agree: worst %g of %g",
+                (double)worst, (double)scale);
+        }
+    }
+
     /* --- 4. THE MONO STEM IS THE MONO SAMPLE, MIRRORED --------------- */
     load(RI_ENGINE_S303A, &nev);
     attach(0);

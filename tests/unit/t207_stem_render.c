@@ -227,6 +227,37 @@ int main(void) {
             (unsigned)stem_set_count(&R3.set));
     }
 
+    /* --- 5c. THE FILE NAMES ------------------------------------------- */
+    /* Directory per song (owner, 2026-10-10), so the files do NOT repeat
+     * the song name -- the directory already carries it. Index first so a
+     * DAW's list sorts into strip order, and numbered by SECTION so a gap
+     * says which sections the song did not address. */
+    {
+        static const char *const want[5] = {
+            "01-303a.wav", "02-303b.wav", "03-808.wav", "04-909.wav",
+            "05-levi.wav"
+        };
+        char nm[32];
+        uint32_t k;
+        for (k = 0u; k < 5u; k++) {
+            uint32_t n = ri_stemr_name(nm, sizeof nm, k + 1u, k);
+            RI_ASSERT(n == strlen(want[k]),
+                "section %u: name is \"%s\", want \"%s\"", (unsigned)k, nm,
+                want[k]);
+        }
+        /* A GAP IS INFORMATION, NOT AN ERROR: sections 2 and 3 missing is
+         * how "the song addressed 303A, 303B and Levi" reads. */
+        RI_ASSERT(ri_stemr_name(nm, sizeof nm, 3u, 2u) == 10u &&
+            strcmp(nm, "03-808.wav") == 0, "the index is the SECTION's (%s)",
+            nm);
+        /* An unnamed section is refused, not numbered blankly. */
+        RI_ASSERT(ri_stemr_name(nm, sizeof nm, 1u, 5u) == 0u,
+            "a section past the last is refused");
+        RI_ASSERT(ri_stemr_name(nm, 4u, 1u, 0u) == 0u,
+            "a too-small buffer is refused");
+        RI_ASSERT(ri_stemr_name(0, sizeof nm, 1u, 0u) == 0u, "NULL buffer");
+    }
+
     /* --- 6. META CARRIES RATE AND TEMPO ------------------------------ */
     {
         char meta[128];

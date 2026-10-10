@@ -41,6 +41,24 @@
 #include "engine/engine.h"
 #include "project/stem_wav.h"
 
+/* THE FILE NAME FOR A STEM: "<index>-<section>.wav", e.g. "01-303a.wav".
+ *
+ * OWNER DECISION 2026-10-10: A DIRECTORY PER SONG, so the files inside it do
+ * not repeat the song name -- the directory already carries it.
+ *
+ * The index comes FIRST so a DAW's file list sorts into strip order, and the
+ * two-digit form means a gap is visible at a glance: stems are numbered by
+ * SECTION, not by running count, so a song that renders 303A and the 808 is
+ * 01-303a and 03-808.wav. The gap is information, not an error -- it says
+ * which sections the song did not address.
+ *
+ * Returns bytes written excluding the NUL, or 0 for any refusal: a NULL or
+ * too-small buffer, a section above RI_ROUTE_NSECTIONS, or a section with no
+ * name. An unnamed section is refused rather than numbered blankly, because
+ * "02-.wav" in a folder the user is about to trust is worse than no file. */
+uint32_t ri_stemr_name(char *out, uint32_t cap, uint32_t index,
+    uint32_t section);
+
 /* One mixer section's buffers. All three are caller-owned and must outlive
  * the `stem_set_write` calls. Each holds at least `frames` samples, and
  * `out` at least `frames * 2` because it is interleaved. */

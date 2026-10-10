@@ -2097,3 +2097,89 @@ same shape as R8c's:
 - **R5** — still needs an owner priority call.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane (both lanes
   timed out on ping for the sixth time this session).
+
+## R8e: `--stems DIR`, and a real bug the CLI found (2026-10-10)
+
+Owner decision: **a directory per song**, and the door is `tools/render`
+rather than the UI. `--stems DIR` is a complete invocation on its own —
+`--out` is optional alongside it, because a caller asking for stems is
+asking for files and should not also get a mix they did not request.
+
+**The sections are DERIVED FROM THE EVENTS, not asked for.** A stem is a
+mixer strip, so the set of stems is the strips the song addressed. Today's
+`RIStep` has no device field, so both the text scaffold and the RBNG path
+land on 303A and produce exactly **one** stem. That is the honest answer
+rather than a limitation worked around, and the naming is numbered by SECTION
+so the set grows by itself when a format can address more:
+
+    <song-dir>/01-303a.wav   02-303b.wav   03-808.wav   04-909.wav   05-levi.wav
+
+### The bug: `pos` was the engine's LOCAL `done`, not its absolute cursor
+
+**This is the second time this exact mistake has cost a whole debugging
+session, and the second time it was invisible to the test.**
+
+`ri_engine_render` restarts its local `done` at 0 on **every call**. R8c
+threaded `pos = done + c` into the section functions, which is right *within*
+one call and wrong *across* calls — and the CLI renders in 64-frame blocks,
+because that is what a bounded tool does.
+
+The symptom was a **confusing pair of facts**: the mix was correct (peak
+22601) and the stem was **silent** (peak 0). Not a crash, not a plausible
+wrong value: silence, which reads like "the render produced nothing" and
+sends you looking at the event stream.
+
+Why silence: every block overwrote the head of the stem buffer, so after the
+loop only the **last** block's 64 samples survived, and the 303 had decayed
+to nothing by the end of the song.
+
+**`pos` is now `e->cursor + c`** — the engine's absolute sample position. A
+stem buffer is ABSOLUTE: it belongs to the song, not to the call, which is
+exactly why `out_l[done + c + i]` is right for the caller's buffer and wrong
+for a stem.
+
+t204 now renders in **blocks** and asserts the stem is written past the first
+one, and that a blockwise render's stems agree with a one-call render's. The
+existing test could not see this: it rendered the whole song in one call.
+Three mutants pin it — `PA` (the local `done` again), `PB` (no slice offset
+at all) and `PC` (off by one block, the plausible-looking shift) — **all
+killed**.
+
+### The other bug the CLI found, in my own tool
+
+**THE MIX WAS BEING WRITTEN INTO SLOT 0'S TAP BUFFER.** `render_stems` passed
+`slots[0].l`/`slots[0].r` as the engine's output, so the stereo mix
+overwrote the very samples the tap had just recorded — at offset 0, on every
+block. The mix has its own scratch now, and the comment says why.
+
+Also: the stem file is **sized from the frame count**, not a fixed buffer. A
+64 KB guess silently refused a 328 KB stem — correct behaviour from
+`stem_set_write`, which will not truncate, and useless without a diagnosis.
+
+### Evidence
+
+```
+render --song song.txt --out mix.wav --stems stems
+render: stem stems/01-303a.wav
+render: 1 stem(s) in stems
+render: 9 events, 66000 samples -> mix.wav
+
+mix.wav          ch=1 frames=66000 peak=22601
+01-303a.wav      ch=2 frames=66000 peak=22600   (one LSB: float stem vs
+                                                 a 16-bit mono fold)
+```
+
+`--depth 24` gives 396044 bytes (44 + 66000·2·3) against 264044 at 16-bit, and
+an existing directory is reused rather than refused.
+
+### Still open
+
+- **Multi-stem output.** One stem per song is all today's formats can
+  address. It needs a song format with a per-step device, which is an engine
+  data-model change (`RIStep` has no device field), not a renderer change.
+- **SMF export still has no caller.** It should ride this same invocation —
+  `--mid FILE` — but that is a second flag on a CLI rather than a second door,
+  which was the point.
+- **R9** — loop-exact renders with an optional tail.
+- **R5** — still needs an owner priority call.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane.

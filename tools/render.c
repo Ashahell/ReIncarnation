@@ -26,8 +26,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <string.h>
 #include <stdint.h>
 #include "engine/engine.h"
+#include "project/stem_render.h"
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
 #include "audio_io/audio.h"
@@ -425,7 +431,167 @@ static int dump_events(const char *path, const struct RIEvent *ev, uint32_t n) {
  * §12.3) — the per-path copies are retired, including the AUTOMATION
  * block note: 303B routes to the second voice inside the engine now. */
 
-static int render_song(const char *song_path, const char *out_path, const char *ev_path) {
+/* ---------------------------------------------------------------------
+ * R8e: --stems DIR. A DIRECTORY PER SONG (owner 2026-10-10), so the files
+ * inside it do not repeat the song name -- the directory carries it.
+ *
+ * THE SECTIONS ARE DERIVED FROM THE EVENTS, NOT ASKED FOR. A stem is a mixer
+ * strip, so the set of stems should be the strips the song actually
+ * addressed. Enabling all five and writing silence for four of them would be
+ * predictable but is clutter in a folder the user is about to trust -- and it
+ * would hide the fact that a song can only address what its format can
+ * express: today's `RIStep` has no device field, so the text scaffold and the
+ * RBNG path both land on 303A and produce exactly one stem. That is the honest
+ * answer rather than a limitation worked around, and the naming is numbered by
+ * SECTION so the set grows by itself when a format can address more.
+ *
+ * ALLOCATION IS THE TOOL'S BUSINESS, NOT THE MODULE'S. `stem_render` stays
+ * allocation-free because it is the layer that could ever be called from the
+ * render path; this is a one-shot CLI that exits.
+ * ------------------------------------------------------------------- */
+static int render_stems(const struct RIEvent *ev, uint32_t nev,
+    uint32_t total, const char *dir, uint32_t rate, uint32_t depth,
+    uint32_t bpm_milli) {
+    static struct RIStemr sr;
+    struct RIStemrSlot slots[RI_ROUTE_NSECTIONS];
+    uint8_t *wav = 0;
+    static struct RIEngine eng;
+    struct RIEngine *ep = &eng;
+    float *pool = 0;
+    /* THE MIX GETS ITS OWN SCRATCH. Writing the engine's stereo output into
+     * a slot's tap buffer overwrites the very samples the tap just
+     * recorded -- and it does so at offset 0 on EVERY block, so the head of
+     * the stem ends up being the last block's mix. The stem came out
+     * SILENT and the mix was fine, which is a confusing pair of facts.
+     */
+    static float mixl[RI_BLOCK], mixr[RI_BLOCK];
+    size_t wavbytes;
+    uint32_t sections = 0u, sec, i, done = 0u, off;
+    int made = 0, rc = 2;
+    if (!ev || nev == 0u || !dir)
+        return 2;
+    for (i = 0u; i < nev; i++)
+        if (ev[i].device < RI_ROUTE_NSECTIONS)
+            sections |= 1u << ev[i].device;
+    if (sections == 0u) {
+        printf("render: --stems: the song addresses no mixer section\n");
+        return 2;
+    }
+    if (total == 0u || total > 4194304u) {
+        printf("render: --stems: song too long for stems (%llu samples)\n",
+            (unsigned long long)total);
+        return 2;
+    }
+    /* l, r and an interleaved out for each of the five slots: 4 * total
+     * floats per section. */
+    pool = (float *)calloc((size_t)RI_ROUTE_NSECTIONS * 4u * total,
+        sizeof(float));
+    if (!pool) {
+        printf("render: --stems: out of memory for %u frames\n",
+            (unsigned)total);
+        return 2;
+    }
+    /* The stem file is sized FROM THE FRAME COUNT, not guessed: a fixed
+     * buffer silently refuses a long song (stem_set_write will not truncate
+     * a stem, which is the right answer from it and useless here), and a
+     * buffer sized by hand is how the refusal gets discovered. Header is 44
+     * bytes for every depth stem_wav writes. */
+    wavbytes = 44u + (size_t)total * 2u * (depth / 8u);
+    wav = (uint8_t *)malloc(wavbytes);
+    if (!wav) {
+        printf("render: --stems: out of memory for the %u-byte stem\n",
+            (unsigned)wavbytes);
+        free(pool);
+        return 2;
+    }
+    off = 0u;
+    for (sec = 0u; sec < RI_ROUTE_NSECTIONS; sec++) {
+        slots[sec].l = pool + off; off += total;
+        slots[sec].r = pool + off; off += total;
+        slots[sec].out = pool + off; off += total * 2u;
+    }
+    if (ri_stemr_begin(&sr, RI_ROUTE_NSECTIONS, total, rate, depth,
+            bpm_milli, slots) != 0) {
+        printf("render: --stems: setup refused (depth %u?)\n", depth);
+        free(pool);
+        return 2;
+    }
+    if (mkdir(dir, 0777) != 0 && errno != EEXIST) {
+        printf("render: --stems: cannot create %s\n", dir);
+        free(pool);
+        return 2;
+    }
+    ri_engine_init(ep);
+    ri_engine_defaults(ep);
+    ri_engine_load(ep, ev, nev, total, sections);
+    /* BIND BEFORE THE FIRST BLOCK: it zeroes every buffer, and the engine
+     * writes only the samples it renders, so without it a short render leaves
+     * the previous song's audio at the end of a stem file. */
+    ri_stemr_bind(&sr, ep);
+    while (done < total) {
+        uint32_t want = total - done;
+        uint32_t got;
+        if (want > RI_BLOCK)
+            want = RI_BLOCK;
+        got = ri_engine_render(ep, mixl, mixr, want, (float)rate);
+        if (got == 0u)
+            break;
+        done += got;
+    }
+    if (ri_stemr_finish(&sr, done) != 0) {
+        printf("render: --stems: render stopped short (%u of %u frames)\n",
+            (unsigned)done, (unsigned)total);
+        free(wav);
+        free(pool);
+        return 2;
+    }
+    for (sec = 0u; sec < RI_ROUTE_NSECTIONS; sec++) {
+        char nm[32], path[640];
+        uint32_t w;
+        int n;
+        if ((sections & (1u << sec)) == 0u)
+            continue;
+        if (ri_stemr_name(nm, sizeof nm, sec + 1u, sec) == 0u)
+            continue;
+        n = snprintf(path, sizeof path, "%s/%s", dir, nm);
+        if (n < 0 || (uint32_t)n >= sizeof path) {
+            printf("render: --stems: path too long for %s\n", dir);
+            free(pool);
+            return 2;
+        }
+        w = stem_set_write(&sr.set, sec, wav, (uint32_t)wavbytes);
+        if (w == 0u) {
+            printf("render: --stems: cannot write %s\n", path);
+            free(pool);
+            return 2;
+        }
+        {
+            FILE *f = fopen(path, "wb");
+            if (!f) {
+                printf("render: --stems: cannot open %s\n", path);
+                free(pool);
+                return 2;
+            }
+            if (fwrite(wav, 1u, w, f) != w) {
+                fclose(f);
+                printf("render: --stems: short write on %s\n", path);
+                free(pool);
+                return 2;
+            }
+            fclose(f);
+        }
+        printf("render: stem %s\n", path);
+        made++;
+    }
+    printf("render: %d stem(s) in %s\n", made, dir);
+    rc = 0;
+    free(wav);
+    free(pool);
+    return rc;
+}
+
+static int render_song(const char *song_path, const char *out_path, const char *ev_path,
+    const char *stems_dir) {
     struct RIStep steps[RI_MAX_STEPS];
     struct RIEvent ev[RI_SCHED_MAX_EVENTS];
     static struct RISegment segs[1];
@@ -483,9 +649,21 @@ static int render_song(const char *song_path, const char *out_path, const char *
     }
     if (ev_path && (rc = dump_events(ev_path, ev, nev)) != 0)
         return rc;
-    if ((rc = write_audio(out_path, pcm, (uint32_t)total)) != 0)
+    /* The stems get their OWN render, from the same events and the same
+     * total: sharing the mono `pcm` pass would mean the strips came from a
+     * mono fold rather than from the mix they are supposed to decompose. */
+    if (stems_dir) {
+        uint32_t depth = (g_depth == 24) ? STEM_WAV_PCM24 : STEM_WAV_PCM16;
+        rc = render_stems(ev, nev, (uint32_t)total, stems_dir, g_rate, depth,
+            (uint32_t)tempo * 1000u);
+        if (rc != 0)
+            return rc;
+    }
+    if (out_path && (rc = write_audio(out_path, pcm, (uint32_t)total)) != 0)
         return rc;
-    printf("render: %u events, %llu samples -> %s\n", nev, (unsigned long long)total, out_path);
+    printf("render: %u events, %llu samples%s%s\n", nev,
+        (unsigned long long)total, out_path ? " -> " : "",
+        out_path ? out_path : "");
     return 0;
 }
 
@@ -1211,6 +1389,7 @@ int main(int argc, char **argv) {
     const char *song = NULL, *out = NULL, *ev = NULL, *math = NULL, *v808 = NULL;
     const char *v909 = NULL, *v909pack = NULL, *pack = NULL, *vpcf = NULL;
     const char *vfx = NULL, *vmix = NULL, *rbngsong = NULL;
+    const char *stems = NULL;
     int i;
     if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("usage: render --song FILE --out FILE [--dump-events FILE]\n");
@@ -1222,6 +1401,7 @@ int main(int argc, char **argv) {
         printf("       render --pcf sweep --out FILE\n");
         printf("       render --fx dry|delay|chain --out FILE\n");
         printf("       render --mix four|solo --out FILE\n");
+        printf("       [--stems DIR]  one WAV per mixer strip, into DIR\n");
         printf("       [--depth 16|24, default 16] [--rate 48000|44100, default 48000]\n");
         printf("       [--format wav|aiff, default wav]\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
@@ -1276,6 +1456,8 @@ int main(int argc, char **argv) {
                 return 2;
             }
         }
+        else if (strcmp(argv[i], "--stems") == 0 && i + 1 < argc)
+            stems = argv[++i];
         else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
             pack = argv[++i];
         else if (strcmp(argv[i], "--rbngsong") == 0 && i + 1 < argc)
@@ -1285,7 +1467,16 @@ int main(int argc, char **argv) {
             return 2;
         }
     }
-    if (!out) {
+    /* --stems ALONE IS A COMPLETE INVOCATION. It does not need --out: a
+     * caller asking for stems is asking for files, and making them also
+     * write a mix they did not ask for is the kind of default that ends up
+     * in a folder. --out still works alongside it, which is how you get the
+     * mix and the strips from one render. */
+    if (stems && !out && !song && !rbngsong) {
+        printf("render: --stems needs --song or --rbngsong\n");
+        return 2;
+    }
+    if (!out && !stems) {
         printf("render: --out required\n");
         return 2;
     }
@@ -1359,5 +1550,5 @@ int main(int argc, char **argv) {
     }
     if (rbngsong)
         return render_rbngsong(rbngsong, out, ev);
-    return render_song(song, out, ev);
+    return render_song(song, out, ev, stems);
 }

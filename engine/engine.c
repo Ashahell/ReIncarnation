@@ -202,12 +202,20 @@ static void engine_section_stereo(struct RIEngine *e, uint32_t section,
     }
 }
 
-/* `pos` is where THIS SLICE starts in the caller's buffers. `ml`/`mr`/
- * `sendbus` are block-local and indexed from 0, and the offset is applied
- * once at `out_l[done + c + i]` -- so anything writing outside this function
- * MUST carry `pos` itself. My first stem tap wrote `tl[i]` for every slice,
- * so every slice landed at the HEAD of the buffer: plausible-looking stems
- * that were almost entirely the caller's fill. */
+/* `pos` is where THIS SLICE starts, IN THE ENGINE'S ABSOLUTE SAMPLES.
+ *
+ * `ml`/`mr`/`sendbus` are block-local and indexed from 0, and `out_l` is the
+ * caller's buffer for THIS CALL -- which is why those use the local `done`.
+ * A stem buffer is ABSOLUTE: it belongs to the song, not to the call.
+ *
+ * `e->cursor` is the right source and `done` is the wrong one, and the
+ * difference is invisible until somebody renders in blocks. `ri_engine_render`
+ * restarts its local `done` at 0 on every call, so `done + c` wrote every
+ * block to the head of the buffer -- and the stem came out SILENT while the
+ * mix was fine, because the last block's 64 samples were the only ones left
+ * standing and the 303 had already decayed. The head-of-buffer bug I fixed
+ * earlier was the same mistake at one-block granularity; this is it across
+ * calls. */
 static void engine_section(struct RIEngine *e, uint32_t section,
     double *ml, double *mr, float *sendbus, uint32_t cc, float sr,
     uint32_t pos) {
@@ -779,13 +787,13 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             if (e->sections & RI_ENGINE_S303A) {
                 RI_ESTAGE_T(e, RI_ENGINE_ST_S303A, ts);
                 rb303_render(&e->v303a, e->scratch, cc, sr);
-                engine_section(e, 0, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
+                engine_section(e, 0, ml, mr, sendbus, cc, sr, (uint32_t)(e->cursor + c));
                 RI_ESTAGE_E(e, RI_ENGINE_ST_S303A, ts);
             }
             if (e->sections & RI_ENGINE_S303B) {
                 RI_ESTAGE_T(e, RI_ENGINE_ST_S303B, ts);
                 rb303_render(&e->v303b, e->scratch, cc, sr);
-                engine_section(e, 1, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
+                engine_section(e, 1, ml, mr, sendbus, cc, sr, (uint32_t)(e->cursor + c));
                 RI_ESTAGE_E(e, RI_ENGINE_ST_S303B, ts);
             }
             if (e->sections & RI_ENGINE_S808) {
@@ -794,7 +802,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                  * figures describe THIS block, the levi vc_* discipline. */
                 rb808_voice_counters_reset(&e->s808);
                 rb808_render_mix(&e->s808, e->scratch, cc, sr);
-                engine_section(e, 2, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
+                engine_section(e, 2, ml, mr, sendbus, cc, sr, (uint32_t)(e->cursor + c));
                 /* E_STORE, not E: hands this block's span to drum_last808_us
                  * for the (us, active) pairing. Same pair E would have used:
                  * no extra reads, no extra distortion. */
@@ -805,7 +813,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 /* Per-block 909 work count (drum-tail A0): same discipline. */
                 rb909_voice_counters_reset(&e->s909);
                 rb909_render_mix(&e->s909, e->scratch, cc, sr);
-                engine_section(e, 3, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
+                engine_section(e, 3, ml, mr, sendbus, cc, sr, (uint32_t)(e->cursor + c));
                 /* E_STORE: this block's span to drum_last909_us. */
                 RI_ESTAGE_E_STORE(e, RI_ENGINE_ST_S909, ts, e->drum_last909_us);
             }
@@ -845,7 +853,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                  * E would have used -- no extra reads, no extra distortion. */
                 RI_ESTAGE_E_STORE(e, RI_ENGINE_ST_LEVVOICE, ts, e->slevi.vc_voice_us);
                 RI_ESTAGE_T(e, RI_ENGINE_ST_LEVMIX, ts);
-                engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
+                engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr, (uint32_t)(e->cursor + c));
                 RI_ESTAGE_E(e, RI_ENGINE_ST_LEVMIX, ts);
                 /* SECOND CONTROL, deliberately INSIDE SLEVI. LEVPROBE (outside)
                  * measures what one stage pair costs; this one measures what one

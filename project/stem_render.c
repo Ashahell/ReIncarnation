@@ -2,6 +2,40 @@
 #include <string.h>
 #include "project/stem_render.h"
 
+/* The five section names, in section order. These are the engine's section
+ * indices (0=303A 1=303B 2=808 3=909 4=Levi), not the panel's lane names --
+ * a stem is a MIXER STRIP, so it is named for the machine that mixed it. */
+static const char *const RI_STEMR_NAMES[RI_ROUTE_NSECTIONS] = {
+    "303a", "303b", "808", "909", "levi"
+};
+
+uint32_t ri_stemr_name(char *out, uint32_t cap, uint32_t index,
+    uint32_t section) {
+    static const char dec[] = "0123456789";
+    uint32_t at, i;
+    if (!out || cap < 16u || section >= RI_ROUTE_NSECTIONS)
+        return 0u;
+    /* Two DECIMAL digits, zero padded, and refused above 99 rather than
+     * printed with more: a three-digit index would sort before "01-" in
+     * some file browsers and break the ordering the index is there for.
+     * (I first wrote this with hex shifts and produced "00-808.wav" for
+     * index 3 -- a two-digit field is not a two-hex-digit field.) */
+    if (index == 0u || index > 99u)
+        return 0u;
+    out[0] = dec[(index / 10u) % 10u];
+    out[1] = dec[index % 10u];
+    at = 2u;
+    out[at++] = '-';
+    for (i = 0u; RI_STEMR_NAMES[section][i] != '\0'; i++)
+        out[at++] = RI_STEMR_NAMES[section][i];
+    out[at++] = '.';
+    out[at++] = 'w';
+    out[at++] = 'a';
+    out[at++] = 'v';
+    out[at] = '\0';
+    return at;
+}
+
 /* The only bit depths stem_wav_write can actually produce. Refusing rather
  * than clamping: the caller's file format is not this module's to choose, and
  * a silent 16 would be a file that is not what anybody asked for. */
