@@ -41,6 +41,7 @@
 #include "engine/dsp/rb909.h"
 #include "engine/seq/pattern.h"   /* RI_DRUM_CLASS_808 / _909 */
 #include "engine/seq/sched.h"    /* RIEvent, RI_EVFLAG_* */
+#include "engine/engine.h"       /* RINoteTapRec (the engine's note tap) */
 
 /* Flags for ri_devout_note(). */
 #define RI_DEVOUT_LEGATO  0x01u  /* slide: gate stays high, no re-attack */
@@ -188,6 +189,19 @@ uint8_t ri_devout_velocity(uint16_t flags);
 uint32_t ri_devout_emit(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
     uint8_t channel, uint8_t device, const struct RIDevEvent *x,
     uint8_t sound);
+/* One ENGINE TAP RECORD -> bytes. This is the seam R6d crosses: the engine
+ * recorded a note without knowing a wire exists, and this is where it
+ * becomes three bytes for `midi_out`'s ring.
+ *
+ * The record already carries the RESOLVED sound (see engine.h), so the
+ * lane->sound step is not repeated here and cannot be repeated wrongly.
+ *
+ * A `RI_NOTEK_LATE_ACCENT` record emits NOTHING: a total accent is applied
+ * retroactively to notes already sent, and MIDI has no way to make a note it
+ * already sent louder. It is returned as 0 so the caller can count it. */
+uint32_t ri_devout_record(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
+    uint8_t channel, const struct RINoteTapRec *rec);
+
 /* R6 resolves no lanes: the engine does. Returns 0, pinned so the fact is a
  * test rather than a claim. */
 uint32_t ri_devout_resolves_lane(void);

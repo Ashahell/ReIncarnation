@@ -139,6 +139,47 @@ struct RIDrumDiag {
     uint32_t us808, a808, us909, a909;
 };
 
+/* ---------------------------------------------------------------------
+ * The note tap (R6d).
+ *
+ * THE ENGINE HAS NO IDEA A WIRE EXISTS. It records notes into this ring and
+ * `app/` drains it; it includes nothing from midi_io, names no channel and
+ * sends nothing itself. That is what keeps the render's audio path free of
+ * camd and keeps the confinement gate (no AROS outside platform/aros) honest.
+ *
+ * THE TAP RECORDS THE RESOLVED SOUND, NEVER THE LANE. The 808's lane->sound
+ * map is `e->s808.slot[lane]` and the user can remap it; the 909's is the
+ * static `RI_LANE_TO_RB909_VOICE`. A tap that recorded the lane would hand
+ * the caller a number it cannot interpret without re-implementing the
+ * engine's own resolution -- and the app's copy of that resolution would be
+ * wrong the moment a lane moved.
+ *
+ * `ri_engine_load` MUST NOT CLEAR THIS. The live session reloads the engine
+ * every 256-frame buffer (the drum-ring A0 note above), so a reset in load
+ * would cap the ring at one block's notes. t199 pins that.
+ * ------------------------------------------------------------------- */
+#define RI_NOTETAP_CAP 256u
+
+/* A note, or a total accent that arrived after the note-on it accents. */
+#define RI_NOTEK_NOTE         0u
+#define RI_NOTEK_LATE_ACCENT  1u
+
+struct RINoteTapRec {
+    uint64_t sample;   /* the cursor the note landed on */
+    uint8_t  kind;     /* RI_NOTEK_* */
+    uint8_t  device;   /* 0/1 303A/303B, 2 808, 3 909, 4 Levi */
+    uint8_t  sound;    /* RESOLVED sound; meaningless for a melodic note */
+    uint8_t  note;     /* the engine's own MIDI note, where it has one */
+    uint8_t  flags;    /* RI_EVFLAG_* (low 8) */
+    uint8_t  is_off;
+    uint8_t  pad;
+};
+
+struct RINoteTap {
+    struct RINoteTapRec rec[RI_NOTETAP_CAP];
+    uint32_t head, tail, dropped;
+};
+
 struct RIEngine {
     struct RIEngineStages estg;
     uint64_t (*now_us)(void); /* injected clock; NULL disables stage timing */
@@ -190,6 +231,9 @@ struct RIEngine {
     uint32_t drum_last808_us, drum_last909_us;
     struct RIDrumDiag drum_ring[RI_DRUMDIAG_N];
     uint32_t drum_n, drum_tick;
+    /* R6d note tap. Embedded, like the C2 meters: one instance in the
+     * session, drained by the caller, never read by the engine. */
+    struct RINoteTap notetap;
 };
 
 void ri_engine_init(struct RIEngine *e);
@@ -200,6 +244,16 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev);
 /* Render up to n frames of stereo. Returns frames rendered (0 at end).
  * Chunk-agnostic: splitting n renders sample-identical output. */
 void ri_engine_set_clock(struct RIEngine *e, uint64_t (*now_us)(void));
+
+/* R6d: drain the note tap, oldest first. 0 when empty, NULL engine or
+ * NULL output. A partial drain leaves the rest in order. */
+uint32_t ri_engine_note_read(struct RIEngine *e, struct RINoteTapRec *out,
+    uint32_t cap);
+uint32_t ri_engine_note_pending(const struct RIEngine *e);
+uint32_t ri_engine_note_dropped(const struct RIEngine *e);
+/* Explicit, once-at-startup drain. NOT called by ri_engine_load -- see
+ * RI_NOTETAP_CAP above for why that would be a bug. */
+void ri_notetap_reset(struct RINoteTap *t);
 const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e);
 /* Drum-tail A0 sampler: record one (us, active) pair per 256th full block
  * (see the RIDrumDiag note above). Called once per block-slice by the

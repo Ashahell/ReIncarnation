@@ -14,6 +14,7 @@
 #include "engine/live.h"
 #include "platform/pal/ri_pal_thread.h"
 #include "midi_io/midi_out.h"
+#include "midi_io/midi_devout.h"
 
 #define RI_LIVE_CMD_NONE 0
 #define RI_LIVE_CMD_PLAY 1
@@ -31,6 +32,24 @@ struct RILiveDriver {
      * NULL is every caller's state unless clock out is on, which is the
      * E0 default. */
     struct RIMidiOut *clk_out;
+    /* R6 notes: an OPTIONAL, caller-owned byte producer, and the channel to
+     * play on. Same ring, same sender task, same framer as the clock -- R6
+     * needs no transport of its own and no AROS-only code.
+     *
+     * `note_ch` is an `int` and -1 MEANS UNASSIGNED, which is checked HERE
+     * rather than downstream. `ri_devout_note()` clamps a channel above 15
+     * instead of refusing it, which is right at its own boundary (channel 16
+     * must not wrap onto the G7 remote) and catastrophic here: an
+     * unassigned "channel 255" would clamp to 15 and put every note on an
+     * instrument nobody chose. NULL producer or -1 channel means nothing
+     * leaves the engine's tap -- the E0 default, and every caller today. */
+    struct RIDevOut *dev_out;
+    int32_t note_ch;
+    /* Late accents (a total accent applied retroactively to a note already
+     * on the wire) and refusals. Counted, because an accuracy limit nobody
+     * can measure is a limit nobody can decide about. */
+    uint32_t late_accents;
+    uint32_t devout_refused;
     ri_atomic_u32 xruns;           /* backend-observed late buffers */
     ri_atomic_u32 buffers;         /* buffers rendered */
     ri_atomic_u32 render_us_max;   /* slowest buffer render, microseconds */

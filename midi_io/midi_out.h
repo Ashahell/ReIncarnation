@@ -75,9 +75,22 @@ void midi_out_render(struct RIMidiOut *o, uint64_t sample_pos);
  * past (M3f), and emits no byte. */
 void midi_out_set_bpm(struct RIMidiOut *o, uint32_t bpm_milli,
     uint64_t sample_pos);
+/* Push an already-framed message in, all or nothing. This is the ONLY way
+ * a caller outside this file may write the ring (R6 notes use it), and it is
+ * `put_run()` made public precisely so the all-or-nothing rule has one home:
+ * a three-byte note half-written under backpressure would be assembled by
+ * the receiver out of a stale byte and a fresh one. Returns `n` on success
+ * and 0 otherwise -- including 0 when the producer is disabled, since off
+ * means no byte reaches the ring at all. */
+uint32_t midi_out_put(struct RIMidiOut *o, const uint8_t *b, uint32_t n);
+
 /* Drain the ring into `out`, oldest first. 0 when empty or NULL. */
 uint32_t midi_out_read(struct RIMidiOut *o, uint8_t *out, uint32_t cap);
 uint32_t midi_out_pending(const struct RIMidiOut *o);
+/* Bytes displaced from the tail to make room, counted. It was reachable only
+ * by reading the struct, and "how much did the wire lose" is a question the
+ * diagnostics and the ledger both need to answer. */
+uint32_t midi_out_dropped(const struct RIMidiOut *o);
 
 /* The sender side. `ri_pal_midi_send` takes a whole message (1..3 bytes),
  * while the ring is a byte STREAM, so something has to frame them — and

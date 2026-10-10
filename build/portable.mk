@@ -25,7 +25,7 @@ CORE_TU := \
   engine/fx/pcf.c engine/mixer/mixer.c engine/framework/ridevice.c \
   audio_io/audio.c audio_io/backend_null.c platform/host/audio_null.c \
   project/sha256.c project/rbng.c project/songscript.c project/playlist.c project/arexx.c project/arexx_dispatch.c \
-  project/undo.c midi_io/midi.c midi_io/midi_clockout.c midi_io/midi_out.c \
+  project/undo.c midi_io/midi.c midi_io/midi_clockout.c midi_io/midi_out.c midi_io/midi_devout.c \
   gui/knob_logic.c gui/panels.c gui/catalog.c gui/knob_art.c gui/ctlreg.c \
   gui/panelctl.c gui/panelgeo.c gui/zoomfit.c gui/skinsect.c gui/visdev.c gui/tabpages.c gui/sect303.c gui/sect808.c gui/sect909.c \
   gui/sectlevi.c gui/sectmix.c gui/sectfx.c gui/sectpat.c gui/secttr.c gui/sectui.c \
@@ -33,9 +33,22 @@ CORE_TU := \
 
 CORE_OBJS := $(patsubst %.c,$(OUT)/%.o,$(CORE_TU))
 
+# HEADER DEPENDENCIES ARE GENERATED, NOT ASSUMED. The rule used to depend on
+# the .c alone, so editing a header rebuilt only the .c files that happened to
+# be newer and left every other object compiled against the OLD struct layout.
+# That does not fail to link -- it links a binary in which two translation
+# units disagree about where `struct RIEngine` ends, and it crashes at run
+# time with a jump into a garbage pointer. It bit the R6d note tap: adding
+# `struct RINoteTap` to RIEngine grew it by 4 KiB, `engine.o` was rebuilt and
+# `live.o` (which embeds an RIEngine by value) was not, and headless segfaulted
+# inside `ri_live_render` with gdb reporting `0x10200` as the faulting
+# address. Same class as the ABIv1/ABIv11 stale-binary trap: the build lies
+# and the evidence is a crash rather than an error.
 $(OUT)/%.o: $(ROOT)/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -DPCF_TABLE_VERIFIED=1 -c $< -o $@
+	$(CC) $(CFLAGS) -DPCF_TABLE_VERIFIED=1 -MMD -MP -MF $(@:.o=.d) -c $< -o $@
+
+-include $(CORE_OBJS:.o=.d)
 
 all: $(CORE_OBJS)
 	@echo "PORTABLE BUILD OK $(OUT)"

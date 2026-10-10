@@ -414,6 +414,54 @@ void ri_engine_load(struct RIEngine *e, const struct RIEvent *ev,
      * song; offline callers load once per song and keep init's zeroes. */
 }
 
+/* R6d: one note into the tap. DROP THE OLDEST on overflow, never the
+ * newest: the note that just played is the one the caller is looking at,
+ * and losing it is the loss somebody notices. Counted, P-19 style. */
+static void note_put(struct RIEngine *e, uint8_t kind, uint8_t device,
+    uint8_t sound, uint8_t note, uint8_t flags, uint8_t is_off) {
+    struct RINoteTap *t = &e->notetap;
+    if (t->head - t->tail >= RI_NOTETAP_CAP) {
+        t->tail++;
+        t->dropped++;
+    }
+    t->rec[t->head & (RI_NOTETAP_CAP - 1u)].sample = e->cursor;
+    t->rec[t->head & (RI_NOTETAP_CAP - 1u)].kind = kind;
+    t->rec[t->head & (RI_NOTETAP_CAP - 1u)].device = device;
+    t->rec[t->head & (RI_NOTETAP_CAP - 1u)].sound = sound;
+    t->rec[t->head & (RI_NOTETAP_CAP - 1u)].note = note;
+    t->rec[t->head & (RI_NOTETAP_CAP - 1u)].flags = flags;
+    t->rec[t->head & (RI_NOTETAP_CAP - 1u)].is_off = is_off;
+    t->head++;
+}
+
+uint32_t ri_engine_note_read(struct RIEngine *e, struct RINoteTapRec *out,
+    uint32_t cap) {
+    uint32_t n = 0u;
+    struct RINoteTap *t;
+    if (!e || !out)
+        return 0u;
+    t = &e->notetap;
+    while (t->tail != t->head && n < cap)
+        out[n++] = t->rec[t->tail++ & (RI_NOTETAP_CAP - 1u)];
+    return n;
+}
+
+uint32_t ri_engine_note_pending(const struct RIEngine *e) {
+    return e ? e->notetap.head - e->notetap.tail : 0u;
+}
+
+uint32_t ri_engine_note_dropped(const struct RIEngine *e) {
+    return e ? e->notetap.dropped : 0u;
+}
+
+void ri_notetap_reset(struct RINoteTap *t) {
+    if (!t)
+        return;
+    t->head = 0u;
+    t->tail = 0u;
+    t->dropped = 0u;
+}
+
 /* Shared event routing (replaces the three per-path copies): NOTE-family by
  * device (0 = 303A, 1 = 303B), AUTOMATION by ctl block. Unknown devices and
  * blocks are ignored — 808/909 arrive with their slices, never misrouted. */
@@ -440,16 +488,24 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
             lane = ev->voice;
             if (lane >= RI_DRUM_CLASSIC_LANES)
                 return; /* reserved rack lanes: later slice */
+            /* R6d: the RESOLVED sound, not the lane. This is the one place
+             * the answer exists, and the 808's is user-remappable, so a tap
+             * that recorded the lane would be a number the caller cannot
+             * use without re-deriving exactly this. */
             if (ev->device == 2u) {
                 sound = e->s808.slot[lane];
                 rb808_trigger(&e->s808, sound,
                     (ev->flags & RI_EVFLAG_ACCENT) ? 1u : 0u, 0.0f);
                 e->tag808[sound] = e->cursor;
+                note_put(e, RI_NOTEK_NOTE, 2u, (uint8_t)sound, 0u,
+                    (uint8_t)(ev->flags & 0xFFu), 0u);
             } else {
                 voice = RI_LANE_TO_RB909_VOICE[lane];
                 rb909_trigger(&e->s909, voice,
                     (ev->flags & RI_EVFLAG_ACCENT) ? 1u : 0u, 64, 0);
                 e->tag909[voice] = e->cursor;
+                note_put(e, RI_NOTEK_NOTE, 3u, (uint8_t)voice, 0u,
+                    (uint8_t)(ev->flags & 0xFFu), 0u);
             }
             return;
         case RI_EV_FLAM:
@@ -470,6 +526,14 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
                     if (e->tag909[voice] == e->cursor)
                         e->s909.v[voice].accent = 1u;
             }
+            /* A total accent is applied RETROACTIVELY to voices stamped at
+             * this cursor, which means every note-on above has already been
+             * written to the tap. MIDI cannot make a note it already sent
+             * louder, so rather than pretend otherwise this goes in as its
+             * own record: a caller can then COUNT the accents the wire
+             * cannot carry instead of arguing about whether it does. */
+            note_put(e, RI_NOTEK_LATE_ACCENT, (uint8_t)ev->device, 0u, 0u,
+                (uint8_t)(ev->flags & 0xFFu), 0u);
             return;
         default:
             return; /* one-shots: no gate to release */
@@ -485,9 +549,13 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
         switch (ev->type) {
         case RI_EV_NOTE_ON:
             levi_trigger(&e->slevi, lane, (uint8_t)(ev->value & 127u));
+            note_put(e, RI_NOTEK_NOTE, 4u, (uint8_t)lane,
+                (uint8_t)(ev->value & 127u), (uint8_t)(ev->flags & 0xFFu), 0u);
             return;
         case RI_EV_NOTE_OFF:
             levi_release(&e->slevi, lane);
+            note_put(e, RI_NOTEK_NOTE, 4u, (uint8_t)lane,
+                (uint8_t)(ev->value & 127u), (uint8_t)(ev->flags & 0xFFu), 1u);
             return;
         default:
             return;
@@ -512,12 +580,22 @@ void ri_engine_apply_event(struct RIEngine *e, const struct RIEvent *ev) {
     case RI_EV_NOTE_ON:
         rb303_note(v, (uint8_t)(ev->value & 127u),
             (ev->flags & RI_EVFLAG_SLIDE) != 0, (ev->flags & RI_EVFLAG_ACCENT) != 0);
+        /* The tap does not decide what a slide or a release MEANS -- it
+         * records the event and lets the byte producer be the single place
+         * that turns a flag into (or refuses to emit) bytes. A tap that
+         * pre-decided would be a second place to be wrong about it. */
+        note_put(e, RI_NOTEK_NOTE, (uint8_t)ev->device, 0u,
+            (uint8_t)(ev->value & 127u), (uint8_t)(ev->flags & 0xFFu), 0u);
         break;
     case RI_EV_NOTE_CONTINUE:
         rb303_slide_to(v, (uint8_t)(ev->value & 127u));
+        note_put(e, RI_NOTEK_NOTE, (uint8_t)ev->device, 0u,
+            (uint8_t)(ev->value & 127u), (uint8_t)(ev->flags & 0xFFu), 0u);
         break;
     case RI_EV_NOTE_OFF:
         rb303_release(v);
+        note_put(e, RI_NOTEK_NOTE, (uint8_t)ev->device, 0u,
+            (uint8_t)(ev->value & 127u), (uint8_t)(ev->flags & 0xFFu), 1u);
         break;
     case RI_EV_ACCENT:
         rb303_accent(v);

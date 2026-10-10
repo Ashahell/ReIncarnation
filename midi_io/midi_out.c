@@ -57,22 +57,33 @@ static void put(struct RIMidiOut *o, uint8_t b) {
 /* n bytes as ONE unit: either all of them land or none do. A half-sent
  * 3-byte SPP is a wire-level lie — the receiver would read a position
  * made of a stale byte and a fresh one. */
-static void put_run(struct RIMidiOut *o, const uint8_t *b, uint32_t n) {
+static uint32_t put_run(struct RIMidiOut *o, const uint8_t *b, uint32_t n) {
     uint32_t room;
     if (!o || !o->enabled || !b || n == 0u)
-        return;
+        return 0u;
+    /* A MESSAGE LONGER THAN THE RING IS REFUSED, UP FRONT. The old guard
+     * was `need >= CAP-1` further down, where `need = n - room` -- and that
+     * only catches a long message when the ring is nearly FULL. On an empty
+     * ring a 300-byte message took the `room < n` branch with room = 255,
+     * dropped 45 from the TAIL, which pushed tail past head and made
+     * `head - tail` underflow to 4294967251 -- after which room computed as
+     * 300, the size check passed, and 300 bytes were written into a 256-byte
+     * ring. Found by t200. The check belongs where the length is known, not
+     * where the shortfall happens to be. */
+    if (n >= RI_MIDIOUT_CAP)
+        return 0u;
     room = room_of(o);
     if (room < n) {
         /* Make room by dropping from the tail, then re-check: if it still
          * does not fit, send nothing at all. */
         uint32_t need = n - room;
         if (need >= RI_MIDIOUT_CAP - 1u)
-            return;               /* a message longer than the ring */
+            return 0u;              /* a message longer than the ring */
         o->tail += need;
         o->dropped += need;
         room = room_of(o);
         if (room < n)
-            return;
+            return 0u;
     }
     {
         uint32_t i;
@@ -81,6 +92,7 @@ static void put_run(struct RIMidiOut *o, const uint8_t *b, uint32_t n) {
             o->head++;
         }
     }
+    return n;
 }
 
 void midi_out_init(struct RIMidiOut *o, uint32_t sr, uint32_t bpm_milli,
@@ -164,6 +176,10 @@ void midi_out_set_bpm(struct RIMidiOut *o, uint32_t bpm_milli,
     midi_clockout_set_bpm(&o->clk, bpm_milli, sample_pos);
 }
 
+uint32_t midi_out_put(struct RIMidiOut *o, const uint8_t *b, uint32_t n) {
+    return put_run(o, b, n);
+}
+
 uint32_t midi_out_read(struct RIMidiOut *o, uint8_t *out, uint32_t cap) {
     uint32_t n = 0u;
     if (!o || !out)
@@ -177,6 +193,9 @@ uint32_t midi_out_read(struct RIMidiOut *o, uint8_t *out, uint32_t cap) {
 
 uint32_t midi_out_pending(const struct RIMidiOut *o) {
     return o ? o->head - o->tail : 0u;
+}
+uint32_t midi_out_dropped(const struct RIMidiOut *o) {
+    return o ? o->dropped : 0u;
 }
 
 /* --- the sender side ---------------------------------------------------

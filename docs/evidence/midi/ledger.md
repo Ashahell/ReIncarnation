@@ -1172,3 +1172,126 @@ comments are what a reboot takes away.
   after the refactor because the event it reused had `note == 0`, so the
   melodic fallback refused it for an unrelated reason and the test could not
   tell the two paths apart.
+
+## R6d: the engine's note tap, and the drain onto the wire (2026-10-10)
+
+Two halves, because they are two different claims. t199 is the engine
+recording notes without knowing a wire exists; t200 is those notes becoming
+bytes.
+
+### The tap (`engine/engine.{c,h}`, t199)
+
+- **THE ENGINE RECORDS, `app/` SENDS.** The tap is a ring of records in
+  `struct RIEngine`; `engine/` includes nothing from `midi_io`, names no
+  channel and sends nothing. The confinement gate (no AROS outside
+  `platform/aros`) keeps camd out of the audio path, and this is what keeps
+  it out of the note path too.
+- **THE TAP RECORDS THE RESOLVED SOUND, NEVER THE LANE.** The 808's
+  lane→sound map is `e->s808.slot[lane]` and the user can remap it; the
+  909's is the static `RI_LANE_TO_RB909_VOICE`. A tap recording the lane
+  would hand `app/` a number it cannot interpret without re-implementing
+  the engine's own resolution — and the app's copy would be wrong the moment
+  a lane moved. `NA` (records the lane), `NB` (uses the static table and
+  ignores the live one) and `NC` (the 909 equivalent) are all killed.
+- **`ri_engine_load` MUST NOT CLEAR IT, and t199 pins that.** The live
+  session reloads the engine every 256-frame buffer — the drum-ring A0 note
+  in `engine.c` — so a reset in `load` would cap the ring at one block's
+  notes. `NL` kills it. The reset is `ri_notetap_reset()`, explicit,
+  once at startup.
+- **OVERFLOW DROPS THE OLDEST, NOT THE NEWEST.** The note that just played is
+  the one the caller is looking at. `NJ` (drops the newest) and `NK` (not
+  counted) are killed.
+- **THE LATE ACCENT IS A RECORD OF ITS OWN KIND.** A total accent
+  (`RI_EV_ACCENT` to `RI_VOICE_ALL`) sorts after the same-sample hits and is
+  applied retroactively to voices stamped at this cursor — so by the time it
+  arrives the note-on has *already* been written to the tap, and **MIDI has
+  no way to make a note it already sent louder.** Rather than pretend
+  otherwise, the tap carries it as `RI_NOTEK_LATE_ACCENT` sharing the same
+  `sample` stamp, which makes the loss **countable** rather than arguable.
+  `NG` (not recorded), `NH` (mislabelled as a note) and `NI` (sample stamp
+  dropped, so the pairing becomes unmeasurable) are killed.
+
+### The drain (`app/core/live_driver.c`, `midi_io/`, t200)
+
+- **R6 NEEDS NO TRANSPORT OF ITS OWN.** Notes go into `midi_out`'s ring and
+  ride the *same* sender task and the *same* status-byte framer as the clock.
+  That is why there is no new AROS code and no new socket in this phase.
+- **AN UNASSIGNED CHANNEL IS REFUSED *BEFORE* `ri_devout_note()`.** That
+  function *clamps* a channel above 15 rather than refusing it, which is
+  right at its own boundary (channel 16 must not wrap onto the G7 remote)
+  and catastrophic here: an unassigned "channel 255" would clamp to 15 and
+  put every note on an instrument nobody chose. So `note_ch` is an `int`
+  and `-1` means unassigned, checked in the drain. `LB` (passed through) and
+  `LC` (defaulted to channel 1) are killed.
+- **OFF MEANS THE TAP IS NOT EVEN WALKED.** `dev_out == NULL` — every caller
+  today — returns immediately. `LA` kills it. And a *disabled ring* refuses
+  a put outright (`MG`), so E0 means an **empty** ring, not a full one
+  nobody reads.
+- **THE LATE ACCENT EMITS NOTHING AND IS COUNTED** (`late_accents`), as is a
+  refusal (`devout_refused`).
+
+### Two real defects this phase found
+
+1. **`put_run()`'s long-message guard only worked on a nearly-full ring.**
+   The guard was `need >= CAP-1` where `need = n - room`, which catches a
+   long message only when `room` is small. On an **empty** ring a 300-byte
+   message took the `room < n` branch with `room = 255`, dropped 45 from the
+   tail — which pushed `tail` past `head` — and made `head - tail` underflow
+   to 4294967251. `room` then computed as 300, the size check passed, and
+   **300 bytes were written into a 256-byte ring.** The check belongs where
+   the length is known, not where the shortfall happens to be: `if (n >=
+   RI_MIDIOUT_CAP) return 0;` at the top. `MA` kills the old behaviour. This
+   was reachable from clock out too, not only from notes.
+2. **`build/portable.mk` had NO HEADER DEPENDENCIES.** The rule depended on
+   the `.c` alone, so editing a header rebuilt only the newer `.c` files and
+   left the rest compiled against the **old struct layout**. It does not fail
+   to link — it links a binary in which two translation units disagree about
+   where `struct RIEngine` ends. Adding `struct RINoteTap` grew `RIEngine` by
+   4 KiB; `engine.o` rebuilt and `live.o` (which embeds an `RIEngine` by
+   value) did not, and `headless` **segfaulted inside `ri_live_render`** with
+   gdb reporting `0x10200` as the faulting address. Now `-MMD -MP` with
+   `-include $(CORE_OBJS:.o=.d)`. Verified: touching `engine/engine.h` now
+   rebuilds 5 dependent objects where the old rule rebuilt 1.
+   **Same class as the ABIv1/ABIv11 stale-binary trap — the build lies, and
+   the evidence is a crash rather than an error.** `ri_build_host.sh` is
+   immune (its `all` recompiles unconditionally), which is why t199/t200
+   were valid while this was not.
+
+### Mutation results
+
+- **t199: 15 mutants, 14 killed, 1 equivalent.** `NO` (the ring index stops
+  masking) returned the **identical object hash** — the compiler already
+  emits the mask for `%` on a power-of-two, so it is equivalent by
+  construction and not a test gap.
+- **t200: 22 mutants, 19 killed, 3 equivalent**, and the survivors are worth
+  naming because two of them are the *good* kind:
+  - `LD` removes the drain's late-accent `continue`, and `ri_devout_record`
+    independently refuses any kind that is not a plain note. **Two layers of
+    refusal**, so the wire is byte-identical. `DQ` removes *both* and is
+    killed — which is what proves the test had the power and that `LD` is
+    genuinely equivalent rather than untested.
+  - `LI`/`DI` (the same defect written twice) push bytes unconditionally;
+    `put_run` independently refuses a zero-length push. Equivalent.
+- Six survived a first pass and every one was a **test gap**, not a missing
+  law. Two are worth recording because they are the kind that hide:
+  - `MC` moves the drop policy from "discard the oldest" to "overwrite the
+    newest" while leaving occupancy and the drop COUNT identical. My fill was
+    **uniform** (identical clock bytes), which made both produce the same 255
+    bytes. Only a **non-uniform** fill distinguishes them, and the difference
+    is the whole point: dropping the oldest loses stale ticks, overwriting
+    the newest deletes the note that just played.
+  - `MB` made the inner guard "salvage" the shortfall instead of refusing. It
+    still returned 0 — while silently discarding 254 bytes on the way out.
+    **A return value alone is not enough to pin a drop policy**; the drop
+    counter has to be asserted too.
+- One test failure was the disabled-means-nothing law biting: a fill loop
+  wrote to a ring that `fixture()` had left disabled, so every write was
+  correctly refused and the loop never terminated. It hung the suite rather
+  than failing it — which is exactly why the mutant harness scores on return
+  code and never on `grep FAIL`.
+
+### Build lists
+
+`midi_io/midi_devout.c` added to `ri_build_aros.sh`, `ri_build_v11.sh` and
+`build/portable.mk`. **AROS RIAPP only** — the standalone `MIDISEND` sender
+does not need it, because the sender only pumps a ring.

@@ -116,6 +116,43 @@ static void governor(struct RILiveDriver *d, uint32_t us, uint32_t frames) {
     ri_atomic_fetch_add_rel(&d->overloads, 1u);
 }
 
+/* R6d: the engine's note tap -> the byte producer -> the ring.
+ *
+ * BOUNDED, and bounded for a reason the tap's own bounds do not cover: a
+ * caller that attached a producer and then stopped draining must not turn
+ * into unbounded per-block work. 32 notes is far above one buffer's worth
+ * (a 256-frame block at 48 kHz is 5.3 ms, which at 140 BPM is under one
+ * sixteenth) and the rest waits for the next block rather than being lost.
+ *
+ * The late accent emits nothing and is counted. See ri_devout_record(). */
+#define RI_LIVEDRV_DEVBUDGET 32u
+
+static void livedrv_devout(struct RILiveDriver *d) {
+    struct RINoteTapRec rec[RI_LIVEDRV_DEVBUDGET];
+    uint32_t got, i;
+    if (!d || !d->dev_out || !d->clk_out || !d->session)
+        return;                 /* off by default: not one byte leaves */
+    got = ri_engine_note_read(&d->session->eng, rec, RI_LIVEDRV_DEVBUDGET);
+    for (i = 0u; i < got; i++) {
+        uint8_t buf[3];
+        uint32_t w;
+        if (rec[i].kind == RI_NOTEK_LATE_ACCENT) {
+            d->late_accents++;
+            continue;
+        }
+        if (d->note_ch < 0 || d->note_ch > 15) {
+            /* Refused HERE, not downstream: see the note_ch comment in
+             * live_driver.h. An unassigned channel is never defaulted. */
+            d->devout_refused++;
+            continue;
+        }
+        w = ri_devout_record(d->dev_out, buf, sizeof buf,
+            (uint8_t)d->note_ch, &rec[i]);
+        if (w)
+            midi_out_put(d->clk_out, buf, w);   /* all-or-nothing */
+    }
+}
+
 void ri_livedrv_render(struct RILiveDriver *d, int16_t *out,
     float *scratch_fl, float *scratch_fr, uint32_t frames) {
     uint32_t i, n, pos, k;
@@ -155,6 +192,10 @@ void ri_livedrv_render(struct RILiveDriver *d, int16_t *out,
          */
         if (d->clk_out)
             midi_out_render(d->clk_out, d->session->sample_cursor);
+        /* R6d, after the clock render and after any FA the transport edge
+         * put in above: a note must never precede the start that gives it
+         * a tempo. */
+        livedrv_devout(d);
         for (i = got; i < frames; i++)
             scratch_fl[i] = scratch_fr[i] = 0.0f;
     } else {

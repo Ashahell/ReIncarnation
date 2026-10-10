@@ -254,6 +254,26 @@ int ri_devout_translate(const struct RIEvent *ev, struct RIDevEvent *out) {
     }
 }
 
+uint32_t ri_devout_record(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
+    uint8_t channel, const struct RINoteTapRec *rec) {
+    struct RIDevEvent x;
+    if (!d || !rec)
+        return 0u;
+    /* Anything that is not a plain note is refused, which covers the late
+     * accent (nothing to send -- the caller counts it) and any kind added
+     * later without this being updated. "Refused, never guessed" is the
+     * whole law of this module; a new record kind silently becoming a note
+     * is the failure mode of writing the test as `== LATE_ACCENT`. */
+    if (rec->kind != RI_NOTEK_NOTE)
+        return 0u;
+    memset(&x, 0, sizeof x);
+    x.note = rec->note;
+    x.vel = ri_devout_velocity(rec->flags);
+    x.is_off = rec->is_off;
+    x.is_legato = (rec->flags & RI_EVFLAG_SLIDE) != 0u;
+    return ri_devout_emit(d, buf, cap, channel, rec->device, &x, rec->sound);
+}
+
 uint32_t ri_devout_emit(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
     uint8_t channel, uint8_t device, const struct RIDevEvent *x,
     uint8_t sound) {
