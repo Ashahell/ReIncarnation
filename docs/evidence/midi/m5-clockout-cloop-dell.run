@@ -1,0 +1,23 @@
+; m5-clockout-cloop-dell.run — the clock-out CAMD proof on the Dell (ABIv11).
+;
+; Run with: spike_server.py submit --run-script RAM:M5-CLOOP.RUN
+; NOT with --exec: the lane's --exec is not a shell, and one blocked command
+; there wedges the agent's whole command path until an owner reboot.
+;
+; COMMENTS ARE ';'. Measured on the riqemu1 lane across all five candidates:
+; '#', 'REM' and '/*' are each executed and each print "object not found".
+;
+; WHY THIS RUN EXISTS. The riqemu1 run proved COUNTS -- 1000 sent, 1000
+; received, 0 lost -- but reported verdict=2 JITTERY, which is that lane's
+; lack of real-time pacing plus batch draining, not wire behaviour. The Dell
+; paces for real, so the same code here produces intervals that mean
+; something. This is the lane that can answer the timing question.
+;
+; Same shape as the riqemu1 script: both ends are the two TASKS of one
+; process, because one lane runs one script at a time and `cmd &` does not
+; background here.
+
+echo M5 clock loopback on the Dell starting
+RAM:MIDISEND RIAPP CLOCKLOOP 60 RAM:CLOOPD.LOG
+type RAM:CLOOPD.LOG
+echo M5 clock loopback on the Dell done

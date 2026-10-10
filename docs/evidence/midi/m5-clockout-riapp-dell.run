@@ -1,0 +1,45 @@
+; m5-clockout-riapp-dell.run — the M5 clock-out timing proof on the Dell.
+;
+; Run with: spike_server.py submit --run-script RAM:M5-RIAPP.RUN
+; NOT with --exec: the lane's --exec is not a shell, and one blocked command
+; there wedges the agent's whole command path until an owner reboot.
+;
+; COMMENTS ARE ';'. Measured on riqemu1 across all five candidates: '#',
+; 'REM' and '/*' are each EXECUTED and each print "object not found".
+;
+; WHY THIS EXISTS. CLOCKLOOP proved the counts twice -- 1000 and then 3000
+; sent, 3000 received, 0 lost -- but its own send loop is a Delay(1) and a
+; send, which on both lanes produced min~20000 / max~40000 regardless of
+; host. That spread is the SENDER, so it measures nothing about a wire.
+;
+; This run removes the crude sender. RIAPP is the sender here, and RIAPP's
+; clock comes off the AUDIO sample clock: the tick count at a sample
+; position is a pure function of that position (t185: exactly 33600 ticks
+; in ten minutes at 140 BPM, every interval 857 or 858). The sender task
+; only carries bytes; the SCHEDULE is the audio clock's.
+;
+; So: RIAPP runs with clock out enabled, and MIDISEND LISTEN receives. The
+; two are separate processes here -- possible because RIAPP is a long-lived
+; GUI app started in the background, not a foreground script step, so the
+; lane's one-script-at-a-time limit does not apply the way it did for
+; CLOCKLOOP.
+;
+; RIAPP_MIDI_CLKOUT=1 is the E0 default flipped; the cluster is RIAPP so
+; both ends meet on the same camd cluster. Set in ENV: (this shell has no
+; POSIX export -- `setenv RAM:x` writes to the process env only).
+;
+; NOT PROVEN BY THIS RUN: the physical USB-MIDI cable. That is the owner's
+; proof -- Live following RIAPP's clock for five minutes, watching Live's
+; incoming tempo for steadiness. camd loopback cannot speak to it.
+
+; 1. Flip clock out on, pointing at the same cluster the listener uses.
+setenv RAM:RIAPP_MIDI_IN=RIAPP
+setenv RAM:RIAPP_MIDI_CLKOUT=1
+setenv RAM:RIAPP_MIDI_LATMS=8
+
+; 2. Listener first, so the early ticks are not lost. It runs 60 s; RIAPP
+;    is started immediately after and plays its song at 140 BPM.
+RAM:MIDISEND RIAPP LISTEN 60 RAM:LISTEN.RIAPP.LOG
+
+echo the listener exited -- see RAM:LISTEN.RIAPP.LOG
+echo M5 RIAPP clock-out timing proof done

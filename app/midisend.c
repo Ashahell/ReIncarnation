@@ -24,13 +24,27 @@
 #endif
 
 #include <exec/types.h>
+#include <exec/io.h>
+#include <devices/timer.h>
 #include <dos/dos.h>
 #include <midi/camd.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
-#include <proto/camd.h>
 #include "platform/pal/ri_pal_midi.h"
 #include "midi_io/midi_interval.h"
+#include "midi_io/midi_out.h"
+
+/* ReadEClock is an INLINE call through the timer's library base. Leaving
+ * it to the TU-global TimerBase is what left MIDIRX with a NULL base and
+ * an illegal access -- and four of the five failures in that whole
+ * debugging round were unresolved inline bases, not logic errors. So the
+ * base is a file-scope variable of ours, set from the request we actually
+ * opened, and the include comes AFTER the macro so the inline is
+ * rewritten to use it. */
+static struct Library *s_timer_base;
+#define __TIMER_LIBBASE s_timer_base
+#include <proto/timer.h>
+#include <proto/camd.h>
 
 extern struct Library *CamdBase; /* owned by platform/aros/midi_camd.c (T5) */
 
@@ -83,6 +97,16 @@ static void on_midi(void *user, const uint8_t *msg, uint32_t len,
     s_other++;
 }
 
+/* One byte to the cluster, for midi_out_pump's sink. The cluster name is a
+ * static buffer, not a pointer into argv: the sink is called from deep
+ * inside the pump with no lifetime guarantee on argv. */
+static char s_send_user[64];
+
+static int send_one(const uint8_t *b, uint32_t n, void *user) {
+    (void)user;
+    return ri_pal_midi_send(s_send_user, b, n);
+}
+
 /* CLOCKLOOP <secs>: send and receive inside ONE process.
  *
  * The lane runs one script at a time, so a sender and a listener in two
@@ -105,30 +129,103 @@ static void on_midi(void *user, const uint8_t *msg, uint32_t len,
  */
 static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
     ULONG i, sent = 0;
-    uint64_t gap_us = 20000ULL;      /* 50 ticks/s = 120 BPM */
+    struct Device *tkb = NULL;
     BPTR lfh;
     char *p;
     static char buf[2048];
+    /* The REAL schedule, not a Delay loop. The first version of this mode
+     * sent one F8 per `Delay(1)`, and Delay(1) is a 20 ms shell tick plus
+     * the send's own cost -- so it produced min~20000 / max~40000 on the
+     * Dell AND on riqemu1 alike, identically. A spread that does not move
+     * when the host's real-time pacing changes is the SENDER's spread, and
+     * the instrument was measuring itself again, which is the exact defect
+     * that killed MIDIRX.
+     *
+     * So this drives the same `midi_out` producer RIAPP drives, advanced by
+     * the wall clock instead of the audio sample clock. The producer is
+     * where the no-drift property lives (t185: the tick count at a sample
+     * position is a pure function of that position), so the intervals this
+     * reports are the schedule's own, not the loop's. */
+    static struct RIMidiOut out;
+    struct timerequest *trq = NULL;
+    struct MsgPort *tp = NULL;
+    uint64_t s_efreq = 0ULL;
+    uint64_t us0 = 0ULL;
+    const uint32_t SR = 48000u;
     if (ri_pal_midi_open_in(cluster, on_midi, NULL) != 0) {
         Printf((CONST_STRPTR)"CLOCKLOOP: receiver open refused\n");
         return 21;
     }
-    Printf((CONST_STRPTR)"CLOCKLOOP: %lu s on %s\n", secs, (IPTR)cluster);
-    for (i = 0UL; i < secs * 50UL; i++) {
-        static const uint8_t f8 = 0xF8u;
-        if (ri_pal_midi_send(cluster, &f8, 1u) == 0)
-            sent++;
-        /* One 20 ms tick between sends: the finest wait this shell's
-         * Delay() gives, and 50/s is 120 BPM at 24 ppqn. */
-        Delay(1);
-        ri_pal_midi_poll();
+    /* A MICROHZ timer opened PROPERLY, as an OpenDevice handshake on a
+     * real request -- the thing MIDIRX got wrong. */
+    tp = CreateMsgPort();
+    if (tp)
+        trq = (struct timerequest *)CreateIORequest(tp, sizeof(struct timerequest));
+    if (!trq || OpenDevice((STRPTR)"timer.device", UNIT_MICROHZ,
+            (struct IORequest *)trq, 0L) != 0) {
+        Printf((CONST_STRPTR)"CLOCKLOOP: timer.device refused\n");
+        return 24;
     }
+    if (!tkb)
+        tkb = (struct Device *)trq->tr_node.io_Device;
+    s_timer_base = (struct Library *)tkb;
+    {
+        struct EClockVal t0;
+        s_efreq = ReadEClock(&t0);
+    }
+    if (!s_efreq) {
+        Printf((CONST_STRPTR)"CLOCKLOOP: no EClock frequency\n");
+        return 24;
+    }
+    midi_out_init(&out, SR, 140000u /* 140 BPM in milli */, 0u /* no lead */);
+    midi_out_enable(&out, 1);
+    midi_out_start(&out, 0u);
+    Printf((CONST_STRPTR)"CLOCKLOOP: %lu s on %s at 140 BPM\n", secs, (IPTR)cluster);
+    for (i = 0UL; i < secs * 200UL; i++) {   /* 200 Hz service rate */
+        struct EClockVal ec;
+        uint64_t us, samp, eticks;
+        LONG sigs;
+        ReadEClock(&ec);
+        eticks = ((uint64_t)ec.ev_hi << 32) | (uint64_t)ec.ev_lo;
+        us = eticks / s_efreq * 1000000u + (eticks % s_efreq) * 1000000u / s_efreq;
+        if (!us0)
+            us0 = us;
+        samp = (us - us0) * (uint64_t)SR / 1000000ULL;
+        /* Render at the sample position this wall clock has reached, then
+         * carry whatever it produced to camd. */
+        midi_out_render(&out, samp);
+        midi_out_pump(&out, send_one, 0, 64u);
+        /* Service the 1 ms timer properly: an OPEN request, TR_ADDREQUEST
+         * set, SendIO/WaitPort/WaitIO in that order, GetMsg NOT also
+         * called (WaitIO removes the message). */
+        trq->tr_node.io_Command = TR_ADDREQUEST;
+        trq->tr_time.tv_secs = 0;
+        trq->tr_time.tv_micro = 1000;
+        SendIO((struct IORequest *)trq);
+        WaitPort(tp);
+        sigs = Wait(0L);
+        if (CheckIO((struct IORequest *)trq))
+            AbortIO((struct IORequest *)trq);
+        WaitIO((struct IORequest *)trq);
+        if (sigs != 0)
+            break;
+        ri_pal_midi_poll();
+        sent = midi_out_pending(&out);
+    }
+    (void)tkb;
+    sent = midi_out_pending(&out);
     /* Drain whatever is still in flight before closing. */
     for (i = 0UL; i < 50UL; i++) {
         Delay(1);
         ri_pal_midi_poll();
     }
     ri_pal_midi_close();
+    if (trq) {
+        CloseDevice((struct IORequest *)trq);
+        DeleteIORequest((struct IORequest *)trq);
+    }
+    if (tp)
+        DeleteMsgPort(tp);
     lfh = Open((CONST_STRPTR)logpath, MODE_NEWFILE);
     if (!lfh)
         return 22;
@@ -179,7 +276,6 @@ static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
         (ULONG)(sent > s_clocks ? sent - s_clocks : 0u),
         (ULONG)midi_interval_min_us(&s_ivl), (ULONG)midi_interval_max_us(&s_ivl),
         (ULONG)midi_interval_jitter_us(&s_ivl), (ULONG)midi_interval_verdict(&s_ivl));
-    (void)gap_us;
     return s_clocks ? 0 : 23;
 }
 
@@ -200,6 +296,14 @@ int main(int argc, char **argv) {
         if (!secs)
             secs = 5u;
         s_clocks = 0u; s_other = 0u; s_badlen = 0u;
+        {
+            uint32_t k = 0u;
+            while (argv[1][k] && k + 1u < sizeof s_send_user) {
+                s_send_user[k] = argv[1][k];
+                k++;
+            }
+            s_send_user[k] = 0;
+        }
         midi_interval_init(&s_ivl, (uint32_t)(secs * 1000000UL));
         return do_clockloop(argv[1], secs, argv[4]);
     }

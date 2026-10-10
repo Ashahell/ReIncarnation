@@ -69,3 +69,35 @@ the M2 task — with a real camd link between them.
   `--run-script` with a `;`-commented file is the reliable form.
 - **`RAM:` does not survive `system_reset`.** Re-stage after every recovery,
   and do not trust a `sha_ok=True` from before one.
+
+## Addendum: the Dell replicate, and what the jitter actually was (2026-10-10)
+
+The same script on the **Dell** (ABIv11, 60 s): `sent=3000 clocks=3000
+lost=0 badlen=0 backwards=0`. **The counts replicate on the second lane and
+the second ABI.**
+
+And then the part that matters: the Dell reported `min_us=20011
+max_us=40080`. riqemu1 reported `min_us=20025 max_us=40143`.
+
+**Identical — on a lane with no real-time pacing and a lane that has it.**
+A spread that does not move when the host's pacing changes is not measuring
+the host. CLOCKLOOP's sender was `send; Delay(1)`, and `Delay(1)` is a
+20 ms shell tick plus the send's own cost, so it produced ~20 ms and
+~40 ms gaps on both machines for one reason. That is MIDIRX's defect again
+one level up: **the instrument was timing its own loop.**
+
+Fixed by sending the actual schedule — the same `midi_out` producer RIAPP
+drives, advanced by EClock instead of the audio sample clock — and by
+opening the timer the way the MIDIRX post-mortem says a timer must be
+opened: `OpenDevice` as the handshake, `TR_ADDREQUEST` set, then
+`SendIO / WaitPort / WaitIO`, with **`GetMsg` deliberately not called**
+because `WaitIO` removes the message and doing both corrupts the port list.
+
+**That run has not completed: it wedged the Dell's agent command path and
+needs an owner reboot.** The new numbers are not claimed.
+
+Upstream, 6th check this slice: camd unchanged since 2026-10-05
+(`cb8c4c5f39`, `28ec43a517`, both carried); `workbench/devs/midi` has zero
+commits since 2026-09-01. The two USB commits from 2026-10-09 are
+`arch/arm-native/soc/broadcom/2708/` — the Raspberry Pi tree, not either
+lane's target.

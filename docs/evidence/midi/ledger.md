@@ -644,3 +644,66 @@ comments are what a reboot takes away.
   `28ec43a51` (2026-10-05), already carried in both ABI carriages; nothing
   new in `workbench/devs/USB` since 2025-12-28; zero commits repo-wide
   between checks.
+
+## M5g: the Dell counts too, and the sender was the jitter (2026-10-10)
+
+- **AROS UPSTREAM, rechecked 2026-10-10** (this is the 6th check this
+  slice): repo `aros-development-team/AROS`, `pushed_at 2026-10-09T23:30Z`.
+  **camd is still unchanged** -- `workbench/devs/midi` has **zero** commits
+  since 2026-09-01, and the newest remain `cb8c4c5f39` and `28ec43a517`
+  (2026-10-05), both already carried in our v1 and v11 carriages. 100
+  commits repo-wide since 2026-10-05, none MIDI-relevant. The USB-side news
+  is real but **not applicable**: `fd3ad20c3a` "usb2otg: arm direct INT as
+  INT on QEMU's DWC2 core" (2026-10-09) and `949d6834f8` "hub.class: no
+  split transfers for devices on a root hub port" (2026-10-09) touch
+  `arch/arm-native/soc/broadcom/2708/` -- the Raspberry Pi 2708 SoC tree,
+  not the x86-64 PC target either lane runs. Nothing to carry.
+- **THE DELL LOOPBACK: `sent=3000 clocks=3000 lost=0 badlen=0`, 60 s.**
+  The counts replicate on the second lane and on the other ABI. camd
+  carries a clock without losing, reordering or misframing a byte.
+- **AND THE TIMING IS THE SENDER'S, PROVEN BY ITS OWN INVARIANCE.** The
+  Dell run reported `min_us=20011 max_us=40080` -- and so did riqemu1
+  (`min 20025 / max 40143`), on a lane with **no real-time pacing** against
+  one that has it. **A spread that does not change when the host's pacing
+  changes is not measuring the host.** CLOCKLOOP's sender was
+  `send; Delay(1)`, and `Delay(1)` is a 20 ms shell tick plus the send's
+  own cost, so it emitted ~20 ms and ~40 ms gaps on both machines for the
+  same reason. **Same defect as MIDIRX, one level up: the instrument was
+  timing its own loop.**
+- **THE FIX: send the REAL schedule.** CLOCKLOOP now drives the same
+  `midi_out` producer RIAPP drives (`midi_out_init/enable/start/render`),
+  advanced by **EClock** instead of the audio sample clock, and pumps with
+  `midi_out_pump`. The no-drift property lives in the producer -- the tick
+  count at a position is a pure function of that position (t185) -- so the
+  intervals reported are the schedule's own rather than a loop's.
+- **THE TIMER IS OPENED PROPERLY, which is the whole MIDIRX lesson applied
+  to the code that replaces it**: `OpenDevice("timer.device", UNIT_MICROHZ,
+  trq)` as the handshake, `tr_node.io_Command = TR_ADDREQUEST`, then
+  `SendIO / WaitPort / WaitIO` -- and **`GetMsg` is NOT also called**, since
+  `WaitIO` removes the message and calling both corrupts the port's list.
+  `ReadEClock` is an inline through the timer base, so `__TIMER_LIBBASE` is
+  pointed at **our** base, taken from the request we actually opened, and
+  `<proto/timer.h>` is included after the macro. Leaving it to the TU-global
+  `TimerBase` is what gave MIDIRX a NULL base and an illegal access; four of
+  the five failures in that whole round were unresolved inline bases, and
+  the first build of this fix failed on exactly that (`U TimerBase`
+  undefined) before the base was resolved.
+- **I STAGED THE WRONG ABI ON THE DELL AGAIN.** I PUT the **v1** MIDISEND
+  onto the **ABIv11** Dell, saw the size, and only caught it by comparing
+  the two sha256s immediately after. This is the identical mistake that cost
+  three MIDIRX rounds, and it is now the second time in this slice. The
+  check that catches it costs one `sha256sum` on two files and should happen
+  **before** every PUT, not after a suspicion.
+- **THE DELL LANE IS DOWN AND NEEDS AN OWNER REBOOT.** The schedule-driven
+  run wedged the agent's whole command path (ports 9292/9294 listening with
+  a 64 backlog and no accepts), `system_reset` on monitor **4479** did not
+  bring the agent back, and three screendumps show a clean desktop with no
+  agent window and **no crash requester**. Note the Dell's monitor is
+  **4479**, not 4447 -- 4447 is the `nvk` VM, and grabbing the wrong one
+  wastes a diagnosis. riqemu1 is unaffected and answering.
+  Also cleared the spool's 8 accumulated `jobs/*.json`: a pending job is
+  re-executed by the next agent, so a backlog turns one bad run into a
+  crash loop.
+- **`RAM:` is wiped by `system_reset` on both lanes**, so everything staged
+  before a recovery must be re-staged, and a `sha_ok=True` from before one
+  is not evidence the file is there.
