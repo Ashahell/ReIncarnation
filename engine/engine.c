@@ -136,7 +136,8 @@ static void engine_pan_gains(uint8_t v, double *gl, double *gr) {
  * meter/send read the mid, the strip pan acts as balance. Center
  * balance renders bit-identical to the mono section. */
 static void engine_section_stereo(struct RIEngine *e, uint32_t section,
-    double *ml, double *mr, float *sendbus, uint32_t cc, float sr) {
+    double *ml, double *mr, float *sendbus, uint32_t cc, float sr,
+    uint32_t pos) {
     uint32_t i;
     double gl, gr, t, sg;
     uint32_t mask = ri_route_section_mask(&e->route, section);
@@ -180,6 +181,19 @@ static void engine_section_stereo(struct RIEngine *e, uint32_t section,
     t = (double)e->send[section] / 127.0;
     sg = t * t;
     engine_pan_gains(e->pan[section], &gl, &gr);
+    /* R8c: the Levi is section 4 and has its OWN accumulate here, so a tap
+     * added only to engine_section would have left the fifth stem
+     * unwritten -- a file of the caller's fill. Both sides differ for a
+     * stereo section, which is the whole point of it. */
+    if (e->stems && section < RI_ROUTE_NSECTIONS &&
+        e->stems->l[section] && e->stems->r[section]) {
+        float *tl = e->stems->l[section];
+        float *tr = e->stems->r[section];
+        for (i = 0u; i < cc; i++) {
+            tl[pos + i] = (float)((double)e->scratch[i] * gl);
+            tr[pos + i] = (float)((double)e->scratchR[i] * gr);
+        }
+    }
     for (i = 0u; i < cc; i++) {
         double s = 0.5 * ((double)e->scratch[i] + (double)e->scratchR[i]);
         sendbus[i] += (float)(s * sg);
@@ -188,8 +202,15 @@ static void engine_section_stereo(struct RIEngine *e, uint32_t section,
     }
 }
 
+/* `pos` is where THIS SLICE starts in the caller's buffers. `ml`/`mr`/
+ * `sendbus` are block-local and indexed from 0, and the offset is applied
+ * once at `out_l[done + c + i]` -- so anything writing outside this function
+ * MUST carry `pos` itself. My first stem tap wrote `tl[i]` for every slice,
+ * so every slice landed at the HEAD of the buffer: plausible-looking stems
+ * that were almost entirely the caller's fill. */
 static void engine_section(struct RIEngine *e, uint32_t section,
-    double *ml, double *mr, float *sendbus, uint32_t cc, float sr) {
+    double *ml, double *mr, float *sendbus, uint32_t cc, float sr,
+    uint32_t pos) {
     uint32_t i, mask;
     double gl, gr, t, sg;
     mask = ri_route_section_mask(&e->route, section);
@@ -228,12 +249,30 @@ static void engine_section(struct RIEngine *e, uint32_t section,
     t = (double)e->send[section] / 127.0;
     sg = t * t; /* square law (E0 P-17), 0 -> exactly 0 */
     engine_pan_gains(e->pan[section], &gl, &gr);
+    /* R8c: the SAME term the accumulator below is summing, narrowed to
+     * float, written at the slice's real position. A mono section has no
+     * scratchR (t206) so both sides carry the same sample -- which is what
+     * the mix does, and therefore what a stem has to do. */
+    if (e->stems && section < RI_ROUTE_NSECTIONS &&
+        e->stems->l[section] && e->stems->r[section]) {
+        float *tl = e->stems->l[section];
+        float *tr = e->stems->r[section];
+        for (i = 0u; i < cc; i++) {
+            tl[pos + i] = (float)((double)e->scratch[i] * gl);
+            tr[pos + i] = (float)((double)e->scratch[i] * gr);
+        }
+    }
     for (i = 0; i < cc; i++) {
         double s = (double)e->scratch[i];
         sendbus[i] += (float)(s * sg);
         ml[i] += s * gl;
         mr[i] += s * gr;
     }
+}
+
+void ri_engine_set_stems(struct RIEngine *e, struct RIStemTap *t) {
+    if (e)
+        e->stems = t;
 }
 
 int ri_engine_assign_insert(struct RIEngine *e, uint32_t unit, int owner) {
@@ -740,13 +779,13 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             if (e->sections & RI_ENGINE_S303A) {
                 RI_ESTAGE_T(e, RI_ENGINE_ST_S303A, ts);
                 rb303_render(&e->v303a, e->scratch, cc, sr);
-                engine_section(e, 0, ml, mr, sendbus, cc, sr);
+                engine_section(e, 0, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
                 RI_ESTAGE_E(e, RI_ENGINE_ST_S303A, ts);
             }
             if (e->sections & RI_ENGINE_S303B) {
                 RI_ESTAGE_T(e, RI_ENGINE_ST_S303B, ts);
                 rb303_render(&e->v303b, e->scratch, cc, sr);
-                engine_section(e, 1, ml, mr, sendbus, cc, sr);
+                engine_section(e, 1, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
                 RI_ESTAGE_E(e, RI_ENGINE_ST_S303B, ts);
             }
             if (e->sections & RI_ENGINE_S808) {
@@ -755,7 +794,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                  * figures describe THIS block, the levi vc_* discipline. */
                 rb808_voice_counters_reset(&e->s808);
                 rb808_render_mix(&e->s808, e->scratch, cc, sr);
-                engine_section(e, 2, ml, mr, sendbus, cc, sr);
+                engine_section(e, 2, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
                 /* E_STORE, not E: hands this block's span to drum_last808_us
                  * for the (us, active) pairing. Same pair E would have used:
                  * no extra reads, no extra distortion. */
@@ -766,7 +805,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 /* Per-block 909 work count (drum-tail A0): same discipline. */
                 rb909_voice_counters_reset(&e->s909);
                 rb909_render_mix(&e->s909, e->scratch, cc, sr);
-                engine_section(e, 3, ml, mr, sendbus, cc, sr);
+                engine_section(e, 3, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
                 /* E_STORE: this block's span to drum_last909_us. */
                 RI_ESTAGE_E_STORE(e, RI_ENGINE_ST_S909, ts, e->drum_last909_us);
             }
@@ -806,7 +845,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                  * E would have used -- no extra reads, no extra distortion. */
                 RI_ESTAGE_E_STORE(e, RI_ENGINE_ST_LEVVOICE, ts, e->slevi.vc_voice_us);
                 RI_ESTAGE_T(e, RI_ENGINE_ST_LEVMIX, ts);
-                engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr);
+                engine_section_stereo(e, 4, ml, mr, sendbus, cc, sr, (uint32_t)(done + c));
                 RI_ESTAGE_E(e, RI_ENGINE_ST_LEVMIX, ts);
                 /* SECOND CONTROL, deliberately INSIDE SLEVI. LEVPROBE (outside)
                  * measures what one stage pair costs; this one measures what one

@@ -1946,3 +1946,86 @@ quantisation of the file itself** and is not a limitation anybody can hear.
 Which means R8c is not blocked on anything. What is left is work I have not
 done: re-apply the tap with the `pos` fix, pin the tolerance, and gate it.
 The correct next move is to do that, not to ask a question.
+
+## R8c: the stem tap, landed (2026-10-10)
+
+`ri_engine_set_stems()` + `struct RIStemTap`, t204. The tap that puts each
+mixer section on its own buffer, taken from the mix the **application**
+actually runs.
+
+- **A STEM IS EXACTLY WHAT THE MIX ADDS** — post-fader, post-pan, pre-master,
+  from the same term the accumulator is summing, never a recomputation of the
+  gain. `TE` (mono stops being mirrored) and `TI` (the mono tap dropped) are
+  killed.
+- **IN BOTH SECTION FUNCTIONS, AND `pos` IN BOTH.** `engine_section` (mono,
+  sections 0–3) and `engine_section_stereo` (the Levi, section 4) each have
+  their own accumulate, so a tap on only one leaves the fifth stem as a file
+  of the caller's fill. `TC` kills that.
+- **`pos` IS THE BUG I ALREADY MADE ONCE.** `ml`/`mr` are block-local and
+  indexed from 0; the offset is applied once, at `out_l[done + c + i]`. My
+  first tap wrote `tl[i]` for every slice, so every slice landed at the head.
+  `TA` and `TB` are that exact bug in each function, and both are killed —
+  by asserting the stem is written **past the first block**, because "something
+  was written" is satisfied by the head alone.
+- **A HOLED TAP ARRAY IS SKIPPED, NOT ZEROED.** `TH` kills zeroing it. A
+  303-only render has no 808, and attaching a tap must not resurrect a
+  section the song has switched off.
+
+### The limiter, and why the sum law is a tolerance
+
+The stems are **pre-limiter**; `out_l`/`out_r` are **post-`ri_soft_limit`**.
+Past `RI_LIMIT_KNEE` (0.8912509, −1 dBFS) the limiter is a **nonlinear master
+stage**, so no additive law can hold — and at unity faders the fixture reached
+|sum| 1.82 against a mix of −1.0, so the sum law first reported an error
+larger than the signal. That was not a wrong tap; it was a correct tap
+compared against a compressed mix.
+
+Pre-limiter is the right choice: baking the master limiter into five stems
+means the user cannot re-mix without it being applied five times. So the law
+is **the stems sum to the mix wherever the master chain is linear**, the
+fixture's faders come down to 60 to keep it there, and past the knee no
+additive law is claimed. Within the linear region the residual is float
+accumulation — about 6e-8 relative, ≈ −144 dBFS — at or below a 24-bit stem's
+quantisation and far below a 16-bit one's.
+
+### I reintroduced t205's bug in my own fixture
+
+The first `load()` appended the 303A events (samples 0 and N/2) and then the
+303B one (N/4), producing **[0, 512, 256]** — unsorted, precisely the input
+t205 exists for. The symptom was baffling rather than obvious: the render
+returned the right count, the stems summed exactly through sample 511, held
+the fill from 512 on, and the sum law reported an error larger than the
+signal.
+
+**What actually happened was t205's guard working.** At cursor 512 the next
+event's sample was 256, so the render stopped instead of underflowing `run`
+and overrunning the buffer. Without the guard this fixture would have been the
+segfault rather than a confusing assertion — and the two defects found in
+adjacent slices turned out to protect each other.
+
+### Mutation results
+
+**8 mutants: 6 killed, 2 equivalent.**
+
+- **`TF` is equivalent**: making the stereo right stem read the mono scratch
+  changes nothing, because **the Levi's two stems are identical at default
+  settings** — its own stereo spread is centred. t204 says so on stderr
+  rather than pretending otherwise. It would take a panned or spread Levi to
+  separate them, which is a different test.
+- **`TC`/`TG` from the earlier batch** (stereo tap dropped, attachment
+  ignored) are killed.
+- Five mutations **failed to build** across the two attempts, because a
+  mutant that leaves `pos`, `tl`, `tr` or `t` unused trips `-Werror`. They
+  prove nothing, and a harness that scored them as killed would be reporting
+  a compiler error as test evidence — the same failure as the invented test
+  names in the R8b slice, in the opposite direction.
+
+### Still open
+
+- **R8d — the render loop**: run a song and hand five strip buffers to
+  `stem_set_add`/`stem_set_write`. The tap is the seam; this is the work
+  around it.
+- **R9** — loop-exact renders with an optional tail.
+- **R5** — still needs an owner priority call.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane (both lanes
+  timed out on ping for the fifth time this session).

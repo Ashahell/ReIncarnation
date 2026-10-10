@@ -237,6 +237,40 @@ struct RIEngine {
     /* t205: out-of-order events refused. Counted so a caller assembling its
      * own event array finds out rather than wondering. */
     uint32_t ev_unsorted;
+    /* R8c stem tap. NULL by default; caller-owned, caller-lifetime. */
+    struct RIStemTap *stems;
+};
+
+/* ---------------------------------------------------------------------
+ * R8c: the stem tap on the mix the APP actually uses.
+ *
+ * `ri_mix_render` IS NOT IT. Its only non-test callers are `tools/bench.c`
+ * and `tools/render.c`; `engine/mixer/mixer.c` is linked into both AROS
+ * ABIs and into the portable build and has NO APPLICATION CALLER. The app
+ * mixes in `engine_section()` (mono, sections 0-3) and
+ * `engine_section_stereo()` (the Levi, section 4).
+ *
+ * A stem is EXACTLY WHAT THE MIX ADDS: post-fader, post-pan, pre-master,
+ * taken from the same term the accumulator is summing rather than a
+ * recomputation of the gain. So:
+ *
+ *  - **THE STEMS SUM TO THE MIX TO FLOAT ACCUMULATION PRECISION, NOT
+ *    BIT-EXACTLY.** The master accumulates in `double` and these buffers are
+ *    `float`. Five narrowed stems differ by about 6e-8 relative, roughly
+ *    -144 dBFS -- at or below a 24-bit stem's quantisation and far below a
+ *    16-bit one's. t204 pins the bound. An equality would be a law the code
+ *    cannot keep.
+ *  - **A NULL SLOT IS SKIPPED, NOT WRITTEN.** A holed tap array is a
+ *    legitimate configuration -- a 303-only render has no 808 -- and
+ *    attaching a tap must not resurrect a section the song has switched off.
+ *  - **THE MONO STEMS ARE IMMUNE TO `scratchR`** (t206): `engine_section`
+ *    never reads it, so a mono stem is its mono sample mirrored to both
+ *    sides. An earlier slice claimed mono sections exported stale `scratchR`;
+ *    that claim was withdrawn.
+ * ------------------------------------------------------------------- */
+struct RIStemTap {
+    float *l[RI_ROUTE_NSECTIONS];
+    float *r[RI_ROUTE_NSECTIONS];
 };
 
 void ri_engine_init(struct RIEngine *e);
@@ -266,6 +300,10 @@ void ri_notetap_reset(struct RINoteTap *t);
  * repaired -- reordering it would render music the caller did not
  * describe. */
 uint32_t ri_engine_ev_unsorted(const struct RIEngine *e);
+
+/* R8c: attach (or NULL to detach) the per-section stem tap. Caller-owned and
+ * caller-lifetime: the engine holds the pointer and never frees it. */
+void ri_engine_set_stems(struct RIEngine *e, struct RIStemTap *t);
 const struct RIEngineStages *ri_engine_stages(const struct RIEngine *e);
 /* Drum-tail A0 sampler: record one (us, active) pair per 256th full block
  * (see the RIDrumDiag note above). Called once per block-slice by the
