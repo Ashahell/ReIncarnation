@@ -982,3 +982,48 @@ comments are what a reboot takes away.
   cannot read as a pass. Two survived a first pass -- the note clamp and the
   past-the-end count -- because no test had built a file that reached them;
   both cases now exist.
+
+## R6a: note and CC output per device, and the collision it exists to avoid (2026-10-10)
+
+- **`midi_io/midi_devout.{c,h}`**, t195. Pure C, host-tested, no CAMD.
+  Turns one already-sorted engine event into the three bytes that go on the
+  wire, and it owns the two decisions that would otherwise be made at every
+  call site.
+- **THE CHANNEL MAP IS THE WHOLE RISK, AND AN UNCLAIMED CHANNEL IS REFUSED.**
+  The G7 remote is a documented **one-channel** path (manual p. 134) that has
+  to keep working while other things are plugged in (`midi_chan.h`). A device
+  with no assigned channel therefore emits **nothing and is counted** --
+  defaulting it to channel 1 would put the 303 on the remote, and **a note on
+  the wrong instrument is worse than a note that does not play**. Channel 0 is
+  additionally marked as the remote's so a caller can refuse it without
+  hard-coding the number.
+- **AND A CHANNEL PAST 15 CLAMPS — IT MUST NEVER WRAP.** Wrapping 16 to 0
+  would put a voice on the G7 remote, which is the one collision this feature
+  exists to prevent. The same is true of note and velocity: 200 wraps to 72,
+  which is a **different instrument**. Every clamp is counted.
+- **SLIDE IS LEGATO AND EMITS NOTHING.** A slide keeps the gate high and
+  slews the pitch, so it must not re-attack; a fresh note-on is the audible
+  defect. It is a separate flag, not a note-on variant, precisely so it
+  cannot be forgotten — and it is counted, so a correctly-silent slide never
+  looks like a silent failure.
+- **NOTE-OFF IS ITS OWN FLAG, NOT "VELOCITY 0".** Overloading velocity would
+  make a genuine velocity-0 note-on unrepresentable and put two meanings in
+  one byte a reader has to guess between. Note-off is a real `0x8n`; a
+  note-on with velocity 0 is still a note-on here.
+- **CC NUMBERS COME FROM THE G7 REGISTRY, NOT A TABLE HERE.** Appendix C *is*
+  `gui/ctlreg.c` — the same registry the G7 **input** path resolves through
+  `ri_ctlreg_by_cc()`. **A second copy of that map in this file would be a
+  second answer to the same question**, and the two would drift.
+  `ri_devout_cc_named()` asks the registry, which is what makes "the same
+  controller numbers the G7 map uses" a fact rather than a promise.
+- **NO NEW TRANSPORT.** These three bytes go into `midi_out`'s ring like any
+  other outbound message and the existing sender task carries them to camd.
+  R6 needs no new AROS-only code, which is why it is a host-testable phase
+  rather than a lane phase.
+- **RESULT: 10 mutants, 10 killed.** One (`DI`) was a *compile* kill from an
+  unused parameter, which proves nothing, and was redone so the remote-channel
+  law is genuinely pinned.
+- **MY OWN TEST WAS WRONG TWICE, IN A WAY THE MODULE WAS RIGHT.** It expected
+  channel 15 to play **without being claimed** — which is the exact behaviour
+  the module exists to refuse — and it assumed a device-indexed unassign when
+  the caller owns the device map. Both fixed in the test, not the code.

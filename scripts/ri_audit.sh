@@ -396,6 +396,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t191_mmc_out >/dev/null || { echo "FA
 bash "$ROOT/scripts/ri_build_host.sh" test t192_clkout_led >/dev/null || { echo "FAIL: t192_clkout_led (R4 clock-out lamp)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t193_smf_export >/dev/null || { echo "FAIL: t193_smf_export (R7 SMF type 1 writer)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t194_smf_import >/dev/null || { echo "FAIL: t194_smf_import (R7 SMF type 1 reader)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t195_devout >/dev/null || { echo "FAIL: t195_devout (R6 note/CC output per device)"; exit 1; }
 # MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
 # This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
 # approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo
