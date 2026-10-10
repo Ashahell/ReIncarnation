@@ -95,10 +95,20 @@ const char *ri_devout_cc_named(const struct RIDevOut *d, uint8_t controller);
  * KEYED BY THE ENGINE'S SOUND ID, NOT BY PANEL LANE. The two machines' lane
  * enums disagree -- lane 7 is CB on the 808 and CH on the 909, lane 10 is CH
  * and RC -- so ONE table indexed by lane would play a different instrument on
- * the two machines for four of eleven indices, silently. And the engine's
- * own `RI_LANE_TO_RB808_SLOT` is an IDENTITY table, which maps lane 5
- * (rim shot) onto slot 5 (low conga). That translation is not R6's to fix and
- * is not what a note map should be built on, so R6 contains none.
+ * the two machines for four of eleven indices, silently.
+ *
+ * THE LANE->SOUND STEP IS NOT R6's, AND ALREADY EXISTS. The engine resolves
+ * it before anything is emitted: `RI_LANE_TO_RB808_SLOT[i] == i` is PINNED
+ * by t53, alongside `rb808_slot_of(RI_808_SLOT_DEFAULT[i]) == i`, so the lane
+ * IS the slot and the sound stored in that slot is what the engine triggers.
+ * The 808's live mapping is `e->s808.slot[lane]` (user-remappable); the 909's
+ * is `RI_LANE_TO_RB909_VOICE[lane]`.
+ *
+ * I previously wrote here that the 808 table was an unfinished identity table
+ * mapping rim shot onto low conga, and used that to call R6c blocked. Both
+ * were wrong: I read the `RB808_*` slot MACROS as sound ids, and they are
+ * not -- lane 5 IS slot 5, and slot 5 holds sound 8 (rim shot) by default.
+ * The step R6c needs was always there.
  *
  * THE NOTES ARE A CONVENTION (General MIDI percussion), not a fact. They are
  * an OWNER REVIEW ITEM, isolated in the two functions below so changing them

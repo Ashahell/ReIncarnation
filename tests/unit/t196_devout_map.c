@@ -10,10 +10,15 @@
  * indexed by lane would therefore play a completely different instrument on
  * the two machines for four of eleven indices, and nothing would report it.
  *
- * Worse, the engine's own `RI_LANE_TO_RB808_SLOT` is an IDENTITY table, so
- * lane 5 (`RI_L808_RS`, rim shot) resolves to slot 5 (`RB808_LC`, low conga)
- * and lane 6 (`CP`) resolves to `MC`. That translation is not R6's to fix and
- * is not what a note map should be built on.
+ * The LANE->SOUND step is not this module's and already exists in the engine:
+ * `RI_LANE_TO_RB808_SLOT[i] == i` is pinned by t53 alongside
+ * `rb808_slot_of(RI_808_SLOT_DEFAULT[i]) == i`, and the live 808 mapping is
+ * `e->s808.slot[lane]`. So R6b's whole job is to key the NOTES by sound id
+ * and let the engine's own step do the rest.
+ *
+ * I first wrote here that the 808 table was an unfinished identity table
+ * mapping rim shot onto low conga, and used it to call R6c blocked. Both were
+ * wrong: I read the `RB808_*` slot macros as sound ids, and they are not.
  *
  * So the map is keyed by each machine's own sound id -- `RB808_*` slot or
  * `RB909_*` voice -- which is a sound identity and does not move when the

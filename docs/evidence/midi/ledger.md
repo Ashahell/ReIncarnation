@@ -1045,12 +1045,26 @@ comments are what a reboot takes away.
   by lane would play a completely different instrument on the two machines
   for four of eleven indices, and nothing would report it.** Mutant EB kills
   exactly that.
-- **AND THE ENGINE'S OWN LANE TRANSLATION IS SUSPECT, WHICH IS WHY R6 HAS
-  NONE.** `RI_LANE_TO_RB808_SLOT` is an **identity** table, so lane 5
-  (`RI_L808_RS`, rim shot) resolves to slot 5 (`RB808_LC`, **low conga**) and
-  lane 6 (`CP`) resolves to `MC`. That is not R6's to fix and is not what a
-  note map should be built on, so R6 keys on `RB808_*` slot / `RB909_*`
-  voice — a sound identity that does not move when the panel does.
+- **CORRECTION (owner asked what blocked R6c, and the honest answer is
+  nothing).** I recorded above that the engine's lane translation was an
+  unfinished identity table mapping rim shot onto low conga, and used it to
+  call R6c blocked. **That was wrong.** `RI_LANE_TO_RB808_SLOT[i] == i` is
+  **pinned by t53**, alongside `rb808_slot_of(RI_808_SLOT_DEFAULT[i]) == i`:
+  the lane *is* the slot, and the sound stored in that slot is what the engine
+  triggers. `RI_808_SLOT_DEFAULT = {0,1,2,3,4,8,10,14,13,12,11}`, so lane 5
+  is slot 5 and slot 5 holds sound **8** — rim shot, exactly as it should. I
+  had read the `RB808_*` slot **macros** as if they were sound ids; they are
+  not.
+  **The lane→sound step R6c needs was always there** — `e->s808.slot[lane]`
+  for the 808 (live, user-remappable) and `RI_LANE_TO_RB909_VOICE[lane]` for
+  the 909, both consumed in `engine/engine.c` before R6 sees anything. So R6
+  keys its notes by sound id exactly as designed, and **R6c is not blocked**.
+  *The lesson is not "look harder". It is that a blocker I asserted without
+  reading the test that pins the thing is a blocker I invented, and three
+  lines of `t53` would have refuted it.*
+  The keying by sound id still stands on its own merits: the two machines'
+  lane enums genuinely disagree at four of eleven indices, so a lane-indexed
+  note table would still be wrong.
 - **AN UNKNOWN SOUND ID IS REFUSED, NEVER GUESSED.** Defaulting it to the
   bass drum would put a **hi-hat on the kick** — audible, and invisible
   unless something counts it. Two separate tables (one per machine) for the
