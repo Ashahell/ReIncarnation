@@ -109,9 +109,11 @@ The lesson generalises past this tool: **on AROS, an inline library base is a ru
 
 **Landed, audited `0/0 PASS`, nothing claimed about the wire:** the drift-free 24 ppqn schedule (t185), the off-by-default outbound producer and its byte ring (t186), MMC in on the follower's intents (t187), stream framing (t188), and the render's hook (t189).
 
-**Not done:** the F8-interval measurement from a real receiver; MMC out; the clock-out LED; and the whole of R5 (note input for the 303s, 808 and 909), R6, R7, P3, P4.
+**Superseded on the proof — see [The instrument was the problem](2026-10-10-the-instrument-was-the-problem.md) (2026-10-10).** MIDIRX was retired and its four faults corrected (I had misdiagnosed all four, the important one being that **it stamped its own poll drain rather than the arrival**). The schedule is now measured on **both** lanes: `mean_us=17856` (riqemu1) and `17853` (Dell) against a theoretical 17857.14 for 140 BPM at 24 ppqn. MMC out and the clock-out LED are also built.
 
-**AROS upstream, checked repeatedly across the slice:** camd's newest commits are still `cb8c4c5f3` and `28ec43a51` (2026-10-05), which this repo already carries in both ABI carriages; nothing in `workbench/devs/USB` since 2025-12-28; and zero commits repository-wide between checks.
+**Still not done:** the physical USB-MIDI proof (the owner's); R5 (note input for the 303s, 808 and 909), R6, R7, P3, P4.
+
+**AROS upstream, checked eight times across the slice:** camd's newest commits are still `cb8c4c5f3` and `28ec43a51` (2026-10-05), which this repo already carries in both ABI carriages; `workbench/devs/midi` has zero commits since 2021; and the only 2026 USB work is the Raspberry Pi `2708` tree, which neither lane targets.
 
 ## See Also
 

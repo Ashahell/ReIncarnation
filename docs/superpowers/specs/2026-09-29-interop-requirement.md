@@ -10,11 +10,22 @@ clock out is a drift-free 24 ppqn schedule driven by the render's audio
 sample clock — the tick count at a position is a pure function of that
 position, so it cannot drift — and MMC in lands on the *follower's* intents,
 so a master sending clock and a master sending MMC drive one path.
-**Remaining:** the F8-interval measurement from a real receiver (the proof
-tool `MIDIRX` has never completed a run; the ledger records a recommendation
-to take the intervals from inside RIAPP instead), MMC out, the clock-out
-LED, R5 (303/808/909 note input), R6, R7 (SMF), P3 and P4 — everything
-still off by default, pending owner decision 1.
+**MMC out and the clock-out LED landed 2026-10-10**, and the clock-out
+schedule is now **measured on both lanes**: `mean_us=17856` (riqemu1) and
+`17853` (Dell) against a theoretical 17857.14 for 140 BPM at 24 ppqn —
+0.04 % and 0.02 % out, counts exact. `MIDIRX` was retired; its four faults
+are recorded, including the one that mattered (it stamped its own poll drain
+rather than the arrival).
+
+**The wire *spread* is not measurable with this architecture**, and that is a
+structural limit rather than a missing run: the M2 receiver task stamps each
+message when it wakes and drains, so a batch shares a timestamp, and the PAL
+exposes drain-time stamps rather than arrival-time ones. Measuring per-message
+wire arrival needs timestamps from camd itself. The physical USB-MIDI proof is
+the owner's.
+
+**Remaining:** R5 (303/808/909 note input), R6, R7 (SMF), P3 and P4 —
+everything still off by default, pending owner decision 1.
 Full record: `llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md`;
 E0 defaults in `docs/evidence/midi/ledger.md`.
 
