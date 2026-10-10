@@ -145,3 +145,71 @@ uint32_t ri_devout_clamped(const struct RIDevOut *d) { return d ? d->clamped : 0
 uint32_t ri_devout_refused(const struct RIDevOut *d) { return d ? d->refused : 0u; }
 uint32_t ri_devout_legato(const struct RIDevOut *d) { return d ? d->legato : 0u; }
 uint32_t ri_devout_emitted(const struct RIDevOut *d) { return d ? d->emitted : 0u; }
+/* ---------------------------------------------------------------------
+ * R6b: the drum note maps. See midi_devout.h for why they are keyed by
+ * sound id rather than by panel lane.
+ * ------------------------------------------------------------------- */
+
+/* General MIDI percussion. OWNER REVIEW ITEM: conventional, documented,
+ * not defended. One table per machine because a sound id means different
+ * things on the two, and one table indexed by lane would silently play the
+ * wrong instrument on one of them. */
+uint8_t ri_devout_drum808_note(uint8_t slot) {
+    switch (slot) {
+    case RB808_BD: return 36u;   /* bass drum    */
+    case RB808_SD: return 38u;   /* snare        */
+    case RB808_LT: return 43u;   /* low tom      */
+    case RB808_MT: return 45u;   /* mid tom      */
+    case RB808_HT: return 47u;   /* hi tom       */
+    case RB808_LC: return 64u;   /* low conga    */
+    case RB808_MC: return 63u;   /* mid conga    */
+    case RB808_HC: return 62u;   /* hi conga     */
+    case RB808_RS: return 37u;   /* rim shot     */
+    case RB808_CL: return 56u;   /* cowbell      */
+    case RB808_CP: return 39u;   /* hand clap    */
+    case RB808_CH: return 42u;   /* closed hat   */
+    default:      return 0u;    /* unknown id: refused, never guessed */
+    }
+}
+
+uint8_t ri_devout_drum909_note(uint8_t voice) {
+    switch (voice) {
+    case RB909_BD: return 36u;
+    case RB909_SD: return 38u;
+    case RB909_LT: return 43u;
+    case RB909_MT: return 45u;
+    case RB909_HT: return 47u;
+    case RB909_RS: return 37u;
+    case RB909_CP: return 39u;
+    case RB909_CH: return 42u;
+    case RB909_OH: return 46u;   /* open hat */
+    case RB909_CR: return 49u;   /* crash    */
+    case RB909_RD: return 51u;   /* ride     */
+    default:      return 0u;
+    }
+}
+
+int ri_devout_needs_303_map(void) { return 0; }
+
+uint32_t ri_devout_drum(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
+    uint8_t channel, uint8_t drum_class, uint8_t sound) {
+    uint8_t note;
+    if (!d || !buf)
+        return 0u;
+    /* The channel is the CALLER's, passed through rather than assumed. */
+    if (!d->enabled || drum_class > RI_DRUM_CLASS_909) {
+        d->refused++;
+        return 0u;
+    }
+    note = (drum_class == RI_DRUM_CLASS_808) ? ri_devout_drum808_note(sound)
+                                             : ri_devout_drum909_note(sound);
+    if (note == 0u) {
+        /* Unknown sound. Defaulting to the bass drum would put a hi-hat on
+         * the kick: audible, and invisible unless something counts it. */
+        d->refused++;
+        return 0u;
+    }
+    /* ri_devout_note applies the channel laws: an unclaimed channel is
+     * refused and counted, so the G7 collision outranks the note map. */
+    return ri_devout_note(d, buf, cap, channel, note, 0x64u, 0u);
+}

@@ -1027,3 +1027,51 @@ comments are what a reboot takes away.
   channel 15 to play **without being claimed** — which is the exact behaviour
   the module exists to refuse — and it assumed a device-indexed unassign when
   the caller owns the device map. Both fixed in the test, not the code.
+
+## R6b: the drum note maps, keyed by sound id because lane disagrees (2026-10-10)
+
+- **THE 303 NEEDS NO MAP AT ALL, and that is a finding rather than an
+  omission.** `RI303Row.key` is a **0..12 scale degree**, not a MIDI note;
+  the engine's `ri_p303_note()` already resolves it against
+  `RI_303_BASE_NOTE` (E0, `docs/evidence/sequencer/303-base-note.md`) with
+  the octave flag and clamps into 0..127. R6 therefore **contains no 303
+  map**, because a second one would be a second answer to a question the
+  engine has already answered, and the two would drift. Mutant EG pins the
+  fact rather than leaving it in prose.
+- **THE DRUM MAPS ARE KEYED BY SOUND ID, NOT BY PANEL LANE** — the one real
+  design decision here. The two machines' lane enums **disagree**: lane 7 is
+  `RI_L808_CB` on the 808 and `RI_L909_CH` on the 909, lane 8 is `CY` vs
+  `OH`, lane 9 is `OH` vs `CC`, lane 10 is `CH` vs `RC`. **One table indexed
+  by lane would play a completely different instrument on the two machines
+  for four of eleven indices, and nothing would report it.** Mutant EB kills
+  exactly that.
+- **AND THE ENGINE'S OWN LANE TRANSLATION IS SUSPECT, WHICH IS WHY R6 HAS
+  NONE.** `RI_LANE_TO_RB808_SLOT` is an **identity** table, so lane 5
+  (`RI_L808_RS`, rim shot) resolves to slot 5 (`RB808_LC`, **low conga**) and
+  lane 6 (`CP`) resolves to `MC`. That is not R6's to fix and is not what a
+  note map should be built on, so R6 keys on `RB808_*` slot / `RB909_*`
+  voice — a sound identity that does not move when the panel does.
+- **AN UNKNOWN SOUND ID IS REFUSED, NEVER GUESSED.** Defaulting it to the
+  bass drum would put a **hi-hat on the kick** — audible, and invisible
+  unless something counts it. Two separate tables (one per machine) for the
+  same reason as above: a sound id means different things on the two.
+- **THE NOTES ARE A CONVENTION, not a fact** — General MIDI percussion, the
+  conventional answer and the one that makes a DAW's drum editor show the
+  right name. **An OWNER REVIEW ITEM**, isolated in two functions so
+  changing it is one edit and one test. t196 pins in-range, no two sounds
+  colliding **within** a machine (sharing **across** machines is legitimate —
+  the same GM note means the same drum on both), and refusal for an unknown
+  id.
+- **THE TEST CAUGHT A REAL BUG IN MY OWN IMPLEMENTATION.** `ri_devout_drum`
+  **hardcoded channel 0** — the G7 remote — so every drum hit landed on the
+  one channel this whole feature exists to keep clear. It was caught only
+  because the test refuses an unclaimed channel and that one had quietly
+  claimed it. The channel is now a required **argument**: the caller owns the
+  device map. Mutant EE pins that drum hits cannot bypass the channel laws.
+- **RESULT: 8 mutants, 7 killed, 1 recorded as EQUIVALENT.** `EH` removes the
+  `enabled` guard in `ri_devout_drum`, but `ri_devout_note` below it checks
+  the same flag and increments the same `refused` counter — identical
+  behaviour, verified by reading both guards. Kept as defence in depth, not
+  claimed as a kill. Two earlier mutants were *compile* fails from my own
+  anchors (a duplicate `default:` and a mutant that still called the guarded
+  function) and were rebuilt.

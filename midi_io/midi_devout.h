@@ -37,6 +37,9 @@
 #ifndef RI_MIDIDEVOUT_H
 #define RI_MIDIDEVOUT_H
 #include <stdint.h>
+#include "engine/dsp/rb808.h"
+#include "engine/dsp/rb909.h"
+#include "engine/seq/pattern.h"   /* RI_DRUM_CLASS_808 / _909 */
 
 /* Flags for ri_devout_note(). */
 #define RI_DEVOUT_LEGATO  0x01u  /* slide: gate stays high, no re-attack */
@@ -85,6 +88,45 @@ uint32_t ri_devout_cc(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
  * through the SAME registry the G7 input uses (gui/ctlreg.h), never from a
  * table held here. */
 const char *ri_devout_cc_named(const struct RIDevOut *d, uint8_t controller);
+
+/* ---------------------------------------------------------------------
+ * R6b: the drum note maps.
+ *
+ * KEYED BY THE ENGINE'S SOUND ID, NOT BY PANEL LANE. The two machines' lane
+ * enums disagree -- lane 7 is CB on the 808 and CH on the 909, lane 10 is CH
+ * and RC -- so ONE table indexed by lane would play a different instrument on
+ * the two machines for four of eleven indices, silently. And the engine's
+ * own `RI_LANE_TO_RB808_SLOT` is an IDENTITY table, which maps lane 5
+ * (rim shot) onto slot 5 (low conga). That translation is not R6's to fix and
+ * is not what a note map should be built on, so R6 contains none.
+ *
+ * THE NOTES ARE A CONVENTION (General MIDI percussion), not a fact. They are
+ * an OWNER REVIEW ITEM, isolated in the two functions below so changing them
+ * is one edit and one test rather than a search. t196 pins that they are in
+ * range, that distinct sounds do not collide WITHIN a machine, and that an
+ * unknown id is refused rather than guessed -- defaulting it to the bass drum
+ * would put a hi-hat on the kick, audible and uncounted.
+ * ------------------------------------------------------------------- */
+
+/* The 303 needs no map: `RI303Row.key` is a 0..12 scale degree and the
+ * engine's `ri_p303_note()` already resolves it against RI_303_BASE_NOTE
+ * with the octave flag. A second 303 map here would be a second answer to a
+ * question the engine has answered. This returns 0 so the fact is pinned
+ * rather than asserted in prose. */
+int ri_devout_needs_303_map(void);
+
+uint8_t ri_devout_drum808_note(uint8_t slot);
+uint8_t ri_devout_drum909_note(uint8_t voice);
+/* Emit one drum hit on `channel`, mapped from `sound`. Writes 3 bytes, or
+ * nothing at all for an unknown class or sound id (counted as refused).
+ *
+ * `channel` is an ARGUMENT, not a default. The first version of this
+ * hardcoded channel 0 -- which is the G7 remote -- so every drum hit landed
+ * on the one channel the whole feature exists to keep clear, and the only
+ * reason it was caught is that the test refused an unclaimed channel and
+ * this one had quietly claimed it. The caller owns the device map. */
+uint32_t ri_devout_drum(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
+    uint8_t channel, uint8_t drum_class, uint8_t sound);
 
 uint32_t ri_devout_clamped(const struct RIDevOut *d);
 uint32_t ri_devout_refused(const struct RIDevOut *d);
