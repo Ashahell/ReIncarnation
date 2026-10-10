@@ -408,6 +408,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t203_mixer_strips >/dev/null || { ech
 bash "$ROOT/scripts/ri_build_host.sh" test t205_engine_unsorted >/dev/null || { echo "FAIL: t205_engine_unsorted (out-of-order events refused, not overrun)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t206_engine_scratchr >/dev/null || { echo "FAIL: t206_engine_scratchr (the mono path never reads scratchR)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t204_engine_stems >/dev/null || { echo "FAIL: t204_engine_stems (R8c the stem tap on the mix the app uses)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t207_stem_render >/dev/null || { echo "FAIL: t207_stem_render (R8d the tap-to-stem-set bridge)"; exit 1; }
 # MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
 # This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
 # approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo

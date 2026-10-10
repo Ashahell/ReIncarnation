@@ -2029,3 +2029,71 @@ adjacent slices turned out to protect each other.
 - **R5** — still needs an owner priority call.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane (both lanes
   timed out on ping for the fifth time this session).
+
+## R8d: the bridge from the tap to the stem set (2026-10-10)
+
+`project/stem_render.{c,h}`, t207. R8a built the WAV writer, R8c built the
+engine's tap; this is what sits between them, and it is small on purpose:
+hand the tap a whole render's worth of caller buffers, zero them, and on
+completion interleave each strip and give it to `RIStemSet`.
+
+**NOTHING IS ALLOCATED AND NOTHING IS OWNED.** `RIStemSet` stores the
+*pointer*, so an interleaved buffer that dies before `stem_set_write` is a
+dangling read in a file the user is about to trust.
+
+### The laws, all of which are about a render that does not go to the end
+
+- **THE BUFFERS ARE ZEROED BY `ri_stemr_bind`, ALWAYS** (`RA`, `RI`). The tap
+  writes only the samples the engine actually renders. A render that stops
+  short — out-of-order events (t205), a song shorter than the buffer — leaves
+  the tail holding whatever the caller had there, and **in a stem file that is
+  not silence, it is the last song's audio.** Zeroing is this module's job
+  because the caller will not remember, and "it worked in the test" is how
+  that survives.
+- **A SHORT *OR OVER-LONG* RENDER IS REFUSED, NOT PADDED** (`RB`, `RC`,
+  `RD`). `ri_stemr_finish` takes what the engine returned and refuses anything
+  that is not the frame count asked for, counting it. A stem the caller
+  believes is complete but which ends in silence is a lie about the song.
+- **ONE STEM PER RENDERED SECTION, IN SECTION ORDER** (`RE`, `RF`). The section
+  mask is read off the engine **at bind**, not at finish, because the caller
+  may change it in between and the stems should describe the render that
+  happened. A slot offered for a section the song has switched off does not
+  become a stem — a file of silence labelled as an instrument is worse than
+  one file fewer.
+- **INTERLEAVED, NOT TWO MONO FILES** (`RG`, `RH`). `stem_wav_write` reads
+  `samples[i * channels + c]`, and this is the only place that copy happens.
+- **FINISH IS NOT IDEMPOTENT** (`RK`): calling it twice would add every stem
+  a second time, which is how a set ends up with eleven stems and ten
+  instruments.
+- **An unsupported bit depth is refused, not clamped** (`RJ`). The caller's
+  file format is not this module's to choose, and a silent 16 would be a file
+  that is not what anybody asked for.
+
+### Mutation results
+
+**12 mutants, 12 killed.** Two needed test work first, and one of them is the
+same shape as R8c's:
+
+- **`RG` (a swapped interleave) survived a first pass** because **every
+  section in the fixture is MONO, and t206 says a mono section mirrors** — so
+  `l == r` and swapping them changes nothing. My interleave assertions were
+  satisfied by a swapped interleave. **Panning a section hard left** (pan 0 is
+  `gl=1, gr=0`) is what separates the two sides.
+- **`RK`** needed a second `finish` call, which the test never made.
+- `RJ` first **failed to build** (the mutant left `d` unused under `-Werror`),
+  which proves nothing — the fourth time in this run of work that a
+  build failure has been the thing standing between a mutant and a verdict.
+
+### Still open
+
+- **R8e — the caller.** `stem_render.c` is host-only, like `stem_wav.c`,
+  because no app code calls it yet. Nothing in the UI or the CLI asks for
+  stems, so this is a module with no door. Wiring it to a command is the
+  remaining R8 work and it is a **product decision, not a mechanical one**:
+  where does the user ask for stems, and what does the file set look like on
+  disk.
+- **R9** — loop-exact renders with an optional tail, which is where a stem
+  render has to prove it does not move a note's timing.
+- **R5** — still needs an owner priority call.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane (both lanes
+  timed out on ping for the sixth time this session).
