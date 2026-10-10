@@ -118,12 +118,20 @@ static float slew_step(float cur, float tgt) {
 
 void ri_mix_render(struct RiMixer *m, const float *bus_in[RI_MIX_NBUS],
     float *out, float *send_out, uint32_t n) {
+    ri_mix_render_strips(m, bus_in, out, send_out, 0, n);
+}
+
+/* The tap writes the SAME product the accumulator is summing -- it does not
+ * recompute the gain -- so the strips reconstruct this mix exactly. See the
+ * header for why that is the whole definition of a stem. */
+void ri_mix_render_strips(struct RiMixer *m, const float *bus_in[RI_MIX_NBUS],
+    float *out, float *send_out, float *strip_out[RI_MIX_NBUS], uint32_t n) {
     uint32_t i, b;
     float mtgt;
     if (!m || !bus_in || !out || !send_out)
         return;
     mtgt = ri_fader_gain(m->master);
-    for (i = 0; i < n; i++) {
+    for (i = 0u; i < n; i++) {
         float acc = 0.0f, snd = 0.0f;
         for (b = 0; b < RI_MIX_NBUS; b++) {
             float tgt = ri_mix_audible(m, b) ?
@@ -132,9 +140,16 @@ void ri_mix_render(struct RiMixer *m, const float *bus_in[RI_MIX_NBUS],
             m->bus[b].applied = slew_step(m->bus[b].applied, tgt);
             cur = m->bus[b].applied;
             if (bus_in[b]) {
-                acc += bus_in[b][i] * cur;
-                snd += bus_in[b][i] * cur *
-                    ri_fader_gain(m->bus[b].send);
+                float v = bus_in[b][i] * cur;
+                acc += v;
+                snd += v * ri_fader_gain(m->bus[b].send);
+                if (strip_out && strip_out[b])
+                    strip_out[b][i] = v;
+            } else if (strip_out && strip_out[b]) {
+                /* A bus with no input contributes nothing, and a stem that
+                 * claimed otherwise would be a file of stale samples from
+                 * the previous render rather than silence. */
+                strip_out[b][i] = 0.0f;
             }
         }
         m->master_applied = slew_step(m->master_applied, mtgt);

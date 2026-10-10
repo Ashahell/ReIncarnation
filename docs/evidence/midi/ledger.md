@@ -1643,3 +1643,91 @@ owner runs the ear part and I read the counters.
 - **R6h** — on-panel exposure for all seven MIDI settings.
 - **No runtime path** for any MIDI setting (ENVARC-only, restart to change).
 - **R8b**, **R9**, **R5**.
+
+## R8b: the per-strip tap (2026-10-10)
+
+`ri_mix_render` took five bus inputs and returned ONE output, so a stem
+could not be produced without rendering the whole song once per strip — and,
+worse, without knowing what a strip *is*. This adds the tap, and the tap's
+definition is the whole design.
+
+- **A STRIP IS EXACTLY WHAT THE MIX ADDS.** The tap writes the same
+  `bus_in[b][i] * applied[b]` product the accumulator is summing, not a
+  recomputation of it. **The five stems, summed at the master gain,
+  reconstruct the mix BIT-IDENTICALLY** — checkable with `==`, because
+  float addition is not associative and only the mix's own bus order
+  reproduces its rounding. `SB` (post-master), `SH` (solo not reaching the
+  tap), `SC` (muted strip still writing) and `SA` (recomputing the gain)
+  are all killed by that one law.
+- **PRE-MASTER.** The master fader is a mix decision, not a strip property;
+  baking it into five stems means the user cannot re-mix without applying it
+  five times. t203 changes the master and asserts **no stem moves**.
+- **INCLUDES THE SLEW, DELIBERATELY.** `applied[]` ramps over
+  `RI_MIX_RAMP_SMP` (64) samples so a fader move does not click. Recomputing
+  the strip from the fader's *target* would leave the stems not summing to
+  the mix for the first 64 samples of every fader move — which is exactly
+  where a stem's head is. t203 pins the invariant **through the ramp**, not
+  only after it.
+- **A BUS WITH NO INPUT MUST WRITE SILENCE, NOT LEAVE ITS STEM ALONE.**
+  Skipping the write leaves the previous render's samples: a stem file of
+  stale audio that nobody edited and everybody believes. One explicit
+  `0.0f` in the mixer (`SD`).
+
+### Mutation results — and a false kill that was not caught for two runs
+
+**9 mutants, 7 killed, 2 equivalent.**
+
+- **A HARNESS THAT INVENTED ITS OWN TESTS.** I listed `t205_mixer_render`
+  and `t206_mixer_render` as regression tests. **They do not exist.**
+  `subprocess` returns non-zero on a missing binary and the harness read that
+  as KILLED — **a false kill, the exact inverse of the segfault that was once
+  mis-scored as SURVIVED.** It went unnoticed for two full runs because
+  those runs looked perfect. The harness now refuses to start unless every
+  named test exists on disk. A missing test is not a failing test; it is a
+  broken harness, and it is indistinguishable from success unless you check.
+- **`SI` is equivalent by construction** — it returns the **identical object
+  hash**: the compiler already CSEs `bus_in[b][i] * cur` into `v`.
+- **`SG` is equivalent and it corrected a comment.** A mutant that
+  reimplemented `ri_mix_render` outright, same math and same accumulate
+  order, **survives** — the two are byte-identical for a NULL tap. So
+  "one implementation" is a **maintenance argument, not a testable law**,
+  and my test comment claimed otherwise. Corrected in place, because a
+  comment asserting more than its evidence outlives the evidence.
+
+### Four test gaps, three of them my own mistakes
+
+- **`SD` passed against the mutant it was written for.** The stale buffer
+  happened to hold *silence* — the previous section had soloed bus 2 out —
+  and a stale buffer only proves anything when it holds something.
+- **A NULL TAP ENTRY AND A NULL BUS INPUT ARE DIFFERENT THINGS, and I got
+  this wrong twice.** `strips[b] = 0` means "do not RECORD bus b", which
+  correctly leaves its stem alone — there is no claim about what an
+  unrecorded stem contains. The case needing an explicit zero is a bus the
+  mix is not *receiving*, which is an entry in **`bus_in`**, not in
+  `strip_out`. Both wrong versions were still passing.
+- **The slew section measured nothing.** It called `settle()` — four full
+  blocks, 2048 samples — which walks straight past the 64-sample ramp the
+  whole section exists to examine. Then its second version rendered `N`
+  samples again, which settles the ramp for the same reason. Only a **16**-
+  sample block observes it.
+- **And the per-sample sum law was wrong by construction.** `out[i]` uses
+  the master value *at sample i*, which a caller cannot see, so checking a
+  per-sample sum against the block's final master is invalid — it failed on
+  the pristine build. Settling the master alone and re-zeroing `applied[]`
+  (a plain struct field, so a legal setup) makes the gain a known constant
+  and the law checkable at every sample, head included.
+
+Each of these is the same shape: **a test that passes without proving the
+thing it names.** Three of the four were only visible because a mutant
+survived that should not have.
+
+### Still open
+
+- **R8b proper — running the engine per stem.** This is the tap and the set
+  integration; the loop that renders a song and hands five strip buffers to
+  `stem_set_add` is not written.
+- **R9** — loop-exact renders with an optional tail, which is where the
+  per-strip render has to prove it does not change a note's timing.
+- **R5** — still needs an owner priority call.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane (both lanes
+  timed out on ping for the third time this session).

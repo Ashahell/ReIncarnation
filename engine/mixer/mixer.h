@@ -75,6 +75,31 @@ int ri_mix_set_mute(struct RiMixer *m, uint32_t bus, uint8_t v);
 int ri_mix_set_solo(struct RiMixer *m, uint32_t bus, uint8_t v);
 int ri_mix_set_master(struct RiMixer *m, uint8_t v);
 int ri_mix_audible(const struct RiMixer *m, uint32_t bus);
+/* `ri_mix_render` IS `ri_mix_render_strips` with a NULL tap. One
+ * implementation, deliberately: two would drift, and the drift would show up
+ * as stems that do not sum to the mix. */
 void ri_mix_render(struct RiMixer *m, const float *bus_in[RI_MIX_NBUS],
     float *out, float *send_out, uint32_t n);
+
+/* R8b: the per-strip tap that makes stem export possible.
+ *
+ * `strip_out[b]` receives EXACTLY what the mix adds from bus b -- the same
+ * `bus_in[b][i] * applied[b]` product the accumulator is summing, not a
+ * recomputation of it. So **the five stems, summed at the master gain,
+ * reconstruct the mix BIT-IDENTICALLY**, and that is checkable with `==`
+ * because float addition is not associative and only summing in the mix's
+ * own bus order reproduces its rounding.
+ *
+ *  - **PRE-MASTER.** The master fader is a mix decision, not a property of a
+ *    strip; baking it into every stem means the user cannot re-mix without
+ *    applying it five times.
+ *  - **INCLUDES THE SLEW, DELIBERATELY.** `applied[]` ramps over
+ *    `RI_MIX_RAMP_SMP` samples so a fader move does not click. Recomputing
+ *    the strip from the fader's *target* would leave the stems not summing
+ *    to the mix for the first 64 samples. Tapping the product the mix uses
+ *    keeps the invariant true at EVERY sample, head included.
+ *  - **NULL entries are skipped**, so a partial tap array is a partial tap
+ *    rather than a crash, and a NULL array is no tap at all. */
+void ri_mix_render_strips(struct RiMixer *m, const float *bus_in[RI_MIX_NBUS],
+    float *out, float *send_out, float *strip_out[RI_MIX_NBUS], uint32_t n);
 #endif
