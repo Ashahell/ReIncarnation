@@ -1835,3 +1835,90 @@ audio path is the wrong trade:
 - **R5** — still needs an owner priority call.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane (both lanes
   timed out on ping for the fourth time this session).
+
+## RETRACTION: finding 2 of the R8c slice was wrong (2026-10-10)
+
+**I reported a defect that does not exist.** This replaces, and withdraws,
+item 2 of the R8c attempt above.
+
+> *~~`e->scratchR` is never written for a mono section. `rb303_render` fills
+> `scratch` only, so the R stem for the 303s carries whatever was in
+> `scratchR` last. The master sums it too, so the tap is faithful — which is
+> precisely the problem: a faithful tap of an uninitialised buffer exports
+> stale audio.~~*
+
+**There is nothing to fix.** The mono path does not merely fail to *write*
+`scratchR` — it never *reads* it, so its contents cannot reach the output, the
+send or the section meter however stale they are.
+
+### Why I got it wrong
+
+`engine.c` holds two near-identical static functions 60 lines apart:
+`engine_section` (mono, sections 0–3) and `engine_section_stereo` (the Levi,
+section 4). **They take the same parameter list**, and their accumulates
+differ in exactly one token:
+
+    engine_section:          double s = e->scratch[i];
+                             ml[i] += s * gl;   mr[i] += s * gr;
+
+    engine_section_stereo:   mr[i] += (double)e->scratchR[i] * gr;
+
+I read the stereo one and attributed it to the mono one. The mono function
+meters `scratch` directly, sends `scratch`, and **mirrors the mono sample to
+both outputs deliberately** — so a 303 on its own is centred, not left-only.
+
+### What the probe had already said, and I read past three times
+
+Planting `1.0e30f` into every `scratchR` slot and re-rendering changed
+**nothing** — bit-identical `out_l` and `out_r`. That result was on screen and
+I explained it away as "the linked object is stale", compiled a fresh
+`engine.o`, got the same answer, and moved on. The sentinel showing no effect
+*was* the finding. A probe result that contradicts a claim should end the
+investigation, not generate a better explanation for the claim.
+
+It survived a segfault hunt, four probes, a `nm` sweep for duplicate symbols,
+and a grep. What would have settled it in one step is the boring check I did
+last: print the **values** the probe observed next to the **expression** the
+source has. `scratchR[0] = 0` versus `mr[i] += scratchR[i] * gr` is a
+contradiction you can see without any theory.
+
+### t206: the law that was true all along, now pinned
+
+- **A MONO SECTION MIRRORS TO BOTH OUTPUTS** — `mr += s * gr`, not
+  `mr += scratchR * gr`. A 303-only render is centred; `memcmp(L, R) == 0`.
+- **THE MONO PATH IS IMMUNE TO `scratchR`.** Plant `1e30` there and the output
+  is bit-identical — for the 303A, the 303B, the 808, the 909, and with a
+  stereo section present in the same block. **This is the property that made
+  the R8c stem tap safe, and the property my claim denied.**
+- **THE MONO SECTION METER READS `scratch`, NOT THE AVERAGE.** The stereo path
+  meters `0.5 * (scratch + scratchR)`; mixing the two up is exactly what made
+  the original claim look reasonable.
+- **THE LEVI FILLS `scratchR` BEFORE READING IT** — even with no note at all,
+  so the one path that does read it is not exposed either.
+
+### Mutation results
+
+**5 mutants, 4 killed, 1 survived.**
+
+- **`SA` is the defect I claimed, and it is killed** — making the mono path
+  read `scratchR` into the right output fails t206 immediately. That is the
+  evidence the claim described a real change that t206 can see.
+- `SB` (mono stops being centred), `SC` (mono meter switched to the stereo
+  average) and `SE` (`scratchR` leaking into the mono send) are killed.
+- **`SD` survives and correctly so**: silencing the mono send is out of scope
+  for a test about `scratchR`. That is a gap in a *different* test's remit,
+  not a hole in these laws, and it is recorded rather than absorbed.
+
+### What this changes about R8c
+
+Of the three blockers I listed, **one is now resolved and one was never a
+blocker**:
+
+1. **My offset bug** — real, understood, fixed (`pos` threaded through both
+   section functions).
+2. ~~`scratchR` staleness~~ — **withdrawn; there is no staleness.**
+3. **The sum law must be a tolerance, not an equality** — stands. The master
+   accumulates in `double` and stems are `float`.
+
+So R8c is blocked on **one** thing, not three, and it is a statement about
+arithmetic rather than a defect in the engine.

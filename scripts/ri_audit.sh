@@ -406,6 +406,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t201_devout_conventions >/dev/null ||
 bash "$ROOT/scripts/ri_build_host.sh" test t202_devout_switch >/dev/null || { echo "FAIL: t202_devout_switch (R6f the second E0 switch and note channel)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t203_mixer_strips >/dev/null || { echo "FAIL: t203_mixer_strips (R8b the per-strip tap that makes stems possible)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t205_engine_unsorted >/dev/null || { echo "FAIL: t205_engine_unsorted (out-of-order events refused, not overrun)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t206_engine_scratchr >/dev/null || { echo "FAIL: t206_engine_scratchr (the mono path never reads scratchR)"; exit 1; }
 # MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
 # This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
 # approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo
