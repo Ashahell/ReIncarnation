@@ -266,6 +266,12 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(TRANSPORT, 12, LED, "", "MIDI In", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(TRANSPORT, 13, LED, "", "Sync", 0, 2, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(TRANSPORT, 14, BUTTON, "", "Tap", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    /* R4's clock-out lamp. An LED row like MIDI In and Sync, and DELIBERATELY
+     * not a switch: it reports bytes on the wire, so there is nothing for a
+     * user to set. Making it clickable would invite the question "what does
+     * clicking this do", and the honest answer is "nothing — it is a
+     * reading". */
+    R(TRANSPORT, 15, LED, "", "Clock Out", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(PAT_SYNTH1, 0, SWITCH, "", "Section Off", 0, 1, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
     R(PAT_SYNTH1, 1, SELECTOR, "", "Bank", 0, 3, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
     R(PAT_SYNTH1, 2, SELECTOR, "", "Pattern", 0, 7, 0, RI_MIDI_CC_NONE, 1, NONE, 0, 0),
@@ -596,13 +602,58 @@ const struct RICtlDef *ri_ctlreg_at(uint32_t i) {
  * this session twice believed a measurement that reported a property the code did
  * not have -- a geometry-shape enum written from memory, and a probe that compared
  * a reg_id against an index -- and both looked like clean answers. */
-static const uint16_t RI_CTLREG_SEC_LO[RI_SEC_COUNT] = {0, 30, 60, 104, 150, 158, 166, 174, 190, 194, 202, 208, 212, 217, 232, 237, 242, 247, 252, 480, 182};
-static const uint16_t RI_CTLREG_SEC_HI[RI_SEC_COUNT] = {29, 59, 103, 149, 157, 165, 173, 181, 193, 201, 207, 211, 216, 231, 236, 241, 246, 251, 479, 484, 189};
+/* THE BOUNDS ARE BUILT FROM THE TABLE, NOT WRITTEN BESIDE IT.
+ *
+ * These were two hand-maintained literal arrays, and they were WRONG the
+ * moment a row was added: R4's clock-out lamp went in at the end of the
+ * transport run, which shifted every section after it by one index, and
+ * six UNRELATED pattern sections started resolving the wrong rows. It was
+ * caught only because a draw-hash pin moved -- the lookup itself kept
+ * working, since a window shifted by one still CONTAINS its own rows and
+ * merely also contains its neighbours'.
+ *
+ * That is why it survived the test that claims to cover it. t170 derives
+ * each section's range FROM the table and never compares it to these
+ * literals, so "verified against the table by t170" was not true of the
+ * thing being verified. A guard that checks a derived copy against itself
+ * is not a guard, and the comment asserting otherwise is worse than no
+ * comment: it is the kind of false assurance this repo has been bitten by
+ * twice already (a geometry-shape enum written from memory; a probe
+ * comparing a reg_id against an index).
+ *
+ * So there is nothing to keep in sync: the bounds are computed once from
+ * the table itself. RI_SEC_COUNT is 21 and the scan is 486 entries, so the
+ * first call costs one pass and every call after is the same bounded scan
+ * the literals were there to enable.
+ */
+static uint16_t RI_CTLREG_SEC_LO[RI_SEC_COUNT];
+static uint16_t RI_CTLREG_SEC_HI[RI_SEC_COUNT];
+static int RI_CTLREG_SEC_BUILT;
+
+static void ri_ctlreg_build_bounds(void) {
+    uint32_t i, sec;
+    if (RI_CTLREG_SEC_BUILT)
+        return;
+    for (sec = 0u; sec < RI_SEC_COUNT; sec++) {
+        RI_CTLREG_SEC_LO[sec] = 0u;
+        RI_CTLREG_SEC_HI[sec] = 0u;
+    }
+    for (i = 0u; i < RI_CTLREG_N; i++) {
+        sec = RI_CTLREG[i].section;
+        if (sec >= RI_SEC_COUNT)
+            continue;               /* not addressable by reg_id anyway */
+        if (RI_CTLREG_SEC_HI[sec] < RI_CTLREG_SEC_LO[sec])
+            RI_CTLREG_SEC_LO[sec] = (uint16_t)i;
+        RI_CTLREG_SEC_HI[sec] = (uint16_t)i;
+    }
+    RI_CTLREG_SEC_BUILT = 1;
+}
 
 const struct RICtlDef *ri_ctlreg_find(uint16_t reg_id) {
     uint32_t sec = (uint32_t)(reg_id >> 8), i, lo, hi;
     if (sec >= RI_SEC_COUNT)
         return 0;
+    ri_ctlreg_build_bounds();
     lo = RI_CTLREG_SEC_LO[sec];
     hi = RI_CTLREG_SEC_HI[sec];
     for (i = lo; i <= hi; i++)

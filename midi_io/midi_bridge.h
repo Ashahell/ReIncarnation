@@ -68,6 +68,12 @@ void midi_bridge_note_link(struct RIMidiBridge *b, uint32_t lost);
 #define RI_MIDI_SET_LEVI_CH 2u /* Leviasynth channel 1..16 (M4) */
 #define RI_MIDI_SET_CLK_OUT 3u /* clock/MMC out 0/1 (M5, off) */
 #define RI_MIDI_SET_LAT_MS 4u  /* latency offset ms -200..+200 (M3) */
+#define RI_MIDI_SET_MMC_OUT 5u /* MMC out 0/1 (M5h, off) -- SEPARATE from
+                                * clk_out on purpose: clock out and MMC out
+                                * are different features with different
+                                * consequences on a slave, and one E0
+                                * switch for both would make the safe
+                                * choice (clock only) impossible to express. */
 
 struct RIMidiSettings {
     char cluster[64];  /* input cluster name */
@@ -76,6 +82,7 @@ struct RIMidiSettings {
     uint8_t levi_ch;   /* 1..16 */
     uint8_t clk_out;   /* 0/1 */
     int16_t lat_ms;
+    uint8_t mmc_out;   /* 0/1 */
     int16_t pad;
 };
 

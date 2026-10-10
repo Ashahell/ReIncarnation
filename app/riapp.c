@@ -97,6 +97,7 @@
 #include "midi_io/midi_chan.h"
 #include "midi_io/midi_levi.h"
 #include "midi_io/midi_out.h"
+#include "midi_io/midi_mmc.h"
 #include "midi_io/midi_follow.h"
 #include "platform/pal/ri_pal_midi.h"
 #include "gui/panelgeo.h"
@@ -652,6 +653,15 @@ static void capture_finish(const char *why) {
         ok ? "" : " - WRITE FAILED");
 }
 
+/* M5h: MMC out (R3's "and add sending"). Separate E0 from clock out on
+ * purpose -- driving another machine's transport is a bigger consequence
+ * than sending it a clock, so the safe choice (clock only) has to be
+ * expressible. Declared up here because sync_transport() (below) and
+ * midi_drain() both read them, and both come before the midi_io block. */
+static struct RIMidiMmcOut s_mmcout;
+static uint32_t s_clk_sent_last;  /* sender counters, for the R4 lamp */
+static int s_mmc_echo;            /* 1 while applying an INBOUND MMC intent */
+
 static void sync_transport(void) {
     int st = s_ui[C_TR]->u.tr.tr.state;
     /* Owner 2026-09-29: the tempo knob drives the session (was
@@ -668,6 +678,25 @@ static void sync_transport(void) {
     if (st == s_tr_state)
         return;
     s_tr_state = st;
+    /* MMC out (M5h). Driven from the ONE place the transport changes, so
+     * there is no second path that can move it and forget to announce it.
+     * `echo` is 0 when the change came FROM an inbound MMC: echoing a
+     * command back to the master that just sent it is a feedback loop,
+     * and a locate would bounce between the two machines. */
+    if (midi_mmc_out_enabled(&s_mmcout)) {
+        uint8_t f[10];
+        uint32_t fn = 0u;
+        if (st == RI_TR_PLAYING || st == RI_TR_RECORD)
+            fn = midi_mmc_out_play(&s_mmcout, f, sizeof f);
+        else if (st == RI_TR_STOPPED)
+            fn = midi_mmc_out_stop(&s_mmcout, f, sizeof f);
+        if (fn && !s_mmc_echo) {
+            if (ri_pal_midi_send(s_mset.cluster, f, fn) == 0)
+                evlog("MMC", "tx=%u bytes=%lu", (ULONG)f[4], (ULONG)fn);
+            else
+                evlog("MMC", "tx=%u refused", (ULONG)f[4]);
+        }
+    }
     if (st == RI_TR_PLAYING || st == RI_TR_RECORD) {
         /* RECORD plays: the record lane lands in Step 4. */
         if (s_live)
@@ -852,7 +881,22 @@ static uint32_t s_midi_fb_n;   /* follow lines since the last drift print */
 static uint32_t s_midi_f8n;    /* F8 clocks the app has counted */
 static struct RIMidiChan s_chan;   /* M4: device instances and their channels */
 static struct RIMidiOut s_mout;    /* M5: clock-out producer (render writes it) */
+/* M5h: MMC out (R3's "and add sending"). Separate E0 from clock out on
+ * purpose -- driving another machine's transport is a bigger consequence
+ * than sending it a clock, so the safe choice (clock only) has to be
+ * expressible. */
 static uint32_t s_midi_levi, s_midi_levi_note, s_midi_levi_perf;
+/* R4's clock-out lamp, driven from the SENDER's own counters rather than
+ * from the setting. A lamp wired to "is it enabled" stays green through
+ * exactly the failure it exists to show: requested on, sender task
+ * refused, producer failed closed, no byte on the wire. */
+static void clkout_lamp(void) {
+    uint32_t sent = ri_pal_midi_sent();
+    int flowing = (sent != s_clk_sent_last) ? 1 : 0;
+    s_clk_sent_last = sent;
+    ri_str_clkout_set(&s_ui[C_TR]->u.tr, flowing, sent);
+}
+
 static void midi_drain(void) {
     struct RIMidiBridge *b = ri_pal_midi_bridge();
     uint32_t n, k, i, sends = 0u, nf8 = 0u;
@@ -861,6 +905,7 @@ static void midi_drain(void) {
     uint32_t locked;
     uint64_t eng_cursor;
     float bpm, tempo;
+    clkout_lamp();
     if (!b)
         return;
     ch0 = s_panel.changes;
@@ -927,7 +972,12 @@ static void midi_drain(void) {
         if (kind < 5u)
             s_midi_intents[kind]++;
         evlog("MIDI", "intent=%u seek=%lu", kind, (ULONG)s_midi_its[i].it.seek_16ths);
+        /* This intent came FROM the wire, so any MMC out it causes must
+         * not be echoed back to the master that sent it. Cleared after
+         * the apply below, which is what actually moves the transport. */
+        s_mmc_echo = 1;
         midi_trans_apply(&s_mtrans, &s_midi_its[i].it, s_ui[C_TR], &eng_cursor);
+        s_mmc_echo = 0;
         /* START and SEEK wrote the take's start point into eng_cursor and
          * only pressed Play on the panel. The engine has to be standing
          * there: ri_live_locate hands the move to the render task, which
@@ -2678,6 +2728,8 @@ static void midi_setup(void) {
             midi_settings_set(&s_mset, RI_MIDI_SET_CLK_OUT, v);
         if (midi_getnum("RIAPP_MIDI_LATMS", &v))
             midi_settings_set(&s_mset, RI_MIDI_SET_LAT_MS, v);
+        if (midi_getnum("RIAPP_MIDI_MMCOUT", &v))
+            midi_settings_set(&s_mset, RI_MIDI_SET_MMC_OUT, v);
     }
     rlog("RIAPP midi in=%s ch=%u sync=%u levi=%u clkout=%u lat=%d\n", s_mset.cluster,
         s_mset.channel, s_mset.sync, s_mset.levi_ch, s_mset.clk_out, s_mset.lat_ms);
@@ -2709,6 +2761,9 @@ static void midi_setup(void) {
     evlog("CLK", "out=%u enabled=%u lat_ms=%u",
         (ULONG)s_mset.clk_out, (ULONG)midi_out_pending(&s_mout),
         (ULONG)s_mset.lat_ms);
+    /* MMC out (R3 sending). Off by default like everything else here. */
+    midi_mmc_out_init(&s_mmcout, s_mset.mmc_out);
+    evlog("MMC", "out=%u", (ULONG)midi_mmc_out_enabled(&s_mmcout));
     midi_trans_init(&s_mtrans);
     midi_trans_set_source(&s_mtrans, s_mset.sync);
     midi_trans_set_lat(&s_mtrans, s_mset.lat_ms);

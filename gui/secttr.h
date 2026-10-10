@@ -29,7 +29,8 @@
 #define RI_STR_MIDI 12u
 #define RI_STR_SYNC 13u      /* 0 off, 1 red (downbeat), 2 green */
 #define RI_STR_TAP 14u       /* tap tempo: a button, not a value (P9e) */
-#define RI_STR_NCTL 15u
+#define RI_STR_CLKOUT 15u    /* R4: clock-out lamp -- lit only while BYTES flow */
+#define RI_STR_NCTL 16u
 
 /* Tap tempo (P9e): the estimator keeps this many press intervals and
  * forgets everything older; a pause longer than the gap starts a new
@@ -41,6 +42,9 @@ struct RISectTr {
     uint8_t section;         /* RI_SEC_TRANSPORT */
     uint8_t song_mode;
     uint8_t midi_led, sync_led;
+    uint8_t clkout_led;     /* R4. DERIVED from bytes sent, never set by hand --
+                             * see ri_str_clkout_set() for why an "enabled"
+                             * lamp would be a lie in the failure case. */
     int16_t tempo, shuffle;
     struct RITransport tr;
     struct RILoop loop;      /* start_bar 0-based */
@@ -55,6 +59,13 @@ struct RISectTr {
 };
 
 int ri_str_init(struct RISectTr *s);
+/* R4 clock-out lamp. `sending` is "did ticks actually leave the producer
+ * since the last poll", NOT "is the feature switched on": a lamp showing
+ * "enabled" stays green through exactly the failure it exists to reveal
+ * (clock out requested, sender task refused, producer failed closed). No
+ * timeout -- a lamp that stays lit for 300 ms after the last tick is
+ * showing the timeout, not the wire. */
+void ri_str_clkout_set(struct RISectTr *s, int sending, uint32_t sent_total);
 int ri_str_press(struct RISectTr *s, uint32_t idx);
 /* Tap tempo (P9e): one press at `ms` (0 = no clock, ignored). Keeps up to
  * RI_STR_TAP_IV intervals, averages them and writes the tempo through the

@@ -219,10 +219,14 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 12u, 1u, 0x2ec3d1f4u },
     { 12u, 2u, 0x94e3467eu },
     { 12u, 3u, 0xda4318cbu },
-    { 13u, 0u, 0x98fc53aau },
-    { 13u, 1u, 0x5ad1e26du },
-    { 13u, 2u, 0x45dfc3e1u },
-    { 13u, 3u, 0x6f4fe86au },
+    /* Transport, re-pinned 2026-10-10 for R4's clock-out lamp. Only this
+     * section moved; see the same re-pin note in t92_draw_hash.c and the
+     * RI_CTLREG_SEC_LO/HI note in gui/ctlreg.c for why six other sections
+     * moving would have meant a bug rather than a re-pin. */
+    { 13u, 0u, 0x046c9a14u },
+    { 13u, 1u, 0xb1ec6888u },
+    { 13u, 2u, 0x7d0e6843u },
+    { 13u, 3u, 0x549d0c58u },
     { 14u, 0u, 0x01149021u },
     { 14u, 1u, 0x10d88c9cu },
     { 14u, 2u, 0x1a01eb0eu },

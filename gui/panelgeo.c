@@ -515,6 +515,13 @@ static const struct RIGeoItem RI_GEO_TRANSPORT[] = {
     { TR(2), RI_GEO_KNOB, 0, 80, 95, 50, 90 },
     { TR(2), RI_GEO_LEGEND, 0, 80, 178, 0, 0 },
     { TR(13), RI_GEO_RECT, 0, 188, 40, 12, 12 },
+    /* R4's clock-out lamp, between Sync (188) and MIDI In (318) on the same
+     * 40-row the manual puts the other two indicator lamps (p. 144-145).
+     * x=253 splits that 130 px span; the y=40 row is otherwise empty
+     * between them (the Tempo legend is at y=88). PROVISIONAL: it is
+     * placed by arithmetic, not by eye, and the owner should confirm it
+     * reads as "the third lamp" rather than as clutter. */
+    { TR(15), RI_GEO_RECT, 0, 253, 40, 12, 12 },
     { TR(12), RI_GEO_RECT, 0, 318, 40, 12, 12 },
     { TR(1), RI_GEO_RECT, 0, 232, 142, 115, 65 },
     { TR(1), RI_GEO_STEPPER, 1, 312, 127, 32, 28 },

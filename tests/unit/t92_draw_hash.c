@@ -91,10 +91,15 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 12u, 1u, 0x2d3e7a3fu },
     { 12u, 2u, 0xb3d4341bu },
     { 12u, 3u, 0x68592477u },
-    { 13u, 0u, 0xe4f0d786u },
-    { 13u, 1u, 0xb644333bu },
-    { 13u, 2u, 0x59ed6a84u },
-    { 13u, 3u, 0x7dc031ccu },
+    /* Transport, re-pinned 2026-10-10 for R4's clock-out lamp: the only
+     * section whose pixels moved, which is the check working. Six OTHER
+     * sections moved first and that was a real bug, not a re-pin -- see
+     * the RI_CTLREG_SEC_LO/HI note in gui/ctlreg.c, where the bounds were
+     * hand-written literals that a new row silently invalidated. */
+    { 13u, 0u, 0xcb839d35u },
+    { 13u, 1u, 0x1ca1986au },
+    { 13u, 2u, 0x4474cc29u },
+    { 13u, 3u, 0x2caa2f17u },
     { 14u, 0u, 0x939d9d41u },
     { 14u, 1u, 0x2991749cu },
     { 14u, 2u, 0x3e6bd744u },

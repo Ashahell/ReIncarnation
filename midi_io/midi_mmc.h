@@ -53,4 +53,36 @@ void midi_mmc_feed(struct RIMidiMmc *m, uint8_t b);
 uint32_t midi_mmc_take(struct RIMidiMmc *m);
 int midi_mmc_in_sysex(const struct RIMidiMmc *m);
 
+/* ---------------------------------------------------------------------
+ * MMC OUT (R3's "and add sending"). Same E0 as the rest: off by default,
+ * and off means NOT ONE BYTE is produced, not "produced and ignored".
+ *
+ * WHY A SEPARATE STRUCT AND NOT A FLAG ON THE IN ONE. The reader is fed by
+ * an untrusted wire and must resync; the writer must never do that, and a
+ * single struct would let a locate frame assembled by the writer be run
+ * back through the reader's accumulator and counted as a rejected frame.
+ * Two structures, two directions, one unit.
+ * ------------------------------------------------------------------- */
+struct RIMidiMmcOut {
+    uint8_t enabled;       /* 0 until midi_mmc_out_init(_, 1) */
+    uint32_t sent;         /* frames handed out, for the ev-log */
+    uint32_t refused;      /* a buffer too small, or disabled */
+};
+
+void midi_mmc_out_init(struct RIMidiMmcOut *m, int on);
+int midi_mmc_out_enabled(const struct RIMidiMmcOut *m);
+/* Each writes the canonical frame and returns its length, or 0 and writes
+ * NOTHING when disabled or when `cap` cannot hold the whole frame. A
+ * truncated SysEx is not a shorter message; it is a broken stream. */
+uint32_t midi_mmc_out_play(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap);
+uint32_t midi_mmc_out_stop(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap);
+/* `pos` is in the SAME unit the reader uses -- 16-bit MIDI beats =
+ * sixteenths -- and values above 0xFFFF CLAMP to the end of the field
+ * rather than wrapping, because a wrapped locate sends a slave somewhere
+ * else with nothing on the wire to say so. */
+uint32_t midi_mmc_out_locate(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap,
+    uint32_t pos);
+uint32_t midi_mmc_out_sent(const struct RIMidiMmcOut *m);
+uint32_t midi_mmc_out_refused(const struct RIMidiMmcOut *m);
+
 #endif

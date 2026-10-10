@@ -7,7 +7,7 @@ int ri_str_init(struct RISectTr *s) {
         return 2;
     s->section = RI_SEC_TRANSPORT;
     s->song_mode = 0;
-    s->midi_led = s->sync_led = 0;
+    s->midi_led = s->sync_led = s->clkout_led = 0;
     s->tempo = 120;
     s->shuffle = 0;
     s->tr.state = RI_TR_STOPPED;
@@ -178,6 +178,7 @@ int ri_str_value(const struct RISectTr *s, uint32_t idx) {
     case RI_STR_LOOP_LEN: return s->loop.len_bars;
     case RI_STR_MIDI: return s->midi_led;
     case RI_STR_SYNC: return s->sync_led;
+    case RI_STR_CLKOUT: return s->clkout_led;
     default: return 0;
     }
 }
@@ -192,8 +193,20 @@ int ri_str_led(const struct RISectTr *s, uint32_t idx, uint32_t which) {
     case RI_STR_LOOP: return s->loop.on;
     case RI_STR_MIDI: return s->midi_led;
     case RI_STR_SYNC: return s->sync_led;
+    case RI_STR_CLKOUT: return s->clkout_led;
     default: return 0;
     }
+}
+
+void ri_str_clkout_set(struct RISectTr *s, int sending, uint32_t sent_total) {
+    if (!s)
+        return;
+    /* DERIVED, and deliberately not reachable from ri_str_indicator_set():
+     * this lamp is a report about bytes that actually left, so letting a
+     * caller switch it on by hand would be asserting something the code
+     * never observed. `sent_total` is carried so a caller can log the
+     * running count alongside the lamp without keeping its own copy. */
+    s->clkout_led = (uint8_t)(sending && sent_total > 0u ? 1 : 0);
 }
 
 int ri_str_goto_loop(struct RISectTr *s, int end) {

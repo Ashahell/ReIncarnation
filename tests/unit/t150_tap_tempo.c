@@ -29,7 +29,12 @@ int main(void) {
         "transport TAP row is a BUTTON named Tap");
     RI_ASSERT(d->bind == RI_BIND_NONE && d->midi_cc == RI_MIDI_CC_NONE && d->engine_id == 0u,
         "TAP takes no engine binding and no MIDI cc");
-    RI_ASSERT(RI_STR_TAP == 14u && RI_STR_NCTL == 15u, "TAP is index 14, NCTL 15");
+    /* R4 added the clock-out lamp at index 15, so TAP is no longer the last
+     * row. This assertion is the one that CAUGHT that change: a bare
+     * constant bump would have left the registry and the panel disagreeing,
+     * and nothing else in the suite would have said so. */
+    RI_ASSERT(RI_STR_TAP == 14u && RI_STR_CLKOUT == 15u && RI_STR_NCTL == 16u,
+        "TAP is 14, clock-out lamp is 15, NCTL 16");
     {
         uint32_t k, rows = 0u;
         for (k = 0u; k < ri_ctlreg_count(); k++) {

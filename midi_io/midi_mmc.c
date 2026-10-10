@@ -102,3 +102,102 @@ uint32_t midi_mmc_take(struct RIMidiMmc *m) {
 int midi_mmc_in_sysex(const struct RIMidiMmc *m) {
     return (m && m->in_sysex) ? 1 : 0;
 }
+
+/* ---------------------------------------------------------------------
+ * MMC out. See midi_io/midi_mmc.h for why this is a separate struct.
+ *
+ * THE UNIT IS THE WHO POINT. `midi_mmc_out_locate` writes the position in
+ * exactly the unit `finish()` above reads it -- 16-bit big-endian MIDI
+ * beats, which are sixteenths, the same unit SPP carries. M3b's SPP bug
+ * was a wrong unit in this very field, landing a seek four times too
+ * early; a mismatch between the writer and the reader of the same field
+ * would be the same class of defect arriving from the other direction, and
+ * t191 pins it by sending a locate and reading the bytes straight back.
+ * ------------------------------------------------------------------- */
+#define MMC_PLAY_LEN  6u
+#define MMC_LOC_LEN  10u
+
+void midi_mmc_out_init(struct RIMidiMmcOut *m, int on) {
+    if (!m)
+        return;
+    m->enabled = on ? 1u : 0u;
+    m->sent = 0u;
+    m->refused = 0u;
+}
+
+int midi_mmc_out_enabled(const struct RIMidiMmcOut *m) {
+    return (m && m->enabled) ? 1 : 0;
+}
+
+/* The 6-byte non-sysex transport frame: F0 7E 7F 06 <cmd> F7. */
+static uint32_t emit6(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap,
+    uint8_t cmd) {
+    if (!m || !buf)
+        return 0u;
+    if (!m->enabled) {
+        m->refused++;
+        return 0u;
+    }
+    /* ALL OR NOTHING. A SysEx cut short is not a shorter message, it is a
+     * stream the receiver must resynchronise out of -- so a short buffer
+     * yields no bytes at all rather than a partial frame. */
+    if (cap < MMC_PLAY_LEN) {
+        m->refused++;
+        return 0u;
+    }
+    buf[0] = SYSEX_START;
+    buf[1] = 0x7Eu;            /* non-realtime */
+    buf[2] = 0x7Fu;            /* all devices */
+    buf[3] = 0x06u;            /* MMC command */
+    buf[4] = cmd;
+    buf[5] = SYSEX_END;
+    m->sent++;
+    return MMC_PLAY_LEN;
+}
+
+uint32_t midi_mmc_out_play(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap) {
+    return emit6(m, buf, cap, 0x01u);
+}
+
+uint32_t midi_mmc_out_stop(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap) {
+    return emit6(m, buf, cap, 0x02u);
+}
+
+uint32_t midi_mmc_out_locate(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap,
+    uint32_t pos) {
+    if (!m || !buf)
+        return 0u;
+    if (!m->enabled) {
+        m->refused++;
+        return 0u;
+    }
+    if (cap < MMC_LOC_LEN) {
+        m->refused++;
+        return 0u;
+    }
+    /* Clamp, never wrap. The field is 16 bits; 0x12345 sent as 0x2345
+     * would put a slave somewhere else entirely and nothing on the wire
+     * distinguishes the two. */
+    if (pos > 0xFFFFu)
+        pos = 0xFFFFu;
+    buf[0] = SYSEX_START;
+    buf[1] = 0x7Eu;
+    buf[2] = 0x7Fu;
+    buf[3] = 0x06u;
+    buf[4] = 0x04u;            /* LOCATE */
+    buf[5] = (uint8_t)((pos >> 8) & 0xFFu);   /* big endian, as read */
+    buf[6] = (uint8_t)(pos & 0xFFu);
+    buf[7] = 0x00u;            /* frames  */
+    buf[8] = 0x00u;            /* seconds */
+    buf[9] = SYSEX_END;
+    m->sent++;
+    return MMC_LOC_LEN;
+}
+
+uint32_t midi_mmc_out_sent(const struct RIMidiMmcOut *m) {
+    return m ? m->sent : 0u;
+}
+
+uint32_t midi_mmc_out_refused(const struct RIMidiMmcOut *m) {
+    return m ? m->refused : 0u;
+}

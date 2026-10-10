@@ -161,6 +161,7 @@ void midi_settings_defaults(struct RIMidiSettings *s) {
     s->levi_ch = 2u;
     s->clk_out = 0u;
     s->lat_ms = 0;
+    s->mmc_out = 0u;   /* E0: off */
     s->pad = 0;
 }
 
@@ -192,6 +193,14 @@ int midi_settings_set(struct RIMidiSettings *s, uint32_t field, long v) {
         if (v < -200L || v > 200L)
             return 1;
         s->lat_ms = (int16_t)v;
+        return 0;
+    case RI_MIDI_SET_MMC_OUT:
+        /* Strictly 0/1, like CLK_OUT. A truthy value here would enable a
+         * feature that drives other people's transport from an E0 that
+         * reads as a slider. */
+        if (v != 0L && v != 1L)
+            return 1;
+        s->mmc_out = (uint8_t)v;
         return 0;
     default:
         break;

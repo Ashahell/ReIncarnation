@@ -707,3 +707,81 @@ comments are what a reboot takes away.
 - **`RAM:` is wiped by `system_reset` on both lanes**, so everything staged
   before a recovery must be re-staged, and a `sha_ok=True` from before one
   is not evidence the file is there.
+
+## M5h: MMC out and the clock-out lamp, and a stale-bounds bug wearing a passing test (2026-10-10)
+
+- **MMC OUT (R3's "and add sending")**, `midi_io/midi_mmc.{c,h}`, t191.
+  **Its own E0**, `RIAPP_MIDI_MMCOUT`, deliberately NOT the clock-out switch:
+  driving another machine's transport is a bigger consequence than sending
+  it a clock, and one switch for both would make the safe choice (clock
+  only) inexpressible. Off means **not one byte is produced**, like
+  everything else here.
+- **THE LAW IS THE ROUND TRIP, and it is pinned by construction.** t191
+  emits a locate and feeds the bytes straight back through the *in* path,
+  requiring the sixteenths to survive. That is the only way to catch a
+  unit mismatch between a writer and a reader of the same field -- which
+  is **M3b's SPP bug arriving from the opposite direction**: `hh:mm` is
+  16-bit big-endian MIDI beats = sixteenths, and a writer using any other
+  unit would send a slave somewhere else with nothing on the wire to say
+  so. Over-range **clamps** to 0xFFFF rather than wrapping, for the same
+  reason. A short buffer emits **nothing**: a truncated SysEx is not a
+  shorter message, it is a broken stream.
+- **8 mutants, 8 killed**, each hash-verified. Two of the first round
+  **survived, and both were gaps in the test, not the code**:
+  - one probe at `cap=3` let a mutant that loosened the guard from `6` to
+    `4` through -- and a 4- or 5-byte buffer would then have had SIX bytes
+    written into it, an actual overflow. Now every short size is probed,
+    and exactly-fits is probed too, or the guard would be over-tight by one.
+  - the counters were never asserted, so a dead `sent++` was invisible.
+    They are the ev-log's, so they now are.
+- **The clock-out lamp (R4), t192: it follows BYTES, not the setting.**
+  A lamp wired to "is it enabled" stays green through exactly the failure
+  it exists to show: `RIAPP_MIDI_CLKOUT=1`, the sender task refuses to
+  start, `midi_out_enable(o, 0)` fails it closed, no byte on the wire. It
+  is driven from `ri_pal_midi_sent()` deltas, goes out the moment the
+  bytes stop, and has **no timeout** -- a lamp that stays lit 300 ms after
+  the last tick is showing the timeout, not the wire. It is also
+  deliberately unreachable from `ri_str_indicator_set()`: a caller must
+  not be able to switch on a lamp that is a report about bytes observed.
+  6 mutants, 5 killed; **DB is EQUIVALENT, recorded as such** --
+  `sending && (sent_total > 0u)` and `sending && sent_total` are the same
+  expression for an unsigned, and its object hash came out bit-identical
+  to the base, which is how an equivalent is told from a survivor. The
+  other two were compile-kills from an unused parameter, which prove
+  nothing and were redone.
+- **A REAL BUG, FOUND BY A PIN MOVING: the section bounds were stale
+  literals.** `ri_ctlreg_find` bounded its scan with two hand-written
+  `RI_CTLREG_SEC_LO/HI` arrays. Adding the lamp row at the end of the
+  transport run shifted every section after it by one index, and **six
+  unrelated pattern sections started resolving the wrong rows**. It was
+  caught only because a draw-hash pin moved. The lookup itself kept
+  working, because a window shifted by one still CONTAINS its own rows and
+  merely also contains its neighbours' -- which is why nothing failed
+  loudly.
+- **AND THE TEST THAT CLAIMED TO COVER IT DID NOT.** `t170`'s header and
+  `ctlreg.c`'s comment both said the literals were "VERIFIED AGAINST THE
+  TABLE by t170". t170 **derives** each section's range from the table and
+  never compares it to the literals: a guard that checks a derived copy
+  against itself is not a guard. This is the third time in this repo that
+  a comment asserted a property the code did not have (a geometry-shape
+  enum written from memory; a probe comparing a reg_id against an index).
+  **Fixed by deleting the literals**: the bounds are now computed from the
+  table on first use, so there is nothing to keep in sync. One 486-entry
+  pass once, then the same bounded scan the literals were there to enable.
+- **Then the lamp had nowhere to sit**: `t61` caught 16 registry controls
+  against 15 geometry items, which is the correct catch and the reason
+  that test exists. Placed at (253, 40), splitting the 130 px between Sync
+  (188) and MIDI In (318) on the row the manual puts the other two
+  indicator lamps (p. 144-145). **PROVISIONAL -- placed by arithmetic, not
+  by eye.** The owner should confirm it reads as "the third lamp".
+- **Only the transport section's draw and raster pins moved**, in both
+  t92 and t93, and both were re-pinned from measured values with the
+  reason recorded at the pin. Six sections moving would have been the bug;
+  one section moving is the feature.
+- **MMC out is driven from the ONE place the transport changes**
+  (`sync_transport`), so no second path can move it and forget to
+  announce it -- the same single-choke-point reasoning as the clock-out
+  hook. And an intent that arrived **from the wire** sets `s_mmc_echo`,
+  which suppresses the outbound: echoing a command back to the master that
+  just sent it is a feedback loop, and a locate would bounce between the
+  two machines.
