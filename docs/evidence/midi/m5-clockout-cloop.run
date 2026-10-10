@@ -1,0 +1,28 @@
+; m5-clockout-cloop.run — the clock-out CAMD proof (R2), riqemu1 lane.
+;
+; Run with: spike_server.py submit --run-script RAM:M5-CLOOP.RUN
+; NOT with --exec: the lane's --exec is not a shell (a redirect inside it
+; returns rc=0 and writes nothing), and a single blocked command there
+; wedges the guest agent's whole command path until a system_reset.
+;
+; COMMENTS ARE ';'. Measured on this lane, not guessed: '#', 'REM' and '/*'
+; are each executed as a command and each prints "object not found".
+;
+; WHY CLOCKLOOP AND NOT "LISTEN THEN SEND". The lane runs one script at a
+; time, so two processes cannot overlap. `cmd &` does not background here:
+; the script STOPS after the backgrounded line, the sender never runs, and
+; the listener reports clocks=0 -- which looks exactly like a dead wire and
+; is not one. So both ends are the two TASKS of one process: the sender on
+; the main task, the receiver the M2 task stamping arrivals with EClock.
+; The camd path between them is a real link on a real cluster.
+;
+; WHAT THIS PROVES: that camd carries a clock without dropping, bunching or
+; reordering it, counted against what was sent.
+; WHAT IT DOES NOT: real-time wire timing. riqemu1 has no real-time pacing,
+; so the intervals below are VM time. The timing numbers that mean something
+; come from the Dell, and the physical USB-MIDI wire is the owner's ear.
+
+echo M5 clock loopback starting
+RAM:MIDISEND RIAPP CLOCKLOOP 20 RAM:CLOOP.LOG
+type RAM:CLOOP.LOG
+echo M5 clock loopback done

@@ -83,11 +83,126 @@ static void on_midi(void *user, const uint8_t *msg, uint32_t len,
     s_other++;
 }
 
+/* CLOCKLOOP <secs>: send and receive inside ONE process.
+ *
+ * The lane runs one script at a time, so a sender and a listener in two
+ * processes cannot overlap -- `cmd &` does not background here, the script
+ * simply stops after the backgrounded line and the sender never runs, which
+ * is why the first CLOCKLOOP attempt reported clocks=0 and looked like a
+ * dead wire rather than a scheduling fact.
+ *
+ * So the two ends are the two TASKS of one process, which is the same shape
+ * RIAPP has anyway: the sender runs here on the main task, the receiver is
+ * the M2 task stamping arrivals with EClock. The camd path between them is
+ * a real link on a real cluster; only the process boundary is gone.
+ *
+ * WHAT THIS DOES AND DOES NOT PROVE. It proves the camd path carries a
+ * clock without dropping, bunching or reordering it, and it counts what
+ * arrives against what was sent. It does NOT prove wire TIMING on a
+ * real-time host: riqemu1 has no real-time audio pacing, so the sender's
+ * own cadence is whatever the emulation manages and the measured intervals
+ * are VM time. The interval numbers that mean something come from the Dell.
+ */
+static int do_clockloop(const char *cluster, ULONG secs, const char *logpath) {
+    ULONG i, sent = 0;
+    uint64_t gap_us = 20000ULL;      /* 50 ticks/s = 120 BPM */
+    BPTR lfh;
+    char *p;
+    static char buf[2048];
+    if (ri_pal_midi_open_in(cluster, on_midi, NULL) != 0) {
+        Printf((CONST_STRPTR)"CLOCKLOOP: receiver open refused\n");
+        return 21;
+    }
+    Printf((CONST_STRPTR)"CLOCKLOOP: %lu s on %s\n", secs, (IPTR)cluster);
+    for (i = 0UL; i < secs * 50UL; i++) {
+        static const uint8_t f8 = 0xF8u;
+        if (ri_pal_midi_send(cluster, &f8, 1u) == 0)
+            sent++;
+        /* One 20 ms tick between sends: the finest wait this shell's
+         * Delay() gives, and 50/s is 120 BPM at 24 ppqn. */
+        Delay(1);
+        ri_pal_midi_poll();
+    }
+    /* Drain whatever is still in flight before closing. */
+    for (i = 0UL; i < 50UL; i++) {
+        Delay(1);
+        ri_pal_midi_poll();
+    }
+    ri_pal_midi_close();
+    lfh = Open((CONST_STRPTR)logpath, MODE_NEWFILE);
+    if (!lfh)
+        return 22;
+    p = buf;
+    p = put_kv(p, "sent", (uint32_t)sent);
+    *p++ = '\n';
+    p = put_kv(p, "clocks", s_clocks);
+    *p++ = '\n';
+    p = put_kv(p, "received_f8", s_clocks);
+    *p++ = '\n';
+    p = put_kv(p, "lost", (uint32_t)(sent > s_clocks ? sent - s_clocks : 0u));
+    *p++ = '\n';
+    p = put_kv(p, "intervals", midi_interval_intervals(&s_ivl));
+    *p++ = '\n';
+    p = put_kv(p, "min_us", midi_interval_min_us(&s_ivl));
+    *p++ = '\n';
+    p = put_kv(p, "max_us", midi_interval_max_us(&s_ivl));
+    *p++ = '\n';
+    p = put_kv(p, "mean_us", midi_interval_mean_us(&s_ivl));
+    *p++ = '\n';
+    p = put_kv(p, "jitter_us", midi_interval_jitter_us(&s_ivl));
+    *p++ = '\n';
+    p = put_kv(p, "verdict", midi_interval_verdict(&s_ivl));
+    *p++ = '\n';
+    p = put_kv(p, "other", s_other);
+    *p++ = '\n';
+    p = put_kv(p, "badlen", s_badlen);
+    *p++ = '\n';
+    p = put_kv(p, "backwards", midi_interval_backwards(&s_ivl));
+    *p++ = '\n';
+    {
+        uint32_t k;
+        for (k = 0u; k < RI_MIDIINT_SLICES; k++) {
+            char key[16];
+            char *q = key;
+            *q++ = 's'; *q++ = 'l'; *q++ = 'i'; *q++ = 'c'; *q++ = 'e'; *q++ = '_';
+            q = put_u32(q, k);
+            *q = 0;
+            p = put_kv(p, key, midi_interval_slice(&s_ivl, k));
+            *p++ = '\n';
+        }
+    }
+    Write(lfh, (APTR)buf, (LONG)(p - buf));
+    Close(lfh);
+    Printf((CONST_STRPTR)"CLOCKLOOP done: sent=%lu clocks=%lu lost=%lu "
+        "min=%lu max=%lu jitter=%lu verdict=%lu\n",
+        sent, (ULONG)s_clocks,
+        (ULONG)(sent > s_clocks ? sent - s_clocks : 0u),
+        (ULONG)midi_interval_min_us(&s_ivl), (ULONG)midi_interval_max_us(&s_ivl),
+        (ULONG)midi_interval_jitter_us(&s_ivl), (ULONG)midi_interval_verdict(&s_ivl));
+    (void)gap_us;
+    return s_clocks ? 0 : 23;
+}
+
 int main(int argc, char **argv) {
     struct MidiNode *node;
     struct MidiLink *link;
     if (argc < 3)
         return 5;
+    if (argv[2][0] == 'C' && argv[2][1] == 'L') {
+        /* MIDISEND <cluster> CLOCKLOOP <secs> <logfile> */
+        ULONG secs = 300u;
+        uint32_t i;
+        if (argc < 5)
+            return 5;
+        secs = 0u;
+        for (i = 0u; argv[3][i] >= '0' && argv[3][i] <= '9'; i++)
+            secs = secs * 10u + (ULONG)(argv[3][i] - '0');
+        if (!secs)
+            secs = 5u;
+        s_clocks = 0u; s_other = 0u; s_badlen = 0u;
+        midi_interval_init(&s_ivl, (uint32_t)(secs * 1000000UL));
+        return do_clockloop(argv[1], secs, argv[4]);
+    }
     if (argv[2][0] == 'L' && argv[2][1] == 'I') {
         /* MIDISEND <cluster> LISTEN <secs> <logfile>
          *
@@ -106,7 +221,12 @@ int main(int argc, char **argv) {
         ULONG secs = 300, ticks;
         BPTR lfh;
         uint32_t i;
-        if (argc < 6)
+        /* argv: 0 MIDISEND, 1 cluster, 2 LISTEN, 3 secs, 4 logfile. That
+         * is FIVE arguments, and the first version of this mode required
+         * six and read argv[5] -- so it returned 5 immediately, silently,
+         * and the proof run looked like a tool that produced no output
+         * rather than a tool that never started. */
+        if (argc < 5)
             return 5;
         secs = 0;
         for (i = 0u; argv[3][i] >= '0' && argv[3][i] <= '9'; i++)
@@ -127,7 +247,7 @@ int main(int argc, char **argv) {
                 break;
         }
         ri_pal_midi_close();
-        lfh = Open((CONST_STRPTR)argv[5], MODE_NEWFILE);
+        lfh = Open((CONST_STRPTR)argv[4], MODE_NEWFILE);
         if (!lfh)
             return 22;
         {

@@ -564,3 +564,83 @@ comments are what a reboot takes away.
   claimed. And the proof belongs on the **Dell**, not riqemu1: riqemu1 has
   no real-time audio pacing, so F8 intervals there would be a lane
   artefact for exactly the reason M3c ruled it out for drift.
+
+## M5f: MIDIRX retired, and the proof finally runs (2026-10-10)
+
+- **The owner's diagnosis of MIDIRX was correct on every count, and mine
+  was wrong.** Four faults, all in the poll loop: `CreateIORequest` builds
+  a request with `io_Device = NULL` and `io_Command = 0` and it was never
+  opened on `timer.device`, so `SendIO` dereferenced NULL; `GetMsg`
+  followed by `WaitIO` removed the same message twice; the request was on
+  `UNIT_ECLOCK` so its "2 ms" delay was 2000 EClock ticks (~55 us at
+  36 MHz); and intervals were stamped when the poll drained the queue
+  rather than when bytes arrived. **My "RDX = 0x50 is the library base"
+  reading was also wrong: on this ABI the base is the last C argument, so
+  for `SendIO(io)` it is in RSI.** The register was a symptom of the NULL
+  device, not a missing library base. Four debugging rounds were spent on a
+  self-inflicted NULL that was visible in the source.
+- **THE DEFECT THAT MATTERS, and it is the design: MIDIRX timed its own
+  polling.** At 140 BPM, ticks are ~17.9 ms apart and its poll was 2 ms
+  (really 55 us), so the reported spread would have been mostly the
+  instrument. **A measurement instrument that timestamps itself is not a
+  measurement instrument.**
+- **THE FIX: no new tool.** `MIDISEND <cluster> LISTEN` and
+  `MIDISEND <cluster> CLOCKLOOP <secs> <logfile>` ride the M2 receiver task
+  (`platform/aros/midi_camd.c`), which already waits on the CAMD signal,
+  stamps each message with EClock when it wakes, counts drops and resolves
+  its own library bases. `midi_io/midi_interval.{c,h}` is pure C and
+  host-tested (t190, 9 mutants, 9 killed, each hash-verified). It **never
+  reads a clock** -- arrival stamps are the caller's to supply. That
+  separation is the entire design.
+- **TWO DEFECTS OF MY OWN, both found by writing the test rather than the
+  code.** Slicing counted against an absolute 32-bit base, so slice 0
+  landed wherever the run started and would have wrapped on a long take;
+  and the first test asserted an ACCIDENT of that bug ("the first slice is
+  the sparsest") rather than a law. Also `LISTEN` required `argc < 6` and
+  read `argv[5]` for what is a 5-argument command, so it exited 5 silently
+  and looked like a tool producing no output rather than a tool that never
+  started.
+- **A PRE-EXISTING BUILD BUG, unrelated to M5:** `ri_build_v11.sh`'s
+  `midisend` target had **never built** -- one `-c` carried two sources,
+  which is a gcc error. The only v11 MIDISEND that ever existed was made by
+  hand: "a build script outside the repo is how stale-binary mistakes
+  happen", reproduced INSIDE the repo. Fixed, one `-c` per source.
+- **I added an r12 gate to the v11 midisend target and it was WRONG.** That
+  check belongs to the **v1** build, where the library base is in rdx and
+  r12 must be preserved. On ABIv11 **r12 IS the base register** and the
+  working MIDICLOCK has 28 such `mov %rax,%r12`; the gate failed a correct
+  binary. Reverted with the reason recorded so it is not re-added. The
+  ungated link the owner flagged is gone with MIDIRX itself.
+- **THE PROOF RAN. First M5 run to complete on either lane** (riqemu1,
+  `m5-clockout-cloop.run`, artifact `m5-cloop-riqemu1.log`):
+  **sent=1000 clocks=1000 lost=0 badlen=0 backwards=0 intervals=999.**
+  The camd path carries a clock without losing, reordering or misframing
+  one byte.
+- **AND IT DELIBERATELY DOES NOT CLAIM TIMING.** `verdict=2` JITTERY,
+  `max_us=40143` ~ 2x `min_us=20025`, and 470 of 999 intervals in the last
+  slice. Two independent reasons the intervals are not wire evidence:
+  riqemu1 has **no real-time pacing**, so the sender's own cadence was
+  unsteady; and the reader drains in batches, so arrival stamps are
+  quantised by the drain. **Counts proven, timing not.** The no-drift claim
+  stays pinned on the host by t185, and wire timing is still owed a
+  real-time host. **Same lesson as MIDIRX, from the other side: an
+  instrument that timestamps its own draining reports the draining.**
+- **LANE RULES LEARNED THE HARD WAY.** (1) **Never `--exec` anything
+  multi-step**: it is not a shell, and ONE blocked command there wedged the
+  guest agent's entire command path until `system_reset` (an `echo
+  ALIVE-CHECK` queued behind it never ran, and 9295 showed a backlog of 64
+  with no accepts). Use `--run-script`. (2) **This shell honours ONLY `;`
+  as a comment** -- `#`, `REM` and `/*` are each executed and each print
+  `object not found`; measured across all five candidates, not guessed.
+  (3) **`RAM:` does not survive `system_reset`**: a PUT that reported
+  `sha_ok=True` was gone minutes later, and the next run read
+  `RAM:MIDISEND: object not found`.
+- **A LANE CAN BLOCK ITS OWN PROOF.** One script runs at a time, so a
+  sender and a listener in two processes cannot overlap -- and `cmd &` does
+  not background here, the script simply stops after the backgrounded line
+  and the sender never runs. That is why `CLOCKLOOP` exists: both ends are
+  the two TASKS of one process, with a real camd link between them.
+- **Upstream, rechecked:** camd's newest are still `cb8c4c5f3` and
+  `28ec43a51` (2026-10-05), already carried in both ABI carriages; nothing
+  new in `workbench/devs/USB` since 2025-12-28; zero commits repo-wide
+  between checks.
