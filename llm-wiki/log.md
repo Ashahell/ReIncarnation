@@ -3163,3 +3163,25 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Note: the article is organised around one claim carried at three altitudes -- MIDIRX stamped its own poll drain instead of the arrival; the spread in a later CLOCKLOOP was that tool's own send loop; and the FINAL spread is the receiver's batch drain, which means per-message wire arrival is not measurable with this architecture at all. The same shape on a paced host and an unpaced host is the evidence in each case, and that test is what turned "the measurement looks bad" into "the measurement is of me".
 - Note: recorded as a structural limit, not a missing run: the PAL exposes drain-time stamps. Getting wire timing needs arrival timestamps from camd itself.
 - Note: four checks that cannot fail are recorded as first-class findings -- a stale binary staged three times, `sent=0` while 1700 bytes arrived (making every `lost=0` meaningless), stale RI_CTLREG_SEC_LO/HI literals that mis-resolved six unrelated sections while t170's comment claimed a verification it does not perform, and a comment reading "WaitIO removes it too, so not both" directly above code that did both.
+
+## [2026-10-11] ingest | Note input for the ReBirth voices, and a note that would not stop
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-10-11-note-input-for-the-rebirth-voices.md
+- Updated: llm-wiki/index.md (Ingested articles entry)
+- Updated (repo): docs/2026-09-24-improvement-todo.md (R5a/R5b/R5c ticked; R5d and the P-19 number left open)
+- Commits: `cf3ad14`, `74614c6`, `4624efb` (tag `[levi-midi]`)
+- Note: the slice is recorded as **unhearable**, not as working. Neither lane has a USB-MIDI device, so "five devices sound from an external sequencer" cannot be observed; everything in it is host-tested and mutation-tested. The article says so in its Open section rather than leaving it to be discovered later.
+- Note: three owner decisions are load-bearing and are stated as such — drums implicit and counted (R6e shape), GM percussion partial map, legato-from-overlap for slides. P-19 is at the **assistant's recommended** 64 per device, not the owner's, and the article marks it that way.
+- Note: the recurring failure in this slice was a **flag set in one place and read in another**, three times: `ready` set only in `bind()`'s drum branch, `resolved` set at the top of a function with six exits, and an unresolved drop attributed to device 3 by indexing the last array slot. Each time the fix was to make the encoding carry the fact rather than add a second thing to keep true.
+
+## [2026-10-11] ingest | The offline export door: stems, SMF, and a loop a DAW can warp
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-10-11-offline-export-stems-mid-and-loop-exact-renders.md
+- Updated: llm-wiki/index.md (Ingested articles entry)
+- Updated (repo): docs/2026-09-24-improvement-todo.md (R8e/R8f/R9/R8g ticked)
+- Commits: `a8e4582`, `bf8a11c`, `c507b04`, `8a9c6b9` (tag `[levi-midi]`)
+- Note: the article's spine is **a confusing pair of facts**: the mix correct and the stem silent. That shape is worth keeping because it is what sent the debugging at the event stream rather than at the writer — the symptom was silence, not a crash and not a plausible wrong value.
+- Note: **"needs a per-step device, an engine data-model change" was recorded as blocked twice and was wrong both times**; the device is an argument to the emitter, so a section is a property of the step list. Recorded because a thing marked impossible twice is worth re-deriving before it is carried forward a third time.
+- Note: two equivalent mutants are recorded as equivalent rather than claimed as kills (the merge's `device` tiebreak, redundant because the scheduler has already applied it within each run), and one *kept anyway* on the grounds that the merge's contract is "produces a §8-ordered array" and a function that silently depended on its inputs arriving sorted would be an unwritten precondition.
+- Note: `QI` (an unresolved note counted against the 909) and the `dev = 0` family share one root: **a refused note leaves `dev` at 0, and 0 is 303A**, so anything downstream that infers a device from that field is guessing.
+
