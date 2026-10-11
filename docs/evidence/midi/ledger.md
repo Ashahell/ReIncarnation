@@ -2543,3 +2543,107 @@ inputs arriving sorted would be a precondition nobody wrote down.
 
 - **R5** — still needs an owner priority call.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane.
+
+## R5: an external sequencer plays the ReBirth voices (2026-10-11)
+
+`midi_io/note_in.{c,h}`, t211. R6 (outbound) shipped long ago; this is the
+other half. The Leviasynth already has note input (channel 2, its own chart,
+`RI_MCHAN_LEVI`); these are the four ReBirth devices.
+
+### THE OWNER'S FOUR DECISIONS, AND WHY EACH IS THE ONE IT IS
+
+1. **THE SAME SHAPE AS R6f/R6e** — drums claim their channel implicitly and
+   are counted, the 303s are opt-in. An inbound map that disagreed with the
+   outbound one would mean a device that is **silent on the way out and loud
+   on the way in**.
+2. **GM PERCUSSION LAYOUT** — every DAW already knows it, so a GM drum track
+   plays with no setup.
+3. **A SLIDE IS LEGATO FROM OVERLAP** — a DAW has no slide message, and the
+   only signal a piano roll actually carries is a note-on while the previous
+   note is held, which is the gate state the engine already keeps.
+4. **BUILD IT LAST** — accepted with eyes open that it cannot be ear-proven:
+   neither lane has a USB-MIDI device, so "five devices sound from an
+   external sequencer" is not observable today.
+
+### THE GM MAP IS DELIBERATELY PARTIAL
+
+A complete GM table would map ~27 numbers onto 12 instruments, and the extra
+15 would each claim a sound exists here when it does not — a cowbell played
+as a clap, silently, which is worse than a refusal. So unmapped GM notes are
+**refused and counted**, and the gaps are as much a part of the answer as the
+entries.
+
+### A NOTE IS RESOLVED BY CHANNEL, NEVER BY PITCH
+
+GM percussion numbers **overlap the 303's pitch range**: note 36 is the bass
+drum on the drum channel and a 303 note on a melodic one. Only the channel
+knows which.
+
+### THE 909 HAS ITS OWN VOICE NUMBERS
+
+`RI_LANE_TO_RB808_SLOT` and `RI_LANE_TO_RB909_VOICE` are keyed by the same
+lane, but the **lane orders differ**: the 808's is `BD SD LT MT HT LC MC RS
+CL CP CH` and the 909's is `BD SD CH OH CR RD LT MT HT RS CP`. So lane 2 is
+voice 2 on the 808 (low tom) and **voice 6** on the 909 (also LT); lane 6 is
+the 808's low cowbell and the 909's **low ride**. One shared number would
+play the wrong machine's voice.
+
+### THE BUG I HIT TWICE: DEVICE 0 IS 303A, SO A ZEROED STRUCT IS NOT EMPTY
+
+My first version stored the device number directly in `dev_of_ch` and used
+`0xFF` for "unclaimed". Device 0 is a legal value, so **every zeroed entry
+reads as "channel bound to 303A"** and no channel is ever claimable. I
+"fixed" it by rewriting zeros to `0xFF` inside `bind()` — which cannot work,
+because after binding 303A that entry **is** legitimately zero and the next
+bind swept it away. The first test run showed exactly that: channel 1 bound
+successfully, then `dev_of_ch[1]` read back as unclaimed.
+
+The fix is the **+1 encoding**: store `dev + 1`, so a zeroed array honestly
+means "nothing claimed" and the module is *silent* rather than wrong.
+
+**Then I made the same class of mistake again.** I added a `ready` flag and
+guarded every entry point with it, set `ready` inside `bind()`'s **drum
+branch only** — so every melodic bind was refused by its own guard. A
+readiness flag that only one code path arms is a flag nothing can rely on.
+
+**And NI ("the guard is dropped") then SURVIVED**, because with the +1
+encoding a zeroed struct already refuses everything and the flag was saying
+something the encoding already said. **I deleted it rather than manufacturing
+a test for it** — a second way of saying "nothing is claimed" is a second
+thing to keep true.
+
+### MUTANTS: 12, all killed
+
+| id | mutation | result |
+|----|----------|--------|
+| NA/NK | an unmapped GM note falls back to the bass drum | **KILLED** |
+| NB | an unclaimed channel is DEFAULTED to device 0 | **KILLED** |
+| NC | the 909 uses the 808's voice numbers | **KILLED** — *after a fix* |
+| ND | a drum overlap becomes a slide | **KILLED** — *after a fix* |
+| NE | releasing the old channel is dropped | **KILLED** |
+| NF | a release with nothing held is accepted | **KILLED** |
+| NG/NI | the +1 encoding dropped | **KILLED** |
+| NH | channel 0 (the remote) becomes bindable | **KILLED** |
+| NJ | a note above 127 is folded into the table | **KILLED** |
+| NK | an out-of-range voice clamps to 0 | **KILLED** |
+| NL | the 303's pitch goes through a second map | **KILLED** |
+| NM | a zeroed struct resolves to device 0 | **KILLED** |
+
+**NC SURVIVED because my assertion was a tautology.** I had written the
+voice check as `... || 1`, which can never fail. A tautology in a test is a
+test that reports nothing; the replacement states the actual lane orders and
+names the cowbell as the clearest case.
+
+**ND SURVIVED because §7's assertion was too weak.** It checked `slide == 0`
+on the second hit, but the module never tracked *drum* gates, so `held[dev]`
+was still 0 and the mutation had nothing to change. **A drum roll has to be
+exercised three times, because that is what a roll IS.**
+
+### Still open
+
+- **No app caller.** `note_in.c` resolves notes; wiring it into `midi_drain`
+  and the control path is the next piece, and it is the piece that cannot be
+  heard until a lane has a USB-MIDI device.
+- **P-19 flood cap** — the number is still OPEN in the spec. The ring's
+  drop-oldest-and-count machinery exists; the cap does not.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane.
