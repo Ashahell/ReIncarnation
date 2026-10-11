@@ -2304,3 +2304,108 @@ the very code it is meant to test.
 - **R9** — loop-exact renders with an optional tail.
 - **R5** — still needs an owner priority call.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane.
+
+## R9: `--bars N --from BAR --tail MS` — a loop a DAW can warp (2026-10-11)
+
+`project/loop_render.{c,h}`, t209. The requirement is one line in the spec
+("render N bars from a chosen bar, with an optional tail, so exported loops
+warp cleanly in a DAW") and the difficulty is entirely in the **adverb**.
+
+**THE LENGTH WAS A NUMBER NOBODY CHOSE.** Before this, `tools/render` sized a
+song from `ev[nev-1].sample + g_rate` — the last event plus a hardcoded one
+second. That lands wherever the last note happens to fall, so it is usually
+mid-bar and a DAW's warp grid has no bar line to sit on.
+
+### THE LAWS
+
+**THE BODY IS COMPUTED FROM THE MAP AT ITS ENDPOINTS**, not
+`bar_samples * bars`. Two answers to the ticks-to-samples question disagree
+by a sample per bar at some tempos, and a per-bar disagreement is a seam
+that drifts. Mutant **LA** is killed.
+
+**THE TAIL IS ADDITIVE AND CANNOT MOVE THE SEAM.** `body_samples` is fixed
+before the tail is computed and nothing below writes to it. Mutant **LB**
+folds the tail into the body and is killed — that is exactly the failure that
+welds a stray chunk of reverb onto the end of an exported loop.
+
+**A PATTERN MUST BE A WHOLE NUMBER OF BARS.** 20 steps is 1.25 bars and
+cannot be cut loop-exact, so it is **refused**: rounding up drops music the
+caller wrote, rounding down clips the end. Mutant **LC**.
+
+**A `from` PAST THE END IS REFUSED, NOT WRAPPED.** Bar 1 of a one-bar
+pattern is a caller mistake, and silently exporting bar 0's music instead is
+worse than refusing — the same law as t205's unsorted-event refusal: do not
+render music the caller did not describe. Mutant **LD**.
+
+**THE LIMIT IS THE BODY'S SAMPLES, NOT A BAR COUNT.** My first limit was
+1048576 *bars* — about two years — which is far too permissive to be a real
+bound. It is now 2^32 samples, checked *after* the samples are computed,
+which is what actually gets allocated downstream. Mutant **LF**.
+
+### TWO MUTANTS SURVIVED, AND BOTH WERE TEST GAPS
+
+**LH — the whole-bars proof — survived, and checking it by hand showed it is
+genuinely REACHABLE rather than redundant.** At 140 BPM a bar is 1714285
+samples, not a round number, so the body of two bars is 3428571, which is
+**not** a multiple of one bar. The map's single rounding does not divide
+evenly at these tempos. Handing that over as "two bars" is exactly the lie
+this module exists not to tell — and at 120 BPM, where it *is* exact, the
+same call succeeds, so the refusal is about the tempo rather than about two
+bars being wrong.
+
+**LG — the fractional-sample refusal — survived because no test asked for
+one.** At 48000 a millisecond is 48 samples exactly, so fractions never
+arise there. At 44100 a millisecond is **44.1** samples: a 1 ms tail is
+refused, and a 10 ms tail (441 samples) is fine. The caller asked for a
+length in milliseconds and the file is in samples; when those two do not
+describe the same number, the honest answer is to say so rather than round a
+length nobody chose into a file they will trust.
+
+**LA also failed to build on the first attempt** — replacing the map call
+orphaned `body_end` and `-Werror` caught it. A build failure is not a kill;
+the mutant has to keep the variable alive and actually change behaviour.
+
+### Mutants: 8, all killed
+
+| id | mutation | result |
+|----|----------|--------|
+| LA | body = bar_samples × bars | **KILLED** |
+| LB | tail folded into the body | **KILLED** |
+| LC | partial bar rounded down | **KILLED** |
+| LD | from past the end wraps | **KILLED** |
+| LE | a bar is 3 quarters, not 4 | **KILLED** |
+| LF | the body-samples bound dropped | **KILLED** |
+| LG | fractional-sample tail rounds silently | **KILLED** — *after a fix* |
+| LH | the whole-bars proof dropped | **KILLED** — *after a fix* |
+
+### Evidence
+
+At 120 BPM a bar is 96000 samples at 48 kHz.
+
+```
+render --song p.txt --out one.wav --bars 1
+render: loop 1 bar(s) from bar 0: body 96000 samples (1 bars of 96000), tail 0
+render: 32 events, 96000 samples -> one.wav
+
+render --song p.txt --out four.wav --bars 4 --tail 500
+render: loop 4 bar(s) from bar 0: body 384000 samples (4 bars of 96000), tail 24000
+render: 128 events, 408000 samples -> four.wav
+```
+
+**THE LOOP REPEATS EXACTLY.** The one-bar render is **bit-identical** to the
+first bar of the four-bar render (max sample difference 0), so the repeated
+passes are not an approximation of each other.
+
+**AND THE SEAM DOES NOT CLICK.** The sample delta across each bar boundary is
+803 — every one of them identical — against a maximum within-bar delta of
+2958. A seam that jumped more than the music around it would be the defect
+R9 exists to prevent, and this one is quieter than an ordinary step
+transition.
+
+### Still open
+
+- **Multi-stem output** — needs a song format with a per-step device, an
+  engine data-model change.
+- **R5** — still needs an owner priority call.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane, which did not
+  answer a ping this session either.

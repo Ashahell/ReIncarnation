@@ -35,6 +35,7 @@
 #include "engine/engine.h"
 #include "project/stem_render.h"
 #include "project/smf_bridge.h"
+#include "project/loop_render.h"
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
 #include "audio_io/audio.h"
@@ -681,7 +682,8 @@ static int write_smf(const struct RIEvent *ev, uint32_t nev, const char *path,
 }
 
 static int render_song(const char *song_path, const char *out_path, const char *ev_path,
-    const char *stems_dir, const char *mid_path) {
+    const char *stems_dir, const char *mid_path, uint32_t bars,
+    uint32_t from_bar, uint32_t tail_ms) {
     struct RIStep steps[RI_MAX_STEPS];
     struct RIEvent ev[RI_SCHED_MAX_EVENTS];
     static struct RISegment segs[1];
@@ -714,7 +716,63 @@ static int render_song(const char *song_path, const char *out_path, const char *
         printf("render: walker emitted no events\n");
         return 2;
     }
-    total = ev[nev - 1].sample + g_rate;
+    /* R9: --bars GIVES THE RENDER A LENGTH SOMEBODY CHOSE.
+     *
+     * Without it the length is `last event + one second`: a number nobody
+     * picked, which lands mid-bar and gives a DAW's warp grid nothing to sit
+     * on. With it, the body is a whole number of bars computed from the
+     * tempo map and the tail is added on top WITHOUT moving the seam.
+     *
+     * The pattern is repeated to fill the span, because a one-pass pattern
+     * rendered over 8 bars would be 7 bars of silence -- which is not a loop,
+     * it is a stutter. Each pass is emitted at its own start tick and the
+     * scheduler's sorted-insert keeps the whole run in order.
+     */
+    if (bars != 0u) {
+        struct RILoopSpan sp;
+        uint32_t pass, passes;
+        if (ri_loop_span(&sp, &map, map.ppq, steps, nsteps, from_bar, bars,
+                tail_ms) != 0) {
+            printf("render: --bars: %u bar(s) from bar %u with a %u ms tail"
+                " is not a loop the tempo map can cut"
+                " (the pattern is %u steps, and a bar is %u)\n", bars,
+                from_bar, tail_ms, nsteps, RI_LOOP_STEPS_PER_BAR);
+            return 2;
+        }
+        /* Repeat the pattern over the whole span: a loop IS repetition, and
+         * a one-pass render of an N-bar span is N-1 bars of silence. */
+        passes = (uint32_t)((sp.body_ticks + sp.bar_ticks - 1u) /
+            sp.bar_ticks);
+        nev = 0u;
+        for (pass = 0u; pass < passes; pass++) {
+            uint64_t at = (uint64_t)pass * (uint64_t)nsteps *
+                ((uint64_t)map.ppq / 4u);
+            uint32_t got = ri_sched_emit_timed(&map, at, map.ppq, steps,
+                nsteps, 0u, &opts, ev + nev,
+                RI_SCHED_MAX_EVENTS - nev);
+            if (got == 0u)
+                break;
+            nev += got;
+            if (nev >= RI_SCHED_MAX_EVENTS)
+                break;
+        }
+        if (nev == 0u) {
+            printf("render: walker emitted no events over the loop span\n");
+            return 2;
+        }
+        /* The span is the law: the body is exactly what the map says, and
+         * the tail is extra. NOT `last event + a second`, which is what this
+         * replaced. */
+        total = sp.total_samples;
+        printf("render: loop %u bar(s) from bar %u: body %llu samples"
+            " (%llu bars of %llu), tail %llu\n", bars, from_bar,
+            (unsigned long long)sp.body_samples,
+            (unsigned long long)(sp.body_samples / sp.bar_samples),
+            (unsigned long long)sp.bar_samples,
+            (unsigned long long)sp.tail_samples);
+    } else {
+        total = ev[nev - 1].sample + g_rate;
+    }
     if (total > 4194304u) {
         printf("render: song too long (%llu samples)\n", (unsigned long long)total);
         return 2;
@@ -1488,6 +1546,7 @@ int main(int argc, char **argv) {
     const char *v909 = NULL, *v909pack = NULL, *pack = NULL, *vpcf = NULL;
     const char *vfx = NULL, *vmix = NULL, *rbngsong = NULL;
     const char *stems = NULL, *mid = NULL;
+    uint32_t bars = 0u, from_bar = 0u, tail_ms = 0u;
     int i;
     if (argc == 2 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("usage: render --song FILE --out FILE [--dump-events FILE]\n");
@@ -1501,6 +1560,9 @@ int main(int argc, char **argv) {
         printf("       render --mix four|solo --out FILE\n");
         printf("       [--stems DIR]  one WAV per mixer strip, into DIR\n");
         printf("       [--mid FILE]   the same events as a Standard MIDI File\n");
+        printf("       [--bars N]     render N whole bars -- a loop a DAW can warp\n");
+        printf("       [--from BAR]  start at bar BAR (default 0)\n");
+        printf("       [--tail MS]    additive decay after the last bar\n");
         printf("       [--depth 16|24, default 16] [--rate 48000|44100, default 48000]\n");
         printf("       [--format wav|aiff, default wav]\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
@@ -1554,6 +1616,39 @@ int main(int argc, char **argv) {
                 printf("render: bad --format (want wav|aiff)\n");
                 return 2;
             }
+        }
+        else if (strcmp(argv[i], "--bars") == 0 && i + 1 < argc) {
+            /* atoi, not strtol: a non-number becomes 0, and 0 means "no loop
+             * asked for", which is the one wrong answer -- so a bad number
+             * must not be allowed to become it. */
+            const char *a = argv[++i];
+            char *end = 0;
+            long v = strtol(a, &end, 10);
+            if (!end || *end != '\0' || v < 0 || v > 1000000L) {
+                printf("render: bad --bars %s\n", a);
+                return 2;
+            }
+            bars = (uint32_t)v;
+        }
+        else if (strcmp(argv[i], "--from") == 0 && i + 1 < argc) {
+            const char *a = argv[++i];
+            char *end = 0;
+            long v = strtol(a, &end, 10);
+            if (!end || *end != '\0' || v < 0 || v > 1000000L) {
+                printf("render: bad --from %s\n", a);
+                return 2;
+            }
+            from_bar = (uint32_t)v;
+        }
+        else if (strcmp(argv[i], "--tail") == 0 && i + 1 < argc) {
+            const char *a = argv[++i];
+            char *end = 0;
+            long v = strtol(a, &end, 10);
+            if (!end || *end != '\0' || v < 0 || v > 600000L) {
+                printf("render: bad --tail %s (ms)\n", a);
+                return 2;
+            }
+            tail_ms = (uint32_t)v;
         }
         else if (strcmp(argv[i], "--mid") == 0 && i + 1 < argc)
             mid = argv[++i];
@@ -1654,5 +1749,5 @@ int main(int argc, char **argv) {
     }
     if (rbngsong)
         return render_rbngsong(rbngsong, out, ev);
-    return render_song(song, out, ev, stems, mid);
+    return render_song(song, out, ev, stems, mid, bars, from_bar, tail_ms);
 }
