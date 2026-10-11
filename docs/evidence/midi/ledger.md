@@ -2409,3 +2409,137 @@ transition.
 - **R5** — still needs an owner priority call.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane, which did not
   answer a ping this session either.
+
+## R8g: a song that addresses more than one section (2026-10-11)
+
+`project/song_sections.{c,h}`, t210. This is the item I had recorded twice as
+blocked: "multi-stem output needs a song format with a per-step device, an
+engine data-model change". **That was the wrong conclusion, and it cost two
+phases of it being treated as impossible.**
+
+### RIStep DOES NOT NEED A DEVICE FIELD
+
+`ri_sched_emit_timed` takes a device as an **argument** and emits for one
+section. So a section is a property of the **step list you hand the
+emitter**, not of an individual step. A multi-section song is several step
+lists, each emitted for its own device, merged. The engine data model does
+not change; the song *text format* grows a `device=N` line that opens a new
+list.
+
+### THE MERGE IS THE INTERESTING PART, AND A PER-DEVICE SORT IS NOT ENOUGH
+
+Each run arrives sorted by the §8 key. **Two sorted runs are not one sorted
+run**, and the engine walks the array in order -- it *stops* on an
+out-of-order event and counts it (t205). So an unsorted merge renders a
+truncated song and files the rest as a defect.
+
+The §8 key is `sample, type, device, voice, seq`. `device` being in the key
+is what makes it work: both sections start at `seq` 0, so two events at one
+sample with one type are separated by their section. A merge sorting by
+sample alone leaves every tie to chance, and the ties are every downbeat
+where two sections play together.
+
+### THE MERGE ALIASED ITS OWN SOURCE — QUIETLY
+
+My first version merged `acc` into `acc`. After k writes the destination
+index is `i+j` while the source index is only `i`, so **every event taken
+from the second run overwrote an unread event of the first**. The symptom was
+one device with 32 events and the other with **1** — not a crash, and not an
+obviously wrong song, just a section that had gone nearly silent. Two
+alternating accumulators fix it.
+
+### THE SET INDEX IS NOT THE SECTION NUMBER — A MODULE DEFECT
+
+`stem_set_add` **appends**, so the set's index is a running count. A song
+addressing sections 0, 2 and 4 fills set entries **0, 1 and 2**. Asking
+`stem_set_write` for section 4 is out of range; with *every* section present
+it would be merely **mislabelled**, which is worse. This was invisible
+because every case so far rendered contiguous sections, where the running
+count and the section number are the same number.
+
+`ri_stemr_set_index()` now answers "which set entry is section N's", and the
+mapping lives in `stem_render` because section identity is that module's,
+not the caller's and not the WAV writer's. The initial state is
+`RI_STEMR_NO_STEM` and not 0, because **0 is a valid set index** — a
+zeroed struct looks like every section pointing at the first stem's bytes.
+
+### EVIDENCE
+
+```
+$ cat song.txt        # 3 sections, 16 steps each
+tempo=120
+device=0
+step note=36            ... (16)
+device=2
+step note=36 / rest ... (808: 4 notes a bar)
+device=4
+step note=60 ...        (Levi)
+
+$ render --song song.txt --out mix.wav --stems stems
+render: stem stems/01-303a.wav
+render: stem stems/03-808.wav
+render: stem stems/05-levi.wav
+render: 3 stem(s) in stems
+```
+
+**THE GAP IS RIGHT.** Sections 0, 2 and 4 produce `01-303a`, `03-808` and
+`05-levi` — the missing 02 and 04 are the R8e law working: a gap says which
+sections the song did not address.
+
+| stem | frames | peak | nonzero |
+|------|--------|------|---------|
+| 01-303a | 141000 | 20024 | 193680/282000 |
+| 03-808 | 141000 | 5213 | 281770/282000 |
+| 05-levi | 141000 | 19201 | 200304/282000 |
+
+**THE THREE ARE DISTINCT INSTRUMENTS.** The 808 stem is not the Levi stem
+(max sample difference 23714), which is what proves the set index is right:
+had section 2's index been used for section 4, two files would have held
+the same audio under two different names.
+
+**R9 STILL WORKS ACROSS SECTIONS**: `--bars 2 --tail 250` gives
+192000 + 12000 = **204000** frames exactly, with all three stems at equal
+length.
+
+### MUTANTS: 6 real, 1 equivalent, 1 that failed to build
+
+| id | mutation | result |
+|----|----------|--------|
+| MA | the merge is forgotten (runs concatenated) | **KILLED** |
+| MB | the merge orders by sample alone | **KILLED** — *after a fix* |
+| MC | an out-of-range device is skipped, not refused | **KILLED** |
+| SA | the set index IS the section number | **KILLED** — *after two fixes* |
+| SB | `set_of` starts at 0, not `NO_STEM` | **KILLED** |
+| MB2 | merge by sample and type but NOT device | **EQUIVALENT** |
+| MD | the merge aliases its source | **BUILD FAIL** — proves nothing |
+
+**MB SURVIVED FIRST because §4's assertion could not distinguish it.** The
+runs are visited in ascending device order, so "keep taking from the first
+run" *accidentally* produces device order. I then tried three step fixtures
+to produce a real type tie and **could not**: the scheduler ties a note-off
+to the step *after* a rest, so a section releasing where another strikes puts
+both of the **same** type at the same sample. The law is now tested on
+constructed runs, where the tie can be stated directly — a note-off from
+device 1 and a note-on from device 0 at one sample.
+
+**SA SURVIVED TWICE.** The first fix added a guard, and a guard that does not
+fire kills nothing: my sparse fixture enabled sections 0, 2 and 4 but fed
+the engine events for sections 0 and **1**, so it produced one stem and the
+assertion beneath it never ran. The fixture has to have **notes on every
+section the mask names**, or there is nothing to number.
+
+**MB2 IS EQUIVALENT, AND IT IS EQUIVALENT FOR A REASON WORTH WRITING
+DOWN.** Both runs are sorted by §8 *before* the merge sees them, so within a
+run two equal-sample equal-type events are already in device order. For
+equal samples the §8 order is a **total** order, so `take_a` versus `take_b`
+is never a real choice and no input can kill the mutation. I tried to kill it
+with an unsorted input; the merge does not re-sort a run's interior — that is
+the scheduler's job, and duplicating it would be the same work in two
+places. The `device` term is **kept** anyway: the merge's contract is
+"produces a §8-ordered array", and a function that silently depended on its
+inputs arriving sorted would be a precondition nobody wrote down.
+
+### Still open
+
+- **R5** — still needs an owner priority call.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane.

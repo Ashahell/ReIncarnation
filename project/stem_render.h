@@ -79,6 +79,14 @@ struct RIStemr {
     uint8_t finished;          /* 1 once finish has succeeded */
     uint8_t pad;
     uint32_t sections;         /* the engine's mask at bind time */
+    /* SECTION -> SET INDEX. The set appends stems in section order, so its
+     * index is a RUNNING COUNT, not a section number: a song addressing
+     * sections 0, 2 and 4 produces set entries 0, 1 and 2. Asking
+     * `stem_set_write` for section 2 writes the 808's bytes under the 808's
+     * name -- correct by luck when every section is present, and silently
+     * wrong the moment one is missing. The mapping lives HERE because section
+     * identity is this module's, not the caller's and not the WAV writer's. */
+    uint32_t set_of[RI_ROUTE_NSECTIONS];
     float *outs[RI_ROUTE_NSECTIONS]; /* caller interleaved buffers */
     uint32_t short_count;      /* renders refused for not matching `frames` */
 };
@@ -103,5 +111,10 @@ void ri_stemr_bind(struct RIStemr *r, struct RIEngine *e);
  * then ready for `stem_set_write`; anything else is refused and counted in
  * `short_count`, with nothing added to the set. */
 uint32_t ri_stemr_finish(struct RIStemr *r, uint32_t rendered);
+
+/* The set index holding SECTION's stem, or `RI_STEMR_NO_STEM` if that
+ * section produced none. Call it after `ri_stemr_finish`. */
+#define RI_STEMR_NO_STEM 0xFFFFFFFFu
+uint32_t ri_stemr_set_index(const struct RIStemr *r, uint32_t section);
 
 #endif

@@ -54,6 +54,11 @@ int ri_stemr_begin(struct RIStemr *r, uint32_t nstems, uint32_t frames,
         if (!slots[i].l || !slots[i].r || !slots[i].out)
             return 1;
     memset(r, 0, sizeof *r);
+    /* Zero is a VALID set index, so a memset leaves every section looking
+     * like it has a stem pointing at entry 0. NO_STEM is the honest
+     * starting state. */
+    for (i = 0u; i < RI_ROUTE_NSECTIONS; i++)
+        r->set_of[i] = RI_STEMR_NO_STEM;
     stem_set_init(&r->set, rate, bpm_milli);
     r->set.depth = (uint8_t)depth;
     r->frames = frames;
@@ -104,6 +109,9 @@ uint32_t ri_stemr_finish(struct RIStemr *r, uint32_t rendered) {
     }
     for (i = 0u; i < r->nstems; i++) {
         uint32_t sec = i;
+        /* Recorded as UNSET first, so a section that is skipped below does
+         * not leave a stale index from a previous render pointing at some
+         * other section's bytes. */
         float *l, *rt, *out;
         if (!r->tap.l[sec] || !r->tap.r[sec])
             continue;
@@ -128,7 +136,14 @@ uint32_t ri_stemr_finish(struct RIStemr *r, uint32_t rendered) {
         }
         if (stem_set_add(&r->set, out, r->frames, 2u) != 0)
             return 1u;
+        r->set_of[sec] = stem_set_count(&r->set) - 1u;
     }
     r->finished = 1u;
     return 0u;
+}
+
+uint32_t ri_stemr_set_index(const struct RIStemr *r, uint32_t section) {
+    if (!r || section >= RI_ROUTE_NSECTIONS)
+        return RI_STEMR_NO_STEM;
+    return r->set_of[section];
 }

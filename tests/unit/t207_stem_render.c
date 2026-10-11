@@ -33,6 +33,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "tests/helpers/ri_assert.h"
 #include "engine/engine.h"
 #include "engine/seq/sched.h"
@@ -256,6 +257,102 @@ int main(void) {
         RI_ASSERT(ri_stemr_name(nm, 4u, 1u, 0u) == 0u,
             "a too-small buffer is refused");
         RI_ASSERT(ri_stemr_name(0, sizeof nm, 1u, 0u) == 0u, "NULL buffer");
+    }
+
+    /* --- 5d. THE SET INDEX IS NOT THE SECTION NUMBER ----------------- */
+    /* SA AND SB BOTH SURVIVED, and both are module-level defects that the
+     * existing cases could not reach: every one of them renders a set whose
+     * sections happen to be CONTIGUOUS, and for contiguous sections the
+     * running count and the section number are the same number.
+     *
+     * A song addressing sections 0, 2 and 4 fills set entries 0, 1 and 2.
+     * Asking `stem_set_write` for section 4 is then out of range, and
+     * asking for section 2 writes the 808's bytes under the 808's name --
+     * correct by luck. This is the whole reason the mapping is exposed
+     * rather than left to the caller to infer. */
+    {
+        static struct RIStemr sp3;
+        struct RIStemrSlot sl3[RI_ROUTE_NSECTIONS];
+        static struct RIEngine e3;
+        float *p3;
+        uint32_t sec;
+        uint32_t want[3];
+        p3 = (float *)calloc(RI_ROUTE_NSECTIONS * 4u * 64u, sizeof(float));
+        RI_ASSERT(p3 != 0, "pool");
+        {
+            uint32_t k, off = 0u;
+            for (k = 0u; k < RI_ROUTE_NSECTIONS; k++) {
+                sl3[k].l = p3 + off; off += 64u;
+                sl3[k].r = p3 + off; off += 64u;
+                sl3[k].out = p3 + off; off += 128u;
+            }
+        }
+        RI_ASSERT(ri_stemr_begin(&sp3, RI_ROUTE_NSECTIONS, 64u, 48000u,
+            STEM_WAV_PCM16, 120000u, sl3) == 0, "begin");
+        /* SB: BEFORE finish, NO section has a stem. Zero is a VALID set
+         * index, so a struct that starts zeroed looks like every section
+         * pointing at entry 0 -- the first stem's bytes. */
+        for (sec = 0u; sec < RI_ROUTE_NSECTIONS; sec++)
+            RI_ASSERT(ri_stemr_set_index(&sp3, sec) == RI_STEMR_NO_STEM,
+                "section %u has no stem before finish (%u)", (unsigned)sec,
+                (unsigned)ri_stemr_set_index(&sp3, sec));
+        /* A sparse section mask: 0, 2 and 4 only. */
+        /* A SPARSE MASK WITH REAL EVENTS ON EACH RENDERED SECTION. My
+         * first version of this case enabled sections 0, 2 and 4 but fed the
+         * engine events for sections 0 and 1 only -- so it produced ONE
+         * stem, the guard below it never ran, and SA survived. The fixture
+         * has to have notes on every section the mask names, or there is
+         * nothing to number. */
+        {
+            static struct RIEvent ev3[8];
+            uint32_t k = 0u;
+            memset(ev3, 0, sizeof ev3);
+            ev3[k].type = RI_EV_NOTE_ON; ev3[k].device = 0u;
+            ev3[k].value = 36u; ev3[k].sample = 0u; k++;
+            ev3[k].type = RI_EV_NOTE_ON; ev3[k].device = 2u;
+            ev3[k].value = 38u; ev3[k].sample = 8u; k++;
+            ev3[k].type = RI_EV_NOTE_ON; ev3[k].device = 4u;
+            ev3[k].value = 60u; ev3[k].sample = 16u; k++;
+            ri_engine_init(&e3);
+            ri_engine_defaults(&e3);
+            /* 0x01 | 0x04 | 0x10 -- the 303A, the 808 and the Levi, with
+             * the 303B and the 909 absent. */
+            ri_engine_load(&e3, ev3, k, 64u, 0x15u);
+            ri_stemr_bind(&sp3, &e3);
+            RI_ASSERT(ri_stemr_finish(&sp3, 64u) == 0u, "finish");
+        }
+        /* Every reported index is inside the set. */
+        for (sec = 0u; sec < RI_ROUTE_NSECTIONS; sec++) {
+            uint32_t si = ri_stemr_set_index(&sp3, sec);
+            if (si == RI_STEMR_NO_STEM)
+                continue;
+            RI_ASSERT(si < RI_ROUTE_NSECTIONS,
+                "section %u's index %u is inside the set", (unsigned)sec,
+                (unsigned)si);
+        }
+        /* AND THE MAP IS NOT THE IDENTITY ON A SPARSE MASK. This is the
+         * assertion that kills SA: with a mask of 0, 2 and 4 the three stems
+         * are set entries 0, 1 and 2, so sections 2 and 4 must NOT report
+         * their own numbers. */
+        want[0] = ri_stemr_set_index(&sp3, 0u);
+        want[1] = ri_stemr_set_index(&sp3, 2u);
+        want[2] = ri_stemr_set_index(&sp3, 4u);
+        RI_ASSERT(want[0] == 0u && want[1] == 1u && want[2] == 2u,
+            "sparse sections 0,2,4 map to set 0,1,2 (got %u,%u,%u)",
+            (unsigned)want[0], (unsigned)want[1], (unsigned)want[2]);
+        /* The sections the mask does NOT name have no stem at all -- that
+         * is the gap in the file name, and it must not be a pointer into
+         * somebody else's bytes. */
+        RI_ASSERT(ri_stemr_set_index(&sp3, 1u) == RI_STEMR_NO_STEM,
+            "section 1 is not in the mask (%u)",
+            (unsigned)ri_stemr_set_index(&sp3, 1u));
+        RI_ASSERT(ri_stemr_set_index(&sp3, 3u) == RI_STEMR_NO_STEM,
+            "nor is section 3 (%u)",
+            (unsigned)ri_stemr_set_index(&sp3, 3u));
+        RI_ASSERT(ri_stemr_set_index(0, 0u) == RI_STEMR_NO_STEM, "NULL");
+        RI_ASSERT(ri_stemr_set_index(&sp3, 99u) == RI_STEMR_NO_STEM,
+            "a section past the last");
+        free(p3);
     }
 
     /* --- 6. META CARRIES RATE AND TEMPO ------------------------------ */

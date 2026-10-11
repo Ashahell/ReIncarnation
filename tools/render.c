@@ -36,6 +36,7 @@
 #include "project/stem_render.h"
 #include "project/smf_bridge.h"
 #include "project/loop_render.h"
+#include "project/song_sections.h"
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
 #include "audio_io/audio.h"
@@ -266,15 +267,28 @@ static int take_ms(const char *tok, const char *key, double *val) {
  *   shuffle=N (0..100)  legato=0/1  flam_ms=NNN[.mmm] (0..500, def 35.0)
  * Per-step extra: flam=0/1 (needs a note; rest+flam parses, walker ignores).
  * Songs without timing headers render exactly as Task 4 (straight). */
+/* `devsteps[d][i]` is the index into the flat `steps` array of section d's
+ * step i, and `devn[d]` how many there are. Kept as INDICES rather than a
+ * second copy of the steps so a step is one object with one set of flags. */
+static uint32_t devsteps[RI_ROUTE_NSECTIONS][RI_MAX_STEPS];
+static uint32_t devn[RI_ROUTE_NSECTIONS];
+
 static int parse_song(const char *path, struct RIStep *steps, uint32_t *nsteps, int *tempo,
-    int *shuffle_pct, int *legato, double *flam_ms) {
+    int *shuffle_pct, int *legato, double *flam_ms, uint32_t *curp,
+    uint32_t *ndev) {
     char line[256];
     FILE *f = fopen(path, "r");
+    uint32_t cur = 0u;
     *nsteps = 0;
     *tempo = 0;
     *shuffle_pct = 0;
     *legato = 0;
     *flam_ms = RI_FLAM_MS_DEFAULT;
+    *curp = 0u;
+    *ndev = 1u;
+    cur = *curp;
+    memset(devn, 0, sizeof devn);
+    cur = 0u;
     if (!f) {
         printf("render: cannot open --song %s\n", path);
         return 2;
@@ -296,10 +310,34 @@ static int parse_song(const char *path, struct RIStep *steps, uint32_t *nsteps, 
             *tempo = v;
             continue;
         }
+        if (strncmp(line, "device=", 7) == 0) {
+            /* R8g: A SONG MAY ADDRESS MORE THAN ONE SECTION. The device is
+             * the SECTION'S, not the step's -- `RIStep` needs no device field
+             * because a section is a property of the step LIST you hand the
+             * emitter. So a `device=` line opens a new list and the steps
+             * that follow belong to it.
+             *
+             * REFUSED rather than ignored for a device past the last: a
+             * section that does not exist would otherwise render as silence
+             * and be discovered by the ears. */
+            int v;
+            if (take_int(line, "device", &v) || v < 0 ||
+                    v >= (int)RI_ROUTE_NSECTIONS) {
+                printf("render: bad device line: %s (want 0..%u)\n", line,
+                    (unsigned)(RI_ROUTE_NSECTIONS - 1u));
+                fclose(f);
+                return 2;
+            }
+            cur = (uint32_t)v;
+            *curp = cur;
+            if (*ndev <= cur)
+                *ndev = cur + 1u;
+            continue;
+        }
         if (strncmp(line, "step ", 5) == 0) {
             int note = -1, slide = 0, accent = 0, rest = 0, flam = 0;
             int bad = 0;
-            if (*nsteps >= RI_MAX_STEPS) {
+            if (*nsteps >= RI_MAX_STEPS || devn[cur] >= RI_MAX_STEPS) {
                 printf("render: too many steps (max %u)\n", RI_MAX_STEPS);
                 fclose(f);
                 return 2;
@@ -361,6 +399,8 @@ static int parse_song(const char *path, struct RIStep *steps, uint32_t *nsteps, 
             steps[*nsteps].flags = (uint8_t)((rest ? RI_STEP_REST : 0u) |
                 (slide ? RI_STEP_SLIDE : 0u) | (accent ? RI_STEP_ACCENT : 0u) |
                 (flam ? RI_STEP_FLAM : 0u));
+            /* Counted PER DEVICE, so each section's run is its own list. */
+            devsteps[cur][devn[cur]++] = *nsteps;
             (*nsteps)++;
             continue;
         }
@@ -549,7 +589,7 @@ static int render_stems(const struct RIEvent *ev, uint32_t nev,
     }
     for (sec = 0u; sec < RI_ROUTE_NSECTIONS; sec++) {
         char nm[32], path[640];
-        uint32_t w;
+        uint32_t w, si;
         int n;
         if ((sections & (1u << sec)) == 0u)
             continue;
@@ -561,7 +601,20 @@ static int render_stems(const struct RIEvent *ev, uint32_t nev,
             free(pool);
             return 2;
         }
-        w = stem_set_write(&sr.set, sec, wav, (uint32_t)wavbytes);
+        /* THE SET INDEX IS NOT THE SECTION NUMBER. `stem_set_add` appends,
+         * so a song addressing sections 0, 2 and 4 fills set entries 0, 1
+         * and 2. Writing entry 4 under the name "05-levi.wav" is out of
+         * range -- and with every section present it would be merely
+         * MISLABELLED instead, which is worse. Ask the module. */
+        si = ri_stemr_set_index(&sr, sec);
+        if (si == RI_STEMR_NO_STEM) {
+            printf("render: --stems: section %u produced no stem\n",
+                (unsigned)sec);
+            free(wav);
+            free(pool);
+            return 2;
+        }
+        w = stem_set_write(&sr.set, si, wav, (uint32_t)wavbytes);
         if (w == 0u) {
             printf("render: --stems: cannot write %s\n", path);
             free(pool);
@@ -694,13 +747,16 @@ static int render_song(const char *song_path, const char *out_path, const char *
     int shuffle_pct = 0, legato = 0;
     double flam_ms = RI_FLAM_MS_DEFAULT;
     struct RISchedOpts opts;
-    uint32_t nev;
+    uint32_t nev, i;
     uint64_t total;
+    uint32_t cur_dev = 0u, ndev = 1u, sections = 0u;
+    static struct RIStep secflat[RI_ROUTE_NSECTIONS][RI_MAX_STEPS];
+    struct RISectionRun secsteps[RI_ROUTE_NSECTIONS];
     /* pcm worst case: 64 steps * full bar @30bpm + tail; static bound 2^22 */
     static float pcm[4194304];
     int rc;
     if ((rc = parse_song(song_path, steps, &nsteps, &tempo,
-            &shuffle_pct, &legato, &flam_ms)) != 0)
+            &shuffle_pct, &legato, &flam_ms, &cur_dev, &ndev)) != 0)
         return rc;
     segs[0].start_tick = 0;
     segs[0].ns_per_quarter = 60000000000ULL / (uint64_t)tempo;
@@ -711,8 +767,25 @@ static int render_song(const char *song_path, const char *out_path, const char *
     opts.shuffle_pct = (uint8_t)shuffle_pct;
     opts.legato = (uint8_t)legato;
     opts.flam_ms = flam_ms;
-    nev = ri_sched_emit_timed(&map, 0, 96, steps, nsteps, 0, &opts, ev, RI_SCHED_MAX_EVENTS);
-    if (nev == 0) {
+    /* R8g: THE SONG'S SECTIONS. Each device's steps are gathered into one
+     * list and emitted for that device; `ri_song_emit` merges the runs into
+     * a single §8-ordered array, which is what the engine needs. Without it
+     * every render carried device 0 and `--stems` could only ever write one
+     * file. */
+    for (i = 0u; i < RI_ROUTE_NSECTIONS; i++) {
+        uint32_t k;
+        secsteps[i].steps = 0;
+        secsteps[i].nsteps = 0u;
+        secsteps[i].device = (uint16_t)i;
+        for (k = 0u; k < devn[i]; k++)
+            secflat[i][k] = steps[devsteps[i][k]];
+        secsteps[i].steps = secflat[i];
+        secsteps[i].nsteps = devn[i];
+    }
+    nev = ri_song_emit(&map, map.ppq, secsteps, RI_ROUTE_NSECTIONS, &opts, ev,
+        RI_SCHED_MAX_EVENTS);
+    sections = ri_song_sections(secsteps, RI_ROUTE_NSECTIONS);
+    if (nev == 0 || sections == 0u) {
         printf("render: walker emitted no events\n");
         return 2;
     }
@@ -730,7 +803,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
      */
     if (bars != 0u) {
         struct RILoopSpan sp;
-        uint32_t pass, passes;
+        uint32_t pass, passes, got;
         if (ri_loop_span(&sp, &map, map.ppq, steps, nsteps, from_bar, bars,
                 tail_ms) != 0) {
             printf("render: --bars: %u bar(s) from bar %u with a %u ms tail"
@@ -745,11 +818,21 @@ static int render_song(const char *song_path, const char *out_path, const char *
             sp.bar_ticks);
         nev = 0u;
         for (pass = 0u; pass < passes; pass++) {
+            struct RISectionRun rep[RI_ROUTE_NSECTIONS];
             uint64_t at = (uint64_t)pass * (uint64_t)nsteps *
                 ((uint64_t)map.ppq / 4u);
-            uint32_t got = ri_sched_emit_timed(&map, at, map.ppq, steps,
-                nsteps, 0u, &opts, ev + nev,
-                RI_SCHED_MAX_EVENTS - nev);
+            uint32_t k;
+            for (k = 0u; k < RI_ROUTE_NSECTIONS; k++) {
+                rep[k] = secsteps[k];
+            }
+            /* Each pass starts at its own tick. `ri_song_emit` starts at
+             * tick 0, so the pass's offset is applied by advancing the
+             * emitted run rather than by re-emitting: the scheduler's
+             * start_tick is the only place a pass offset belongs, and
+             * pushing samples afterwards would be a second answer to the
+             * ticks-to-samples question. */
+            got = ri_song_emit_at(&map, map.ppq, rep, RI_ROUTE_NSECTIONS,
+                &opts, ev + nev, RI_SCHED_MAX_EVENTS - nev, at);
             if (got == 0u)
                 break;
             nev += got;
@@ -783,7 +866,12 @@ static int render_song(const char *song_path, const char *out_path, const char *
      * (centre-unity, f64 master) — audit Phase 1 cmp proves it per golden. */
     ri_engine_init(&eng);
     ri_engine_defaults(&eng);
-    ri_engine_load(&eng, ev, nev, total, RI_ENGINE_S303A);
+    /* THE MASK IS THE SONG'S OWN, NOT A HARD-CODED 303A. `ri_engine_load`
+     * takes an ENGINE flag word and `ri_song_sections` produces a MIXER
+     * section mask; the two agree bit for bit (S303A..SLEVI are 0x01..0x10
+     * and the sections are 0..4) but relying on that BY ACCIDENT is exactly
+     * how a fifth section would silently stop being heard. It is named. */
+    ri_engine_load(&eng, ev, nev, total, (uint32_t)sections);
     {
         uint64_t off = 0;
         while (off < total) {

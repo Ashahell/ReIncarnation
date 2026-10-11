@@ -411,6 +411,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t204_engine_stems >/dev/null || { ech
 bash "$ROOT/scripts/ri_build_host.sh" test t207_stem_render >/dev/null || { echo "FAIL: t207_stem_render (R8d the tap-to-stem-set bridge)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t208_smf_bridge >/dev/null || { echo "FAIL: t208_smf_bridge (R8f engine events to SMF, and the slide that cannot cross)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t209_loop_render >/dev/null || { echo "FAIL: t209_loop_render (R9 a loop the tempo map can cut whole bars from)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t210_song_sections >/dev/null || { echo "FAIL: t210_song_sections (R8g a song addressing more than one section)"; exit 1; }
 # MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
 # This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
 # approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo
