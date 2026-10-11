@@ -2832,3 +2832,109 @@ matching slot instead, which is the behaviour actually under test.
 - **P-19 is at my recommended number, not the owner's.** The cap is settable,
   so changing it is a constant.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane.
+
+## R5d: the pump meets the live window, and a silent-failure it was always going to be (2026-10-12)
+
+`engine/live.c`, t214. R5b's pump took a `struct RIEngine *` and stamped at
+`e->cursor`. Right for a one-shot renderer. **Wrong for the live session**,
+and R5b's test could not see it because it had no caller.
+
+### THE DEFECT, AND WHY IT WAS SILENT
+
+`ri_live_render` windows every event to `[s0, s1)` where
+
+    s0 = s->sample_cursor        s1 = s0 + frames
+
+and **drops anything outside it** before `ri_engine_load`, then rebases
+survivors by `-s0`. Meanwhile `ri_engine_load` sets `e->cursor = 0` **on every
+call**, and the live session reloads the engine **once per buffer**.
+
+So `e->cursor` is 0 at every pump, and sample 0 is inside `[s0, s1)` **only for
+the first buffer**. Every later buffer's live notes would be stamped below
+`s0` and **discarded by the filter with no error and no count**. The first
+note sounds and the rest vanish — a defect that gets blamed on the MIDI input
+rather than on the stamp, and one that a "does it make sound?" test passes on
+buffer one.
+
+### THE FIX IS AN API CHANGE, NOT A CONDITIONAL
+
+`ri_notein_pump` now takes `(l, stamp, seq, out, cap)`. **The engine pointer
+is gone.** There is no "which cursor" question left to answer at the type
+level: two call sites with different absolutes cannot be confused if neither
+can reach the other's.
+
+**`seq` comes from the caller's counter.** The §8 key ends in `seq` and every
+other producer in `ri_live_render` draws from `s->seq_next`; a pump that
+invented its own sequence space would place a live note ahead of or behind
+every pattern event at the same sample for an accident of magnitude rather
+than a decision.
+
+### THE INJECTION IS AN ORDINARY PRODUCER
+
+Appended into `s->scratch` **before the existing sort**, so it is ordered
+against the pattern and the automation by the one §8 key rather than by a
+second comparison. `ri_live_notein()` attaches it; **NULL on every existing
+caller**, so the cost is one NULL compare per buffer. No ownership and no
+copy: the ring belongs to the MIDI layer, and a copy here would be a second
+ring whose contents could disagree with the first.
+
+### THE AUDIT CAUGHT WHAT THE HOST NEVER WOULD HAVE
+
+Adding a call from `engine/live.c` into `midi_io/note_in_app.c` broke the
+**AROS RIAPP link** and the **portable build** — two targets the host test
+loop does not exercise. Both failed with `undefined reference to
+ri_notein_pump`. `note_in.c`/`note_in_app.c` had to be added to
+`ri_build_aros.sh`, `ri_build_v11.sh` **and** `build/portable.mk`.
+
+**Every host test passed while both target links were broken.** This is the
+confinement gate earning its keep, and it is the argument for running the
+audit before a commit rather than after.
+
+### Three test-fixture faults, each reading as a code defect
+
+1. **`scratch` passed as NULL.** `scratch_cap` is 0 when the array is NULL, so
+   every `n < s->scratch_cap` guard is false and the live note is **never
+   even offered**. A test measuring "no sound" could not distinguish a
+   refused note from a producer that never ran.
+2. **An uninitialised bank.** Without one, `t1` never leaves 0 and the window
+   is empty on every buffer — so `s0 = 0`, which is *exactly* the signature of
+   the bug under test. **An empty session and a wrongly stamped note are the
+   same silence.**
+3. **GM 39**, which has no instrument in the partial map, is correctly
+   refused — and the refusal read as a broken pump.
+
+And **a trap I hit twice in one session**: `printf("push()=%d queued=%u",
+ri_notein_push(&L,&ev), L.queued)` reads `L.queued` *before* the call, because
+C does not order arguments. It reported a successful push as zero-queued and
+sent me looking for a bug in code that was correct.
+
+### Mutants: 9, all killed
+
+| id | mutation | result |
+|----|----------|--------|
+| SA | the live note stamped at the engine cursor (R5b's bug, restored) | **KILLED** |
+| SB/SC | the injection dropped / bypasses the sort | **KILLED** |
+| SD | `seq` does not advance past the live notes | **KILLED** — *after a fix* |
+| TA | the stamp ignored, every event at sample 0 | **KILLED** |
+| TB | `seq` not taken from the caller | **KILLED** |
+| TC | `seq` does not ascend within one stamp | **KILLED** |
+| TD | pending counters not released on pump | **KILLED** |
+
+**SD survived first because nothing looked at `seq_next`.** The new §6c
+renders through a real session, records `seq_next` before and after, and
+requires it to advance past both live notes — which is where R5b's
+"one sequence space" law is actually kept rather than merely stated.
+
+**TA and TB failed to build on the first attempt** (`-Werror=unused-parameter`
+— the mutation stops using the parameter it is supposed to use). Silenced
+inside the mutant so the compiler accepts the code being tested.
+
+### Still open
+
+- **`midi_drain` does not call any of it.** `ri_live_notein()` exists and the
+  pump is wired into the live path, but **nothing attaches a ring**: the app
+  never constructs a `struct RINoteIn`. That is the remaining wiring, and it
+  is mechanical.
+- **Unhearable.** No lane has a USB-MIDI device. Everything above is
+  host-tested, mutation-tested and now **target-link-verified**, and none of
+  it has been heard.

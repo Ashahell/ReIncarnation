@@ -7,6 +7,7 @@
  * (absolute positions never depend on chunking).
  */
 #include "engine/live.h"
+#include "midi_io/note_in_app.h"
 #include <stddef.h>
 
 #define RI_LIVE_T1_BOUND 2048u
@@ -68,6 +69,7 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     s->locate_tick = 0u;
     s->locate_done = 0u;
     s->seq_next = 0u;
+    s->notein = 0;
     s->xruns = 0u;
     s->meters_seq.v = 0u;
     /* Init before sharing; plain store safe here. */
@@ -82,6 +84,15 @@ void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     s->meters.samples = 0u;
     s->meters.cursor_ticks = 0u;
     s->meters.xruns = 0u;
+}
+
+/* R5d: attach the external note-input ring. There is deliberately no detach
+ * and no ownership: the ring belongs to the MIDI layer and outlives any one
+ * session, and copying it here would be a second ring whose contents could
+ * disagree with the first. */
+void ri_live_notein(struct RILiveSession *s, struct RINoteLive *n) {
+    if (s)
+        s->notein = n;
 }
 
 void ri_live_set_sections(struct RILiveSession *s, uint32_t sections) {
@@ -468,6 +479,28 @@ uint32_t ri_live_render(struct RILiveSession *s, float *out_l, float *out_r,
             (void)room;
             (void)before;
         }
+    }
+    /* R5d: EXTERNAL NOTE INPUT. Appended into the same scratch as every
+     * other producer, BEFORE the sort below, so it is ordered against the
+     * pattern and the automation by the one §8 key rather than by a second
+     * comparison.
+     *
+     * STAMPED AT s0, NOT AT THE ENGINE'S CURSOR. `ri_engine_load` -- three
+     * lines below -- sets `e->cursor = 0`, and this function runs once per
+     * buffer, so the cursor is 0 forever. Sample 0 is inside `[s0, s1)` only
+     * for the FIRST buffer; every later buffer's notes would be filtered out
+     * a few lines below with no error and no count. The first note sounds and
+     * the rest vanish, which is a defect that gets blamed on the MIDI input
+     * rather than on the stamp.
+     *
+     * SEQ DRAWS FROM THE SAME COUNTER as the pattern and the automation, so
+     * a live note's position among them is the §8 key's decision and not an
+     * accident of number size. */
+    if (s->notein && n < s->scratch_cap) {
+        uint32_t room = s->scratch_cap - n;
+        uint32_t got = ri_notein_pump(s->notein, s0, seq, s->scratch + n, room);
+        n += got;
+        seq += got;
     }
     if (s->ctl && n < s->scratch_cap) {
         uint32_t room = s->scratch_cap - n;

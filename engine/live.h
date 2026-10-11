@@ -95,6 +95,10 @@ struct RILiveSession {
     struct RIAutoPub *pub;
     struct RIAutoCarry *carry;
     struct RIAutoPass *pass;
+    /* R5d: optional. NULL on every existing caller, so the cost is one
+     * NULL compare per buffer rather than a second note path. */
+    struct RINoteLive *notein;
+
     struct RIControlPlane *ctl;
     const struct RIAutoLane *last_front;
     int need_chase;
@@ -121,6 +125,12 @@ struct RILiveSession {
 
 void ri_live_init(struct RILiveSession *s, uint32_t ppq, float sr, float bpm,
     uint32_t sections, struct RIEvent *scratch, uint32_t scratch_cap);
+
+/* Attach the R5 note-input ring. Optional: NULL means no external note input,
+ * which is the normal case for every existing caller and must cost nothing
+ * beyond one NULL compare per buffer. */
+struct RINoteLive;
+void ri_live_notein(struct RILiveSession *s, struct RINoteLive *n);
 /* Active-device mask (see the sections field): GUI-task callable at any
  * time; takes effect at the next rendered block. NULL fail-closed
  * (set ignores, get returns 0). */

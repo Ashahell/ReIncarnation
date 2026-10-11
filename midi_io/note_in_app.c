@@ -129,17 +129,16 @@ int ri_notein_push(struct RINoteLive *l, const struct RINoteInEvent *ev) {
     return 0;
 }
 
-uint32_t ri_notein_pump(struct RINoteLive *l, struct RIEngine *e,
+uint32_t ri_notein_pump(struct RINoteLive *l, uint64_t stamp, uint32_t seq,
     struct RIEvent *out, uint32_t cap) {
-    uint32_t n = 0u, i, seq;
-    if (!l || !e || !out || cap == 0u)
+    uint32_t n = 0u, i;
+    if (!l || !out || cap == 0u)
         return 0u;
-    /* STAMPED FROM THE CURSOR, NOT FROM "NOW". The drain happens between
-     * audio buffers; the engine's cursor is the only position that is about
-     * to be rendered. An event stamped anywhere else lands in the gap
-     * between buffers, where the cursor will never be, and the note is
-     * silent -- which is the whole failure this avoids. */
-    seq = e->cursor;
+    /* THE STAMP IS THE CALLER'S WINDOW ORIGIN, not "now" and not the
+     * engine's cursor. See the header: `ri_engine_load` zeroes the cursor on
+     * every call and the live session calls it once per buffer, so a cursor
+     * stamp is 0 forever and lands below `s0` on every buffer but the first.
+     * The caller knows its window; this module does not and must not guess. */
     for (i = 0u; i < l->queued && n < cap; i++) {
         const struct RINoteLiveSlot *s =
             &l->ring[(l->head + i) % RI_NOTEIN_RING_CAP];
@@ -149,12 +148,12 @@ uint32_t ri_notein_pump(struct RINoteLive *l, struct RIEngine *e,
         out[n].voice = s->voice;
         out[n].value = s->value;
         out[n].flags = s->flags;
-        out[n].sample = e->cursor;
-        /* SEQ IS THE CURSOR PLUS THE INDEX, NOT A RUNNING COUNT. The §8 key
-         * ends in `seq`, so two live notes at one cursor must have distinct
-         * values or their order is whatever the array happens to say -- and
-         * the engine STOPS on an out-of-order event (t205). */
-        out[n].seq = seq + i;
+        out[n].sample = stamp;
+        /* SEQ FROM THE CALLER'S BASE, ASCENDING. The §8 key ends in `seq`,
+         * so two live notes at one stamp must have distinct values or their
+         * order is whatever the array happens to say -- and the engine STOPS
+         * on an out-of-order event (t205). */
+        out[n].seq = seq + n;
         /* THE PER-DEVICE BUDGET IS RELEASED HERE AND NOW, and only for what
          * actually went out: a partial pump leaves the rest pending, so a
          * caller that pumps every buffer does not leak budget. */

@@ -112,15 +112,34 @@ int ri_notein_live_set_cap(struct RINoteLive *l, uint32_t cap);
  * flooded. */
 int ri_notein_push(struct RINoteLive *l, const struct RINoteInEvent *ev);
 
-/* Stamp up to `cap` queued notes at the engine's current cursor and write
- * them to `out` in the §8 order, oldest first. Returns how many were
- * written.
+/* Stamp up to `cap` queued notes at `stamp` and write them to `out`, oldest
+ * first. Returns how many were written. `seq` is the caller's sequence
+ * base; the events take `seq`, `seq+1`, ... so the caller can advance its own
+ * counter by the return value.
  *
- * A `cap` SMALLER THAN THE QUEUE writes what fitted and LEAVES THE REST:
- * the caller pumps again next buffer. An earlier version of a similar
- * buffer in this project refused everything, which is correct behaviour for
- * a stem file and useless here. */
-uint32_t ri_notein_pump(struct RINoteLive *l, struct RIEngine *e,
+ * **THE STAMP IS THE CALLER'S, AND THAT IS THE WHOLE POINT.** R5b took a
+ * `struct RIEngine *` and stamped at `e->cursor`, which is right for a
+ * one-shot renderer and **silently wrong for the live session**:
+ * `ri_live_render` windows every event to `[s0, s1)` where
+ * `s0 = s->sample_cursor`, and `ri_engine_load` resets `e->cursor` to 0 on
+ * every call -- once per buffer. So `e->cursor` is always 0, and sample 0 is
+ * inside the window only for the FIRST buffer. Every later buffer's live
+ * notes would be stamped below `s0` and **dropped by the filter with no
+ * error and no count**: the first note sounds and the rest vanish, which is
+ * a defect that gets blamed on the MIDI input.
+ *
+ * So there is no engine parameter to be wrong about, and two call sites with
+ * different absolutes cannot reach each other's.
+ *
+ * **SEQ COMES FROM THE SESSION'S ONE COUNTER.** The §8 key ends in `seq` and
+ * every other producer in `ri_live_render` draws from `s->seq_next`. A pump
+ * that invented its own sequence space would place a live note ahead of or
+ * behind every pattern event at the same sample for an accident of
+ * magnitude rather than a decision.
+ *
+ * A `cap` SMALLER THAN THE QUEUE writes what fitted and LEAVES THE REST: the
+ * caller pumps again next buffer, at the next window origin. */
+uint32_t ri_notein_pump(struct RINoteLive *l, uint64_t stamp, uint32_t seq,
     struct RIEvent *out, uint32_t cap);
 
 #endif

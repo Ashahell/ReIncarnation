@@ -75,7 +75,7 @@ int main(void) {
     hit(1u, 60u, 0u);
     RI_ASSERT(LIVE.queued == 2u, "the note-on and its release (%u)",
         (unsigned)LIVE.queued);
-    got = ri_notein_pump(&LIVE, &E, OUT, 16u);
+    got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 16u);
     RI_ASSERT(got == 2u, "both pumped (%u)", (unsigned)got);
     RI_ASSERT(OUT[0].type == RI_EV_NOTE_ON, "a NOTE_ON first (%u)",
         (unsigned)OUT[0].type);
@@ -97,7 +97,7 @@ int main(void) {
     hit(1u, 60u, 1u);
     hit(1u, 64u, 1u);      /* a slide: overlap, so the held pitch is 64 */
     hit(1u, 64u, 0u);
-    got = ri_notein_pump(&LIVE, &E, OUT, 16u);
+    got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 16u);
     RI_ASSERT(got == 3u, "three events (%u)", (unsigned)got);
     RI_ASSERT(OUT[2].type == RI_EV_NOTE_OFF, "the release last (%u)",
         (unsigned)OUT[2].type);
@@ -171,7 +171,7 @@ int main(void) {
         (unsigned)LIVE.dropped[RI_NOTEIN_DEV_303A]);
     /* WHAT SURVIVED: 61 62 63 64. The player is listening to 64, and the
      * note from four events ago is the one that could be lost. */
-    got = ri_notein_pump(&LIVE, &E, OUT, 16u);
+    got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 16u);
     RI_ASSERT(got == 4u, "four pumped (%u)", (unsigned)got);
     RI_ASSERT(OUT[0].value == 61u, "the oldest SURVIVOR is 61 (%u)",
         (unsigned)OUT[0].value);
@@ -182,7 +182,7 @@ int main(void) {
     setup();
     hit(1u, 60u, 1u);
     hit(10u, 36u, 1u);
-    got = ri_notein_pump(&LIVE, &E, OUT, 16u);
+    got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 16u);
     RI_ASSERT(got == 2u, "two pumped (%u)", (unsigned)got);
     RI_ASSERT(LIVE.pending[RI_NOTEIN_DEV_303A] == 0u &&
         LIVE.pending[RI_NOTEIN_DEV_808] == 0u,
@@ -193,7 +193,7 @@ int main(void) {
     setup();
     hit(1u, 60u, 1u);
     hit(1u, 62u, 1u);
-    got = ri_notein_pump(&LIVE, &E, OUT, 1u);
+    got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 1u);
     RI_ASSERT(got == 1u, "one taken (%u)", (unsigned)got);
     RI_ASSERT(LIVE.pending[RI_NOTEIN_DEV_303A] == 1u,
         "and one still pending (%u)",

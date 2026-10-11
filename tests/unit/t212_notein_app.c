@@ -74,7 +74,7 @@ int main(void) {
         RI_ASSERT(ri_notein_push(&LIVE, &ev) == 0u, "and pushed");
         RI_ASSERT(LIVE.queued == 1u, "one queued (%u)", (unsigned)LIVE.queued);
         /* PUMPED AT THE CURSOR, which starts at 0. */
-        got = ri_notein_pump(&LIVE, &E, OUT, 16u);
+        got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 16u);
         RI_ASSERT(got == 1u, "pumped one (%u)", (unsigned)got);
         RI_ASSERT(OUT[0].type == RI_EV_NOTE_ON, "a NOTE_ON (%u)",
             (unsigned)OUT[0].type);
@@ -104,7 +104,7 @@ int main(void) {
         RI_ASSERT(ri_notein_note(&NI, &ev) == 0u, "and the overlapping one");
         RI_ASSERT(ev.slide == 1u, "which is a slide");
         ri_notein_push(&LIVE, &ev);
-        got = ri_notein_pump(&LIVE, &E, OUT, 16u);
+        got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 16u);
         RI_ASSERT(got == 1u, "pumped (%u)", (unsigned)got);
         RI_ASSERT(OUT[0].device == 0u, "on the 303A (%u)", (unsigned)OUT[0].device);
         RI_ASSERT(OUT[0].value == 64u, "with the PITCH in value (%u)",
@@ -131,7 +131,7 @@ int main(void) {
         ev.ch = 11u; ev.note = 56u; ev.vel = 100u; ev.on = 1u;
         RI_ASSERT(ri_notein_note(&NI, &ev) == 0u, "resolved");
         ri_notein_push(&LIVE, &ev);
-        got = ri_notein_pump(&LIVE, &E, OUT, 16u);
+        got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 16u);
         RI_ASSERT(got == 1u, "pumped (%u)", (unsigned)got);
         RI_ASSERT(OUT[0].device == 3u, "on the 909 (%u)", (unsigned)OUT[0].device);
         /* THE LIVE PATH CARRIES THE LANE, NOT THE 909 VOICE: the engine
@@ -197,7 +197,7 @@ int main(void) {
         /* A PUMP OF A SHORT OUTPUT IS SAFE AND LOSES NOTHING: it returns
          * what fitted and leaves the rest, unlike the earlier R8e stem
          * buffer that silently refused everything. */
-        got = ri_notein_pump(&LIVE, &E, OUT, 4u);
+        got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 4u);
         RI_ASSERT(got == 4u, "four into four (%u)", (unsigned)got);
         RI_ASSERT(LIVE.queued == RI_NOTEIN_RING_CAP - 4u,
             "and the rest waits (%u)", (unsigned)LIVE.queued);
@@ -215,7 +215,7 @@ int main(void) {
             ri_notein_note(&NI, &ev);
             ri_notein_push(&LIVE, &ev);
         }
-        got = ri_notein_pump(&LIVE, &E, OUT, 0u);
+        got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 0u);
         RI_ASSERT(got == 0u, "no room, nothing pumped (%u)", (unsigned)got);
         RI_ASSERT(LIVE.queued == RI_NOTEIN_RING_CAP,
             "and the ring is untouched (%u)", (unsigned)LIVE.queued);
@@ -248,7 +248,7 @@ int main(void) {
         ri_notein_push(&LIVE, &ev);
         /* PLAY SOMETHING, so the cursor is no longer 0. */
         E.cursor = 4096u;
-        got = ri_notein_pump(&LIVE, &E, OUT, 16u);
+        got = ri_notein_pump(&LIVE, E.cursor, 0u, OUT, 16u);
         RI_ASSERT(got == 2u, "both pumped (%u)", (unsigned)got);
         RI_ASSERT(OUT[0].sample == 4096u && OUT[1].sample == 4096u,
             "the event is stamped at the CURSOR, 4096, not at zero (%llu)",
@@ -302,9 +302,8 @@ int main(void) {
     /* --- 8. NULLs ----------------------------------------------------- */
     ri_notein_live_init(0);   /* must not crash */
     RI_ASSERT(ri_notein_push(0, 0) != 0, "NULL push");
-    RI_ASSERT(ri_notein_pump(0, &E, OUT, 16u) == 0u, "NULL pump");
-    RI_ASSERT(ri_notein_pump(&LIVE, 0, OUT, 16u) == 0u, "NULL engine");
-    RI_ASSERT(ri_notein_pump(&LIVE, &E, 0, 16u) == 0u, "NULL out");
+    RI_ASSERT(ri_notein_pump(0, 0u, 0u, OUT, 16u) == 0u, "NULL ring");
+    RI_ASSERT(ri_notein_pump(&LIVE, 0u, 0u, 0, 16u) == 0u, "NULL out");
     {
         struct RINoteInEvent ev;
         memset(&ev, 0, sizeof ev);
