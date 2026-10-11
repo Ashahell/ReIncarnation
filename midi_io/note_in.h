@@ -75,6 +75,11 @@ struct RINoteInEvent {
     uint8_t accent;   /* out: the 303 accent */
     uint8_t slide;    /* out: legato from overlap */
     uint8_t held;     /* in: 1 = this device already has a note sounding */
+    /* Set by `ri_notein_note` on SUCCESS and cleared on every refusal.
+     * A refused note leaves `dev` at 0, which is 303A -- so a caller that
+     * trusted the other fields would turn a refused drum release into a
+     * 303A strike. This says which it was rather than inferring it. */
+    uint8_t resolved;
 };
 
 struct RINoteIn {
@@ -125,7 +130,10 @@ int ri_notein_unclaimed(const struct RINoteIn *n, uint32_t ch);
 
 /* Resolve one note. Returns 0, or non-zero for a NULL, an unclaimed or
  * remote channel, an unmapped GM note on a drum channel, a release with no
- * note held, or an out-of-range note. Every refusal increments `refused`. */
+ * note held, or an out-of-range note. Every refusal increments `refused`.
+ *
+ * Sets `ev->resolved` on success and clears it on every refusal, including
+ * the NULL paths. */
 int ri_notein_note(struct RINoteIn *n, struct RINoteInEvent *ev);
 
 /* The velocity at or above which a 303 note is an accent. R6e fixed the

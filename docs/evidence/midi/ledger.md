@@ -2647,3 +2647,94 @@ exercised three times, because that is what a roll IS.**
 - **P-19 flood cap** — the number is still OPEN in the spec. The ring's
   drop-oldest-and-count machinery exists; the cap does not.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane.
+
+## R5b: the app actually plays the note (2026-10-11)
+
+`midi_io/note_in_app.{c,h}`, t212. R5a resolved a message into "device 2,
+lane 0, accent 0" and **nothing called it**. This is the wiring.
+
+### THE ENGINE IS DRIVEN BY EVENTS, NOT BY A SECOND NOTE PATH
+
+`RI_EV_NOTE_ON` already reaches `rb303_note(v, pitch, slide, accent)` for
+devices 0 and 1 and `rb808_trigger` / `rb909_trigger` for 2 and 3. So a live
+note is a real `RIEvent`, not a new call into the voices. **A second path
+into the machines would be a second answer to "when does a 303 sound", and
+it would be wrong in a way nothing would report.**
+
+### THE STAMP IS THE CURSOR, NOT "NOW"
+
+MIDI arrives in a drain **between audio buffers**; the engine is mid-song.
+An event stamped at the drain's own sample position lands in the gap between
+buffers, where the cursor will never be — silent. So the live tap queues and
+`ri_notein_pump` stamps from `e->cursor`.
+
+**And the cursor is also where `seq` comes from.** Two live notes at one
+cursor need distinct `seq` values, or their order under the §8 key is
+whatever the array happens to say — and the engine *stops* on an
+out-of-order event (t205).
+
+### TWO FIELD PLACEMENTS THAT ARE EASY TO GET WRONG
+
+- **THE DRUM LANE GOES IN `voice`, NOT IN `value`.** That is how the
+  scheduler's `ev->voice = ev->value = lane` arrives and how the engine
+  reads it (`lane = ev->voice`). Putting it in `value` alone leaves the
+  engine reading lane 0, so **every drum is the bass drum**.
+- **THE LIVE PATH CARRIES THE LANE, NOT THE 909 VOICE.** The engine does
+  `voice = RI_LANE_TO_RB909_VOICE[lane]` itself; doing it here too would be
+  the same map in two places.
+
+### A KNOWN GAP: A 303 RELEASE IS REFUSED, NOT QUEUED
+
+The 303 has a gate, so releasing a note is a `RI_EV_NOTE_OFF`, and **this
+ring only carries note-ons**. Queuing a release as a note-on would re-strike
+the note the player is lifting their finger off — the most audible thing the
+module could get wrong. It is refused and counted instead.
+
+**That means a live 303 note currently never stops.** It is a real gap, not
+a finished feature: closing it is R5c, and it is the one thing in R5 that a
+listener would notice within seconds of it being wired into `midi_drain`.
+
+### THE BUG I MADE AND THEN FIXED WITH A FLAG
+
+A refused note leaves `dev` at 0, which **is 303A**. So a refused drum
+release — the note the player is trying to stop — would have been queued as
+a 303A strike.
+
+I fixed it with `ev->resolved`, set by the resolver. **Then I got it wrong
+again**: I set `resolved = 1` once near the top of `ri_notein_note`, which
+is *before* every refusal path, so a refused note came back claiming to have
+resolved. `PA` — moving it to the top deliberately — is killed, and each
+success path now sets it at its own `return 0`.
+
+A single flag set at the top of a function with six exits is a flag that
+means "I got past the first check".
+
+### MUTANTS: 12, all killed
+
+| id | mutation | result |
+|----|----------|--------|
+| PA | `resolved` set once at the top | **KILLED** |
+| PA2/PB2 | the drum lane dropped from `voice` | **KILLED** |
+| PC2 | the 303 pitch dropped from `value` | **KILLED** |
+| PD2 | the slide flag dropped crossing into the ring | **KILLED** |
+| PE2 | the event stamped at zero, not the cursor | **KILLED** — *after a fix* |
+| PF2 | `seq` is a running count | **BUILD FAIL** — proves nothing |
+| PG2 | the unresolved check dropped | **KILLED** |
+| PH2 | a short output refuses everything | **KILLED** |
+| PI2 | the ring made unbounded | **KILLED** |
+| PJ2 | a 303 release queued as a note-on | **KILLED** — *after a fix* |
+
+**PE2 survived because every case pumped at cursor 0** — and the cursor
+*starts* at 0, so "stamp at the cursor" and "stamp at zero" are the same
+number until the song has played. The cursor check now advances the engine
+first. Writing that test also caught a bug in the test itself: I pumped
+between the two notes, so the second pump had one note left and `OUT[0]` was
+stale from the first — which read as "the snare came out first".
+
+**PJ2 survived because no test pushed a 303 release at all.**
+
+### Still open
+
+- **R5c** — the 303 release gap above, and the `midi_drain` wiring itself.
+- **P-19** — the flood cap; see the recommendation in the todo file.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane.

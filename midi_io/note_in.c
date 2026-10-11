@@ -109,6 +109,8 @@ int ri_notein_unclaimed(const struct RINoteIn *n, uint32_t ch) {
 int ri_notein_note(struct RINoteIn *n, struct RINoteInEvent *ev) {
     uint32_t dev;
     if (!n || !ev || ev->note > 127u) {
+        if (ev)
+            ev->resolved = 0u;
         if (n)
             n->refused++;
         return 1;
@@ -118,6 +120,7 @@ int ri_notein_note(struct RINoteIn *n, struct RINoteInEvent *ev) {
      * channel is refused and counted above. A caller who forgets
      * ri_notein_init gets a silent module, not channel 0 playing the
      * 303A -- which is what a plain device index would have given. */
+    ev->resolved = 0u;
     if (ri_notein_unclaimed(n, ev->ch)) {
         n->refused++;
         return 1;
@@ -128,6 +131,12 @@ int ri_notein_note(struct RINoteIn *n, struct RINoteInEvent *ev) {
         return 1;
     }
     ev->dev = (uint8_t)dev;
+    /* `resolved` IS SET ON EACH SUCCESS PATH, NOT ON THE WAY IN. I first
+     * set it just before the device switch, which is before every refusal
+     * below -- so a refused drum release came back with `resolved == 1`
+     * and `dev == 0`, and the app ring queued the note the player was
+     * trying to stop. A single flag set at the top of a function with six
+     * exits is a flag that means "I got past the first check". */
     if (dev == RI_NOTEIN_DEV_303A || dev == RI_NOTEIN_DEV_303B) {
         /* THE 303 TAKES THE PITCH AS IT COMES. `ri_p303_note` goes the
          * other way (a pattern row to a MIDI number); a DAW has already
@@ -147,6 +156,7 @@ int ri_notein_note(struct RINoteIn *n, struct RINoteInEvent *ev) {
             n->held[dev] = 0u;
             ev->accent = 0u;
             ev->slide = 0u;
+            ev->resolved = 1u;
             return 0;
         }
         /* LEGATO FROM OVERLAP (owner, 2026-10-11). A DAW has no slide
@@ -159,6 +169,7 @@ int ri_notein_note(struct RINoteIn *n, struct RINoteInEvent *ev) {
         n->held[dev] = 1u;
         /* ONE NAMED THRESHOLD, not a comparison in the handler. */
         ev->accent = (ev->vel >= RI_NOTEIN_ACCENT_VEL) ? 1u : 0u;
+        ev->resolved = 1u;
         return 0;
     }
     /* A DRUM IS NEVER A SLIDE. A 16th roll is exactly the overlap a 303
@@ -177,5 +188,6 @@ int ri_notein_note(struct RINoteIn *n, struct RINoteInEvent *ev) {
         n->refused++;
         return 1;
     }
+    ev->resolved = 1u;
     return 0;
 }
