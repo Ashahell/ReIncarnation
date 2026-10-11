@@ -414,6 +414,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t209_loop_render >/dev/null || { echo
 bash "$ROOT/scripts/ri_build_host.sh" test t210_song_sections >/dev/null || { echo "FAIL: t210_song_sections (R8g a song addressing more than one section)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t211_notein >/dev/null || { echo "FAIL: t211_notein (R5 an external sequencer plays the ReBirth voices)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t212_notein_app >/dev/null || { echo "FAIL: t212_notein_app (R5b the resolved note becomes an engine event)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t213_notein_ring >/dev/null || { echo "FAIL: t213_notein_ring (R5c the 303 release, and the P-19 flood cap)"; exit 1; }
 # MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
 # This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
 # approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo

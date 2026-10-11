@@ -2738,3 +2738,97 @@ stale from the first — which read as "the snare came out first".
 - **R5c** — the 303 release gap above, and the `midi_drain` wiring itself.
 - **P-19** — the flood cap; see the recommendation in the todo file.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane.
+
+## R5c: a live 303 note stops, and P-19 (2026-10-11)
+
+`midi_io/note_in_app.{c,h}`, t213. Two things R5b left open, both named in
+its own ledger entry.
+
+### THE 303 RELEASE — THE GAP R5b FLAGGED AND DELIBERATELY LEFT
+
+R5b refused a 303 release, so **a live 303 note never stopped**: it rang on
+until its envelope finished, every time. The consequence was flagged in R5b's
+commit message as "the first thing a listener would notice", and closing it
+is the whole of R5c's first half.
+
+**THE RELEASE CARRIES THE PITCH THAT WAS HELD.** `rb303_release(v)` takes
+only the voice, so the pitch is not what makes the sound — but the note tap
+records `value`, and **a release recorded against the wrong pitch is a
+record nobody can use**. R5a already knew the held pitch (it is the same
+gate state that makes a slide detectable), so the number was already there
+and throwing it away at the boundary would have been the only place the
+information was lost.
+
+**A DRUM STILL NEVER GETS A RELEASE.** A drum has no gate. That refusal is
+kept.
+
+### P-19: THE FLOOD CAP
+
+The spec names the mechanism — "oldest dropped and counted" — and leaves the
+number OPEN. **Recommended and implemented at 64 pending notes per device.**
+
+- **64 IS A LITTLE OVER FOUR BARS** of sixteenths (96 to the bar) at any
+  plausible tempo, so a legitimate drum roll never loses a hit.
+- **PER DEVICE, NOT GLOBAL.** A flood on the 808 must not consume the 303A's
+  budget: otherwise one loud channel silences a melodic one, and the symptom
+  is *"my bass line disappeared"* — which nobody can diagnose from a global
+  counter.
+- **A FIXED DEPTH MEANS A FLOOD CANNOT GROW A HEAP**, which is the stall the
+  spec actually names.
+
+**THE RING DEPTH AND THE FLOOD CAP ARE DIFFERENT NUMBERS.** R5b had one
+constant (`RI_NOTEIN_LIVE_CAP`, 64) doing both jobs, and calling it a depth
+while it silently acted as a rate policy is exactly the confusion that would
+have bitten whoever tuned it later. They are now `RI_NOTEIN_RING_CAP` (a
+**memory** bound — the array's size) and `RI_NOTEIN_FLOOD_CAP` (a **rate**
+bound, per device), settable via `ri_notein_live_set_cap`.
+
+**AN ABSURD CAP IS REFUSED, NOT CLAMPED**, and a refusal leaves the previous
+cap in place: clamping to the ring depth would be a silent policy choice
+(ask for 1000, get 64, never told), and zeroing it would leave a session
+with no cap at all.
+
+### TWO BUGS FOUND WHILE WRITING IT
+
+**THE DROPPED SLOT'S DEVICE BUDGET WAS NOT DECREMENTED.** The ring removed
+one of *that device's* notes, so `pending[dev]` had to come down with it.
+Without that, `pending[dev]` climbs past the cap forever while the ring
+stays the right size — the cap stops meaning anything after the first
+overflow. Mutant **QF**.
+
+**AN UNRESOLVED NOTE WAS COUNTED AGAINST THE 909.** I attributed the
+"dropped before any device is known" case to `dropped[RI_NOTEIN_DEV_COUNT -
+1u]`, which silently incremented the **909's** flood counter for every
+refusal — reporting a flooded channel nobody had played. It now has its own
+`dropped_unresolved` slot. The underlying reason it cannot be attributed:
+R5a leaves `dev` at 0 on a refusal, and **0 is 303A**, so any device
+attribution is a guess. Mutant **QI**.
+
+### MUTANTS: 10, all killed
+
+| id | mutation | result |
+|----|----------|--------|
+| QA | the 303 release is refused again | **KILLED** |
+| QB | the release carries no pitch | **KILLED** |
+| QC | the release is emitted as a note-ON | **KILLED** |
+| QD | the cap becomes global, not per device | **KILLED** |
+| QE/QE2 | the newest of that device is dropped | **KILLED** |
+| QF | the dropped slot's budget is not decremented | **KILLED** |
+| QG | an absurd cap clamps instead of refusing | **KILLED** |
+| QH | a pump does not release the budget | **KILLED** |
+| QI | the unresolved drop hits the 909's counter | **KILLED** |
+| QJ | the cap defaults to 0 | **KILLED** |
+
+**QE failed to build on the first attempt** — replacing the call orphaned
+`oldest_of_device` and `-Werror` caught it. A build failure is not a kill;
+the fixed mutant (QE2) keeps the function referenced and takes the *newest*
+matching slot instead, which is the behaviour actually under test.
+
+### Still open
+
+- **The `midi_drain` wiring itself.** `note_in_app` produces events and
+  nothing calls it from the app yet — that is mechanical, and it is the last
+  piece between this and a device that can hear anything.
+- **P-19 is at my recommended number, not the owner's.** The cap is settable,
+  so changing it is a constant.
+- **The combined M4 + R6 + lamp proof** — blocked on the lane.

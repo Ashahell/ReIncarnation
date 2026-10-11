@@ -152,8 +152,13 @@ int main(void) {
         RI_ASSERT(ri_notein_push(&LIVE, &ev) != 0u, "and refused here");
         RI_ASSERT(LIVE.queued == 0u, "nothing queued (%u)",
             (unsigned)LIVE.queued);
-        RI_ASSERT(LIVE.dropped == 1u, "but DROPPED AND COUNTED (%u)",
-            (unsigned)LIVE.dropped);
+        /* COUNTED WHERE IT BELONGS. A refused note has no device -- R5a leaves
+     * `dev` at 0, which IS 303A -- so attributing it to a device would be a
+     * guess. My first version wrote `dropped[RI_NOTEIN_DEV_COUNT - 1u]`,
+     * which silently incremented the 909's flood counter for every refusal
+     * and would have reported a channel nobody played. */
+    RI_ASSERT(LIVE.dropped_unresolved == 1u, "but DROPPED AND COUNTED (%u)",
+        (unsigned)LIVE.dropped_unresolved);
     }
 
     /* --- 5. AN UNRESOLVED NOTE IS NOT QUEUED ------------------------- */
@@ -177,24 +182,24 @@ int main(void) {
         uint32_t i;
         setup();
         bind_all();
-        for (i = 0u; i < RI_NOTEIN_LIVE_CAP + 4u; i++) {
+        for (i = 0u; i < RI_NOTEIN_RING_CAP + 4u; i++) {
             memset(&ev, 0, sizeof ev);
             ev.ch = 10u; ev.note = 36u; ev.vel = (uint8_t)(i & 127u);
             ev.on = 1u;
             ri_notein_note(&NI, &ev);
             ri_notein_push(&LIVE, &ev);
         }
-        RI_ASSERT(LIVE.queued == RI_NOTEIN_LIVE_CAP,
-            "the ring is bounded at %u (%u)", (unsigned)RI_NOTEIN_LIVE_CAP,
+        RI_ASSERT(LIVE.queued == RI_NOTEIN_RING_CAP,
+            "the ring is bounded at %u (%u)", (unsigned)RI_NOTEIN_RING_CAP,
             (unsigned)LIVE.queued);
-        RI_ASSERT(LIVE.dropped >= 4u, "and the overflow was counted (%u)",
-            (unsigned)LIVE.dropped);
+        { uint32_t d = 0u, k; for (k = 0u; k < RI_NOTEIN_DEV_COUNT; k++) d += LIVE.dropped[k];
+        RI_ASSERT(d >= 4u, "and the overflow was counted per device (%u)", (unsigned)d); }
         /* A PUMP OF A SHORT OUTPUT IS SAFE AND LOSES NOTHING: it returns
          * what fitted and leaves the rest, unlike the earlier R8e stem
          * buffer that silently refused everything. */
         got = ri_notein_pump(&LIVE, &E, OUT, 4u);
         RI_ASSERT(got == 4u, "four into four (%u)", (unsigned)got);
-        RI_ASSERT(LIVE.queued == RI_NOTEIN_LIVE_CAP - 4u,
+        RI_ASSERT(LIVE.queued == RI_NOTEIN_RING_CAP - 4u,
             "and the rest waits (%u)", (unsigned)LIVE.queued);
     }
 
@@ -204,7 +209,7 @@ int main(void) {
     {
         struct RINoteInEvent ev;
         uint32_t i;
-        for (i = 0u; i < RI_NOTEIN_LIVE_CAP; i++) {
+        for (i = 0u; i < RI_NOTEIN_RING_CAP; i++) {
             memset(&ev, 0, sizeof ev);
             ev.ch = 10u; ev.note = 36u; ev.vel = 100u; ev.on = 1u;
             ri_notein_note(&NI, &ev);
@@ -212,7 +217,7 @@ int main(void) {
         }
         got = ri_notein_pump(&LIVE, &E, OUT, 0u);
         RI_ASSERT(got == 0u, "no room, nothing pumped (%u)", (unsigned)got);
-        RI_ASSERT(LIVE.queued == RI_NOTEIN_LIVE_CAP,
+        RI_ASSERT(LIVE.queued == RI_NOTEIN_RING_CAP,
             "and the ring is untouched (%u)", (unsigned)LIVE.queued);
     }
 
@@ -281,13 +286,17 @@ int main(void) {
         ev.ch = 1u; ev.note = 60u; ev.on = 0u;
         RI_ASSERT(ri_notein_note(&NI, &ev) == 0u,
             "the release resolves in R5a (the gate is known)");
-        RI_ASSERT(ri_notein_push(&LIVE, &ev) != 0u,
-            "but this ring REFUSES it: a 303 needs a NOTE_OFF event, and"
-            " queueing it as a note-on would re-strike the note");
-        RI_ASSERT(LIVE.queued == 1u, "so only the note-on waits (%u)",
+        /* SUPERSEDED BY R5c, WHICH QUEUES IT. This assertion documented
+         * R5b's behaviour and R5c deliberately changed it: refusing the
+         * release meant a live 303 note rang on until its envelope
+         * finished, every time, which is the bug R5c exists to close. The
+         * refusal R5c KEPT is the drum's. */
+        RI_ASSERT(ri_notein_push(&LIVE, &ev) == 0u,
+            "R5c QUEUES it -- a 303 has a gate, and not releasing it means"
+            " the note never stops");
+        RI_ASSERT(LIVE.queued == 2u, "so both wait (%u)",
             (unsigned)LIVE.queued);
-        RI_ASSERT(LIVE.dropped == 1u, "and the release is counted (%u)",
-            (unsigned)LIVE.dropped);
+
     }
 
     /* --- 8. NULLs ----------------------------------------------------- */
