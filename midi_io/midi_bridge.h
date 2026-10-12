@@ -100,6 +100,9 @@ struct RIMidiSettings {
     uint8_t mmc_out;   /* 0/1 */
     uint8_t dev_out;   /* 0/1, note out (R6) */
     uint8_t note_ch;   /* 0 = unassigned, else 1..16 (R6f) */
+    /* R5: the 909's OWN note-input channel. The 808 needs none -- see
+     * midi_settings_notein_ch -- and the 303s follow `note_ch`. */
+    uint8_t in909_ch;  /* 0 = unassigned, else 1..16 (R5e) */
     int16_t pad;
 };
 
@@ -122,6 +125,23 @@ struct RIMidiSettings {
  *
  * Drums are unaffected: GM channel 10, and no channel needed at all. */
 int midi_settings_note_ch(const struct RIMidiSettings *s);
+
+/* The R5 note-INPUT channel for a device, 0-BASED, or -1 for none.
+ *
+ * OWNER DECISION 2026-10-11, and it has to agree with R6f or a device would
+ * be silent on the way out and loud on the way in:
+ *
+ *  - **THE 808 IS IMPLICIT ON GM CHANNEL 10** (index 9). R6f already decided
+ *    there is deliberately NO drum channel setting, because GM defines
+ *    percussion on channel 10 and "not a choice" is not something a control
+ *    can express. The same reasoning holds inbound.
+ *  - **THE 303s FOLLOW `note_ch`**, the same opt-in channel R6f defined.
+ *  - **THE 909 IS OPT-IN via `in909_ch`.** It cannot also be implicit: two
+ *    devices cannot share channel 10, and picking a winner would be a guess
+ *    dressed as a default. So the 909 is unassigned until someone says so,
+ *    which is R6f's "0 = unassigned, never defaulted" verbatim.
+ */
+int midi_settings_notein_ch(const struct RIMidiSettings *s, uint32_t dev);
 
 void midi_settings_defaults(struct RIMidiSettings *s);
 /* 0 accepted, 1 bad field/value (previous value kept). */

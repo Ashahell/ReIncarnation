@@ -94,6 +94,8 @@
 #include "gui/midimap.h"
 #include "gui/miditrans.h"
 #include "midi_io/midi_bridge.h"
+#include "midi_io/note_in.h"
+#include "midi_io/note_in_app.h"
 #include "midi_io/midi_chan.h"
 #include "midi_io/midi_levi.h"
 #include "midi_io/midi_out.h"
@@ -161,6 +163,17 @@ static struct RIAppCore s_core; /* portable session wiring (T8) */
 static float s_fl[RIAPP_FRAMES], s_fr[RIAPP_FRAMES];
 static struct AuLive s_lv;
 static int s_live; /* AHI backend up (render task owns the session) */
+
+/* R5e: THE NOTE-INPUT RING, OWNED HERE AND NOT BY THE SESSION. `ri_live-
+ * notein` takes a borrowed pointer and copies nothing, deliberately: the
+ * ring belongs to the MIDI layer, outlives any one session, and a copy
+ * inside the session would be a second ring whose contents could disagree
+ * with the first. Both live at file scope for the same reason -- the drain
+ * and the render task must see the SAME ring. */
+static uint32_t s_notein_played;   /* R5e: notes queued for the machines */
+static uint32_t s_notein_refused;  /* R5e: claimed-channel notes that resolved to nothing */
+static struct RINoteIn s_notein;
+static struct RINoteLive s_notelive;
 
 static struct RIPanelUI s_panel;
 /* MIDI input (M2): the 15 value canvases feed the push shadow; the
@@ -941,6 +954,41 @@ static void midi_drain(void) {
                 s_midi_levi_perf++;
                 evlog("LEVI", "perf %u val %u hi %u", (unsigned)la.perf,
                     (unsigned)la.val, (unsigned)la.hi);
+            }
+        }
+        /* R5e: A CLAIMED CHANNEL'S NOTE IS A NOTE THE MACHINES PLAY.
+         *
+         * CHECKED AFTER `ri_midi_msg` and NOT INSTEAD OF IT: the panel's own
+         * MIDI path must see every message regardless, and swallowing the
+         * ones that also happen to be notes would make the panel's view
+         * depend on a setting this feature added.
+         *
+         * The status high nibble is the channel's voice and the low nibble
+         * the channel, 0..15. 0x8/0x9 are note-off/note-on; 0xA/0xB/0xE
+         * share the nibble but are not notes and must not be mistaken for
+         * one -- a poly-aftertouch on channel 10 is not a bass drum. */
+        {
+            uint8_t st = s_midi_msgs[i].b[0];
+            uint8_t hi = (uint8_t)(st & 0xF0u);
+            uint8_t ch = (uint8_t)(st & 0x0Fu);
+            if ((hi == 0x90u || hi == 0x80u) &&
+                    !ri_notein_unclaimed(&s_notein, ch)) {
+                struct RINoteInEvent nev;
+                memset(&nev, 0, sizeof nev);
+                nev.ch = ch;
+                nev.note = s_midi_msgs[i].b[1];
+                nev.vel = s_midi_msgs[i].b[2];
+                /* VELOCITY 0 IS A NOTE-OFF, and MIDI says so on the note-on
+                 * status. Reading it as a note-on would leave the note
+                 * sounding forever -- the running-status idiom every DAW
+                 * uses to save bytes. */
+                nev.on = (hi == 0x90u && s_midi_msgs[i].b[2] != 0u) ? 1u : 0u;
+                if (ri_notein_note(&s_notein, &nev) == 0) {
+                    if (ri_notein_push(&s_notelive, &nev) == 0)
+                        s_notein_played++;
+                } else {
+                    s_notein_refused++;
+                }
             }
         }
         ri_midi_msg(&s_midi, &s_panel, s_midi_msgs[i].b[0], s_midi_msgs[i].b[1],
@@ -2759,6 +2807,36 @@ static void midi_setup(void) {
     midi_chan_defaults(&s_chan);
     midi_chan_bind(&s_chan, RI_MCHAN_REMOTE, s_mset.channel);
     midi_chan_bind(&s_chan, RI_MCHAN_LEVI, s_mset.levi_ch);
+    /* R5e: CLAIM THE NOTE-INPUT CHANNELS, COUNTING THE IMPLICIT ONE.
+     *
+     * The 808 claims GM channel 10 without being asked (R6f: percussion is
+     * not a choice), the 303s follow `note_ch`, and the 909 is opt-in. Each
+     * is attempted and each refusal is logged rather than assumed away: a
+     * bind that fails because a channel is taken is a SETTINGS CONFLICT, and
+     * silently carrying on would leave a device that can never be heard. */
+    ri_notein_init(&s_notein);
+    ri_notein_live_init(&s_notelive);
+    {
+        static const uint16_t devs[RI_NOTEIN_DEV_COUNT] = {
+            RI_NOTEIN_DEV_303A, RI_NOTEIN_DEV_303B,
+            RI_NOTEIN_DEV_808, RI_NOTEIN_DEV_909
+        };
+        uint32_t di;
+        for (di = 0u; di < RI_NOTEIN_DEV_COUNT; di++) {
+            int ch = midi_settings_notein_ch(&s_mset, devs[di]);
+            int rc;
+            if (ch < 0)
+                continue;               /* unassigned is a choice, not a fault */
+            rc = ri_notein_bind(&s_notein, (uint32_t)ch, devs[di]);
+            evlog("NOTEIN", "dev %u ch %d %s", (unsigned)devs[di], ch + 1,
+                rc == 0 ? "bound" : "REFUSED (channel taken)");
+        }
+        evlog("NOTEIN", "bound %u drums_implicit=%u",
+            (unsigned)midi_chan_n(&s_chan), (unsigned)s_notein.drums_claimed);
+    }
+    /* ATTACH THE RING TO THE LIVE SESSION. One pointer assignment; the
+     * render task's cost is a single NULL-or-not compare per buffer. */
+    ri_live_notein(&s_core.session, &s_notelive);
     evlog("LEVI", "chan remote=%lu levi=%lu devices=%lu",
         (ULONG)s_mset.channel, (ULONG)s_mset.levi_ch, (ULONG)midi_chan_n(&s_chan));
     /* M5 clock out (E0, off by default). The render fills this ring and

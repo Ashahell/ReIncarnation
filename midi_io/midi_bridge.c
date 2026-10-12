@@ -1,6 +1,7 @@
 /* midi_bridge.c — MIDI bridge core bodies (M2). See header for the law.
  * Render-contract safe: bounded, caller storage, no static state. */
 #include "midi_io/midi_bridge.h"
+#include "midi_io/note_in.h"   /* RI_NOTEIN_DEV_* (R5e) */
 
 #define CH_MASK (RI_MBR_CH_CAP - 1u)
 #define IN_MASK (RI_MBR_IN_CAP - 1u)
@@ -157,6 +158,26 @@ int midi_settings_note_ch(const struct RIMidiSettings *s) {
     return ch ? (int)(ch - 1u) : -1;
 }
 
+int midi_settings_notein_ch(const struct RIMidiSettings *s, uint32_t dev) {
+    if (!s)
+        return -1;
+    switch (dev) {
+    case RI_NOTEIN_DEV_808:
+        /* GM percussion, not a choice (R6f). Returned so the caller can
+         * count the implicit claim rather than hard-coding 9 in two
+         * places. */
+        return 9;
+    case RI_NOTEIN_DEV_303A:
+    case RI_NOTEIN_DEV_303B:
+        return midi_settings_note_ch(s);
+    case RI_NOTEIN_DEV_909:
+        /* OPT-IN. 0 is unassigned and is NOT defaulted -- see the header. */
+        return s->in909_ch ? (int)(s->in909_ch - 1u) : -1;
+    default:
+        return -1;
+    }
+}
+
 void midi_settings_defaults(struct RIMidiSettings *s) {
     static const char dflt[] = "riapp";
     uint32_t i;
@@ -172,6 +193,7 @@ void midi_settings_defaults(struct RIMidiSettings *s) {
     s->clk_out = 0u;
     s->lat_ms = 0;
     s->mmc_out = 0u;   /* E0: off */
+    s->in909_ch = 0u;  /* R5e: unassigned, never defaulted */
     s->dev_out = 0u;   /* E0: off -- a separate switch from clk_out, for
                         * the reason in RI_MIDI_SET_DEV_OUT */
     s->note_ch = 0u;   /* UNASSIGNED, never defaulted: there is no channel

@@ -2938,3 +2938,88 @@ inside the mutant so the compiler accepts the code being tested.
 - **Unhearable.** No lane has a USB-MIDI device. Everything above is
   host-tested, mutation-tested and now **target-link-verified**, and none of
   it has been heard.
+
+## R5e: the app drains a note into a machine (2026-10-12)
+
+`app/riapp.c`, `midi_io/midi_bridge.{c,h}`, t215. R5d left one thing unwired
+and named it: *"`ri_live_notein()` exists and the pump is wired into the live
+path, but nothing attaches a ring."* This closes that.
+
+### THE SETTINGS ARE THE POLICY, IN ONE TESTED FUNCTION
+
+R5a decided the **shape** and R6f decided there is deliberately **no drum
+channel setting**. Those two meet here, and the risk is that they quietly
+disagree — a device silent on the way out and loud on the way in.
+
+- **THE 808 IS IMPLICIT ON GM CHANNEL 10, AND IT IS NOT A SETTING.** R6f's
+  own words: *"GM defines percussion on channel 10 and it is not a choice, so
+  a control for it could not do anything."* The same reasoning holds inbound,
+  so there is no `drum_ch` field and the answer is 9 whatever the settings
+  say. Mutant **SA** makes it follow `note_ch` and is killed.
+- **THE 303s FOLLOW `note_ch`** — the channel R6f already defined, so there
+  is **one** melodic setting rather than two that can disagree. Mutant **SC**
+  gives the 303B its own channel and is killed.
+- **THE 909 IS OPT-IN AND NEVER DEFAULTED.** It cannot be implicit too: two
+  devices cannot share channel 10 and `ri_notein_bind` refuses the second.
+  Picking a winner would be **a guess dressed as a default**, so `in909_ch` of
+  0 means unassigned, exactly as R6f's `note_ch` of 0 does. Mutants **SB**
+  (defaults to a channel) and **SE** (1-based rather than 0-based) are killed.
+
+**An unknown device returns -1, not channel 10** — mutant **SD** drops the
+`default` arm and is killed, because a fallthrough would hand the drum
+channel to anything that asked.
+
+### THE DRAIN: VELOCITY 0 IS A NOTE-OFF
+
+MIDI says so on the note-on status, and every DAW uses it to save bytes.
+**Reading it as a note-on would leave the note sounding forever** — R5c's
+exact bug, reintroduced from the wire rather than from the ring.
+
+The status high nibble selects **0x8/0x9 only**: 0xA/0xB/0xE share the
+channel nibble but are not notes, and **a poly-aftertouch on channel 10 is not
+a bass drum**.
+
+**THE PANEL'S OWN PATH STILL SEES EVERY MESSAGE.** The check runs *after*
+`ri_midi_msg`, not instead of it: swallowing the messages that also happen to
+be notes would make the panel's view depend on a setting this feature added.
+
+### THE RING IS OWNED BY THE APP, NOT THE SESSION
+
+Both `struct RINoteIn` and `struct RINoteLive` are file-scope in `riapp`, and
+`ri_live_notein()` takes a borrowed pointer and copies nothing. The ring
+outlives any one session, and a copy inside it would be a **second ring whose
+contents could disagree with the first**. The drain and the render task must
+see the same ring, which is why it is file-scope rather than per-session.
+
+Every bind is attempted and **every refusal is logged** rather than assumed
+away: a bind that fails because a channel is taken is a **settings conflict**,
+and carrying on silently would leave a device that can never be heard.
+
+### Verified on target, not just host
+
+`bash scripts/ri_build_aros.sh riapp` → **`AROS RIAPP BUILD OK (1192144
+bytes)`**, 29 engine objects at `-O2`, 66 app/GUI at `-O0`, under `-Werror`.
+Note the target is the bare argument `riapp`: `. out riapp` prints
+`STUB BUILD OK` and builds **nothing**, which is the fall-through the wiki
+already recorded once for `ri_build_v11.sh`.
+
+### Mutants: 5, all killed
+
+SA the 808 follows a setting · SB the 909 defaults · SC the 303s get their
+own channel · SD an unknown device falls through to channel 10 · SE the
+channels are 1-based.
+
+### Still open
+
+- **Unhearable, and now more so.** The path is complete on paper — a claimed
+  channel's note resolves, queues, pumps into the live session, sorts with
+  the pattern under one §8 key — and **no lane has a USB-MIDI device**, so
+  none of it has been heard. The `s_notein_played` / `s_notein_refused`
+  counters exist precisely so that when a lane does arrive, the first thing
+  to read is whether notes were queued at all.
+- **The owner question this surfaced:** with two drum devices and one GM
+  channel, only the 808 can be implicit. **Should the 909 be opt-in, or
+  should both answer channel 10 with the device chosen by a switch?** I chose
+  opt-in because a silent tie-break is a guess; this is a one-constant change
+  either way, and it is a decision about how a DAW's GM drum track addresses
+  two machines, not something the code can settle.
