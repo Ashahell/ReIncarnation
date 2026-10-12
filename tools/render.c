@@ -93,9 +93,11 @@ static int16_t f32_to_s16(float x) {
     return (int16_t)(c - 0.5f);
 }
 
-/* Returns 0 on success. Depth 16|24 (TC-2.13.4); the 16-bit path
- * converts through f32_to_s16 exactly as before, so existing goldens
- * are byte-identical by construction. */
+/* Returns 0 on success. Depth 16|24|32 (TC-2.13.4 + P3's last option);
+ * the 16-bit path converts through f32_to_s16 exactly as before, so
+ * existing goldens are byte-identical by construction. 32 is IEEE float
+ * and rides `auf_wav_header`'s format code 3 -- NOT a code-1 file with
+ * 32-bit samples, which opens and plays as noise. */
 static int write_wav(const char *path, const float *pcm, uint32_t total,
     int depth) {
     unsigned char hdr[44];
@@ -105,8 +107,8 @@ static int write_wav(const char *path, const float *pcm, uint32_t total,
         printf("render: cannot open --out %s\n", path);
         return 2;
     }
-    if (depth != 16 && depth != 24) {
-        printf("render: bad --depth %d (want 16|24)\n", depth);
+    if (depth != 16 && depth != 24 && depth != 32) {
+        printf("render: bad --depth %d (want 16|24|32)\n", depth);
         fclose(f);
         return 2;
     }
@@ -120,7 +122,17 @@ static int write_wav(const char *path, const float *pcm, uint32_t total,
         return 2;
     }
     for (i = 0; i < total; i++) {
-        if (depth == 24) {
+        if (depth == 32) {
+            /* IEEE float, unclipped. The mix is post-limiter here, but the
+             * argument is the app sink's: clamping a float export throws
+             * away the only headroom the format exists to carry. */
+            float v = pcm[i];
+            if (fwrite(&v, 4, 1, f) != 1) {
+                printf("render: write failed %s\n", path);
+                fclose(f);
+                return 2;
+            }
+        } else if (depth == 24) {
             int32_t s = auf_f32_to_s24(pcm[i]);
             unsigned char b[3];
             b[0] = (unsigned char)(s & 0xff);
@@ -157,7 +169,13 @@ static int write_aiff(const char *path, const float *pcm, uint32_t total,
         return 2;
     }
     if (depth != 16 && depth != 24) {
-        printf("render: bad depth %d (want 16|24)\n", depth);
+        /* 32 IS REFUSED HERE DELIBERATELY, and the message says so, because
+         * `--depth 32` is now legal and a bare "bad depth" would read as a
+         * contradiction. AIFF float needs an fl32/FL32 compression type and
+         * a different COMM layout; this builder writes neither, so it
+         * refuses rather than emitting a file it cannot describe. */
+        printf("render: --format aiff takes 16|24 only; 32 (IEEE float) is a "
+            "WAV format here (got %d)\n", depth);
         fclose(f);
         return 2;
     }
@@ -1003,7 +1021,14 @@ static int render_song(const char *song_path, const char *out_path, const char *
      * total: sharing the mono `pcm` pass would mean the strips came from a
      * mono fold rather than from the mix they are supposed to decompose. */
     if (stems_dir) {
-        uint32_t depth = (g_depth == 24) ? STEM_WAV_PCM24 : STEM_WAV_PCM16;
+        /* P3'S LAST OPTION: 32-BIT IEEE FLOAT. `stem_render` has accepted
+         * STEM_WAV_F32 since R8a and t197 covers it -- the WRITER was never
+         * the missing piece, only the CLI's two-word gate. The mapping is
+         * spelled out rather than folded into a ternary, because a depth that
+         * is neither 16 nor 24 used to fall through to 16 SILENTLY: a caller
+         * asking for 8 would have got a 16-bit file and no complaint. */
+        uint32_t depth = (g_depth == 24) ? STEM_WAV_PCM24 :
+            (g_depth == 32 ? STEM_WAV_F32 : STEM_WAV_PCM16);
         rc = render_stems(ev, nev, (uint32_t)total, stems_dir, g_rate, depth,
             (uint32_t)tempo * 1000u, g_fx != 0);
         if (rc != 0)
@@ -1766,7 +1791,8 @@ int main(int argc, char **argv) {
         printf("       [--bars N]     render N whole bars -- a loop a DAW can warp\n");
         printf("       [--from BAR]  start at bar BAR (default 0)\n");
         printf("       [--tail MS]    additive decay after the last bar\n");
-        printf("       [--depth 16|24, default 16] [--rate 48000|44100, default 48000]\n");
+        printf("       [--depth 16|24|32, default 16; 32 is IEEE float]\n");
+        printf("       [--rate 48000|44100, default 48000]\n");
         printf("       [--format wav|aiff, default wav]\n");
         printf("One 303, one pattern, offline, deterministic (D1).\n");
         printf("NOTE: this golden proves determinism + skeleton, NOT parity.\n");
@@ -1795,8 +1821,11 @@ int main(int argc, char **argv) {
             vmix = argv[++i];
         else if (strcmp(argv[i], "--depth") == 0 && i + 1 < argc) {
             int d = atoi(argv[++i]);
-            if (d != 16 && d != 24) {
-                printf("render: bad --depth (want 16|24)\n");
+            /* 32 IS IEEE FLOAT, WHICH IS WAVE FORMAT CODE 3 -- not format 1
+             * with 32 bits. Both sinks below emit the right code; this gate
+             * only has to let the request through and refuse the rest. */
+            if (d != 16 && d != 24 && d != 32) {
+                printf("render: bad --depth (want 16|24|32)\n");
                 return 2;
             }
             g_depth = d;

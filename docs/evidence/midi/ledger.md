@@ -3135,3 +3135,130 @@ correctly named empty files.
 - **`ri_engine_set_delay` has no caller in `tools/render`**, so the FX buses
   are structurally silent without the attach `--fx` now does. That is a tool
   gap, not an engine one -- `app/core/riapp_core.c` attaches it.
+
+## P3's last option: 32-bit IEEE float (2026-10-12)
+
+`audio_io/audio.c`, `tools/render.c`, `tests/unit/{t28,t217}`, `scripts/ri_audit.sh`.
+The spec's option line reads "Options: 44.1 or 48 kHz, 16/24-bit and **32-bit
+float**". 44.1/48 and 16/24 were delivered; float was not, and the reason was
+not that the writer lacked it.
+
+### THE WRITER ALREADY DID FLOAT. THE CLI SAID `16|24`.
+
+`project/stem_wav.c` has carried `STEM_WAV_F32` since R8a and t197 has covered
+it -- including format code 3 and the note that "format 1 with 32 bits" is a
+different thing. The **mix** path did not: `tools/render`'s `write_wav` and
+`audio_io`'s two WAV sinks all hardcoded **format code 1** in `auf_wav_header`
+and refused depth 32.
+
+**SO THE TREE HAD TWO WAV WRITERS THAT DISAGREED ABOUT WHAT A FLOAT WAV IS**,
+and the one with the correct answer was not the one anyone renders a mix
+through. Opening the CLI without opening the header would have produced the
+exact file `stem_wav.c`'s comment warns about: correctly sized, correctly
+labelled, **noise**. The hazard is that every *other* field of such a file is
+right -- byte count, byte rate, block align, bits -- so nothing short of
+reading the tag would have caught it.
+
+### THE DEPTH GATE WAS WRITTEN THREE TIMES
+
+`auf_wav_header`, `au_render_song_to_wav_depth` and `AuRenderToFileDepth`,
+in three different eras. The first two were opened by text substitution and
+the third was missed, and the shape that produces is the worst a gate can
+have: **the CLI accepts 32, the API refuses it, and the caller's complaint is
+a file that was not written, with no message saying why.** t217 found it
+because it renders through the API rather than through the tool's own loop.
+
+### THREE MUTATIONS, ONE SHAPE: A ONE-SIDED GATE PROVES NOTHING
+
+The audit already rendered the tool at `--depth 24` and `--rate 44100` and
+**never at 32**, so the float path was ungated at the start. Adding a float
+gate then left three survivors, all the same mistake:
+
+| mutation | killed by | why it first survived |
+|---|---|---|
+| `ND` any non-24 depth falls through to F32 | the 16-bit stem arm | the gate only ever asked for 32 |
+| `NF` stems always float | the 16-bit stem arm | same |
+| `NG` `--depth 24` quietly becomes 16 | the 24-bit stem arm | the default-16 arm cannot see it |
+
+**A GATE THAT ONLY EVER EXERCISES ONE ARM OF A SELECT CANNOT PROVE ANY OTHER
+ARM.** So all three depths now go through one loop with the expectation as a
+parameter, and omitting `--depth` is checked separately by comparing the
+render byte-for-byte against `--depth 16` -- because the loop has to pass 16
+explicitly (0 is refused), and would pass just as happily against a default of
+24.
+
+Two more audit-side faults worth the same weight:
+
+- **`msg=$(cmd_that_exits_2)` KILLS THE AUDIT UNDER `set -e`.** A command
+  substitution in an assignment inherits the command's status, so capturing
+  the AIFF refusal message ended the run with `AUDIT=2` and **no output at
+  all** -- before anything checked anything. Fixed with `|| :`, and the fix
+  says why it is load-bearing.
+- **BLOCK ALIGN IS PER FRAME, NOT PER SAMPLE.** The first stem gate asserted
+  `align == 4` and failed on `8`, because the stems are stereo and 8 is
+  4 bytes x 2 channels -- which is correct. Asserting the mono constant on a
+  stereo file is how a right answer gets reported as a defect, so the law
+  asserted is the relation.
+
+### OPEN, FOR THE OWNER: DOES A FLOAT STEM CLAMP AT FULL SCALE?
+
+Measured, not assumed:
+
+```
+stem_wav  F32 sample 0: in +1.500 -> out +1.000000
+stem_wav  F32 sample 1: in -1.500 -> out -1.000000
+```
+
+`stem_wav.c` clamps **every** depth at +-1, so a float stem hotter than full
+scale is clipped -- irreversibly, in the file. R8b/R8c made the stems
+**pre-master and pre-limiter**, so a stem above 1.0 is expected rather than
+exceptional, and clipping it throws away the only reason to export float.
+
+The two **mix** sinks do not clamp, and within `au_render_song_to_wav_depth`
+that is an inconsistency *inside one function*: the 16/24 paths go through
+`auf_f32_to_s16`/`auf_f32_to_s24`, which clamp via `auf_clampf`, and the
+float path added here does not.
+
+**Left as it is, deliberately, and commented as inconsistent in the source.**
+Which way to resolve it changes what an already-delivered stem contains, and
+that is a sound decision rather than mine. `stem_wav.c`'s clamp is not pinned
+by any assertion -- t197 checks header fields, not sample values -- so a
+change there is cheap when the owner rules.
+
+### Evidence
+
+```
+   --depth 32 ok: format 3, 32 bits, align 4, peak 0.499999 (16-bit 0.499969)
+   --stems --depth 16 ok: 1 file(s), format 1, 16-bit
+   --stems --depth 24 ok: 1 file(s), format 1, 24-bit
+   --stems --depth 32 ok: 1 file(s), format 3, 32-bit
+   default --stems ok: identical to --depth 16
+```
+
+The peak is compared against the **16-bit render of the same song**, not
+against an absolute band. My first check asserted `0.9 < peak < 1.05` and
+failed at once, because `--math dc` renders at 0.5 -- the band was a statement
+about the generator, not about the writer.
+
+### Mutants: 20, all killed
+
+`MA` format code 1 for every depth · `MB` format code 3 for every depth ·
+`MC` block align frozen at 2 · `MD` byte rate unscaled · `ME` data size
+unscaled · `MF` the shared header refuses 32 · `MG` 20-bit rounds to 24 ·
+`MH` the API wrapper refuses 32 · `MI` the sink refuses 32 · `MJ` float
+samples written as 16-bit under a format-3 tag · `MK` the AIFF builder
+accepts 32 · `NA` the tool's mix writer sends 32 down the 16-bit branch ·
+`NB` the CLI refuses 32 · `NC` the stems' mapping drops F32 · `ND` any non-24
+depth falls through to F32 · `NE` the AIFF refusal stops explaining itself ·
+`NF` the stems are float whatever the depth · `NG` the mapping ignores 24 ·
+`NH` the stems are 16-bit whatever the depth · `NI` the default is 24, not 16.
+
+`MK` is worth naming: opening 32 in the **WAV** header is one line away from
+opening it in the **AIFF** header, and AIFF float needs an fl32/FL32
+compression type and a different COMM layout. The AIFF builder still refuses,
+and now says so in a message that mentions float, because `--depth 32` is
+legal everywhere else and a bare "bad depth 32" reads as a contradiction.
+
+`MJ` and `NA` are the same bug at two layers: both write **integers under a
+format-3 tag**, which is the failure mode this whole option is about, and
+which passes every length and header check.

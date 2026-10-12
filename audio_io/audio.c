@@ -461,7 +461,14 @@ int auf_aiff_header(unsigned char hdr[54], uint32_t frames, uint8_t depth,
 int auf_wav_header(unsigned char hdr[44], uint32_t total, uint8_t depth,
     uint32_t sr) {
     uint32_t bps, bytes;
-    if (depth != 16u && depth != 24u)
+    /* 32 IS IEEE FLOAT AND IS WAVE FORMAT CODE 3 -- not format 1 with 32
+     * bits. Accepting the depth is the easy half; the FORMAT CODE is the half
+     * that matters, because a file carrying code 1 with 32 bits OPENS AND
+     * PLAYS AS NOISE: the reader takes float bits for a 32-bit integer and
+     * every sample is nonsense. `project/stem_wav.c` has always got this
+     * right for the stem sink, so the two WAV writers in this tree disagreed
+     * about what a float WAV is. */
+    if (depth != 16u && depth != 24u && depth != 32u)
         return 2;
     if (sr == 0u)
         return 2;
@@ -472,7 +479,7 @@ int auf_wav_header(unsigned char hdr[44], uint32_t total, uint8_t depth,
     write_u32(hdr + 4, 36u + bytes);
     memcpy(hdr + 8, "WAVEfmt ", 8);
     write_u32(hdr + 16, 16u);
-    write_u16(hdr + 20, 1u);
+    write_u16(hdr + 20, depth == 32u ? 3u : 1u);
     write_u16(hdr + 22, 1u);
     write_u32(hdr + 24, sr);
     write_u32(hdr + 28, sr * bps);
@@ -502,7 +509,11 @@ int au_render_song_to_wav_depth(struct AudioObject *ao, const char *path,
     unsigned char hdr[44];
     if (!ao || !path || chunk == 0 || chunk > RI_DEVICE_FRAMES)
         return 2;
-    if (depth != 16u && depth != 24u)
+    /* 32 = IEEE float. The AIFF builder beside it still refuses 32, which is
+     * correct rather than an oversight: AIFF float needs an fl32/FL32
+     * compression type and a different COMM layout, and inventing that is a
+     * port nobody asked for. Refusing is the honest answer. */
+    if (depth != 16u && depth != 24u && depth != 32u)
         return 2;
     if (auf_render_source(ao) < 0)
         return 2;
@@ -538,7 +549,29 @@ int au_render_song_to_wav_depth(struct AudioObject *ao, const char *path,
             got = want;
         }
         for (k = 0; k < got; k++) {
-            if (depth == 24u) {
+            if (depth == 32u) {
+                /* IEEE float, written as its own four bytes.
+                 *
+                 * NO CLAMP HERE, and that is the one deliberate difference
+                 * from `stem_wav.c` and from the 16/24 paths below: a float
+                 * sink that clips at +-1 gives up the only reason to export
+                 * float in the first place. R8b/R8c made the stems
+                 * PRE-MASTER and PRE-LIMITER, so a stem hotter than 1.0 is
+                 * expected, and clamping it is irreversible in the file.
+                 *
+                 * This inconsistency is OPEN, not settled -- the owner rules
+                 * on it, because changing what an already-delivered stem
+                 * contains is a sound decision and not mine. See the ledger.
+                 *
+                 * Native little-endian, the same assumption `stem_wav.c`
+                 * makes in `put32`/`memcpy`; WAV is LE and every target we
+                 * build for is. */
+                float v = fbuf[k];
+                if (fwrite(&v, 4, 1, f) != 1) {
+                    fclose(f);
+                    return 2;
+                }
+            } else if (depth == 24u) {
                 int32_t s = auf_f32_to_s24(fbuf[k]);
                 unsigned char b[3];
                 b[0] = (unsigned char)(s & 0xff);
@@ -570,7 +603,15 @@ int AuRenderToFileDepth(struct AudioObject *ao, const char *path,
     uint64_t cap = 0;
     if (!ao || !path || !ao->started)
         return 2;
-    if (depth != 16u && depth != 24u)
+    /* THE THIRD COPY OF THE DEPTH GATE. There is one in `auf_wav_header`,
+     * one in `au_render_song_to_wav_depth` and this one, written three times
+     * and legal in three different eras. Opening the first two and missing
+     * this one gives the worst shape a gate can have: the CLI accepts 32,
+     * the API refuses it, and the caller's complaint is a file that was not
+     * written -- with no message saying why. All three now agree, and the
+     * test that found the third is t217, which renders through the API
+     * rather than through the tool's own loop. */
+    if (depth != 16u && depth != 24u && depth != 32u)
         return 2;
     if (ms > 0) {
         cap = (uint64_t)ms * (RI_AUDIO_SR / 1000u);
@@ -593,7 +634,11 @@ int au_render_song_to_aiff(struct AudioObject *ao, const char *path,
     unsigned char hdr[54];
     if (!ao || !path || chunk == 0 || chunk > RI_DEVICE_FRAMES)
         return 2;
-    if (depth != 16u && depth != 24u)
+    /* 32 = IEEE float. The AIFF builder beside it still refuses 32, which is
+     * correct rather than an oversight: AIFF float needs an fl32/FL32
+     * compression type and a different COMM layout, and inventing that is a
+     * port nobody asked for. Refusing is the honest answer. */
+    if (depth != 16u && depth != 24u && depth != 32u)
         return 2;
     if (auf_render_source(ao) < 0)
         return 2;
@@ -627,7 +672,29 @@ int au_render_song_to_aiff(struct AudioObject *ao, const char *path,
             got = want;
         }
         for (k = 0; k < got; k++) {
-            if (depth == 24u) {
+            if (depth == 32u) {
+                /* IEEE float, written as its own four bytes.
+                 *
+                 * NO CLAMP HERE, and that is the one deliberate difference
+                 * from `stem_wav.c` and from the 16/24 paths below: a float
+                 * sink that clips at +-1 gives up the only reason to export
+                 * float in the first place. R8b/R8c made the stems
+                 * PRE-MASTER and PRE-LIMITER, so a stem hotter than 1.0 is
+                 * expected, and clamping it is irreversible in the file.
+                 *
+                 * This inconsistency is OPEN, not settled -- the owner rules
+                 * on it, because changing what an already-delivered stem
+                 * contains is a sound decision and not mine. See the ledger.
+                 *
+                 * Native little-endian, the same assumption `stem_wav.c`
+                 * makes in `put32`/`memcpy`; WAV is LE and every target we
+                 * build for is. */
+                float v = fbuf[k];
+                if (fwrite(&v, 4, 1, f) != 1) {
+                    fclose(f);
+                    return 2;
+                }
+            } else if (depth == 24u) {
                 int32_t s = auf_f32_to_s24(fbuf[k]);
                 unsigned char b[3];
                 b[0] = (unsigned char)((s >> 16) & 0xff);

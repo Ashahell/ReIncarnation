@@ -27,7 +27,13 @@
 #include <string.h>
 
 /* audio_io/audio.c export surface (depth-parameterized). */
-void auf_wav_header(unsigned char hdr[44], uint32_t total, uint8_t depth,
+/* int, NOT void. This file declared it as returning void for two releases
+ * while audio.c returned int, and nothing noticed because the matrix only
+ * ever checked the BYTES it wrote. The moment a case checks the refusal code
+ * -- which the 32-bit depth made unavoidable -- the mismatch is undefined
+ * behaviour, and gcc says so. A declaration nobody checks is a declaration
+ * nobody has read. */
+int auf_wav_header(unsigned char hdr[44], uint32_t total, uint8_t depth,
     uint32_t sr);
 int32_t auf_f32_to_s24(float x);
 int AuRenderToFileDepth(void *ao, const char *path, uint32_t ms,
@@ -37,6 +43,10 @@ static int fails = 0;
 #define CHECK(cond, ...) do { \
     if (!(cond)) { printf("FAIL "); printf(__VA_ARGS__); printf("\n"); fails++; } \
 } while (0)
+
+static uint32_t rd16(const unsigned char *p) {
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8);
+}
 
 static uint32_t rd32(const unsigned char *p) {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
@@ -96,7 +106,11 @@ static long parse_wav(const char *path, uint8_t want_depth, uint32_t want_sr) {
 int main(void) {
     unsigned char h[44];
     uint32_t totals[3] = { 0u, 1u, 48000u };
-    uint8_t depths[2] = { 16u, 24u };
+    /* 32 IS HERE NOW (P3's last option), and so is the FORMAT CODE, which
+     * this matrix never checked at all -- the field that decides whether a
+     * float file plays as music or as noise, unchecked because until now
+     * there was no float file on this path to check. */
+    uint8_t depths[3] = { 16u, 24u, 32u };
     uint32_t ti, di;
     long data;
 
@@ -106,7 +120,7 @@ int main(void) {
         printf("math-dc.wav: data %ld bytes valid\n", data);
 
     /* --- header matrix over the new builder --- */
-    for (di = 0; di < 2; di++) {
+    for (di = 0; di < 3; di++) {
         for (ti = 0; ti < 3; ti++) {
             uint32_t bps = depths[di] / 8u;
             uint32_t bytes = totals[ti] * bps;
@@ -119,9 +133,30 @@ int main(void) {
             CHECK(h[34] == depths[di], "bits d=%u", depths[di]);
             CHECK(rd32(h + 40) == bytes, "data d=%u n=%u",
                 depths[di], totals[ti]);
+            /* THE FORMAT CODE. 3 for IEEE float, 1 for PCM. A depth-32 file
+             * carrying code 1 OPENS AND PLAYS AS NOISE, and every other
+             * assertion in this loop passes while it does -- the byte count,
+             * the rate, the align and the bits are all correct on such a
+             * file. That is why this one is checked and the others were
+             * enough for two releases. */
+            CHECK((uint16_t)rd16(h + 20) == (depths[di] == 32u ? 3u : 1u),
+                "FORMAT CODE d=%u is %u, want %u", depths[di],
+                (unsigned)rd16(h + 20), depths[di] == 32u ? 3u : 1u);
         }
     }
-    printf("header matrix 2x3 exact\n");
+    printf("header matrix 3x3 exact, format code included\n");
+
+    /* --- refusals are refusals, not roundings --- */
+    CHECK(auf_wav_header(h, 100u, 8u, 48000u) == 2, "8-bit is refused");
+    CHECK(auf_wav_header(h, 100u, 20u, 48000u) == 2,
+        "20-bit is refused, not rounded to 24");
+    CHECK(auf_wav_header(h, 100u, 64u, 48000u) == 2, "64-bit is refused");
+    CHECK(auf_wav_header(h, 100u, 0u, 48000u) == 2, "depth 0 is refused");
+    CHECK(auf_wav_header(h, 100u, 32u, 0u) == 2, "sr 0 is refused");
+    /* and sr 0 with a legal depth too, since that pair used to be the only
+     * way in -- a test that only ever passes one bad field at a time has not
+     * shown which one was refused */
+    CHECK(auf_wav_header(h, 100u, 24u, 0u) == 2, "sr 0 at 24 too");
 
     /* --- s24 packing exact bytes. Negative edge is twin-consistent
      * with auf_f32_to_s16: float->int truncates toward zero, so

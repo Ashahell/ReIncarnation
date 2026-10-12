@@ -115,6 +115,147 @@ cmp -s "$G/dc-aiff.wav" "$A/dc-aiff.wav" || { echo "FAIL: re-render dc-aiff diff
 "$OUT/render" --song "$G/first-light.rbng" --format aiff --out "$A/first-light-aiff.wav" || exit 1
 cmp -s "$G/first-light-aiff.wav" "$A/first-light-aiff.wav" || { echo "FAIL: re-render first-light-aiff differs"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t32_aiff >/dev/null || { echo "FAIL: t32_aiff (TC-2.13/WBS-2.13)"; exit 1; }
+# P3's last option: 32-bit IEEE float, through the CLI. The audit already
+# rendered the tool at --depth 24 and --rate 44100 and never at 32, so the
+# float path was ungated: four mutations of the CLI were unkillable because
+# no gate ever passed --depth. Checked here on the FILE, because the thing
+# that matters is the bytes and not the exit code -- a render that "succeeds"
+# with a format-1 tag is the failure this exists to catch.
+"$OUT/render" --math dc --depth 32 --out "$A/dc-f32.wav" || { echo "FAIL: --depth 32 render"; exit 1; }
+python3 - "$A/dc-f32.wav" "$A/math-dc.wav" 96000 <<'PYF32' || exit 1
+import struct, sys
+p, p16, want_frames = sys.argv[1], sys.argv[2], int(sys.argv[3])
+raw = open(p, 'rb').read()
+tag, ch, rate, brate, align, bits = struct.unpack('<HHIIHH', raw[20:36])
+data = struct.unpack('<I', raw[40:44])[0]
+bad = []
+if raw[:4] != b'RIFF' or raw[8:12] != b'WAVE': bad.append('not a RIFF/WAVE')
+if tag != 3:   bad.append('format code is %d, must be 3 (IEEE float)' % tag)
+if bits != 32: bad.append('bits is %d, must be 32' % bits)
+if align != 4: bad.append('block align is %d, must be 4' % align)
+if brate != rate * 4: bad.append('byte rate %d, must be rate*4' % brate)
+if data != want_frames * 4: bad.append('data size %d, must be %d' % (data, want_frames*4))
+if struct.unpack('<I', raw[4:8])[0] != len(raw) - 8: bad.append('riff size')
+# THE SAMPLES, COMPARED RATHER THAN ASSUMED. An absolute band was my first
+# check and it failed immediately, because --math dc renders at 0.5 and not
+# at full scale -- so the band was a statement about the generator, not about
+# the writer. The law worth asserting is that the float export carries THE
+# SAME SIGNAL as the 16-bit one, so the two are read and compared.
+import array
+a = array.array('f'); a.frombytes(raw[44:44+data])
+fpeak = max(abs(x) for x in a)
+r16 = open(p16, 'rb').read()
+b = array.array('h'); b.frombytes(r16[44:44+len(r16)-44])
+ipeak = max(abs(x) for x in b) / 32768.0
+if not (ipeak * 0.99 < fpeak < ipeak * 1.01):
+    bad.append('float peak %r does not match the 16-bit peak %r' % (fpeak, ipeak))
+if fpeak <= 0.0 or fpeak > 1.0001:
+    bad.append('float peak %r is outside full scale' % fpeak)
+if bad:
+    print('FAIL: --depth 32: ' + '; '.join(bad)); sys.exit(1)
+print('   --depth 32 ok: format 3, 32 bits, align 4, peak %.6f (16-bit %.6f)'
+      % (fpeak, ipeak))
+PYF32
+# AND THE UNSUPPORTED DEPTHS ARE STILL TURNED AWAY. A gate that only ever
+# accepts would pass a tool that ignored --depth entirely.
+if "$OUT/render" --math dc --depth 8 --out "$A/dc-8.wav" >/dev/null 2>&1; then
+    echo "FAIL: --depth 8 was accepted"; exit 1
+fi
+if "$OUT/render" --math dc --depth 20 --out "$A/dc-20.wav" >/dev/null 2>&1; then
+    echo "FAIL: --depth 20 was accepted (a quiet round to 24 is a lie)"; exit 1
+fi
+# AIFF has no float here, and SAYS SO rather than saying "bad depth". The
+# message is checked, not just the exit code, because --depth 32 is now
+# legal everywhere else: a bare "bad depth 32" reads as a contradiction and
+# sends the user looking for a bug that is not there.
+# `|| :` IS LOAD-BEARING. This render is EXPECTED to exit 2, and under
+# `set -e` a command substitution in an assignment inherits the command's
+# status -- so `msg=$(failing_cmd)` kills the whole audit at that line,
+# before anything checks anything. The audit ended with AUDIT=2 and no
+# message at all, which is the shape of this mistake.
+aiffmsg=$("$OUT/render" --math dc --format aiff --depth 32 --out "$A/dc-aiff32.wav" 2>&1 || :)
+[ -s "$A/dc-aiff32.wav" ] && { echo "FAIL: AIFF wrote a file for --depth 32"; exit 1; }
+case "$aiffmsg" in
+    *"bad depth"*) echo "FAIL: AIFF --depth 32 says only 'bad depth': $aiffmsg"; exit 1 ;;
+    *float*|*WAV*) : ;;
+    *) echo "FAIL: AIFF --depth 32 does not explain itself: $aiffmsg"; exit 1 ;;
+esac
+# THE STEM SET AT EVERY DEPTH, IN ONE LOOP.
+#
+# This was three separate one-sided gates and each of the three left a
+# mutation alive, in the same way each time: a gate that only ever asks for
+# 32 cannot see a mapping that breaks 16, and one that only asks for the
+# default cannot see a mapping that breaks 24. ND ("any non-24 depth falls
+# through to F32") and NF ("always float") both survived a float-only gate;
+# NG ("--depth 24 quietly becomes 16") survived a default-only one.
+#
+# THREE MUTATIONS, ONE SHAPE: A GATE THAT ONLY EVER EXERCISES ONE ARM OF A
+# SELECT CANNOT PROVE ANY OTHER ARM. So all three depths go through the same
+# check, and the expectation is a parameter rather than a constant -- which is
+# also what killed the mono-constant block-align bug below.
+for spec in "pcm16:16:1:16" "pcm24:24:1:24" "f32:32:3:32"; do
+    sd=${spec%%:*}; rest=${spec#*:}; sdep=${rest%%:*}; rest=${rest#*:}
+    stag=${rest%%:*}; sbits=${rest##*:}
+    rm -rf "$A/stems-$sd"
+    "$OUT/render" --song "$ROOT/tests/golden/songs/sched-check.rbng" \
+        --stems "$A/stems-$sd" --depth "$sdep" >/dev/null \
+        || { echo "FAIL: --stems --depth $sdep"; exit 1; }
+    sn=$(find "$A/stems-$sd" -name '*.wav' | wc -l)
+    [ "$sn" -ge 1 ] || { echo "FAIL: --stems --depth $sdep wrote no files"; exit 1; }
+    for sf in "$A"/stems-$sd/*.wav; do
+        python3 - "$sf" "$stag" "$sbits" "$sd" <<'PYST' || exit 1
+import struct, sys
+raw = open(sys.argv[1], 'rb').read()
+want_tag, want_bits, sd = int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
+tag  = struct.unpack('<H', raw[20:22])[0]
+ch   = struct.unpack('<H', raw[22:24])[0]
+rate = struct.unpack('<I', raw[24:28])[0]
+brate = struct.unpack('<I', raw[28:32])[0]
+bits = struct.unpack('<H', raw[34:36])[0]
+align = raw[32]
+data = struct.unpack('<I', raw[40:44])[0]
+bad = []
+if tag != want_tag:
+    bad.append('format code %d, must be %d' % (tag, want_tag))
+if bits != want_bits:
+    bad.append('bits %d, must be %d' % (bits, want_bits))
+# ALIGN IS PER FRAME, NOT PER SAMPLE. The first version of this gate asserted
+# 4 and failed on 8, because the stems are STEREO and 8 is 4 bytes x 2
+# channels -- which is correct. Asserting the mono constant on a stereo file
+# is how a right answer gets reported as a defect, so the law is the relation.
+if align != (bits // 8) * ch:
+    bad.append('align %d, must be %d for %d ch' % (align, (bits // 8) * ch, ch))
+if brate != rate * align:
+    bad.append('byte rate %d, must be %d' % (brate, rate * align))
+if data != len(raw) - 44:
+    bad.append('data %d does not account for the file' % data)
+if struct.unpack('<I', raw[4:8])[0] != len(raw) - 8:
+    bad.append('riff size')
+if bad:
+    print('FAIL: the %s stem %s: %s' % (sd, sys.argv[1], '; '.join(bad)))
+    sys.exit(1)
+PYST
+    done
+    echo "   --stems --depth $sdep ok: $sn file(s), format $stag, $sbits-bit"
+    rm -rf "$A/stems-$sd"
+done
+# AND OMITTING --depth IS --depth 16. The loop above passes 16 explicitly
+# because 0 is refused by the tool, so on its own it proves nothing about
+# what the DEFAULT is -- it would pass just as happily against a default of
+# 24. This is the check that says so, by comparing the two renders byte for
+# byte rather than by reading a header.
+rm -rf "$A/stems-default" "$A/stems-at16"
+"$OUT/render" --song "$ROOT/tests/golden/songs/sched-check.rbng" \
+    --stems "$A/stems-default" >/dev/null || { echo "FAIL: default --stems"; exit 1; }
+"$OUT/render" --song "$ROOT/tests/golden/songs/sched-check.rbng" \
+    --stems "$A/stems-at16" --depth 16 >/dev/null || { echo "FAIL: --stems --depth 16"; exit 1; }
+for sf in "$A"/stems-default/*.wav; do
+    cmp -s "$sf" "$A/stems-at16/$(basename "$sf")" \
+        || { echo "FAIL: the default stem $(basename "$sf") is not --depth 16"; exit 1; }
+done
+echo "   default --stems ok: identical to --depth 16"
+rm -rf "$A/stems-default" "$A/stems-at16"
+bash "$ROOT/scripts/ri_build_host.sh" test t217_wavfloat >/dev/null || { echo "FAIL: t217_wavfloat (P3 32-bit IEEE float, format code 3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t28_wavdepth >/dev/null || { echo "FAIL: t28_wavdepth (TC-2.13.4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t31_rate441 >/dev/null || { echo "FAIL: t31_rate441 (TC-2.13.4)"; exit 1; }
 echo "-- export golden headers (external sox check when present) --"
