@@ -3023,3 +3023,115 @@ channels are 1-based.
   opt-in because a silent tie-break is a guess; this is a one-constant change
   either way, and it is a decision about how a DAW's GM drum track addresses
   two machines, not something the code can settle.
+
+## R8f: the FX buses, and two bugs that both looked like working output (2026-10-12)
+
+`project/stem_render.{c,h}`, `engine/{engine.h,engine.c}`, t216. The spec's
+R8 line was "one WAV per mixer strip, **plus FX returns** and the master". The
+master was already the mix; the returns were not, and the reason is worth
+stating because it is not what the phrase suggests.
+
+### THE DELAY IS THE ONLY SEND/RETURN FX IN THIS ENGINE
+
+DIST, PCF and COMP are **in-place inserts** -- `ri_fxdist_render(&e->dist,
+e->scratch, e->scratch, cc)`, input and output the same buffer -- so the strip
+output already IS post-FX and there is **no return to tap**. The shared delay
+is different: its send is summed post-insert across the strips, rendered into
+`retbus`, stereo-panned and folded into the master.
+
+**SO THE RETURN WAS IN THE MIX AND IN NO STEM.** A DAW user re-processing the
+strips lost the delay with no way to put it back. That is the hole, and it is
+the whole of "FX returns".
+
+### TWO BUGS, BOTH PRODUCING OUTPUT THAT LOOKED CORRECT
+
+**1. THE FX STEMS REUSED A SECTION'S INTERLEAVE BUFFER.** The set stores
+POINTERS and copies nothing until the write, so writing `fx-return` through
+the 303A's buffer **overwrote the 303A's audio first**. The symptom was the
+303A stem going **silent** the moment `--fx` was added -- a section that had
+been rendering at peak 20024 for three commits. The first instinct was
+"the FX is broken"; the section is what actually changed.
+
+**2. THE POINTERS NEVER REACHED THE ENGINE.** `r->fx[]` and `r->tap.fx[]` are
+**two different arrays**: the caller fills the first, the engine reads the
+second. The section pointers never had this problem because
+`ri_stemr_begin` fills `r->tap.l[]` directly -- so the FX path quietly
+acquired a second way of holding a pointer and only one of them was wired.
+The result was files that were correctly named, correctly sized and
+**empty**: the worst of the three, because nothing is wrong with them.
+
+Neither was visible without rendering, and the first one's symptom pointed at
+the 303A rather than at the FX code.
+
+### THE NAMES CONTINUE THE SECTION NUMBERING
+
+`01-303a` … `05-levi`, then **`06-fx-send`** and **`07-fx-return`**. The
+sections keep their own indices so a gap still says which sections the song
+did not address, and the FX buses follow so a file list sorts into strip
+order then effect order with nothing interleaved. The index is the **caller's**
+to pass, so adding an FX bus later does not renumber the ones before it.
+
+### A NOTE ON THE TEST, WHICH IS THE INTERESTING PART HERE
+
+**YA, YB and YC ALL SURVIVED THE FIRST RUN** — all three in the engine's tap
+— because every case set `FXBUF` **by hand** and called `finish`. The test
+proved the *bridge* and nothing about the tap that feeds it. **A test that
+fills in the data it is checking cannot see the data not arriving.**
+
+And the aliasing mutant survived **four** attempts from §5, each with a
+different object hash, so the mutation was always real and always
+unreachable: §5 tests the path where `fx_out` is NULL, and the whole FX block
+is guarded by `if (r->fx_out)`. **A mutation inside a guard a case never
+enters cannot be killed by that case, however much it asserts.** The check
+moved to §3, where the guard IS entered.
+
+One more fixture fault, worth the same weight: §5 filled the FX buffer
+**before** `ri_stemr_bind`, which correctly zeroes it -- so the mutation wrote
+zeros over the 303A's buffer and left it looking untouched. **A test that
+fills its input before the call under test has not proved the call does not
+destroy it.**
+
+### Mutants: 12, all killed
+
+XA the FX stems reuse a section slot's buffer · XB the fx pointers are not
+copied into the tap · XC the FX buffers are not zeroed at bind · XD a NULL
+`fx_out` falls back to a slot · XE the FX stems precede the sections · XF the
+FX index is reported as the bus number · **YA the send is not tapped** · **YB
+the return is not tapped** · **YC the FX tap is stamped at the engine's LOCAL
+`done`** · plus the aliasing mutant from §3b.
+
+**YC is R8e's bug verbatim**, one layer up: the section taps were fixed to
+stamp at `e->cursor + c` and the new FX taps were written beside them two
+commits later. The same mistake, and only the blockwise render in §7b can see
+it.
+
+### Evidence
+
+```
+render --song song.txt --out mix.wav --stems stems --fx
+render: stem stems/01-303a.wav
+render: stem stems/03-808.wav
+render: stem stems/05-levi.wav
+render: stem stems/06-fx-send.wav
+render: stem stems/07-fx-return.wav
+```
+
+| stem | frames | peak | nonzero |
+|------|--------|------|---------|
+| 01-303a | 141000 | 20024 | 193680 |
+| 03-808 | 141000 | 5213 | 281770 |
+| 05-levi | 141000 | 19201 | 200304 |
+| 06-fx-send | 141000 | **10221** | 250944 |
+| 07-fx-return | 141000 | **10221** | 250944 |
+
+Equal lengths, distinct instruments, and both FX buses carrying audio --
+which is the difference between this and the two versions that produced
+correctly named empty files.
+
+### Still open
+
+- **`--fx` is off by default.** A folder with eight files where the user
+  expected five is the kind of surprise that gets remembered as a bug.
+- **`ri_engine_set_delay` has no caller in `tools/render`**, so the FX buses
+  are structurally silent without the attach `--fx` now does. That is a tool
+  gap, not an engine one -- `app/core/riapp_core.c` attaches it.

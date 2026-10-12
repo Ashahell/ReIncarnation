@@ -9,6 +9,50 @@ static const char *const RI_STEMR_NAMES[RI_ROUTE_NSECTIONS] = {
     "303a", "303b", "808", "909", "levi"
 };
 
+/* The two FX names, continuing the section numbering. */
+static const char *const RI_STEMR_FXNAMES[RI_STEM_FX_N] = {
+    "fx-send", "fx-return"
+};
+
+uint32_t ri_stemr_fx_name(char *out, uint32_t cap, uint32_t index,
+    uint32_t fx) {
+    static const char dec[] = "0123456789";
+    uint32_t at, i;
+    if (!out || cap < 20u || fx >= RI_STEM_FX_N)
+        return 0u;
+    if (index == 0u || index > 99u)
+        return 0u;
+    out[0] = dec[(index / 10u) % 10u];
+    out[1] = dec[index % 10u];
+    at = 2u;
+    out[at++] = '-';
+    for (i = 0u; RI_STEMR_FXNAMES[fx][i] != '\0'; i++)
+        out[at++] = RI_STEMR_FXNAMES[fx][i];
+    out[at++] = '.';
+    out[at++] = 'w';
+    out[at++] = 'a';
+    out[at++] = 'v';
+    out[at] = '\0';
+    return at;
+}
+
+void ri_stemr_fx_bind(struct RIStemr *r, uint32_t fx, float *buf) {
+    if (!r || fx >= RI_STEM_FX_N)
+        return;
+    r->fx[fx] = buf;
+}
+
+void ri_stemr_fx_out(struct RIStemr *r, float *buf) {
+    if (r)
+        r->fx_out = buf;
+}
+
+uint32_t ri_stemr_fx_set_index(const struct RIStemr *r, uint32_t fx) {
+    if (!r || fx >= RI_STEM_FX_N)
+        return RI_STEMR_NO_STEM;
+    return r->fx_set_of[fx];
+}
+
 uint32_t ri_stemr_name(char *out, uint32_t cap, uint32_t index,
     uint32_t section) {
     static const char dec[] = "0123456789";
@@ -59,6 +103,8 @@ int ri_stemr_begin(struct RIStemr *r, uint32_t nstems, uint32_t frames,
      * starting state. */
     for (i = 0u; i < RI_ROUTE_NSECTIONS; i++)
         r->set_of[i] = RI_STEMR_NO_STEM;
+    for (i = 0u; i < RI_STEM_FX_N; i++)
+        r->fx_set_of[i] = RI_STEMR_NO_STEM;
     stem_set_init(&r->set, rate, bpm_milli);
     r->set.depth = (uint8_t)depth;
     r->frames = frames;
@@ -80,6 +126,19 @@ void ri_stemr_bind(struct RIStemr *r, struct RIEngine *e) {
     /* ZERO FIRST, THEN ATTACH. A caller who attaches and renders without
      * this gets a stem whose tail is the previous song's audio, because the
      * tap writes only what the engine renders. */
+    /* THE FX BUFFERS ARE ZEROED HERE TOO, AND FOR THE SAME REASON as the
+     * section buffers: the engine writes only the samples it renders, so
+     * without this a short render leaves the previous song's delay tail at
+     * the end of a file. A NULL entry means "not asked for" and is skipped
+     * rather than treated as a fault -- every existing caller is in that
+     * state and would otherwise have to change. */
+    for (i = 0u; i < RI_STEM_FX_N; i++) {
+        uint32_t k;
+        if (!r->fx[i])
+            continue;
+        for (k = 0u; k < r->frames; k++)
+            r->fx[i][k] = 0.0f;
+    }
     for (i = 0u; i < r->nstems; i++) {
         if (!r->tap.l[i] || !r->tap.r[i])
             continue;
@@ -88,6 +147,18 @@ void ri_stemr_bind(struct RIStemr *r, struct RIEngine *e) {
             r->tap.r[i][k] = 0.0f;
         }
     }
+    /* THE FX POINTERS ARE COPIED INTO THE TAP, AND THAT IS THE WHOLE
+     * BUG THIS FUNCTION HAD. `r->fx[]` and `r->tap.fx[]` are two different
+     * arrays: the caller fills the first (ri_stemr_fx_bind) and the ENGINE
+     * reads the second (`e->stems->fx[...]`). Without this copy the engine
+     * saw NULL for both buses, skipped the write, and `--fx` produced
+     * correctly named, correctly sized, EMPTY files.
+     *
+     * The section pointers never had this problem because `ri_stemr_begin`
+     * fills `r->tap.l[]` directly -- so the FX path acquired a second way
+     * of holding a pointer, and only one of them reached the engine. */
+    for (i = 0u; i < RI_STEM_FX_N; i++)
+        r->tap.fx[i] = r->fx[i];
     ri_engine_set_stems(e, &r->tap);
     /* Read the mask HERE, not at finish: the caller may change the engine's
      * section mask between bind and finish, and the stems should describe
@@ -98,6 +169,7 @@ void ri_stemr_bind(struct RIStemr *r, struct RIEngine *e) {
 
 uint32_t ri_stemr_finish(struct RIStemr *r, uint32_t rendered) {
     uint32_t i, k;
+    float *out = 0;
     if (!r || !r->bound || r->finished || rendered == 0u)
         return 1u;
     /* REFUSED, NOT PADDED. A stem the caller believes is complete but which
@@ -123,7 +195,9 @@ uint32_t ri_stemr_finish(struct RIStemr *r, uint32_t rendered) {
         l = r->tap.l[sec];
         rt = r->tap.r[sec];
         /* The out buffer is not in the tap, so it comes from the slots the
-         * caller handed at begin; they are the same pointers by contract. */
+         * caller handed at begin; they are the same pointers by contract.
+         * Declared at function scope because the FX loop below reuses it --
+         * it is the same interleave buffer the sections wrote into. */
         out = 0;
         for (k = 0u; k < r->nstems; k++)
             if (r->tap.l[k] == l && r->tap.r[k] == rt && r->outs[k])
@@ -137,6 +211,38 @@ uint32_t ri_stemr_finish(struct RIStemr *r, uint32_t rendered) {
         if (stem_set_add(&r->set, out, r->frames, 2u) != 0)
             return 1u;
         r->set_of[sec] = stem_set_count(&r->set) - 1u;
+    }
+    /* THE FX STEMS COME LAST, so the set reads strips then effects. They are
+     * MONO and are written as a STEREO file with the same sample in both
+     * channels rather than as a mono WAV: the set is a stereo stem set and
+     * a mono entry among stereo ones is a file that imports with a channel
+     * count nobody expected. The delay return is panned on the way into the
+     * master, so the stem is the UNPANNED line -- which is the honest thing
+     * to hand a DAW, since re-panning it is the point of exporting it. */
+    /* THE FX STEMS GET THE CALLER'S OWN BUFFER, OR NOTHING. Looking one of
+     * the section slots up -- which is what this did first -- SILENTLY
+     * OVERWRITES that section's audio, because the set holds POINTERS and
+     * nothing is copied until the write. The 303A stem came out silent. */
+    if (r->fx_out) {
+        out = r->fx_out;
+            for (i = 0u; i < RI_STEM_FX_N; i++) {
+            uint32_t k;
+            if (!r->fx[i])
+                continue;
+            /* A bus the engine never rendered is zero for the whole song, which
+             * is indistinguishable from a silent delay. It IS added: the caller
+             * asked for it by binding it, and an absent file is a worse answer
+             * than a silent one that is honestly named. */
+            if (r->fx_set_of[i] != RI_STEMR_NO_STEM)
+                continue;   /* already added on a re-entry */
+            for (k = 0u; k < r->frames; k++) {
+                out[k * 2u] = r->fx[i][k];
+                out[k * 2u + 1u] = r->fx[i][k];
+            }
+            if (stem_set_add(&r->set, out, r->frames, 2u) != 0)
+                return 1u;
+            r->fx_set_of[i] = stem_set_count(&r->set) - 1u;
+        }
     }
     r->finished = 1u;
     return 0u;

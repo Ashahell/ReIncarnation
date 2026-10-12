@@ -873,6 +873,22 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
                 ri_fxdelay_resync(&e->delay, e->tempo, sr);
                 ri_fxdelay_render(&e->delay, sendbus, retbus, cc);
                 ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_DELAY], retbus, cc);
+                /* R8f: TAP BOTH SIDES, AT THE ABSOLUTE POSITION. `pos` is
+                 * `e->cursor + c` for the same reason the section taps are
+                 * (R8e): these buffers belong to the song, not to the call,
+                 * and `ri_engine_render` restarts its local `done` on every
+                 * invocation -- which is the bug that made the first stem
+                 * export silent. */
+                if (e->stems) {
+                    for (i = 0; i < cc; i++) {
+                        if (e->stems->fx[RI_STEM_FX_SEND])
+                            e->stems->fx[RI_STEM_FX_SEND][(uint32_t)(e->cursor + c) + i] =
+                                sendbus[i];
+                        if (e->stems->fx[RI_STEM_FX_RETURN])
+                            e->stems->fx[RI_STEM_FX_RETURN][(uint32_t)(e->cursor + c) + i] =
+                                retbus[i];
+                    }
+                }
                 engine_pan_gains(e->dret_pan, &rgl, &rgr);
                 for (i = 0; i < cc; i++) {
                     ml[i] += (double)retbus[i] * rgl;

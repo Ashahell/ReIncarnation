@@ -268,9 +268,32 @@ struct RIEngine {
  *    sides. An earlier slice claimed mono sections exported stale `scratchR`;
  *    that claim was withdrawn.
  * ------------------------------------------------------------------- */
+/* The two FX buses, R8f. NOT A SECTION EACH: the tap's first two arrays are
+ * indexed by section and `stem_render` uses that to name files, so anything
+ * added here must stay outside that index space.
+ *
+ * WHY THEY EXIST AT ALL: the shared delay is the ONLY send/return FX in this
+ * engine. DIST, PCF and COMP are in-place inserts (`ri_fxdist_render(&e->dist,
+ * e->scratch, e->scratch, cc)` — input and output are the same buffer), so
+ * there is no return to tap: the strip output already IS post-FX. The delay
+ * is different. Its send is summed post-insert across the strips, rendered
+ * into `retbus`, stereo-panned, and folded into the master -- so **the
+ * return is in the mix and in NO stem**, and a DAW user re-processing the
+ * strips loses the delay with no way to put it back.
+ *
+ * BOTH ARE MONO, because the delay line is mono and `retbus` is one buffer
+ * with a pan applied on the way out. */
+#define RI_STEM_FX_SEND 0u
+#define RI_STEM_FX_RETURN 1u
+#define RI_STEM_FX_N 2u
+
 struct RIStemTap {
     float *l[RI_ROUTE_NSECTIONS];
     float *r[RI_ROUTE_NSECTIONS];
+    /* NULL means "not asked for", and a NULL entry is skipped rather than
+     * written: the tap is attached by pointer and every existing caller
+     * leaves these zero. */
+    float *fx[RI_STEM_FX_N];
 };
 
 void ri_engine_init(struct RIEngine *e);

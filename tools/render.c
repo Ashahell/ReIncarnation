@@ -37,6 +37,7 @@
 #include "project/smf_bridge.h"
 #include "project/loop_render.h"
 #include "project/song_sections.h"
+#include "app/core/riapp_core.h"   /* RI_CORE_DLINE: the app's delay-line size */
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
 #include "audio_io/audio.h"
@@ -69,6 +70,11 @@ static uint32_t g_rate = RI_SR;
  * Process-global like depth/rate: every render mode writes through
  * write_audio with this container. */
 static int g_format = 0;
+/* R8f: FX returns off by default. The spec asks for them, but they are a
+ * SECOND thing to explain at a first run, and a folder with eight files
+ * where the user expected five is the kind of surprise that gets remembered
+ * as a bug. `--fx` asks for them. */
+static int g_fx = 0;
 
 static float clampf(float x) {
     if (x > 1.0f)
@@ -493,13 +499,14 @@ static int dump_events(const char *path, const struct RIEvent *ev, uint32_t n) {
  * ------------------------------------------------------------------- */
 static int render_stems(const struct RIEvent *ev, uint32_t nev,
     uint32_t total, const char *dir, uint32_t rate, uint32_t depth,
-    uint32_t bpm_milli) {
+    uint32_t bpm_milli, int want_fx) {
     static struct RIStemr sr;
     struct RIStemrSlot slots[RI_ROUTE_NSECTIONS];
     uint8_t *wav = 0;
     static struct RIEngine eng;
     struct RIEngine *ep = &eng;
     float *pool = 0;
+    float *fxbuf = 0;
     /* THE MIX GETS ITS OWN SCRATCH. Writing the engine's stereo output into
      * a slot's tap buffer overwrites the very samples the tap just
      * recorded -- and it does so at offset 0 on EVERY block, so the head of
@@ -546,6 +553,17 @@ static int render_stems(const struct RIEvent *ev, uint32_t nev,
         free(pool);
         return 2;
     }
+    /* Two mono buffers for the FX buses, after the strips' pool. */
+    fxbuf = 0;
+    if (want_fx) {
+        fxbuf = (float *)calloc(4u * total, sizeof(float));
+        if (!fxbuf) {
+            printf("render: --stems: out of memory for the FX buses\n");
+            free(wav);
+            free(pool);
+            return 2;
+        }
+    }
     off = 0u;
     for (sec = 0u; sec < RI_ROUTE_NSECTIONS; sec++) {
         slots[sec].l = pool + off; off += total;
@@ -565,10 +583,40 @@ static int render_stems(const struct RIEvent *ev, uint32_t nev,
     }
     ri_engine_init(ep);
     ri_engine_defaults(ep);
+    /* R8f: THIS ENGINE NEEDS ITS OWN DELAY LINE. R8e renders the stems from
+     * a SECOND pass -- "the stems get their OWN render, from the same events
+     * and the same total" -- so the line attached in `render_song` belongs to
+     * a different engine and the tap reads `dline == NULL` here. Attaching
+     * in both places is not duplication: two engines rendering the same song
+     * have two delay states, and sharing one line would cross-feed them.
+     *
+     * Without it `if (e->dline)` skips the whole send/return block, and the
+     * FX files come out correctly named, correctly sized and EMPTY. */
+    if (want_fx) {
+        static float sdline[RI_CORE_DLINE];
+        ri_engine_set_delay(ep, sdline, RI_CORE_DLINE);
+        for (sec = 0u; sec < RI_ROUTE_NSECTIONS; sec++)
+            ri_engine_set_send(ep, sec, 64u);
+    }
+
     ri_engine_load(ep, ev, nev, total, sections);
     /* BIND BEFORE THE FIRST BLOCK: it zeroes every buffer, and the engine
      * writes only the samples it renders, so without it a short render leaves
      * the previous song's audio at the end of a stem file. */
+    /* R8f: THE TWO FX BUSES. The shared delay is the only send/return FX in
+     * this engine -- DIST, PCF and COMP are in-place inserts, so the strip
+     * output already IS post-FX and there is no return to tap. The delay's
+     * return IS in the master sum and in NO stem, which is the hole this
+     * closes: a DAW re-processing the strips loses the delay. */
+    if (want_fx) {
+        ri_stemr_fx_bind(&sr, RI_STEM_FX_SEND, fxbuf + 0u * total);
+        ri_stemr_fx_bind(&sr, RI_STEM_FX_RETURN, fxbuf + 1u * total);
+        /* THE FX STEMS INTERLEAVE INTO THEIR OWN BUFFER. Passing a section
+         * slot's buffer here is what made the 303A stem silent on the first
+         * run: the set holds pointers, so the FX write lands on top of the
+         * 303A's audio before either is written to disk. */
+        ri_stemr_fx_out(&sr, fxbuf + 2u * total);
+    }
     ri_stemr_bind(&sr, ep);
     while (done < total) {
         uint32_t want = total - done;
@@ -638,10 +686,56 @@ static int render_stems(const struct RIEvent *ev, uint32_t nev,
         printf("render: stem %s\n", path);
         made++;
     }
+    /* THE FX BUSES, AFTER THE SECTIONS, NUMBERING CONTINUED. `ri_stemr_fx_
+     * set_index` is asked rather than assumed for the same reason as the
+     * sections': the set appends, so its index is a running count. */
+    if (want_fx) {
+        static const uint32_t fxidx[RI_STEM_FX_N] = { 6u, 7u };
+        uint32_t f;
+        for (f = 0u; f < RI_STEM_FX_N; f++) {
+            char nm[32], path[640];
+            uint32_t si = ri_stemr_fx_set_index(&sr, f), w;
+            int n;
+            if (si == RI_STEMR_NO_STEM)
+                continue;
+            if (ri_stemr_fx_name(nm, sizeof nm, fxidx[f], f) == 0u)
+                continue;
+            n = snprintf(path, sizeof path, "%s/%s", dir, nm);
+            if (n < 0 || (uint32_t)n >= sizeof path) {
+                printf("render: --stems: path too long for %s\n", dir);
+                free(wav); free(pool); free(fxbuf);
+                return 2;
+            }
+            w = stem_set_write(&sr.set, si, wav, (uint32_t)wavbytes);
+            if (w == 0u) {
+                printf("render: --stems: cannot write %s\n", path);
+                free(wav); free(pool); free(fxbuf);
+                return 2;
+            }
+            {
+                FILE *f2 = fopen(path, "wb");
+                if (!f2) {
+                    printf("render: --stems: cannot open %s\n", path);
+                    free(wav); free(pool); free(fxbuf);
+                    return 2;
+                }
+                if (fwrite(wav, 1u, w, f2) != w) {
+                    fclose(f2);
+                    printf("render: --stems: short write on %s\n", path);
+                    free(wav); free(pool); free(fxbuf);
+                    return 2;
+                }
+                fclose(f2);
+            }
+            printf("render: stem %s\n", path);
+            made++;
+        }
+    }
     printf("render: %d stem(s) in %s\n", made, dir);
     rc = 0;
     free(wav);
     free(pool);
+    free(fxbuf);
     return rc;
 }
 
@@ -871,6 +965,26 @@ static int render_song(const char *song_path, const char *out_path, const char *
      * section mask; the two agree bit for bit (S303A..SLEVI are 0x01..0x10
      * and the sections are 0..4) but relying on that BY ACCIDENT is exactly
      * how a fifth section would silently stop being heard. It is named. */
+    /* R8f: ATTACH A DELAY LINE, or the two FX buses are silent by
+     * construction. `ri_engine_set_delay` IS wired in the app
+     * (`app/core/riapp_core.c`), but this renderer never called it, so
+     * `e->dline` is NULL and the `if (e->dline)` block that produces the
+     * send and the return is skipped entirely -- the FX files would be
+     * correctly named, correctly sized and EMPTY, which is the worst
+     * combination of the three.
+     *
+     * Attached HERE and not in `render_stems`, because there is one engine
+     * per song and two renderers; the stems' own pass is a second engine
+     * with its own delay line, or the tap would read the other's. */
+    if (g_fx) {
+        static float dline[RI_CORE_DLINE];
+        ri_engine_set_delay(&eng, dline, RI_CORE_DLINE);
+        /* The sends are per section and default to 0, so a line alone is
+         * still dry: no section sends, the line is fed silence and returns
+         * silence. Both are set, inside the opt-in flag. */
+        for (i = 0u; i < RI_ROUTE_NSECTIONS; i++)
+            ri_engine_set_send(&eng, i, 64u);
+    }
     ri_engine_load(&eng, ev, nev, total, (uint32_t)sections);
     {
         uint64_t off = 0;
@@ -891,7 +1005,7 @@ static int render_song(const char *song_path, const char *out_path, const char *
     if (stems_dir) {
         uint32_t depth = (g_depth == 24) ? STEM_WAV_PCM24 : STEM_WAV_PCM16;
         rc = render_stems(ev, nev, (uint32_t)total, stems_dir, g_rate, depth,
-            (uint32_t)tempo * 1000u);
+            (uint32_t)tempo * 1000u, g_fx != 0);
         if (rc != 0)
             return rc;
     }
@@ -1647,6 +1761,7 @@ int main(int argc, char **argv) {
         printf("       render --fx dry|delay|chain --out FILE\n");
         printf("       render --mix four|solo --out FILE\n");
         printf("       [--stems DIR]  one WAV per mixer strip, into DIR\n");
+        printf("       [--fx]          with --stems, also the delay send/return\n");
         printf("       [--mid FILE]   the same events as a Standard MIDI File\n");
         printf("       [--bars N]     render N whole bars -- a loop a DAW can warp\n");
         printf("       [--from BAR]  start at bar BAR (default 0)\n");
@@ -1740,6 +1855,8 @@ int main(int argc, char **argv) {
         }
         else if (strcmp(argv[i], "--mid") == 0 && i + 1 < argc)
             mid = argv[++i];
+        else if (strcmp(argv[i], "--fx") == 0)
+            g_fx = 1;
         else if (strcmp(argv[i], "--stems") == 0 && i + 1 < argc)
             stems = argv[++i];
         else if (strcmp(argv[i], "--pack") == 0 && i + 1 < argc)

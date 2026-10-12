@@ -417,6 +417,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t212_notein_app >/dev/null || { echo 
 bash "$ROOT/scripts/ri_build_host.sh" test t213_notein_ring >/dev/null || { echo "FAIL: t213_notein_ring (R5c the 303 release, and the P-19 flood cap)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t214_notein_live >/dev/null || { echo "FAIL: t214_notein_live (R5d the pump meets the live window)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t215_notein_settings >/dev/null || { echo "FAIL: t215_notein_settings (R5e which channel each machine answers on)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t216_stem_fx >/dev/null || { echo "FAIL: t216_stem_fx (R8f the FX buses, and the aliasing that hid them)"; exit 1; }
 # MIXED BUILD GATE (owner 2026-10-04, enforced in-repo 2026-10-05).
 # This replaces a gate that required a BLANKET -O0, which is the wrong rule: the
 # approved configuration is engine/ at -O2 with app+GUI at -O0, and the in-repo
