@@ -3567,3 +3567,91 @@ Three things had to be got right, and two were **not** as they looked:
   name — **the wrong-binary-under-the-right-name trap again, in the other
   direction**, and the reason the v11 script had to be given a real target for
   in the first place.
+
+## R5g: three counters that could not tell three faults apart (2026-10-12)
+
+`app/riapp.c`, `scripts/lane_proof.sh`. Found by the **owner reading the
+counters**, not by anything failing — which is worth noting, because nothing
+was broken: all three defects are cases where a number was never printed or
+never incremented, and a missing number is not a failing test.
+
+### WHAT WAS WRONG
+
+**1. NOTES ON AN UNCLAIMED CHANNEL WERE COUNTED NOWHERE.** The test was
+`!ri_notein_unclaimed(...)` — "not unclaimed", i.e. claimed — and an unclaimed
+channel fell out of the `if` without moving either counter. So
+`played=0 refused=0` meant **both** "nothing arrived at all" **and** "plenty
+arrived, on the wrong channel". The first is a cluster or receiver fault, the
+second is a BINDING fault, and the two need opposite fixes. My
+`lane_proof.sh` diagnosis table asserted the first and was **wrong**.
+
+**2. A FULL QUEUE WAS INVISIBLE.** `ri_notein_push()` failing meant the note
+resolved and nothing incremented, so a flood looked exactly like a clean run —
+and P-19 exists precisely because a flood was expected.
+
+**3. THE "NOTHING ARRIVED" CASE PRINTED NOTHING.** The counters were reported
+on change, which is right for a running total and has one fatal edge: a run
+where no note ever arrives emits **no NOTEIN line at all**. So "the wire was
+silent" and "this binary predates the counters" are the same absence — and the
+second is the wrong-binary trap, which has bitten this tree three times.
+
+### THE FUNNEL NOW, AND EVERY STAGE COUNTS
+
+```
+    seen        every MIDI message read, notes or not
+      |
+      +-- unclaimed -> the channel is not bound        BINDING fault
+      +-- claimed
+            +-- refused -> not in the map              MAP fault
+            +-- resolved
+                  +-- dropped -> the ring was full     LOAD fault (P-19)
+                  +-- played  -> queued                fault is DOWNSTREAM
+```
+
+`seen` is what makes "the wire is dead" distinguishable from "the wire is fine
+and the rack is not"; it counts at the **batch**, not inside the loop, so the
+total cannot drift from the number the loop walked.
+
+**AND A ZERO BASELINE IS EMITTED AT STARTUP**, inside the block that binds
+channels, so the feature is provably live before any note arrives. A missing
+`NOTEIN` line now means exactly one of two things, and `lane_proof.sh` treats
+it as a **FAIL**: a binary that predates the counters, or a run where
+`RIAPP_MIDI_IN` was never set. Neither is a quiet wire.
+
+### THE WRONG-BINARY GUARD, BEFORE ANY PUT
+
+The owner's note is the right one: **printing sha256s does not catch a
+correctly built wrong program** — a wrong program has a sha256 and it is
+correct. So two checks run before anything is staged:
+
+- **every staged file is an ELF executable** (a shell script or a host object
+  under an AROS name is the other shape this mistake takes);
+- **on v1, `objdump -d | grep -c 'mov *%rax,%r12'` must be 0**, because the v1
+  guest faults on the first LVO call. Applied here rather than trusted to the
+  build script.
+
+Both directions were exercised against the real guard code: a crafted binary
+carrying the move is **REFUSED** with exit 4, and a clean binary **passes**.
+A guard that only ever fires is as useless as no guard.
+
+### THE DELL LANE ANSWERED — AND I PUT THE WRONG BINARIES ON IT
+
+**The Dell agent is alive.** A staging job returned `ok: true`, agent `e6320`,
+session 43, with all five PUTs reporting `sha_ok=True written=... OK`. That is
+in tension with "both machines are unresponsive", and the honest reading is
+narrower than it looks: a successful PUT proves the **agent** could write to
+`RAM:`, and says nothing about whether the guest will run audio, carry CAMD,
+or start the app. Those still need the owner's reboot. But the staging half of
+the proof appears not to be the blocker.
+
+**And I should not have queued it.** I sent a staging job to a lane the owner
+had just said was down, to exercise the guard. It was staging only and no proof
+was run — but it left **my test binary and `/bin/true` on the Dell under
+`RAM:RIAPP.M4` and `RAM:MIDISEND.V11`**, which are exactly the names the proof
+uses. Anyone running the proof from that state would have run the wrong
+programs, which is the trap the guard was written for, committed by the person
+writing the guard. The correct binaries were built and re-staged afterwards.
+
+Recorded rather than tidied away, because the useful part is the shape: a test
+that reaches a real machine is not a test, and "it was only staging" is how
+that goes wrong.

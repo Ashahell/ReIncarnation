@@ -138,6 +138,45 @@ for f in "$RIAPP" "$MSEND"; do
     printf '  %-14s %8s bytes  sha256 %s\n' \
         "$f" "$(stat -c %s "$OUT/$f")" "$(sha256sum "$OUT/$f" | cut -c1-20)"
 done
+# ---- 2a. WRONG-BINARY GUARD, BEFORE ANY PUT ----------------------------
+# "Printing sha256s does not catch a correctly built wrong program", and that
+# is exactly right: a sha256 says which bytes ran, not what they are. Two
+# checks, both of which have caught a real mistake on this lane:
+#
+#   * THE v1 r12 GATE. The v1 guest faults on the first LVO call if the ABI's
+#     r12 base convention is used, so a v1 binary must contain NO
+#     `mov %rax,%r12`. This is the v1 line's own gate, applied here to
+#     everything about to be staged rather than trusting the build script to
+#     have applied it.
+#   * THE AROS BUILD LINE. `ri_build_aros.sh . out riapp` prints "STUB BUILD
+#     OK" and BUILDS NOTHING, and the v1 script has no `midisend` target at
+#     all -- MIDISEND rides the `sections` branch. So a missing or wrong-name
+#     binary is a thing this script must refuse rather than deploy.
+bad=0
+for f in "$RIAPP" "$MSEND"; do
+    p="$OUT/$f"
+    if [ "$ABI" = v1 ]; then
+        r12=$(objdump -d "$p" 2>/dev/null | grep -c 'mov *%rax,%r12')
+        if [ "$r12" != "0" ]; then
+            echo "  REFUSING $f: $r12 r12 base moves in a v1 binary"
+            echo "    (the v1 guest faults on the first LVO call)"
+            bad=1
+        fi
+    fi
+    # AROS executables are ELF; a host object or a shell script under an AROS
+    # name is the other shape this mistake takes.
+    if ! head -c 4 "$p" | grep -q $'\x7fELF'; then
+        echo "  REFUSING $f: not an ELF executable"
+        bad=1
+    fi
+done
+if [ "$bad" = 1 ]; then
+    echo "lane_proof: refusing to PUT. A correctly BUILT WRONG PROGRAM is not"
+    echo "            caught by a sha256 -- it has one, and it is correct."
+    exit 4
+fi
+echo "  wrong-binary guard: both binaries are $ABI and r12-clean"
+
 cp "$ROOT/docs/evidence/midi/m4-levi.mid.txt"  "$OUT/M4-LEVI.MID.TXT"
 cp "$ROOT/docs/evidence/midi/r5-notein.mid.txt" "$OUT/R5-NOTEIN.MID.TXT"
 cp "$ROOT/docs/evidence/midi/lane_proof.run"   "$OUT/LANE-PROOF.RUN"
@@ -182,23 +221,72 @@ python3 "$SPIKE" submit --spool "$SPOOL" --wait 120 \
 
 echo
 echo "==================== READ THIS FIRST ===================="
-for f in "$OUT/RIAPP-EV.LOG" "$OUT/R6LISTEN.LOG"; do
-    if [ -f "$f" ]; then
-        echo "--- $(basename "$f")"
-        grep -E "NOTEIN|NOTEIN |NOTE " "$f" 2>/dev/null | tail -n 6
-        grep -E "^[^ ]* *(NOTEIN|DEV|CLK|LEVI) " "$f" 2>/dev/null | head -n 8
+EV="$OUT/RIAPP-EV.LOG"
+if [ ! -f "$EV" ]; then
+    echo "--- RIAPP-EV.LOG: NOT RETRIEVED -- the app did not log, or the get"
+    echo "    failed. Nothing below can be concluded from this run."
+elif ! grep -q 'NOTEIN' "$EV"; then
+    echo "--- FAIL: NO NOTEIN LINE IN THE EV-LOG."
+    echo "    This is NOT silence. The app emits a zero baseline at startup"
+    echo "    (R5f), so a missing NOTEIN line means one of two things and"
+    echo "    neither is a quiet wire:"
+    echo "      * the binary predates the counters  -> WRONG BINARY; check the"
+    echo "        staged sha256 against what this run built"
+    echo "      * MIDI in was never enabled, so the binding block that emits"
+    echo "        the baseline never ran -> check RIAPP_MIDI_IN"
+    exit 5
+else
+    echo "--- NOTEIN (the last line is the final state)"
+    grep 'NOTEIN' "$EV" | tail -n 6
+    echo
+    LAST=$(grep 'NOTEIN played=' "$EV" | tail -n 1)
+    get() { echo "$LAST" | tr ' ' '\n' | grep "^$1=" | cut -d= -f2; }
+    SEEN=$(get seen); UNCL=$(get unclaimed); REFU=$(get refused)
+    DROP=$(get dropped); PLAY=$(get played)
+    : "${SEEN:=?}" "${UNCL:=?}" "${REFU:=?}" "${DROP:=?}" "${PLAY:=?}"
+    echo "--- DIAGNOSIS (first matching row wins)"
+    if   [ "$PLAY" != "?" ] && [ "$PLAY" -gt 0 ] 2>/dev/null; then
+        echo "    played>0            notes are queued -- the fault is DOWNSTREAM"
+    elif [ "$DROP" != "?" ] && [ "$DROP" -gt 0 ] 2>/dev/null; then
+        echo "    dropped>0           QUEUE FULL -- P-19 territory, not a mapping fault"
+    elif [ "$REFU" != "?" ] && [ "$REFU" -gt 0 ] 2>/dev/null; then
+        echo "    refused>0           the MAP is wrong (bound channel, unknown note)"
+    elif [ "$UNCL" != "?" ] && [ "$UNCL" -gt 0 ] 2>/dev/null; then
+        echo "    unclaimed>0         the CHANNEL BINDING is wrong -- notes are"
+        echo "                        arriving on a channel no machine claims"
+    elif [ "$SEEN" = "0" ]; then
+        echo "    seen=0              nothing arrived at all: CLUSTER or RECEIVER"
+        echo "                        fault. Not a mapping fault."
     else
-        echo "--- $(basename "$f"): NOT RETRIEVED"
+        echo "    no counter moved    messages arrived but none were notes"
     fi
-done
+fi
+if [ -f "$OUT/R6LISTEN.LOG" ]; then
+    echo
+    echo "--- R6LISTEN.LOG (R6's outbound side)"
+    tail -n 6 "$OUT/R6LISTEN.LOG"
+fi
 cat <<'EOF'
 
-  NOTEIN played>0 refused=0  binding right; fault is downstream
-  NOTEIN refused>0           messages ARE arriving and the MAP is wrong
-  NOTEIN played=0 refused=0  nothing is arriving: cluster or receiver fault
+  A MISSING NOTEIN LINE IS A FAIL, NOT SILENCE (R5f). The app emits a zero
+  baseline at startup precisely so that absence means one thing: a binary that
+  predates the counters -- the wrong-binary trap, which has happened here
+  three times -- or a run where MIDI in was never enabled.
 
-  DEV out=1 ch=1 prog=38     one program change, on the Leviasynth channel
-  R6LISTEN.LOG               channel-2 notes, channel-10 drums, ONE program change
+  THE FIVE COUNTERS, AND WHAT EACH ONE RULES OUT. First row that matches wins:
+
+    played>0     notes are queued; the fault is downstream
+    dropped>0    the ring was full -- P-19, not a mapping fault
+    refused>0    bound channel, unknown note: the MAP is wrong
+    unclaimed>0  notes are arriving on a channel no machine claims: BINDING
+    seen=0       nothing arrived at all: cluster or receiver fault
+
+  `unclaimed` is the one that was missing and it is what separates a dead wire
+  from a wrong rack. With only played/refused, `played=0 refused=0` meant
+  BOTH "nothing arrived" and "plenty arrived, on the wrong channel".
+
+  DEV out=1 ch=1 prog=38   one program change, on the Leviasynth channel
+  R6LISTEN.LOG             channel-2 notes, channel-10 drums, ONE prog change
 
 Then the owner's ears, in the order the script played them:
   A  M4 inbound   channel 2 -- notes, CC 55 / CC 74, bend, and the two

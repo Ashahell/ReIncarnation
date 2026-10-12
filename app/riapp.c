@@ -172,11 +172,38 @@ static int s_live; /* AHI backend up (render task owns the session) */
  * and the render task must see the SAME ring. */
 static uint32_t s_notein_played;   /* R5e: notes queued for the machines */
 static uint32_t s_notein_refused;  /* R5e: claimed-channel notes that resolved to nothing */
-/* The last values put in the log, so the pair is reported ON CHANGE rather
- * than on a timer -- the same shape as `s_midi_ignored` below. See the
- * reporting site for why these two numbers were worth printing at all. */
+/* R5f (owner 2026-10-12): three more, because TWO of these numbers could not
+ * tell three faults apart.
+ *
+ * `played` and `refused` alone leave two holes, and both were found by the
+ * owner reading the code rather than by anything failing:
+ *
+ *   1. NOTES ON AN UNCLAIMED CHANNEL WERE COUNTED NOWHERE. The old test was
+ *      `!ri_notein_unclaimed(...)` -- "not unclaimed", i.e. claimed -- and an
+ *      UNCLAIMED channel fell out of the `if` without moving either counter.
+ *      So `played=0 refused=0` meant both "nothing arrived at all" AND
+ *      "plenty arrived, on the wrong channel". The first is a cluster or
+ *      receiver fault; the second is a BINDING fault, and the two need
+ *      opposite fixes. `s_notein_unclaimed` is the difference.
+ *   2. A FULL QUEUE WAS INVISIBLE. `ri_notein_push` failing meant the note
+ *      resolved and nothing incremented, so a flood looked exactly like a
+ *      clean run. `s_notein_dropped` is that case.
+ *
+ * `s_notein_seen` counts EVERY message the drain read, notes or not, which is
+ * what makes `seen=0` mean "the wire is silent" rather than "no note was
+ * aimed at us". Without it there is no way to tell a dead cluster from a
+ * quiet one. */
+static uint32_t s_notein_seen;
+static uint32_t s_notein_unclaimed;
+static uint32_t s_notein_dropped;
+/* The last values put in the log, so the set is reported ON CHANGE rather than
+ * on a timer -- the same shape as `s_midi_ignored` below. See the reporting
+ * site for why these numbers were worth printing at all. */
 static uint32_t s_notein_played_log;
 static uint32_t s_notein_refused_log;
+static uint32_t s_notein_seen_log;
+static uint32_t s_notein_unclaimed_log;
+static uint32_t s_notein_dropped_log;
 static struct RINoteIn s_notein;
 static struct RINoteLive s_notelive;
 
@@ -934,6 +961,11 @@ static void midi_drain(void) {
         return;
     ch0 = s_panel.changes;
     n = midi_bridge_read_ch(b, s_midi_msgs, 32u);
+    /* EVERY MESSAGE, counted at the batch rather than inside the loop, so the
+     * total cannot drift from the number the loop actually walked. Notes and
+     * non-notes alike: this is the "is the wire alive" counter, and a counter
+     * that only moved for notes could not answer that. */
+    s_notein_seen += n;
     for (i = 0u; i < n; i++) {
         int tr0 = s_ui[C_TR]->u.tr.tr.state;
         struct RIMidiLeviAction la;
@@ -976,23 +1008,45 @@ static void midi_drain(void) {
             uint8_t st = s_midi_msgs[i].b[0];
             uint8_t hi = (uint8_t)(st & 0xF0u);
             uint8_t ch = (uint8_t)(st & 0x0Fu);
-            if ((hi == 0x90u || hi == 0x80u) &&
-                    !ri_notein_unclaimed(&s_notein, ch)) {
-                struct RINoteInEvent nev;
-                memset(&nev, 0, sizeof nev);
-                nev.ch = ch;
-                nev.note = s_midi_msgs[i].b[1];
-                nev.vel = s_midi_msgs[i].b[2];
-                /* VELOCITY 0 IS A NOTE-OFF, and MIDI says so on the note-on
-                 * status. Reading it as a note-on would leave the note
-                 * sounding forever -- the running-status idiom every DAW
-                 * uses to save bytes. */
-                nev.on = (hi == 0x90u && s_midi_msgs[i].b[2] != 0u) ? 1u : 0u;
-                if (ri_notein_note(&s_notein, &nev) == 0) {
-                    if (ri_notein_push(&s_notelive, &nev) == 0)
-                        s_notein_played++;
+            /* THE FUNNEL, AND EVERY STAGE COUNTS (R5f). Four exits, four
+             * different faults, and the log line names which one happened:
+             *
+             *   unclaimed -> the channel is not bound: a BINDING fault
+             *   refused   -> bound, but the note is not in the map: a MAP fault
+             *   dropped   -> resolved, but the ring was full: a LOAD fault
+             *   played    -> queued, and the fault is now downstream
+             *
+             * The old code had three of these four and the missing one was
+             * the one that made the diagnosis wrong. */
+            if (hi == 0x90u || hi == 0x80u) {
+                if (ri_notein_unclaimed(&s_notein, ch)) {
+                    /* COUNTED, not skipped. This is the case that used to
+                     * vanish, and it is the one that separates "the wire is
+                     * dead" from "the wire is fine and the rack is not". */
+                    s_notein_unclaimed++;
                 } else {
-                    s_notein_refused++;
+                    struct RINoteInEvent nev;
+                    memset(&nev, 0, sizeof nev);
+                    nev.ch = ch;
+                    nev.note = s_midi_msgs[i].b[1];
+                    nev.vel = s_midi_msgs[i].b[2];
+                    /* VELOCITY 0 IS A NOTE-OFF, and MIDI says so on the
+                     * note-on status. Reading it as a note-on would leave the
+                     * note sounding forever -- the running-status idiom every
+                     * DAW uses to save bytes. */
+                    nev.on = (hi == 0x90u && s_midi_msgs[i].b[2] != 0u) ? 1u : 0u;
+                    if (ri_notein_note(&s_notein, &nev) == 0) {
+                        /* A FULL RING IS A FAULT AND NOW SAYS SO. It used to
+                         * increment nothing, so a flood was indistinguishable
+                         * from a clean run -- and P-19 exists precisely
+                         * because a flood was expected. */
+                        if (ri_notein_push(&s_notelive, &nev) == 0)
+                            s_notein_played++;
+                        else
+                            s_notein_dropped++;
+                    } else {
+                        s_notein_refused++;
+                    }
                 }
             }
         }
@@ -1028,11 +1082,19 @@ static void midi_drain(void) {
      * On CHANGE, not on a timer: a timer prints on a run where nothing
      * happened, and a change-only line's last value is the final total. */
     if (s_notein_played != s_notein_played_log ||
-            s_notein_refused != s_notein_refused_log) {
-        evlog("NOTEIN", "played=%u refused=%u",
-            (ULONG)s_notein_played, (ULONG)s_notein_refused);
+            s_notein_refused != s_notein_refused_log ||
+            s_notein_seen != s_notein_seen_log ||
+            s_notein_unclaimed != s_notein_unclaimed_log ||
+            s_notein_dropped != s_notein_dropped_log) {
+        evlog("NOTEIN", "played=%u refused=%u unclaimed=%u dropped=%u seen=%u",
+            (ULONG)s_notein_played, (ULONG)s_notein_refused,
+            (ULONG)s_notein_unclaimed, (ULONG)s_notein_dropped,
+            (ULONG)s_notein_seen);
         s_notein_played_log = s_notein_played;
         s_notein_refused_log = s_notein_refused;
+        s_notein_seen_log = s_notein_seen;
+        s_notein_unclaimed_log = s_notein_unclaimed;
+        s_notein_dropped_log = s_notein_dropped;
     }
     /* The applier's cursor IS the engine's tick cursor (session ppq):
      * the panel position is a display projection, so writing it never
@@ -2855,6 +2917,21 @@ static void midi_setup(void) {
         }
         evlog("NOTEIN", "bound %u drums_implicit=%u",
             (unsigned)midi_chan_n(&s_chan), (unsigned)s_notein.drums_claimed);
+        /* THE BASELINE, AND IT IS NOT COSMETIC (owner, 2026-10-12).
+         *
+         * The counters are reported ON CHANGE, which is the right shape for a
+         * running total -- and it has one fatal edge: **a run where no note
+         * ever arrives prints no NOTEIN line at all.** So "the wire was
+         * silent" and "this binary predates the counters" are the same
+         * absence, and the second one is the WRONG-BINARY trap, which has
+         * bitten this project three times. A silent baseline line makes the
+         * absence mean exactly one thing.
+         *
+         * Emitted from inside the `if` that binds channels, so it appears on
+         * the runs where the feature is live. `lane_proof.sh` treats a
+         * missing NOTEIN line as a FAIL rather than as silence. */
+        evlog("NOTEIN", "played=%u refused=%u unclaimed=%u dropped=%u "
+            "seen=%u", (ULONG)0u, (ULONG)0u, (ULONG)0u, (ULONG)0u, (ULONG)0u);
     }
     /* ATTACH THE RING TO THE LIVE SESSION. One pointer assignment; the
      * render task's cost is a single NULL-or-not compare per buffer. */
