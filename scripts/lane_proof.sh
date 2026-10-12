@@ -228,11 +228,28 @@ if python3 "$SPIKE" submit --spool "$SPOOL" --wait 20 \
         --ui-windows > "$OUT/windows.txt" 2>&1; then
     if grep -qi "software failure" "$OUT/windows.txt"; then
         echo "  *** A 'Software Failure!' REQUESTER IS UP ON THE LANE."
-        echo "  *** The agent is probably wedged behind it and the alert TEXT"
-        echo "  *** lives on that screen, which this script cannot read."
-        echo "  *** It needs the owner's reboot, then a capture at scale 0."
+        echo "  *** CAPTURING IT NOW, at scale 0."
         echo
         grep -iE "software failure|RIAPP" "$OUT/windows.txt" | sed 's/^/    /'
+        echo
+        # SCALE 0, and not 1 or 2. The guest picks the smallest factor that
+        # fits its frame cap, which is what a 1366x768 screen needs -- scale 1
+        # was refused as too large and scale 2 timed out. This capture is the
+        # whole reason this branch exists: on 2026-12 the alert text was lost
+        # because the wedge was discovered too late to photograph, and the
+        # diagnosis stalled on the one piece of evidence nobody had.
+        # Best effort: a wedged agent may not answer it either, and that is
+        # itself the answer -- it confirms the requester is what is blocking.
+        python3 "$SPIKE" submit --spool "$SPOOL" --wait 45 \
+            --ui-capture "$OUT/failure.png",0 > "$OUT/capture.txt" 2>&1
+        if [ -s "$OUT/failure.png" ]; then
+            echo "  captured: $OUT/failure.png"
+        else
+            echo "  capture failed (expected if the agent is wedged):"
+            tail -n 2 "$OUT/capture.txt" | sed 's/^/    /'
+        fi
+        echo "  The next step after a reboot is to capture at scale 0 BEFORE"
+        echo "  anything else runs, because the requester does not survive it."
         echo
     fi
 else

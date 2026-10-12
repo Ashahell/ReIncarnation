@@ -252,6 +252,56 @@ struct RIMidiBridge *ri_pal_midi_bridge(void) {
     return s_have_bridge ? &s_bridge : 0;
 }
 
+static struct RIMidiOut *s_out;          /* BORROWED: render writes it */
+static struct Task *s_stask;
+static struct MsgPort *s_sport;
+static struct timerequest *s_streq;
+static struct IORequest *s_stimer;
+static LONG s_skill_sig = -1;
+static LONG s_sparent_sig = -1;
+static struct Task *s_sparent;
+static ri_atomic_u32 s_sstop, s_stask_done, s_sready;
+static volatile uint32_t s_sent, s_send_err;
+
+/* THE LINK IS SHARED BY TWO TASKS, AND NOW IT SAYS SO.
+ *
+ * `ri_pal_midi_send` is called from the SENDER task below (clock out and dev
+ * out, every 1 ms) AND from the app's main task -- `app/riapp.c` sends MMC
+ * from the one place the transport changes. Both went through `s_tx` /
+ * `s_txlink` with nothing between them, so a main-task send racing a
+ * sender-task send could `PutMidi` on a link the other was inside.
+ *
+ * That is the same defect as the teardown bug below and it is why "pressing
+ * buttons" was in the report. It is NOT what fired on the Dell -- MMC out was
+ * off in that run (`MMC out=0`) -- so it is a latent race, not the crash.
+ *
+ * A TURNSTILE BUILT ON THE PAL's OWN ATOMIC EXCHANGE. `ri_atomic_xchg_rel`
+ * returns the previous value, so 0 means the caller took the lock. Bounded by
+ * a spin count and then **FAILS CLOSED**: a caller that cannot get the link
+ * returns an error rather than touching it. Failing closed is the whole point
+ * -- a dropped MIDI message is recoverable and a crash inside camd is not.
+ *
+ * (`ri_atomic_fetch_add_rel` is the wrong primitive and says so: it returns
+ * void. I reached for it anyway and the AROS link caught it.) */
+static ri_atomic_u32 s_tx_busy;
+
+#define RI_TX_SPIN_MAX 2000u
+
+static int tx_claim(void) {
+    uint32_t spins = 0u;
+    for (;;) {
+        if (ri_atomic_xchg_rel(&s_tx_busy, 1u) == 0u)
+            return 1;                   /* we hold it */
+        if (++spins >= RI_TX_SPIN_MAX)
+            return 0;                   /* busy: fail closed */
+        Delay(1);
+    }
+}
+
+static void tx_release(void) {
+    ri_atomic_store_rel(&s_tx_busy, 0u);
+}
+
 int ri_pal_midi_send(const char *port, const uint8_t *msg, uint32_t len) {
     ULONG pkt;
     const char *dst;
@@ -280,7 +330,13 @@ int ri_pal_midi_send(const char *port, const uint8_t *msg, uint32_t len) {
     }
     pkt = ((ULONG)msg[0] << 24) | ((ULONG)(len > 1u ? msg[1] : 0u) << 16) |
         ((ULONG)(len > 2u ? msg[2] : 0u) << 8);
+    /* ONE TASK AT A TIME ON THE LINK. The claim goes as late as possible --
+     * after every check that can refuse -- so the contended window is only
+     * the delete/create/put sequence and nothing else. */
+    if (!tx_claim())
+        return 1;
     PutMidi(s_txlink, pkt);
+    tx_release();
     return 0;
 }
 
@@ -297,10 +353,37 @@ void ri_pal_midi_close(void) {
             spins++;
         }
     }
-    if (s_tx) {
+    /* JOIN THE SENDER TASK BEFORE THE LINK IS FREED (2026-10-12).
+     *
+     * THIS IS THE DELL CRASH. `ri_pal_midi_close()` stopped the BRIDGE task
+     * and then deleted the camd link while `RIAPP midi-out` -- the clock-out
+     * sender, named at CreateNewProcTags below -- was still running its 1 ms
+     * loop, still calling `ri_pal_midi_send`, still reading `s_txlink` and
+     * still calling `PutMidi` on it. Deleting the link under a task that is
+     * inside it hands camd a freed IORequest, and the report that came back
+     * was:
+     *
+     *     RIAPP midi out   Error: illegal address access
+     *                     exec_777_sendio
+     *
+     * -- the task's own name and the sendio it was in. The header has said
+     * since M5e2 that "`ri_pal_midi_send_stop()` joins the task"; the only
+     * caller was the `send_start` failure path, so the documented teardown
+     * was never performed.
+     *
+     * Order matters and is now the only order: stop and JOIN the sender, and
+     * only then free what the sender was using. */
+    ri_pal_midi_send_stop();
+    /* Under the same claim a sender would take, so the delete cannot land
+     * between a sender's claim and its `PutMidi`. If the claim cannot be
+     * taken the link is LEFT ALONE rather than freed -- leaking a link on a
+     * contended teardown is the price of not crashing, and it is the right
+     * way round. */
+    if (s_tx && !s_stask && tx_claim()) {
         DeleteMidi(s_tx);
         s_tx = 0;
         s_txlink = 0;
+        tx_release();
     }
     s_task = 0;
     if (s_parent_sig >= 0) {
@@ -329,17 +412,6 @@ void ri_pal_midi_close(void) {
  * task does is carry bytes across in small batches. The lane proof
  * measures the intervals it actually produces.
  * ===================================================================== */
-
-static struct RIMidiOut *s_out;          /* BORROWED: render writes it */
-static struct Task *s_stask;
-static struct MsgPort *s_sport;
-static struct timerequest *s_streq;
-static struct IORequest *s_stimer;
-static LONG s_skill_sig = -1;
-static LONG s_sparent_sig = -1;
-static struct Task *s_sparent;
-static ri_atomic_u32 s_sstop, s_stask_done, s_sready;
-static volatile uint32_t s_sent, s_send_err;
 
 static int send_sink(const uint8_t *msg, uint32_t len, void *user) {
     (void)user;
@@ -468,11 +540,30 @@ void ri_pal_midi_send_stop(void) {
     if (!s_stask)
         return;
     ri_atomic_store_rel(&s_sstop, 1u);
-    if (s_stask && s_skill_sig >= 0)
+    if (s_skill_sig >= 0)
         Signal(s_stask, 1UL << s_skill_sig);
     while (!ri_atomic_load_acq(&s_stask_done) && spins < 100u) {
         Delay(1);
         spins++;
+    }
+    /* DO NOT CLEAR s_stask UNLESS THE TASK IS ACTUALLY GONE (2026-10-12).
+     *
+     * The bounded wait is right -- teardown must not wedge -- but clearing
+     * `s_stask` after giving up on the wait is the opposite of right. It
+     * makes the code claim a task it has not joined: a later
+     * `ri_pal_midi_send_start` sees `s_stask == 0` and starts a SECOND sender
+     * while the first still holds `s_sport` and the timer, and a caller that
+     * trusts the teardown frees the camd link out from under the first one.
+     *
+     * Both of those end in `PutMidi` on a freed link, which is an
+     * `exec_777_sendio` illegal access -- the Dell, 2026-10-12. Leaving the
+     * handle set is the honest state: the task is still there, and the next
+     * start will refuse rather than create a second. */
+    if (!ri_atomic_load_acq(&s_stask_done)) {
+        /* Still running. `s_out` and `s_sparent_sig` MUST stay, because the
+         * task is about to read and signal them. Deliberately not falling
+         * through to the FreeSignal below. */
+        return;
     }
     s_stask = 0;
     s_out = 0;

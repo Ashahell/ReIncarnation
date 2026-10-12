@@ -47,6 +47,35 @@ static inline void ri_atomic_store_rel(ri_atomic_u32 *a, uint32_t v) {
 #endif
 }
 
+/* Atomic EXCHANGE: returns the previous value and stores `v`.
+ *
+ * Added 2026-10-12 for the CAMD link turnstile in
+ * `platform/aros/midi_camd.c`, which needs test-and-set semantics and found
+ * them ABSENT: `ri_atomic_fetch_add_rel` below returns **void**, because it
+ * is a counter increment for single-writer use and not a RMW you can read a
+ * result from. Reaching for it as a lock compiled on the host and failed the
+ * AROS link with "void value not ignored as it ought to be" -- which is the
+ * correct outcome, and the reason this is documented rather than assumed.
+ *
+ * 0 means "the caller took the lock" in the usual turnstile shape. */
+static inline uint32_t ri_atomic_xchg_rel(ri_atomic_u32 *a, uint32_t v) {
+#if defined(__GNUC__) || defined(__clang__)
+    uint32_t out;
+    __atomic_exchange((uint32_t *)&a->v, &v, &out, __ATOMIC_ACQ_REL);
+    return out;
+#elif defined(_MSC_VER)
+    uint32_t out = a->v;
+    _WriteBarrier();
+    a->v = v;
+    _ReadWriteBarrier();
+    return out;
+#else
+    uint32_t out = a->v;
+    a->v = v;
+    return out;
+#endif
+}
+
 /* Single-writer RMW add (stats, seqlock tickets). Full barrier pair on
  * GCC/Clang; compiler-barrier + volatile op on MSVC (TSO-correct). */
 static inline void ri_atomic_fetch_add_rel(ri_atomic_u32 *a, uint32_t d) {

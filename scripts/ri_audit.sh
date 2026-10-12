@@ -276,6 +276,110 @@ bash "$ROOT/scripts/ri_build_host.sh" test t197_stem_wav >/dev/null || { echo "F
 bash "$ROOT/scripts/ri_build_host.sh" test t217_wavfloat >/dev/null || { echo "FAIL: t217_wavfloat (P3 32-bit IEEE float, format code 3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t28_wavdepth >/dev/null || { echo "FAIL: t28_wavdepth (TC-2.13.4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t31_rate441 >/dev/null || { echo "FAIL: t31_rate441 (TC-2.13.4)"; exit 1; }
+# The CAMD teardown order, pinned (2026-10-12, the Dell Software Failure).
+#
+# THIS CANNOT BE HOST-TESTED -- it needs camd.library, two tasks and a real
+# link -- and that is precisely why it regressed for years: a bug that only
+# appears on the one machine nobody is watching, with no local way to see it.
+# So the invariant is pinned as source structure instead, because the failure
+# was never "the code is wrong in a subtle way" but "the right call is simply
+# missing from this function", which a reader can check and a test cannot.
+python3 - <<'PYCAMD' || exit 1
+import re, sys
+src = open("platform/aros/midi_camd.c").read()
+
+# STRIP COMMENTS FIRST, AND THAT IS NOT COSMETIC.
+#
+# My first version of this gate searched the raw text, and the fix's own
+# explanatory comment -- inside `ri_pal_midi_close`, saying "the header has
+# said since M5e2 that `ri_pal_midi_send_stop()` joins the task" -- contains
+# the very call the gate was looking for. So DELETING the call left the gate
+# passing, on the strength of my own prose. It reported "close joins the
+# sender before freeing the link" with the join removed.
+#
+# A structural check that can be satisfied by a comment is not a structural
+# check. Every search below runs on code with comments blanked out, so the
+# only thing it can find is code.
+def strip_comments(text):
+    out = []
+    i = 0
+    while i < len(text):
+        if text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            j = len(text) if j < 0 else j + 2
+            out.append(" " * (j - i))   # keep offsets, lose the words
+            i = j
+        elif text.startswith("//", i):
+            j = text.find("\n", i)
+            j = len(text) if j < 0 else j
+            out.append(" " * (j - i))
+            i = j
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+src = strip_comments(src)
+
+def body(name):
+    m = re.search(r'\n[A-Za-z_][\w \*]*?\b%s\s*\([^)]*\)\s*\{' % re.escape(name), src)
+    if not m:
+        print("FAIL: cannot find %s in platform/aros/midi_camd.c" % name); sys.exit(1)
+    i = src.index('{', m.start()); depth = 0
+    for k in range(i, len(src)):
+        if src[k] == '{': depth += 1
+        elif src[k] == '}':
+            depth -= 1
+            if depth == 0: return src[i:k]
+    print("FAIL: unterminated body for %s" % name); sys.exit(1)
+
+close = body("ri_pal_midi_close")
+stop  = body("ri_pal_midi_send_stop")
+bad = []
+
+# 1. CLOSE MUST JOIN THE SENDER BEFORE IT FREES THE LINK. This is the crash:
+#    the app deleted the camd link while the "RIAPP midi-out" task was still
+#    running its 1 ms loop, and the report was `exec_777_sendio` in that task.
+cs, sd = close.find("ri_pal_midi_send_stop"), close.find("DeleteMidi(s_tx)")
+if cs < 0:
+    bad.append("ri_pal_midi_close does not call ri_pal_midi_send_stop at all "
+               "-- it frees the camd link with the sender task still running "
+               "(the Dell Software Failure, 2026-10-12)")
+elif sd < 0:
+    bad.append("ri_pal_midi_close no longer deletes the link; check the "
+               "teardown order changed shape")
+elif cs > sd:
+    bad.append("ri_pal_midi_close deletes the link BEFORE joining the sender")
+
+# 2. AND THE FREE MUST STILL BE GUARDED BY THE JOIN HAVING SUCCEEDED.
+if not re.search(r'DeleteMidi\(s_tx\)', close) or '!s_stask' not in close:
+    bad.append("ri_pal_midi_close deletes the link without checking the task "
+               "is actually gone")
+
+# 3. SEND_STOP MUST NOT CLAIM A JOIN IT DID NOT PERFORM. Clearing s_stask
+#    after a bounded wait that gave up lets a second sender start and lets a
+#    caller free the link under the first.
+if stop.find("s_stask = 0") >= 0 and stop.find("s_stask_done") >= 0:
+    guard = stop[:stop.find("s_stask = 0")]
+    if "if (!ri_atomic_load_acq(&s_stask_done))" not in guard and \
+       "if (!ri_atomic_load_acq(&s_stask_done))" not in guard.replace(" ", " "):
+        bad.append("ri_pal_midi_send_stop clears s_stask without first "
+                   "confirming s_stask_done")
+
+# 4. THE LINK TURNTILE MUST BE RELEASED ON EVERY PATH IT IS CLAIMED. A claim
+#    with no release is a deadlock; a claim released twice is a silent hole.
+send = body("ri_pal_midi_send")
+if send.count("tx_claim()") != send.count("tx_release()"):
+    bad.append("ri_pal_midi_send claims the link %d time(s) and releases it %d "
+               "time(s)" % (send.count("tx_claim()"), send.count("tx_release()")))
+
+if bad:
+    for b in bad: print("FAIL: " + b)
+    sys.exit(1)
+print("   camd teardown: close joins the sender before freeing the link, "
+      "stop never claims a join it did not perform, link turnstile balanced")
+PYCAMD
+
 echo "-- export golden headers (external sox check when present) --"
 if command -v sox >/dev/null 2>&1; then
   for spec in "math-dc.wav:48000:16:96000" "dc-24.wav:48000:24:96000" "dc-441.wav:44100:16:96000" "first-light.wav:48000:16:122571" "first-light-441.wav:44100:16:112612" "dc-aiff.wav:48000:16:96000" "first-light-aiff.wav:48000:16:122571"; do

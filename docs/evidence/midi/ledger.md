@@ -3742,3 +3742,96 @@ Reboot the Dell, then `scripts/lane_proof.sh`. The first thing to do after the
 reboot is capture the screen at **scale 0** (the guest picks the factor that
 fits) while any requester is still up -- that is the alert text, and it is the
 one piece of evidence this diagnosis is missing.
+
+## The crash, found: `ri_pal_midi_close` never joined the sender task (2026-10-12)
+
+`platform/aros/midi_camd.c`, `platform/pal/ri_pal_thread.h`, `scripts/ri_audit.sh`.
+
+The alert text, from the owner:
+
+```
+RIAPP midi out   Error: illegal address access
+                 exec_777_sendio
+```
+
+Two words in that report, and both of them are identifiers in this tree.
+**`RIAPP midi out` IS THE TASK NAME** — `NP_Name, (IPTR)"RIAPP midi-out"` —
+so the fault was inside the clock-out sender task, not in a library it called
+by accident. **`exec_777_sendio` IS THE SENDIO PATH** that `PutMidi` sits on.
+A `PutMidi` through a link that is being freed, from a task that is still
+running, lands exactly there.
+
+### THE DEFECT
+
+`ri_pal_midi_close()` stopped the **bridge** task and then called
+`DeleteMidi(s_tx)` — **without ever stopping the sender task.** So the
+`RIAPP midi-out` task carried on its 1 ms loop, kept calling
+`ri_pal_midi_send`, kept reading `s_txlink`, and kept calling `PutMidi` on a
+link that had been freed underneath it.
+
+`platform/pal/ri_pal_midi.h` has said since M5e2, in as many words:
+
+> `ri_pal_midi_send_stop()` joins the task.
+
+**The only caller of that function was the `send_start` FAILURE PATH.** The
+documented teardown had never been performed, on the one machine where it
+matters, where nothing local can run it.
+
+### TWO MORE DEFECTS IN THE SAME TEN LINES
+
+**`ri_pal_midi_send_stop()` CLAIMED A JOIN IT DID NOT PERFORM.** It waits for
+`s_stask_done` for at most 100 ticks — correct, teardown must not wedge — and
+then cleared `s_stask` **whether or not the wait succeeded**. So even a caller
+that *did* invoke it could free the link under a live task, and
+`ri_pal_midi_send_start` would start a **second** sender onto the same port.
+
+**THE LINK HAD NO MUTEX AND HAD TWO CALLERS.** `ri_pal_midi_send` is reached
+from the sender task (clock out and dev out) *and* from the app's main task —
+`app/riapp.c` sends MMC from the one place the transport changes. Both went
+through `s_tx`/`s_txlink` with nothing between them. That is the **"pressing
+buttons"** half of the report. It is **not** what fired here (MMC out was off
+in that run, `MMC out=0`), so it is a latent race, recorded as its own bug
+rather than folded into the crash.
+
+### THE FIXES
+
+1. `ri_pal_midi_close()` calls `ri_pal_midi_send_stop()` **before** the link is
+   freed, and only frees it once the join is confirmed.
+2. `ri_pal_midi_send_stop()` does not clear `s_stask` unless `s_stask_done` is
+   actually set. A task that will not stop leaves its handle in place, so the
+   next `send_start` refuses rather than creating a second one.
+3. A turnstile on the link, taken as late as possible and **failing closed**:
+   a caller that cannot take it returns an error rather than touching the
+   link. A dropped MIDI message is recoverable; a crash inside camd is not.
+
+**`ri_atomic_fetch_add_rel` WAS THE WRONG PRIMITIVE AND THE LINKER SAID SO.**
+It returns `void` — it is a single-writer counter add — so using it as a lock
+compiled on the host and failed the AROS link with *"void value not ignored as
+it ought to be"*. `ri_atomic_xchg_rel` was added to
+`platform/pal/ri_pal_thread.h`, which had **no** test-and-set at all.
+
+### THE GATE, AND HOW IT WAS CAUGHT PASSING ON A COMMENT
+
+This cannot be host-tested — it needs camd.library, two tasks and a real link
+— which is exactly why it survived: a bug visible only on the one machine
+nobody is watching, with no local way to see it. So it is pinned as source
+structure instead.
+
+**The first version of that gate passed with the fix deleted.** The fix's own
+explanatory comment lives inside `ri_pal_midi_close` and contains the text
+`` `ri_pal_midi_send_stop()` joins the task `` — so deleting the call left the
+string present, and the gate cheerfully reported *"close joins the sender
+before freeing the link"* **on the strength of my own prose.**
+
+**A STRUCTURAL CHECK THAT CAN BE SATISFIED BY A COMMENT IS NOT A STRUCTURAL
+CHECK.** Comments are now blanked before any search. Mutants A and B
+(delete the call, free before joining) survived the first gate and are killed
+by the second.
+
+### Mutants: 6, all killed
+
+delete the join · free before joining · free without confirming the task is
+gone · `send_stop` claims a join it did not perform · the turnstile loses its
+release · and the two that caught the comment bug.
+
+`AUDIT 0/0 PASS`.
