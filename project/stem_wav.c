@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "project/stem_wav.h"
+#include "project/sample_guard.h"   /* THE one non-finite guard */
 
 uint32_t stem_wav_u16(const uint8_t *p) {
     return p ? ((uint32_t)p[0] | ((uint32_t)p[1] << 8)) : 0u;
@@ -50,7 +51,7 @@ static uint32_t bytes_per_sample(uint32_t depth) {
 
 uint32_t stem_wav_write(uint8_t *out, uint32_t cap, const float *samples,
     uint32_t frames, uint32_t channels, uint32_t rate, uint32_t depth,
-    const char *path) {
+    const char *path, uint32_t *nonfinite) {
     uint32_t bps, align, data_bytes, total, at = 0u, i, c;
     (void)path;
     if (!out || !samples || frames == 0u || channels == 0u || channels > 2u || rate == 0u)
@@ -91,11 +92,27 @@ uint32_t stem_wav_write(uint8_t *out, uint32_t cap, const float *samples,
              * emits all of channel 0 then all of channel 1 produces a file
              * that plays one channel, then silence. */
             float v = samples[i * channels + c];
-            if (v > 1.0f)
-                v = 1.0f;
-            if (v < -1.0f)
-                v = -1.0f;
+            /* THE GUARD COMES FIRST, FOR EVERY DEPTH. A NaN is not "a sample
+             * that happens to be large", and the clamp below could never have
+             * caught it: both of its comparisons are false. */
+            if (ri_sample_guard(&v)) {
+                if (nonfinite)
+                    (*nonfinite)++;
+            } else if (depth != STEM_WAV_F32 && (v > 1.0f || v < -1.0f)) {
+                /* CLAMPED AT 16 AND 24 ONLY. Not because clamping is right in
+                 * general -- it is not, and the float path below is why --
+                 * but because an integer format has no way to hold a value
+                 * above full scale, so the nearest thing it can hold IS the
+                 * answer. The float path has a way, and uses it. */
+                if (v > 1.0f)
+                    v = 1.0f;
+                else
+                    v = -1.0f;
+            }
             if (depth == STEM_WAV_F32) {
+                /* NOT CLAMPED. The stems are pre-master and pre-limiter, so
+                 * +1.5 here is a normal sample of a loud stem, not a fault.
+                 * Owner ruling 2026-10-12; the reasoning is in stem_wav.h. */
                 uint32_t bits;
                 memcpy(&bits, &v, sizeof bits);
                 at = put32(out, at, bits);
@@ -122,6 +139,8 @@ void stem_set_init(struct RIStemSet *s, uint32_t rate, uint32_t bpm_milli) {
     s->bpm_milli = bpm_milli;
     s->depth = STEM_WAV_PCM24;
     s->common_frames = 0u;
+    s->nonfinite = 0u;   /* the memset above covers it; named so it is not
+                          * mistaken for an omission when read in isolation */
 }
 
 /* The common length is the LONGEST stem. Taking the first, the average, or
@@ -158,7 +177,7 @@ uint32_t stem_set_frames(const struct RIStemSet *s) { return s ? s->common_frame
 uint32_t stem_set_padded(const struct RIStemSet *s) { return s ? s->padded : 0u; }
 uint32_t stem_set_count(const struct RIStemSet *s) { return s ? s->nstems : 0u; }
 
-uint32_t stem_set_write(const struct RIStemSet *s, uint32_t idx, uint8_t *out,
+uint32_t stem_set_write(struct RIStemSet *s, uint32_t idx, uint8_t *out,
     uint32_t cap) {
     static float pad[65536];
     const float *src;
@@ -167,7 +186,7 @@ uint32_t stem_set_write(const struct RIStemSet *s, uint32_t idx, uint8_t *out,
         return 0u;
     if (s->frames[idx] == s->common_frames)
         return stem_wav_write(out, cap, s->samples[idx], s->common_frames,
-            s->channels[idx], s->rate, s->depth, 0);
+            s->channels[idx], s->rate, s->depth, 0, &s->nonfinite);
     if (s->common_frames > 65536u)
         return 0u;
     /* Pad with SILENCE to the common length, never trim. A stem trimmed at
@@ -176,7 +195,7 @@ uint32_t stem_set_write(const struct RIStemSet *s, uint32_t idx, uint8_t *out,
     memcpy(pad, s->samples[idx], (size_t)s->frames[idx] * sizeof *pad);
     src = pad;
     n = stem_wav_write(out, cap, src, s->common_frames, s->channels[idx],
-        s->rate, s->depth, 0);
+        s->rate, s->depth, 0, &s->nonfinite);
     return n;
 }
 

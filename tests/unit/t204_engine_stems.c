@@ -34,6 +34,7 @@
  *    otherwise; that claim was withdrawn.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include "engine/engine.h"
@@ -391,6 +392,72 @@ int main(void) {
     load(RI_ENGINE_S303A, &nev);
     render();
     RI_ASSERT(1u, "a NULL engine and a NULL tap are both no-ops");
+
+        /* ==================================================================
+     * `ri_engine_init` CLEARS THE TAP POINTER (the Dell corpus segfault).
+     *
+     * Found on 2026-10-12 while wiring the float-clamp ruling, and it is the
+     * most interesting defect this test file has ever been the home of,
+     * because **it has no branch to mutate**. Every other law here is a
+     * conditional somewhere, so a mutation kills it. An INITIALISATION
+     * OMISSION is the absence of a store, and a differential test cannot see
+     * an absence -- which is exactly why this one survived, through the float
+     * work, the P3 work, R8f and everything before them.
+     *
+     * WHAT IT WAS. `struct RIEngine` has three pointer members. `ri_engine_init`
+     * cleared two of them -- `ev` and `dline` -- and not the third, `stems`.
+     * An engine on the stack therefore kept whatever pointer the compiler had
+     * left in that slot. `engine_section` reads `e->stems->l[section]` and
+     * `->r[section]` and writes through them, so the render wrote samples to
+     * an address read out of uninitialised memory.
+     *
+     * WHY IT SURVIVED SO LONG. `render_rbngsong` declares its engine as an
+     * automatic, so the slot held leftover stack. It happened to read as NULL
+     * on the code shape in use, and NULL fails `if (e->stems && ...)` without
+     * complaint. Then splitting `main` into a dispatcher -- so a render log
+     * line could print on every exit path -- moved the frame by a few bytes,
+     * the slot read as 0xaca542d2987fee00, and the corpus segfaulted at
+     * engine/engine.c:270. **NOTHING IN THAT CHANGE WAS WRONG.**
+     *
+     * SO THE TEST DIRTIES THE MEMORY. A poisoned stack is the only honest way
+     * to ask "does init leave this field alone?", because a clean stack
+     * answers NULL for free and the assertion would be tautological.
+     * ================================================================== */
+    {
+        struct RIEngine *e = (struct RIEngine *)malloc(sizeof *e);
+        RI_ASSERT(e != NULL, "engine allocated");
+        if (e) {
+            /* 0xAA bytes: every bit set in each byte, so a surviving pointer
+             * is a wild address rather than something dereferenceable. */
+            memset(e, 0xAA, sizeof *e);
+            ri_engine_init(e);
+            RI_ASSERT(e->stems == 0,
+                "ri_engine_init CLEARS the tap pointer (%p); an engine left on "
+                "dirty stack dereferences it in engine_section",
+                (void *)e->stems);
+            /* ... and the other two it always cleared, so the test is about
+             * the FIELD SET rather than about one field being special. */
+            RI_ASSERT(e->ev == 0, "ev is still cleared");
+            RI_ASSERT(e->dline == 0, "dline is still cleared");
+            /* AND A RENDER ON THAT ENGINE IS SILENT RATHER THAN A CRASH.
+             * The end-to-end half: the assertion above is about a field, and
+             * this is about what a caller gets. */
+            {
+                static float out[256], outr[256];
+                static struct RIEvent evs[2];
+                memset(evs, 0, sizeof evs);
+                evs[0].type = RI_EV_NOTE_ON; evs[0].device = 0u;
+                evs[0].value = 36u; evs[0].sample = 0u;
+                ri_engine_load(e, evs, 1u, 256u, RI_ENGINE_S303A);
+                RI_ASSERT(e->stems == 0,
+                    "and ri_engine_load does not re-poison it (R6d: load must "
+                    "not clear a tap that is attached -- this is a NULL one)");
+                RI_ASSERT(ri_engine_render(e, out, outr, 256u, 48000.0f) == 256u,
+                    "a render on a poisoned-then-initialised engine completes");
+            }
+            free(e);
+        }
+    }
 
     RI_RESULT("engine-stems");
 }

@@ -26,6 +26,9 @@
 #include "tests/helpers/ri_assert.h"
 #include "project/stem_wav.h"
 
+/* NOTE ON THE TRAILING `, 0`: that is the non-finite counter, and these
+ * cases do not care about it -- the ones that DO are in the clamp section
+ * below, and they pass a real uint32_t. */
 int main(void) {
     static float a[64];
     static uint8_t buf[4096];
@@ -36,7 +39,7 @@ int main(void) {
 
     /* --- one 16-bit stereo stem -------------------------------------- */
     n = stem_wav_write(buf, sizeof buf, a, 64u, 1u, 48000u,
-        STEM_WAV_PCM16, "RAM:STEM-303A.wav");
+        STEM_WAV_PCM16, "RAM:STEM-303A.wav", 0);
     RI_ASSERT(n > 0u, "a stem writes (%u)", (unsigned)n);
     RI_ASSERT(buf[0] == 'R' && buf[1] == 'I' && buf[2] == 'F' && buf[3] == 'F',
         "starts with RIFF");
@@ -70,7 +73,7 @@ int main(void) {
     RI_ASSERT(n == 44u + 128u, "44-byte header plus the payload (%u)", (unsigned)n);
 
     /* --- stereo doubles the data, not the header --------------------- */
-    n = stem_wav_write(buf, sizeof buf, a, 64u, 2u, 48000u, STEM_WAV_PCM16, "x.wav");
+    n = stem_wav_write(buf, sizeof buf, a, 64u, 2u, 48000u, STEM_WAV_PCM16, "x.wav", 0);
     RI_ASSERT(stem_wav_u16(buf + 22u) == 2u, "stereo is two channels");
     RI_ASSERT(stem_wav_u16(buf + 32u) == 4u, "block align is 4 bytes (%u)",
         (unsigned)stem_wav_u16(buf + 32u));
@@ -79,7 +82,7 @@ int main(void) {
     RI_ASSERT(stem_wav_u32(buf + 4u) == n - 8u, "RIFF size still exact");
 
     /* --- 24-bit is THREE bytes a sample ------------------------------ */
-    n = stem_wav_write(buf, sizeof buf, a, 64u, 1u, 48000u, STEM_WAV_PCM24, "x.wav");
+    n = stem_wav_write(buf, sizeof buf, a, 64u, 1u, 48000u, STEM_WAV_PCM24, "x.wav", 0);
     RI_ASSERT(stem_wav_u16(buf + 20u) == 1u && stem_wav_u16(buf + 34u) == 24u,
         "24-bit PCM says 24 bits, and it is not 32 (%u)",
         (unsigned)stem_wav_u16(buf + 34u));
@@ -88,7 +91,7 @@ int main(void) {
     RI_ASSERT(stem_wav_u32(buf + 40u) == 64u * 3u, "and the data is 3 bytes a frame");
 
     /* --- 32-bit float is FORMAT 3 ------------------------------------- */
-    n = stem_wav_write(buf, sizeof buf, a, 64u, 1u, 48000u, STEM_WAV_F32, "x.wav");
+    n = stem_wav_write(buf, sizeof buf, a, 64u, 1u, 48000u, STEM_WAV_F32, "x.wav", 0);
     RI_ASSERT(stem_wav_u16(buf + 20u) == 3u,
         "IEEE float is format 3, not 1 (%u)", (unsigned)stem_wav_u16(buf + 20u));
     RI_ASSERT(stem_wav_u16(buf + 34u) == 32u, "and 32 bits wide (%u)",
@@ -107,7 +110,7 @@ int main(void) {
             st[i * 2u + 1u] = -1.0f;     /* right at full scale */
         }
         n = stem_wav_write(buf, sizeof buf, st, 64u, 2u, 48000u,
-            STEM_WAV_PCM16, "x.wav");
+            STEM_WAV_PCM16, "x.wav", 0);
         RI_ASSERT(n == 44u + 64u * 4u, "a stereo stem is 4 bytes a frame (%u)",
             (unsigned)n);
         l = (uint16_t)stem_wav_u16(buf + 44u);
@@ -205,21 +208,189 @@ int main(void) {
     }
 
     /* --- refusals ----------------------------------------------------- */
-    RI_ASSERT(stem_wav_write(0, sizeof buf, a, 64u, 1u, 48000u, STEM_WAV_PCM16, "x") == 0u,
+    RI_ASSERT(stem_wav_write(0, sizeof buf, a, 64u, 1u, 48000u, STEM_WAV_PCM16, "x", 0) == 0u,
         "NULL samples");
-    RI_ASSERT(stem_wav_write(buf, sizeof buf, a, 0u, 1u, 48000u, STEM_WAV_PCM16, "x") == 0u,
+    RI_ASSERT(stem_wav_write(buf, sizeof buf, a, 0u, 1u, 48000u, STEM_WAV_PCM16, "x", 0) == 0u,
         "zero frames is not a stem");
-    RI_ASSERT(stem_wav_write(buf, sizeof buf, a, 64u, 0u, 48000u, STEM_WAV_PCM16, "x") == 0u,
+    RI_ASSERT(stem_wav_write(buf, sizeof buf, a, 64u, 0u, 48000u, STEM_WAV_PCM16, "x", 0) == 0u,
         "zero channels");
-    RI_ASSERT(stem_wav_write(buf, 20u, a, 64u, 1u, 48000u, STEM_WAV_PCM16, "x") == 0u,
+    RI_ASSERT(stem_wav_write(buf, 20u, a, 64u, 1u, 48000u, STEM_WAV_PCM16, "x", 0) == 0u,
         "a buffer too small writes nothing rather than a truncated stem");
     {
         /* A bit depth we do not write must be refused, not rounded to
          * something that opens and plays the wrong thing. */
-        RI_ASSERT(stem_wav_write(buf, sizeof buf, a, 64u, 1u, 48000u, 7u, "x") == 0u,
+        RI_ASSERT(stem_wav_write(buf, sizeof buf, a, 64u, 1u, 48000u, 7u, "x", 0) == 0u,
             "an unsupported bit depth is refused");
-        RI_ASSERT(stem_wav_write(buf, sizeof buf, a, 64u, 1u, 0u, STEM_WAV_PCM16, "x") == 0u,
+        RI_ASSERT(stem_wav_write(buf, sizeof buf, a, 64u, 1u, 0u, STEM_WAV_PCM16, "x", 0) == 0u,
             "a zero sample rate is refused");
+    }
+
+    /* ==================================================================
+     * THE CLAMP LAW AND THE GUARD (owner ruling 2026-10-12).
+     *
+     * Everything above this line checks HEADERS. That was the whole of this
+     * test until now, and it is why the clamp went unnoticed for a release:
+     * a float file at full scale looks perfect in every field t197 examined,
+     * whether the writer clamped it or not. These cases read the SAMPLES.
+     *
+     * The ruling: FLOAT IS NOT CLAMPED (the stems are pre-master and
+     * pre-limiter, so going above 1.0 is normal, and headroom is the reason
+     * anyone exports float); 16 AND 24 STILL CLAMP (they cannot hold a value
+     * above full scale); AND A NON-FINITE SAMPLE BECOMES SILENCE AND IS
+     * COUNTED, at every depth.
+     * ================================================================== */
+    {
+        /* Values chosen to separate the three laws. 1.5 is above full scale
+         * and perfectly representable; 0.5 is ordinary; the NaN and the Inf
+         * are the ones that must not reach the file. */
+        static float hot[8];
+        uint32_t bad = 0u;
+        hot[0] =  1.5f;
+        hot[1] = -1.5f;
+        hot[2] =  0.5f;
+        hot[3] = -0.5f;
+        {   /* NaN and +Inf built from bits, so no libm and no compiler
+             * constant-folding them away at -O2. */
+            uint32_t nb = 0x7FC00000u, ib = 0x7F800000u;
+            memcpy(&hot[4], &nb, 4u);
+            memcpy(&hot[5], &ib, 4u);
+        }
+        hot[6] =  0.0f;
+        hot[7] = -0.0f;
+
+        /* --- 1. FLOAT IS NOT CLAMPED --------------------------------- */
+        n = stem_wav_write(buf, sizeof buf, hot, 8u, 1u, 48000u,
+            STEM_WAV_F32, "x.wav", &bad);
+        RI_ASSERT(n > 0u, "the hot float stem writes (%u)", (unsigned)n);
+        /* Two, not zero: this array deliberately CONTAINS a NaN and an Inf,
+         * and the guard fires on them in the float path exactly as it does in
+         * the integer ones. My first version asserted zero here on the
+         * reasoning that a float write is the unclamped one and so has nothing
+         * to guard -- which is the guard being confused with the clamp. They
+         * are different rules and the NaN answer is the same at all three
+         * depths. */
+        RI_ASSERT(bad == 2u, "the float write counts its NaN and its Inf (%u)",
+            (unsigned)bad);
+        /* Read the four samples back as floats. A clamp would show up here as
+         * exactly 1.0 and -1.0, which is the bug. */
+        for (i = 0u; i < 8u; i++) {
+            float v;
+            uint32_t bits;
+            memcpy(&bits, buf + 44u + i * 4u, 4u);
+            memcpy(&v, &bits, 4u);
+            if (i == 0u)
+                RI_ASSERT(v == 1.5f,
+                    "+1.5 SURVIVES in a float stem, not clamped to 1.0 (%f)",
+                    (double)v);
+            if (i == 1u)
+                RI_ASSERT(v == -1.5f,
+                    "-1.5 survives too (%f)", (double)v);
+        }
+
+        /* --- 2. A NaN AND AN Inf BECOME SILENCE, AND ARE COUNTED -------- */
+        /* The count is checked FIRST, before the samples, and that order is
+         * deliberate: a guard that zeroes without counting produces a file
+         * indistinguishable from a correct one, and the owner asked for the
+         * number precisely because the silence is invisible. */
+        RI_ASSERT(bad == 2u,
+            "the NaN and the Inf were COUNTED (%u, expected 2)", (unsigned)bad);
+        {
+            float v;
+            uint32_t bits;
+            memcpy(&bits, buf + 44u + 4u * 4u, 4u);
+            memcpy(&v, &bits, 4u);
+            RI_ASSERT(bits == 0u || bits == 0x80000000u,
+                "the NaN was written as ZERO, not as 0x7fc00000 (%08x)", bits);
+            memcpy(&bits, buf + 44u + 5u * 4u, 4u);
+            memcpy(&v, &bits, 4u);
+            RI_ASSERT(bits == 0u,
+                "and the Inf was written as ZERO (%08x)", bits);
+        }
+
+        /* --- 3. A NaN GUARD IS ALSO A LOOP INVARIANT ------------------ */
+        /* NaN must not be able to reach the file THROUGH the clamp. The old
+         * code ran `v > 1.0f` and `v < -1.0f`, and BOTH ARE FALSE FOR NaN, so
+         * it passed to `(int32_t)(NaN * 32767.0f)` -- undefined behaviour,
+         * which on this host gave 0 and on another build would give INT_MIN.
+         * Asserting the exact value would pin one compiler's UB; asserting
+         * that it is IN RANGE pins the law. */
+        for (i = 0u; i < 8u; i++) {
+            int32_t s16;
+            uint32_t bits;
+            memcpy(&bits, buf + 44u + i * 2u, 2u);
+            s16 = (int32_t)(int16_t)(uint16_t)(bits & 0xFFFFu);
+            RI_ASSERT(s16 >= -32768 && s16 <= 32767,
+                "16-bit sample %u is in range (%d)", (unsigned)i, (int)s16);
+        }
+        n = stem_wav_write(buf, sizeof buf, hot, 8u, 1u, 48000u,
+            STEM_WAV_PCM16, "x.wav", &bad);
+        RI_ASSERT(n > 0u, "the hot 16-bit stem writes");
+        /* 1.5 and -1.5 CLAMP; the NaN and Inf are zero; 0.5 survives. */
+        RI_ASSERT((int16_t)((uint16_t)buf[44] | ((uint16_t)buf[45] << 8)) == 32767,
+            "16-bit CLAMPS +1.5 to full scale (%d)",
+            (int)(int16_t)((uint16_t)buf[44] | ((uint16_t)buf[45] << 8)));
+        RI_ASSERT((int16_t)((uint16_t)buf[46] | ((uint16_t)buf[47] << 8)) == -32767,
+            "16-bit CLAMPS -1.5 to full scale");
+        RI_ASSERT((int16_t)((uint16_t)buf[52] | ((uint16_t)buf[53] << 8)) == 0,
+            "16-bit writes the NaN as zero");
+        /* AND 24 CLIPS TOO, with 24-bit's own full-scale value. */
+        n = stem_wav_write(buf, sizeof buf, hot, 8u, 1u, 48000u,
+            STEM_WAV_PCM24, "x.wav", &bad);
+        RI_ASSERT(n > 0u, "the hot 24-bit stem writes");
+        {
+            int32_t s24 = (int32_t)((uint32_t)buf[44] |
+                ((uint32_t)buf[45] << 8) | ((uint32_t)buf[46] << 16));
+            if (s24 & 0x800000)
+                s24 |= (int32_t)0xFF000000u;
+            RI_ASSERT(s24 == 8388607,
+                "24-bit CLAMPS +1.5 to full scale (%d)", (int)s24);
+        }
+        /* The counter keeps accumulating across depths -- it is a figure for
+         * the render, not for one file. */
+        RI_ASSERT(bad == 6u,
+            "the count ACCUMULATES across all three writes (%u, expected 6: "
+            "2 float + 2 16-bit + 2 24-bit)", (unsigned)bad);
+
+        /* --- 4. A NULL COUNTER IS ALLOWED ----------------------------- */
+        /* Not caring about the count has to be a supported choice, or every
+         * caller that does not want it has to invent a dummy. */
+        RI_ASSERT(stem_wav_write(buf, sizeof buf, hot, 8u, 1u, 48000u,
+                STEM_WAV_F32, "x.wav", 0) > 0u,
+            "a NULL counter is allowed");
+        /* ... and the file is still guarded, because the guard is not
+         * conditional on whether anyone is listening. */
+        {
+            uint32_t bits;
+            memcpy(&bits, buf + 44u + 4u * 4u, 4u);
+            RI_ASSERT(bits == 0u,
+                "and the NaN is still zeroed with no counter (%08x)", bits);
+        }
+
+        /* --- 5. THE SET ACCUMULATES, BECAUSE IT IS ONE RENDER ---------- */
+        /* `stem_set_write` is no longer const: it sums into `s->nonfinite`,
+         * which is what makes the number a figure for the RENDER rather than
+         * for one file. A per-file count nobody sums is a count nobody reads. */
+        {
+            struct RIStemSet S;
+            uint8_t obuf[4096];
+            float bad1[4];
+            bad1[0] = 0.5f; bad1[1] = 0.5f; bad1[2] = 0.5f; bad1[3] = 0.5f;
+            stem_set_init(&S, 48000u, 120000u);
+            S.depth = STEM_WAV_F32;
+            RI_ASSERT(stem_set_add(&S, bad1, 4u, 1u) == 0, "stem in");
+            RI_ASSERT(S.nonfinite == 0u, "a clean set starts at zero");
+            bad1[2] = 1.5f;   /* a hot sample is not a fault */
+            RI_ASSERT(stem_set_write(&S, 0u, obuf, sizeof obuf) > 0u, "set writes");
+            RI_ASSERT(S.nonfinite == 0u,
+                "and a stem above full scale is NOT counted as a fault (%u)",
+                (unsigned)S.nonfinite);
+            /* Now poison it and confirm the set reports it. */
+            { uint32_t nb = 0x7FC00000u; memcpy(&bad1[1], &nb, 4u); }
+            RI_ASSERT(stem_set_write(&S, 0u, obuf, sizeof obuf) > 0u,
+                "set writes again");
+            RI_ASSERT(S.nonfinite == 1u,
+                "the SET counts the NaN (%u)", (unsigned)S.nonfinite);
+        }
     }
 
     RI_RESULT("stem-wav");

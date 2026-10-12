@@ -2541,10 +2541,41 @@ inputs arriving sorted would be a precondition nobody wrote down.
 
 ### Still open
 
-- **R5** — still needs an owner priority call.
+- **R5** — CORRECTED 2026-10-12. This line was written when R5 had not
+  started; R5a–R5e have since landed. See "THE RECORD ON APPROVAL" at the head
+  of the R5 section for what was and was not actually authorised.
 - **The combined M4 + R6 + lamp proof** — blocked on the lane.
 
 ## R5: an external sequencer plays the ReBirth voices (2026-10-11)
+
+### THE RECORD ON APPROVAL, CORRECTED 2026-10-12
+
+The owner flagged this himself: an earlier entry still read "**R5 — still
+needs an owner priority call**" while R5a–R5e had landed. Stating it plainly
+rather than tidying it away:
+
+**THERE IS NO RECORDED "START R5" CALL, AND R5 WAS BUILT ANYWAY.**
+
+What the record *does* contain is four **design** decisions from the owner on
+2026-10-11, listed immediately below — and the fourth of them is **"build it
+last"**, which is a scheduling instruction about order, not an instruction to
+begin. Each slice was then built against those four decisions, and the owner
+supplied further conventions at R5b, R5c, R5d and R5e.
+
+So the honest position is: **the owner engaged with R5's design in more depth
+than most phases get, and the slices followed from that engagement, but the
+priority call that the record still described as outstanding was never
+explicitly given.** Nothing here suggests the owner objected to R5, and the
+ear-proof limitation was flagged as understood before the work started -- but
+"the owner answered the design questions" is not the same as "the owner
+approved the phase", and the ledger should not imply that it was.
+
+The stale line is corrected rather than deleted, so the sequence of what was
+believed when is still readable. **Seven earlier entries carry the same line**
+-- every phase before R8g listed it as outstanding, which was true at the time
+and is left alone for that reason. Only the most recent occurrence was a live
+claim, and it is the one that has been fixed.
+
 
 `midi_io/note_in.{c,h}`, t211. R6 (outbound) shipped long ago; this is the
 other half. The Leviasynth already has note input (channel 2, its own chart,
@@ -3262,3 +3293,185 @@ legal everywhere else and a bare "bad depth 32" reads as a contradiction.
 `MJ` and `NA` are the same bug at two layers: both write **integers under a
 format-3 tag**, which is the failure mode this whole option is about, and
 which passes every length and header check.
+
+## The clamp ruling, and a segfault it found on the way (2026-10-12)
+
+`project/stem_wav.{c,h}`, `project/sample_guard.h` (new, header-only),
+`audio_io/audio.{c,h}`, `tools/render.c`, `engine/engine.c`, t197, t204, t217,
+`scripts/ri_audit.sh`.
+
+### THE RULING, AS IMPLEMENTED
+
+**Float is not clamped. 16 and 24 still clamp. A non-finite sample becomes
+silence and is counted, at every depth.**
+
+- The stems are taken **before the master and before the limiter**, so a stem
+  above full scale is ordinary rather than exceptional, and headroom above 1.0
+  is the entire reason anyone exports 32-bit float.
+- 16 and 24 clamp because they **cannot represent** a value above full scale.
+  The nearest thing they can hold is the honest answer.
+- The count exists because **the silence is invisible**. A render that quietly
+  replaced 400 poisoned samples with zeros is indistinguishable from a
+  correct one.
+
+### THE CLAMP NEVER CAUGHT NaN. IT NEVER COULD.
+
+```
+stem_wav F32 in +1.500 -> out +1.000000
+stem_wav F32  sample 0: NaN (bits 7fc00000)     <- straight into the file
++1.5 after the clamp: still NaN (both comparisons are false)
+```
+
+`v > 1.0f` and `v < -1.0f` are **both false for NaN**, so it passed the clamp
+and reached `(int32_t)(NaN * 32767.0f)` -- undefined behaviour, which gave 0
+on this host and would give INT_MIN on another. Infinity *was* caught, by
+accident, because `+Inf > 1.0f` is true.
+
+**THE GUARD, NOT THE CLAMP, IS WHAT WAS MISSING**, and that is the whole
+reason for the `else if` and for `project/sample_guard.h`.
+
+### ONE GUARD, FOUR WRITERS, BY CONSTRUCTION
+
+The first attempt put the guard in each of the four places that write samples
+-- `stem_wav.c`, `audio_io`'s two WAV sinks, `tools/render.c`'s mix writer --
+and that is wrong however carefully it is done, because four copies can stop
+agreeing. Worse, **they already disagreed**: the stem writer clipped float and
+the mix writers did not, and the only reason that was caught is that a test
+happened to read the samples.
+
+**A TEST THAT READS THE SAMPLES CATCHES THE INSTANCE. IT DOES NOT STOP THE
+NEXT WRITER FROM REPEATING IT.** So the law is now one `static inline` in
+`project/sample_guard.h`, called from all four sites, and there is no
+per-site opinion left to hold.
+
+Header-only and `static inline` on purpose: a shared *function* would be a new
+translation unit, which in this tree means editing `ri_build_aros.sh`,
+`ri_build_v11.sh` **and** `build/portable.mk` -- a cross-module call that
+builds and passes every host test and then fails the AROS RIAPP link. That has
+happened twice. A header-only inline has no entry in any list to be half
+wired.
+
+The predicate is the Leviasynth's own, from the 2026-09-28 latch-guard fix
+(`engine/dsp/levi.c:4394`), and for this project's history specifically:
+`docs/evidence/portability/levi-filter-nan.md` is a latched filter NaN that
+silenced the whole device. One idiom, not three.
+
+It also rejects a **finite** value above 1e20, deliberately and consistently
+with that fix. 1e20 in a file is unusable whatever its bit pattern says.
+
+### A REAL BEHAVIOUR CHANGE: INFINITY IS NOW SILENCE, NOT FULL SCALE
+
+The guard runs before the clamp, so `+Inf` becomes 0 where it used to become
+full scale. My first assertion said 32767, carried over from the old clamp --
+and it was wrong about the ruling as well as the code. The owner said "any
+NaN **or infinite** sample". This is also the more honest reading: the old
+clamp turned a broken value into a plausible one, which is how a poisoned
+voice sounds like a quiet one instead of like a fault.
+
+### THE SEGFAULT THIS FOUND, WHICH IS THE REAL STORY
+
+The ruling's first run **segfaulted on the song corpus**. Four hours of
+bisection:
+
+| step | result |
+|---|---|
+| old tool + new objects | fine |
+| new tool + new objects | SIGSEGV |
+| pad the statics 4/8/16/64/256 bytes | fine -- so not layout luck |
+| bisect the four hunks of the tool change | all four innocent |
+| bisect the fifth hunk -- splitting `main` | **the culprit** |
+| -O1 + AddressSanitizer | **clean** -- not an overflow ASan can see |
+| gdb, `engine.c` rebuilt with symbols | `engine/engine.c:270`, `tr` = `0xaca542d2987fee00` |
+
+**`ri_engine_init` DID NOT CLEAR `e->stems`.**
+
+`struct RIEngine` has three pointer members. Init cleared `ev` and `dline` and
+not `stems`, so an engine on the stack kept whatever pointer the compiler had
+left in that slot, and `engine_section` wrote samples through
+`e->stems->r[section]`.
+
+It survived for years because `render_rbngsong` declares its engine automatic,
+the slot happened to read as NULL on the code shape in use, and NULL fails
+`if (e->stems && ...)` without complaint. **Splitting `main` into a dispatcher
+-- so a render-log line could print on every exit path -- moved the frame by a
+few bytes.** The slot read as garbage and the corpus died.
+
+**NOTHING IN THAT CHANGE WAS WRONG.** The engine was relying on stack luck and
+the mutation was only the thing that found it. A two-line refactor of an
+unrelated tool is not supposed to be a memory-safety test.
+
+### WHY NO MUTATION WOULD EVER HAVE FOUND IT
+
+**An initialisation omission is the absence of a store.** Every other law in
+this ledger is a conditional somewhere, so a mutation kills it; a
+differential test cannot see an absence. So `t204` does not mutate anything --
+it **dirties the memory**:
+
+```c
+memset(e, 0xAA, sizeof *e);
+ri_engine_init(e);
+RI_ASSERT(e->stems == 0, ...);
+```
+
+A clean stack answers NULL for free and that assertion would be
+tautological. `0xAA` makes a surviving pointer a wild address rather than
+something dereferenceable, and the case also renders, because the field
+assertion is about a field and the caller wants to know what it gets.
+
+### SURVIVORS, AND WHY FOUR OF THEM WERE TAUTOLOGICAL
+
+The first mutant run killed 5 and left 9 standing. Three of the nine were
+killed by fixing the tests, and the rest are worth naming:
+
+- **`DA` SURVIVED: nothing tested audio_io's packers.** `t217` exercised the
+  predicate and the header; `t197` exercises `stem_wav.c`'s *own* arithmetic.
+  `auf_f32_to_s16` / `auf_f32_to_s24` had **no coverage at all**, so the NaN
+  guard could be deleted from them and everything passed. `auf_f32_to_s16`
+  was `static`, which is why: a static twin cannot be reached from a test.
+  Both are public now, and `t217` pins both.
+- **`DC`, `DD`, `EB` SURVIVED ON TAUTOLOGIES.** Each asserted
+  `count == 0` on a clean render -- which passes whether or not the counter
+  exists. `DD` (deleting the `AUQA_NONFINITE` case) passed because
+  `default: return 0` also returns 0. **An assertion that cannot fail is not
+  an assertion**, and three of them were doing the work of three.
+- **`EC`/`ED` SURVIVED because nothing read the tool's output.** No gate
+  captured the render log at all, so deleting the report line and making it
+  conditional on a non-zero count both passed. The audit now greps for the
+  line **and** requires it to say zero, because a report that appears only on
+  failure is a report nobody learns to read.
+- The tool has **no object in the build**, so tool-side mutants cannot be
+  scored against an object hash -- they are scored against the audit.
+
+### Mutants: 14, all killed
+
+`CA` float clamped again · `CB` 16/24 stop clamping · `CC` guard removed ·
+`CD` guard without the count · `CE` the test written with `||`, which is false
+for NaN · `CF` guard catches NaN only, lets Inf through · `CG` the set does not
+accumulate · `DA` the packers lose the guard · `DB` the mix sink clamps float,
+disagreeing with the stem writer · `DC` the sink guards without counting ·
+`DD` the counter never exposed · `EA` the tool's writer clamps · `EB` the tool
+guards without counting · **`PA` `ri_engine_init` does not clear the tap** ·
+plus `QA` the shared guard stops guarding, `QB` with `||`, `QC` without the
+report, `QD` NaN-only.
+
+### Evidence
+
+```
+render: 5 stem(s) in nf/stems, 0 non-finite sample(s) written as silence
+render: non-finite samples written as silence: 0
+```
+
+and in the audit, on a clean render:
+
+```
+   --depth 32 ok: format 3, 32 bits, align 4, peak 0.499999 (16-bit 0.499969)
+```
+
+### Retraction: P4 is not verifiable here
+
+I wrote that P4 "can be verified without a lane". **That was wrong** and the
+owner is right to reject it. There is no Windows cross-compiler and no Wine on
+this host, no macOS toolchain and no Mac; and even with a cross-compiler,
+WASAPI/WinMM and CoreAudio/CoreMIDI only prove themselves on real hardware.
+Ableton Link and the plugin builds are also waiting on interop decisions 5
+and 6. P4 is not started and is not the default next step.

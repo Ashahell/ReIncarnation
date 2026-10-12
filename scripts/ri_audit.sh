@@ -255,6 +255,24 @@ for sf in "$A"/stems-default/*.wav; do
 done
 echo "   default --stems ok: identical to --depth 16"
 rm -rf "$A/stems-default" "$A/stems-at16"
+# THE RENDER LOG REPORTS THE COUNT, ON EVERY RUN (owner ruling 2026-10-12).
+# Grepped, not eyeballed: the two mutants that deleted this line and that
+# made it conditional on a non-zero count both SURVIVED every unit test,
+# because the count is zero on any render a test can drive and a zero prints
+# the same either way. A report that exists and is never checked is not a
+# report.
+out=$("$OUT/render" --math sine --out "$A/nf-report.wav" --depth 32 2>&1)
+case "$out" in
+    *"non-finite samples written as silence: "*) : ;;
+    *) echo "FAIL: the render does not report the non-finite count"; echo "$out" | tail -n 3; exit 1 ;;
+esac
+# ... AND IT REPORTS ZERO, not only when there is something to report. A
+# report that appears only on failure is a report nobody learns to read.
+case "$out" in
+    *"written as silence: 0"*) : ;;
+    *) echo "FAIL: the non-finite report is silent on a clean render: $out"; exit 1 ;;
+esac
+bash "$ROOT/scripts/ri_build_host.sh" test t197_stem_wav >/dev/null || { echo "FAIL: t197_stem_wav (the clamp law and the guard, in the samples)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t217_wavfloat >/dev/null || { echo "FAIL: t217_wavfloat (P3 32-bit IEEE float, format code 3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t28_wavdepth >/dev/null || { echo "FAIL: t28_wavdepth (TC-2.13.4)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t31_rate441 >/dev/null || { echo "FAIL: t31_rate441 (TC-2.13.4)"; exit 1; }

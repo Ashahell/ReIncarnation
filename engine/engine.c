@@ -33,6 +33,25 @@ void ri_engine_init(struct RIEngine *e) {
     for (i = 0; i < RI_909_NVOICES; i++)
         e->tag909[i] = ~(uint64_t)0u;
     e->ev = 0;
+    /* `stems` IS A POINTER AND WAS NOT HERE. Every other pointer in this
+     * struct -- `ev`, `dline` -- was cleared by this function; `stems` was
+     * not, so an RIEngine on the stack kept whatever pointer happened to be
+     * in that slot. `engine_section` then read `e->stems->l[section]` and
+     * `->r[section]` from it and wrote through the result.
+     *
+     * It survived because `render_rbngsong`'s frame made the slot read as
+     * NULL, and because a stack slot that reads as NULL fails the `e->stems`
+     * test harmlessly. Then a two-line change to `tools/render.c` -- splitting
+     * `main` so it could print the non-finite count afterwards -- shifted the
+     * frame, the slot read as 0xaca542d2987fee00, and the corpus render
+     * segfaulted at `engine/engine.c:270` writing to it.
+     *
+     * NOTHING ABOUT THAT CHANGE WAS WRONG. The engine was relying on stack
+     * luck, and the mutation was only the thing that found it. An
+     * initialisation omission is invisible to a differential test because
+     * there is no branch to mutate: the fix is to initialise, and the test is
+     * to dirty the memory and check. */
+    e->stems = 0;
     e->nev = 0;
     e->evpos = 0;
     e->cursor = 0;

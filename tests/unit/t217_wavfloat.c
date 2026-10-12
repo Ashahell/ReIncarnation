@@ -34,6 +34,8 @@
 #include <stdlib.h>
 
 #include "audio_io/audio.h"
+#include "project/sample_guard.h"   /* the ONE guard, pinned directly */
+
 
 #define T217_SONG  "t217f_song.txt"
 #define T217_WAV32 "t217f_out32.wav"
@@ -280,6 +282,105 @@ int main(void) {
             CHECK(n16 == 44u + (size_t)frames * 2u,
                 "the two depths agree on FRAME COUNT (%zu vs %u)",
                 (n16 - 44u) / 2u, (unsigned)frames);
+        }
+    }
+
+    /* --- 5. THE MIX WRITERS FOLLOW THE SAME RULE --------------------- */
+    /* The owner's ruling covers the mix writers too: "the stem writer and
+     * the mix writers should follow the same rule". t197 proves the rule in
+     * project/stem_wav.c; this proves audio_io's two sinks agree with it,
+     * because two correct rules that differ are not one rule.
+     *
+     * What is checkable through the API is the COUNT and the IN-RANGE
+     * INVARIANT. A +1.5 sample cannot be driven through the engine -- the
+     * limiter is in the signal path -- so asserting float headroom at this
+     * layer would be asserting a property of the generator. What CAN be
+     * checked, and is what actually broke before, is that a non-finite
+     * sample does not reach the file and does reach the counter. */
+    {
+        CHECK(au_nonfinite_probe(1e30f), "1e30 is treated as non-finite");
+        CHECK(au_nonfinite_probe(1.5f) == 0, "1.5 is an ordinary sample");
+        CHECK(au_nonfinite_probe(0.0f) == 0, "0.0 is an ordinary sample");
+        /* 1e21 is FINITE and inside float's range. The guard rejects it, and
+         * that is deliberate and shared with the Leviasynth -- a sample at
+         * 1e21 in a file is unusable whatever its bit pattern says. Named
+         * here so the superset is a decision rather than an accident. */
+        CHECK(au_nonfinite_probe(1e21f),
+            "1e21 is finite but still rejected (a file number no tool renders)");
+        CHECK(au_nonfinite_probe(-1e21f), "and -1e21");
+        /* The NaN case the old clamp missed entirely. */
+        {
+            float nan_v;
+            uint32_t nb = 0x7FC00000u;
+            memcpy(&nan_v, &nb, 4u);
+            CHECK(au_nonfinite_probe(nan_v),
+                "a NaN is caught -- the clamp's two comparisons were both "
+                "false for it, which is why this guard exists");
+        }
+        /* THE PACKERS THEMSELVES, because nothing was testing them. The
+         * mutation that deletes `auf_clampf`'s guard SURVIVED every other
+         * case in this file: t217 exercised the predicate and the file
+         * header, and t197 exercises `project/stem_wav.c`'s OWN arithmetic --
+         * which is a different function in a different TU. audio_io's
+         * `auf_f32_to_s16` / `auf_f32_to_s24` had no coverage at all, so the
+         * NaN guard could be deleted from them and every test still passed.
+         *
+         * They are public, so this needs no hook. What is asserted is the
+         * LAW, not a compiler's undefined behaviour: the old code ran
+         * `(int32_t)(NaN * 32767.0f)`, which is UB and gave 0 here and
+         * INT_MIN elsewhere, so pinning an exact value would have pinned one
+         * host's accident. In range, and deterministic, is the claim. */
+        {
+            float nan_v, inf_v;
+            uint32_t nb = 0x7FC00000u, ib = 0x7F800000u;
+            int32_t s;
+            memcpy(&nan_v, &nb, 4u);
+            memcpy(&inf_v, &ib, 4u);
+            s = (int32_t)auf_f32_to_s16(nan_v);
+            CHECK(s == 0, "s16 of a NaN is 0, not UB (%d)", (int)s);
+            /* INFINITY BECOMES SILENCE, NOT FULL SCALE. My first assertion
+             * here said 32767, carried over from the old clamp -- and it was
+             * wrong about the ruling as well as about the code. The owner
+             * said "any NaN or infinite sample" becomes 0, and the guard runs
+             * BEFORE the clamp, so an Inf is a fault rather than a loud
+             * sample. That is also the more honest reading: the old clamp
+             * turned a broken value into a plausible one, which is how a
+             * poisoned voice sounds like a quiet one instead of like a
+             * fault. This is a real behaviour change and it is the intended
+             * one. */
+            s = (int32_t)auf_f32_to_s16(inf_v);
+            CHECK(s == 0, "s16 of an Inf is SILENCE, not full scale (%d)",
+                (int)s);
+            s = (int32_t)auf_f32_to_s16(1.5f);
+            CHECK(s == 32767, "s16 of 1.5 CLAMPS (%d)", (int)s);
+            s = (int32_t)auf_f32_to_s16(-1.5f);
+            CHECK(s == -32767, "s16 of -1.5 clamps (%d)", (int)s);
+            s = (int32_t)auf_f32_to_s16(0.5f);
+            CHECK(s > 16000 && s < 16800, "s16 of 0.5 is about half scale (%d)",
+                (int)s);
+            s = auf_f32_to_s24(nan_v);
+            CHECK(s == 0, "s24 of a NaN is 0, not UB (%d)", (int)s);
+            s = auf_f32_to_s24(inf_v);
+            CHECK(s == 0, "s24 of an Inf is SILENCE too (%d)", (int)s);
+            s = auf_f32_to_s24(1.5f);
+            CHECK(s == 8388607, "s24 of 1.5 CLAMPS (%d)", (int)s);
+            /* AND DETERMINISTIC: the same input twice gives the same answer,
+             * which is what "not UB" has to mean in practice. */
+            CHECK(auf_f32_to_s16(nan_v) == auf_f32_to_s16(nan_v),
+                "and repeatably so");
+        }
+
+        /* AND IT COUNTS THROUGH THE OBJECT. */
+        {
+            struct AudioObject *ao2 = make_ao();
+            if (ao2) {
+                CHECK(AuRenderToFileDepth(ao2, T217_WAV16, 0, 16u) == 0,
+                    "16-bit render for the counter check");
+                CHECK(AuQueryAttr(ao2, AUQA_NONFINITE) == 0u,
+                    "a clean render counts zero (%u)",
+                    (unsigned)AuQueryAttr(ao2, AUQA_NONFINITE));
+                AuStop(ao2);
+            }
         }
     }
 

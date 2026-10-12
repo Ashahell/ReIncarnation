@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "audio_io/audio.h"
+#include "project/sample_guard.h"   /* THE one non-finite guard */
 #include "engine/engine.h"
 #include "engine/seq/clock.h"
 #include "engine/seq/sched.h"
@@ -50,6 +51,12 @@ struct AudioObject {
     int started;
     const char *backend; /* "null" (Task 6, all targets) */
     uint32_t xruns;      /* latched underrun count (spec §17 #5) */
+    /* Samples a WAV sink found NOT FINITE and wrote as silence. See
+     * AUQA_NONFINITE and the guard below. Per-object and cumulative across
+     * sinks, so it is a figure for the session rather than for one file --
+     * which is the useful shape, since one file's count is a single number
+     * nobody would notice. */
+    uint32_t nonfinite;
     struct AUSource src[AU_MAX_SOURCES];
     struct AUBus bus[AU_MAX_BUSES];
     int connected[AU_MAX_SOURCES]; /* bus index (0-based) or -1 */
@@ -91,6 +98,19 @@ static void write_u32be(unsigned char *p, uint32_t v) {
 }
 
 static float auf_clampf(float x) {
+    /* THE NaN GUARD LIVES IN THE PACKER, NOT AT EACH CALL SITE, because the
+     * packers are the only place every PCM path in the tree goes through --
+     * the WAV sinks, the AIFF sink and tools/render's own two writers. A
+     * guard at each call site is a guard that one writer forgets, and the
+     * thing it protects against is undefined behaviour rather than a wrong
+     * number: `(int32_t)(NaN * 32767.0f)` is UB, and on x86 it produced 0
+     * here and INT_MIN on another build. Silence is the answer either way,
+     * and it is an ANSWER rather than whatever the conversion happened to do.
+     *
+     * Note what this replaces: the old clamp ran two comparisons and BOTH
+     * ARE FALSE FOR NaN, so a NaN passed straight through to the multiply. */
+    if (ri_sample_guard(&x))
+        return 0.0f;
     if (x > 1.0f)
         return 1.0f;
     if (x < -1.0f)
@@ -99,7 +119,10 @@ static float auf_clampf(float x) {
 }
 
 /* Deterministic float -> int16 (round-half-away, no libm). */
-static int16_t auf_f32_to_s16(float x) {
+/* NOT static: t217 pins the NaN guard in BOTH packers, and a static twin
+ * cannot be reached from a test. The 24-bit sibling has always been public,
+ * so this closes a gap in the pair rather than widening the API. */
+int16_t auf_f32_to_s16(float x) {
     float c = auf_clampf(x) * 32767.0f;
     if (c >= 0.0f)
         return (int16_t)(c + 0.5f);
@@ -353,6 +376,8 @@ uint32_t AuQueryAttr(struct AudioObject *ao, uint32_t attr) {
         return RI_DEVICE_FRAMES; /* M1.1-measured floor (64) */
     case AUQA_XRUN_COUNT:
         return ao->xruns;
+    case AUQA_NONFINITE:
+        return ao->nonfinite;
     default:
         return 0;
     }
@@ -405,6 +430,10 @@ void au_rewind(struct AudioObject *ao) {
 }
 
 /* Deterministic float -> int24 (round-half-away, no libm). */
+int au_nonfinite_probe(float x) {
+    return ri_sample_guard(&x);
+}
+
 int32_t auf_f32_to_s24(float x) {
     float c = auf_clampf(x) * 8388607.0f;
     if (c >= 0.0f)
@@ -552,21 +581,26 @@ int au_render_song_to_wav_depth(struct AudioObject *ao, const char *path,
             if (depth == 32u) {
                 /* IEEE float, written as its own four bytes.
                  *
-                 * NO CLAMP HERE, and that is the one deliberate difference
-                 * from `stem_wav.c` and from the 16/24 paths below: a float
-                 * sink that clips at +-1 gives up the only reason to export
-                 * float in the first place. R8b/R8c made the stems
-                 * PRE-MASTER and PRE-LIMITER, so a stem hotter than 1.0 is
-                 * expected, and clamping it is irreversible in the file.
+                 * NOT CLAMPED, matching project/stem_wav.c exactly. The owner
+                 * ruled on this on 2026-10-12: the stems are taken before the
+                 * master and the limiter, so going above 1.0 is NORMAL for
+                 * them, and headroom above full scale is the whole reason
+                 * anyone exports 32-bit float -- a DAW imports those samples
+                 * untouched and the user turns the gain down. Clamping throws
+                 * that away permanently, in the file. 16 and 24 keep clamping
+                 * below, because they cannot hold a value above full scale.
                  *
-                 * This inconsistency is OPEN, not settled -- the owner rules
-                 * on it, because changing what an already-delivered stem
-                 * contains is a sound decision and not mine. See the ledger.
+                 * GUARDED, at every depth, because one NaN poisons a DAW track
+                 * and this project has the history to mean it
+                 * (docs/evidence/portability/levi-filter-nan.md, Dell
+                 * 2026-09-28: a latched filter NaN that silenced the device).
                  *
                  * Native little-endian, the same assumption `stem_wav.c`
                  * makes in `put32`/`memcpy`; WAV is LE and every target we
                  * build for is. */
                 float v = fbuf[k];
+                if (ri_sample_guard(&v))
+                    ao->nonfinite++;
                 if (fwrite(&v, 4, 1, f) != 1) {
                     fclose(f);
                     return 2;
@@ -675,21 +709,26 @@ int au_render_song_to_aiff(struct AudioObject *ao, const char *path,
             if (depth == 32u) {
                 /* IEEE float, written as its own four bytes.
                  *
-                 * NO CLAMP HERE, and that is the one deliberate difference
-                 * from `stem_wav.c` and from the 16/24 paths below: a float
-                 * sink that clips at +-1 gives up the only reason to export
-                 * float in the first place. R8b/R8c made the stems
-                 * PRE-MASTER and PRE-LIMITER, so a stem hotter than 1.0 is
-                 * expected, and clamping it is irreversible in the file.
+                 * NOT CLAMPED, matching project/stem_wav.c exactly. The owner
+                 * ruled on this on 2026-10-12: the stems are taken before the
+                 * master and the limiter, so going above 1.0 is NORMAL for
+                 * them, and headroom above full scale is the whole reason
+                 * anyone exports 32-bit float -- a DAW imports those samples
+                 * untouched and the user turns the gain down. Clamping throws
+                 * that away permanently, in the file. 16 and 24 keep clamping
+                 * below, because they cannot hold a value above full scale.
                  *
-                 * This inconsistency is OPEN, not settled -- the owner rules
-                 * on it, because changing what an already-delivered stem
-                 * contains is a sound decision and not mine. See the ledger.
+                 * GUARDED, at every depth, because one NaN poisons a DAW track
+                 * and this project has the history to mean it
+                 * (docs/evidence/portability/levi-filter-nan.md, Dell
+                 * 2026-09-28: a latched filter NaN that silenced the device).
                  *
                  * Native little-endian, the same assumption `stem_wav.c`
                  * makes in `put32`/`memcpy`; WAV is LE and every target we
                  * build for is. */
                 float v = fbuf[k];
+                if (ri_sample_guard(&v))
+                    ao->nonfinite++;
                 if (fwrite(&v, 4, 1, f) != 1) {
                     fclose(f);
                     return 2;

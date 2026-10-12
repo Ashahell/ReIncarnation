@@ -34,6 +34,15 @@ struct TagItem {
 /* Query attrs (AuQueryAttr). */
 #define AUQA_LatencyFrames 1u
 #define AUQA_XRUN_COUNT 2u
+/* Samples written as SILENCE because they were not finite, accumulated
+ * across this object's WAV sinks. Owner ruling 2026-10-12: the guard is the
+ * deliverable and the number is how you know it fired -- a float file
+ * containing silence is indistinguishable from a quiet one. */
+#define AUQA_NONFINITE 3u
+
+/* The WAV sinks' non-finite guard, as a predicate, for tests that need to
+ * pin the judgement rather than infer it from a file. */
+int au_nonfinite_probe(float x);
 
 /* Source tags (AuAddSource). */
 #define AUTA_SongPath 0x41550001u /* ti_Data = (const char *) scaffold path */
@@ -57,7 +66,7 @@ uint32_t AuAddBus(struct AudioObject *ao, const char *name, struct TagItem *tags
 int AuConnect(struct AudioObject *ao, uint32_t src, uint32_t bus);
 int AuStart(struct AudioObject *ao);
 void AuStop(struct AudioObject *ao);
-uint32_t AuQueryAttr(struct AudioObject *ao, uint32_t attr); /* AUQA_LatencyFrames, AUQA_XRUN_COUNT */
+uint32_t AuQueryAttr(struct AudioObject *ao, uint32_t attr); /* AUQA_LatencyFrames, AUQA_XRUN_COUNT, AUQA_NONFINITE */
 int AuRenderToFile(struct AudioObject *ao, const char *path, uint32_t ms);
 /* 24-bit export (TC-2.13.4): depth 16|24, else rc 2. AuRenderToFile
  * is depth 16 through this entry point. */
@@ -97,6 +106,9 @@ int auf_wav_header(unsigned char hdr[44], uint32_t total, uint8_t depth,
 /* Deterministic float -> int24 (round-half-away, no libm;
  * auf_f32_to_s16 is the 16-bit twin, kept for the depth-16 path). */
 int32_t auf_f32_to_s24(float x);
+/* The 16-bit twin, exported for the same reason: both packers carry the
+ * non-finite guard, and both have to be reachable for it to be testable. */
+int16_t auf_f32_to_s16(float x);
 /* Plain-AIFF 54-byte header builder (FORM + COMM + SSND head):
  * frames sample frames, depth 16|24, sr 44100|48000 (80-bit
  * extended table). Anything else → rc 2. Returns 0 ok. */

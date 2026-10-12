@@ -34,6 +34,7 @@
 #include <stdint.h>
 #include "engine/engine.h"
 #include "project/stem_render.h"
+#include "project/sample_guard.h"   /* THE one non-finite guard */
 #include "project/smf_bridge.h"
 #include "project/loop_render.h"
 #include "project/song_sections.h"
@@ -98,6 +99,12 @@ static int16_t f32_to_s16(float x) {
  * existing goldens are byte-identical by construction. 32 is IEEE float
  * and rides `auf_wav_header`'s format code 3 -- NOT a code-1 file with
  * 32-bit samples, which opens and plays as noise. */
+/* Samples written as silence because they were not finite, across every
+ * float file this run produced. REPORTED, because the silence is otherwise
+ * invisible: a render that quietly replaced 400 poisoned samples with zeros
+ * is indistinguishable from a render that was correct. */
+static uint32_t g_nonfinite = 0u;
+
 static int write_wav(const char *path, const float *pcm, uint32_t total,
     int depth) {
     unsigned char hdr[44];
@@ -123,10 +130,18 @@ static int write_wav(const char *path, const float *pcm, uint32_t total,
     }
     for (i = 0; i < total; i++) {
         if (depth == 32) {
-            /* IEEE float, unclipped. The mix is post-limiter here, but the
-             * argument is the app sink's: clamping a float export throws
-             * away the only headroom the format exists to carry. */
+            /* IEEE float, NOT CLAMPED, and GUARDED -- the same law as
+             * project/stem_wav.c and as audio_io's two sinks, in all three
+             * places, so that "the stem writer and the mix writers follow the
+             * same rule" is true by construction rather than by agreement.
+             *
+             * The owner's ruling (2026-10-12) was about stems, which are
+             * pre-master and pre-limiter and so go above 1.0 routinely. It
+             * applies here unchanged: a float export whose headroom is
+             * thrown away at the writer is not a float export. */
             float v = pcm[i];
+            if (ri_sample_guard(&v))
+                g_nonfinite++;
             if (fwrite(&v, 4, 1, f) != 1) {
                 printf("render: write failed %s\n", path);
                 fclose(f);
@@ -749,7 +764,13 @@ static int render_stems(const struct RIEvent *ev, uint32_t nev,
             made++;
         }
     }
-    printf("render: %d stem(s) in %s\n", made, dir);
+    /* THE RENDER LOG LINE THE OWNER ASKED FOR. The count is only useful if it
+     * is printed EVERY run rather than when it is non-zero, because a report
+     * that appears only on failure is a report nobody learns to read. Zero is
+     * the common case and is worth seeing. */
+    printf("render: %d stem(s) in %s, %lu non-finite sample(s) written as"
+        " silence\n", made, dir, (unsigned long)sr.set.nonfinite);
+    g_nonfinite += sr.set.nonfinite;
     rc = 0;
     free(wav);
     free(pool);
@@ -1768,7 +1789,11 @@ static int render_rbngsong(const char *song_path, const char *out_path,
     return 0;
 }
 
-int main(int argc, char **argv) {
+/* THE DISPATCH, so that `main` can report afterwards. main has a dozen return
+ * points and the non-finite count has to be printed on ALL of them -- a
+ * summary line on the success path only would miss exactly the runs where
+ * someone is looking. */
+static int render_dispatch(int argc, char **argv) {
     const char *song = NULL, *out = NULL, *ev = NULL, *math = NULL, *v808 = NULL;
     const char *v909 = NULL, *v909pack = NULL, *pack = NULL, *vpcf = NULL;
     const char *vfx = NULL, *vmix = NULL, *rbngsong = NULL;
@@ -1984,4 +2009,16 @@ int main(int argc, char **argv) {
     if (rbngsong)
         return render_rbngsong(rbngsong, out, ev);
     return render_song(song, out, ev, stems, mid, bars, from_bar, tail_ms);
+}
+
+int main(int argc, char **argv) {
+    int rc = render_dispatch(argc, argv);
+    /* THE OWNER'S RENDER-LOG LINE (ruling 2026-10-12). Printed on every run
+     * and on every exit path, zero included: a report that appears only when
+     * something went wrong is a report nobody learns to read, and a report
+     * missing from the failure paths is a report missing from exactly the
+     * runs where the number matters. */
+    printf("render: non-finite samples written as silence: %lu\n",
+        (unsigned long)g_nonfinite);
+    return rc;
 }
