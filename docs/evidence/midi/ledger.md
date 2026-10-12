@@ -3655,3 +3655,90 @@ writing the guard. The correct binaries were built and re-staged afterwards.
 Recorded rather than tidied away, because the useful part is the shape: a test
 that reaches a real machine is not a test, and "it was only staging" is how
 that goes wrong.
+
+## The Dell run: a Software Failure, and an agent wedged behind it (2026-10-12)
+
+The Dell came back, the proof ran, and it went wrong in four separate ways.
+None of them is a mystery now, but **the crash itself is still undiagnosed**
+and that is stated first here rather than buried under the things that did get
+explained.
+
+### STATUS: UNDIAGNOSED. THE DELL NEEDS A REBOOT.
+
+A `Software Failure!` requester is up on the Dell. A modal requester blocks the
+agent's command path completely: jobs queue and never complete, `--exec` and
+`--get` all time out, and the screen capture times out too, because Intuition
+waits for a screen the requester is holding. **The alert text is on that
+screen and cannot be read from here.** Two ten-minute timeouts were spent
+rediscovering that before the shape of it was obvious.
+
+**What I have ruled out by inspection, and what I have not:**
+
+- RULED OUT: the five-argument `evlog` call I added. `evlog` is variadic into
+  `ri_log_format(buf + n, sizeof(buf) - n, ...)`, which is bounds-checked, and
+  the baseline call sits outside the binding loop. Neither is an overflow.
+- RULED OUT: the stale-`stems` pointer fix in `ri_engine_init`, which only
+  *adds* a NULL store. The live app attaches no stem tap.
+- **NOT RULED OUT: anything that runs after `RIAPP play`.** That is exactly
+  where the log stops, and it is where the failure appears. No amount of
+  reading the diff answers that; only the alert does.
+
+### WHAT THE RUN DID ESTABLISH, BEFORE IT BROKE
+
+`RIAPP.LOG`, retrieved intact, and it is a good result:
+
+```
+RIAPP LOG build=04c6baa diag=0
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP midi in=RIAPP ch=1 sync=0 levi=2 clkout=1 lat=8 devout=1 notech=0
+RIAPP song Vk4aros:.../zombie-nation.rbng: 151 bars at 140 BPM
+RIAPP play
+```
+
+**The correct binary, real AHI audio, and the environment exactly right** —
+`notech=0` is the unassigned-not-defaulted value the R6 proof depends on, and
+the song loaded, so R6 outbound would have had material to send.
+
+### FOUR DEFECTS FOUND BY RUNNING IT, ALL FIXED
+
+**1. `echo` IS NOT A BUILT-IN ON THAT SHELL.** Every marker line printed
+`echo: file is not executable`. The run script has no `echo` in it now.
+
+**2. AN UNRECOGNISED COMMAND ABORTS THE WHOLE SCRIPT.** The first run died at
+line 9 on `Unsetenv` with "object not found" (141) after 19 ms, so RIAPP never
+started and no log existed. The `.run` header already warns that `#`, `REM` and
+`/*` are each executed as commands; I walked straight into the same trap by
+assuming a command rather than measuring it. A bare `setenv` listing then
+showed `RIAPP_MIDI_NOTECH` was **already absent** -- so the line was not merely
+unavailable, it was unnecessary.
+
+**3. `MIDISEND` IS STAGED AS `MIDISEND.V11`, AND THE RUN SCRIPT SAID
+`RAM:MIDISEND`.** "object not found" on a file that was sitting in `RAM:`. The
+entire M4 and R5 half of the proof was skipped by a **name**, silently, in a run
+that reported `PASS` for the staging step.
+
+**4. THE EV-LOG COULD NOT BE READ BACK WHILE THE APP RAN.** `bulk_get` returned
+`REFUSED: cannot open file` for a file `dir` listed plainly. `MODE_NEWFILE` is
+an **exclusive** open in this SDK (1006), while `RIAPP.LOG`'s `MODE_READWRITE`
+(1004) is shared -- so the app's primary evidence log was the one log in the
+tree that could not be read back, which is precisely backwards. Now: delete the
+old file, then open `MODE_READWRITE`. The SDK has no "new file, shared" mode, so
+truncation is preserved by `DeleteFile` (the same call `rlog`'s roll already
+makes at riapp.c:548). The point of the ev-log is that it is read while the app
+runs.
+
+### THE SCRIPT NOW DIAGNOSES A WEDGE INSTEAD OF HANGING IN ONE
+
+`lane_proof.sh` asks `--ui-windows` with a **20 second** wait after the run and
+before fetching. If the agent does not answer it stops with the remedy spelled
+out, including moving queued jobs out of the spool so a later agent does not
+replay them. If a `Software Failure` window is present it says so and names
+that the alert text needs a human. **A tool that hangs for ten minutes while
+reporting nothing is how two timeouts got spent here.**
+
+### NEXT
+
+Reboot the Dell, then `scripts/lane_proof.sh`. The first thing to do after the
+reboot is capture the screen at **scale 0** (the guest picks the factor that
+fits) while any requester is still up -- that is the alert text, and it is the
+one piece of evidence this diagnosis is missing.

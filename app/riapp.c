@@ -373,7 +373,36 @@ static void evlog_open(void) {
     while (leaf[j] && k < sizeof(fn) - 1u)
         fn[k++] = leaf[j++];
     fn[k] = 0;
-    s_evfh = Open((STRPTR)fn, MODE_NEWFILE);
+    /* SHAREABLE, AND THAT IS THE POINT (2026-10-12).
+     *
+     * `MODE_NEWFILE` alone is an EXCLUSIVE open in AmigaOS -- SHARED_LOCK is
+     * not part of it -- so while RIAPP runs, nothing else can read
+     * RIAPP-EV.LOG. Which is exactly backwards for this file: the ev-log
+     * exists to be read while the app runs. It is where the binding lines
+     * and the NOTEIN counters live, and `lane_proof.sh` fetches them as the
+     * evidence of the run.
+     *
+     * Measured on the Dell, not theorised: a first proof run ended with
+     * `RIAPP-EV.LOG -> REFUSED: cannot open file` while `RIAPP.LOG` came
+     * back fine. The difference is this line against the one above it --
+     * RIAPP.LOG opens `MODE_READWRITE`, which DOES carry SHARED_LOCK, and a
+     * shared writer is still readable. So the ev-log was the only log in the
+     * app that could not be read back.
+     *
+     * DELETE FIRST, THEN OPEN SHARED. The AROS SDK has no "new file, shared"
+     * mode: `MODE_NEWFILE` (1006) truncates but is EXCLUSIVE, and
+     * `MODE_READWRITE` (1004) is shared but leaves an existing file alone.
+     * Truncation is what MODE_NEWFILE was doing here, and it is what keeps
+     * one run's log out of the next one's, so it is preserved by deleting
+     * the old file first -- the same call `rlog`'s roll already makes at
+     * riapp.c:548.
+     *
+     * If the delete fails -- a reader holding the file -- the open appends
+     * rather than truncating, which is strictly better than refusing to log
+     * at all, and is the same trade the RIAPP.LOG comment above describes.
+     */
+    DeleteFile((CONST_STRPTR)fn);
+    s_evfh = Open((STRPTR)fn, MODE_READWRITE);
     s_evseq = 0u;
 }
 

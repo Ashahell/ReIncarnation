@@ -214,9 +214,46 @@ python3 "$SPIKE" submit --spool "$SPOOL" --wait "$RUN" \
     --run-script RAM:LANE-PROOF.RUN
 
 # ---- 5. get the logs and lead with the counters -------------------------
+# ---- 4b. IS THE AGENT STILL ALIVE, AND DID SOMETHING CRASH? -------------
+# THIS CHECK EXISTS BECAUSE IT ALREADY WEDGED ONCE (2026-10-12).
+#
+# A modal `Software Failure!` requester blocks the agent's command path
+# completely: jobs queue and never complete, `--exec` and `--get` all time
+# out, and the screen capture times out too (Intuition waits for a screen the
+# requester is holding). That cost two ten-minute timeouts before the shape of
+# it was obvious. So: a SHORT wait, and if the agent does not answer, say so
+# and name the remedy rather than trying again.
+echo "== is the agent still answering? =="
+if python3 "$SPIKE" submit --spool "$SPOOL" --wait 20 \
+        --ui-windows > "$OUT/windows.txt" 2>&1; then
+    if grep -qi "software failure" "$OUT/windows.txt"; then
+        echo "  *** A 'Software Failure!' REQUESTER IS UP ON THE LANE."
+        echo "  *** The agent is probably wedged behind it and the alert TEXT"
+        echo "  *** lives on that screen, which this script cannot read."
+        echo "  *** It needs the owner's reboot, then a capture at scale 0."
+        echo
+        grep -iE "software failure|RIAPP" "$OUT/windows.txt" | sed 's/^/    /'
+        echo
+    fi
+else
+    echo "  *** THE AGENT DID NOT ANSWER IN 20s."
+    echo "  *** Almost always a modal requester wedging its command path."
+    echo "  *** Move the queued jobs out of the spool so a later agent does not"
+    echo "  *** replay them, then reboot:"
+    echo "      mkdir -p /tmp/ri/moved_jobs"
+    echo "      mv $SPOOL/jobs/*.json /tmp/ri/moved_jobs/"
+    echo "  *** Nothing below can be concluded from this run. Stopping."
+    exit 6
+fi
+
 echo "== bringing the logs back =="
+# RIAPP.LOG as well as the ev-log: the binding lines and the counters are
+# `evlog` (RIAPP-EV.LOG) and the audio/transport lines are `rlog`
+# (RIAPP.LOG), and a proof that fetched only one of them would be unable to
+# tell "the app never started" from "the app started but is silent".
 python3 "$SPIKE" submit --spool "$SPOOL" --wait 120 \
     --get "RAM:RIAPP-EV.LOG:$OUT/RIAPP-EV.LOG" \
+    --get "RAM:RIAPP.LOG:$OUT/RIAPP.LOG" \
     --get "RAM:R6LISTEN.LOG:$OUT/R6LISTEN.LOG"
 
 echo

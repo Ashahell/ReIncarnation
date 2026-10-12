@@ -1,4 +1,4 @@
-; lane_proof.run — the COMBINED owner proof on the Dell, in ONE command.
+; lane_proof.run — the COMBINED owner proof on the Dell, ONE session.
 ;
 ; Run with:  spike_server.py submit --run-script RAM:LANE-PROOF.RUN
 ; NOT with --exec: the lane's --exec is not a shell (a redirect inside it
@@ -8,40 +8,76 @@
 ; COMMENTS ARE ';'. '#', 'REM' and '/*' are each executed as a command on this
 ; lane and each prints "object not found".
 ;
-; ONE SESSION, FOUR QUESTIONS, IN THIS ORDER:
+; ---------------------------------------------------------------------
+; `echo` IS NOT A BUILT-IN ON THIS SHELL. Every marker line printed
+; "echo: file is not executable" -- and an unrecognised command is also how
+; the first run died, on `Unsetenv`. So this script has no `echo` in it at
+; all: progress is read from the two logs, which is where the evidence is
+; anyway. A marker that cannot be printed is not a marker.
 ;
-;   0. BINDING -- does the app announce the channels it will answer on, and
-;      do any of them get REFUSED? Read this before listening: a refusal here
-;      means the sound will not come, and listening cannot tell you why.
-;   A. M4 INBOUND  -- the Leviasynth on channel 2 (m4-levi.mid.txt)
+; MIDISEND IS STAGED AS `MIDISEND.V11`, because it is an ABIv11 build, and
+; referring to it as `RAM:MIDISEND` gave "object not found" on a run where
+; the file was sitting in RAM: the whole M4 and R5 half of the proof was
+; skipped by a name.
+; ---------------------------------------------------------------------
+;
+; THE ENV MUST BE SET HERE, NOT ONLY IN A DOC. My first version of this
+; script started MIDISEND and never started RIAPP and never set a variable,
+; because the staging document described the env as something "from a shell
+; on the Dell". Executed by the agent there IS no such shell, so the run
+; would have had nothing to talk to and no MIDI configured -- and the
+; symptom would have been a clean, empty, silent log.
+; ---------------------------------------------------------------------
+;
+; ONE SESSION, FOUR QUESTIONS:
+;
+;   0. BINDING -- which channels will the app answer on, and did any get
+;      REFUSED? Read this first: a refusal here means the sound will not
+;      come, and listening cannot tell you why.
+;   A. M4 INBOUND  -- the Leviasynth on channel 2
 ;   B. R5 NOTE-IN  -- the 808 on GM 10, the 303 on channel 2, and the
-;                     unmapped-note and unbound-channel laws (r5-notein.mid.txt)
-;   C. R6 OUTBOUND -- melodic output following the Leviasynth channel, plus
+;                     unmapped-note and unbound-channel laws
+;   C. R6 OUTBOUND -- melodic output following the Leviasynth channel, and
 ;                     the clock-out lamp
-;   D. COUNTERS    -- NOTEIN played=/refused=, the numbers that separate a
-;                     binding fault from a mapping fault from a wire fault
+;   D. COUNTERS    -- NOTEIN seen=/unclaimed=/refused=/dropped=/played=
+
+setenv RIAPP_EVLOG RAM:
+setenv RIAPP_LOG RAM:
+setenv RIAPP_DEMO 0
+setenv RIAPP_MIDI_IN RIAPP
+setenv RIAPP_MIDI_DEVOUT 1
+setenv RIAPP_MIDI_CLKOUT 1
+setenv RIAPP_MIDI_LATMS 8
+; NOTECH IS DELIBERATELY NOT SET -- that is what makes the melodic output
+; follow the Leviasynth channel, and setting it would test the other branch.
+; It needed an Unsetenv on the first run and that command DOES NOT EXIST on
+; this shell: the run ABORTED at that line with "Unsetenv: object not found"
+; (141) after 19 ms, so RIAPP never started and no log existed at all.
 ;
-; A and B are combined because they share the same boot, the same process and
-; the same cluster, and because the counters only mean anything once both have
-; run: M4 is the Leviasynth (not a note-in device), so `NOTEIN played=` counts
-; B alone.
+; An unrecognised command stops the script -- which is what this file's header
+; warns about for '#', 'REM' and '/*', and which I walked straight into by
+; assuming `Unsetenv` rather than measuring it.
+;
+; A bare `setenv` listing shows RIAPP_MIDI_NOTECH is ALREADY absent, so the
+; line was not merely unavailable, it was unnecessary. That listing is also
+; what proves the condition the proof needs: NOTECH unset.
 
-echo === lane proof: starting the outbound listener
-RAM:MIDISEND RIAPP LISTEN 60 RAM:R6LISTEN.LOG
-echo === listener exited; RAM:R6LISTEN.LOG is R6's outbound side
+; THE LISTENER GOES FIRST AND IN THE BACKGROUND. It listens for 75 seconds,
+; so it must be running before the app starts and must outlive both scripts.
+; `Run` is asynchronous in AmigaShell; a bare `RAM:MIDISEND.V11 ...` prefix would
+; BLOCK and the two scripts below would never be reached.
+Run >NIL: RAM:MIDISEND.V11 RIAPP LISTEN 75 RAM:R6LISTEN.LOG
+Wait 1
+Run >NIL: RAM:RIAPP.M4
+Wait 6
 
-echo === A: M4 inbound, the Leviasynth on channel 2
-RAM:MIDISEND riapp RAM:M4-LEVI.MID.TXT
-echo === A done
+RAM:MIDISEND.V11 riapp RAM:M4-LEVI.MID.TXT
+Wait 3
 
-echo === B: R5 note-in, the 808 on GM 10 and the 303 on channel 2
-RAM:MIDISEND riapp RAM:R5-NOTEIN.MID.TXT
-echo === B done
+RAM:MIDISEND.V11 riapp RAM:R5-NOTEIN.MID.TXT
+Wait 3
 
-echo === C: R6 outbound, melodic output following the Leviasynth channel
-wait 4
-echo === C done; the clock-out lamp should now be dark
+Wait 8
 
-echo === D: counters. NOTEIN played=0 refused=0 means nothing arrived at all
 type RAM:RIAPP-EV.LOG
-echo === lane proof done
+type RAM:RIAPP.LOG
