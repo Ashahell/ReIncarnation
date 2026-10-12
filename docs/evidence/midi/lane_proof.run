@@ -1,0 +1,47 @@
+; lane_proof.run — the COMBINED owner proof on the Dell, in ONE command.
+;
+; Run with:  spike_server.py submit --run-script RAM:LANE-PROOF.RUN
+; NOT with --exec: the lane's --exec is not a shell (a redirect inside it
+; returns rc=0 and writes nothing), and a single blocked command there wedges
+; the agent's whole command path until an owner reboot. Measured, not guessed.
+;
+; COMMENTS ARE ';'. '#', 'REM' and '/*' are each executed as a command on this
+; lane and each prints "object not found".
+;
+; ONE SESSION, FOUR QUESTIONS, IN THIS ORDER:
+;
+;   0. BINDING -- does the app announce the channels it will answer on, and
+;      do any of them get REFUSED? Read this before listening: a refusal here
+;      means the sound will not come, and listening cannot tell you why.
+;   A. M4 INBOUND  -- the Leviasynth on channel 2 (m4-levi.mid.txt)
+;   B. R5 NOTE-IN  -- the 808 on GM 10, the 303 on channel 2, and the
+;                     unmapped-note and unbound-channel laws (r5-notein.mid.txt)
+;   C. R6 OUTBOUND -- melodic output following the Leviasynth channel, plus
+;                     the clock-out lamp
+;   D. COUNTERS    -- NOTEIN played=/refused=, the numbers that separate a
+;                     binding fault from a mapping fault from a wire fault
+;
+; A and B are combined because they share the same boot, the same process and
+; the same cluster, and because the counters only mean anything once both have
+; run: M4 is the Leviasynth (not a note-in device), so `NOTEIN played=` counts
+; B alone.
+
+echo === lane proof: starting the outbound listener
+RAM:MIDISEND RIAPP LISTEN 60 RAM:R6LISTEN.LOG
+echo === listener exited; RAM:R6LISTEN.LOG is R6's outbound side
+
+echo === A: M4 inbound, the Leviasynth on channel 2
+RAM:MIDISEND riapp RAM:M4-LEVI.MID.TXT
+echo === A done
+
+echo === B: R5 note-in, the 808 on GM 10 and the 303 on channel 2
+RAM:MIDISEND riapp RAM:R5-NOTEIN.MID.TXT
+echo === B done
+
+echo === C: R6 outbound, melodic output following the Leviasynth channel
+wait 4
+echo === C done; the clock-out lamp should now be dark
+
+echo === D: counters. NOTEIN played=0 refused=0 means nothing arrived at all
+type RAM:RIAPP-EV.LOG
+echo === lane proof done

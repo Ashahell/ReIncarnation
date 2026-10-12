@@ -172,6 +172,11 @@ static int s_live; /* AHI backend up (render task owns the session) */
  * and the render task must see the SAME ring. */
 static uint32_t s_notein_played;   /* R5e: notes queued for the machines */
 static uint32_t s_notein_refused;  /* R5e: claimed-channel notes that resolved to nothing */
+/* The last values put in the log, so the pair is reported ON CHANGE rather
+ * than on a timer -- the same shape as `s_midi_ignored` below. See the
+ * reporting site for why these two numbers were worth printing at all. */
+static uint32_t s_notein_played_log;
+static uint32_t s_notein_refused_log;
 static struct RINoteIn s_notein;
 static struct RINoteLive s_notelive;
 
@@ -1011,6 +1016,23 @@ static void midi_drain(void) {
     if (s_midi.ignored != s_midi_ignored) {
         evlog("MIDI", "ignored=%u", s_midi.ignored);
         s_midi_ignored = s_midi.ignored;
+    }
+    /* R5: THE NOTE-IN COUNTERS, REPORTED. Both were incremented and NEITHER
+     * WAS EVER PRINTED, so a lane proof could not tell "no notes arrived"
+     * from "notes arrived, were refused, and nothing sounded" -- and those
+     * two are the first question any R5 proof has to answer, and the one
+     * these numbers answer outright. Read them BEFORE listening: `refused`
+     * non-zero means the channel was not bound, and no amount of listening
+     * will produce a sound.
+     *
+     * On CHANGE, not on a timer: a timer prints on a run where nothing
+     * happened, and a change-only line's last value is the final total. */
+    if (s_notein_played != s_notein_played_log ||
+            s_notein_refused != s_notein_refused_log) {
+        evlog("NOTEIN", "played=%u refused=%u",
+            (ULONG)s_notein_played, (ULONG)s_notein_refused);
+        s_notein_played_log = s_notein_played;
+        s_notein_refused_log = s_notein_refused;
     }
     /* The applier's cursor IS the engine's tick cursor (session ppq):
      * the panel position is a display projection, so writing it never

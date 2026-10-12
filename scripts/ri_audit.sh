@@ -1107,7 +1107,7 @@ echo "-- beta-exit record + repo hygiene --"
 test -f "$ROOT/docs/evidence/formats/beta-exit.md" || { echo "FAIL: missing beta-exit.md"; exit 1; }
 grep -q "DEFERRED" "$ROOT/docs/evidence/formats/beta-exit.md" || { echo "FAIL: beta-exit has no DEFERRED rows"; exit 1; }
 grep -q "No beta ran" "$ROOT/docs/evidence/formats/beta-exit.md" || { echo "FAIL: beta-exit claims a beta"; exit 1; }
-for f in ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_fuzz.sh ri_soak.sh; do
+for f in ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_fuzz.sh ri_soak.sh lane_proof.sh; do
   test -f "$ROOT/scripts/$f" || { echo "FAIL: missing scripts/$f"; exit 1; }
 done
 # An ALLOWLIST, not a bare count (2026-10-05). The count was "exactly 5", which
@@ -1115,7 +1115,12 @@ done
 # for a build script living outside the repo -- look like a hygiene violation. A
 # count cannot say WHICH files belong; an allowlist can, and adding one is then a
 # deliberate act rather than an arithmetic accident.
-RI_SCRIPTS_OK="ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_build_v11.sh ri_fuzz.sh ri_soak.sh"
+# lane_proof.sh (2026-10-12) is on this list for the same reason ri_build_v11.sh
+# is: a script that runs the proof from OUTSIDE the repo is how the wrong
+# binary or the wrong ABI gets deployed, and that has happened three times. It
+# lives here so its argument shapes are reviewable next to the build scripts
+# whose shapes it depends on -- which it got wrong twice before getting right.
+RI_SCRIPTS_OK="ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_build_v11.sh ri_fuzz.sh ri_soak.sh lane_proof.sh"
 for f in $(ls "$ROOT/scripts"); do
   case " $RI_SCRIPTS_OK " in *" $f "*) ;; *) echo "FAIL: scripts/$f is not on the shared-script allowlist (${RI_SCRIPTS_OK})"; exit 1 ;; esac
 done

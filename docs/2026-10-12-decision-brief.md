@@ -1,28 +1,55 @@
 # Decision brief — everything waiting on the owner
 
-**As of 2026-10-12.** Written because the work has run out of things that are
-mine to decide. Each item says what it is, why it is blocked, and what I
-recommend. Nothing below is started until you say.
+**As of 2026-10-12. NOT FINAL — three errors corrected by the owner, below.**
+
+Written because the work has run out of things that are mine to decide. Each
+item says what it is, why it is blocked, and what I recommend. Nothing below
+is started until you say.
+
+**What the owner corrected, 2026-10-12:**
+
+1. **The M4 ear test does NOT need a USB-MIDI device.** I said it did. Wrong.
+   The M4 proof already drives the Leviasynth with
+   `MIDISEND riapp RAM:m4-levi.mid.txt` **on the Dell itself** — CAMD into
+   CAMD on the same machine, not a cable — and both sides are already staged
+   in `RAM:`. R5 is heard the same way. The only real blocker is that both
+   machines are unresponsive.
+2. **The Link recommendation dodged the decision it was supposed to settle.**
+   "Off-by-default build flag" says nothing about whether we are *allowed* to
+   link the SDK, and the repo has **no LICENSE file at all**, which means all
+   rights reserved.
+3. **"pending" was stale** — `ac4cd7c` is committed and pushed.
+
+**Items 3 (P4) and 5 (sync-in) stand as written.** Item 7 is new.
 
 ---
 
-## 1. Interop decision 5 — Ableton Link
+## 1. Interop decision 5 — Ableton Link: DEFERRED WITH P4
 
-**What it is.** Clock sync over Link so ReIncarnation can sit beside a DAW on a
-shared timeline.
+**Correction.** My recommendation was "off-by-default build flag". **That
+dodged the actual question.** A build flag says when to compile something; it
+says nothing about whether we may *link* it. The licensing position:
 
-**Blocked on.** A licence decision. Link's SDK terms decide whether this is a
-dependency, an optional build flag, or not something to ship. That is not a
-technical question and I should not answer it.
+**THE REPO IS PUBLIC AND HAS NO LICENSE FILE, WHICH MEANS "ALL RIGHTS
+RESERVED".** Two consequences, and the second is worse than the first:
 
-**Recommendation.** Make it an **off-by-default build flag** (`RI_LINK=1`).
-It is the only sync option that reaches a DAW the user already has open, but
-it is also the only one that puts a third party's licence into the build.
-Off by default keeps the licence question out of every existing build, and
-Link is worthless without a peer on the network anyway — so a flag that is
-rarely on is not costing anything.
+1. **We cannot combine the GPLv2+ Link SDK with this tree** until a licence is
+   chosen. Linking GPLv2+ code into a closed distribution is not a
+   configuration choice.
+2. **Outsiders cannot legally reuse any of it.** Public on GitHub is not the
+   same as licensed: nobody can fork it, vendor it, or contribute back into a
+   project of their own.
 
-**Cost if deferred.** None until you want it. Nothing in the tree assumes it.
+**Link also needs a working network stack**, and the interop spec said to do it
+on Windows/macOS first — and the port is "not now" (item 3), so Link has
+nothing to run on either.
+
+**Recommendation: defer Link along with P4.** It is blocked on two independent
+things, a licence we have not chosen and a platform we are not building.
+Deferring costs nothing, because nothing in the tree assumes it.
+
+**The licence question behind this is item 7, and it is worth deciding soon
+whether or not Link ever happens.**
 
 ---
 
@@ -75,9 +102,23 @@ work exists to enable.
 **Blocked on.** A lane. The combined **M4 + R6 + lamp** proof has been blocked
 for many sessions, and both lanes are currently unresponsive.
 
-**Also blocked even with a lane.** There is **no USB-MIDI device on the Dell**,
-so R5 is unhearable regardless: an ear test of "five devices sound from an
-external sequencer" needs something to send MIDI from.
+**NO USB-MIDI DEVICE IS INVOLVED — that was my error, and the owner caught
+it.** The M4 proof drives the Leviasynth with
+`MIDISEND riapp RAM:m4-levi.mid.txt` **on the Dell itself**: CAMD into CAMD
+on one machine, not a cable, with both sides already staged in `RAM:`. R5 is
+heard the same way, with a script on channel 10 (the 808, GM percussion,
+implicit) or on the 303 channel. **The only real blocker is that both
+machines are unresponsive.**
+
+**What the owner has to do, and it is a small thing:**
+
+- **reboot the Dell**
+- **`system_reset` riqemu1**, and its screen must come back at **1280x1024**
+  — GRUB is pinned to it, and a wrong resolution fails *silently*, so verify
+  with a monitor `screendump`
+
+**After that the test is about ten minutes of listening.** One command does the
+whole sequence — see the runbook at the end.
 
 **Recommendation.** Keep it parked. Nothing I can do moves it forward, and a
 queue that pretends otherwise wastes effort.
@@ -137,12 +178,68 @@ want to hear it.
 
 ---
 
+## 7. The repo licence — NEW, and the one worth deciding soon
+
+**What it is.** The tree is public on GitHub with no `LICENSE` file. That is
+not "open source"; it is the default of all rights reserved.
+
+**Why it matters now, and not only for Link:**
+
+- **Nobody can legally reuse any of it.** No fork, no vendoring, no
+  contribution back into someone else's project. For a project this size that
+  is a real ceiling on who touches it.
+- **It gates Link** (item 1) and the **plugin builds** (item 2).
+- **It makes "contributions welcome" untrue**, if anything in the docs says
+  that. Worth checking before it is said again.
+
+**Recommendation.** I am not going to recommend a licence — that is the
+owner's call and it carries consequences I should not guess at. What I can say
+is that **it is cheap now and expensive later**: while it is open, the tree
+grows and every third-party question becomes "and what about this file". A
+decision taken with the whole thing in view is easier than one taken file by
+file.
+
+**One question that would unblock it:** is the intent (a) contributors may use
+and redistribute it, (b) it stays closed and public is only for browsing, or
+(c) something between? Everything else follows from that answer.
+
+---
+
 ## Not on this list, deliberately
 
-- **The clamp ruling** — settled and implemented (`ac4cd7c` pending): float is
+- **The clamp ruling** — settled, implemented and **pushed**: `ac4cd7c` for the
+  float option, `629a07c` for the ruling and the stems-pointer fix. Float is
   not clamped, 16/24 clamp, non-finite becomes silence and is counted.
+- **R5 — approved after the fact** (owner, 2026-10-12). See the ledger's "THE
+  RECORD ON APPROVAL".
 - **P3's option line** — complete. 44.1/48, 16/24 and 32-bit float.
 - **MIDIRX** — retired; wire spread is unmeasurable on this architecture.
+
+## Runbook: the proof is one command
+
+```
+scripts/lane_proof.sh            # build, hash, PUT, run, report
+scripts/lane_proof.sh --stage-only   # build + hash + PUT, then stop
+scripts/lane_proof.sh --riqemu1      # the private lane (ABIv1) instead
+```
+
+It deploys the right ABI for the lane, prints the sha256 of everything it
+stages, PUTs to `RAM:` (never `avail flush`, never `quit` to a monitor), runs
+`RAM:LANE-PROOF.RUN`, fetches the logs back, and **leads with the counters**.
+
+**Read `NOTEIN played=` / `refused=` before listening.** Those separate three
+faults that all present as "it is quiet":
+
+| counters | what it means |
+|---|---|
+| `played>0 refused=0` | binding is right; the fault is downstream |
+| `refused>0` | messages ARE arriving and the **map** is wrong |
+| `played=0 refused=0` | **nothing is arriving** — cluster or receiver fault |
+
+No amount of listening tells those apart, and the last two mean no sound is
+coming however long anyone waits.
+
+---
 
 ## My recommendation for what happens next
 

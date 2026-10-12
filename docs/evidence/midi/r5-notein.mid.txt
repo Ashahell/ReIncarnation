@@ -1,0 +1,125 @@
+# R5 note-in lane proof — an external sequencer plays the ReBirth voices.
+#
+# Sent into cluster `riapp` with MIDISEND while RIAPP runs, exactly as
+# `m4-levi.mid.txt` is. NO USB-MIDI DEVICE IS NEEDED: MIDISEND plays a script
+# into the CAMD cluster on the SAME MACHINE, so this is CAMD into CAMD, not a
+# cable. An earlier note in the ledger claimed R5 was unhearable for want of
+# a device; that was wrong and is corrected.
+#
+# WHAT IS BOUND, AND WHY THE SCRIPT LOOKS LIKE THIS
+# (from `midi_settings_notein_ch`, which is the one function that decides):
+#
+#   channel 10  -> the 808. GM PERCUSSION, NOT A CHOICE (R6f). Implicit, so
+#                 this script hits it with no switch and it is bound.
+#   channel  2  -> 303A. The 303s follow `note_ch`, which with no explicit
+#                 RIAPP_MIDI_NOTECH is the panel channel (default 2).
+#   channel  3  -> NOTHING. Deliberately included below, and the law is that
+#                 it is SILENT: an UNCLAIMED channel is skipped before the
+#                 resolver is even called, so it is not a refusal.
+#   the  909   -> NOT BOUND. `in909_ch` is unassigned and NEVER DEFAULTED
+#                 (owner ruling 2026-10-12: the 808 answers GM channel 10 and
+#                 the 909 stays off until its own channel is set). So notes
+#                 on channel 5 are silent too, and that is CORRECT.
+#
+# THE COUNTERS ARE THE POINT. Read `NOTEIN played= refused=` from the ev-log
+# BEFORE listening:
+#   refused=0, played>0  -> the binding is right and the fault is downstream
+#                           (an engine or a ring problem)
+#   refused>0            -> messages ARE arriving and the map is wrong; no
+#                           amount of listening produces a sound
+#   played=0 refused=0   -> nothing is arriving at all: a cluster or a
+#                           receiver problem, not a mapping problem
+#
+# Those three are different faults with the same symptom ("it is quiet"), and
+# the counters separate them without a sound.
+
+# --- 1. THE 808 ON GM CHANNEL 10. Must sound. ---------------------------
+99 24 64   B0 kick
+D 120
+99 24 00
+D 90
+99 26 64   rim/snare
+D 120
+99 26 00
+D 90
+99 2A 64   closed hat
+D 60
+99 2A 00
+D 90
+99 24 7F   kick, loud
+D 240
+99 24 00
+D 300
+
+# --- 2. THE 303A ON CHANNEL 2. Must sound. ------------------------------
+90 24 64   C1, low
+D 240
+80 24 00
+D 60
+90 2C 64   C2
+D 240
+80 2C 00
+D 60
+90 2E 7F   D2, loud
+D 360
+80 2E 00
+D 400
+
+# --- 3. A HELD CHORD ON THE 303, so a stuck note would be audible -------
+90 30 64
+90 34 64
+90 37 64
+D 480
+80 30 00
+80 34 00
+80 37 00
+D 400
+
+# --- 4. THE UNMAPPED GM NOTE. MUST BE REFUSED, AND COUNTED. -------------
+# This is the only line here that should make `refused` move. It is on a
+# CLAIMED channel (10) with a note number the deliberately partial GM table
+# does not carry, so the channel is bound but the note resolves to nothing.
+# 91 78 = note 120 on channel 1+10 = channel 11...
+# no: the status byte carries the channel in its low nibble, so 0x9A is
+# channel 10 (1-based), which IS the 808's.
+9A 78 64   GM note 120 on channel 10: not in the partial map -> refused
+D 300
+
+# --- 5. THE UNCLAIMED CHANNELS. MUST BE SILENT, AND MUST NOT BE COUNTED -
+# Channel 3 and channel 5 are both unbound. The law is that an unclaimed
+# channel is skipped BEFORE the resolver, so these move NEITHER counter. A
+# note that moves `refused` here would mean the channel table is claiming
+# channels it does not own, which is a different bug from a wrong note.
+93 24 64   channel 4: unbound -> silent, not counted
+D 180
+83 24 00
+D 120
+95 24 64   channel 6: the 909 is unbound -> silent, not counted
+D 180
+85 24 00
+D 120
+92 24 64   channel 3: unbound -> silent, not counted
+D 180
+82 24 00
+D 400
+
+# --- 6. VELOCITY 0 IS A NOTE-OFF, not a note-on at zero velocity ---------
+# A live 303 note that never stops is a hung voice, and this is the idiom
+# every DAW uses to save bytes. If `on` were read from the status alone,
+# every one of these would ring until its envelope finished.
+90 26 64   E1 on
+D 240
+90 26 00   E1 "off" as note-on velocity 0
+D 120
+90 26 7F   E1 on again
+D 240
+80 26 00   E1 off by status
+D 400
+
+# --- 7. A DRUM NOTE ON A MELODIC CHANNEL MUST NOT SOUND A DRUM ----------
+# Channel 2 is the 303. GM kick (36) there is an ordinary low note on a 303,
+# NOT a kick drum. If a drum sounds here, the 808's channel is not exclusive.
+90 24 7F   GM 36 on the melodic channel: a low 303 note, not a kick
+D 300
+80 24 00
+D 500

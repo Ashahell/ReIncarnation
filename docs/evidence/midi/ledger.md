@@ -2570,6 +2570,18 @@ ear-proof limitation was flagged as understood before the work started -- but
 "the owner answered the design questions" is not the same as "the owner
 approved the phase", and the ledger should not imply that it was.
 
+### APPROVED AFTER THE FACT (owner, 2026-10-12)
+
+**R5 IS APPROVED.** The owner confirmed it on 2026-10-12 and directed that it
+be recorded as approved after the fact rather than left ambiguous. The
+approval is **retroactive**: the work was done on the strength of the four
+design decisions above, and the paperwork follows the work rather than
+preceding it. That ordering is worth recording plainly, because a ledger that
+implied otherwise would be a nicer document and a false one.
+
+The owner also read the four decisions and the M4/R6/stems work and accepted
+them as they stand.
+
 The stale line is corrected rather than deleted, so the sequence of what was
 believed when is still readable. **Seven earlier entries carry the same line**
 -- every phase before R8g listed it as outstanding, which was true at the time
@@ -3475,3 +3487,83 @@ this host, no macOS toolchain and no Mac; and even with a cross-compiler,
 WASAPI/WinMM and CoreAudio/CoreMIDI only prove themselves on real hardware.
 Ableton Link and the plugin builds are also waiting on interop decisions 5
 and 6. P4 is not started and is not the default next step.
+
+## R5f: three records settled, one of them a retraction (2026-10-12)
+
+### RETRACTION: R5 AND M4 DO NOT NEED A USB-MIDI DEVICE
+
+Several entries here — including my own summary lines across recent sessions —
+said that R5 was "structurally unhearable" because **no lane has a USB-MIDI
+device**. **That is wrong, and the owner caught it.**
+
+`MIDISEND riapp RAM:m4-levi.mid.txt` drives the Leviasynth **on the Dell
+itself**. That is **CAMD into CAMD on the same machine** — not a cable, not a
+second device — and both ends are already staged in `RAM:`. R5 is heard exactly
+the same way, with a script on channel 10 (the 808, GM percussion, implicit) or
+on the 303 channel.
+
+So the ear proofs were never blocked on hardware that does not exist. **The
+only blocker is that both machines are unresponsive**, and the fix is the
+owner's: a reboot of the Dell, and a `system_reset` of riqemu1 which must come
+back at **1280x1024** (GRUB is pinned; a wrong resolution fails silently).
+
+`docs/evidence/midi/r5-notein.mid.txt` and `docs/evidence/midi/lane_proof.run`
+are new, and `scripts/lane_proof.sh` is one command for the whole sequence.
+
+### THE 909 CHANNEL QUESTION: KEEP THE CURRENT DESIGN (owner, 2026-10-12)
+
+The open question was whether the 909 should be opt-in via `in909_ch`, or
+whether both drum devices should answer GM channel 10 with a switch choosing
+the device.
+
+**DECIDED: the 808 answers GM channel 10; the 909 stays off until its own
+channel is set.** The alternative **adds a mode a DAW user cannot see or
+automate**. With separate channels, each drum machine is just a different track
+in the DAW — which is the thing a DAW is for, and the thing MIDI's channel
+model is for. A switch that decides *which device owns channel 10* is invisible
+in every host that matters.
+
+Reversible in one constant if that ever changes.
+
+### THE NOTE-IN COUNTERS WERE NEVER PRINTED
+
+`scripts/lane_proof.sh` reads `s_notein_played` and `s_notein_refused`, and
+writing that script turned up the reason the owner's proof plan could not have
+worked: **both counters were incremented and neither was ever emitted.** They
+have existed since R5e and no line of the ev-log has ever carried them.
+
+So "was anything queued?" had no answer in the log, and it is the **first**
+question an R5 proof has to answer — the one that separates a binding fault
+from a mapping fault from a wire fault, none of which can be told apart by ear:
+
+| counters | meaning |
+|---|---|
+| `played>0 refused=0` | binding is right; the fault is downstream |
+| `refused>0` | messages ARE arriving and the map is wrong |
+| `played=0 refused=0` | nothing is arriving — cluster or receiver fault |
+
+Now reported on **CHANGE**, the same shape as the neighbouring `s_midi_ignored`
+counter: a timer would print on a run where nothing happened, and a
+change-only line's last value is the final total.
+
+### THE PROOF IS ONE COMMAND, AND TWO BUILD SHAPES ARE NOT THE SAME
+
+`scripts/lane_proof.sh` builds, hashes, PUTs to `RAM:`, runs the proof script,
+fetches the logs, and leads with the counters. Written because the sequence
+was spread across a staging document, and the owner's cost is ten minutes of
+listening — which is only true if the rest is already done.
+
+Three things had to be got right, and two were **not** as they looked:
+
+- **`ri_build_v11.sh` is `<src> <out-riapp> [tool]`**, output in `$2`. My first
+  version passed `<out> riapp`, which asks for a RIAPP written to a file named
+  `riapp`.
+- **`ri_build_aros.sh` takes a BARE target name** and writes to its own
+  `/tmp/ri/aros`. `ri_build_aros.sh . out riapp` prints "STUB BUILD OK" and
+  builds nothing, which is the recorded trap.
+- **There is no `midisend` target on v1**, unlike v11. MIDISEND is built as a
+  side effect of the `sections` branch next to RISECT, so asking for a
+  `midisend` target gets the RIAPP build and writes nothing at the expected
+  name — **the wrong-binary-under-the-right-name trap again, in the other
+  direction**, and the reason the v11 script had to be given a real target for
+  in the first place.

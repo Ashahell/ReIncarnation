@@ -1,0 +1,210 @@
+#!/bin/bash
+# lane_proof.sh -- ONE COMMAND for the combined M4 + R5 + R6 + lamp proof on
+# the Dell, so the owner's listening session is as short as possible.
+#
+# WHAT IT DOES, IN ORDER, AND WHY THAT ORDER:
+#
+#   1. BUILD every binary the proof needs, from the current tree, for THIS
+#      lane's ABI. The two ABIs are NOT interchangeable -- riqemu1 is v1 and
+#      the Dell is v11 -- and a v1 binary named RIAPP on the Dell has been the
+#      wrong-binary trap three times.
+#   2. HASH everything, and PRINT THE HASHES. Not to verify a golden: to
+#      record exactly what was deployed, because "it behaved differently
+#      yesterday" is unanswerable without knowing which bytes ran.
+#   3. PUT to RAM:. Never `avail flush` -- it can unlink the very files
+#      being read -- and never `quit` to a monitor, which kills the machine
+#      the proof is running on.
+#   4. RUN the proof script, which plays the M4 and R5 MIDISEND scripts in
+#      sequence and leaves RAM:R6LISTEN.LOG and RAM:RIAPP-EV.LOG behind.
+#   5. GET the logs back and print THE COUNTERS FIRST.
+#
+# WHY THE COUNTERS COME FIRST, AND BEFORE THE LISTENING IS EVEN SET UP:
+# `NOTEIN played=` and `refused=` separate three faults that all present as
+# "it is quiet":
+#
+#   played > 0, refused = 0  -> binding is right, fault is downstream
+#   refused > 0              -> messages ARE arriving and the MAP is wrong
+#   played = 0, refused = 0  -> nothing is arriving: a cluster or receiver
+#                               fault, not a mapping fault
+#
+# None of those can be told apart by ear, and two of them mean no sound is
+# coming regardless of how long anyone listens.
+#
+# USAGE
+#   scripts/lane_proof.sh                 # deploy + run + report
+#   scripts/lane_proof.sh --no-build      # reuse the binaries already in /tmp
+#   scripts/lane_proof.sh --stage-only    # build, hash and PUT, then stop
+#   scripts/lane_proof.sh --riqemu1       # the private lane (ABIv1) instead
+#
+# NO USB-MIDI DEVICE IS INVOLVED. MIDISEND plays a script into the CAMD
+# cluster on the SAME MACHINE, so this is CAMD into CAMD. An earlier claim
+# that R5 was unhearable for want of a device was wrong and is corrected in
+# the ledger.
+set -u
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SPIKE=/home/miller/Work/projects/Vulkan4Aros/scripts/spike_server.py
+OUT=/tmp/ri/laneproof
+RUN=300
+
+BUILD=1
+STAGE_ONLY=0
+LANE=dell
+
+for a in "$@"; do
+    case "$a" in
+        --no-build)   BUILD=0 ;;
+        --stage-only) STAGE_ONLY=1 ;;
+        --riqemu1)    LANE=riqemu1 ;;
+        -h|--help)    sed -n '2,40p' "$0"; exit 0 ;;
+        *) echo "lane_proof: unknown option $a (try --help)"; exit 2 ;;
+    esac
+done
+
+# ---- the two lanes, and the ABI trap ------------------------------------
+# Dell = agent e6320, spool /tmp/spike_spool_laptop, ABI **v11**.
+# riqemu1 = spool /tmp/spike_spool_priv, ABI **v1**, and after ANY reset its
+# screen MUST come back at 1280x1024 (GRUB is pinned there) -- verify with a
+# monitor screendump, or every UI capture is the wrong size and silently so.
+if [ "$LANE" = riqemu1 ]; then
+    SPOOL=/tmp/spike_spool_priv
+    ABI=v1
+    RIAPP=RIAPP.V1
+    MSEND=MIDISEND.V1
+else
+    SPOOL=/tmp/spike_spool_laptop
+    ABI=v11
+    RIAPP=RIAPP.M4
+    MSEND=MIDISEND.V11
+fi
+
+if [ ! -f "$SPIKE" ]; then
+    echo "lane_proof: $SPIKE not found -- the lane tools live in Vulkan4Aros"
+    exit 2
+fi
+if [ ! -d "$SPOOL" ]; then
+    # A missing spool is what an unresponsive lane looks like from here. Say so
+    # in the lane's own terms rather than failing on a later put.
+    echo "lane_proof: spool $SPOOL does not exist."
+    echo "            The $LANE agent is not running. It needs an owner"
+    echo "            reboot, and this script cannot do that."
+    exit 3
+fi
+
+mkdir -p "$OUT"
+
+# ---- 1. build -----------------------------------------------------------
+# The bare-argument trap: `ri_build_aros.sh . out riapp` prints "STUB BUILD OK"
+# and builds NOTHING; the correct invocation is the bare target name.
+if [ "$BUILD" = 1 ]; then
+    echo "== building for $ABI =="
+    # THE ARGUMENT SHAPE, because it is the trap: v11 is
+    # `ri_build_v11.sh <src> <out-riapp> [tool]` with the OUTPUT in $2 and
+    # the tool in $3. My first version passed `<out> riapp`, which asks for a
+    # RIAPP written to the file named `riapp`. A third argument that is not a
+    # known tool refuses with exit 2 and writes nothing -- which is the
+    # behaviour that makes this safe -- but $2 in the wrong place is not
+    # caught by that, it just builds the wrong file.
+    if [ "$ABI" = v11 ]; then
+        bash "$ROOT/scripts/ri_build_v11.sh" "$ROOT" "$OUT/$RIAPP"        || exit 1
+        bash "$ROOT/scripts/ri_build_v11.sh" "$ROOT" "$OUT/$MSEND" midisend || exit 1
+    else
+        # THE v1 LANE IS NOT THE SAME SCRIPT SHAPE. Two things, both measured
+        # rather than assumed:
+        #
+        #   * `ri_build_aros.sh . out riapp` prints "STUB BUILD OK" and BUILDS
+        #     NOTHING. The correct invocation is the BARE target name, and it
+        #     writes to its own OUT (/tmp/ri/aros) rather than to a path you
+        #     name -- so the copy below is not tidiness, it is the only way to
+        #     get the file.
+        #   * THERE IS NO `midisend` TARGET ON v1**, unlike v11. MIDISEND is
+        #     built as a side effect of the `sections` branch, next to
+        #     RISECT. Asking for a `midisend` target gets the RIAPP build and
+        #     writes nothing at the expected name -- the same
+        #     wrong-binary-under-the-right-name trap the v11 script had to be
+        #     given a real target for.
+        bash "$ROOT/scripts/ri_build_aros.sh" riapp    || exit 1
+        bash "$ROOT/scripts/ri_build_aros.sh" sections || exit 1
+        cp /tmp/ri/aros/RIAPP    "$OUT/$RIAPP" || exit 1
+        cp /tmp/ri/aros/MIDISEND "$OUT/$MSEND" || exit 1
+    fi
+fi
+
+# ---- 2. hash ------------------------------------------------------------
+# Printed, not merely checked: the point is to record what ran.
+echo "== what is being deployed ($ABI) =="
+for f in "$RIAPP" "$MSEND"; do
+    [ -f "$OUT/$f" ] || { echo "lane_proof: $OUT/$f missing -- did the build run?"; exit 1; }
+    printf '  %-14s %8s bytes  sha256 %s\n' \
+        "$f" "$(stat -c %s "$OUT/$f")" "$(sha256sum "$OUT/$f" | cut -c1-20)"
+done
+cp "$ROOT/docs/evidence/midi/m4-levi.mid.txt"  "$OUT/M4-LEVI.MID.TXT"
+cp "$ROOT/docs/evidence/midi/r5-notein.mid.txt" "$OUT/R5-NOTEIN.MID.TXT"
+cp "$ROOT/docs/evidence/midi/lane_proof.run"   "$OUT/LANE-PROOF.RUN"
+
+# ---- 3. put -------------------------------------------------------------
+# --run-script, NOT --exec: the lane's --exec is not a shell (a redirect
+# inside it returns rc=0 and writes nothing) and a blocked command there
+# wedges the agent's command path until an owner reboot.
+echo "== putting to RAM: =="
+python3 "$SPIKE" submit --spool "$SPOOL" --wait "$RUN" \
+    --put "$OUT/$RIAPP:RAM:$RIAPP" \
+    --put "$OUT/$MSEND:RAM:$MSEND" \
+    --put "$OUT/M4-LEVI.MID.TXT:RAM:M4-LEVI.MID.TXT" \
+    --put "$OUT/R5-NOTEIN.MID.TXT:RAM:R5-NOTEIN.MID.TXT" \
+    --put "$OUT/LANE-PROOF.RUN:RAM:LANE-PROOF.RUN"
+rc=$?
+if [ $rc -ne 0 ]; then
+    echo "lane_proof: the PUT did not complete (rc=$rc)."
+    echo "            An empty spool with jobs left in it is what an"
+    echo "            unresponsive agent looks like. This needs the owner."
+    exit $rc
+fi
+
+if [ "$STAGE_ONLY" = 1 ]; then
+    echo "== staged only; --stage-only was given, so nothing was run =="
+    exit 0
+fi
+
+# ---- 4. run -------------------------------------------------------------
+# The env vars the proof needs, set INSIDE the run script's shell, because
+# RIAPP_NOTECH is deliberately UNSET -- that is what makes the melodic output
+# follow the Leviasynth channel, and setting it would test the other branch.
+echo "== running the proof (this is the owner's listening window) =="
+python3 "$SPIKE" submit --spool "$SPOOL" --wait "$RUN" \
+    --run-script RAM:LANE-PROOF.RUN
+
+# ---- 5. get the logs and lead with the counters -------------------------
+echo "== bringing the logs back =="
+python3 "$SPIKE" submit --spool "$SPOOL" --wait 120 \
+    --get "RAM:RIAPP-EV.LOG:$OUT/RIAPP-EV.LOG" \
+    --get "RAM:R6LISTEN.LOG:$OUT/R6LISTEN.LOG"
+
+echo
+echo "==================== READ THIS FIRST ===================="
+for f in "$OUT/RIAPP-EV.LOG" "$OUT/R6LISTEN.LOG"; do
+    if [ -f "$f" ]; then
+        echo "--- $(basename "$f")"
+        grep -E "NOTEIN|NOTEIN |NOTE " "$f" 2>/dev/null | tail -n 6
+        grep -E "^[^ ]* *(NOTEIN|DEV|CLK|LEVI) " "$f" 2>/dev/null | head -n 8
+    else
+        echo "--- $(basename "$f"): NOT RETRIEVED"
+    fi
+done
+cat <<'EOF'
+
+  NOTEIN played>0 refused=0  binding right; fault is downstream
+  NOTEIN refused>0           messages ARE arriving and the MAP is wrong
+  NOTEIN played=0 refused=0  nothing is arriving: cluster or receiver fault
+
+  DEV out=1 ch=1 prog=38     one program change, on the Leviasynth channel
+  R6LISTEN.LOG               channel-2 notes, channel-10 drums, ONE program change
+
+Then the owner's ears, in the order the script played them:
+  A  M4 inbound   channel 2 -- notes, CC 55 / CC 74, bend, and the two
+                 "must NOT" lines that must stay silent
+  B  R5 note-in   channel 10 808 drums, channel 2 the 303, and the
+                 unmapped-note refusal and unbound-channel silences
+  C  R6 outbound  melodic notes following the Leviasynth channel, and the
+                 clock-out lamp -- lit while bytes flow, dark after
+EOF
