@@ -1,0 +1,36 @@
+; verify-teardown.run — the CONTROL for docs/evidence/midi/repro-teardown.run.
+;
+; IDENTICAL IN EVERY RESPECT EXCEPT THE BINARY. Same env, same song, same
+; clock-out and dev-out, same 1 ms sender task pumping the same camd link.
+; repro-teardown.run ran b10e2b7's sources and ended in a Software Failure
+; requester; this one runs ae69294, which moved the lazy link create inside
+; tx_claim(), deleted the send path's DeleteMidi entirely, and made a cluster
+; mismatch REFUSE instead of swapping a live link.
+;
+; A CONTROL THAT IS NOT IDENTICAL IS NOT A CONTROL. The temptation here was to
+; tidy the script while switching binaries -- add the Break, fix the env, drop
+; the redundant line -- and that is exactly how a green run stops meaning
+; anything. If this passes and that failed, the only difference is the code.
+;
+; THE QUIT IS DELIBERATELY NOT IN THIS SCRIPT. It was `Break RIAPP C`, which
+; this shell rejects with "bad number", so the old script never reached a
+; teardown at all and the app died on its own before the wait expired. The
+; quit is now driven from the host with --ui-close on the RIAPP window, which
+; the window list reports as having a close gadget at 5,0. That is the
+; app's OWN documented quit path ("window close gadget"), driven by the one
+; thing that can actually drive it here.
+;
+; The proof is not "this script exits 0". It is: this script exits 0 AND the
+; --ui-windows check that follows reports no Software Failure, while the same
+; sequence against b10e2b7's binary does report one.
+
+setenv RIAPP_EVLOG RAM:
+setenv RIAPP_LOG RAM:
+setenv RIAPP_DEMO 0
+setenv RIAPP_MIDI_CLKOUT 1
+setenv RIAPP_MIDI_DEVOUT 1
+setenv RIAPP_MIDI_LATMS 8
+
+Run >NIL: RAM:RIAPP
+Wait 20
+type RAM:RIAPP-EV.LOG

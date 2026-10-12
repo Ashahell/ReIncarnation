@@ -4050,3 +4050,119 @@ written for them (`m1` also trips clause 3, harmlessly):
   `build=` is `git rev-parse HEAD` and says nothing about the tree. The
   binary above reports `build=3740809` while carrying this fix, which is the
   same lie at a smaller scale.
+
+## The crash, actually found: `sender_task` sent on a request that was never opened (2026-10-12)
+
+The owner restarted the lane and let me reset riqemu1. With monitor access
+(`system_reset`, screendump verified `P6 1280 1024` after every reset) the
+reproduction became a test bench, and the reproduction finally handed over
+the thing three rounds of reading could not.
+
+### THE ALERT WAS THERE ALL ALONG. IT WAS JUST BEHIND THE APP'S OWN WINDOW.
+
+`--ui-windows` reported `Software Failure! 359,417 562x191 [no-close]`, and
+**neither capture showed it**: not the agent's `--ui-capture`, not the QEMU
+monitor `screendump`, which is the real framebuffer. Both showed the RIAPP
+panel rendering perfectly at those coordinates.
+
+The requester was **drawn behind the RIAPP window**, which spans 0,0-974x680
+and covers it exactly. Not hidden, not on another screen -- occluded. Three
+rounds of "the capture must be broken" and the answer was that a window list
+reports position and a framebuffer reports what is visible, and I kept
+demanding the second give me the first. Dragging the panel aside by its title
+bar exposed it:
+
+```
+Program failed
+Task:   0x...EF90 - RIAPP midi-out
+Error:  0x80000003 - Illegal address access
+PC:     0x0000000001AA8080
+Function: Exec_777_SendIO (0x0000000001AA8070) Offset 0x10
+Stack:
+  __inline_Exec_SendIO + 0x30
+  sender_task + 0x2DD
+  dos.library CallEntry / TaskExitStub
+```
+
+### AND THE STACK NAMES A CALL SITE MY FIX NEVER TOUCHED
+
+`sender_task + 0x2DD` calls `Exec_777_SendIO` **directly**. That path never
+goes near `PutMidi`, so no turnstile around `PutMidi` -- mine or anyone's --
+could have prevented it. `sender_task` contains exactly one direct `SendIO`,
+and it is the timer tick:
+
+```c
+    tr = (struct timerequest *)CreateIORequest(s_sport, sizeof *tr);
+    ...
+    SendIO((struct IORequest *)tr);        /* io_Device is NULL here */
+```
+
+`CreateIORequest` allocates a request and leaves **`io_Device` NULL**. Only
+`OpenDevice` fills it in. This task **did** open a request -- `s_streq`, via
+`OpenDevice("timer.device", UNIT_MICROHZ, ...)` at task start -- and then
+never sent a single tick on it. Every 1 ms it allocated a new, unopened
+request and called `SendIO` on it. That is an illegal address access inside
+SendIO, in the task named `RIAPP midi-out`, which is the Dell's report to the
+last word.
+
+**I had a signature and a theory and I matched them on the words rather than
+the frames.** `exec_777_sendio` + "the sender is running" + "the link gets
+freed" reads beautifully and was the wrong call site entirely. The link
+teardown was a real defect and remains fixed; it simply could not have
+produced this stack, and nothing I checked before now could have told me so.
+
+### THE FIX: ONE REQUEST, THE ONE THAT WAS OPENED
+
+The tick reuses `s_streq`. The per-tick `CreateIORequest`/`DeleteIORequest`
+pair is gone -- and that churn is not a tidiness win, it is what forced a new
+unopened request onto the send path in the first place. `s_streq` is now
+deleted at task exit, where it previously leaked (harmless-looking while a new
+one was allocated every millisecond, a straight leak once it is reused).
+
+### VERIFIED ON A GUEST, FOR THE FIRST TIME
+
+| binary | result |
+|---|---|
+| `b10e2b7` sources (pre-fix) | **Software Failure at 327 ms**, right after `TR PLAY` |
+| `ae69294` (link fix only) | **Software Failure at 327 ms** -- same place |
+| this fix | **3 windows, no Software Failure, ~9 minutes running** |
+
+The middle row is the one that matters: the link fix did **nothing** for this
+crash, at the same millisecond, twice. Every previous claim in this ledger
+about the Dell's crash was made without a guest, and this is the first one
+that has one.
+
+### GATE 8, AND A MUTANT THAT SURVIVED BECAUSE OF HOW I TYPE
+
+`m8-per-tick-request-churn` -- sends on the opened request but still allocates
+and frees one per tick -- **SURVIVED**. The check read
+`if "DeleteIORequest(tr)" in st`; the mutant writes
+`DeleteIORequest((struct IORequest *)tr)`. **The same churn behind a cast.**
+A check keyed to one spelling is a check on how I typed the fix, and it
+passes on every mutant that types it differently. Replaced with a count
+(exactly one `CreateIORequest` in the function) and a regex for any
+`DeleteIORequest` naming `tr`. 8/8 killed.
+
+### AND I BROKE THE AUDIT IN THE PREVIOUS COMMIT AND DID NOT NOTICE
+
+`scripts/mutate_camd.py` tripped the shared-script allowlist gate
+(`RI_SCRIPTS_OK`). I added it, committed, pushed -- and never re-ran the
+audit, so `AUDIT 0/0 PASS` in that commit's message describes a tree that no
+longer passed. Moved to `tests/`, which is where an evidence harness belongs:
+the allowlist governs **shared run scripts** whose argument shapes the build
+scripts depend on, and widening it for a mutation harness would have diluted
+the thing it is actually guarding. It now resolves its paths from its own
+location, so it cannot quietly run against a different tree.
+
+### STILL OPEN
+
+- The owner's **ear** has not passed on any of this: nothing here has been
+  heard, and no MIDI has been confirmed to arrive at a slave.
+- The Dell has not been re-run with this build. riqemu1 is ABIv1; the Dell is
+  ABIv11.
+- `MIDISEND RIAPP LISTEN` **wedged the agent** for ~90 s on this lane while
+  RIAPP was running. Unexplained, and it means the listen-based proof of
+  clock-out is not yet safe to script unattended.
+- The riqemu1 repro's own teardown path is still unexercised; the quit is
+  driven from the host with `--ui-close`, which is the app's documented
+  close-gadget path, and `Break` remains unusable on this shell.

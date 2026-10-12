@@ -498,7 +498,6 @@ static void sender_task(void) {
     ri_atomic_store_rel(&s_sready, 1u);   /* timer and signal are usable */
     Signal(parent, 1UL << psig);          /* ready, for anyone who waits */
     while (s_streq && s_skill_sig >= 0) {
-        struct timerequest *tr;
         ULONG sigs;
         if (ri_atomic_load_acq(&s_sstop))
             break;
@@ -512,29 +511,56 @@ static void sender_task(void) {
          * is carry bytes across in small batches. The lane proof measures
          * the intervals it actually produces.
          *
-         * AROS's timer request here is an AllocMem'd timerequest with
-         * tr_node/tr_time -- there is no AllocTimReq and SendIO takes one
-         * argument in this SDK. */
-        tr = (struct timerequest *)CreateIORequest(s_sport,
-            sizeof(struct timerequest));
-        if (!tr)
-            break;
-        tr->tr_node.io_Command = TR_ADDREQUEST;   /* as the open handshake */
-        tr->tr_time.tv_secs = 0;
-        tr->tr_time.tv_micro = 1000;
-        SendIO((struct IORequest *)tr);
+         * ONE REQUEST, THE ONE THAT WAS OPENED, REUSED EVERY TICK
+         * (2026-10-12). THIS IS THE CRASH.
+         *
+         * This loop used to build a FRESH `CreateIORequest` every 1 ms and
+         * call `SendIO` on it. `CreateIORequest` allocates the request and
+         * leaves `io_Device` NULL -- only `OpenDevice` fills that in -- so
+         * every one of those sends went to a request with no device behind
+         * it. The task DID open a request, `s_streq`, via OpenDevice on
+         * timer.device above, and then never sent a single tick on it.
+         *
+         * The lane says what that costs:
+         *
+         *     Task:   RIAPP midi-out
+         *     Error:  0x80000003 - Illegal address access
+         *     Function: Exec_777_SendIO
+         *     Stack:  __inline_Exec_SendIO / sender_task + 0x2DD
+         *
+         * That is also what the Dell reported, and I spent the previous fix
+         * on the LINK teardown instead -- a real defect, an unrelated one,
+         * and one that could not have produced this stack, because this
+         * SendIO is called by sender_task directly and never goes near
+         * PutMidi. I had a signature and a theory and I matched them on the
+         * words rather than the frames.
+         *
+         * Reusing the opened request also removes the per-tick
+         * Create/Delete pair, which is not a tidiness win: that churn is
+         * what forced a new unopened request onto the send path at all. */
+        s_streq->tr_node.io_Command = TR_ADDREQUEST;
+        s_streq->tr_time.tv_secs = 0;
+        s_streq->tr_time.tv_micro = 1000;
+        SendIO((struct IORequest *)s_streq);
         WaitPort(s_sport);
         sigs = Wait(1UL << s_skill_sig);
-        (void)GetMsg(s_sport);   /* the timer reply; freed with the request */
-        if (!CheckIO((struct IORequest *)tr))
-            AbortIO((struct IORequest *)tr);
-        WaitIO((struct IORequest *)tr);
-        DeleteIORequest((struct IORequest *)tr);
+        (void)GetMsg(s_sport);   /* the timer reply */
+        if (!CheckIO((struct IORequest *)s_streq))
+            AbortIO((struct IORequest *)s_streq);
+        WaitIO((struct IORequest *)s_streq);
         if (sigs & (1UL << s_skill_sig))
             break;
     }
     if (s_stimer) {
         CloseDevice(s_stimer);
+        /* THE REQUEST IS FREED NOW, BECAUSE IT IS THE ONE THAT LASTS. The
+         * old code closed the device and dropped the pointer without ever
+         * deleting `s_streq`: harmless-looking while a fresh request was
+         * allocated every tick, and a straight leak once this task reuses
+         * one. Order is close, then free the request, then free the port it
+         * was built on. */
+        if (s_streq)
+            DeleteIORequest((struct IORequest *)s_streq);
         s_stimer = 0;
         s_streq = 0;
     }

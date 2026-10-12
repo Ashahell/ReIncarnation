@@ -6,9 +6,14 @@ failed to catch it, which is a FAIL for the gate), non-zero = killed. A mutant
 that merely fails to parse is not a kill, so each is checked to still contain
 the function body the gate reads.
 """
-import subprocess, sys, re
+import subprocess, sys, os
 
-SRC = "platform/aros/midi_camd.c"
+# ROOT from this file's own location, not the caller's cwd: a harness that
+# silently runs against a different tree is the stale-binary trap again, and
+# this one is easy to avoid by construction.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC = os.path.join(ROOT, "platform/aros/midi_camd.c")
+AUDIT = os.path.join(ROOT, "scripts", "ri_audit.sh")
 ORIG = open(SRC).read()
 
 EARLY = ("    if (s_txcluster[0] && strcmp(dst, s_txcluster) != 0)\n"
@@ -44,6 +49,25 @@ MUTANTS = {
       [(EARLY, ""),
        (LATE, LATE + "\n        if (s_txcluster[0] && strcmp(dst, s_txcluster) != 0)\n"
                  "            return 1;")],
+  # THE CRASH ITSELF: put the per-iteration, never-opened request back.
+  "m7-send-on-unopened-req":
+      [("        s_streq->tr_node.io_Command = TR_ADDREQUEST;",
+        "        { struct timerequest *tr = (struct timerequest *)\n"
+        "            CreateIORequest(s_sport, sizeof(struct timerequest));\n"
+        "          if (!tr) break;\n"
+        "          tr->tr_node.io_Command = TR_ADDREQUEST;\n"
+        "          tr->tr_time.tv_secs = 0; tr->tr_time.tv_micro = 1000;\n"
+        "          SendIO((struct IORequest *)tr);\n"
+        "          DeleteIORequest((struct IORequest *)tr); }\n"
+        "        s_streq->tr_node.io_Command = TR_ADDREQUEST;")],
+  # Send on the opened request but still churn a request every tick -- the
+  # shadow of the same defect, which is what put an unopened one there.
+  "m8-per-tick-request-churn":
+      [("        s_streq->tr_node.io_Command = TR_ADDREQUEST;",
+        "        { struct timerequest *tr = (struct timerequest *)\n"
+        "            CreateIORequest(s_sport, sizeof(struct timerequest));\n"
+        "          if (tr) DeleteIORequest((struct IORequest *)tr); }\n"
+        "        s_streq->tr_node.io_Command = TR_ADDREQUEST;")],
   # Keep the comparison in place but make it a no-op that returns nothing.
   "m6-refuse-is-a-noop":
       [(EARLY,
@@ -52,7 +76,7 @@ MUTANTS = {
 }
 
 def audit():
-    r = subprocess.run(["bash", "scripts/ri_audit.sh"],
+    r = subprocess.run(["bash", AUDIT], cwd=ROOT,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return r.returncode, r.stdout.decode("utf-8", "replace")
 

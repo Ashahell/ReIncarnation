@@ -441,13 +441,60 @@ elif not re.search(r'strcmp\(dst, s_txcluster\)[^;]{0,60}?return', send, re.S):
     bad.append("ri_pal_midi_send compares clusters but the comparison does "
                "not itself return, so a mismatched cluster is not refused")
 
+# 8. THE SENDER'S TIMER REQUEST MUST BE THE ONE THAT WAS OPENED.
+#
+# THIS IS THE CRASH, AND IT IS NOT THE ONE I FIXED. The alert from the lane:
+#
+#     Task:   RIAPP midi-out
+#     Error:  0x80000003 - Illegal address access
+#     Function: Exec_777_SendIO
+#     Stack:  __inline_Exec_SendIO / sender_task + 0x2DD
+#
+# `sender_task` built a FRESH `CreateIORequest` every 1 ms and called `SendIO`
+# on it. `CreateIORequest` allocates the request and leaves `io_Device` NULL;
+# only `OpenDevice` fills it in. The task DID open one request at startup --
+# `s_streq`, via `OpenDevice("timer.device", UNIT_MICROHZ, ...)` -- and then
+# never used it for a tick, sending instead on requests whose device pointer
+# was never set. That is an illegal address access inside SendIO, in this task,
+# which is exactly what the Dell reported and what I misattributed to the
+# link teardown.
+#
+# The gate names the opened request specifically, because "reuse one request"
+# is not the invariant -- "send on a request whose device is open" is, and
+# `s_streq` is the only request in this file that is.
+st = body("sender_task")
+if "SendIO((struct IORequest *)tr)" in st:
+    bad.append("sender_task calls SendIO on a per-iteration `tr` built by "
+               "CreateIORequest, which never has io_Device set -- only "
+               "OpenDevice does that, and the opened request is s_streq")
+elif "SendIO((struct IORequest *)s_streq)" not in st:
+    bad.append("sender_task no longer sends on the opened timer request "
+               "s_streq; check how the tick is scheduled before trusting it")
+# Allocating and freeing a request every 1 ms is the same defect's shadow:
+# it is what forced a new (unopened) request onto the send path at all.
+#
+# A COUNT AND A PATTERN, NOT A SPELLING. The first version of this check
+# looked for the literal `DeleteIORequest(tr)`, and m8 -- which writes
+# `DeleteIORequest((struct IORequest *)tr)` -- SURVIVED it. That is the same
+# churn behind a cast. A check keyed to one spelling is a check on how I typed
+# the fix, and it passes on every mutant that types it differently.
+if st.count("CreateIORequest") != 1:
+    bad.append("sender_task allocates a timer request %d times; there must "
+               "be exactly ONE, allocated at task start and opened by "
+               "OpenDevice (a fresh request per tick is the crash)"
+               % st.count("CreateIORequest"))
+if re.search(r'DeleteIORequest\s*\([^)]*\btr\b', st):
+    bad.append("sender_task frees a per-iteration timer request, which is "
+               "what puts an unopened request on the send path")
+
 if bad:
     for b in bad: print("FAIL: " + b)
     sys.exit(1)
 print("   camd teardown: close joins the sender before freeing the link, "
       "stop never claims a join it did not perform, link turnstile balanced, "
       "send path never frees the link, creates only under the claim, and "
-      "refuses a cluster the live link was not built for")
+      "refuses a cluster the live link was not built for, and the sender "
+      "ticks on the timer request that was actually opened")
 PYCAMD
 
 echo "-- export golden headers (external sox check when present) --"
