@@ -373,11 +373,81 @@ if send.count("tx_claim()") != send.count("tx_release()"):
     bad.append("ri_pal_midi_send claims the link %d time(s) and releases it %d "
                "time(s)" % (send.count("tx_claim()"), send.count("tx_release()")))
 
+# 5. THE SEND PATH MUST NEVER FREE THE LINK AT ALL (2026-10-12).
+#
+# THIS IS THE HALF OF THE CRASH THE TURNSTILE DID NOT CLOSE. Gate 1 above
+# pinned the teardown: close now joins the sender before DeleteMidi. But
+# `ri_pal_midi_send` ALSO deleted the link -- inside a branch that fired
+# whenever a caller passed a port different from the open cluster -- and it
+# did so OUTSIDE tx_claim(), which it reached only afterwards. So the lock
+# guarded `PutMidi` and nothing else, while the thing that frees the request
+# `PutMidi` is about to touch ran unlocked and unguarded in the same function.
+#
+# `app/riapp.c:769` is that caller: sync_transport() sends MMC from the MAIN
+# task passing `s_mset.cluster` explicitly. Against a sender task pumping the
+# same link every 1 ms, that is DeleteMidi under a live PutMidi -- the very
+# `exec_777_sendio` report, reached from a second route.
+#
+# Lifetime belongs to open/close, which already join before they free. A send
+# is not allowed to free anything, so the check is simply: there is no
+# DeleteMidi anywhere in this function's comment-stripped body.
+if "DeleteMidi" in send:
+    bad.append("ri_pal_midi_send frees the camd link from inside a SEND. A "
+               "main-task send passing a different port deletes the link the "
+               "sender task is inside (exec_777_sendio); link lifetime belongs "
+               "to ri_pal_midi_close, which joins the sender first")
+
+# 6. AND THE LAZY CREATE MUST BE INSIDE THE CLAIM, NOT BEFORE IT.
+#    Creating unlocked is the same race wearing a different hat: two tasks can
+#    both find `!s_tx` and both build a link, with the loser orphaning the
+#    winner's Midi. The claim has to come first so the create is exclusive.
+ci, cl = send.find("CreateMidi("), send.find("tx_claim()")
+if ci < 0:
+    bad.append("ri_pal_midi_send no longer creates the link; check the "
+               "teardown shape changed again")
+elif cl < 0 or ci < cl:
+    bad.append("ri_pal_midi_send creates the camd link BEFORE taking the "
+               "turnstile, so two tasks can build it at once")
+
+# 7. A SEND MUST CHECK THE LINK'S OWN CLUSTER BEFORE IT USES THE LINK.
+#
+# KILLED MUTANT, AND THE ONE THAT MATTERS MOST TO GET WRONG. Removing the
+# refusal survived every gate above: with it gone, a mismatched port frees
+# nothing and creates nothing -- it falls straight through to `PutMidi` on the
+# EXISTING link, so a message intended for cluster B is quietly transmitted on
+# cluster A. Nothing crashes, nothing leaks, no counter moves, and the caller
+# is told the send succeeded. That is strictly worse than the crash it came
+# from: a crash is loud and a misroute is not.
+#
+# So the check is pinned three ways, because any one alone is weak: the
+# comparison must EXIST, it must come BEFORE PutMidi, and there must be a
+# `return` between them -- a comparison with no way out refuses nothing and is
+# a comment with extra steps.
+ci2, pi = send.find("strcmp(dst, s_txcluster)"), send.find("PutMidi(")
+if ci2 < 0:
+    bad.append("ri_pal_midi_send no longer compares the requested cluster "
+               "against the one the live link was built for: a send meant for "
+               "another cluster is silently transmitted on this one instead "
+               "of being refused")
+elif pi < 0 or ci2 > pi:
+    bad.append("ri_pal_midi_send compares clusters AFTER PutMidi, so the "
+               "comparison cannot refuse anything")
+elif not re.search(r'strcmp\(dst, s_txcluster\)[^;]{0,60}?return', send, re.S):
+    # The comparison's OWN statement must return, not merely some return
+    # somewhere before PutMidi. `tx_claim()`'s refusal sits between them, so a
+    # looser check is satisfied by an unrelated early-out and dies on a
+    # mutation that turns the comparison into a no-op -- which is exactly the
+    # misroute this gate exists to catch.
+    bad.append("ri_pal_midi_send compares clusters but the comparison does "
+               "not itself return, so a mismatched cluster is not refused")
+
 if bad:
     for b in bad: print("FAIL: " + b)
     sys.exit(1)
 print("   camd teardown: close joins the sender before freeing the link, "
-      "stop never claims a join it did not perform, link turnstile balanced")
+      "stop never claims a join it did not perform, link turnstile balanced, "
+      "send path never frees the link, creates only under the claim, and "
+      "refuses a cluster the live link was not built for")
 PYCAMD
 
 echo "-- export golden headers (external sox check when present) --"

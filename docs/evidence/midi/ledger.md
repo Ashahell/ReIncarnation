@@ -3918,3 +3918,135 @@ chased before assuming anything else about it.
 Next: find the `Break` syntax so the quit actually happens; and settle the
 Dell failure by checking how many RIAPP instances were alive when it happened,
 rather than assuming it was the bug already fixed.
+
+## Correction: the "2.2 seconds in" claim was wrong (2026-10-12)
+
+I read the riqemu1 ev-log's last line as the time of death and wrote that the
+crash was "MID-PLAYBACK, 2.2 SECONDS in, NOT at teardown". **That does not
+follow and I retract it.**
+
+`evlog()` calls `Flush(s_evfh)` after **every single line** (`app/riapp.c:455`).
+The log is unbuffered. So its last line dates the last **event**, not the
+crash -- and nothing was logged between `ev 28 2227` and the end of the run
+because nothing happened worth logging, which is what a playing song looks
+like.
+
+The run's own timing rules it out as a 2.2 s crash: the script was
+`Run >NIL: RAM:RIAPP` / `Wait 10` / `Break RIAPP C`, and it returned after
+**10115 ms** with `Break: bad number`. The app was alive when the script
+reached its `Break`. So the death is somewhere between 2.2 s and my
+`--ui-windows` check roughly 40 s later, and **teardown was never reached
+here at all** -- which makes "not at teardown" an inference from a log that
+cannot date the crash, drawn against evidence that cannot exclude it.
+
+The lesson is not "read the log more carefully". It is that **I used a
+timestamp as a clock when it was an event counter**, and then built a
+two-bugs narrative on the difference. A crash forensics claim needs a clock,
+and this evidence never had one.
+
+## The real second defect: the send path freed the link too (2026-10-12)
+
+The turnstile I added in `dca6bda` guarded **`PutMidi` and nothing else.**
+`ri_pal_midi_send` contained this, executed *before* `tx_claim()`:
+
+```c
+    if (!s_tx || strcmp(dst, s_cluster) != 0) {
+        if (s_txlink) {
+            DeleteMidi(s_tx);          /* <-- unlocked, and it frees the link */
+            s_tx = 0;
+            s_txlink = 0;
+        }
+        s_tx  = CreateMidi(MIDI_Name, (IPTR)"RIPAL-TX", TAG_END);
+        s_txlink = AddMidiLink(s_tx, ...);
+    }
+```
+
+A caller passing a **port different from the open cluster** took that branch
+and **deleted the link out from under a sender task that was inside `PutMidi`
+on it.** That is the same `exec_777_sendio` signature, reached by a second
+route -- and it was live in the tree the whole time I was fixing the first one.
+
+`app/riapp.c:769` is that caller: `sync_transport()` sends MMC from the
+**main** task passing `s_mset.cluster` explicitly, against a sender task
+pumping the same link every 1 ms. The Dell's run had `MMC out=0`, so it did
+not fire there; the code was wrong anyway.
+
+**The lock was placed after the free, and I called that a fix.** A turnstile
+around `PutMidi` cannot help a `DeleteMidi` that runs before the turnstile
+exists.
+
+### The fix: a send never frees anything
+
+Link lifetime belongs to `ri_pal_midi_close`, which is the one place that
+joins the sender first. So:
+
+- `ri_pal_midi_send` contains **no `DeleteMidi` at all.** On a cluster
+  mismatch it **refuses**.
+- The lazy create moved **inside** `tx_claim()`, so two tasks cannot both find
+  `!s_tx` and both build a link, orphaning one Midi.
+- On a create failure **nothing is freed**: `s_tx` stays set with no link, the
+  next send retries `AddMidiLink`, and close frees the Midi under the join.
+  Freeing there would have been correct in isolation and wrong in a function
+  that must not free anything.
+
+### `s_txcluster`, and why `s_cluster` could not do the job
+
+The refusal needs to know what the **live link** points at, and `s_cluster` is
+the wrong field for that: `MIDISEND`'s script playback -- the lane proof's own
+transport -- **sends without ever calling `ri_pal_midi_open_in`**
+(`app/midisend.c:523`, "PAL send only, no CAMD objects here"), so `s_cluster`
+is empty there. A blanket "refuse any port that is not `s_cluster`" would have
+refused **every message the proof sends**, silently, and every MIDISEND run
+would have reported sent=0 while the script still exited 0. `s_txcluster` is
+written only when a link is actually built, and cleared **with the link** in
+close -- not with `s_cluster`, because a teardown that LEAKS the link must not
+forget what it leaked.
+
+### The gate had a hole, and killing it was the most useful part
+
+`m3-no-refuse-on-mismatch` **SURVIVED** the first gate set. That mutant frees
+nothing and creates nothing: it falls straight through to `PutMidi` on the
+existing link, so a message intended for cluster B is **quietly transmitted on
+cluster A** and the caller is told the send succeeded. No crash, no leak, no
+counter, no log line. **That is strictly worse than the crash it came from** --
+a crash is loud and a misroute is not, and this one would have looked like a
+working MIDI output that was driving the wrong machine.
+
+Gate 7 pins it three ways because any one alone is weak: the comparison must
+exist, it must precede `PutMidi`, and **the comparison's own statement must
+return**. That last clause was rewritten after I noticed the obvious version
+-- "there is a `return` somewhere before `PutMidi`" -- is satisfied by
+`tx_claim()`'s unrelated early-out, so it would have died on exactly the
+no-op mutant it was written to catch. **A gate that passes on the mutant it
+was built for is a comment.**
+
+Six mutants, all scored on the audit's return code, all killed by the clause
+written for them (`m1` also trips clause 3, harmlessly):
+
+| mutant | result |
+|---|---|
+| `m1-send-frees-link` (the defect) | KILLED |
+| `m2-create-outside-claim` | KILLED |
+| `m3-no-refuse-on-mismatch` (the misroute) | KILLED |
+| `m4-claim-leak` | KILLED |
+| `m5-refuse-after-put` | KILLED |
+| `m6-refuse-is-a-noop` | KILLED |
+
+`AUDIT 0/0 PASS`. `ri_build_v11.sh . /tmp/ri/v11riapp` builds clean
+(1175096 B).
+
+### STATUS -- AND WHAT IS STILL NOT PROVEN
+
+- Second defect found, fixed, and gated: **yes**.
+- `AUDIT 0/0 PASS`, 6/6 mutants: **yes**.
+- **Whether this is the Dell's crash: NOT PROVEN.** Neither lane answered
+  while I worked on it -- riqemu1 wedged behind its requester and the Dell's
+  agent timed out too -- so nothing here has run on a guest. The MMC path
+  was off in the Dell's own run. This defect is real and worth fixing on its
+  own merits; **it is not yet shown to be the one that fired.**
+- The riqemu1 reproduction still needs its teardown path exercised, which
+  still needs the `Break` syntax for that shell, which is still unknown.
+- The mislabelled build hash from the previous entry is still uncorrected:
+  `build=` is `git rev-parse HEAD` and says nothing about the tree. The
+  binary above reports `build=3740809` while carrying this fix, which is the
+  same lie at a smaller scale.

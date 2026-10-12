@@ -54,6 +54,13 @@ static ri_atomic_u32 s_task_done;
 /* Sender side (synchronous, caller task — unchanged G7 path). */
 static struct MidiNode *s_tx;
 static struct MidiLink *s_txlink;
+/* WHICH CLUSTER THE LIVE LINK WAS ACTUALLY BUILT FOR (2026-10-12).
+ *
+ * Not `s_cluster`: MIDISEND's script playback sends without ever calling
+ * `ri_pal_midi_open_in`, so `s_cluster` is empty there and cannot say what
+ * an existing link points at. This is written only when a link is built, so
+ * it describes the link and nothing else. */
+static char s_txcluster[64];
 
 /* Bridge-task side (only touched by the task after spawn). */
 static struct MsgPort *s_tport;
@@ -312,32 +319,75 @@ int ri_pal_midi_send(const char *port, const uint8_t *msg, uint32_t len) {
     dst = (port && port[0]) ? port : s_cluster;
     if (!dst[0])
         return 1;
-    if (!s_tx || strcmp(dst, s_cluster) != 0) {
-        if (s_txlink) {
-            DeleteMidi(s_tx);
-            s_tx = 0;
-            s_txlink = 0;
-        }
-        s_tx = CreateMidi(MIDI_Name, (IPTR)"RIPAL-TX", TAG_END);
-        if (!s_tx)
-            return 1;
-        s_txlink = AddMidiLink(s_tx, MLTYPE_Sender, MLINK_Location, (IPTR)dst, TAG_END);
-        if (!s_txlink) {
-            DeleteMidi(s_tx);
-            s_tx = 0;
-            return 1;
-        }
-    }
+    /* A SENDER'S PORT NEVER REPLACES A LIVE LINK (2026-10-12).
+     *
+     * THIS IS THE HALF OF THE CRASH THE TURNSTILE DID NOT CLOSE. The teardown
+     * was fixed first -- close now joins the sender before it frees the link
+     * -- but `ri_pal_midi_send` freed the link too: whenever a caller passed
+     * a port different from the cluster the link was built for, it ran
+     * `DeleteMidi(s_tx)` and rebuilt, and it did that BEFORE `tx_claim()`.
+     * So the lock guarded `PutMidi` and nothing else, while the thing that
+     * frees the request `PutMidi` is about to touch ran unlocked in the same
+     * function.
+     *
+     * `app/riapp.c` is that caller: sync_transport() sends MMC from the MAIN
+     * task and passes `s_mset.cluster` explicitly. Against a sender task
+     * pumping the same link every 1 ms that is DeleteMidi under a live
+     * PutMidi -- the same `exec_777_sendio` report, reached by a second route.
+     *
+     * So a mismatch REFUSES instead of swapping. Refusing is not the cautious
+     * choice bolted on afterwards; a link's destination is a lifetime
+     * property, and changing it means tearing the link down, which is
+     * `ri_pal_midi_close`'s job because close is what joins the sender first.
+     * A send is not allowed to free anything at all.
+     *
+     * (A blanket "refuse any port that is not s_cluster" would have been
+     * wrong and would have failed silently: MIDISEND's script playback --
+     * the lane proof's own transport -- sends without ever opening, so
+     * `s_cluster` is empty there and every message would have been dropped.) */
+    if (s_txcluster[0] && strcmp(dst, s_txcluster) != 0)
+        return 1;
     pkt = ((ULONG)msg[0] << 24) | ((ULONG)(len > 1u ? msg[1] : 0u) << 16) |
         ((ULONG)(len > 2u ? msg[2] : 0u) << 8);
-    /* ONE TASK AT A TIME ON THE LINK. The claim goes as late as possible --
-     * after every check that can refuse -- so the contended window is only
-     * the delete/create/put sequence and nothing else. */
+    /* ONE TASK AT A TIME ON THE LINK, AND THE LINK IS BUILT UNDER IT TOO.
+     * The claim goes as late as possible -- after every check that can refuse
+     * -- so the contended window is only the create/link/put sequence. Taking
+     * it BEFORE the lazy create is what makes the create exclusive: unlocked,
+     * two tasks can both find `!s_tx` and both build a link, and the loser
+     * orphans the winner's Midi. */
     if (!tx_claim())
         return 1;
-    PutMidi(s_txlink, pkt);
-    tx_release();
-    return 0;
+    {
+        int rc = 0;
+        if (!s_tx) {
+            s_tx = CreateMidi(MIDI_Name, (IPTR)"RIPAL-TX", TAG_END);
+            if (s_tx) {
+                s_txlink = AddMidiLink(s_tx, MLTYPE_Sender, MLINK_Location,
+                    (IPTR)dst, TAG_END);
+                if (s_txlink) {
+                    uint32_t i;
+                    for (i = 0u; i < sizeof s_txcluster - 1u && dst[i]; i++)
+                        s_txcluster[i] = dst[i];
+                    s_txcluster[i] = 0;
+                }
+            }
+            /* NOTHING IS FREED HERE ON FAILURE, AND THAT IS DELIBERATE.
+             * `s_tx` stays set with no link, so the next send retries
+             * AddMidiLink, and close frees the Midi under the join. The old
+             * code called DeleteMidi on this path -- correct in isolation and
+             * wrong in a function that must not free anything, because the
+             * only way to tell "just created, never published" from "live"
+             * from outside is a guarantee this function cannot make. */
+            if (!s_txlink)
+                rc = 1;
+        }
+        if (rc == 0 && s_txlink)
+            PutMidi(s_txlink, pkt);
+        else
+            rc = 1;
+        tx_release();
+        return rc;
+    }
 }
 
 void ri_pal_midi_close(void) {
@@ -383,6 +433,11 @@ void ri_pal_midi_close(void) {
         DeleteMidi(s_tx);
         s_tx = 0;
         s_txlink = 0;
+        /* CLEARED WITH THE LINK, NOT WITH `s_cluster`. This says what the
+         * freed link pointed at, so it dies with the link: clearing it on a
+         * teardown that LEAKED the link (claim refused above) would let a
+         * later send build a second one alongside the first. */
+        s_txcluster[0] = 0;
         tx_release();
     }
     s_task = 0;
