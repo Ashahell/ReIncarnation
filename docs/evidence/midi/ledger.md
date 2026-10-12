@@ -3835,3 +3835,86 @@ gone · `send_stop` claims a join it did not perform · the turnstile loses its
 release · and the two that caught the comment bug.
 
 `AUDIT 0/0 PASS`.
+
+## Reproduced on riqemu1 — and three things that are wrong about it (2026-10-12)
+
+`docs/evidence/midi/repro-teardown.run`, a v1 build of the pre-fix tree, on the
+private lane. **The crash reproduces outside the Dell**, which is what makes
+iteration possible without the owner's machine.
+
+### IT REPRODUCES
+
+Pre-fix sources (b10e2b7) built for ABIv1, staged on riqemu1, started with
+clock out and dev out on and a 151-bar song playing. The run ends with:
+
+```
+RIAPP live panel - zombie-nation.rbng
+Software Failure!                        359,417 562x191 [no-close]
+```
+
+The **VM agent survives it**, which the Dell's did not — the Dell agent's
+connection was simply reset while its requester was up, which is why that
+failure could not be photographed there. Here it can be.
+
+### BUT IT IS NOT THE CRASH I DIAGNOSED, AND THE PROOF NEVER RAN
+
+**The ev-log stops at `ev 28 2227 CTL 1224=0` — 2.2 SECONDS in, mid-playback,
+in the middle of Leviasynth step processing:**
+
+```
+ev 18     7 SONG load ... zombie-nation.rbng bars=151 bpm=140
+ev 19     7 TR PLAY
+ev 21 1917 LSTEP slot=0 step=0 lane=0 on=1 note=60
+ev 22 1917 CTL 1218=0
+ev 28 2227 CTL 1224=0                       <- last line before death
+```
+
+So the crash on the VM is **NOT at teardown**. My diagnosis was of the Dell's
+`RIAPP midi out` / `exec_777_sendio` report, which is a *teardown* signature —
+the link freed under a running sender. This one dies during playback with the
+sender also running, and I have **not shown it is the same crash.**
+
+Worse, **the teardown path was never exercised here at all**: the script's
+`Break RIAPP C` returned `Break: bad number`, so `Break RIAPP 2` also failed,
+and **the correct syntax for this shell is still unknown.** The app crashed
+during the `Wait 10` that precedes the quit, so the reproduction stopped before
+reaching the thing it was written to reproduce.
+
+### THE BUILD HASH IS NOT A CONTENT HASH — AND IT LIED ABOUT THIS BINARY
+
+`RIAPP LOG build=%s` is `git rev-parse --short HEAD`. It stamps **the checkout,
+not the tree**. This binary was compiled from **b10e2b7's** sources while HEAD
+was **dca6bda**, so it announces `build=dca6bda` while containing the bug it
+was built to reproduce:
+
+```
+ev 1 0 RUN frames=256 vol=RAM: build=dca6bda     <- the FIXED commit
+```
+
+**The one field whose entire job is to identify the code is derived from
+something else.** That is the wrong-binary trap again, now inside the stamp
+that is supposed to defeat it, and this tree has hit that trap three times
+already. A hash of the tree — or at minimum the dirty flag — would say what
+the binary actually is. Until then, **`build=` is evidence of where it was
+built and not of what it contains**, and every lane note that cites it is
+citing a claim.
+
+### AND THE PROOF SCRIPT LEAKS RIAPP INSTANCES
+
+Each `lane_proof.sh` run does `Run >NIL: RAM:RIAPP.M4` and never stops a
+previous one. There is **no single-instance guard in the app**. So several
+RIAPP processes can be alive at once, each holding its own `RIPAL-TX` camd port
+and its own sender task on the same cluster — which is a plausible source of
+the owner's second Dell failure, and is worth separating from the crash I
+chased before assuming anything else about it.
+
+### STATUS
+
+- Crash **reproduces on a lane I control**: yes.
+- Crash **is the Dell's `exec_777_sendio` teardown bug**: **not shown.**
+- Teardown path **exercised here**: **no** — `Break` syntax unknown.
+- Build hash **trustworthy**: **no.**
+
+Next: find the `Break` syntax so the quit actually happens; and settle the
+Dell failure by checking how many RIAPP instances were alive when it happened,
+rather than assuming it was the bug already fixed.

@@ -1,0 +1,41 @@
+; repro-teardown.run — reproduce the Dell Software Failure on riqemu1.
+;
+; THE DEFECT (dca6bda's commit message has the long version):
+; `ri_pal_midi_close()` stopped the BRIDGE task and deleted the camd link
+; WITHOUT stopping the sender task named `RIAPP midi-out`. That task keeps its
+; 1 ms loop, keeps calling `ri_pal_midi_send`, keeps reading `s_txlink`, and
+; keeps calling `PutMidi` -- on a link being freed underneath it. The Dell said:
+;
+;     RIAPP midi out   Error: illegal address access
+;                     exec_777_sendio
+;
+; WHY `Break ... C` IS THE TRIGGER AND NOT A CONVENIENCE.
+; The app's documented quit is the close gadget or `Break <cli> C`, and BOTH
+; run the same teardown ending in `ri_pal_midi_close()`. So `Break` is not a
+; shortcut around the GUI -- it is the documented path, and it is the one that
+; can be driven from a script. That is what makes this reproducible at all:
+; a crash that needs a human to click a gadget is a crash that only reproduces
+; on the machine the human is sitting at.
+;
+; THE STRESSER IS THE PLAYING SONG. With clock out on, the render produces F8
+; ticks and the sender is inside `PutMidi` on a loop. Quitting into that is
+; the race. A quit with nothing sending would be a quieter test that might
+; pass by luck, which is exactly how the bug survived: it is timing, and a
+; test that does not create the timing teaches you nothing.
+;
+; RUN IT AGAINST BOTH BINARIES. Prefix (b10e2b7) crashes; dca6bda does not.
+; One without the other proves nothing -- a test that passes on the fixed
+; build only says the fixed build passed.
+
+setenv RIAPP_EVLOG RAM:
+setenv RIAPP_LOG RAM:
+setenv RIAPP_DEMO 0
+setenv RIAPP_MIDI_CLKOUT 1
+setenv RIAPP_MIDI_DEVOUT 1
+setenv RIAPP_MIDI_LATMS 8
+
+Run >NIL: RAM:RIAPP
+Wait 10
+Break RIAPP C
+Wait 6
+type RAM:RIAPP.LOG
