@@ -4197,3 +4197,74 @@ heard.** No MIDI has been confirmed to arrive at a slave, the clock intervals
 have not been measured end to end, and `MIDISEND RIAPP LISTEN` still wedges
 the agent on riqemu1 while RIAPP runs -- so the listening proof is still the
 owner's to run and still not safe for me to script unattended.
+## The r5 script never reached the channels it claimed (2026-10-13)
+
+`r5-notein.mid.txt` was wrong in two places, and wrong **silently** -- the
+kind of failure that reads as a pass.
+
+| section | comment claimed | byte sent | actual channel |
+|---|---|---|---|
+| 2, 3, 6, 7 | channel 2 (303A) | `90`/`80` | **channel 1** |
+| 4 | channel 10 (808) | `9A` | **channel 11** |
+| 5 | ch 4 / ch 6 / ch 3 | `93`/`95`/`92` | ch 4 / ch 6 / ch 3 -- correct |
+
+Section 5 is what convicted the rest: it obeyed `nibble + 1` correctly
+(`93` -> "channel 4"), so the file was internally inconsistent rather than
+consistently using some other convention. The rule itself is code, not
+opinion -- `midi_levi.c:183`, `ch = (status & 0x0F) + 1u`, and
+`ri_notein_bind` / `ri_notein_unclaimed` both take 1..16.
+
+**What it would have cost.** The Dell's ev-log records what was bound:
+`NOTEIN dev 0 ch 2 bound`, `dev 2 ch 10 bound`, `bound 2`. Channels 1 and
+11 are bound to nothing. `app/riapp.c:1051` routes unclaimed hits into
+`s_notein_unclaimed` **before** `ri_notein_note` is called, so every 303 note
+was skipped as unclaimed while its comment promised "Must sound", and
+section 4 never moved `refused` while claiming to be "the only line here
+that should make refused move". A reader trusting the comments sees a quiet
+lane and diagnoses a downstream engine fault.
+
+Section 4's comment had argued itself into the error: it first wrote `91`,
+then "corrected" to `9A` asserting `0x9A` is channel 10. `0x9A` is nibble
+10, i.e. channel 11; `0x99` is channel 10.
+
+**Still unheard.** There is no captured run output for this script anywhere
+in this directory. The bytes are now checked against code; nothing is
+checked against sound. Its verdict table (`refused=0` / `refused>0` /
+`played=0 refused=0`) describes readings that have never been observed, and
+must not be cited as results until an ear proof runs it.
+
+### The wiki now carries the pre-fix script, and cannot be told otherwise
+
+`docs/evidence/midi.wiki/` (commit `0264d61`, 19 entries, `validate` exit 0)
+mirrors the **old** bytes: leaf has `90 24 64` and `9A 78 64`, frontmatter
+hash `sha256:662aa058` against the corrected source's `sha256:c151d409`.
+Provenance is historically honest -- that hash matched the file at ingest
+time -- but the leaf is stale and a reader following it would run the broken
+script.
+
+It cannot be refreshed, because **skill-llm-wiki v1.4.4 cannot express
+multi-source ingest at all**. Three arrangements were tested and all were
+refused byte-identically with `INT-07` "received 2 positional arguments",
+naming `--canonical <path>` as the resolving flag:
+
+1. `extend <wiki> <file>` -- refuses
+2. `extend <wiki> <file> --canonical <wiki>` -- refuses
+3. `build <srcA> <srcB> --canonical <srcA>`, both trailing and leading -- refuses
+
+The positional-count gate runs before flag resolution, so the flag the error
+names is ignored whenever it is given. Single-source `build <src>` is the
+only path that works -- which is how the wiki got built in the first place.
+`fix` reports source-hash drift but does not repair it (exit 0, zero
+repairs); `rebuild` skips ingest and will not re-read a source.
+
+The three recent briefs are consequently **0 of 3** in the wiki:
+`2026-10-12-decision-brief.md`, `2026-09-24-improvement-todo.md`,
+`2026-09-30-songs-and-playlists.md`. They were staged at
+`/tmp/opencode/briefs/` and never reached an operation.
+
+**Do not hand-edit the leaf to make it match.** Its frontmatter hash is the
+record of what was ingested; patching the body without an operation to
+commit it is exactly the forgery that hash exists to prevent. The fix is a
+skill-side one: make `--canonical` actually resolve before the count check.
+Until then the repo is the source of truth and the wiki's copy of
+`r5-notein.mid.txt` must not be run.
