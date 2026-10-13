@@ -1109,6 +1109,11 @@ bash "$ROOT/scripts/ri_build_host.sh" test t52_engine_fx >/dev/null || { echo "F
 # halves: the id resolves AND the rack gate actually bypasses, on the mono
 # and the stereo render path.
 bash "$ROOT/scripts/ri_build_host.sh" test t218_fx_enable >/dev/null || { echo "FAIL: t218_fx_enable (FX rack enable: deliverable + OFF renders neutral, mono and stereo)"; exit 1; }
+# The FX module meters had no wire: the engine measured them and RILiveMeters
+# carried fx_peak[4] to the shell every frame, but nothing read it. t219 pins
+# the portable half -- notably the canvas->engine-unit transpose, which is a
+# real permutation [1,2,0,3] and would light each module's neighbour's meter.
+bash "$ROOT/scripts/ri_build_host.sh" test t219_fx_meters >/dev/null || { echo "FAIL: t219_fx_meters (FX meter levels + canvas->unit transpose)"; exit 1; }
 test -f "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: missing pcf engine ledger"; exit 1; }
 grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks P-15"; exit 1; }
 grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }

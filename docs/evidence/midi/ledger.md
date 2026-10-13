@@ -5198,3 +5198,76 @@ DIST, COMP) is not the meter-unit order (DIST=0, PCF=1, DELAY=2, COMP=3).
 table without `FX_HEAD`, hand-rolling the same two rows 3 px higher
 (`y=42` vs `45`). Cosmetic on its face; recorded because drift of that shape
 is what hid the meter defect's real location.
+## P-FX2: the FX module meters now have a wire (2026-10-13)
+
+Owner: "the leds top right of the panel don't work" — confirmed as the
+**meters**, not the on/off lamps. The defect was not a paint bug and not a
+geometry bug. The engine has always measured these
+(`ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_*], …)` sits inside both the mono
+and the stereo insert guards), `struct RILiveMeters` has always carried
+`float fx_peak[4]` into the shell on every frame, and **nothing ever read
+it**. `ri_sfx_meter_set` had exactly two callers in the whole tree —
+`t67_sectfx` and `app/sectproof.c` — and none in `riapp.c`, while the mixer
+meters next door got exactly the delivery the FX meters lacked
+(`riapp.c:1670`, `:1699`). The level arrived and was discarded.
+
+### The part worth owning in portable code
+
+The risk here is not "does it compile" but "does each module's level land on
+the right box". Canvas order is `C_FX0..C_FX3` = PCF, DELAY, DIST, COMP; the
+engine's meter units are DIST=0, PCF=1, DELAY=2, COMP=3. That is a real
+permutation **[1,2,0,3]** — not an off-by-one — and a transpose written in
+the shell would light each module's *neighbour's* meter and look entirely
+plausible on screen. So the transpose lives in `app/core`
+(`RI_CORE_FX_ORDER`, `ri_core_fx_meter_unit`), where it is host-testable,
+and `riapp.c` consumes it rather than re-deriving it.
+
+`RI_CORE_FX_N`, `RI_CORE_FX_ORDER`, `ri_core_fx_meter_unit()` and
+`ri_core_fx_meters()` are new; the shell loop pushes each level with
+`ri_sfx_meter_set` and repaints only that meter's box
+(`ri_geo_bbox` + `ri_rsection_refresh_box`), the same idiom the mixer and
+master meters already use. Levels are zeroed before the read so a busy or
+skipped frame leaves the meter dark rather than freezing the last one.
+
+### RED -> GREEN
+
+```
+RED   (compile) implicit declaration of ri_core_fx_meter_unit / ri_core_fx_meters
+GREEN PASS fxmeters
+```
+
+The RED is a compile failure because the seam did not exist — the same
+RED-first shape `t52` records for the engine FX APIs.
+
+### The fixture had to be chosen against the mutant, not for convenience
+
+First run of the mutation harness: **5/6**, with `m4-wrong-peak-array`
+SURVIVING. The test engaged DIST, and in that fixture `sec_peak[0]` and
+`fx_peak[0]` were **both 0.32142** — so reading the wrong array produced
+byte-identical output and the test could not see it. Re-engaging on **PCF**
+instead gives `fx_peak[1] = 0.674` against `sec_peak[1] = 0`, which is the
+only place the two arrays can be told apart. A green test that cannot
+distinguish the right answer from the plausible wrong one is decoration.
+
+Two harness bugs were also real and are fixed: `m1`/`m3` were reporting
+themselves BROKEN because their markers demanded the very tokens the mutants
+remove, and `m4` was scored `-99` (BUILD FAILED, `unused variable 'u'`) and
+being counted as a kill. Three of six "kills" in the first run were not
+kills at all.
+
+### Mutation score: 6/6 killed, all behavioural
+
+`tests/mutate_fx_meters.py`: one-cell-transposed, identity-map,
+fallback-returns-zero, wrong-peak-array, order-into-unit-order,
+projection-skipped.
+
+`fallback-returns-zero` is the one worth keeping. Asking about a section with
+no FX meter used to return `RI_ENGINE_FX_COUNT`; returning 0 instead hands
+back **DIST**, which is the silent wrong answer the header rules out.
+
+### Known remaining gap, deliberately not invented
+
+COMP has a second meter, `RI_SFX_COMP_GR` (level reduction). `comp_gr`
+arrives in **dB**, and choosing the dB→0..127 scale is a look decision, not
+a wire. It is read, carried and explicitly discarded with `(void)fgr`
+rather than given an invented mapping. Recorded, not guessed.

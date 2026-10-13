@@ -107,4 +107,31 @@ int ri_core_meters(struct RIAppCore *c, int *lvl303, int *lvl808,
  * "Cannot load song" requester it was mistaken for. */
 int ri_core_audio_failure_is_loud(long err);
 
+/* ---- FX module meters (owner 2026-10-13) -------------------------------
+ *
+ * The engine has always measured the four FX modules: ri_meter_feed into
+ * e->fx_meter[] sits inside both the mono and the stereo insert guards, and
+ * struct RILiveMeters has carried float fx_peak[4] into the app on every
+ * frame. Nothing read it -- ri_sfx_meter_set had no caller in riapp.c at
+ * all -- so the level arrived and was discarded and every FX meter sat dark.
+ *
+ * The part worth owning HERE is the transpose, not the read. Canvas order
+ * is C_FX0..C_FX3 = PCF, DELAY, DIST, COMP. The engine's meter-unit order
+ * is DIST=0, PCF=1, DELAY=2, COMP=3. That is a real permutation [1,2,0,3];
+ * getting it wrong lights each module's neighbour's meter, which looks
+ * entirely plausible on screen. It lives in portable, testable code so the
+ * shell cannot transpose it a second way. */
+#define RI_CORE_FX_N 4u
+/* Canvas order. lvl[i] from ri_core_fx_meters corresponds to this entry. */
+extern const uint32_t RI_CORE_FX_ORDER[RI_CORE_FX_N];
+/* Engine meter unit for an FX section, or RI_ENGINE_FX_COUNT for a section
+ * that has no FX meter -- never a silent fallback to unit 0, which is DIST
+ * and would light the wrong box. */
+uint32_t ri_core_fx_meter_unit(uint32_t section);
+/* Meter snapshot -> the four FX levels in RI_CORE_FX_ORDER, plus the comp
+ * gain reduction in dB (<= 0). Returns 1 when a read landed, 0 when
+ * busy/skipped, same contract as ri_core_meters. Pure computation; the
+ * shell pushes the levels into the panel and repaints each meter box. */
+int ri_core_fx_meters(struct RIAppCore *c, int *lvl, float *comp_gr);
+
 #endif

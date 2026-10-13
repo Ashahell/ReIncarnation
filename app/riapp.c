@@ -1705,6 +1705,46 @@ static void meter_round(ULONG mix_freq) {
                 ri_rsection_refresh(s_canvas[C_MST]);
         }
     }
+    /* FX module meters. The engine has always measured these (ri_meter_feed
+     * inside both insert guards) and RILiveMeters has always carried
+     * fx_peak[4] to the shell -- but nothing read it, so every FX meter sat
+     * dark (owner 2026-10-13: "the leds top right of the panel don't work",
+     * confirmed as the meters). The level ORDER is decided in app/core via
+     * RI_CORE_FX_ORDER and is deliberately NOT re-derived here: canvas order
+     * is PCF, DELAY, DIST, COMP while the engine's meter units are DIST=0,
+     * PCF=1, DELAY=2, COMP=3, so a transpose written here would light each
+     * module's neighbour's meter and look entirely plausible on screen. */
+    {
+        static const int s_fx_canvas[RI_CORE_FX_N] = { C_FX0, C_FX1, C_FX2, C_FX3 };
+        static int s_fxm_shown[RI_CORE_FX_N];
+        int fxlvl[RI_CORE_FX_N];
+        float fgr;
+        uint32_t k;
+        if (ri_core_fx_meters(&s_core, fxlvl, &fgr)) {
+            for (k = 0u; k < RI_CORE_FX_N; k++) {
+                uint32_t sec = RI_CORE_FX_ORDER[k];
+                struct RISectUI *u = s_ui[s_fx_canvas[k]];
+                const struct RIGeoSection *g;
+                int x0, y0, x1, y1;
+                if (fxlvl[k] == s_fxm_shown[k] || !u)
+                    continue;
+                s_fxm_shown[k] = fxlvl[k];
+                ri_sfx_meter_set(&u->u.fx, RI_SFX_METER, fxlvl[k]);
+                /* S3: meters repaint their own box, never the canvas. */
+                g = ri_geo_section(sec);
+                if (g && ri_geo_bbox(g,
+                    (uint16_t)((uint32_t)sec << 8) | RI_SFX_METER,
+                    s_zoom[s_fx_canvas[k]], &x0, &y0, &x1, &y1) == 0)
+                    ri_rsection_refresh_box(s_canvas[s_fx_canvas[k]], x0, y0, x1, y1);
+                else
+                    ri_rsection_refresh(s_canvas[s_fx_canvas[k]]);
+            }
+            (void)fgr; /* COMP's level-reduction meter (RI_SFX_COMP_GR) stays
+                         * unwired: comp_gr arrives in dB and choosing the
+                         * dB->0..127 scale is a look decision, not a wire.
+                         * Recorded rather than invented. */
+        }
+    }
     playing = (s_tr_state != RI_TR_STOPPED);
     {
         /* G6b: the live feed says WHY it changed, and each canvas is

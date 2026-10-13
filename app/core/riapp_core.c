@@ -6,6 +6,7 @@
 
 #include "engine/engine.h"
 #include "gui/livestate.h"
+#include "gui/ctlreg.h"
 
 void ri_core_init(struct RIAppCore *c, uint32_t ppq, float sr, float bpm,
     uint32_t engine) {
@@ -238,4 +239,44 @@ int ri_core_meters(struct RIAppCore *c, int *lvl303, int *lvl808,
  * t158_audio_failure_loud and the header for the hardware evidence. */
 int ri_core_audio_failure_is_loud(long err) {
     return err == RI_AUDIO_ERR_ABSENT ? 0 : 1;
+}
+
+/* ---- FX module meters (owner 2026-10-13) ------------------------------- */
+
+const uint32_t RI_CORE_FX_ORDER[RI_CORE_FX_N] = {
+    RI_SEC_PCF, RI_SEC_DELAY, RI_SEC_DIST, RI_SEC_COMP
+};
+
+uint32_t ri_core_fx_meter_unit(uint32_t section) {
+    switch (section) {
+    case RI_SEC_PCF:   return RI_ENGINE_FX_PCF;
+    case RI_SEC_DELAY: return RI_ENGINE_FX_DELAY;
+    case RI_SEC_DIST:  return RI_ENGINE_FX_DIST;
+    case RI_SEC_COMP:  return RI_ENGINE_FX_COMP;
+    /* Explicit refusal. Falling through to 0 here would return DIST and
+     * light its meter for a section that has none. */
+    default:           return RI_ENGINE_FX_COUNT;
+    }
+}
+
+int ri_core_fx_meters(struct RIAppCore *c, int *lvl, float *comp_gr) {
+    struct RILiveMeters m;
+    uint32_t i;
+    if (!c || !lvl)
+        return 0;
+    /* Zeroed before the read so a busy/skipped frame leaves the panel dark
+     * rather than showing the previous frame's level forever. */
+    for (i = 0u; i < RI_CORE_FX_N; i++)
+        lvl[i] = 0;
+    if (comp_gr)
+        *comp_gr = 0.0f;
+    if (ri_live_meters_read(&c->session, &m) != 0)
+        return 0;
+    for (i = 0u; i < RI_CORE_FX_N; i++) {
+        uint32_t u = ri_core_fx_meter_unit(RI_CORE_FX_ORDER[i]);
+        lvl[i] = ri_live_meter_level(m.fx_peak[u]);
+    }
+    if (comp_gr)
+        *comp_gr = m.comp_gr;
+    return 1;
 }
