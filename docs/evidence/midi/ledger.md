@@ -4544,3 +4544,60 @@ Dell-side action, not a script bug, and is not mine to perform.
 
 **NOT PROVEN, unchanged:** nothing heard on the new audio; no MIDI run on
 any lane since `6174c08`.
+## The rebuild is impossible: three upstream bugs, and the wiki was restored (2026-10-13)
+
+The owner's advice was sound and I had been wrong to call it blocked: stop
+treating the stale wiki as a wall, set the old one aside, and run a fresh
+**single-source** `build`, which re-reads every source and so cannot forge a
+checksum. Only editing leaves by hand would forge one, and that is what we
+refuse to do.
+
+It does not work in practice. Three defects, reproduced on
+`@ctxr/skill-llm-wiki` **v1.4.4**, Node v26.8.1, single-source, default
+sibling layout:
+
+1. **INT-08 refuses its own output.** A build that suspends for Tier 2
+   (exit 7) has already written untracked files into `<source>.wiki`.
+   Resuming then fails with *"is a git repository with uncommitted
+   changes; refusing to operate on a dirty working tree"* — where the only
+   dirt is that output. `--accept-dirty` is offered as the way through.
+
+2. **`--accept-dirty` breaks the resume instead of unblocking it.** With
+   the flag, the second invocation opened a NEW op-id, re-took a snapshot,
+   and re-ran ingest. Without it, INT-08 stops you. There is no setting
+   that both keeps the tree clean and lets the operation continue.
+
+3. **Resume never resumes.** On a *completely clean* tree, same command, no
+   flag: run 1 suspended at `build-20261013-171329-cpqa8s`; run 2 came up
+   as `build-20261013-171707-yb1m27`, re-ran ingest, then refused to
+   clobber the leaf run 1 had written: *"its frontmatter does not reference
+   … refusing to clobber"*. The Tier-2 responses were **never consumed**.
+   The suggested remedy, `rebuild`, skips ingest and cannot reconcile draft
+   frontmatter, so it does not close the loop either.
+
+**Net: this corpus cannot be built at all.** It needs 5 Tier-2 requests
+(4 merge decisions, 1 structure proposal), so it always suspends, always
+restarts from zero, and always then collides with its own draft. That
+matters upstream: issue #48 concludes *"the only working path today is a
+fresh single-source `build`"* — and that path is broken for anything
+needing Tier 2. #48's impact is wider than it reads.
+
+**State: `midi.wiki.prev` was renamed back to `midi.wiki`.** 25 files, the
+private history intact, the r5 leaf still carrying `sha256:662aa058…` and
+the `m4-levi-r6` leaf still `RIAPP`. The stale leaves stay stale.
+
+**That is a logged gap, not a disaster.** The wiki is a *derived index*;
+the record is the evidence files and this ledger. Nothing that was proved
+changes because an index is out of date, and no MIDI work waits on it. The
+pre-fix bytes are at least an honest account of what was ingested, which is
+more than a hand-patched leaf would be.
+
+**NOT done, deliberately: the briefs were not moved into the source
+folder.** Their originals are intact in `docs/` — only the `/tmp`
+staging copy was lost — so the move was available and was skipped because
+it would have bought nothing while the build is impossible, and because
+moving `2026-09-24-improvement-todo.md` would silently break ~10 path
+references in hand-written `llm-wiki/raw/articles/` files. Whether
+`midi.wiki` should exist at all is an open owner decision, and relocating
+project documents into a wiki that may be retired is the wrong direction
+to move in.
