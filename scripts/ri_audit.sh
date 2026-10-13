@@ -497,6 +497,107 @@ print("   camd teardown: close joins the sender before freeing the link, "
       "ticks on the timer request that was actually opened")
 PYCAMD
 
+echo "-- cluster name: one spelling across the evidence tree, and it is the code default --"
+# WHY THIS GATE EXISTS (2026-10-13).
+#
+# `m4-levi-r6-proof.md` told the owner to start RIAPP on cluster `RIAPP` and,
+# in the next block, played notes into `riapp`. The two sides meet at a
+# `strcmp` (platform/aros/midi_camd.c:348) and the value is copied out of
+# RIAPP_MIDI_IN byte for byte (app/riapp.c:2882-86) with no case folding, so
+# those are TWO CLUSTERS. A note sent to the wrong one is silently skipped as
+# unclaimed -- `played=0 refused=0` -- which that proof's own verdict table
+# reads as "nothing is arriving at all: a cluster or a receiver problem". The
+# script would have diagnosed its own bug as a dead wire, and the owner would
+# have listened to a proof that was proving nothing.
+#
+# NOT A SPELLING CHECK. It does not assert the word "riapp". The expected
+# value is RE-DERIVED from the one place the code decides it -- midi_bridge.c
+# `dflt[]` -- and then the evidence tree is required to agree with itself and
+# with that. A gate that grepped for a favourite spelling would prove only
+# that nobody had retyped the favourite; this proves the tree is coherent
+# whether the default reads "riapp" today or something else tomorrow.
+python3 - <<'PYCLUSTER' || exit 1
+import re, sys, glob
+
+mb = open("midi_io/midi_bridge.c", errors="replace").read()
+m = re.search(r'static const char dflt\[\]\s*=\s*"([^"]+)"', mb)
+if not m:
+    print("FAIL: cannot re-derive the default cluster from midi_io/midi_bridge.c")
+    sys.exit(1)
+DEFAULT = m.group(1)
+
+# Only RUNNABLE commands are gated. `.run` comments are ';' (measured on the
+# lane: '#' and 'REM' are executed as commands and print "object not found"),
+# and markdown contributes only what sits inside a fence. Prose quoting a
+# command is documentation, not an instruction to the shell, and gating it
+# would make this a spelling check on prose -- brittle, and it would still
+# not tell us the proof works.
+refs = []
+for path in sorted(glob.glob("docs/evidence/midi/*.run") +
+                   glob.glob("docs/evidence/midi/*.md")):
+    infence = False
+    for n, ln in enumerate(open(path, errors="replace").read().splitlines(), 1):
+        if path.endswith(".run"):
+            code = ln.split(";")[0]
+        else:
+            if ln.strip().startswith("```"):
+                infence = not infence
+                continue
+            code = ln if infence else ""
+        mm = re.search(r'\bRIAPP_MIDI_IN[= ]+([A-Za-z0-9_.]+)', code)
+        if mm:
+            refs.append((path, n, "RIAPP_MIDI_IN", mm.group(1)))
+        mm = re.search(r'(?<![\w])(?:RAM:)?MIDISEND(?:\.V11)?(?:\.EXE)?(?![\w])', code)
+        if mm:
+            rest = code[mm.end():].split()
+            if rest:
+                refs.append((path, n, "MIDISEND cluster", rest[0]))
+
+# FINDING NOTHING IS A FAILURE, NOT A PASS. An extractor that matched nothing
+# would report "uniform" forever -- vacuous truth, and indistinguishable from
+# a gate that was never written.
+if not refs:
+    print("FAIL: no cluster references extracted from docs/evidence/midi -- "
+          "the extraction is broken, not the tree")
+    sys.exit(1)
+
+# AND THE TREE MUST ACTUALLY USE THE CLUSTER IT NAMES. Settings with no
+# invocation left would still report "uniform" -- a gate content to describe
+# a tree in which nothing is ever sent. `lane_proof.run` exists to send.
+if "MIDISEND cluster" not in {k for _, _, k, _ in refs}:
+    print("FAIL: docs/evidence/midi sets RIAPP_MIDI_IN but contains no MIDISEND "
+          "invocation with a cluster argument -- nothing would be sent, and the "
+          "gate would still call the tree uniform")
+    sys.exit(1)
+
+bad = []
+vals = sorted({v for _, _, _, v in refs})
+if len(vals) > 1:
+    for v in vals:
+        where = ["%s:%d" % (p, n) for p, n, k, vv in refs if vv == v]
+        bad.append("cluster %r appears %d time(s): %s" % (v, len(where), ", ".join(where)))
+    bad.append("the evidence tree names %d DIFFERENT clusters. The join that "
+               "carries them is a strcmp with no case folding, so a proof "
+               "that sets RIAPP_MIDI_IN one way and sends the other is "
+               "talking to an empty cluster" % len(vals))
+elif vals[0] != DEFAULT:
+    # Uniform, but not what the code joins when RIAPP_MIDI_IN is absent --
+    # which is the state of every proof that does not set it itself, and the
+    # state of a freshly wiped RAM:/ENVARC: after a reboot.
+    bad.append("the evidence tree uses cluster %r but midi_bridge.c defaults "
+               "to %r. Proofs that never set RIAPP_MIDI_IN (m4-levi-r6.run, "
+               "m5-clockout-cloop.run, m5-clockout-cloop-dell.run) would join "
+               "%r and hear nothing" % (vals[0], DEFAULT, DEFAULT))
+
+if bad:
+    for b in bad:
+        print("FAIL: " + b)
+    sys.exit(1)
+print("   cluster %r: uniform across %d references in %d file(s), and equal "
+      "to midi_bridge.c's default"
+      % (DEFAULT, len(refs), len({p for p, _, _, _ in refs})))
+PYCLUSTER
+
 echo "-- export golden headers (external sox check when present) --"
 if command -v sox >/dev/null 2>&1; then
   for spec in "math-dc.wav:48000:16:96000" "dc-24.wav:48000:24:96000" "dc-441.wav:44100:16:96000" "first-light.wav:48000:16:122571" "first-light-441.wav:44100:16:112612" "dc-aiff.wav:48000:16:96000" "first-light-aiff.wav:48000:16:122571"; do

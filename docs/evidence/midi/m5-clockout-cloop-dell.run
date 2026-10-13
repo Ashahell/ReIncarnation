@@ -18,6 +18,6 @@
 ; background here.
 
 echo M5 clock loopback on the Dell starting
-RAM:MIDISEND RIAPP CLOCKLOOP 60 RAM:CLOOPD.LOG
+RAM:MIDISEND riapp CLOCKLOOP 60 RAM:CLOOPD.LOG
 type RAM:CLOOPD.LOG
 echo M5 clock loopback on the Dell done

@@ -4268,3 +4268,75 @@ commit it is exactly the forgery that hash exists to prevent. The fix is a
 skill-side one: make `--canonical` actually resolve before the count check.
 Until then the repo is the source of truth and the wiki's copy of
 `r5-notein.mid.txt` must not be run.
+## The evidence tree named two clusters, and only one of them existed (2026-10-13)
+
+`lane_proof.run` set `RIAPP_MIDI_IN RIAPP` on line 47 and then sent its two
+note scripts to `riapp` on lines 74 and 77. `m4-levi-r6-proof.md` did the
+same thing two fences apart: line 92 told the owner to start RIAPP on
+`RIAPP`, line 102 played notes into `riapp`.
+
+**Why that is not a typo.** The two sides meet at a `strcmp`
+(`platform/aros/midi_camd.c:348`) and the value is copied out of
+`RIAPP_MIDI_IN` byte for byte (`app/riapp.c:2882-86`, no case folding). So
+`RIAPP` and `riapp` are two different clusters, and every note in those
+scripts was addressed to an empty one. The receiving side skips an unclaimed
+channel *before* the resolver (`app/riapp.c:1051`), which counts it in
+`unclaimed` -- so the symptom is `played=0 refused=0`, and that proof's own
+verdict table reads `played=0 refused=0` as **"nothing is arriving at all: a
+cluster or a receiver problem"**. The script would have diagnosed its own bug
+as a dead wire, and an owner listening to it would have been listening to a
+proof that was proving nothing.
+
+**THE DECISION IS THE DEFAULT, NOT A PREFERENCE.** Normalised to lowercase
+`riapp` because `midi_io/midi_bridge.c:182` defaults to `"riapp"`,
+`tests/unit/t181_midi_bridge.c:105` asserts exactly that, and `m4-riapp-proof.md`
+and the ledger's own command lines already used it. Going the other way would
+have left `m4-levi-r6.run`, `m5-clockout-cloop.run` and
+`m5-clockout-cloop-dell.run` -- which never set `RIAPP_MIDI_IN` and inherit
+the default -- pointing somewhere the code does not go.
+
+8 references across 6 files: `lane_proof.run:47,69`,
+`m4-levi-r6-proof.md:92`, `m4-levi-r6.run:43`, `m5-clockout-cloop.run:26`,
+`m5-clockout-cloop-dell.run:21`, `m5-clockout-riapp-dell.run:36,42`.
+
+`scripts/lane_proof.sh` was NOT touched and needed no edit: it copies
+`lane_proof.run` verbatim to `LANE-PROOF.RUN` (line 182) and never names a
+cluster itself. It is a courier, and a courier cannot be the bug.
+
+### The gate re-derives the expected value; it does not restate it
+
+New gate in `scripts/ri_audit.sh`: every cluster reference in
+`docs/evidence/midi/*.{run,md}` must be byte-identical, and must equal the
+default read back out of `midi_bridge.c` `dflt[]` at run time.
+
+A check that grepped for the word `riapp` would prove only that nobody had
+retyped the favourite -- a spelling-keyed check, which this project's rules
+forbid. Reading `dflt[]` instead means the gate still works if the default is
+renamed tomorrow, and it makes the gate *fail* if someone renames the default
+without moving the evidence (mutant `m5-default-not-derived`, which touches
+no evidence file at all).
+
+Only RUNNABLE commands are gated: `.run` files are stripped at `;` (measured
+on the lane -- `#`, `REM` and `/*` are executed as commands and print
+"object not found"), and markdown contributes only fenced lines. Prose
+quoting a command is documentation, so `ledger.md` keeps the historical
+`MIDISEND RIAPP LISTEN` spelling where it records that LISTEN wedged the
+agent -- rewriting a record of what happened to match what now happens would
+be the falsification this ledger exists to prevent.
+
+Three guards stop it passing vacuously: an empty extraction fails; a tree
+with settings but no `MIDISEND` invocation fails; and the count of
+references is reported, so "uniform across 0" cannot read as success.
+
+**8/8 mutants killed**, scored on the audit's return code
+(`tests/mutate_cluster.py`, 2m34s): both halves of the real defect, an
+unset-inheriting proof, the CLOCKLOOP branch, the anti-spelling default
+rewrite, uniform-but-wrong, settings-with-no-invocation, and the markdown
+fence path. `bash scripts/ri_audit.sh` -> `AUDIT 0/0 PASS`.
+
+**WHAT THIS DOES NOT PROVE.** Nothing has been run on a lane since the fix
+and nothing has been heard: this is a static correction to the scripts and a
+static gate over them. The `MIDISEND RIAPP LISTEN` agent wedge is still
+unexplained -- this fix does not claim to have caused or cured it, because
+the wedge happened on a lane where the casing was self-consistent. The ear
+proof remains the owner's.

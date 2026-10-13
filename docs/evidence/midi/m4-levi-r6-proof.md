@@ -89,7 +89,7 @@ note output is enabled and not one per note.
 From a shell on the Dell, once the files are in `RAM:`:
 
 ```
-setenv RAM:RIAPP_MIDI_IN=RIAPP
+setenv RAM:RIAPP_MIDI_IN=riapp
 setenv RAM:RIAPP_MIDI_DEVOUT=1
 setenv RAM:RIAPP_MIDI_CLKOUT=1
 setenv RAM:RIAPP_MIDI_LATMS=8

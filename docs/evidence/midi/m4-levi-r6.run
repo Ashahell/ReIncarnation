@@ -40,7 +40,7 @@
 ; Scripted, not played: latency and feel are not measured here.
 
 echo M4 + R6 combined proof -- starting the outbound listener
-RAM:MIDISEND RIAPP LISTEN 45 RAM:R6LISTEN.LOG
+RAM:MIDISEND riapp LISTEN 45 RAM:R6LISTEN.LOG
 
 echo the listener exited -- RAM:R6LISTEN.LOG is R6's outbound side
 echo M4 + R6 combined proof done

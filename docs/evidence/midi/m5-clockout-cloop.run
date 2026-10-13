@@ -23,6 +23,6 @@
 ; come from the Dell, and the physical USB-MIDI wire is the owner's ear.
 
 echo M5 clock loopback starting
-RAM:MIDISEND RIAPP CLOCKLOOP 20 RAM:CLOOP.LOG
+RAM:MIDISEND riapp CLOCKLOOP 20 RAM:CLOOP.LOG
 type RAM:CLOOP.LOG
 echo M5 clock loopback done

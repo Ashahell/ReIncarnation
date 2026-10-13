@@ -33,13 +33,13 @@
 ; incoming tempo for steadiness. camd loopback cannot speak to it.
 
 ; 1. Flip clock out on, pointing at the same cluster the listener uses.
-setenv RAM:RIAPP_MIDI_IN=RIAPP
+setenv RAM:RIAPP_MIDI_IN=riapp
 setenv RAM:RIAPP_MIDI_CLKOUT=1
 setenv RAM:RIAPP_MIDI_LATMS=8
 
 ; 2. Listener first, so the early ticks are not lost. It runs 60 s; RIAPP
 ;    is started immediately after and plays its song at 140 BPM.
-RAM:MIDISEND RIAPP LISTEN 60 RAM:LISTEN.RIAPP.LOG
+RAM:MIDISEND riapp LISTEN 60 RAM:LISTEN.RIAPP.LOG
 
 echo the listener exited -- see RAM:LISTEN.RIAPP.LOG
 echo M5 RIAPP clock-out timing proof done
