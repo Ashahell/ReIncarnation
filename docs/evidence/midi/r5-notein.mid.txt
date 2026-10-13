@@ -32,6 +32,22 @@
 #
 # Those three are different faults with the same symptom ("it is quiet"), and
 # the counters separate them without a sound.
+#
+# CORRECTED 2026-10-13, STILL UNHEARD. Sections 2, 3, 6 and 7 sent 90/80
+# and section 4 sent 9A while their comments claimed channels 2 and 10 --
+# those bytes are channel 1 and channel 11, and NOTHING HAS BOUND EITHER.
+# The Dell's own ev-log settles what was bound: `NOTEIN dev 0 ch 2 bound`,
+# `dev 2 ch 10 bound`. So every note meant for the 303 would have been
+# skipped as unclaimed and section 4 would never have moved `refused`,
+# meaning the script as written could not have produced the readings its
+# comments promise.
+#
+# The bytes now match the comments (91/81 for channel 2, 99 for channel 10)
+# per `midi_levi.c:183`. THAT ARITHMETIC IS CHECKED AGAINST CODE, NOT
+# AGAINST SOUND: this script still has no captured run output, and its
+# verdict lines above describe readings that have not been observed. Do not
+# cite `played=` or `refused=` from this file as a result until an ear proof
+# runs it and the counters are read.
 
 # --- 1. THE 808 ON GM CHANNEL 10. Must sound. ---------------------------
 99 24 64   B0 kick
@@ -52,37 +68,45 @@ D 240
 D 300
 
 # --- 2. THE 303A ON CHANNEL 2. Must sound. ------------------------------
-90 24 64   C1, low
+# 91 = note-on, low nibble 1 -> channel 2. 90 would be channel 1, which
+# nothing has bound, so it would land in `unclaimed` and stay silent while
+# looking like a pass to anyone reading only `refused`.
+91 24 64   C1, low
 D 240
-80 24 00
+81 24 00
 D 60
-90 2C 64   C2
+91 2C 64   C2
 D 240
-80 2C 00
+81 2C 00
 D 60
-90 2E 7F   D2, loud
+91 2E 7F   D2, loud
 D 360
-80 2E 00
+81 2E 00
 D 400
 
 # --- 3. A HELD CHORD ON THE 303, so a stuck note would be audible -------
-90 30 64
-90 34 64
-90 37 64
+91 30 64
+91 34 64
+91 37 64
 D 480
-80 30 00
-80 34 00
-80 37 00
+81 30 00
+81 34 00
+81 37 00
 D 400
 
 # --- 4. THE UNMAPPED GM NOTE. MUST BE REFUSED, AND COUNTED. -------------
 # This is the only line here that should make `refused` move. It is on a
 # CLAIMED channel (10) with a note number the deliberately partial GM table
 # does not carry, so the channel is bound but the note resolves to nothing.
-# 91 78 = note 120 on channel 1+10 = channel 11...
-# no: the status byte carries the channel in its low nibble, so 0x9A is
-# channel 10 (1-based), which IS the 808's.
-9A 78 64   GM note 120 on channel 10: not in the partial map -> refused
+#
+# CHANNEL ARITHMETIC, because this line previously had it backwards. The
+# status byte carries the channel in its LOW NIBBLE, 0-BASED, and MIDI
+# names it 1-based -- which is exactly what `midi_levi.c:183` does:
+# `ch = (status & 0x0F) + 1u`. So nibble 9 -> channel 10 -> byte 0x99.
+# 0x9A is nibble 10 -> CHANNEL 11, which is bound to nothing here, so it
+# would be skipped as unclaimed and `refused` would never move -- the exact
+# assertion this section exists to make.
+99 78 64   GM note 120 on channel 10: not in the partial map -> refused
 D 300
 
 # --- 5. THE UNCLAIMED CHANNELS. MUST BE SILENT, AND MUST NOT BE COUNTED -
@@ -107,19 +131,19 @@ D 400
 # A live 303 note that never stops is a hung voice, and this is the idiom
 # every DAW uses to save bytes. If `on` were read from the status alone,
 # every one of these would ring until its envelope finished.
-90 26 64   E1 on
+91 26 64   E1 on
 D 240
-90 26 00   E1 "off" as note-on velocity 0
+91 26 00   E1 "off" as note-on velocity 0
 D 120
-90 26 7F   E1 on again
+91 26 7F   E1 on again
 D 240
-80 26 00   E1 off by status
+81 26 00   E1 off by status
 D 400
 
 # --- 7. A DRUM NOTE ON A MELODIC CHANNEL MUST NOT SOUND A DRUM ----------
 # Channel 2 is the 303. GM kick (36) there is an ordinary low note on a 303,
 # NOT a kick drum. If a drum sounds here, the 808's channel is not exclusive.
-90 24 7F   GM 36 on the melodic channel: a low 303 note, not a kick
+91 24 7F   GM 36 on the melodic channel: a low 303 note, not a kick
 D 300
-80 24 00
+81 24 00
 D 500
