@@ -1,0 +1,32 @@
+; verify-teardown-dell.run — the Dell (ABIv11) half of the control in
+; docs/evidence/midi/verify-teardown.run.
+;
+; IDENTICAL TO THE RIQEMU1 SCRIPT EXCEPT THE BINARY'S NAME. Same env, same
+; song, same clock-out and dev-out, same 1 ms sender task on the same camd
+; link. The binary is RIAPP.M4 because that is what this lane stages and
+; because a name collision with a previous build is how the wrong binary gets
+; run -- the one hazard this lane has already paid for three times.
+;
+; WHY THIS LANE AT ALL, WHEN THE CRASH WAS ALREADY FIXED AND VERIFIED ON
+; riqemu1. Because riqemu1 is ABIv1 and the Dell is ABIv11, and an ABIv11
+; binary takes a Software Failure at startup that no ABIv1 build will ever
+; show. "It works on the private lane" is not evidence about the Dell; it is
+; evidence about a different binary on a different SDK, and this lane is the
+; one the owner listens on.
+;
+; THE PROOF IS NOT THIS SCRIPT EXITING 0. It is: this exits 0 AND the
+; --ui-windows check that follows reports no Software Failure, while the same
+; sequence against b10e2b7's sources produced one at 327 ms on riqemu1. The
+; failure this replaces was `sender_task` calling SendIO every 1 ms on a
+; request built by CreateIORequest, which leaves io_Device NULL.
+
+setenv RIAPP_EVLOG RAM:
+setenv RIAPP_LOG RAM:
+setenv RIAPP_DEMO 0
+setenv RIAPP_MIDI_CLKOUT 1
+setenv RIAPP_MIDI_DEVOUT 1
+setenv RIAPP_MIDI_LATMS 8
+
+Run >NIL: RAM:RIAPP.M4
+Wait 20
+type RAM:RIAPP-EV.LOG

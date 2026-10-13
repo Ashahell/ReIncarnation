@@ -4166,3 +4166,34 @@ location, so it cannot quietly run against a different tree.
 - The riqemu1 repro's own teardown path is still unexercised; the quit is
   driven from the host with `--ui-close`, which is the app's documented
   close-gadget path, and `Break` remains unusable on this shell.
+
+## The Dell, verified with the same fix (2026-10-13)
+
+The lane came up at 06:00:30 -- **33 seconds after my 45 s submit wait
+expired**, which is why it had looked dead all night: the job I assumed had
+timed out was picked up and run the moment the agent dialled in. The bridge
+had logged `agent connected from ('192.168.1.60', 1024)` and `job OK` for the
+very job I had already written off. **"The lane is down" was my timeout, not
+the lane.**
+
+Rebooted and clean: 1366x768, two windows, no RIAPP, `RAM:` wiped.
+
+| | |
+|---|---|
+| binary | ABIv11, `build=b67f0a4` (1175272 B), `MIDISEND.V11` (64248 B) |
+| run | `docs/evidence/midi/verify-teardown-dell.run`, rc=0, 20188 ms |
+| windows after | **3 -- no Software Failure**, panel active at 0,0 1349x680 |
+| still up at | **~3.5 minutes**, clock out and dev out enabled |
+
+Two differences from riqemu1 worth keeping, because they are the lane and not
+the bug: `SKIN installed=4` against riqemu1's 3, and the song resolves through
+two failing candidate paths before `Vk4aros:ReIncarnation/songs/local/
+zombie-nation/zombie-nation.rbng`. Neither is a defect; both would look like
+one in a diff of two ev-logs.
+
+**The fix now holds on both lanes, on both ABIs.** What it does NOT hold for
+is the thing the project actually wants from it: **nothing here has been
+heard.** No MIDI has been confirmed to arrive at a slave, the clock intervals
+have not been measured end to end, and `MIDISEND RIAPP LISTEN` still wedges
+the agent on riqemu1 while RIAPP runs -- so the listening proof is still the
+owner's to run and still not safe for me to script unattended.
