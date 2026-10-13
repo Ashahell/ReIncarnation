@@ -243,10 +243,15 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 17u, 1u, 0xf040cea0u },
     { 17u, 2u, 0xfc368a9bu },
     { 17u, 3u, 0x0376ba78u },
-    { 18u, 0u, 0x9213d8afu },
-    { 18u, 1u, 0x2323e808u },
-    { 18u, 2u, 0x13d688c5u },
-    { 18u, 3u, 0xa3135f19u },
+    /* sec 18 = LEVI, re-pinned 2026-10-13 for the same deliberate change as
+     * t92_draw_hash: BALANCE and arp MODE/OCTAVE/GATE/ENTROPY moved out of the
+     * dim DKNOB art table into RI_GEO_LEVI and now draw from their real
+     * value. Only the Levi section moved; every other raster pin is
+     * untouched at all four zooms. */
+    { 18u, 0u, 0xdce80630u },
+    { 18u, 1u, 0xf44a79c5u },
+    { 18u, 2u, 0xa6636335u },
+    { 18u, 3u, 0xb826f98du },
     { 19u, 0u, 0xc663c06au },
     { 19u, 1u, 0x854d5ab5u },
     { 19u, 2u, 0xecbfc991u },

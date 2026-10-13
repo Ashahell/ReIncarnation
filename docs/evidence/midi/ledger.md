@@ -5271,3 +5271,86 @@ COMP has a second meter, `RI_SFX_COMP_GR` (level reduction). `comp_gr`
 arrives in **dB**, and choosing the dB→0..127 scale is a look decision, not
 a wire. It is read, carried and explicitly discarded with `(void)fgr`
 rather than given an invented mapping. Recorded, not guessed.
+## P-LEV1: five Levi knobs promoted from dim art to live controls (2026-10-13)
+
+Owner: "the left column's MASTER and BALANCE knobs (BALANCE is the existing
+Performance Balance control); the arpeggiator's MODE, OCTAVE, GATE and
+ENTROPY knobs (existing controls 186, 184, 185 and 189). All six are drawn in
+the same 'dim, value 0, not clickable' table as the Main Systems knob."
+
+**The engine was never the problem.** All five already carried `bind=LEVI`
+with real `RI_CTL_LEVI_*` engine ids — the RED proves it: every
+registry/bind assertion passed while all five geometry assertions failed.
+What was missing was a `panelgeo.c` row to hit-test them, and a draw that
+read the real value instead of a literal `0.0f`. `panelgeo.c` says so itself:
+*"Art-only (dim) hardware controls live in art_levi.c, not here."* That split
+existed because they had no controls. Five now do, so they moved.
+
+Drawn by the existing `ri_art_levi_item` KNOB branch, which reads
+`ri_sui_value()` and paints `C_LEVI_SILVER` — so the animation came for free
+once geometry existed. The five were removed from art_levi.c's `DKNOB` table
+so they are not also drawn dim on top.
+
+### MASTER is deliberately still inert
+
+It has **no engine control anywhere in the tree**. The "MASTER CONTROL"
+ribbon at idx 69..76 is a different and also-unbuilt thing; the left-column
+MASTER/VOL has no target at all. Laying it out would produce a knob that
+animates and drives nothing — a worse failure than one that is visibly
+inert, and the same reasoning the owner applied to the Patch knob.
+`t220` asserts MASTER stays unlaid-out, so a future "fix" cannot quietly
+wire it to nothing. **What MASTER drives is an open owner question.**
+
+### RED -> GREEN
+
+```
+RED   10 failures, all "has a geometry box" / "present in items"
+      (registry + bind assertions PASSED, confirming the engine side)
+GREEN PASS leviknobs
+```
+
+### Mutation score: 6/6 killed
+
+`tests/mutate_levi_knobs.py`: one-row-deleted, master-given-a-box,
+wrong-control-index, demoted-to-decoration, arp-entropy-unbound,
+promotion-reverted.
+
+`master-given-a-box` and `wrong-control-index` are the two worth keeping.
+The first is the most tempting wrong fix of all — MASTER looks like it
+belongs with the others. The second is the dangerous one: every knob stays
+clickable, animates, and sends something, just not the parameter its legend
+claims.
+
+**The marker bug bit a third time.** `m3` and `m5` were reported BROKEN in
+the first run because their markers required the very tokens their mutants
+remove (`SL(225)` and `RI_CTL_LEVI_ARPENTROPY`). Same class as P-FX1's
+`m1` and P-FX2's `m1`/`m3`. The rule now written into every harness header:
+*a mutant's marker must show the edit was surgical; it can never require the
+token the mutant deliberately removes.*
+
+### Three gates caught the drawing change, and all three were right
+
+Moving five knobs from dim art to live geometry changed pixels, and each gate
+caught a different honest consequence. None was suppressed; each was checked
+before its pins moved.
+
+1. **`t92_draw_hash`** — exactly four pins moved, all `sec=18`, and
+   `RI_SEC_LEVI == 18`. Every other section's hash was untouched at all four
+   zooms, which is what confirmed the delta was confined to the Levi panel.
+2. **`t93_raster_goldens`** — same shape, same confinement.
+3. **`t112_partial_redraw`** — `nwide` went 35 -> 40, over its `<= 38` bound.
+   Worth stating plainly because it looks like a performance regression and
+   is not: `ri_geo_wide()` already classified **every page-reachable Levi
+   control** as wide, because those controls repaint the LCD page and the
+   encoder rings. BALANCE (Performance) and the four arp knobs are
+   page-reachable, so they were wide all along — they simply had no geometry
+   to surface them. Five page-reachable controls going live is exactly five
+   more wide controls, not five new kinds of wide repaint.
+
+### Known gap, stated not hidden
+
+A mutant that put the five knobs **back** into art_levi.c's dim `DKNOB`
+table while keeping their geometry would double-draw them and **survive**
+this harness. `t220` pins the geometry and the panel value; it cannot see
+the art table. That visual overlap is covered by the lane, not by a host
+test.

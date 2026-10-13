@@ -116,10 +116,17 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 17u, 1u, 0x51f13f5du },
     { 17u, 2u, 0x27e69141u },
     { 17u, 3u, 0x045e0188u },
-    { 18u, 0u, 0x328fa101u },
-    { 18u, 1u, 0xe0d9ea3fu },
-    { 18u, 2u, 0xb9d8e954u },
-    { 18u, 3u, 0x09645039u },
+    /* sec 18 = LEVI, re-pinned 2026-10-13: BALANCE and the four arpeggiator
+     * knobs (MODE/OCTAVE/GATE/ENTROPY) moved out of art_levi.c's dim DKNOB
+     * table into RI_GEO_LEVI, so they are drawn from ri_sui_value() by
+     * ri_art_levi_item -- bright C_LEVI_SILVER at their real value instead of
+     * a hardcoded 0.0f. That is a deliberate drawing change and it is the
+     * only one: every other section's pin is untouched at all four zooms,
+     * which is what confirms the delta is confined to the Levi panel. */
+    { 18u, 0u, 0x1474f0d4u },
+    { 18u, 1u, 0xedee8250u },
+    { 18u, 2u, 0xa30ce7e2u },
+    { 18u, 3u, 0xfa120841u },
     { 19u, 0u, 0x7323b7e8u },
     { 19u, 1u, 0xaeb0bb65u },
     { 19u, 2u, 0x07c41ed9u },

@@ -1114,6 +1114,12 @@ bash "$ROOT/scripts/ri_build_host.sh" test t218_fx_enable >/dev/null || { echo "
 # the portable half -- notably the canvas->engine-unit transpose, which is a
 # real permutation [1,2,0,3] and would light each module's neighbour's meter.
 bash "$ROOT/scripts/ri_build_host.sh" test t219_fx_meters >/dev/null || { echo "FAIL: t219_fx_meters (FX meter levels + canvas->unit transpose)"; exit 1; }
+# Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
+# hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
+# engine ids were always there. t220 pins the hit box, the round-trip at every
+# zoom, the panel value actually moving, and that MASTER stays unlaid-out
+# because it has no engine target at all.
+bash "$ROOT/scripts/ri_build_host.sh" test t220_levi_knobs >/dev/null || { echo "FAIL: t220_levi_knobs (promoted Levi knobs: geometry + live value; MASTER stays inert)"; exit 1; }
 test -f "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: missing pcf engine ledger"; exit 1; }
 grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks P-15"; exit 1; }
 grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }

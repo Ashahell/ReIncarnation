@@ -180,6 +180,19 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
      * yQ = (y-48)*0.6245; keybed band (y 350..555) is laid out in Q.
      * Black keys precede white keys: first hit wins. Art-only (dim)
      * hardware controls live in art_levi.c, not here. */
+    /* Promoted out of art_levi.c's dim DKNOB table (owner 2026-10-13):
+     * these five were drawn dim at a hardcoded 0.0f with no hit box, so
+     * they neither animated nor responded. Every one already carried
+     * bind=LEVI with a real engine id — the engine side was never the
+     * problem, only the missing geometry. Drawn from ri_sui_value() by
+     * ri_art_levi_item, which is what makes them move. MASTER is NOT here:
+     * it has no engine control at all, and a live-looking knob that drives
+     * nothing is worse than a visibly inert one. */
+    { SL(225), RI_GEO_KNOB, 0, 126, 136, 30, 38 }, /* BALANCE -> RI_CTL_LEVI_PFBAL */
+    { SL(186), RI_GEO_KNOB, 0, 274, 164, 30, 38 }, /* arp MODE */
+    { SL(184), RI_GEO_KNOB, 0, 332, 164, 30, 38 }, /* arp OCTAVE (Oct Range) */
+    { SL(185), RI_GEO_KNOB, 0, 390, 164, 30, 38 }, /* arp GATE */
+    { SL(189), RI_GEO_KNOB, 0, 447, 164, 30, 38 }, /* arp ENTROPY */
     { SL(78), RI_GEO_KNOB, 0, 1054, 64, 30, 38 },  /* OSC ENV LEVEL & BIAS: ENV LEVEL */
     { SL(79), RI_GEO_KNOB, 0, 1108, 64, 30, 38 },  /* ATTACK bias */
     { SL(80), RI_GEO_KNOB, 0, 1164, 64, 30, 38 },  /* DECAY bias */

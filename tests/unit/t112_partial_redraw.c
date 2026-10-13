@@ -133,11 +133,16 @@ int main(void) {
         }
     }
     RI_ASSERT(ntested >= 100u, "tested %u controls", ntested);
-    /* 35 today: selectors + Loop Start, plus the Levi page UI (fidelity P1,
+    /* 40 today: selectors + Loop Start, plus the Levi page UI (fidelity P1,
      * 2026-09-30): 8 master-control encoders, the algorithm encoder and
      * the page-linked panel knobs repaint the LCD page and encoder rings.
-     * Trips on silent widening. */
-    RI_ASSERT(nwide <= 38u && nwide >= 7u, "wide controls %u", nwide);
+     * Trips on silent widening. The 2026-10-13 move was 35 -> 40: BALANCE
+     * (Performance) and arp MODE/OCTAVE/GATE/ENTROPY became hit-testable,
+     * and ri_geo_wide() already classified every page-reachable Levi control
+     * as wide, so they were wide all along — they just had no geometry to
+     * surface them. Five page-reachable controls going live is exactly five
+     * more wide controls, not five new kinds of wide repaint. */
+    RI_ASSERT(nwide <= 42u && nwide >= 7u, "wide controls %u", nwide);
     for (sec = 0u; sec < RI_SEC_COUNT; sec++) {
         const struct RIGeoSection *g =
             ri_geo_section(sec == RI_SEC_SYNTH2 ? RI_SEC_SYNTH1 : sec);

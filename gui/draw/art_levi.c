@@ -42,12 +42,12 @@ static const struct LeviBox BOX[] = {
     { 1102, 117, 1744, 296, 1423, "MODULE SELECT" },
 };
 static const struct LeviKnob DKNOB[] = {
+    /* MASTER stays here: it has no engine control anywhere in the tree, so
+     * a live-looking knob would drive nothing (owner 2026-10-13). The five
+     * that DO have controls (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) moved
+     * to RI_GEO_LEVI, which hit-tests them and draws them from their real
+     * value instead of this table's hardcoded 0.0f. */
     { 62, 137, 0 },
-    { 126, 136, 1 },
-    { 274, 164, 0 },
-    { 332, 164, 0 },
-    { 390, 164, 0 },
-    { 447, 164, 0 },
     { 1463, 64, 4 },       /* ENV 1 / ENV 2: live knobs since P5, legend only here */
     { 1706, 64, 4 },
     { 606, 134, 3 },
