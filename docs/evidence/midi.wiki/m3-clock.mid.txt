@@ -1,0 +1,171 @@
+---
+id: m3-clock-mid
+type: primary
+depth_role: leaf
+focus: "M3 transport proof (realtime). FA starts on the next F8; steady"
+parents:
+  - index.md
+covers:
+  - "90 46 64   Stop (ensure stopped) D 200 FA F8 D 21 F8"
+tags: []
+source:
+  origin: file
+  path: m3-clock.mid.txt
+  hash: "sha256:7f743e22175313d9a34f78faf045e7eded7fcf55cfbd1b7cd2db182ad4140d4d"
+---
+
+# M3 transport proof (realtime). FA starts on the next F8; steady
+# 21 ms clocks (~119 BPM wall); 3 s silence trips dropout; then the
+# Live Song-mode sequence: STOP, SPP 10, CONTINUE, clocks, STOP.
+90 46 64   Stop (ensure stopped)
+D 200
+FA
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+D 3000
+FC
+F2 0A 00   SPP 10 while stopped
+FB
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+F8
+D 21
+FC
