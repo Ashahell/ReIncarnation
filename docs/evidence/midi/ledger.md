@@ -4630,3 +4630,66 @@ remedy and the briefs can be folded in at that point in one operation. It
 was never a question of whether the honest path was correct, only whether
 the tool could execute it — and on v1.4.4, for anything needing Tier 2, it
 cannot.
+## The Dell came back, and `--exec` was never lane-broken (2026-10-13)
+
+The Dell reconnected on its own after the reboots — `192.168.1.60 -> :9292`
+established, agent `e6320`, session 1, screen `1366x768`, 2 windows, no
+RIAPP. Reconnecting it was a Dell-side action and stayed the owner's; so was
+noticing it had happened.
+
+**Two jobs I had recorded as dead were not.** `echo hello` and the
+`--ui-windows` probe had both returned TIMEOUT from the submit while the
+lane was offline. They executed anyway, more than two hours later, the
+moment the agent came back — `rc=0` in 50 ms and 42 ms respectively. The
+spool drains itself. **A job that timed out is not a job that failed**; it
+may still be sitting in the box, and a lane that looks wedged may simply
+have work it has not picked up yet. That is worth checking before
+diagnosing anything as broken.
+
+**Correction to my own earlier entry.** I recorded two distinct phenomena —
+(a) a connected agent whose `--exec` returned `-1`, and (b) a disconnected
+agent that answers nothing. This is a third reading: after a clean
+reconnect, `--exec` returns **`rc=0`**. The `-1` was a *degraded agent
+state*, not a lane property, and it cleared itself. The exec path on the
+Dell is fine. What had looked like a separate live defect now has a much
+simpler explanation, and it should not be re-raised as one.
+
+**A curiosity, flagged not chased:** `echo hello` returns `rc=0` while
+printing `echo: file is not executable` — the shell resolves `echo` as a
+file to execute rather than as a command. Checked before staging rather
+than discovered during a run: **`lane_proof.run` uses zero `echo`**, so the
+staged proof is unaffected by it. Anyone adding commands to that script
+should know the builtin is not trustworthy here.
+
+## Staged to the Dell at `f89bb40`, not run (2026-10-13)
+
+`bash scripts/lane_proof.sh --stage-only` — the default lane, ABI v11:
+
+| file | bytes | sha256 (first 16) |
+|---|---|---|
+| `RIAPP.M4` | 1175272 | `332eef2d135c0cb465fe` |
+| `MIDISEND.V11` | 64248 | `965ed1fca2311d6f3229` |
+| `LANE-PROOF.RUN` | 3845 | `c82d396d7cdc0fb6` |
+| `M4-LEVI.MID.TXT` | 2465 | — |
+| `R5-NOTEIN.MID.TXT` | 5917 | `c151d409348047d8` |
+
+The wrong-binary guard reported **both binaries v11 and r12-clean**, so the
+ABIv11 lane cannot receive an ABIv1 binary. Verified on the guest by
+listing `RAM: all` rather than trusting the PUT log: all five present, at
+exactly the sizes written, `sha_ok=True` on each transfer.
+
+**The stale-wiki gap, live:** `R5-NOTEIN.MID.TXT` staged on the Dell as
+`c151d409…` — the **current** source, carrying the channel-byte fix from
+`4e9a103`. The `r5-notein` leaf in `midi.wiki` still records
+`sha256:662aa058…`. So the lane has the corrected bytes and the index does
+not. That is the recorded lag showing up as a real difference between what
+is deployed and what is documented, and it is the whole reason the wiki is
+not to be trusted as the record.
+
+**NOT RUN.** `--stage-only` means nothing was executed on the Dell: no
+RIAPP start, no MIDISEND, no note sent. The audio fix (`6174c08`) is
+launch-time config on riqemu1 and does not apply to this lane at all. **No
+ear proof has happened here either** — the Dell is the lane where the first
+confirmed sound was heard (`d795a33`, build `b67f0a4`), and it has never
+heard the r5 channel-byte fix or the lowercase cluster fix. Queueing that
+run is the owner's, not mine.
