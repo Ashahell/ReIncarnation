@@ -218,6 +218,12 @@ struct RIEngine {
     uint32_t dcap;
     struct RiFXDelay delay;
     uint8_t dret_pan; /* stereo return pan */
+    /* Rack enable, indexed RI_ENGINE_FX_*. ANDed with route ownership in the
+     * render guards: an insert still has to be OWNED by a strip to run, and
+     * now the whole rack also has to be LIVE. Default 1 (live) so the
+     * routing behaviour that shipped is unchanged unless the operator
+     * switches a module off. Set via RI_FXID_*_ENABLE. */
+    uint8_t fx_on[RI_ENGINE_FX_COUNT];
     /* Live taps (C2): post-insert section peaks + per-FX-unit peaks.
      * Fed during render only; never affect audio. Decay follows the
      * P-16 20 dB/s ballistics at the init rate (48 kHz default). */

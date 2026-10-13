@@ -166,7 +166,10 @@ int main(void) {
             RI_ASSERT(d->voice < RI_909_NVOICES, "909 voice %u", d->voice);
             break;
         case RI_BIND_FX:
-            RI_ASSERT(d->engine_id >= 0x0A00u && d->engine_id <= 0x0A0Fu, "fx id %04x", d->engine_id);
+            /* 0x0A00..0x0F knobs; 0x0A10 is REVERB_DECAY (not canvas-bound);
+             * 0x0A11..14 are the rack enables (owner 2026-10-13). */
+            RI_ASSERT(d->engine_id >= 0x0A00u && d->engine_id <= 0x0A14u,
+                "fx id %04x", d->engine_id);
             break;
         case RI_BIND_LEVI:
             /* 0x0E27..2A bias knobs (P2), 0x0E2B..37 algo modes/morph/solo/mute (P3), 0x0E38..44 filters + VCA (P4),

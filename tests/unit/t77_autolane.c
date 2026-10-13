@@ -188,10 +188,11 @@ int main(void) {
     {RI_SEC_909,8}, /* Snappy [NONE 0] */
     {RI_SEC_909,27}, /* Flam [NONE 0] */
     {RI_SEC_909,28}, /* Instrument Selection [NONE 0] */
-    {RI_SEC_PCF,0}, /* On/Off [NONE 0] */
-    {RI_SEC_DELAY,0}, /* On/Off [NONE 0] */
-    {RI_SEC_DIST,0}, /* On/Off [NONE 0] */
-    {RI_SEC_COMP,0}, /* On/Off [NONE 0] */
+    /* PCF/DELAY/DIST/COMP On/Off USED TO sit here as unrecordable: they were
+     * bind=NONE with no engine enable id, so they had nowhere to go (owner
+     * 2026-10-13). They now carry RI_FXID_*_ENABLE and are recorded, so they
+     * are gone from this census — a row is only listed here when it is
+     * automatable AND has no lane key. */
     {RI_SEC_PAT_SYNTH1,0}, /* Section Off [NONE 0] */
     {RI_SEC_PAT_SYNTH1,1}, /* Bank [NONE 0] */
     {RI_SEC_PAT_SYNTH1,2}, /* Pattern [NONE 0] */
@@ -212,7 +213,7 @@ int main(void) {
             uint32_t nc = ri_ctlreg_count();
             uint32_t nq = (uint32_t)(sizeof UNREC / sizeof UNREC[0]);
             uint32_t k, q, mapped = 0u, listed = 0u;
-            RI_ASSERT(nq == 31u, "unrecordable census size %u", nq);
+            RI_ASSERT(nq == 27u, "unrecordable census size %u (-4 FX On/Off, now recorded)", nq);
             for (k = 0u; k < nc; k++) {
                 const struct RICtlDef *d = ri_ctlreg_at(k);
                 int found;
@@ -235,8 +236,8 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 285u, "mapped count %u (+4 bias P2, +13 algo P3, +13 filters P4, +3 env P5a, +16 macros P5b, +3 voice P6a, +13 voice P6b, +13 stereo P6c, +8 delay P7a, +9 reverb P7b, +12 modfx P7c, +13 arp P8b, +15 seq P8c, +3 ribbon P8d, +6 perf amounts P9b + 5 zones P9c + 2 performance buttons P9d; the LFO step gate is UI-only)", mapped);
-            RI_ASSERT(listed == 31u, "listed count %u", listed);
+            RI_ASSERT(mapped == 289u, "mapped count %u (+4 FX rack enable 2026-10-13; (+4 bias P2, +13 algo P3, +13 filters P4, +3 env P5a, +16 macros P5b, +3 voice P6a, +13 voice P6b, +13 stereo P6c, +8 delay P7a, +9 reverb P7b, +12 modfx P7c, +13 arp P8b, +15 seq P8c, +3 ribbon P8d, +6 perf amounts P9b + 5 zones P9c + 2 performance buttons P9d; the LFO step gate is UI-only)", mapped);
+            RI_ASSERT(listed == 27u, "listed count %u (-4 FX On/Off moved to mapped)", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
                 for (key = 0u; key < 0x10000u; key++) {
@@ -277,7 +278,7 @@ int main(void) {
                         owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 1150u, "allow-list size %u (272 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
+                RI_ASSERT(nallow == 1154u, "allow-list size %u (+4 FX rack enable 2026-10-13; (272 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
                     "5 x 15 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys + 13 env-bpm P8a + 13 arp P8b + 15 seq P8c + 3 ribbon P8d + 15 lfo-step P8e + 6 perf amounts P9b + 5 zones P9c + 2 performance buttons P9d + 5 live note/performance M4c/M4d)", nallow);
             }
         }

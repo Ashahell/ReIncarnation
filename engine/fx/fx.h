@@ -47,6 +47,19 @@
 #define RI_FXID_PCF_MODE 0x0A09u /* 0..2 low/band/high */
 #define RI_FXID_PCF_PATTERN 0x0A0Au /* 0..53 stored state */
 #define RI_FXID_PCF_DECAY 0x0A0Du /* 0..127 envelope decay (§12.8c1) */
+/* Rack enable (owner ruling 2026-10-13). The app-level FX canvases'
+ * On/Off switch gates the WHOLE rack, ANDed with route ownership — it does
+ * not assign an insert, because the routing matrix is radio-exclusive per
+ * strip (one owner per unit; MASTER may own COMP only), so "turn Dist on"
+ * cannot be expressed as an assignment. Routing decides WHICH strip an
+ * insert serves; this decides whether the rack is live at all.
+ * 0 = rack bypassed, nonzero = live. Defaults to live so nothing audible
+ * before this ruling changes behaviour.
+ * Indexed for storage by RI_ENGINE_FX_* (engine.h), not by these ids. */
+#define RI_FXID_PCF_ENABLE 0x0A11u
+#define RI_FXID_DELAY_ENABLE 0x0A12u
+#define RI_FXID_DIST_ENABLE 0x0A13u
+#define RI_FXID_COMP_ENABLE 0x0A14u
 #define RI_FXCOMP_RATIO 4.0f
 #define RI_FXCOMP_ATTACK_S 0.010f
 #define RI_FXCOMP_RELEASE_S 0.100f

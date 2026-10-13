@@ -27,6 +27,12 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     RI_FXID_PCF_AMT, RI_FXID_PCF_MODE, RI_FXID_PCF_PATTERN,
     RI_FXID_DELAY_STEPS, RI_FXID_DELAY_TRIPLET, RI_FXID_PCF_DECAY,
     RI_FXID_COMP_RATIO, RI_FXID_DELAY_RETPAN,
+    /* Rack enable 0x0A11..14 (owner 2026-10-13): the app-level FX On/Off.
+     * Listed because each now HAS end-to-end delivery — before this the
+     * switch was bind=NONE and reached nothing, which is why it is here and
+     * not already. 0x0A10 is REVERB_DECAY and is not FX-canvas-bound. */
+    RI_FXID_PCF_ENABLE, RI_FXID_DELAY_ENABLE, RI_FXID_DIST_ENABLE,
+    RI_FXID_COMP_ENABLE,
     /* Task 5c: channel strips 0x0Bsp (level, pan, delay send, dist/pcf/comp
      * inserts per 303A/303B/808/909; master comp + S4b master level).
      * Master level is song data per owner 2026-09-29 (deviation from the

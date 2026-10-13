@@ -67,6 +67,11 @@ void ri_engine_init(struct RIEngine *e) {
         e->scratch[i] = e->scratchR[i] = 0.0f;
     /* Routing neutral: no owners, sends 0, pans centre, delay dry. */
     ri_route_init(&e->route);
+    /* Rack live by default: the app-level On/Off can silence a module but
+     * never resurrects one, and nothing that was audible before stops being
+     * audible just by loading a song. */
+    for (i = 0; i < RI_ENGINE_FX_COUNT; i++)
+        e->fx_on[i] = 1u;
     ri_fxdist_init(&e->dist);
     pcf_init(&e->pcf);
     e->pcf_base = 64;
@@ -160,17 +165,17 @@ static void engine_section_stereo(struct RIEngine *e, uint32_t section,
     uint32_t i;
     double gl, gr, t, sg;
     uint32_t mask = ri_route_section_mask(&e->route, section);
-    if (mask & (1u << RI_ROUTE_DIST)) {
+    if ((mask & (1u << RI_ROUTE_DIST)) && e->fx_on[RI_ENGINE_FX_DIST]) {
         ri_fxdist_render(&e->dist, e->scratch, e->scratch, cc);
         ri_fxdist_render(&e->dist, e->scratchR, e->scratchR, cc);
         ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_DIST], e->scratch, cc);
     }
-    if (mask & (1u << RI_ROUTE_PCF)) {
+    if ((mask & (1u << RI_ROUTE_PCF)) && e->fx_on[RI_ENGINE_FX_PCF]) {
         pcf_render(&e->pcf, e->scratch, e->scratch, cc, sr);
         pcf_render(&e->pcf, e->scratchR, e->scratchR, cc, sr);
         ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_PCF], e->scratch, cc);
     }
-    if (mask & (1u << RI_ROUTE_COMP)) {
+    if ((mask & (1u << RI_ROUTE_COMP)) && e->fx_on[RI_ENGINE_FX_COMP]) {
         ri_fxcomp_render(&e->comp, e->scratch, e->scratch, cc);
         ri_fxcomp_render(&e->comp, e->scratchR, e->scratchR, cc);
         ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_COMP], e->scratch, cc);
@@ -241,15 +246,15 @@ static void engine_section(struct RIEngine *e, uint32_t section,
     uint32_t i, mask;
     double gl, gr, t, sg;
     mask = ri_route_section_mask(&e->route, section);
-    if (mask & (1u << RI_ROUTE_DIST)) {
+    if ((mask & (1u << RI_ROUTE_DIST)) && e->fx_on[RI_ENGINE_FX_DIST]) {
         ri_fxdist_render(&e->dist, e->scratch, e->scratch, cc);
         ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_DIST], e->scratch, cc);
     }
-    if (mask & (1u << RI_ROUTE_PCF)) {
+    if ((mask & (1u << RI_ROUTE_PCF)) && e->fx_on[RI_ENGINE_FX_PCF]) {
         pcf_render(&e->pcf, e->scratch, e->scratch, cc, sr);
         ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_PCF], e->scratch, cc);
     }
-    if (mask & (1u << RI_ROUTE_COMP)) {
+    if ((mask & (1u << RI_ROUTE_COMP)) && e->fx_on[RI_ENGINE_FX_COMP]) {
         ri_fxcomp_render(&e->comp, e->scratch, e->scratch, cc);
         ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_COMP], e->scratch, cc);
     }
@@ -312,6 +317,22 @@ void ri_engine_fx_set(struct RIEngine *e, uint32_t id, uint8_t value) {
     if (!e)
         return;
     switch (id) {
+    /* Rack enable. Fail-soft like every other branch here (value != 0 is
+     * live), and it never touches route ownership: a module can be switched
+     * off here and still be assigned, so switching it back on restores
+     * exactly the routing that was there before. */
+    case RI_FXID_PCF_ENABLE:
+        e->fx_on[RI_ENGINE_FX_PCF] = value ? 1u : 0u;
+        break;
+    case RI_FXID_DELAY_ENABLE:
+        e->fx_on[RI_ENGINE_FX_DELAY] = value ? 1u : 0u;
+        break;
+    case RI_FXID_DIST_ENABLE:
+        e->fx_on[RI_ENGINE_FX_DIST] = value ? 1u : 0u;
+        break;
+    case RI_FXID_COMP_ENABLE:
+        e->fx_on[RI_ENGINE_FX_COMP] = value ? 1u : 0u;
+        break;
     case RI_FXID_DIST_DRIVE:
         e->dist.drive = value > 127u ? 127u : value;
         break;
@@ -888,7 +909,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             RI_ESTAGE_T(e, RI_ENGINE_ST_DELAY, ts);
             /* Shared delay send: one line over the summed post-insert
              * sends; stereo return with its own pan (NULL = dry). */
-            if (e->dline) {
+            if (e->dline && e->fx_on[RI_ENGINE_FX_DELAY]) {
                 ri_fxdelay_resync(&e->delay, e->tempo, sr);
                 ri_fxdelay_render(&e->delay, sendbus, retbus, cc);
                 ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_DELAY], retbus, cc);
@@ -918,7 +939,7 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             RI_ESTAGE_T(e, RI_ENGINE_ST_COMP, ts);
             /* Master comp: stereo-linked (one detector, both buses). */
             if (ri_route_owner(&e->route, RI_ROUTE_COMP) ==
-                RI_ROUTE_MASTER) {
+                RI_ROUTE_MASTER && e->fx_on[RI_ENGINE_FX_COMP]) {
                 float tl[RI_ENGINE_BLOCK], tr[RI_ENGINE_BLOCK];
                 ri_fxcomp_set_rate(&e->comp, sr);
                 for (i = 0; i < cc; i++) {

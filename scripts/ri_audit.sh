@@ -1104,6 +1104,11 @@ bash "$ROOT/scripts/ri_build_host.sh" test t48_pcf_envelope >/dev/null || { echo
 bash "$ROOT/scripts/ri_build_host.sh" test t49_pcf_patterns >/dev/null || { echo "FAIL: t49_pcf_patterns (PCF patterns)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t51_route >/dev/null || { echo "FAIL: t51_route (insert radio exclusivity; master is RI_ROUTE_MASTER, section 4 is Levi)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t52_engine_fx >/dev/null || { echo "FAIL: t52_engine_fx (inserts + pan + send/stereo-return; a section's FX leaves the other bit-identical)"; exit 1; }
+# The FX canvases' On/Off was bind=NONE with no engine enable id, so the
+# switch could never leave the panel (owner 2026-10-13). t218 pins both
+# halves: the id resolves AND the rack gate actually bypasses, on the mono
+# and the stereo render path.
+bash "$ROOT/scripts/ri_build_host.sh" test t218_fx_enable >/dev/null || { echo "FAIL: t218_fx_enable (FX rack enable: deliverable + OFF renders neutral, mono and stereo)"; exit 1; }
 test -f "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: missing pcf engine ledger"; exit 1; }
 grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks P-15"; exit 1; }
 grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }

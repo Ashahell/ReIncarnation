@@ -4953,3 +4953,87 @@ On/Off (decorative). **Unexplained: OSC ENV Level & Bias audibility, and
 the two filter panels.** Those need a live measurement — turn the named
 control, read the event log — not more source reading. That is a
 coordinated lane action, so it is the owner's call and was not queued.
+## P-FX1: the FX canvases' On/Off is a real switch (2026-10-13)
+
+First of the three "never built" items, and the smallest. Owner ruling: the
+FX On/Off is a **rack gate ANDed with route ownership**, defaulting to
+**live**. Both chosen over my alternatives, and both were forced by what
+the code already is rather than by taste:
+
+- `ri_route_assign` is **radio-exclusive per strip** (one owner per unit)
+  and rejects `RI_ROUTE_MASTER` for anything but COMP. So "turn Dist on"
+  cannot be an assignment — it has no owning strip to name. A rack gate is
+  the orthogonal dimension: routing still decides *which strip* an insert
+  serves, the gate decides whether the rack is live at all.
+- Defaulting **live** means the switch can only take sound away, and
+  nothing audible before this ruling changes when a song is merely loaded.
+
+### RED, then GREEN
+
+`tests/unit/t218_fx_enable.c`, added to the audit gate beside t52.
+
+```
+RED   FAIL 4  — PCF/Delay/Dist/Comp: On/Off must have a delivery key
+               (auto_id==0 means the switch can never leave the panel)
+GREEN PASS fxenable
+```
+
+The RED is exactly four failures, all the same property — the meters in the
+same sections PASS, which is the negative control: a test that let meters
+bind too would pass for the wrong reason. Row 161 of the audit makes the
+same point in miniature (`DEFAULT` registered *and* `SILENT` on set).
+
+### What changed
+
+`RI_FXID_PCF|DELAY|DIST|COMP_ENABLE` = `0x0A11..14` (0x0A10 is
+`RI_FXID_REV_DECAY`, so the block stops short of it); the four registry rows
+move `bind=NONE -> RI_BIND_FX` with those ids; `ri_engine_fx_set` handles
+them; `fx_on[]` is ANDed into **six** render guards — DIST/PCF/COMP in
+both `engine_section` and `engine_section_stereo`, the delay behind
+`e->dline`, and master comp behind its owner test.
+
+### The test had to grow twice, both times honestly
+
+1. **It was only pinning deliverability.** Every assertion would still pass
+   with the ids in place and `ri_engine_fx_set` ignoring them — the old
+   bug wearing a different hat. Added the engine half: rack defaults live,
+   each id moves its slot, and OFF renders **bit-identical to neutral** with
+   the insert engaged and driven. That last clause is the real one.
+2. **Mutant m5 survived, and it was right to.** The gate exists in TWO
+   copies (mono sections 0-3 and stereo section 4), and my 303A-only fixture
+   saw one. A Levi chord fixture now covers the stereo copy. This was found
+   by the mutation harness, not by reading the code, which is the only
+   reason it was found at all.
+
+### Two legitimate gates caught me
+
+`t60_ctlreg` pinned `RI_BIND_FX` ids to `0x0A00..0x0A0F`; `t77_autolane`
+pins a mapped/listed/allow-list census. Both fired. t77's four FX On/Off
+rows were listed as *expected-unrecordable* — a row appears there only when
+it is automatable AND has no lane key, so they came out: nq 31→27,
+mapped 285→289, listed 31→27, allow-list 1150→1154.
+
+**The allow-list delta did not add up** — the array grew by 4 and the
+binary search is sound, yet the test reported +8. Rather than set the
+number to whatever made it green, I measured `ri_auto_allowed` over all
+65536 keys directly: 1150 baseline, 1154 with the change, with `0x0A11..14`
+allowed and `0x0A10` still refused. The first reading came from a stale
+build. A count assertion adjusted to a number that makes the test pass is
+indistinguishable from no assertion at all.
+
+### Mutation score: 6/6 killed
+
+`tests/mutate_fx_enable.py`, scored on the test's return code only:
+one-canvas-unbound, registry-half-reverted, rack-defaults-off,
+engine-case-deleted, gate-term-dropped, handler-always-live.
+
+`rack-defaults-off` is the one worth keeping: it is the dangerous direction
+(silences FX that is audible today) and every "the switch is wired"
+assertion still passes with it, because a wired switch reads 0 at boot.
+
+### Not done
+
+Audibility on the Dell is still unproven — the gate is proven at the render
+level, not by ear. The Levi's own pre/post/delay/reverb remain bypassed by
+default with their own `FXPRE`/`FXPOST`/`FXDLY`/`FXREV` ids, untouched
+here. The playable keybed and the Main Systems panel are separate phases.
