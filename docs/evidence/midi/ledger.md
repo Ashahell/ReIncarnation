@@ -4505,3 +4505,42 @@ MIDI has been run on riqemu1 since the redeploy, so the cluster fix and the
 r5 channel bytes remain unexercised there. The `set_sink_input_volume()
 failed` messages at launch are PulseAudio cosmetic noise from a daemonized
 process and were not investigated.
+## Six reboots today took the raw evidence; the Dell is offline, not broken (2026-10-13)
+
+The host rebooted **six times between 12:56 and 17:23** — all *clean*
+systemd shutdowns, not crashes (`journalctl -b -1` ends `Unmounted /home`,
+`Closed Process Core Dump Socket`). Nothing oopsed. But every one of them
+wipes `/tmp` **and** `RAM:`.
+
+**LOST, and not coming back:** `earproof-ev.log` (9111 B, `build=b67f0a4`,
+the raw counter dump behind the *First confirmed sound* entry above) and
+`riq-ev.log` (763 B, `build=4350272`). The **entry stands** — the counters
+were read and written down while they were real — but the artifact behind it
+can no longer be re-read by anyone, here or upstream. Nothing is retracted;
+the observation was genuine, only its container was volatile.
+
+**RULE: anything under `/tmp/ri/` a future reader might want gets copied into
+`docs/evidence/` at capture time.** `/tmp` is tmpfs here and dies hourly.
+
+Also lost each boot: `RAM:`, so staged proofs vanish. `--stage-only` is one
+command and was re-run after the 17:23 boot. The **build reproduces across
+boots**: `RIAPP.V1` = `bb134e5d6bab106aa90e` at `6174c08`, built identically
+at 13:21 and 17:31, both `v1 and r12-clean`.
+
+**What survived is what is launch-time config rather than state.** The 48000
+fix has been re-verified after every boot since it landed — most recently
+pid 6667 with `P6 1280 1024` and `rate=48000` on a fresh 17:23 boot. That is
+the difference between a fix and a nudge: nothing had to be re-applied.
+
+**CORRECTION to a running diagnosis: the Dell lane is OFFLINE, not broken.**
+Two jobs sit queued in `/tmp/spike_spool_laptop/jobs/` with **no established
+connection to :9292 at all**. The `--exec -> rc=-1` observation that had
+been puzzling us was made while the agent *was* connected; after a reboot
+nothing reaches the guest, and `--ui-windows` times out just like `--exec`
+did. So there are two separate phenomena that had been conflated:
+(a) a connected agent whose exec returned `-1`, and (b) a disconnected agent
+that answers nothing. Right now it is (b). Bringing e6320 back is a
+Dell-side action, not a script bug, and is not mine to perform.
+
+**NOT PROVEN, unchanged:** nothing heard on the new audio; no MIDI run on
+any lane since `6174c08`.
