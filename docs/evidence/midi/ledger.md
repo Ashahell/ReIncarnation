@@ -4869,3 +4869,87 @@ were never switched on, or the delay's buffer was never allocated. Both
 are owner-visible. Distinguishing them needs either the specific controls
 the owner touched, or a lane probe (turn one FX control, read the event
 log). **Not taken blind: a probe that touches the panel is an owner action.**
+## Levi/FX defect triage, panel by panel (2026-10-13)
+
+Owner specifics: **app-level** FX; most Levi piano keys dead; the **Main
+systems** panel does nothing and **its knob is not animated**; OSC ENV
+Level & Bias makes no audible difference; same for the Digital and Analog
+filter panels. Four of those are now explained by reading the source, and
+two are not.
+
+### 1. MAIN SYSTEMS: never implemented, deliberately
+
+The big encoder is in the `DKNOB` "later-phase" table in
+`gui/draw/art_levi.c`, drawn at a **hardcoded value**:
+
+```c
+/* Dim (later-phase) knobs, the main systems encoder. */
+ri_art_knob(dl, cx, cy, PX(30), PX(38), C_LEVI_DIM, C_LEVI_EDGE, 0, 0.0f, pan);
+```
+
+It has **no row in `panelgeo.c`**, so it cannot be hit-tested, and it is
+drawn from a table with `0.0f` rather than the control's value. That is
+exactly "works on nothing and the knob does not animate" — it is a
+placeholder, not a regression. The other `DKNOB` rows (MASTER, BALANCE,
+MODE) share the hardcoded draw.
+
+### 2. THE PIANO KEYS ARE A STEP EDITOR, NOT A KEYBOARD
+
+`RI_SLEVI_KEY0 = 24`, 13 keys, C..C+. Pressing one does this and nothing
+else (`gui/sectlevi.c:171`):
+
+```c
+return ri_levi_set(&s->pat, e, s->sel,
+    (uint8_t)(RI_SLEVI_MIDDLE_C + (idx - RI_SLEVI_KEY0)), 1) == 0;
+```
+
+It **writes the pitch into the current pattern step**. There is no
+note-on in that path. `ri_slevi_led` (`sectlevi.c:317`) merely asks whether
+the step's pitch equals the key, which is why the key lights when pressed.
+So the keys are note *entry* — W4's own commit called this "the UI-only
+STEP EDIT gate". "Most don't work" is really "none of them sound, by
+design"; the Levi is audible only via MIDI note input, which the ear proof
+did exercise (18 `LEVI note` events).
+
+### 3. APP-LEVEL FX On/Off: decorative (confirmed, matches the owner)
+
+Owner says app-level, which is the case traced earlier: the four
+`R(PCF|DELAY|DIST|COMP, 0, SWITCH, ..., bind=NONE, eid=0)` switches hit
+`default: return 0u` in `ri_ctlreg_auto_id` and are skipped by
+`push_walk`, and the engine defines 16 `RI_FXID_*` of which **none is an
+enable or bypass**. There is nothing to send them to. Parameters are a
+separate matter: `RiFXSetParam` applies them unconditionally, except
+`RI_FXID_DELAY_FB`/`_MIX`, which are dropped when `x->delay.buf` is NULL
+and `RiFXCreate` "returns 0 on bad type or full pool".
+
+### 4. OSC ENV LEVEL & BIAS: implemented — NOT EXPLAINED
+
+Fully wired, both ends. Setter `engine/dsp/levi.c:2945,2947`; render
+consumers at `3322-3325` (time bias) and `3403-3405` (level bias):
+
+```c
+amp = p->init + (envl + v->bias_envl) * env_out(&o->env);
+```
+
+A ±1 bias on the envelope level should be unmissable. So the owner's
+observation is **not** explained by state-dead, and I am not going to call
+it one. **I very nearly did**: my first search used `bias\.` / `bias\[`,
+which does not match `bias_envl` or `bias_t[]`, and would have "proved" a
+dead control that is in fact live. That is the third measurement-as-
+conclusion error of the day; re-grepping before claiming is the only thing
+that caught it.
+
+### 5. ANALOG / DIGITAL FILTER PANELS: not yet explained
+
+Not traced this pass. The controls exist in the registry with real
+`RI_CTL_LEVI_*` IDs, and 149 of 150 such IDs are referenced in
+`engine/` — but "referenced" is not "consumed at render", which is the
+distinction #4 just proved matters.
+
+### The honest score
+
+Explained: Main systems (placeholder), piano keys (step editor), FX
+On/Off (decorative). **Unexplained: OSC ENV Level & Bias audibility, and
+the two filter panels.** Those need a live measurement — turn the named
+control, read the event log — not more source reading. That is a
+coordinated lane action, so it is the owner's call and was not queued.
