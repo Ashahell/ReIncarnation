@@ -547,10 +547,22 @@ for path in sorted(glob.glob("docs/evidence/midi/*.run") +
         mm = re.search(r'\bRIAPP_MIDI_IN[= ]+([A-Za-z0-9_.]+)', code)
         if mm:
             refs.append((path, n, "RIAPP_MIDI_IN", mm.group(1)))
-        mm = re.search(r'(?<![\w])(?:RAM:)?MIDISEND(?:\.V11)?(?:\.EXE)?(?![\w])', code)
+        # `MIDISEND.V11` and `MIDISEND.EXE` were both in this pattern and
+        # `.V1` was not — so EVERY genuine riqemu1 invocation parsed as
+        # cluster `.V1` (the v1 lane's binary is MIDISEND.V1, lane_proof.sh
+        # L73). Accept any version suffix rather than a known list: a list is
+        # a spelling-keyed check, and this one had already fallen behind one
+        # real spelling before anyone noticed.
+        mm = re.search(r'(?<![\w])(?:RAM:)?MIDISEND(?:\.[A-Za-z0-9]+)*', code)
         if mm:
             rest = code[mm.end():].split()
-            if rest:
+            # Argument position, and it must LOOK like an argument. A fenced
+            # `ls`-style line (`MIDISEND.V1   67808 B   sha256 ...`) is not
+            # an invocation, and taking `67808` as a cluster would report a
+            # mismatch against a number. Requiring an identifier shape is a
+            # rule about FORM — it names no cluster, so it cannot be
+            # satisfied by remembering the favourite word.
+            if rest and re.match(r'[A-Za-z_]', rest[0]):
                 refs.append((path, n, "MIDISEND cluster", rest[0]))
 
 # FINDING NOTHING IS A FAILURE, NOT A PASS. An extractor that matched nothing

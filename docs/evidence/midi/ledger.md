@@ -4384,3 +4384,124 @@ absence of a claim for a claim:**
 **THE WEDGE IS STILL UNEXPLAINED.** The approval does not cover
 `MIDISEND <cluster> LISTEN`, which still wedges the agent for ~90 s, and
 this proof did not use it.
+## riqemu1 audio: 8.1 % slow, and one restart that took the lane down (2026-10-13)
+
+**The ask.** The owner reported riqemu1 audio as bad and passed Deadwood's
+suggestion: `-audio driver=sdl,model=es1370`.
+
+**That suggestion was declined on evidence, not on opinion, and the owner
+then chose the replacement.** `DEVS:AudioModes` on the lane was queried
+LIVE before touching anything:
+
+```
+list DEVS:AudioModes  ->  ac97    116 ---rwed 25-Sep-26
+                          1 file - 1 block used
+```
+
+One entry, `ac97`, no ES1370. An emulated ES1370 is fine on current AROS in
+general, but on THIS image it would be a card with no mode and would give
+**silence** — trading bad audio for none. The same conclusion had been
+recorded on 2026-10-02; it was re-checked anyway because that record was 11
+days old and the launcher's own comment says the mode directory had already
+grown from one entry to six at some point. **A doc is a claim about the
+past.** The owner chose `frequency=48000`, keeping AC97.
+
+### The defect, measured rather than described
+
+```
+before (RED):  host stream 44100   guest mixer 48000   0.91875  = 8.1 % slow
+after  (GREEN): host stream 48000   guest mixer 48000   1.00000  = in time
+```
+
+QEMU defaults an unspecified frequency to 44100 (`audio/audio.c:251-253`);
+AROS's ac97 driver runs its mixer at 48000 (`ac97-main.c:140`, agreeing with
+the `frequencies[]` list at `:38`). Pitch and tempo move together, so a
+resample reads as a synth running too slow rather than as a wrong clock —
+which is exactly how the owner's ear had described it on 2026-10-03.
+
+### The restart I got wrong, and what it cost
+
+The first attempt wrote `frequency=48000`. QEMU 11.1.1 replied:
+
+```
+-audiodev pa,...,frequency=48000: Parameter 'frequency' is unexpected
+launcher rc=1
+```
+
+**The lane went down.** It had already been terminated to pick up new args,
+so a parse failure at launch left nothing running. Restored within one step
+by re-running the launcher with the known-good config, verified up before
+diagnosing further.
+
+The parameter had been proposed in the 2026-10-03 article as a *"decisive
+experiment"* — a to-do that was never run, and I treated it as settled fact.
+The option is real but NESTED: `qapi/audio.json` defines it in
+`AudiodevPerDirectionOptions` as a member named `out`, so the only accepted
+spelling is **`out.frequency=`**. Both `frequency=` and `out-frequency=` are
+rejected. Confirmed against the QAPI schema, then against throwaway
+instances (`-name t9 -display none`, no disk), and only then applied to the
+lane.
+
+**NEW RULE FOR THIS LANE: parse-test audio and device arguments off-lane
+before relaunching.** A bad arg is free against a throwaway and costs the
+whole lane against the real one. The launcher comment now records the
+spelling trap so the next person does not re-earn it.
+
+### Verification
+
+```
+screendump        ->  P6 1280 1024      (resolution rule holds)
+pactl sink input  ->  rate=48000 s16le 2ch  pid=2571322
+host sinks        ->  48000 Hz
+agent             ->  PASS, session 5, 1280x1024, 2 windows
+```
+
+### Staged, not run
+
+`lane_proof.sh --riqemu1 --stage-only` -> exit 0:
+
+```
+RIAPP.V1      1195336 B  sha256 5e710c35bf0f8825ee76
+MIDISEND.V1     67808 B  sha256 8f2a2cf187f2b760a83f
+wrong-binary guard: both binaries are v1 and r12-clean
+```
+
+Plus `M4-LEVI.MID.TXT`, `R5-NOTEIN.MID.TXT` and `LANE-PROOF.RUN` — the last
+carrying the lowercase cluster fix from `6391a07`. **Nothing was executed**;
+staging is the assistant's side of the split and the run is the owner's.
+
+### The checker, and why none of it is spelling-keyed
+
+`tests/lane_audio.py`, exit code is the score. Five invariants:
+
+1. exactly one sound card declared
+2. every `audiodev=` id resolves to a declared `-audiodev`
+3. `out.frequency=` is declared **explicitly** — presence only, no value
+4. the declared rate **equals the rate AROS's ac97 driver runs at**, read
+   back from `ac97-main.c` rather than restated
+5. the **running** process matches the launcher, so an edited-but-never-
+   re-exec'd script cannot pass
+
+Invariant 3 checks presence and invariant 4 checks value; splitting them is
+what keeps 3 from becoming a grep for a favourite number. Invariant 4's
+value comes from source, so if the driver's rate changes the check follows.
+
+**5/5 mutants killed** (`tests/mutate_lane_audio.py`), each isolating one
+invariant: rate absent; rate present but 44100 (the anti-spelling mutant —
+it satisfies every presence check and only dies because the value is
+derived); backend id renamed out from under the card; a second card
+appended; and a non-audio argument changed while the lane kept running,
+killed by the stale detector alone.
+
+The harness earned its keep before it ran: m2's first anchor
+`out.frequency=48000` matched **twice** — once in the argument and once in
+the comment I had just written about it — and it refused with `harness
+broken` instead of mutating prose. Anchored on `,out.frequency=` instead.
+A check that can be satisfied by a comment is not a check.
+
+**WHAT THIS DOES NOT PROVE.** Nothing has been heard since the change: the
+8.1 % fix is confirmed by the rate on the host stream, not by an ear. No
+MIDI has been run on riqemu1 since the redeploy, so the cluster fix and the
+r5 channel bytes remain unexercised there. The `set_sink_input_volume()
+failed` messages at launch are PulseAudio cosmetic noise from a daemonized
+process and were not investigated.
