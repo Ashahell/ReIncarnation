@@ -5037,3 +5037,87 @@ Audibility on the Dell is still unproven — the gate is proven at the render
 level, not by ear. The Levi's own pre/post/delay/reverb remain bypassed by
 default with their own `FXPRE`/`FXPOST`/`FXDLY`/`FXREV` ids, untouched
 here. The playable keybed and the Main Systems panel are separate phases.
+## Owner scopes Main Systems, the keybed and the six dim knobs; and the probe
+## turns out to be unnecessary (2026-10-13)
+
+### What Main Systems actually is
+
+Owner, from the Desktop Owner's Manual pp. 20-23. The big knob is the
+**Patch** knob (prev/next patch; SHIFT jumps banks; arrows ±1, ±10 with
+SHIFT). Buttons: SAVE/BROWSE/FAVORITE (patch library), INIT (hold + a
+parameter resets it; hold + a module key + confirm resets the module),
+RANDOM, SHIFT (second function, fine knob steps), HOME (Macro page), PANIC
+(SHIFT+HOME, All Notes Off), MIDI, SYSTEM, EXIT.
+
+**We have no patch library.** Clean-room, no factory patches, no storage
+format. So the knob has nothing real to select.
+
+**Build now** — all have a real target and need no new storage: HOME,
+SHIFT (fine encoder steps), INIT + control (reset that control) and INIT +
+module key + confirm (reset the module), PANIC (All Notes Off — this now
+matters because MIDI notes come in), MIDI (read-only page of channels and
+sync source from `ENVARC:`), EXIT (back one page).
+
+**Leave visibly dim and inert**: Patch knob, arrows, SAVE, BROWSE,
+FAVORITE, SYSTEM, RANDOM. Patch storage is a file format plus a folder
+layout — the owner's decision and hard to reverse. Inventing knob
+behaviour now would be pinning an invention.
+
+### The same fault exists in six more knobs
+
+MASTER and BALANCE (left column; BALANCE is the existing Performance
+Balance control) and the arpeggiator's MODE, OCTAVE, GATE, ENTROPY
+(controls 186, 184, 185, 189). All six sit in the same `DKNOB` table as the
+Main Systems encoder — drawn dim at a hardcoded `0.0f` and with no
+`panelgeo.c` row, so not hit-testable. Every citation verified in the tree:
+`{62,137} MASTER, {126,136} BALANCE, {274,164} MODE, {332,164} OCTAVE,
+{390,164} GATE, {447,164} ENTROPY`, and all six already carry `bind=LEVI`
+with real engine ids — so they are deliverable, only the drawing and the
+hit-test are missing. **Smaller first slice than Main Systems.**
+
+### Keybed
+
+Match the hardware: the keys play notes through the Leviasynth note path
+MIDI input already uses (the ear proof heard it). They write the pitch into
+the selected step **only while STEP RECORD is lit** (Step Recording, p. 105;
+Step record mode, p. 117) — which keeps today's step entry, just behind the
+button the hardware puts it behind. Velocity fixed at an E0 default of 100.
+
+### Citation correction
+
+The pp. 20-23 / 105 / 117 references are from the **Desktop** manual. Our E1
+is the **Keyboard manual v1.2.1**, so these must be re-cited against that
+one before they go into a commit message or a ledger as settled fact.
+
+### The filter/bias probe was not needed — the session answered it
+
+`RAM:` still held the logs from the manual session after the ear proof, so
+they were pulled before staging over them (`manual-session-ev.log` 23635 B,
+`manual-session-app.log` 380269 B, both sha-verified, both now in the repo
+because `/tmp` dies on reboot).
+
+818 events over 441 s. **The only Levi parameter events in the whole log are
+the startup burst** — `0e00=0`, `0e00=127`, `0e0a=0`, `0e0a=127` at 47 /
+160 / 274 / 386 ms. After the script ended at 48900 ms there are **351
+seconds of total silence**, then `VIS dev=4 show=0/1` (the Levi tab) and
+`TAB page=2`. Not one panel-driven event appears anywhere; all 667 `CTL`
+lines are MIDI-file playback.
+
+So the owner's own diagnostic resolves without holding a chord or judging
+sound: **there is no `CTL`/`LEVI` line for the controls that were turned,
+so the fault is in the GUI or the bridge, not the render.** The engine is
+not the suspect.
+
+Note the two faults are NOT the same: Digital and Analog Cutoff
+(`0e00`, `0e0a`) have `panelgeo.c` rows and would be clickable, while BIAS
+ENV LEVEL (`0e27`) was never touched at all — consistent with the bias
+panel sitting behind the same input problem rather than a render one.
+
+### Order (owner)
+
+1. FX ear check on the Dell — the P-FX1 build is staged for it.
+2. Filter/bias probe.
+3. The six placeholder knobs.
+4. The keybed.
+5. Main Systems, build-now part only.
+6. Patch storage, when the owner decides.
