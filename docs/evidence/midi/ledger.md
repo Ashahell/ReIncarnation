@@ -4340,3 +4340,47 @@ static gate over them. The `MIDISEND RIAPP LISTEN` agent wedge is still
 unexplained -- this fix does not claim to have caused or cured it, because
 the wedge happened on a lane where the casing was self-consistent. The ear
 proof remains the owner's.
+## First confirmed sound: the owner's ear proof, Dell, `b67f0a4` (2026-10-13)
+
+**Owner attestation, verbatim: the ear proof was run on the Dell at build
+`b67f0a4` and "song playback sounded correctly".** Everything before this
+entry was read off instruments and never off a loudspeaker; this is the
+first sound anyone has heard out of this work.
+
+**The counters corroborate it rather than merely fail to contradict it.**
+`NOTEIN played=0 refused=0 unclaimed=0 dropped=0 seen=0`, logged once at
+t=2 ms and never again (they only re-log on change, so note-in never moved).
+That is the *correct* reading for this proof: song playback leaves through
+`DEV out` (`ev 11 DEV out=1 ch=0 prog=38` on the riqemu1 log of the same
+shape), and `NOTEIN` counts *inbound* notes. Had these been non-zero the
+account would have been in conflict with them. Corroboration by the right
+instrument reporting the right thing, not silence from the wrong one.
+
+`b67f0a4` is the build carrying the `SendIO` fix, so a run that plays a
+151-bar song to completion and stops on demand is also a run in which the
+task that used to die at 327 ms did not die. The app outlived the failure by
+four orders of magnitude.
+
+**WHAT THIS PROVES, EXACTLY.** RIAPP at `b67f0a4` starts, loads
+`zombie-nation.rbng`, transports, and produces correct musical output on the
+Dell, with no `Software Failure!` at any point in the session.
+
+**WHAT IT DOES NOT PROVE — four things, stated so nobody later mistakes the
+absence of a claim for a claim:**
+
+1. **Note-in (R5) is still unheard.** Counters read 0 on BOTH lanes. The
+   r5 channel-byte fix (`4e9a103`) has therefore never been demonstrated by
+   sound, and cannot have been — nothing has been fed through it yet.
+2. **The cluster fix (`6391a07`) has never been exercised on a lane.** It is
+   a static correction with a static gate over it. Correcting the addresses
+   in the proof scripts proves nothing about whether the notes arrive.
+3. **Clock-out to a slave was not the subject of this proof.** The clock
+   lamp in the riqemu1 log reads `CLK out=1 enabled=0`.
+4. **riqemu1 currently runs `build=4350272` — one commit BEFORE the crash
+   fix.** It is the direct parent of `b67f0a4`. A crash-free session there
+   carries no information about the fix at all, and must not be cited as if
+   it did. That lane needs redeploying before it can contribute evidence.
+
+**THE WEDGE IS STILL UNEXPLAINED.** The approval does not cover
+`MIDISEND <cluster> LISTEN`, which still wedges the agent for ~90 s, and
+this proof did not use it.
