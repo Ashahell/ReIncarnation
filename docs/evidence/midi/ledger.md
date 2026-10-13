@@ -4693,3 +4693,102 @@ ear proof has happened here either** — the Dell is the lane where the first
 confirmed sound was heard (`d795a33`, build `b67f0a4`), and it has never
 heard the r5 channel-byte fix or the lowercase cluster fix. Queueing that
 run is the owner's, not mine.
+## The Dell ear proof ran at `f89bb40`: M4 and R5 evidenced, R6 has none (2026-10-13)
+
+Owner instruction was to run it. `spike_server.py submit --run-script
+RAM:LANE-PROOF.RUN` — the combined owner proof, one session — returned
+`rc=0` in 38565 ms, `RESULT: PASS`, agent `e6320`, session 1. Not `--exec`:
+the script's own header forbids it, because the lane's `--exec` is not a
+shell (a redirect there returns `rc=0` and writes nothing) and one blocked
+command wedges the whole command path until an owner reboot.
+
+**Evidence captured to the repo at once, before a reset could take it:**
+`earproof-ev-f89bb40.log` (23414 B, 815 events) and
+`earproof-log-f89bb40.log` (65284 B), both `sha verified` by `--get`, both
+carrying `build=f89bb40` — so the app that ran is exactly what was staged,
+which is the only thing that makes a proof attributable.
+
+**The first capture attempt was truncated and is worth recording.** I used
+`type RAM:RIAPP-EV.LOG` and got 8238 B against the guest's 16145 B, cut
+mid-event at `ev 177`. `type` travels through the agent's log channel, which
+caps; `--get` is the bulk path and verifies with a hash. The sizes also grew
+between reads — RIAPP kept running and logging after the script ended,
+because `Run >NIL: RAM:RIAPP.M4` is asynchronous and the song
+(`zombie-nation`, 151 bars @ 140 BPM) outlived the script's `Wait`s. A
+truncated evidence file is worse than no file, because it looks complete.
+
+### Question 0 — BINDING: answered, and it is the good news
+
+```
+ev 4  NOTEIN dev 0 ch 2 bound
+ev 5  NOTEIN dev 1 ch 2 REFUSED (channel taken)
+ev 6  NOTEIN dev 2 ch 10 bound
+ev 7  NOTEIN bound 2 drums_implicit=1
+ev 9  LEVI chan remote=1 levi=2 devices=2
+```
+
+Two channels bound with drums implicit, and the third device was **REFUSED**
+channel 2 because it was already taken. That is the cluster/lease law from
+`6391a07` behaving as designed: a second device is turned away rather than
+killing the first one's binding. The script's header says to read this
+first, because "a refusal here means the sound will not come, and listening
+cannot tell you why" — so it is worth stating plainly that this refusal is
+the *expected* one, and the 6 that follow are the R5 laws under test.
+
+### A — M4 INBOUND: evidenced
+
+18 `LEVI note` events, notes 36/38/46/48/52/55 at vel 100 and 127, with
+`LEVI chan remote=1 levi=2 devices=2`. The Leviasynth's output reached the
+app on channel 2. Whether that became *sound* is the owner's ear and is not
+in any log.
+
+### B — R5 NOTE-IN: evidenced
+
+Refusals climbed 1 → 2 → 3 → 4 → 6 → 7 across the run (2 at once at the
+4→6 step), `unclaimed` reached 8 across 31 lines, and **`dropped=0`
+throughout** — nothing was silently lost, which is the law that actually
+matters. Final line:
+
+```
+NOTEIN played=20 refused=7 unclaimed=8 dropped=0 seen=47
+```
+
+### C — R6 OUTBOUND: NO EVIDENCE, and the clock was never on
+
+The only outbound lines in the whole 815-event log are the three startup
+config lines:
+
+```
+ev 10  CLK out=1 enabled=0 lat_ms=8
+ev 11  DEV out=1 ch=0 prog=38
+ev 12  MMC out=0
+```
+
+**`enabled=0`.** The script set `RIAPP_MIDI_CLKOUT 1` at line 49 and the app
+still reports the clock output *disabled*. Nothing re-enabled it during the
+run, and there is no further `CLK`/`DEV`/`OUT` event anywhere in the log, so
+there is no positive evidence the app sent anything outbound at all.
+
+Worse: **`RAM:R6LISTEN.LOG` was never created** (`rc=10 object not found`,
+and absent from `list RAM: all`). The listener was launched
+`Run >NIL: RAM:MIDISEND.V11 riapp LISTEN 75 RAM:R6LISTEN.LOG`, correctly
+backgrounded and correctly given 75 s to outlive the script — and it wrote
+nothing, 146 s after it should have finished. The listener half is the
+known unexplained wedge; this is a second symptom of it: not a blocked
+agent this time, but a listen that leaves no artifact.
+
+**So the R6 half of the proof is unanswered.** Two candidate causes, neither
+disproved: the clock-out never enabled so there was nothing to hear, or the
+listener failed to start. Distinguishing them means another LISTEN, which
+is the command known to wedge this lane for 90 s until an owner reboot —
+so that is not a call to make without the owner.
+
+### What this run does and does not settle
+
+Settled: `build=f89bb40` ran; binding refuses correctly; M4 inbound
+delivered; R5 laws behaved with `dropped=0`; nothing was lost.
+
+Not settled: **whether any sound came out** — that is the ear and it is the
+owner's. And the whole of R6. The lane is healthy after the run (`list
+RAM: all` returns `rc=0`), and the scripts were consumed by the run, so RAM:
+holds only the app, MIDISEND and the payloads.
