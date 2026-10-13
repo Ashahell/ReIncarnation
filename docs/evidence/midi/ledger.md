@@ -4601,3 +4601,32 @@ references in hand-written `llm-wiki/raw/articles/` files. Whether
 `midi.wiki` should exist at all is an open owner decision, and relocating
 project documents into a wiki that may be retired is the wrong direction
 to move in.
+## Owner rulings: midi.wiki stays stale; the briefs stay in docs/ (2026-10-13)
+
+Two open questions from the failed rebuild were put to the owner and both
+were answered with *leave it be*.
+
+**midi.wiki stays exactly as it is** — restored, 25 files, r5 leaf at
+`sha256:662aa058…`, `m4-levi-r6` leaf still `RIAPP` — until upstream #49
+lands. It is a second index, and the owner weighed retiring it outright
+against keeping it and chose to keep it, which means those two leaves stay
+a **known, logged gap** rather than being patched by hand. Hand-patching
+would make the hash say what the source says now instead of what it said
+then, and a derived index that is honestly stale is worth more than one
+that has been quietly corrected. Nothing that was proved changes, and no
+MIDI work waits on it.
+
+**The three briefs stay in `docs/`** and were not relocated into the midi
+source folder. Their originals were never lost — only the `/tmp/briefs/`
+staging copy died with the reboots — so the move was available and was
+declined. Relocating `2026-09-24-improvement-todo.md` alone would have
+silently broken ~10 path references in hand-written
+`llm-wiki/raw/articles/` files plus `songs/README.md`, and copying instead
+would have created a second copy to drift — the exact "written twice, kept
+in step" problem this consolidation is meant to remove.
+
+**Revisit when #49 lands.** A single-source rebuild is still the right
+remedy and the briefs can be folded in at that point in one operation. It
+was never a question of whether the honest path was correct, only whether
+the tool could execute it — and on v1.4.4, for anything needing Tier 2, it
+cannot.
