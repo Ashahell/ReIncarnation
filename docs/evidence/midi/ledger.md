@@ -5121,3 +5121,80 @@ panel sitting behind the same input problem rather than a render one.
 4. The keybed.
 5. Main Systems, build-now part only.
 6. Patch storage, when the owner decides.
+## P-FX1 confirmed by ear; Shape is not broken; the FX meters are unwired (2026-10-13)
+
+App launched on the Dell from a backgrounded `LEVIPROBE.RUN` (`Run >NIL:`, not
+a bare prefix — a bare prefix blocks and wedges the agent). Window up,
+`build=36b2bf7`, `midi in=riapp … clkout=1 devout=1`, panel built with
+`tabbed Synths/Drums/Levi/Mix/FX`, no `clock out refused (no sender task)`.
+Log: `fxcheck-ev.log`.
+
+**P-FX1 IS CONFIRMED BY EAR.** Owner: "Dist partially work." The switch
+works on hardware, not only in the render comparison.
+
+### A reading I had to take back
+
+I first read the 857 `CTL 0b02=` events as a mixer CC and called them a
+fader drag. **Wrong.** `sync_values()` logs the REGISTRY id, not a CC:
+
+```c
+uint16_t reg = (uint16_t)((uint16_t)c_sections[c] << 8) | (uint16_t)ri_sui_ctl_idx(...);
+evlog("CTL", "%04x=%d", reg, val);
+```
+
+`0b02` is section 11 = `RI_SEC_DIST`, index 2 = **Amount**. So those were the
+owner's Amount drags, working exactly as reported, and "the fx knobs emitted
+nothing" was my misparse. Read it correctly before drawing any conclusion
+from it.
+
+### Dist Shape: applied, measurable, not a no-op
+
+Owner moved Shape: "no audible difference." The log disagrees with "broken":
+**221 `CTL 0b03=` events** after the first report, sweeping 127 downward. So
+the knob is hit-testable, `ri_sui_ctl_idx` resolves it, and the value lands
+on `e->dist.shape`.
+
+Measured directly through `ri_fxdist_render` (220 Hz, peak 0.50):
+
+| drive | rms shape=0 | rms shape=127 | peak diff |
+|---|---|---|---|
+| 0 | 0.3537 | 0.3726 | 0.113 |
+| 32 | 0.7254 | 0.6444 | 0.556 |
+| 64 | 0.8516 | 0.6948 | 1.558 |
+| 127 | 0.9247 | 0.8737 | 2.000 |
+
+At drive 64 Shape swings RMS by **-18%**. I predicted "second-order, hence
+subtle" from the `a*x*x` term; the measurement says otherwise and the
+prediction was wrong. Shape is an even-harmonic colouration rather than a
+dramatic effect, so at low Amount it is much less obvious than Amount — but
+it is applied, and the live question is listening conditions, not code.
+
+### The FX meters have no wire at all
+
+Owner: the dead lamps are the **meters** (top right, `x=288`).
+
+The engine measures them — `ri_meter_feed(&e->fx_meter[RI_ENGINE_FX_DIST], …)`
+at both the mono and stereo guards — and `struct RILiveMeters` already
+carries `float fx_peak[4]`, filled by `ri_live_meters_read` every frame.
+
+**Nothing reads `mm.fx_peak[]`.** `ri_sfx_meter_set` has exactly two callers
+in the tree: `tests/unit/t67_sectfx.c` and `app/sectproof.c` (the self-test
+harness). Not one in `riapp.c`. The mixer meters have the delivery the FX
+meters lack:
+
+```c
+ri_smix_meter_set(u->u.mix.board, strip_sec[k], 0, lvl[k]);   /* riapp.c:1670 */
+ri_smix_meter_set(u->u.mix.board, RI_SEC_MASTER, ch, lvl);   /* riapp.c:1699 */
+```
+
+So this is not a paint bug or a geometry bug. The data arrives at the app
+and is discarded; `RI_SFX_METER` in the panel is a slot nothing writes. The
+fix is the established idiom — set the value, then repaint just that box
+with `ri_geo_bbox` + `ri_rsection_refresh_box` — and it needs a
+canvas→`RI_ENGINE_FX_*` map, because the canvas order (C_FX0..3 = PCF, DELAY,
+DIST, COMP) is not the meter-unit order (DIST=0, PCF=1, DELAY=2, COMP=3).
+
+**Also noted, not yet acted on:** `RI_GEO_DIST` is the only FX geometry
+table without `FX_HEAD`, hand-rolling the same two rows 3 px higher
+(`y=42` vs `45`). Cosmetic on its face; recorded because drift of that shape
+is what hid the meter defect's real location.
