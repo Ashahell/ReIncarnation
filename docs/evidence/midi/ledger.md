@@ -4792,3 +4792,80 @@ Not settled: **whether any sound came out** — that is the ear and it is the
 owner's. And the whole of R6. The lane is healthy after the run (`list
 RAM: all` returns `rc=0`), and the scripts were consumed by the run, so RAM:
 holds only the app, MIDISEND and the payloads.
+## The ear proof PASSED, and two of my readings of it were wrong (2026-10-13)
+
+**Owner verdict on the `f89bb40` Dell run: the ear proof was good.** Sound
+came out. That is the confirmation no log could supply, and it closes the
+long-standing gap — the cluster fix (`6391a07`) and the r5 channel-byte fix
+(`4e9a103`) have now been exercised *by sound* on a real lane, not merely
+by counters. The `played=20 refused=7 unclaimed=8 dropped=0 seen=47` line
+was, in the end, telling the truth.
+
+The owner then reported two defects found **by ear**, not by any log:
+the Leviasynth is still not fully wired (some knobs and keys do nothing),
+and **the FX modules do not work at all**.
+
+### Two retractions of my own, recorded because both were confident and wrong
+
+1. **`CLK out=1 enabled=0` does NOT mean the clock is disabled.** The field
+   is `midi_out_pending(&s_mout)` (`app/riapp.c:2996`) — a queue-depth
+   sample taken at t=7 ms, before anything could be queued. I read a queue
+   metric as an enable flag and told the owner the clock was disabled. It
+   is not shown either way.
+2. **The 796 `SILENT` rows are NOT 796 broken controls.** I counted them
+   and announced "70% of the control surface is dead". The plan says the
+   opposite in its own words: **"silent is not broken"** — those controls
+   change engine state, and the harness's two-note render cannot build the
+   context they need (sequencer needs transport running, macros need a
+   source and destination). W4 (`48a7a93`) then fixed the genuine
+   `ri_slevi_init` stack-garbage bug and triaged the residue to **zero
+   STATE**. The harness's own summary is 2 rows + 10 encoder slots
+   genuinely dead, not 796.
+
+Both are the same error: reading a measurement as a conclusion without
+reading what the measurement means. Recorded so the third one is harder to
+make.
+
+### What IS established about the FX
+
+Traced panel → registry → push → bridge → engine, and the delivery path is
+**intact**: `C_FX0..C_FX3` are in the 15 pushed canvases
+(`app/riapp.c:213`), and every FX parameter has a real CC and a real
+engine ID. So "FX is not wired into MIDI" — the explanation I was about to
+write — is wrong.
+
+What is genuinely broken is narrower and real:
+
+- **The four On/Off switches are decorative.** `R(PCF|DELAY|DIST|COMP, 0,
+  SWITCH, ..., RI_MIDI_CC_NONE, 1, NONE, 0, 0)` — `bind=NONE`, so
+  `ri_ctlreg_auto_id` returns 0, `ri_panel_ctl_send` returns 1, and
+  `push_walk` skips the control. It can never be sent.
+- **And there is nothing to send it to.** The engine defines 16 `RI_FXID_*`
+  and **not one is an enable or bypass**. So the switch has no target; it
+  toggles a panel value that goes nowhere.
+- The FX *parameters* are applied unconditionally — `RiFXSetParam` writes
+  `x->delay.*`/`x->dist.*`/`x->comp`/`x->pcf_*` with **no enable gate in
+  `struct RIFX`**.
+- `RI_FXID_DELAY_FB` and `_MIX` are **silently dropped when
+  `x->delay.buf` is NULL**, and `RiFXCreate` "returns 0 on bad type or full
+  pool" — a delay with no buffer is an invisible no-op.
+- Separately, the **Levi's own FX (pre/post/delay/reverb) are bypassed by
+  default, deliberately**: `s->fx.dbypass = 1u; /* bypassed by default:
+  songs bit-identical */`. Turning those on is a separate path
+  (`FXDLY`/`FXREV`/`FXPRE`/`FXPOST`, which *do* have engine IDs).
+
+### What is NOT established, and the number that would be a mistake
+
+124 input controls share `bind=NONE`. **That is not 124 dead controls.**
+Transport, pattern bank/pattern selection, Levi paging and mixer mutes all
+have dedicated handlers (`sync_transport`, `sync_pat`, `panelctl.c`
+adoption, mixer mute). `bind=NONE` means "not delivered by the generic
+autowrite push", not "does nothing". Reporting those 124 as defects would
+be the same error a third time, and is not done.
+
+So the live question is narrow: **why does the owner hear nothing from
+FX?** Two candidates remain — the Levi's FX are bypassed-by-default and
+were never switched on, or the delay's buffer was never allocated. Both
+are owner-visible. Distinguishing them needs either the specific controls
+the owner touched, or a lane probe (turn one FX control, read the event
+log). **Not taken blind: a probe that touches the panel is an owner action.**
