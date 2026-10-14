@@ -3185,3 +3185,13 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Note: two equivalent mutants are recorded as equivalent rather than claimed as kills (the merge's `device` tiebreak, redundant because the scheduler has already applied it within each run), and one *kept anyway* on the grounds that the merge's contract is "produces a §8-ordered array" and a function that silently depended on its inputs arriving sorted would be an unwritten precondition.
 - Note: `QI` (an unresolved note counted against the 909) and the `dev = 0` family share one root: **a refused note leaves `dev` at 0, and 0 is 303A**, so anything downstream that infers a device from that field is guessing.
 
+
+## [2026-10-15] ingest | FX meter closeout: the COMP GR bar gets its wire, and displaced meters go dark
+- Disposition: New
+- Raw: llm-wiki/raw/articles/2026-10-15-fx-meter-closeout-comp-gr-bar-and-frozen-displaced-meters.md
+- Updated: llm-wiki/index.md (new entry)
+- Updated: llm-wiki/raw/articles/2026-09-25-gui-parity-sections-g1-g4.md (its "Dist exclusivity (owner decision)" open point is DECIDED by the 2026-10-14 ruling, implemented P-FX3 `860072f`; marked with a dated Status note + forward link, not rewritten)
+- Commits: parent `860072f` (`36b2bf7`, `173bf18`, `b5400b6`, `447de53`, `017e5e7`, `2b52ffc` in range; tag `[levi-midi]`); this session's 7 files UNCOMMITTED
+- Note: RED numbers captured reproducibly before writing (stash the two src files, rebuild engine+fx modules, run): t219 displaced PCF level 113 / peak 0.673521, t218 displaced COMP GR -11.25 dB, t50 wrapper latch -9.503 dB through 3 s quiet. Tree restored afterward and GREEN re-verified (t219 PASS).
+- Note: the article records the arc's close, not the arc — P-FX1/P-FX2/P-FX3 live in docs/evidence/midi/ledger.md, which also held the explicitly-recorded GR gap (`(void)fgr`) this session closed.
+- Note: two "the test is wrong" calls, both defended in the article rather than smoothed over: the one-block-quiet expectation (follower still hot, -9.502 dB truthful) and bare-render pegging (no block boundary at that level; contract is caller-restarted via gr_reset).

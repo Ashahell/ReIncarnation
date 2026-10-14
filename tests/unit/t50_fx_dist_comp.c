@@ -187,6 +187,44 @@ int main(void) {
         gr = ri_fxcomp_gr_db(&c);
         printf("hot GR=%.4g dB\n", (double)gr);
         RI_ASSERT(gr < -0.5f, "hot GR=%.4g want < -0.5", (double)gr);
+        /* The meter is a per-BLOCK peak-hold ("block read/reset" by design),
+         * not a lifetime latch: once the signal has been quiet long enough
+         * for the follower to release, it must read 0 dB again. Without the
+         * per-block restart the deepest gain ever seen sticks and the bar
+         * pegs after the first loud passage (owner 2026-10-15: COMP bar
+         * misbehaves). Pinned at WRAPPER level, not on bare ri_fxcomp_render
+         * calls: a bare call has no block boundary, so its caller restarts
+         * via gr_reset (the documented contract); the engine restarts once
+         * per slice in ri_engine_render and the wrapper once per invocation.
+         * A bare-call restart inside the render fn would wipe the L channel's
+         * min when the stereo insert path renders L then R through one struct
+         * -- unimplementable without breaking that path. Testing the wrapper
+         * pins the restart wiring bare calls cannot see.
+         *
+         * The quiet stretch is 30 x 4800 samples = 3 s, not one block: the
+         * follower (100 ms release) is still hot through the first ~220 ms
+         * of quiet, so a one-block quiet truthfully still reads reduction
+         * (≈ -9.5 dB first-sample gain). Only after release does latched-vs-
+         * restarted become observable -- a one-block expectation would fail
+         * on correct code. */
+        {
+            struct RIFX *w = RiFXCreate(RI_FX_COMP);
+            uint32_t q;
+            RI_ASSERT(w != 0, "wrapper comp create");
+            RiFXSetParam(w, RI_FXID_COMP_THRESH, 64);
+            dc(IN, N, 0.9f);
+            RiFXRender(w, IN, OUT, N, SR, 120.0f);
+            gr = ri_fxcomp_gr_db(&w->comp);
+            RI_ASSERT(gr < -0.5f, "wrapper hot GR=%.4g want < -0.5",
+                (double)gr);
+            dc(IN, 4800u, 0.01f);
+            for (q = 0; q < 30u; q++)
+                RiFXRender(w, IN, OUT, 4800u, SR, 120.0f);
+            gr = ri_fxcomp_gr_db(&w->comp);
+            RI_ASSERT(gr == 0.0f, "GR must release after release time (%.4g)",
+                (double)gr);
+            RiFXDestroy(w);
+        }
         ri_fxcomp_gr_reset(&c);
         RI_ASSERT(ri_fxcomp_gr_db(&c) == 0.0f, "GR reset dead");
         ri_fxcomp_reset(&c);

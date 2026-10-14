@@ -348,10 +348,34 @@ static void ri_fx_engage(struct RIEngine *e, uint32_t mod, uint8_t value) {
     int unit;
     if (!value) {           /* OFF clears itself and disturbs nobody */
         e->fx_on[mod] = 0u;
+        /* ...and darkens its own meters. ri_meter_feed() is measure AND
+         * decay in one call and sits inside the fx_on render guard, so a
+         * unit that stops being live is never fed again and its peak would
+         * otherwise freeze at its last level -- the panel keeps publishing
+         * that frozen level and the meter stays lit on a module that is
+         * audibly off (owner 2026-10-15). The peak is pure telemetry;
+         * nothing on any render path reads it. Same for the GR hold. */
+        e->fx_meter[mod].peak = 0.0f;
+        if (mod == RI_ENGINE_FX_COMP)
+            ri_fxcomp_gr_reset(&e->comp);
         return;
     }
-    for (i = 0; i < RI_ENGINE_FX_COUNT; i++)
+    for (i = 0; i < RI_ENGINE_FX_COUNT; i++) {
         e->fx_on[i] = (i == mod) ? 1u : 0u;
+        if (i != mod)
+            e->fx_meter[i].peak = 0.0f;
+    }
+    /* ...and the gain-reduction hold with it: no render block runs for a
+     * displaced COMP, so without this the last reduction freezes on screen
+     * (same defect class as the input meters, on the same canvas's other
+     * meter). The per-slice restart in ri_engine_render covers every later
+     * block; this covers the transition instant itself. */
+    if (mod != RI_ENGINE_FX_COMP)
+        ri_fxcomp_gr_reset(&e->comp);
+    /* Displaced units darken the same way: same frozen-peak defect, same
+     * transition. Zeroing every non-live peak (rather than diffing against
+     * previous liveness) is harmless for units already dark and keeps this
+     * to one loop with no extra state. */
     unit = ri_fx_unit_of(mod);
     if (unit >= 0 && ri_route_owner(&e->route, (uint32_t)unit) == RI_ROUTE_NONE)
         ri_route_assign(&e->route, (uint32_t)unit, RI_FX_ENGAGE_OWNER);
@@ -868,6 +892,13 @@ uint32_t ri_engine_render(struct RIEngine *e, float *out_l, float *out_r,
             for (i = 0; i < cc; i++)
                 sendbus[i] = 0.0f;
             RI_ESTAGE_E(e, RI_ENGINE_ST_ZERO, ts);
+            /* GR peak-hold restart: the published reduction is always this
+             * slice's min, never the deepest gain ever seen (which pegged the
+             * bar after the first loud passage, owner 2026-10-15). Unconditional
+             * -- a bypassed comp renders nothing, so reset-without-render reads
+             * 0 dB, which is exactly dark. Same per-block discipline as the 808
+             * voice counters two lines down. */
+            ri_fxcomp_gr_reset(&e->comp);
             if (e->sections & RI_ENGINE_S303A) {
                 RI_ESTAGE_T(e, RI_ENGINE_ST_S303A, ts);
                 rb303_render(&e->v303a, e->scratch, cc, sr);

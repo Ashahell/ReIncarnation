@@ -103,6 +103,38 @@ int main(void) {
     RI_ASSERT(lvl[FX_DST] <= 127, "level in range (%d)", lvl[FX_DST]);
     RI_ASSERT(gr <= 0.0f, "comp gain reduction is <= 0 dB (%f)", gr);
 
+    /* --- displacement must darken the displaced meter (owner 2026-10-15:
+     * "PCF and Delay leds remain active/on when COMP is activated") ---
+     *
+     * ri_meter_feed() is measure AND decay in one call, and it sits inside
+     * the fx_on render guard -- so a unit that stops being live is never fed
+     * again and its peak freezes at its last level. The panel then keeps
+     * publishing that frozen level and the meter stays lit on a module that
+     * is audibly off. Engaging COMP here must therefore darken PCF, not by
+     * waiting out a decay that will never run, but at the transition. */
+    ri_engine_fx_set(&c.session.eng, RI_FXID_COMP_ENABLE, 1u);
+    for (i = 0; i < 8u; i++)
+        ri_live_render(&c.session, sl, sr, N);
+    RI_ASSERT(ri_core_fx_meters(&c, lvl, &gr) == 1, "fx meters re-read");
+    RI_ASSERT(lvl[FX_PCF] == 0, "displaced PCF slot must go dark (%d)",
+        lvl[FX_PCF]);
+    RI_ASSERT(ri_engine_fx_peak(&c.session.eng, RI_ENGINE_FX_PCF) == 0.0f,
+        "displaced PCF engine peak must be zero, not held (%f)",
+        (double)ri_engine_fx_peak(&c.session.eng, RI_ENGINE_FX_PCF));
+
+    /* --- OFF must darken its own meter for the same reason --- */
+    ri_engine_fx_set(&c.session.eng, RI_FXID_PCF_ENABLE, 1u);
+    for (i = 0; i < 8u; i++)
+        ri_live_render(&c.session, sl, sr, N);
+    RI_ASSERT(ri_core_fx_meters(&c, lvl, &gr) == 1, "fx meters re-read");
+    RI_ASSERT(lvl[FX_PCF] > 0, "re-engaged PCF lights again (%d)", lvl[FX_PCF]);
+    ri_engine_fx_set(&c.session.eng, RI_FXID_PCF_ENABLE, 0u);
+    for (i = 0; i < 8u; i++)
+        ri_live_render(&c.session, sl, sr, N);
+    RI_ASSERT(ri_core_fx_meters(&c, lvl, &gr) == 1, "fx meters re-read");
+    RI_ASSERT(lvl[FX_PCF] == 0, "switched-off PCF slot must go dark (%d)",
+        lvl[FX_PCF]);
+
     ri_core_stop(&c);
     RI_RESULT("fxmeters");
 }

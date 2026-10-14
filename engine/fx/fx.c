@@ -612,6 +612,10 @@ void RiFXRender(struct RIFX *x, float *in, float *out, uint32_t frames,
     if (x->type == RI_FX_COMP) {
         /* Follower coeffs track the live rate (not the init-time 48 k). */
         ri_fxcomp_derive(&x->comp, sr);
+        /* One call per invocation here, so the restart is exact (the engine's
+         * stereo insert path renders twice per block and restarts once per
+         * slice in ri_engine_render instead). */
+        ri_fxcomp_gr_reset(&x->comp);
         ri_fxcomp_render(&x->comp, in, out, frames);
         return;
     }

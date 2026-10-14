@@ -43,6 +43,7 @@ Host tests t60–t69 all PASS and each was mutation-checked; `ri_audit.sh` 0/0 a
 ## Open points recorded for owners (not changed from the GUI side)
 
 - **Dist exclusivity (owner decision):** p. 59 says "four distortion units… all sections can use the distortion"; p. 157 says "One section at a time". GUI follows the engine's radio routing (`engine/fx/route.h`); changing it touches `sectmix.c unit_of()` plus the engine route.
+  - *Status 2026-10-15: DECIDED — owner ruling 2026-10-14 (mutually exclusive, last-on-wins, engaging one makes it actually run), implemented as P-FX3 (`860072f`) and closed out in [2026-10-15-fx-meter-closeout-comp-gr-bar-and-frozen-displaced-meters.md](2026-10-15-fx-meter-closeout-comp-gr-bar-and-frozen-displaced-meters.md). Left standing above for the record.*
 - **Stop law vs manual (§12.9 owner):** `engine/seq/transport.c` arms on the first Stop click while already stopped; the manual (p. 145) moves to the Loop Start. The manual's exception (position before the Left Locator → song start) is not modelled.
 
 ## Zune / lane lessons (riqemu1, ABIv1)

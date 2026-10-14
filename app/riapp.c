@@ -1773,10 +1773,31 @@ static void meter_round(ULONG mix_freq) {
                 else
                     ri_rsection_refresh(s_canvas[s_fx_canvas[k]]);
             }
-            (void)fgr; /* COMP's level-reduction meter (RI_SFX_COMP_GR) stays
-                         * unwired: comp_gr arrives in dB and choosing the
-                         * dB->0..127 scale is a look decision, not a wire.
-                         * Recorded rather than invented. */
+            /* COMP's level-reduction meter: the same push shape as the input
+             * meters above, onto the COMP canvas's RI_SFX_COMP_GR box (the
+             * horizontal LED bar). ri_live_gr_level maps the <= 0 dB gain
+             * change onto 0..127 at RI_LIVE_GR_FULL_DB full scale -- the
+             * "look decision" the old comment deferred is the one livestate
+             * already owns, so there is nothing left to invent. */
+            {
+                static int s_fxgr_shown = -1;
+                struct RISectUI *u = s_ui[C_FX3];
+                int grlvl = ri_live_gr_level(fgr);
+                if (u && grlvl != s_fxgr_shown) {
+                    const struct RIGeoSection *gg;
+                    int ax0, ay0, ax1, ay1;
+                    s_fxgr_shown = grlvl;
+                    ri_sfx_meter_set(&u->u.fx, RI_SFX_COMP_GR, grlvl);
+                    /* S3: the GR bar repaints its own box, never the canvas. */
+                    gg = ri_geo_section(RI_SEC_COMP);
+                    if (gg && ri_geo_bbox(gg,
+                        (uint16_t)((uint32_t)RI_SEC_COMP << 8) | RI_SFX_COMP_GR,
+                        s_zoom[C_FX3], &ax0, &ay0, &ax1, &ay1) == 0)
+                        ri_rsection_refresh_box(s_canvas[C_FX3], ax0, ay0, ax1, ay1);
+                    else
+                        ri_rsection_refresh(s_canvas[C_FX3]);
+                }
+            }
         }
     }
     playing = (s_tr_state != RI_TR_STOPPED);

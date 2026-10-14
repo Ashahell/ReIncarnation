@@ -1114,6 +1114,14 @@ bash "$ROOT/scripts/ri_build_host.sh" test t218_fx_enable >/dev/null || { echo "
 # the portable half -- notably the canvas->engine-unit transpose, which is a
 # real permutation [1,2,0,3] and would light each module's neighbour's meter.
 bash "$ROOT/scripts/ri_build_host.sh" test t219_fx_meters >/dev/null || { echo "FAIL: t219_fx_meters (FX meter levels + canvas->unit transpose)"; exit 1; }
+# The COMP level-reduction meter's shell half (owner 2026-10-15: the horizontal
+# LED bar sat dark). riapp.c is an AROS shell and cannot link on the host, so
+# no host test can push the value; this asserts the wire itself exists -- the
+# GR value converted AND pushed AND the GR box repainted. Greps the statement,
+# not the comment: a comment saying "COMP_GR" without the call must fail.
+grep -q "ri_sfx_meter_set(&u->u.fx, RI_SFX_COMP_GR, grlvl)" "$ROOT/app/riapp.c" || { echo "FAIL: COMP GR meter not pushed to the canvas (riapp.c)"; exit 1; }
+grep -q "ri_live_gr_level(fgr)" "$ROOT/app/riapp.c" || { echo "FAIL: COMP GR value not converted from dB (riapp.c)"; exit 1; }
+grep -q "RI_SFX_COMP_GR," "$ROOT/app/riapp.c" || { echo "FAIL: COMP GR box never repainted (riapp.c)"; exit 1; }
 
 # Owner ear proof 2026-10-14: "PCF and COMP don't work ... the meter there
 # doesn't work ... turning the knobs makes no audible difference". One cause:

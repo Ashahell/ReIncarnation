@@ -219,5 +219,28 @@ int main(void) {
             "stereo dist OFF must render bit-identical to neutral");
     }
 
+    /* Displacing COMP must darken its gain-reduction meter (owner 2026-10-15:
+     * the COMP bar misbehaves alongside the stuck PCF/Delay meters). The GR
+     * peak-hold lives in the comp struct and no render block runs once the
+     * unit is displaced, so without an explicit reset at the transition the
+     * last reduction freezes on screen -- the same defect class as the input
+     * meters, on the other meter of the same canvas. */
+    {
+        struct RIEngine ge;
+        float gr;
+        duet(&ge, RI_ENGINE_S303A);
+        ri_engine_assign_insert(&ge, RI_ROUTE_COMP, 0);
+        ri_engine_fx_set(&ge, RI_FXID_COMP_THRESH, 0u); /* -40 dB: most sensitive */
+        ri_engine_fx_set(&ge, RI_FXID_COMP_ENABLE, 1u);
+        RI_ASSERT(ri_engine_render(&ge, LA, RA, N, SR) == N, "comp render");
+        gr = ri_engine_comp_gr(&ge);
+        RI_ASSERT(gr < 0.0f, "engaged COMP must show reduction (%.4g)",
+            (double)gr);
+        ri_engine_fx_set(&ge, RI_FXID_PCF_ENABLE, 1u); /* displaces COMP */
+        gr = ri_engine_comp_gr(&ge);
+        RI_ASSERT(gr == 0.0f, "displaced COMP GR must read 0 dB (%.4g)",
+            (double)gr);
+    }
+
     RI_RESULT("fxenable");
 }
