@@ -5829,3 +5829,55 @@ correct model and stale pixels. Two shared-state mechanisms already exist for
 the two cases that need them (the mixer board, the FX rack); a third arrival
 of the same shape should reuse `ri_sfx_rack_stale_section`'s pattern rather
 than invent a third mechanism.
+
+## P-DEC1: decorative-control sweep (owner 2026-10-14)
+
+Owner: "do that sweep" — after the fourth control this session that looked live
+and was not:
+
+1. P-FX1 — the four FX On/Off switches (had a target, unbound)
+2. P-FX4 — the displaced FX lamp (right model, stale pixels)
+3. the mixer insert rockers (right model, stale pixels)
+4. the strip mute (no target at all)
+
+Each was found one at a time because each is separate code. `t224` looks for
+the **shape**: an interactive control (KNOB/FADER/SWITCH/BUTTON/STEP/SELECTOR)
+that has hit-testable geometry but cannot leave the panel.
+
+### The sweep found the confirmed defect with no prior knowledge
+
+```
+0400 0500 0600 0700 1400  ""/"On/Off"   <- all five mixer strip mutes
+```
+
+It did not know which sections those lived in. That is the whole value of the
+sweep: the ear found one instance, the sweep found all five plus located them.
+
+### My invariant was unsound, and I am not shipping it as a gate
+
+First run flagged **135 rows**. Only ~5 are real. The rest are *entirely
+functional controls that act on panel state rather than on the engine*:
+
+- Pattern Step 1-16 and Pitch C–C+ buttons — they write steps
+- Transport Play / Stop / Rewind / Record / Tap — they drive the shell
+- Bank / Pattern / Shuffle — panel selection
+
+All have `auto_id == 0`; all do real work. So **"no engine auto_id ⇒
+decorative" is false**, and gating on it would have failed the audit 135 times
+and taught everyone to ignore the gate. `t224` therefore **reports** its census
+instead of asserting it, and the test header says so.
+
+**The missing half is owner knowledge**: what each control is *supposed* to do.
+A sweep cannot infer intent, and guessing intent is how a test ends up
+asserting nothing. METER rows are excluded by kind and stay unbound on purpose
+(t218/t219 pin that as a negative control).
+
+`AUDIT 0/0 PASS`. Gated only because it must keep running and keep printing.
+
+### Open, unchanged
+
+- **Strip mute** — needs a decision: add `RI_AUTO_MIX_MUTE` to the engine, or
+  remove the switch. The concept does not exist today.
+- **Delay FX knobs** — binding and engine handler both verified correct; the
+  break is downstream and NOT found.
+- **Insert rockers** — repaint coupling, still unfixed.
