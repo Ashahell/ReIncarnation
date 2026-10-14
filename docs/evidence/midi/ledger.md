@@ -6514,3 +6514,61 @@ MIDI **note-driven** pattern and section switches go through `note_pattern` /
 controls are panel selection with no engine target, so there is nothing to push,
 but that is an assumption rather than a census result and should be verified
 before the next MIDI change.
+
+## P-RB2 addendum: the note-path caveat was verified — and there was nothing there
+
+P-RB2 ended by saying `note_pattern`'s controls have "no engine target, so
+there is nothing to push — an **assumption** … should be verified". Verified.
+
+**The assumption was wrong in the direction of over-claiming: there was no gap
+at all.** Every control the whole Note-On path can touch is panel-only:
+
+| family | rows | bind |
+|---|---|---|
+| SYNTH1/2 — keys, Step Down/Up/Accent/Slide/Note-Pause/Back/Step/Pitch-Mode/Clear, step display | 12–29 | `NONE` |
+| 808 / 909 — 16 step switches + instrument selector | all | `NONE` |
+| PAT_* — Off / Bank / Pattern | all | `NONE` |
+
+So a G7 note legitimately pushes nothing: there is no engine target to push
+**to**. The **CC** path is the one carrying targets, and that is what P-RB2
+fixed. The mixer and FX families the note path *does* reach (74–77, 78–93) all
+have targets and all **report**, already asserted by name earlier in `t232`.
+
+### The invariant is now enforced, not asserted in a comment
+
+`if any row these families touch ever GAINS a bind, t232 fails and the map must
+be taught to report it.` A property nobody checks decays into a comment nobody
+reads — which is how the P-RB2 caveat became a claim in the first place.
+
+### Three census versions, and every earlier one was wrong
+
+This is the substance of the addendum, because the failures are more useful than
+the fix:
+
+1. **Scanned whole sections** → flagged 29 rows, every one a knob the note path
+   never touches (Cutoff, Reso, Tune). A census that cannot see which member it
+   is looking at reports nonsense.
+2. **Hand-written `RI_S808_STEP0 + 16` ranges** → swept the 808's
+   *instrument* rows (HT/Level, CY/Tune), because they share the index band.
+   The same failure as (1): ranges written by hand contain whatever they
+   contain.
+3. **Conflated "reported with a target" with "not reported"** → counted the FX
+   and mixer rows as failures when they are the *correct* case.
+
+The version that works is **driven by the map itself**: every note 12–94, both
+modes, every focus value, inspecting what the map *actually* reports. It cannot
+have a wrong range, because it never names one. The final assertion splits the
+reported set by section family — panel-only families must report nothing with a
+target; the targeted families are asserted individually by name.
+
+**And a process failure worth recording:** the first attempt to add this census
+**never ran** — the tool call failed and I read the absence of an error as
+success. The test then passed, which I took as GREEN, when in fact nothing had
+been added. Caught only because the next diagnostic printed nothing. **A test
+that passes because the edit never happened looks exactly like a test that
+passes.** Worth remembering next to the other "measure it, don't assume it" notes
+in this ledger.
+
+`AUDIT 0/0 PASS`. No production code changed in this addendum — the drum branch
+wrapping added in P-RB2 turns out to be a harmless no-op for `bind=NONE` rows,
+kept as forward-compatible rather than removed.

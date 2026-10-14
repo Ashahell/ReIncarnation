@@ -36,6 +36,10 @@
 #include "gui/sectfx.h"
 #include "gui/sectmix.h"
 #include "gui/sectui.h"
+#include "gui/sect303.h"
+#include "gui/sectpat.h"
+#include "gui/keymap.h"
+#include "gui/sect808.h"
 
 /* The transport slot is the only one note_various needs for CC 69..73; a
  * zeroed RISectUI is enough for the note tables under test, and using a real
@@ -168,6 +172,92 @@ int main(void) {
         RI_ASSERT(silent == 0, "%d mapped CC(s) change a control but report "
             "nothing to push", silent);
         RI_ASSERT(pushed > 40, "mapped CCs that report: %d", pushed);
+    }
+
+    /* ================= the note path: VERIFIED, and there is no gap =========
+     * The P-RB2 commit ended by saying note_pattern's controls have "no engine
+     * target, so there is nothing to push -- an ASSUMPTION ... should be
+     * verified". Verified. And the assumption was wrong in the direction of
+     * OVER-CLAIMING: there is nothing wrong there at all.
+     *
+     * Every control the Note-On path can touch is panel-only, so a G7 note
+     * legitimately pushes nothing: there is no engine target to push TO. The
+     * CC path is the one that carries targets, and that is the path P-RB2
+     * fixed.
+     *
+     * THE CENSUS IS DRIVEN BY THE MAP, not by hand-written index ranges. Two
+     * earlier versions tried ranges and both were wrong: the first scanned
+     * whole sections and flagged 29 rows that were knobs the note path never
+     * touches, the second used RI_S808_STEP0 + 16 and swept the 808's
+     * *instrument* rows (HT/Level, CY/Tune) because they share the index band.
+     * A census whose ranges are written by hand reports whatever those ranges
+     * happen to contain. Driving every note in both modes with every focus and
+     * inspecting what the map ACTUALLY reports cannot be wrong that way.
+     *
+     * The invariant is now ENFORCED rather than left in a comment: if any row
+     * the note path reaches ever GAINS a bind, this fails and the map must be
+     * taught to report it. A property nobody checks decays into a comment
+     * nobody reads, which is how the P-RB2 caveat became a claim at all. */
+    {
+        unsigned nn, f, mode;
+        int seen = 0, panel_only_reported = 0, leak = 0;
+        for (f = 0; f < RI_FOCUS_COUNT; f++)
+            for (mode = 0; mode < 2u; mode++)
+                for (nn = 12u; nn <= 94u; nn++) {
+                    const struct RICtlDef *d;
+                    fresh();
+                    panel.focus = (uint8_t)f;
+                    panel.opts.select_patterns = (uint8_t)(mode ? 1 : 0);
+                    panel.opts.program_synth = (uint8_t)(mode ? 0 : 1);
+                    ri_midi_msg(&m, &panel, 0x90u, (uint8_t)nn, 127u);
+                    if (!m.touched)
+                        continue;
+                    seen++;
+                    d = ri_ctlreg_find(m.touch_reg);
+                    if (!d)
+                        continue;
+                    /* Split by FAMILY, because "reported with a target" and
+                     * "not reported" are different things and conflating them
+                     * was the bug in the previous two versions of this census.
+                     * The mixer and FX families DO carry targets and DO report
+                     * -- asserted individually above and below. The families
+                     * here (synth / drum / pattern) are supposed to be
+                     * panel-only, so anything they report must have no target;
+                     * if one ever gains a bind, that is the moment the map has
+                     * to learn to push it, and this is where it gets noticed. */
+                    if (d->section == RI_SEC_SYNTH1 || d->section == RI_SEC_SYNTH2
+                        || d->section == RI_SEC_808 || d->section == RI_SEC_909
+                        || (d->section >= RI_SEC_PAT_SYNTH1
+                            && d->section <= RI_SEC_PAT_LEVI)) {
+                        panel_only_reported++;
+                        if (ri_ctlreg_auto_id(d) != 0u) {
+                            leak++;
+                            printf("  NOTE-PATH LEAK %04x %s/%s bind=%u\n",
+                                d->reg_id, d->group, d->legend, d->bind);
+                        }
+                    }
+                }
+        RI_ASSERT(seen > 20, "the note-path sweep actually exercised controls (%d)", seen);
+        RI_ASSERT(panel_only_reported > 0,
+            "and reached the panel-only families it is reasoning about (%d)",
+            panel_only_reported);
+        RI_ASSERT(leak == 0,
+            "%d panel-only control(s) now HAVE an engine target -- the map must "
+            "be taught to report them, or their lamps move and their sounds do "
+            "not", leak);
+    }
+
+    /* And the two named rows the caveat was about, so the reader does not have
+     * to take a census on trust. */
+    {
+        const struct RICtlDef *bank = ri_ctlreg_find(
+            (uint16_t)((RI_SEC_PAT_SYNTH1 << 8) | RI_SPAT_BANK));
+        const struct RICtlDef *accent = ri_ctlreg_find(
+            (uint16_t)((RI_SEC_SYNTH1 << 8) | RI_S303_ACCENT));
+        RI_ASSERT(bank && ri_ctlreg_auto_id(bank) == 0u,
+            "PAT Bank has no engine target -- pushing nothing is correct");
+        RI_ASSERT(accent && ri_ctlreg_auto_id(accent) == 0u,
+            "303A Step/Accent has no engine target either -- also correct");
     }
 
     RI_RESULT("midi_push");
