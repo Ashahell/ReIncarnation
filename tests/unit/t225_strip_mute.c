@@ -102,7 +102,8 @@ int main(void) {
 
     /* Muted: bit-identical to neutral. */
     one(&e, 0);
-    RI_ASSERT(ri_engine_set_mute(&e, 0u, 1u) == 0, "mute accepted (section INDEX 0 = 303A; RI_ENGINE_S303A is a 0x01 bitmask, not an index)");
+    RI_ASSERT(ri_engine_set_enable(&e, 0u, 0u) == 0,
+        "enable accepted (section INDEX 0; RI_ENGINE_S303A is a 0x01 bitmask). 0 = OFF = silenced");
     RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "muted render");
     RI_ASSERT(!differ(LA, LB, N),
         "a muted strip must render bit-identical to neutral");
@@ -110,9 +111,9 @@ int main(void) {
     /* Unmuting restores exactly what was there -- a mute is not a one-way
      * door, same rule the FX rack follows. */
     one(&e, 0);
-    ri_engine_set_mute(&e, 0u, 1u);
-    ri_engine_set_mute(&e, 0u, 0u);
-    RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "unmuted render");
+    ri_engine_set_enable(&e, 0u, 0u);   /* OFF */
+    ri_engine_set_enable(&e, 0u, 1u);   /* back ON */
+    RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "re-enabled render");
     RI_ASSERT(differ(LA, LB, N), "unmuting must restore the strip");
 
     /* A muted strip must not feed the shared delay line. The send is summed
@@ -131,8 +132,8 @@ int main(void) {
     ri_engine_fx_set(&e, RI_FXID_DELAY_ENABLE, 1u);
     ri_engine_fx_set(&e, RI_FXID_DELAY_STEPS, 1u);
     ri_engine_fx_set(&e, RI_FXID_DELAY_FB, 90u);
-    ri_engine_set_mute(&e, 0u, 1u);
-    RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "muted send render");
+    ri_engine_set_enable(&e, 0u, 0u);   /* OFF */
+    RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "disabled send render");
     RI_ASSERT(!differ(LA, LB, N),
         "a muted strip must not keep colouring the shared delay");
 
@@ -140,10 +141,10 @@ int main(void) {
      * must fail rather than write past the array. */
     one(&e, 0);
     for (s = 0; s < RI_ROUTE_NSECTIONS; s++)
-        RI_ASSERT(ri_engine_set_mute(&e, s, 1u) == 0, "mute section %u", s);
-    RI_ASSERT(ri_engine_set_mute(&e, RI_ROUTE_NSECTIONS, 1u) == 2,
+        RI_ASSERT(ri_engine_set_enable(&e, s, 1u) == 0, "mute section %u", s);
+    RI_ASSERT(ri_engine_set_enable(&e, RI_ROUTE_NSECTIONS, 1u) == 2,
         "out-of-range section refused");
-    RI_ASSERT(ri_engine_set_mute(0, 0u, 1u) == 2, "null engine refused");
+    RI_ASSERT(ri_engine_set_enable(0, 0u, 1u) == 2, "null engine refused");
 
     /* THE WIRING. A mute that the panel cannot reach is the defect we just
      * fixed; one it can reach but that resolves to no key is the same defect

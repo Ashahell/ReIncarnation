@@ -101,15 +101,19 @@ static void direct(struct RIEngine *e, uint16_t key, uint8_t val) {
                 ri_route_assign(&e->route, unit, RI_ROUTE_NONE);
             return;
         }
-        /* Strip mute (owner 2026-10-14, "add it"). Mirrors engine.c: the
-         * MASTER strip has no mute -- its fader is the level. Note this
+        /* Strip On/Off (owner 2026-10-14, "add it"). `val` is ENABLED.
+         * Mirrors engine.c: the MASTER strip has no On/Off -- its fader is
+         * the level. Note this
          * direct() is a REFERENCE COPY of the engine dispatch, so mirroring
          * it proves the panel path and the direct path agree, not that the
-         * engine is right; t225 is what proves the engine is right. */
+         * engine is right. That caveat is not academic: this gate stayed
+         * GREEN through an inverted switch, because both sides were inverted
+         * identically. t229 is what proves the engine is right -- it drives
+         * the panel value through the real bridge and asserts on the RENDER. */
         if (lo == RI_AUTO_MIX_MUTE) {
             if (strip == RI_AUTO_STRIP_MASTER)
                 return;
-            ri_engine_set_mute(e, (uint32_t)owner, val);
+            ri_engine_set_enable(e, (uint32_t)owner, val);
             return;
         }
         if (strip == RI_AUTO_STRIP_MASTER) {

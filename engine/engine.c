@@ -88,7 +88,7 @@ void ri_engine_init(struct RIEngine *e) {
     for (i = 0; i < RI_ROUTE_NSECTIONS; i++) {
         e->pan[i] = RI_ENGINE_PAN_CENTER;
         e->send[i] = 0;
-                e->mute[i] = 0;
+                e->enable[i] = 1u; /* strip On/Off defaults ON: the panel's def_v */
         e->level[i] = 127u; /* unity: the pre-fader engine, bit-identical */
         e->lvl_applied[i] = 1.0f;
     }
@@ -209,9 +209,10 @@ static void engine_section_stereo(struct RIEngine *e, uint32_t section,
     t = (double)e->send[section] / 127.0;
     sg = t * t;
     engine_pan_gains(e->pan[section], &gl, &gr);
-    /* Muted strip: no mixer output AND no send contribution (owner
-     * 2026-10-14). sg is zeroed too -- see ri_engine_set_mute. */
-    if (section < RI_ROUTE_NSECTIONS && e->mute[section]) {
+    /* Strip switched OFF: no mixer output AND no send contribution (owner
+     * 2026-10-14). sg is zeroed too -- see ri_engine_set_enable. Tested by
+     * the SIGN, not the name: `enable` is 1 when audible, so silence is !1. */
+    if (section < RI_ROUTE_NSECTIONS && !e->enable[section]) {
         gl = 0.0;
         gr = 0.0;
         sg = 0.0;
@@ -292,9 +293,10 @@ static void engine_section(struct RIEngine *e, uint32_t section,
     t = (double)e->send[section] / 127.0;
     sg = t * t; /* square law (E0 P-17), 0 -> exactly 0 */
     engine_pan_gains(e->pan[section], &gl, &gr);
-    /* Muted strip: no mixer output AND no send contribution (owner
-     * 2026-10-14). sg is zeroed too -- see ri_engine_set_mute. */
-    if (section < RI_ROUTE_NSECTIONS && e->mute[section]) {
+    /* Strip switched OFF: no mixer output AND no send contribution (owner
+     * 2026-10-14). sg is zeroed too -- see ri_engine_set_enable. Tested by
+     * the SIGN, not the name: `enable` is 1 when audible, so silence is !1. */
+    if (section < RI_ROUTE_NSECTIONS && !e->enable[section]) {
         gl = 0.0;
         gr = 0.0;
         sg = 0.0;
@@ -480,10 +482,10 @@ int ri_engine_set_pan(struct RIEngine *e, uint32_t section, uint8_t v) {
     return 0;
 }
 
-int ri_engine_set_mute(struct RIEngine *e, uint32_t section, uint8_t v) {
+int ri_engine_set_enable(struct RIEngine *e, uint32_t section, uint8_t v) {
     if (!e || section >= RI_ROUTE_NSECTIONS)
         return 2;
-    e->mute[section] = v ? 1u : 0u;
+    e->enable[section] = v ? 1u : 0u;
     return 0;
 }
 
@@ -1260,8 +1262,10 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val,
             : strip == RI_AUTO_STRIP_LEVI ? 4 : (int)strip;
         if (lo == RI_AUTO_MIX_MUTE) {
             if (strip == RI_AUTO_STRIP_MASTER)
-                return;   /* no master mute; the master fader is the level */
-            ri_engine_set_mute(e, (uint32_t)owner, val);
+                return;   /* no master On/Off; the master fader is the level */
+            /* `val` is ENABLED: the panel row is a switch with def_v = 1 and
+             * its lamp reads `val != 0`, so 1 is "on" and must be audible. */
+            ri_engine_set_enable(e, (uint32_t)owner, val);
             return;
         }
         if (lo >= RI_AUTO_MIX_DIST && lo < RI_AUTO_MIX_DIST + RI_ROUTE_NUNITS) {

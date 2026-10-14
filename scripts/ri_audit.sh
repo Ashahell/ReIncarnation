@@ -1159,6 +1159,12 @@ bash "$ROOT/scripts/ri_build_host.sh" test t227_mix_insert_lamp >/dev/null || { 
 # whatever changed; t228 pins the one decision that is not plumbing -- which
 # controls get one. METER rows are excluded because the meter loops own them.
 bash "$ROOT/scripts/ri_build_host.sh" test t228_press_repaint >/dev/null || { echo "FAIL: t228_press_repaint (which controls need a repaint when their value changes)"; exit 1; }
+# The JOIN between the strip On/Off switch and the engine flag. Owner
+# 2026-10-14: "turn off all 5 green squares ... we still hear all sounds.
+# when we turn them all on again, it's all quiet." Exactly inverted, and
+# t225 + t116 both stayed green through it. t229 drives the panel value
+# through the real bridge and asserts on the RENDER, which neither did.
+bash "$ROOT/scripts/ri_build_host.sh" test t229_mute_join >/dev/null || { echo "FAIL: t229_mute_join (strip On/Off sign: lamp-on must be audible)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

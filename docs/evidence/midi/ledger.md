@@ -6144,3 +6144,76 @@ whole canvas), and the predicate keeps meters out of it, but **the 1.36 s
 stall instrumentation in `rsection.mcc.c` (`dpr_rep` / `dpr_run_max`) is the
 thing to watch** on the next lane session. If frame time regresses, that
 counter names the box.
+
+## P-MIX3: the strip On/Off was inverted — and two green gates missed it
+
+Owner ear proof, Dell lane, build `514f4ee`, 2026-10-14:
+
+> "when we turn off all 5 green squares in the Mixer, we still hear all
+> sounds. when we turn them all on again, it's all quiet. that's not correct.
+> it should be quiet when all green squares are off."
+
+**Exactly inverted.** Both halves were individually correct:
+
+```
+panel   R(MIX_*, 0, SWITCH, "", "On/Off", 0, 1, 1, ...)   def_v = 1
+        b->val[strip][0] toggles; the lamp is `val != 0`
+            -> 1 means ENABLED, lamp lit, audible
+engine  ri_engine_set_mute(e, s, v):   mute[s] = v ? 1 : 0
+            -> 1 means MUTED
+```
+
+`sync_values` pushes the panel value **verbatim**, so a lit square pushed 1 and
+the engine read that as *mute*. Five off → five pushes of 0 → nothing muted →
+all five audible. Five on → five pushes of 1 → everything muted → silence.
+
+### Why t225 AND t116 both stayed green, which is the real finding
+
+- **`t225` tested the ENGINE in isolation**: `set_mute(s, 1)` silences. True,
+  and worth nothing, because nothing checked *which value the panel sends*.
+- **`t116` round-trips panel → bridge → apply** against a `direct()` that is a
+  **reference mirror** of the engine's dispatch. Both sides were inverted
+  identically, so they agreed perfectly and the gate confirmed nothing.
+
+`t116`'s own comment says it *"proves the panel path and the direct path agree,
+not that either is right."* That caveat cost nothing until this session, when it
+hid an inversion for a full build. **The lesson generalises: a test that
+compares two implementations of the same rule cannot detect a wrong rule. Only
+one that asserts on the OUTPUT can.**
+
+### What replaced them
+
+`t229` drives the panel value through the **real** control plane — registry id →
+`ri_panel_ctl_send` → drain → apply, the exact path `sync_values` uses — and
+asserts on what comes out of the **renderer**:
+
+- all five squares pushed `0` → **bit-identical to neutral** (silent)
+- all five pushed `1` → **audible**
+- one *non-sounding* strip off → **still audible**
+- the *sounding* strip off → **silent**
+
+Those last two are the discriminating pair: a fix that zeroes or inverts the
+whole array passes the first two and fails them.
+
+### Naming, because the name was half the bug
+
+`ri_engine_set_mute` → `ri_engine_set_enable`, and `e->mute[]` → `e->enable[]`
+defaulting to **1**. The flag is now named for what the **panel** means by the
+value, because the panel is what feeds it. The render guard is written as
+`!e->enable[section]` and the comment says it is *"tested by the SIGN, not the
+name"* — so the next reader cannot flip it by matching the identifier.
+
+`RED` was `FAIL 2`, both being the owner's report verbatim. **`AUDIT 0/0
+PASS`**, AROS build 1205760 bytes.
+
+### Two bugs were mine, in the test
+
+1. **The neutral baseline loaded the notes too**, so `differ` was trivially
+   false and the all-off case *passed against itself* before I fixed it. Same
+   trap as `t225`, now the second time — it is a property of how I write these
+   fixtures and deserves a permanent guard.
+2. "One of five off must not silence the mix" was simply **wrong**: the fixture
+   sounds only section 0, so switching section 0 off *must* be silent. The test
+   was asserting the bug.
+
+**Not proven by ear.** Nothing else in the session's work changed.

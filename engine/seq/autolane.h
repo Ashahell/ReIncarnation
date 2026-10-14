@@ -60,8 +60,10 @@ struct RIAutoPass {
 #define RI_AUTO_MIX_PAN 1u
 #define RI_AUTO_MIX_SEND 2u
 #define RI_AUTO_MIX_DIST 3u /* + RI_ROUTE_* unit: 3 dist, 4 pcf, 5 comp */
-/* Strip mute (owner 2026-10-14: "add it"). Must sit clear of DIST+UNITS
- * (3..5) or it would steal an insert. */
+/* Strip On/Off (owner 2026-10-14: "add it"). Must sit clear of DIST+UNITS
+ * (3..5) or it would steal an insert. The VALUE IS ENABLED, not muted: the
+ * registry row is a switch with def_v = 1 whose lamp reads `val != 0`, so 1
+ * means on and audible. Getting that backwards inverted the switch (t229). */
 #define RI_AUTO_MIX_MUTE 6u
 #define RI_AUTO_STRIP_MASTER 4u
 #define RI_AUTO_STRIP_LEVI 5u /* strip 5, route section 4 (never the master owner) */
