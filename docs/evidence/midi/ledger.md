@@ -5764,3 +5764,68 @@ ear-proof question rather than merely corroborating it.
 
 Evidence preserved at `docs/evidence/midi/dell8-pfx4-earproof.log` (copied out
 of `/tmp` at capture time, because `/tmp` is tmpfs and dies on reboot).
+
+## Indicator audit (owner 2026-10-14: "make sure that all indicators work as intended")
+
+P-FX4 fixed ONE instance of what is a class, so the class needs an inventory
+rather than an assumption that it was unique. Verdicts below are only what was
+**verified in code this session**; anything unchecked is listed as unchecked
+rather than guessed.
+
+| indicator | state changes on another canvas? | model | pixels | verdict |
+|---|---|---|---|---|
+| FX On/Off lamps (4 canvases) | **yes** — rack is shared | derived (`t222`) | **stale, FIXED in P-FX4** | OK |
+| FX meters (4) | n/a | peak zeroed at transition (`e846eff`) | meter box repainted on level change | OK |
+| COMP level-reduction bar | n/a | GR reset + per-slice restart (`e846eff`) | box repainted | OK |
+| **Mixer insert rockers** (Dist/PCF/Comp × 4 strips + Master) | **yes** — route is shared | derived (`ri_smix_led` reads `b->route`) | **STALE — open** | **BUG** |
+| Mixer mutes, faders, pans, sends | no — per-strip `b->val[strip][idx]` | stored | own canvas repaints | OK |
+| Transport (single canvas `C_TR`) | no | stored | own canvas | OK |
+| **MIDI CC landing on a control** | **likely yes** | pushed like any control | **unverified** | unchecked |
+
+### The mixer is the same bug, on a bigger surface
+
+`ri_smix_led` derives the insert lamp from the **shared** board route:
+
+```c
+return ri_route_owner(&b->route, (uint32_t)unit) == owner_of(section, ri_smix_strip(section));
+```
+
+That is structurally identical to the FX rack, and `ri_sui_bind_board` exists
+for exactly the same reason `ri_sfx_rack_take` had to. So pressing **808's PCF
+insert** turns Synth1's PCF insert off **in the model**, correctly — and
+`t73` already pins that ("E5 88 808 PCF steals it"). But the Synth1 canvas
+(`C_MXA`) gets no event of its own, and `meter_round` refreshes **only meter
+boxes, only on level change**:
+
+```c
+if (lvl[k] == s_meter_shown[k] || !u || !u->u.mix.board) continue;
+...
+ri_rsection_refresh_box(s_canvas[c_mix_canvas[k]], x0, y0, x1, y1);
+```
+
+So the insert rocker keeps stale pixels across **five canvases** (`C_MXA`,
+`C_MXB`, `C_MX9`, `C_MXL`, `C_MST`) — a larger surface than the four FX
+canvases P-FX4 covered. **Master Comp is the same case**: master owns COMP
+until a strip's Comp insert steals it, and `C_MST` is a separate canvas.
+
+This is a **prediction from code, not an ear proof.** It should be checked on
+the lane before it is treated as confirmed: on the Mixer tab, turn on Synth 1's
+PCF insert, then 808's, and watch whether Synth 1's rocker goes dark.
+
+### The shape of the fix is already settled by P-FX4
+
+Record the displaced owner in the shared board, expose a portable
+`ri_smix_stale_section()` beside `ri_sfx_rack_stale_section()`, and have the
+shell repaint that canvas's insert box. The P-FX4 lesson applies directly:
+the decision must live in **portable** code, because `app/riapp.c` cannot link
+on the host and a decision placed there is untestable by construction — which
+is exactly how `mutate_fx_lamp` m6 survived its first run.
+
+### Why the class exists at all
+
+`sync_values` pushes and repaints **only the last-hit canvas**. Any control
+whose value changes as a *side effect* of a press elsewhere therefore has a
+correct model and stale pixels. Two shared-state mechanisms already exist for
+the two cases that need them (the mixer board, the FX rack); a third arrival
+of the same shape should reuse `ri_sfx_rack_stale_section`'s pattern rather
+than invent a third mechanism.
