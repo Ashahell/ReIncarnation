@@ -1149,6 +1149,11 @@ bash "$ROOT/scripts/ri_build_host.sh" test t225_strip_mute >/dev/null || { echo 
 # two sessions conflated, not a defect. t226 proves every hop and formats the
 # one line that makes the next such report answerable from the log.
 bash "$ROOT/scripts/ri_build_host.sh" test t226_delay_fx_diag >/dev/null || { echo "FAIL: t226_delay_fx_diag (Delay FX knob path, hop by hop + lane delay-state line)"; exit 1; }
+# Mixer insert rockers. The model was always right -- the lane log shows the
+# value falling to zero -- but nothing ever repainted the box, so the lamp
+# froze lit (owner 2026-10-14). t227 pins the portable half: the board
+# records which strip a radio steal displaced.
+bash "$ROOT/scripts/ri_build_host.sh" test t227_mix_insert_lamp >/dev/null || { echo "FAIL: t227_mix_insert_lamp (mixer board records the displaced strip for repaint)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

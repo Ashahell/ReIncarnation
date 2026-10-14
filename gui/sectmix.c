@@ -26,6 +26,24 @@ static int owner_of(uint32_t section, int strip) {
     return strip;
 }
 
+/* Route owner -> section: the inverse of owner_of. A route owner is a NUMBER
+ * (0..4 plus master) but the lamp lives on a SECTION, and the two are not the
+ * same numbering -- strip 4 is the master strip yet route section 4 is the
+ * Levi. Guessing the inverse here would repaint the wrong canvas, which is the
+ * failure mode this whole change exists to remove. */
+static uint32_t section_of_owner(int owner) {
+    switch (owner) {
+    case 0: return RI_SEC_MIX_SYNTH1;
+    case 1: return RI_SEC_MIX_SYNTH2;
+    case 2: return RI_SEC_MIX_808;
+    case 3: return RI_SEC_MIX_909;
+    case 4: return RI_SEC_MIX_LEVI;
+    case RI_ROUTE_MASTER: return RI_SEC_MASTER;
+    default: break;
+    }
+    return RI_SMX_STALE_NONE;
+}
+
 /* insert unit behind a switch, or -1 */
 static int unit_of(uint32_t section, uint32_t idx) {
     if (section == RI_SEC_MASTER)
@@ -47,6 +65,16 @@ void ri_smix_init(struct RIMixBoard *b) {
         b->meter[s][0] = b->meter[s][1] = 0;
     }
     ri_route_init(&b->route);
+    b->stale = RI_SMX_STALE_NONE;
+}
+
+uint32_t ri_smix_stale_section(struct RIMixBoard *b) {
+    uint32_t s;
+    if (!b)
+        return RI_SMX_STALE_NONE;
+    s = b->stale;
+    b->stale = RI_SMX_STALE_NONE;   /* once per displacement, not per frame */
+    return s;
 }
 
 int ri_smix_press(struct RIMixBoard *b, uint32_t section, uint32_t idx) {
@@ -56,7 +84,15 @@ int ri_smix_press(struct RIMixBoard *b, uint32_t section, uint32_t idx) {
         return 0;
     unit = unit_of(section, idx);
     if (unit >= 0) {       /* radio: on here steals it; on again releases it */
-        int own = ri_route_owner(&b->route, (uint32_t)unit) == owner_of(section, strip);
+        int prev = ri_route_owner(&b->route, (uint32_t)unit);
+        int own = prev == owner_of(section, strip);
+        /* Record who loses the lamp. A strip that is DISPLACED lives on a
+         * different canvas and gets no event of its own, so without this its
+         * rocker freezes lit (owner 2026-10-14). Releasing is NOT the mirror
+         * of claiming: it changes only the pressed canvas, so it displaces
+         * nobody. Nothing is owed when nobody else held the unit. */
+        b->stale = (!own && prev != RI_ROUTE_NONE)
+            ? (uint8_t)section_of_owner(prev) : RI_SMX_STALE_NONE;
         return ri_route_assign(&b->route, (uint32_t)unit, own ? RI_ROUTE_NONE : owner_of(section, strip)) != -2;
     }
     b->val[strip][idx] = (int16_t)(b->val[strip][idx] ? 0 : 1);

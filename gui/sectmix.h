@@ -39,13 +39,27 @@ struct RIMixBoard {
     int16_t val[RI_SMIX_NSTRIPS][RI_SMIX_NCTL]; /* switches 5..7 unused: route */
     uint8_t meter[RI_SMIX_NSTRIPS][2];          /* 0..127, fed by the engine */
     struct RIRoute route;
+    /* Which section's insert lamp the LAST press displaced, or
+     * RI_SMX_STALE_NONE. Insert routing is radio across strips and the strips
+     * are separate canvases, so the loser gets no event of its own and its
+     * lamp would freeze lit (owner 2026-10-14). Same shape as the FX rack's
+     * `displaced` (P-FX4). */
+    uint8_t stale;
 };
 
 void ri_smix_init(struct RIMixBoard *b);
 /* Strip of a section (RI_SEC_MIX_* -> 0..3, RI_SEC_MASTER -> 4), -1 otherwise. */
 int ri_smix_strip(uint32_t section);
 /* Same contract as the other sections (return 1 when state changed). */
+/* Sentinel for "no canvas owes a repaint". Not a RI_SEC_* value. */
+#define RI_SMX_STALE_NONE 0xFFu
 int ri_smix_press(struct RIMixBoard *b, uint32_t section, uint32_t idx);
+/* Section whose insert lamp needs repainting after the last press, or
+ * RI_SMX_STALE_NONE. READS AND CLEARS, so it fires once per displacement.
+ * Portable deliberately: the only other home is app/riapp.c, which cannot link
+ * on the host -- a decision placed there is untestable by construction, which
+ * is exactly how mutate_fx_lamp m6 survived its first run. */
+uint32_t ri_smix_stale_section(struct RIMixBoard *b);
 int ri_smix_set_value(struct RIMixBoard *b, uint32_t section, uint32_t idx, int v);
 int ri_smix_reset(struct RIMixBoard *b, uint32_t section, uint32_t idx);
 int ri_smix_value(const struct RIMixBoard *b, uint32_t section, uint32_t idx);

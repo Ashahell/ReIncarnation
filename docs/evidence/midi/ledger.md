@@ -6007,3 +6007,81 @@ and worth closing.
 
 **Still open:** the FX knobs need one ear check *with the send up*, in a single
 session. That has never happened and is the only thing left to prove here.
+
+## P-MIX2: the mixer insert rockers were never repainted (P-FX4's shape, again)
+
+Owner ear proof, mixer, 2026-10-14:
+
+> "various buttons like comp, PCF and dist light up when pressed once, but do
+> not turn off when pressed a second time"
+
+### The model was right all along, and the log proves it
+
+Reconstructing the value sequences from the Dell session rather than assuming:
+
+```
+0605: 1 0    808 Dist     -- turns off correctly
+1405: 1 0    Levi Dist    -- turns off correctly
+0405: 1 1    Synth1 Dist  -- NOT stuck: a radio STEAL. Synth1 owned it, 808
+                            took it, Synth1 took it back. t73 already pins
+                            "808 PCF steals it".
+```
+
+So every value is correct and the **lamp** was the broken part.
+
+### Why the lamp froze
+
+Two facts, both verified this session:
+
+1. `rsection.mcc.c` contains **no `Invalidate` and no self-redraw**. Every
+   repaint is an explicit `ri_rsection_refresh` from the shell.
+2. `sync_values` — the per-frame loop that runs on every panel change —
+   **pushes values but repaints nothing** (until P-FX4 added the displaced FX
+   lamp). There was no mixer equivalent.
+
+And on AROS Zune requests and draws are **1:1** — `rsection.mcc.c` records that
+`mui_redraw.c` calls `MUIM_Draw` inline with no coalescing. So an unrefreshed
+control is not "eventually right"; it stays frozen until *unrelated* code
+refreshes the whole canvas. That is exactly why the rockers appeared to light
+up: the mixer meter loop redraws the canvas whenever a strip level changes, and
+the rocker picks up its value as a side effect. Press again — nothing refreshes
+— and the lamp freezes.
+
+### The fix, and the trap inside it
+
+`RIMixBoard` gained `stale`, set by `ri_smix_press` when a steal displaces a
+different owner, and `ri_smix_stale_section()` reads-and-clears it.
+
+**The trap: a route owner is a NUMBER (0..4 plus master) and a lamp lives on a
+SECTION, and the two numberings are not the same.** Strip 4 is the master
+strip, yet route section 4 is the Levi — `sectmix.c` says so in a comment
+already. Inferring the inverse would have repainted the *wrong canvas*, which
+is the exact failure this change exists to remove, so `section_of_owner()` is
+written out explicitly and `t227` pins each mapping.
+
+Releasing is **not** the mirror of claiming: it changes only the pressed
+canvas and displaces nobody (same asymmetry as the FX rack, P-FX2/t222).
+
+`RED` was `FAIL 2` on assertions — both steal cases — after first landing a
+declared-but-stubbed API, because a build failure proves nothing. `AUDIT 0/0
+PASS`. AROS build 1205576 bytes.
+
+### The pattern across this session
+
+Four defects, one shape:
+
+| | defect | shared state | who repaints |
+|---|---|---|---|
+| P-FX4 | displaced FX lamp | `RIFxRack` | nobody — fixed |
+| P-MIX2 | displaced insert rocker | `RIMixBoard.route` | nobody — fixed here |
+| P-FX1 | FX enable unbound | none | — fixed |
+| P-MIX1 | strip mute had no target | none | — fixed |
+
+**Two of the four were "correct model, no repaint".** The root cause is that
+repaint is not coupled to value change, and `sync_values` — the loop that sees
+every change — does not repaint at all. P-FX4 and P-MIX2 each patched a caller.
+Coupling the repaint to the change itself would have covered both, and the
+remaining instances, at one site. That is the better fix and it is **not** what
+I did; recorded here as the obvious next step rather than smuggled in.
+
+**Not proven by ear.**
