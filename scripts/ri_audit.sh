@@ -1144,6 +1144,11 @@ bash "$ROOT/scripts/ri_build_host.sh" test t224_decorative_sweep >/dev/null || {
 # target at all, so they lit and did nothing. t225 also pins that a muted strip
 # stops feeding the SHARED delay line, not just the mixer output.
 bash "$ROOT/scripts/ri_build_host.sh" test t225_strip_mute >/dev/null || { echo "FAIL: t225_strip_mute (mixer strip mute silences the section AND its delay send)"; exit 1; }
+# Delay FX panel knobs, hop by hop, plus the lane diagnostic line. Owner
+# 2026-10-14: "Delay in the Mixer works audibly, in FX it doesn't" -- which was
+# two sessions conflated, not a defect. t226 proves every hop and formats the
+# one line that makes the next such report answerable from the log.
+bash "$ROOT/scripts/ri_build_host.sh" test t226_delay_fx_diag >/dev/null || { echo "FAIL: t226_delay_fx_diag (Delay FX knob path, hop by hop + lane delay-state line)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

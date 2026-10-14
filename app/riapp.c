@@ -1235,6 +1235,7 @@ static void midi_drain(void) {
  * travel their state paths above. */
 static void sync_values(void) {
     int i;
+    int fx_touched = 0;
     for (i = 0; i < 15; i++) {
         int c = s_val_canvas[i];
         IPTR ch = 0;
@@ -1242,6 +1243,8 @@ static void sync_values(void) {
         if (ch == s_changes[c])
             continue;
         s_changes[c] = ch;
+        if (c >= C_FX0 && c <= C_FX3)
+            fx_touched = 1;
         if (s_dg[c] && s_dg[c]->last_hit != 0xFFFFu) {
             /* Re-tag to the canvas's own section: the 303B canvas shares
              * the SYNTH1 geometry table, so raw hit ids arrive as 303A.
@@ -1263,6 +1266,20 @@ static void sync_values(void) {
                 evlog("CTL", "%04x=%d", reg, val);
             }
         }
+    }
+    /* DELAY STATE LINE (owner 2026-10-14). "Delay in the Mixer works
+     * audibly, in FX it doesn't" turned out to be TWO SESSIONS conflated: the
+     * one with 142 F.Back moves had the send at 0, so there was nothing to
+     * hear being modulated; the one where the delay was audible never touched
+     * the FX knobs. Nothing on screen showed that, and it cost two ear-proof
+     * rounds to reconstruct. Every quantity that decides audibility now
+     * lands in the lane log together, so the next "delay does nothing" is one
+     * grep. Formatted in portable code (ri_core_delay_diag) so it is
+     * host-tested rather than grep-gated. */
+    if (fx_touched) {
+        char dline[128];
+        if (ri_core_delay_diag(&s_core, dline, sizeof dline) > 0)
+            evlog("DLY", "%s", dline);
     }
     /* DISPLACED FX LAMP (owner ear proof 2026-10-14: "if Delay is turned on,
      * and you then turn on Comp ... the green square on Delay remains

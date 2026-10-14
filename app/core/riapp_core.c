@@ -2,9 +2,11 @@
  * Moved from app/riapp.c (demo song, bank table, transport, meters);
  * the MUI/AHI shell keeps its shadows and backend choice.
  */
+#include <stdio.h>
 #include "app/core/riapp_core.h"
 
 #include "engine/engine.h"
+#include "engine/seq/autolane.h"
 #include "gui/livestate.h"
 #include "gui/ctlreg.h"
 
@@ -279,4 +281,27 @@ int ri_core_fx_meters(struct RIAppCore *c, int *lvl, float *comp_gr) {
     if (comp_gr)
         *comp_gr = m.comp_gr;
     return 1;
+}
+
+int ri_core_delay_diag(const struct RIAppCore *c, char *buf, uint32_t cap) {
+    const struct RIEngine *e;
+    int n;
+    /* 96 is comfortably above the longest possible line; refuse rather than
+     * truncate, because a half-written diagnostic that looks complete is
+     * worse than no diagnostic at all. */
+    if (!c || !buf || cap < 96u)
+        return -1;
+    e = &c->session.eng;
+    /* Report the Levi strip's send: it is the one this app plays, and the
+     * delay is a shared send summed across strips, so one number cannot
+     * describe "is anything feeding the line" on its own. */
+    n = snprintf(buf, cap,
+        "send=%u fb=%u steps=%u pan=%u live=%u line=%u",
+        (unsigned)e->send[RI_AUTO_STRIP_LEVI - 1u],
+        (unsigned)((int)(e->delay.fb * (127.0f / 0.8f)) & 127),
+        (unsigned)e->delay.steps,
+        (unsigned)e->dret_pan,
+        (unsigned)e->fx_on[RI_ENGINE_FX_DELAY],
+        (unsigned)(e->dline != 0));
+    return (n > 0 && (uint32_t)n < cap) ? n : -1;
 }

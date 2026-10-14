@@ -5944,3 +5944,66 @@ bitmask** rather than a section index — which had me muting section 1 and
 proving nothing about section 0.
 
 **Not proven by ear.**
+
+## P-DLY1: the Delay FX knobs are fine — the report was two sessions conflated
+
+Owner ear proof, 2026-10-14:
+
+> "Delay in the Mixer works audibly, in FX it doesn't."
+
+### The diagnostic passed on the first honest run, and that is the finding
+
+`t226` walks the path one hop at a time and names the dead hop. Every hop is
+alive:
+
+| hop | what it proves | result |
+|---|---|---|
+| 1 | registry rows resolve to real engine ids | `F.Back → 0x0A01`, `Steps → 0x0A0B`, `Pan → 0x0A0F` |
+| 2 | the panel model accepts and holds the value | ok |
+| 3 | `ri_engine_fx_set` moves the engine struct | `fb 0.30 → 0.76` |
+| 4 | **the panel bridge** — never tested before | delivers the event, engine moves |
+| 5 | the render actually differs | `fb 0` vs `0.75` changes the output |
+
+Hop 4 is the one that had no coverage at all. It passes.
+
+### So why did it look dead? Two different sessions
+
+```
+dell11  142 x 0a05 (F.Back), 141 x 0a04 (Pan)   <-- but send = 0: nothing to hear
+dell13  send = 64, delay audible                 <-- but NO 0a03/04/05 at all
+```
+
+The session that moved the FX knobs had **no signal entering the line**, so no
+knob could have produced an audible difference. The session where the delay was
+audible **never touched the FX knobs**. "Works in the Mixer, doesn't in FX" is
+one sentence assembled from two sessions that never overlapped.
+
+**Nothing on screen or in the log showed that.** It took reconstructing both
+lane logs to see it — a measurement-as-conclusion error, the fourth this
+project, and mine: I had been treating "FX knobs do nothing" as a live defect
+for three rounds when the evidence for it never existed.
+
+### What was added: the diagnostic that settles it next time
+
+`ri_core_delay_diag()` — one line, portable and host-tested:
+
+```
+send=64 fb=120 steps=3 pan=64 live=1 line=1
+```
+
+Every quantity that decides audibility, together, in the lane log. The next
+"the delay does nothing" is one `grep DLY` instead of two ear-proof rounds.
+It refuses rather than truncates a cap too small to hold the line, because a
+half-written diagnostic that looks complete is worse than none.
+
+`AUDIT 0/0 PASS`. AROS build 1203984 bytes.
+
+### Also recorded
+
+`sectfx.h` names only `ONOFF/METER/DLY_STEPS/DLY_TRIPLET/COMP_GR` — the Delay
+panel's **Pan (4)** and **F.Back (5)** have no `RI_SFX_*` constant. `t226`
+names them locally rather than inventing registry knowledge; the gap is real
+and worth closing.
+
+**Still open:** the FX knobs need one ear check *with the send up*, in a single
+session. That has never happened and is the only thing left to prove here.

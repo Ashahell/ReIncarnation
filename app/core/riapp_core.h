@@ -134,4 +134,22 @@ uint32_t ri_core_fx_meter_unit(uint32_t section);
  * shell pushes the levels into the panel and repaints each meter box. */
 int ri_core_fx_meters(struct RIAppCore *c, int *lvl, float *comp_gr);
 
+/* ONE-LINE SUMMARY OF THE DELAY'S LIVE STATE, for the lane event log.
+ *
+ * WHY THIS EXISTS. Owner 2026-10-14: "Delay in the Mixer works audibly, in FX
+ * it doesn't." Those turned out to be TWO DIFFERENT SESSIONS conflated: the
+ * session with 142 F.Back moves had the send at 0, so nothing could be heard
+ * to be modulated; the session where the delay was audible never touched the
+ * FX knobs. Nothing on screen or in the log showed that, so the only way to
+ * tell was to reconstruct two sessions afterwards.
+ *
+ * The line reports every quantity that decides audibility at once -- send,
+ * feedback, steps, return pan, plus live/line-attached flags -- so a future
+ * "the delay does nothing" is answerable from the log in one read instead of
+ * two ear-proof rounds.
+ *
+ * Pure formatting over engine state; host-tested. Returns the length written,
+ * or <0 on a null argument or a cap too small to hold the line. */
+int ri_core_delay_diag(const struct RIAppCore *c, char *buf, uint32_t cap);
+
 #endif
