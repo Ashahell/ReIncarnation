@@ -43,6 +43,8 @@ struct RSectionDiag {
     LONG buttons;         /* of which IDCMP_MOUSEBUTTONS */
     LONG last_x, last_y;  /* last button position, canvas-local px */
     ULONG last_hit;       /* reg_id hit, 0xFFFF none */
+    ULONG key_held;       /* keybed key currently held, 0xFFFF none (2026-10-13;
+                             mirrors RICevState.key_id, which the shell cannot reach) */
     LONG setups, shows;   /* lifecycle calls seen */
     ULONG df_max, df_sum; /* S3: full-draw us, max + window sum */
     LONG df_n;            /* ... and count */

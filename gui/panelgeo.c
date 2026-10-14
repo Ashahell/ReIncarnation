@@ -219,6 +219,7 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
     { SL(68), RI_GEO_OPTION, 30, 1053, 264, 30, 20 },  /* ALGO EDIT */
     { SL(52), RI_GEO_RECT, 0, 216, 218, 30, 20 },  /* ARP ON */
     { SL(54), RI_GEO_RECT, 0, 308, 264, 30, 20 },  /* SEQ PLAY */
+    { SL(204), RI_GEO_RECT, 0, 262, 280, 30, 20 },  /* SEQ REC: art label only since P1; laid out 2026-10-13 */
     { SL(68), RI_GEO_OPTION, 32, 216, 149, 30, 20 },  /* SEQ (page) */
     { SL(68), RI_GEO_OPTION, 31, 216, 176, 30, 20 },  /* ARP (page) */
     { SL(68), RI_GEO_OPTION, 34, 968, 107, 30, 20 },  /* VOICE */

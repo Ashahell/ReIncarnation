@@ -170,6 +170,14 @@ int ri_slevi_press(struct RISectLevi *s, uint32_t idx) {
     }
     if (idx >= RI_SLEVI_KEY0 && idx < RI_SLEVI_KEY0 + RI_SLEVI_KEYS) {
         e = s->edit_step % RI_PATTERN_STEPS;
+        /* STEP RECORD gates the step ENTRY only (owner 2026-10-13; manual
+         * Step Recording p. 105, step record mode p. 117). The NOTE is not
+         * gated and never was: the shell sends it from the keybed edge, so
+         * a key always plays and only the step write waits for the button.
+         * Returning 1 still says "handled" so the edge is latched either
+         * way -- returning 0 here would drop the note with the step. */
+        if (s->val[RI_SLEVI_STEPREC] == 0)
+            return 1;
         return ri_levi_set(&s->pat, e, s->sel,
             (uint8_t)(RI_SLEVI_MIDDLE_C + (idx - RI_SLEVI_KEY0)), 1) == 0;
     }

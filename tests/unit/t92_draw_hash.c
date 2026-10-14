@@ -123,10 +123,10 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
      * a hardcoded 0.0f. That is a deliberate drawing change and it is the
      * only one: every other section's pin is untouched at all four zooms,
      * which is what confirms the delta is confined to the Levi panel. */
-    { 18u, 0u, 0x1474f0d4u },
-    { 18u, 1u, 0xedee8250u },
-    { 18u, 2u, 0xa30ce7e2u },
-    { 18u, 3u, 0xfa120841u },
+    { 18u, 0u, 0xd5f5fe4au},
+    { 18u, 1u, 0x481b068au},
+    { 18u, 2u, 0x918609d9u},
+    { 18u, 3u, 0x0baa2fffu},
     { 19u, 0u, 0x7323b7e8u },
     { 19u, 1u, 0xaeb0bb65u },
     { 19u, 2u, 0x07c41ed9u },

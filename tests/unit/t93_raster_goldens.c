@@ -248,10 +248,10 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
      * dim DKNOB art table into RI_GEO_LEVI and now draw from their real
      * value. Only the Levi section moved; every other raster pin is
      * untouched at all four zooms. */
-    { 18u, 0u, 0xdce80630u },
-    { 18u, 1u, 0xf44a79c5u },
-    { 18u, 2u, 0xa6636335u },
-    { 18u, 3u, 0xb826f98du },
+    { 18u, 0u, 0x1f7a5aa6u},
+    { 18u, 1u, 0xda5be748u},
+    { 18u, 2u, 0x15d3d60cu},
+    { 18u, 3u, 0xed9e639du},
     { 19u, 0u, 0xc663c06au },
     { 19u, 1u, 0x854d5ab5u },
     { 19u, 2u, 0xecbfc991u },

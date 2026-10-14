@@ -664,6 +664,7 @@ BOOPSI_DISPATCHER(IPTR, rsection_dispatcher, cl, obj, msg) {
             r = ri_cev_button(&d->cev, &d->ui, d->panel, geo(d), (int)d->zoom,
                 lx, ly, _mwidth(obj), _mheight(obj), kind,
                 kind == 0 ? eclock_ms() : 0u);
+            d->diag.key_held = (ULONG)d->cev.key_id;
             if (r & RI_CEV_CHANGED)
                 changed(obj, d);
             return (r & RI_CEV_EAT) ? (IPTR)MUI_EventHandlerRC_Eat : (IPTR)0;

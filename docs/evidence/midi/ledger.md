@@ -5443,3 +5443,68 @@ now covers it.
 
 Still open: **what left-column MASTER drives** — no engine control exists,
 and `t220` deliberately keeps it inert so it cannot be wired to nothing.
+## P-KEY1 (PART 2 of 2): the keybed plays; STEP RECORD gates the step write
+
+Finishes P-KEY1. The keys now sound, through the exact path the ear proof
+heard, and the step entry is behind the button the hardware puts it behind.
+
+Owner spec: "the keys play notes, through the Leviasynth note path MIDI input
+already uses … They write the pitch into the selected step only while STEP
+RECORD is lit (manual: Step Recording p. 105, step record mode p. 117). That
+keeps today's step entry, just behind the button the hardware uses for it.
+Velocity is fixed (an E0 default, 100)."
+
+### The shell turns a LEVEL back into two EDGES
+
+`RICevState.key_id` is unreachable from the shell, so it is mirrored into
+`RSectionDiag.key_held` — the same route `last_hit` already takes, rather
+than a new MUIA attribute. The shell then compares what it last *sent*
+against what is *held*: a key that appears is note-on, a key that disappears
+is note-off. Velocity is `RI_LEVI_KEY_VEL 100`, the owner's E0 default, named
+in the header with the reason (the hardware keybed is not velocity-sensitive,
+and the owner ruled a fixed value over an invented curve).
+
+```c
+ri_ctl_send2(&s_core.ctl, RI_CTL_LEVI_NOTE, RI_LEVI_KEY_VEL, 0x80u | note); /* on  */
+ri_ctl_send2(&s_core.ctl, RI_CTL_LEVI_NOTE, 0u, note);                        /* off */
+```
+
+### STEP RECORD already existed — I duplicated it before noticing
+
+I searched for a STEP RECORD control and found none, added `RI_SLEVI_STEPREC
+228` with a registry row, a geometry row and `RI_SLEVI_NCTL 229` — and then
+bumped four separate censors to absorb it. **`t60_ctlreg` caught the real
+fault**: *"key 0eb5 shared by rows 410 and 425"*. `R(LEVI, 204, SWITCH,
+"Seq", "Rec", …)` has driven `RI_CTL_LEVI_SEQREC` since P7a. It is labelled
+**"Rec"** in the "Seq" group, which is why a search for "STEP RECORD" missed
+it.
+
+The genuine gap was never a missing control — it was that **204 had no
+geometry row**, so the button was drawn as a label and was unhittable. The
+duplicate was deleted, `RI_SLEVI_NCTL` went back to 228, the geometry moved
+onto the existing 204, and all four census edits were reverted. Net change to
+the registry: **one geometry row, zero new rows.**
+
+This is the cost of searching by label instead of by what the control drives,
+and the auditors caught it rather than me.
+
+### What each gate caught
+
+| gate | what it found |
+|---|---|
+| `t107_levi_sect` | asserted a key press writes a step — now gated; rewritten to pin **both** states |
+| `t178_levi_adopt` | keyed-row census 180→181 (duplicate; reverted) |
+| `t77_autolane` | mapped census 289→290 (duplicate; reverted) |
+| `t60_ctlreg` | **the duplicate itself** — shared key 0x0EB5 |
+| `t149`, `t148` | `RI_SLEVI_NCTL` 228→229 (duplicate; reverted) |
+| `t92`, `t93` | draw + raster pins, `sec=18` only at all four zooms — the STEP REC button now paints |
+
+`AUDIT 0/0 PASS`. Mutation score 5/5 on `mutate_keybed.py`, unchanged.
+
+### Still open
+
+- **Not heard.** This is proven by unit tests and a clean AROS build only; the
+  keybed has never made a sound on a lane.
+- **What left-column MASTER drives** — no engine control exists, `t220` keeps
+  it inert.
+- The Levi's own pre/post/delay/reverb stay bypassed by default.

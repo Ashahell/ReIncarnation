@@ -304,6 +304,7 @@ static struct RIPattern s_levi_pat; /* Levi voice-canvas shadow (bank 4 slot) */
 static uint8_t s_levi_slot;
 static IPTR s_changes[C_N];
 static int s_meter_shown[5];
+static uint16_t s_key_sent = 0xFFFFu; /* keybed key we last sent note-on for */
 static int s_mst_shown[2]; /* MASTER strip L/R meter shadows */
 
 /* Demo song, bank table, transport and meters live in app/core (T8).
@@ -1703,6 +1704,38 @@ static void meter_round(ULONG mix_freq) {
                 ri_rsection_refresh_box(s_canvas[C_MST], x0, y0, x1, y1);
             else
                 ri_rsection_refresh(s_canvas[C_MST]);
+        }
+    }
+    /* KEYBED NOTES (owner 2026-10-13). The panel tracks the held key in
+     * RICevState.key_id, mirrored into RSectionDiag.key_held because the
+     * shell polls the diag -- the same route last_hit already takes.
+     * Comparing against what we last sent turns a LEVEL back into the two
+     * EDGES a note needs: a key that appears is note-on, a key that
+     * disappears is note-off. Without the note-off the voice hangs.
+     *
+     * Same path the ear proof heard: RI_CTL_LEVI_NOTE with hi carrying the
+     * note and bit 7 as on/off -- ri_ctl_send2, exactly as the MIDI bridge
+     * uses it (app/riapp.c, the `la.kind == RI_LEVI_ACT_NOTE` branch).
+     * Velocity is fixed at the owner's E0 default, 100. */
+    if (s_dg[C_LEVI]) {
+        uint16_t held = (uint16_t)s_dg[C_LEVI]->key_held;
+        uint32_t ki = held & 0xFFu;
+        if (held != 0xFFFFu && ki >= RI_SLEVI_KEY0 &&
+            ki < RI_SLEVI_KEY0 + RI_SLEVI_KEYS) {
+            if (held != s_key_sent) {
+                uint8_t note = (uint8_t)(RI_SLEVI_MIDDLE_C + (ki - RI_SLEVI_KEY0));
+                ri_ctl_send2(&s_core.ctl, RI_CTL_LEVI_NOTE,
+                    (uint8_t)RI_LEVI_KEY_VEL, (uint8_t)(0x80u | note));
+                s_key_sent = held;
+                evlog("LEVI", "key %u on vel %u", (unsigned)note,
+                    (unsigned)RI_LEVI_KEY_VEL);
+            }
+        } else if (s_key_sent != 0xFFFFu) {
+            uint32_t si = s_key_sent & 0xFFu;
+            uint8_t note = (uint8_t)(RI_SLEVI_MIDDLE_C + (si - RI_SLEVI_KEY0));
+            ri_ctl_send2(&s_core.ctl, RI_CTL_LEVI_NOTE, 0u, note);
+            s_key_sent = 0xFFFFu;
+            evlog("LEVI", "key %u off", (unsigned)note);
         }
     }
     /* FX module meters. The engine has always measured these (ri_meter_feed

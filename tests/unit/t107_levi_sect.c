@@ -33,7 +33,13 @@ int main(void) {
     RI_ASSERT(ri_levi_on(&s.pat, 4u, 0u) == 0, "lane off");
     /* Piano keys retune (edit step, selected lane). */
     RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_STEP0 + 4) == 1, "step on");
-    RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_KEY0 + 7) == 1, "key G");
+    /* STEP RECORD gates the step entry (owner 2026-10-13; manual Step
+     * Recording p. 105, step record mode p. 117). The key is still HANDLED
+     * with the button off -- the note plays -- it just does not write. */
+    RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_KEY0 + 7) == 1, "key G handled");
+    RI_ASSERT(ri_levi_get(&s.pat, 0u, 0u) != 67u, "no step written while STEP RECORD off");
+    s.val[RI_SLEVI_STEPREC] = 1;
+    RI_ASSERT(ri_slevi_press(&s, RI_SLEVI_KEY0 + 7) == 1, "key G with record on");
     RI_ASSERT(ri_levi_get(&s.pat, 0u, 0u) == 67u, "pitched");
     RI_ASSERT(ri_slevi_led(&s, RI_SLEVI_KEY0 + 7) == 1, "key led");
     RI_ASSERT(ri_slevi_led(&s, RI_SLEVI_KEY0 + 6) == 0, "key dark");

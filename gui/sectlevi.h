@@ -233,11 +233,21 @@
 #define RI_SLEVI_NMOD 38u
 #define RI_SLEVI_STEP 5u     /* Step: edit_step + 1 (wraps) */
 #define RI_SLEVI_BACK 6u     /* Back: edit_step - 1 (wraps) */
+/* STEP RECORD (owner 2026-10-13): the gate that keeps today's step entry
+ * behind the button the hardware puts it behind (Step Recording p. 105, step
+ * record mode p. 117). The art has carried a "STEP RECORD" label at
+ * {262, 280} since P1 with no control behind it; this is that control, and
+ * it drives the engine's existing RI_CTL_LEVI_SEQREC arm. */
+#define RI_SLEVI_STEPREC 204u   /* the existing "Seq"/"Rec" row, not a new index */
 #define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */
 #define RI_SLEVI_STEP0 8u       /* 16 step buttons: 8..23 */
 #define RI_SLEVI_KEY0 24u       /* 13 pitch keys: 24..36 = C..C+ */
 #define RI_SLEVI_KEYS 13u
 #define RI_SLEVI_MIDDLE_C 60u
+/* Keybed velocity: fixed, not a knob (owner 2026-10-13, E0 default). The
+ * hardware keybed is not velocity-sensitive, and the owner ruled a fixed
+ * value rather than an invented curve. */
+#define RI_LEVI_KEY_VEL 100u
 
 struct RISectLevi {
     uint8_t section;           /* RI_SEC_LEVI */

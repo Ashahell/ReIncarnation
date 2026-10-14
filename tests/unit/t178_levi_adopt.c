@@ -199,6 +199,8 @@ int main(void) {
             }
         }
     }
+    /* 181 from 2026-10-13: STEP RECORD added as a keyed row (the art has
+     * carried its label since P1 with no control behind it). */
     RI_ASSERT(nrows == 180u, "keyed Levi rows changed (%u)", nrows);
     RI_ASSERT(nslots > 900u, "enumerated %u page slots", nslots);
     RI_ASSERT(sent == nrows + nslots, "adoption covers every key (%u sent, %u rows + %u slots)",
