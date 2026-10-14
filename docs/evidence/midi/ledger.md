@@ -6217,3 +6217,89 @@ PASS`**, AROS build 1205760 bytes.
    was asserting the bug.
 
 **Not proven by ear.** Nothing else in the session's work changed.
+
+## EAR PROOF: the 2026-10-14 batch passes (Dell lane, build `f087b82`)
+
+Launched 21:08:03 UTC, one RIAPP window, `zombie-nation.rbng` playing. Staged
+1185664 B, sha `0e53ddc5eb6cf18d5439`.
+
+Owner, after the check list:
+
+> "ok, that all seems to work correctly now"
+
+### Scope of that confirmation, stated precisely
+
+The answer is **blanket, not per-item**, and I am recording it as such rather
+than inflating it. The list put to the owner was:
+
+1. all five green squares off → **completely quiet** (the P-MIX3 inversion)
+2. all five back on → **sound returns**
+3. one at a time — a non-sounding strip off must not silence the mix; the
+   sounding strip off must drop only itself
+4. insert rockers — Synth 1 Dist stolen by 808 Dist goes dark
+5. delay — Levi send ~64 **and then** F.Back, in one session
+6. 303/808/909 panels and anything else, for the P-RPN1 repaint coupling
+
+Items 1–3 are what this build exists to fix and the owner had already
+reported 1 and 2 failing by ear on `514f4ee`. **Item 1 turning from "we still
+hear all sounds" to "correct" is the load-bearing evidence** and it is direct,
+not inferred.
+
+Items 4–6 are covered by "all seems to work correctly" but were not
+itemised. If any of them needs to be *banked* as individually witnessed, it has
+to be asked for again — a blanket "all" is not six witnessed results, and
+pretending otherwise is the measurement-as-conclusion error this project has
+committed five times already.
+
+### What this closes, and what it does not
+
+**Closed by ear, on this lane:**
+
+| | fix | symptom that is gone |
+|---|---|---|
+| P-FX4 | displaced FX lamp repaints | green square stayed lit after displacement |
+| P-MIX1 | strip mute exists at all | green square did nothing but change colour |
+| P-MIX2 | insert rockers repaint | "light up when pressed once, but do not turn off" |
+| P-MIX3 | On/Off sign fixed | "turn off all 5 ... we still hear all sounds" |
+| P-RPN1 | repaint coupled to the change | (no symptom was ever reported for this) |
+
+**Still open, unchanged by this session:**
+
+- **Delay send.** Ruling (c) stands: the app does not auto-raise it, the send
+  is a mixer control, and `64` is a documented suggestion for the user. Twice
+  now a session has produced a misleading delay result because the send and
+  the FX knobs were exercised in *different* sessions. `ri_core_delay_diag`
+  (`DLY` log lines) exists so that cannot silently happen a third time — and it
+  should be **used** the next time the delay is questioned.
+- **Left-column MASTER** (LEVI 69..73) — still inert, still awaiting the owner's
+  answer to what it drives.
+- **Keybed** — implemented in `2b52ffc` and never heard. `EV` log lines for key
+  presses exist (`LEVI key N on/off`).
+- **FX engaged by MIDI or song automation** moves no lamp — the known readback
+  gap, the same one as the COMP GR meter. Deliberately not solved.
+- **`sectfx.h` has no `RI_SFX_*` constant** for the Delay panel's Pan (4) or
+  F.Back (5).
+- **Dist's route** is still unexplained: no mixer insert switch pressed, yet it
+  ran in the `2b52ffc` session. Believed to be song automation, **not verified**.
+- **The 1.36 s stall instrumentation** (`dpr_rep` / `dpr_run_max`) — P-RPN1
+  adds a draw request per control change on every canvas and nothing has
+  regressed visibly, but nobody has read those counters on the lane.
+
+### The shape of the session, for whoever reads this next
+
+Five fixes in one day, and **four of them were the same defect wearing
+different clothes**: a control that looked live and was not.
+
+| | missing thing |
+|---|---|
+| P-FX1 | an engine target for the FX enable |
+| P-MIX1 | an engine target for the strip mute |
+| P-MIX2 | a repaint for the displaced rocker |
+| P-MIX3 | agreement on which way round the value goes |
+| P-FX4 | a repaint for the displaced FX lamp |
+
+The detective work that found them was not reading the code — it was **reading
+the lane logs**. The Delay "FX knobs do nothing" report dissolved the moment two
+session logs were put side by side (P-DLY1), and the invertion in P-MIX3 was
+only visible as a *sign* because the value sequences were reconstructed rather
+than assumed.
