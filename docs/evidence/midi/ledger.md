@@ -5736,3 +5736,31 @@ conclusion could be wrong.
 
 **Still open:** was the mixer Delay send at 0 during the owner's test? If it
 was already up and Delay was still silent, this diagnosis is wrong.
+
+### Addendum: the owner's test session, recovered from the lane log
+
+The "was the mixer Delay send at 0?" question I could not answer from memory
+was answered by the lane log itself. `build=e846eff`, 597 events, **574 CTL**:
+
+| reg id | count | control |
+|---|---|---|
+| `0c03` | 187 | Comp Threshold |
+| `0c02` | 177 | Comp Ratio |
+| `0a05` | 122 | Delay F.Back |
+| `0906` | 65 | PCF Amt |
+| `0a00` | 9 | Delay On/Off |
+| `0900` / `0c00` / `0b00` | 5 / 4 / 4 | PCF / Comp / Dist On/Off |
+| `0a04` | 1 | Delay Pan |
+
+**Every section id in the log is `09`–`0c`** — the four FX canvases. Not one
+mixer section appears. The mixer canvases *are* in the shell's value-canvas
+list, so a mixer press would have logged `CTL`; none did.
+
+Therefore the Levi strip's **Delay send was never moved and was sitting at
+its default 0**. The "Delay is silent because the send is closed" conclusion
+rests on **evidence, not inference** — the owner moved F.Back 122 times
+against a closed send. This is the first time a lane log has *answered* an
+ear-proof question rather than merely corroborating it.
+
+Evidence preserved at `docs/evidence/midi/dell8-pfx4-earproof.log` (copied out
+of `/tmp` at capture time, because `/tmp` is tmpfs and dies on reboot).
