@@ -51,10 +51,8 @@ int ri_sfx_press(struct RISectFx *s, uint32_t idx) {
          * selection (t222). */
         if (!s->rack)
             return 1;
-        if (fx_on(s))
-            s->rack->live = RI_SFX_LIVE_NONE;
-        else
-            s->rack->live = (uint8_t)fx_slot(s);
+        s->rack->displaced = (uint8_t)ri_sfx_rack_take(s->rack,
+            fx_on(s) ? RI_SFX_LIVE_NONE : fx_slot(s));
         return 1;
     }
     s->val[idx] = (int16_t)(s->val[idx] ? 0 : 1);
@@ -111,7 +109,41 @@ int ri_sfx_rack_init(struct RIFxRack *r) {
     if (!r)
         return 2;
     r->live = RI_SFX_LIVE_NONE;
+    r->displaced = RI_SFX_LIVE_NONE;
     return 0;
+}
+
+uint32_t ri_sfx_rack_take(struct RIFxRack *r, uint32_t slot) {
+    uint32_t prev;
+    if (!r)
+        return RI_SFX_LIVE_NONE;
+    /* Releasing is NOT the mirror of claiming: clearing the live slot
+     * displaces nobody, because no OTHER canvas's lamp changed. Making the
+     * two symmetric is the "helpful" behaviour that silently brings back a
+     * module the user turned off (pinned in t222). */
+    if (slot == RI_SFX_LIVE_NONE) {
+        r->live = RI_SFX_LIVE_NONE;
+        return RI_SFX_LIVE_NONE;
+    }
+    /* Out-of-range slot: refuse and change nothing. The shell indexes its
+     * canvas table with the return value, so a bad index here would repaint
+     * the wrong canvas rather than fail visibly. */
+    if (slot >= RI_SFX_RACK_SLOTS)
+        return RI_SFX_LIVE_NONE;
+    prev = r->live;
+    r->live = (uint8_t)slot;
+    return prev == slot ? RI_SFX_LIVE_NONE : prev; /* re-claiming displaces nobody */
+}
+
+uint32_t ri_sfx_rack_stale_section(struct RIFxRack *r) {
+    uint32_t d;
+    if (!r)
+        return RI_SFX_LIVE_NONE;
+    d = r->displaced;
+    r->displaced = RI_SFX_LIVE_NONE;   /* once per displacement, not per frame */
+    if (d == RI_SFX_LIVE_NONE || d >= RI_SFX_RACK_SLOTS)
+        return RI_SFX_LIVE_NONE;
+    return (uint32_t)RI_SEC_PCF + d;
 }
 
 int ri_sfx_bind_rack(struct RISectFx *s, struct RIFxRack *r) {

@@ -1129,6 +1129,11 @@ grep -q "RI_SFX_COMP_GR," "$ROOT/app/riapp.c" || { echo "FAIL: COMP GR box never
 # guard -- and ri_meter_feed inside it -- never ran. Owner ruling: FX panels
 # are mutually exclusive, last-on-wins, and engaging one makes it run.
 bash "$ROOT/scripts/ri_build_host.sh" test t222_fx_exclusive >/dev/null || { echo "FAIL: t222_fx_exclusive (FX rack single-active + engage routes an unowned insert)"; exit 1; }
+# A canvas displaced by ANOTHER canvas's press gets no event of its own,
+# so its bypass lamp kept stale pixels (owner 2026-10-14: "the green square on
+# Delay remains lit"). t223 pins the portable half -- the rack records who it
+# displaced -- so the shell repaints exactly that canvas.
+bash "$ROOT/scripts/ri_build_host.sh" test t223_fx_lamp_repaint >/dev/null || { echo "FAIL: t223_fx_lamp_repaint (FX rack records the displaced canvas for repaint)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

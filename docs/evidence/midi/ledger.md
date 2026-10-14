@@ -5631,3 +5631,108 @@ the derived value.
 Unit tests, `AUDIT 0/0 PASS`, and a clean AROS build (1200688 bytes). The
 owner's next check is the real one: turn on PCF and Comp and confirm sound and
 meters together — one observation now settles both halves at once.
+
+## P-FX4: the displaced FX lamp was stale pixels, and the Delay send is not a bug
+
+Owner ear proof, Dell lane, build `e846eff`, 2026-10-14:
+
+> "Delay seems to do nothing. It's meter doesn't work, turning knobs makes no
+> audible difference. If Delay is turned on, and you then turn on Comp, comp
+> makes an audible difference, but the green square on Delay remains lit."
+
+Two reports, two different findings. Only one is a defect.
+
+### 1. The green square: correct model, never repainted
+
+`t222` proves the selection is rack-derived, and the lamp draws from it
+(`art_section.c:206`, `ri_sui_led`). Delay's lamp is dark in the model the
+instant Comp claims the rack. **The pixels were simply never redrawn.** The
+press happened on the COMP canvas, so COMP is the only canvas that gets an
+event; the FX meter loop refreshes *meter* boxes only, and only on a level
+change. Nothing anywhere repaints the *bypass lamp* of a canvas displaced as a
+side effect of another canvas's press.
+
+This is the coupling noted as a "known limit" in the P-FX3 entry — `sync_values`
+pushes and repaints only the last-hit canvas. I documented the risk and then
+did not go looking for it in the symptom. That is on me.
+
+Fix: the rack records who it displaced, and the shell repaints exactly that
+canvas's lamp box.
+
+- `ri_sfx_rack_take()` returns the displaced slot. **Releasing is NOT the
+  mirror of claiming**: clearing the live slot displaces nobody, because no
+  other canvas's lamp changed. Making the two symmetric is the "helpful"
+  behaviour that silently brings back a module the user turned off.
+- Re-claiming the *live* slot displaces nobody — it is already live, and
+  repainting it would waste the one repaint the victim needed.
+- Out-of-range slots are **refused with state unchanged**: the shell indexes
+  its canvas table with the result.
+
+### The mutation harness caught an untestable fix
+
+`m6` ("the shell repaints the live canvas instead of the displaced one")
+**SURVIVED the first run**, because I had put that decision in `app/riapp.c` —
+an AROS shell that cannot link on the host, so no test could ever reach it.
+That is not a weak test, it is an absent one. Extracted into
+`ri_sfx_rack_stale_section()` in portable code, the same mistake became a
+one-token mutation and died. What remains in `riapp.c` is plumbing with no
+logic of its own.
+
+`RED` was `FAIL 5` on assertions — after first landing a declared-but-stubbed
+API, because the honest failure mode for a new API is a build error and a
+build error proves nothing. Mutation **6/6**.
+
+**Two assertions were added after implementation and were not watched RED**:
+the release-return and the bounds refusal. They are marked as such in the
+test. `m3` and `m5` are the compensating evidence that they have teeth.
+
+### 2. Delay is silent because nothing feeds it — NOT a defect
+
+The delay is a **send**, not an insert:
+
+```
+sendbus[i] += (float)(s * sg);              engine.c:226
+t = (double)e->send[section] / 127.0;  sg = t * t;
+R(MIX_LEVI, 4, KNOB, "", "Delay", 0, 127, 0, 111, 1, SEND, 0, 4),   /* def_v = 0 */
+```
+
+`e->send[]` defaults to 0, so `sg == 0`, so `sendbus` is silence, so `retbus`
+is silence. Turning Steps / Feedback / F.Back changes nothing *because no
+signal enters the line*, and the meter is fed from `retbus`, so it reads zero.
+One fact, both symptoms. `e->dline` is attached (`c->dline[RI_CORE_DLINE]` is
+an inline array member), so this is not an allocation fault.
+
+Delay's topology is **confirmed, not assumed**: `docs/evidence/gui/panel-geometry.md:95`
+documents insert routing as PCF / Comp / Dist and **does not list Delay**;
+`gui/sectfx.h` states "which section feeds a unit is set in the mixers".
+
+**Owner ruling: (c) — do not auto-raise the send.** A send is a physical knob
+on real hardware and a send at zero gives silence; every synth of that era
+behaved that way, so auto-raising would be a *deviation* from the hardware,
+not a match to it. The owner's P-FX3 ruling was about *conflicting panels* —
+i.e. the inserts, which are on the signal path by definition. Delay is not, and
+that is why PCF and Comp were broken while Delay was correct.
+
+Workflow, unchanged: **Mixer tab → Levi strip → "Delay" knob** (currently 0).
+Turn it up and Delay is audible. Level **64** (`sg ≈ 0.25`) is recorded as the
+suggested starting point **for the user** — it is documentation, not code,
+because the line is always wet (`mix = 1.0`) so the send knob is the only
+level control and starting low is the recoverable mistake.
+
+No send code was changed. Tree diff for this half: **none**.
+
+### Not proven by ear
+
+`t223`, mutation 6/6, `AUDIT 0/0 PASS`, AROS build 1202736 bytes. The repaint
+path's final step — `ri_rsection_refresh_box` actually invalidating the pixels
+on an AROS canvas — is the one link no host test can reach; only the ear can
+close it.
+
+**Unverified:** that real ReBirth leaves the delay send at 0 on power-up. Web
+search was unavailable this session (returns nothing even for `test`), and the
+manual is not in the repo, so this rests on the local evidence above plus
+general synth architecture. If the manual states a default send level, this
+conclusion could be wrong.
+
+**Still open:** was the mixer Delay send at 0 during the owner's test? If it
+was already up and Delay was still silent, this diagnosis is wrong.

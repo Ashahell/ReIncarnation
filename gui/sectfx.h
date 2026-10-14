@@ -19,7 +19,16 @@
  * Mirrors ri_sui_bind_board, which already shares state across canvases
  * because insert radio routing spans sections. */
 #define RI_SFX_LIVE_NONE 0xFFu
-struct RIFxRack { uint8_t live; }; /* canvas index 0..3, or RI_SFX_LIVE_NONE */
+#define RI_SFX_RACK_SLOTS 4u  /* PCF, DELAY, DIST, COMP */
+struct RIFxRack {
+    uint8_t live;      /* canvas index 0..3, or RI_SFX_LIVE_NONE */
+    /* Who the LAST claim displaced, or RI_SFX_LIVE_NONE. A displaced canvas
+     * gets no event of its own -- the press happened on another canvas -- so
+     * nothing would repaint its bypass lamp. The shell reads this to repaint
+     * exactly that canvas (owner ear proof 2026-10-14: "the green square on
+     * Delay remains lit"). Portable so it can be host-tested at all. */
+    uint8_t displaced;
+};
 #define RI_SFX_ONOFF 0u
 #define RI_SFX_METER 1u
 #define RI_SFX_PCF_PATTERN 2u
@@ -38,6 +47,16 @@ struct RISectFx {
 
 int ri_sfx_init(struct RISectFx *s, uint8_t section); /* 0 ok, 2 not an FX section */
 int ri_sfx_rack_init(struct RIFxRack *r);
+/* Claim `slot` for the rack, releasing RI_SFX_LIVE_NONE to clear it. Returns
+ * the slot it displaced, or RI_SFX_LIVE_NONE when it displaced nobody. */
+uint32_t ri_sfx_rack_take(struct RIFxRack *r, uint32_t slot);
+/* Section whose bypass lamp needs repainting after a rack change, or
+ * RI_SFX_LIVE_NONE when none is owed. READS AND CLEARS `displaced`, so it
+ * fires once per displacement. This lives in portable code deliberately: the
+ * only other home for it is app/riapp.c, which cannot link on the host and
+ * therefore could not be tested at all (mutate_fx_lamp m6 survived exactly
+ * that way before this was extracted). */
+uint32_t ri_sfx_rack_stale_section(struct RIFxRack *r);
 int ri_sfx_bind_rack(struct RISectFx *s, struct RIFxRack *r);
 /* RI_SFX_ONOFF is DERIVED from the rack, never stored per canvas:
  * a sibling cannot reach another canvas's val[], so storing it would

@@ -1264,6 +1264,35 @@ static void sync_values(void) {
             }
         }
     }
+    /* DISPLACED FX LAMP (owner ear proof 2026-10-14: "if Delay is turned on,
+     * and you then turn on Comp ... the green square on Delay remains
+     * lit"). The rack selection is shared and derived, so Delay's lamp is
+     * already dark in the model the instant Comp claims the rack (t222) --
+     * but the press happened on the COMP canvas, so Delay gets no event of
+     * its own and nothing ever repaints its pixels. The meter loop below
+     * refreshes meter boxes only, and only on a level change, so it cannot
+     * cover this. Repaint exactly the bypass-lamp box of the displaced
+     * canvas. Reads-and-clears `displaced`, which the press path set, so it
+     * fires once per displacement rather than every frame. */
+    {
+        uint32_t sec = ri_sfx_rack_stale_section(&s_fx_rack);
+        const struct RIGeoSection *g;
+        int x0, y0, x1, y1;
+        if (sec == RI_SFX_LIVE_NONE)
+            return;
+        /* s_fx_canvas[] is C_FX0..C_FX3 and slot == sec - RI_SEC_PCF. All the
+         * decision lives in ri_sfx_rack_stale_section(); what is left here is
+         * plumbing with no logic of its own to get wrong. */
+        { int c = C_FX0 + (int)(sec - (uint32_t)RI_SEC_PCF);
+        g = ri_geo_section(sec);
+        if (g && ri_geo_bbox(g,
+            (uint16_t)((sec << 8) | (uint32_t)RI_SFX_ONOFF),
+            s_zoom[c], &x0, &y0, &x1, &y1) == 0)
+            ri_rsection_refresh_box(s_canvas[c], x0, y0, x1, y1);
+        else if (g)
+            ri_rsection_refresh(s_canvas[c]);
+        }
+    }
 }
 
 /* ---- Songs & playlists (owner 2026-09-30) -------------------------------
