@@ -1264,27 +1264,29 @@ static void sync_values(void) {
                 int val = ri_sui_value(u, reg & 0xFFu);
                 ri_panel_ctl_send(&s_core.ctl, reg, val);
                 evlog("CTL", "%04x=%d", reg, val);
-                /* MIXER INSERT ROCKERS (owner 2026-10-14: "various buttons
-                 * like comp, PCF and dist light up when pressed once, but do
-                 * not turn off when pressed a second time"). The model was
-                 * right all along -- the lane log shows 0605: 1 0 and
-                 * 1405: 1 0, i.e. the value DOES fall to zero. What never
-                 * happened is a redraw: rsection.mcc.c has no self-invalidate
-                 * and sync_values pushes without repainting, so the rocker
-                 * only ever updated as a side effect of the meter loop's
-                 * full-canvas refresh. Repaint the box that changed.
+                /* REPINT THE BOX THAT CHANGED (owner 2026-10-14, P-RPN1).
                  *
-                 * Done here rather than in a per-section helper because the
-                 * section, the hit index and the zoom are already in hand;
-                 * the box math is ri_geo_bbox, already portable. */
-                if (c == C_MIX || (c >= C_MXA && c <= C_MST)) {
-                    const struct RIGeoSection *mg;
+                 * This is the coupling, and it REPLACES the mixer-only block
+                 * P-MIX2 put here. That block was a third symptom of one
+                 * cause: rsection.mcc.c has no self-invalidate, sync_values
+                 * pushed without repainting, and on AROS Zune a draw request
+                 * is honoured 1:1 -- so an unrefreshed control freezes until
+                 * unrelated code redraws its canvas. P-FX4 and P-MIX2 were
+                 * both "correct model, no repaint", each found one at a time.
+                 *
+                 * The section, the hit index and the zoom are already in hand
+                 * and the box maths is ri_geo_bbox, so the only decision left
+                 * is WHICH controls get one -- and that is portable, in
+                 * ri_ctl_press_repaints(). METER rows are excluded there
+                 * because the meter loops already own their boxes; including
+                 * them here would double-invalidate on every frame. */
+                if (ri_ctl_press_repaints(ri_ctlreg_find(reg))) {
+                    const struct RIGeoSection *cg = ri_geo_section(c_sections[c]);
                     int bx0, by0, bx1, by1;
-                    mg = ri_geo_section(c_sections[c]);
-                    if (mg && ri_geo_bbox(mg, reg, s_zoom[c],
+                    if (cg && ri_geo_bbox(cg, reg, s_zoom[c],
                             &bx0, &by0, &bx1, &by1) == 0)
                         ri_rsection_refresh_box(s_canvas[c], bx0, by0, bx1, by1);
-                    else if (mg)
+                    else if (cg)
                         ri_rsection_refresh(s_canvas[c]);
                 }
             }

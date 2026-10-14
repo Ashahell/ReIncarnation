@@ -1154,6 +1154,11 @@ bash "$ROOT/scripts/ri_build_host.sh" test t226_delay_fx_diag >/dev/null || { ec
 # froze lit (owner 2026-10-14). t227 pins the portable half: the board
 # records which strip a radio steal displaced.
 bash "$ROOT/scripts/ri_build_host.sh" test t227_mix_insert_lamp >/dev/null || { echo "FAIL: t227_mix_insert_lamp (mixer board records the displaced strip for repaint)"; exit 1; }
+# The COUPLING. P-FX4 and P-MIX2 were both "correct model, no repaint",
+# each fixed at one more call site. sync_values now repaints the box of
+# whatever changed; t228 pins the one decision that is not plumbing -- which
+# controls get one. METER rows are excluded because the meter loops own them.
+bash "$ROOT/scripts/ri_build_host.sh" test t228_press_repaint >/dev/null || { echo "FAIL: t228_press_repaint (which controls need a repaint when their value changes)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

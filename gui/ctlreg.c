@@ -792,6 +792,15 @@ static uint16_t auto_strip_of(uint16_t voice) {
         return RI_AUTO_STRIP_MASTER;
     return voice;
 }
+int ri_ctl_press_repaints(const struct RICtlDef *d) {
+    if (!d)
+        return 0;
+    /* METER and nothing else. See the header: the meter loops already own
+     * these boxes and refresh them on every level change, so repainting them
+     * again per press is pure redundant invalidation. */
+    return d->kind != RI_CK_METER ? 1 : 0;
+}
+
 uint16_t ri_ctlreg_auto_id(const struct RICtlDef *d) {
     if (!d)
         return 0u;

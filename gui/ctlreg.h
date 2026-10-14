@@ -81,6 +81,25 @@ struct RICtlDef {
 };
 
 uint32_t ri_ctlreg_count(void);
+/* Does a control need its own repaint when its value changes?
+ *
+ * This is the decision that lets sync_values repaint whatever changed, once,
+ * instead of every caller that turns out to need it discovering it for
+ * itself. P-FX4 (displaced FX lamp) and P-MIX2 (mixer insert rockers) were
+ * both "correct model, no repaint", fixed at two separate call sites; this is
+ * the coupling that covers both and any next one.
+ *
+ * METER rows answer NO: meter_round and the FX meter loop already refresh the
+ * meter box whenever the LEVEL changes -- every frame, not on a press -- so
+ * repainting them here too doubles the invalidations for no visual gain, and
+ * this widget counts redundant invalidations (dpr_rep) because they were
+ * implicated in a 1.36 s stall.
+ *
+ * Everything else answers YES, including DISPLAYs: their arrows change the
+ * number on a press. Takes only the definition, never the value, so a knob
+ * DRAG (which fires the change counter continuously) is treated identically
+ * to a click. */
+int ri_ctl_press_repaints(const struct RICtlDef *d);
 /* Bubble help (owner, Dell 2026-09-26): full instrument names for the 808 /
  * 909 abbreviations (Owner's Manual p. 148 / p. 151 tables). Instrument
  * Selection options give "Bass Drum (BD)"; a grouped control gives

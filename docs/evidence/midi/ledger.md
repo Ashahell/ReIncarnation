@@ -6085,3 +6085,62 @@ remaining instances, at one site. That is the better fix and it is **not** what
 I did; recorded here as the obvious next step rather than smuggled in.
 
 **Not proven by ear.**
+
+## P-RPN1: the coupling, instead of the third per-caller patch
+
+This is the fix I flagged at the end of P-MIX2 and then did not do.
+
+`sync_values` — the per-frame loop that runs on **every** panel change — now
+repaints the box of whatever changed. That replaces the mixer-only block
+P-MIX2 had added at the same site, so the shell gained no second special case;
+it lost one.
+
+The box maths is `ri_geo_bbox`, already portable. The only decision worth
+testing is **which controls get a repaint**, and that is
+`ri_ctl_press_repaints()` in `gui/ctlreg.c`:
+
+- **METER rows answer NO.** `meter_round` and the FX meter loop already
+  refresh the meter box whenever the *level* changes — every frame, not on a
+  press — so repainting them again here would double the invalidations for no
+  visual gain. This widget counts redundant invalidations (`dpr_rep`) because
+  they were implicated in a **1.36 s stall**, so this is not a micro-optimiser
+  concern.
+- **Everything else answers YES**, including DISPLAYs, whose arrows change the
+  number on a press.
+- The predicate takes only the *definition*, never the *value*, so a knob
+  **drag** — which fires the change counter continuously — is treated exactly
+  like a click.
+
+`t228` pins both directions and, importantly, **censors every METER row in the
+registry** rather than the three named ones, so a meter added later cannot
+begin double-invalidating unnoticed. RED caught **12 leaked rows** against the
+stub before the predicate existed.
+
+### What is still per-caller, and why that is correct
+
+The cross-canvas repaints remain: `ri_sfx_rack_stale_section()` (P-FX4) and
+`ri_smix_stale_section()` (P-MIX2). Those cannot be covered by the coupling,
+because the displaced canvas received **no change event at all** — the press
+happened somewhere else. So there are two categories, not one:
+
+| category | trigger | mechanism |
+|---|---|---|
+| own value changed | a change event on this canvas | `sync_values`, general |
+| value changed by another's press | no event here | cross-canvas bookkeeping |
+
+### Coverage this is expected to add
+
+The coupling repaints the changed box for **every** section, not just the four
+that produced reported defects: the 303/808/909 panels, pattern and sequencer
+panels, the transport, and every FX panel. Any of those could carry the same
+freeze and none has been reported, because nobody has looked for it. That is
+the point — it stops the class being discovered one ear-proof at a time.
+
+`AUDIT 0/0 PASS`. AROS build 1205752 bytes. **Not proven by ear.**
+
+Risk, stated plainly: this adds a draw request per control change on every
+canvas. That is the same shape the meter loops already use (box refresh, not
+whole canvas), and the predicate keeps meters out of it, but **the 1.36 s
+stall instrumentation in `rsection.mcc.c` (`dpr_rep` / `dpr_run_max`) is the
+thing to watch** on the next lane session. If frame time regresses, that
+counter names the box.
