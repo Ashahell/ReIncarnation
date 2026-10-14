@@ -61,7 +61,39 @@ int ri_sfx_press(struct RISectFx *s, uint32_t idx) {
 
 int ri_sfx_set_value(struct RISectFx *s, uint32_t idx, int v) {
     const struct RICtlDef *d = def(s, idx);
-    if (!d || (d->kind != RI_CK_KNOB && d->kind != RI_CK_FADER && d->kind != RI_CK_SELECTOR))
+    if (!d)
+        return 0;
+    if (idx == RI_SFX_ONOFF) {
+        /* ABSOLUTE readback (t231). This setter is the path song automation
+         * and MIDI take to move a lamp, and it must CONVERGE on a requested
+         * state -- not toggle. Told "PCF is live" when the panel already
+         * believes it is, a toggle would switch the module OFF.
+         *
+         * The write goes to the SHARED RACK, not to a private slot: the lamp
+         * is derived from the rack, so storing per canvas would change nothing
+         * visible (the lie-by-storage defect P-FX4 removed). `displaced` is
+         * recorded so the shell repaints whoever just lost the lamp.
+         *
+         * Returns 1 even with no rack bound, matching ri_sfx_press: the
+         * request is consumed and nothing is written, rather than reporting a
+         * failure for a canvas that legitimately has no rack. */
+        if (s->rack) {
+            if (v)
+                s->rack->displaced = (uint8_t)ri_sfx_rack_take(s->rack, fx_slot(s));
+            else if (fx_on(s))
+                s->rack->displaced = (uint8_t)ri_sfx_rack_take(s->rack, RI_SFX_LIVE_NONE);
+            else
+                s->rack->displaced = RI_SFX_LIVE_NONE; /* not the holder */
+        }
+        return 1;
+    }
+    /* Any SWITCH is settable, not just the enable. PCF's Mode and Delay's
+     * Triplet are FX switches with MIDI CCs, so automation and MIDI reach
+     * them too, and they are plain per-canvas storage (`ri_sfx_led` reads
+     * val[] for everything except the enable). Refusing them would leave two
+     * more lamps that never move -- the census in t231 is what found them. */
+    if (d->kind != RI_CK_KNOB && d->kind != RI_CK_FADER && d->kind != RI_CK_SELECTOR
+        && d->kind != RI_CK_SWITCH)
         return 0;
     if (v < d->min_v)
         v = d->min_v;

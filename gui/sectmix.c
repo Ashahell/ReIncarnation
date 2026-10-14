@@ -102,7 +102,36 @@ int ri_smix_press(struct RIMixBoard *b, uint32_t section, uint32_t idx) {
 int ri_smix_set_value(struct RIMixBoard *b, uint32_t section, uint32_t idx, int v) {
     const struct RICtlDef *d = b ? def(section, idx) : 0;
     int strip = ri_smix_strip(section);
-    if (!d || (d->kind != RI_CK_KNOB && d->kind != RI_CK_FADER))
+    int unit;
+    if (!d || strip < 0)
+        return 0;
+    unit = unit_of(section, idx);
+    if (unit >= 0) {
+        /* ABSOLUTE readback of an insert (t231). This is the path song
+         * automation and MIDI take, so it must CONVERGE on a requested state,
+         * not toggle -- told "Synth1 owns Dist" when the panel already shows
+         * that, a toggle would release it.
+         *
+         * The write goes to the shared ROUTE because the lamp is derived from
+         * it, and `stale` is recorded so the canvas that loses the insert gets
+         * repainted (the P-MIX2 defect, re-entering through this door). */
+        int owner = owner_of(section, strip);
+        int prev = ri_route_owner(&b->route, (uint32_t)unit);
+        b->stale = (v && prev != RI_ROUTE_NONE && prev != owner)
+            ? (uint8_t)section_of_owner(prev) : RI_SMX_STALE_NONE;
+        if (v) {
+            if (prev == owner)
+                return 0;               /* already there: nothing changed */
+            ri_route_assign(&b->route, (uint32_t)unit, owner);
+        } else if (prev == owner) {
+            ri_route_assign(&b->route, (uint32_t)unit, RI_ROUTE_NONE);
+        } else {
+            return 0;                   /* not the holder: nothing to release */
+        }
+        return 1;
+    }
+    if (d->kind != RI_CK_KNOB && d->kind != RI_CK_FADER
+        && d->kind != RI_CK_SWITCH)
         return 0;
     if (v < d->min_v)
         v = d->min_v;

@@ -6361,3 +6361,79 @@ decision is this reversible rather than argued into the engine.
 
 `AUDIT 0/0 PASS`. Prior leaf annotated in place with a dated Status note —
 pending → SETTLED — and left standing.
+
+## P-RB1: song automation and MIDI never moved a switch lamp — the class closes
+
+The last **known** member of the "looks live but isn't" family.
+
+### The mechanism
+
+`song_ui_apply()` (app/riapp.c, run on song load) mirrors an automation key back
+onto the panel through `ri_sui_set()`. Both section setters **refuse switches
+outright**:
+
+```
+ri_sfx_set_value:  KNOB / FADER / SELECTOR only   -> RI_SFX_ONOFF refused
+ri_smix_set_value: KNOB / FADER only               -> inserts AND the mute refused
+```
+
+So a song that automates any of them **loads and plays correctly while the panel
+shows nothing**. The Dell's own log had been telling us this all along — three
+`CTL` events per song with no corresponding lamp movement — and it was filed
+under "FX engaged by automation moves no lamp" as a *known readback gap*. It was
+not a gap. It was a refusal.
+
+### Scope: 27 rows, and the census found two I had missed
+
+4 FX enables + 16 insert rockers + 5 strip mutes = 25 by the first count. The
+`bind=FX` switches that also carry a MIDI CC — **PCF's Mode and Delay's
+Triplet** — make it **27**. A census by *count* passed at 25 while those two were
+still refused; asserting **reachability row by row** is what caught them. That
+is the same lesson as P-KEY1's STEP RECORD, from the other direction: a census
+that cannot see individual members cannot notice one that is missing.
+
+### Absolute, not toggle
+
+This path needs to **converge on a requested state**. Told "PCF is live" when
+the panel already believes it is, a toggle would switch the module **off**.
+`ri_sfx_press` / `ri_smix_press` remain the toggles for a click; the setters
+release only when the request is "off" **and this control currently holds it**.
+
+### The writes go to SHARED state, not to a private slot
+
+The lamps are **derived** — the FX selection lives in `RIFxRack.live`, the
+insert lamps in `b->route`. Storing a per-canvas value would have changed
+nothing visible, which is exactly the lie-by-storage defect P-FX4 removed. So
+the setters write the shared state and record `displaced` / `stale`, or the
+canvas that just lost the lamp would not be repainted — the P-MIX2 defect
+re-entering through a different door.
+
+The strip mute is the exception and is per-strip storage, so a plain store is
+correct there.
+
+### Gates
+
+`t66` pinned *"switches are not set by value"* — the same category as `t60`'s
+*"mute: no key"*: an old behaviour recorded as intended. Inverted, with the
+reason. `t67`'s meter refusal is untouched and still holds.
+
+**Two bugs were mine in the test, and both would have produced false confidence:**
+
+1. I asserted the setters **return 1** on idempotent requests. These return
+   "did anything change", so a no-op returns 0 — I was demanding a convention
+   the section never used.
+2. The census then reported all **five strip mutes** as "unreachable" purely
+   because their default is already 1 and nothing changed. It was measuring the
+   return code instead of the property. Rewritten to drive every row to the
+   **opposite** of its current value and assert **the lamp moves** — which is
+   the defect itself, stated as an assertion.
+
+`RED` was `FAIL` across the whole FX half. `AUDIT 0/0 PASS`, AROS build
+1206512 bytes. **Not proven by ear** — and the lane check is now concrete: load
+a song that automates an FX enable or an insert and watch the lamp move.
+
+**Not closed, honestly:** this fixes lamps for controls driven by *automation*.
+A control driven by **MIDI** follows a different path into the engine and still
+has no engine→panel readback, so a hardware CC that changes `fx_on[]` or a route
+can still move no lamp. That is the same missing mechanism from the other side,
+and it is the next item, not a solved one.

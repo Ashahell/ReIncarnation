@@ -55,7 +55,14 @@ int main(void) {
         ri_smix_value(&b, RI_SEC_MIX_909, RI_SMIX_PAN) == 0, "pan hard left");
     RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MASTER, RI_SMST_LEVEL, 80) == 1 &&
         ri_smix_value(&b, RI_SEC_MASTER, RI_SMST_LEVEL) == 80, "master fader");
-    RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MIX_909, RI_SMIX_DIST, 1) == 0, "switches are not set by value");
+    /* Was == 0, "switches are not set by value" -- the same category of pin as
+     * t60's "mute: no key": it recorded the OLD behaviour as intended. Switches
+     * ARE now set by value, because that is the path song automation and MIDI
+     * take to move a lamp (t231): both section setters refused switches, so 27
+     * automatable rows loaded silently wrong. The set is ABSOLUTE (converge on
+     * a requested state); the toggle lives in ri_smix_press. -- switches set by value */
+    RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MIX_909, RI_SMIX_DIST, 1) == 1 &&
+        ri_smix_led(&b, RI_SEC_MIX_909, RI_SMIX_DIST) == 1, "switches are set by value (absolute)");
     RI_ASSERT(ri_smix_press(&b, RI_SEC_MIX_909, RI_SMIX_PAN) == 0, "knobs are not buttons");
     /* meters: display only, fed by the engine */
     ri_smix_meter_set(&b, RI_SEC_MIX_808, 0, 90);

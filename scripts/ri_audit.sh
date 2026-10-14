@@ -1171,6 +1171,11 @@ bash "$ROOT/scripts/ri_build_host.sh" test t229_mute_join >/dev/null || { echo "
 # Its tripwire census fails the day a shipped song automates a mixer control,
 # because that is the moment the deviation stops being free.
 bash "$ROOT/scripts/ri_build_host.sh" test t230_mute_automatable >/dev/null || { echo "FAIL: t230_mute_automatable (mute automatable decision + inertness tripwire)"; exit 1; }
+# The last known member of the "looks live but isn't" class: song automation
+# and MIDI reached 25+ switch rows through ri_sui_set, and BOTH section setters
+# refuse switches outright, so those lamps never moved. t231 drives each row
+# to the opposite of its current value and asserts the LAMP MOVES.
+bash "$ROOT/scripts/ri_build_host.sh" test t231_automation_readback >/dev/null || { echo "FAIL: t231_automation_readback (automation/MIDI readback moves FX and mixer switch lamps)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every
