@@ -1181,6 +1181,12 @@ bash "$ROOT/scripts/ri_build_host.sh" test t231_automation_readback >/dev/null |
 # MIDI message never bumps. t232 pins that the map REPORTS the control it
 # touched, which is the portable half the shell push consumes.
 bash "$ROOT/scripts/ri_build_host.sh" test t232_midi_push >/dev/null || { echo "FAIL: t232_midi_push (G7 CC/Note reports the control it changed so the shell can push it)"; exit 1; }
+# The lane-log analyser. Six "looks live but isn't" faults this session were
+# each found by ear; two of those rounds were lost to a symptom assembled from
+# evidence that never overlapped. t233 replays the CAPTURED logs and requires
+# the known findings -- plus a synthetic CLEAN session that must produce none,
+# because a finding tool that reports everything is worse than no tool.
+bash "$ROOT/scripts/ri_build_host.sh" test t233_lane_evlog >/dev/null || { echo "FAIL: t233_lane_evlog (lane-log analyser names known defects, stays quiet on a clean session)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every
@@ -1542,7 +1548,13 @@ done
 # binary or the wrong ABI gets deployed, and that has happened three times. It
 # lives here so its argument shapes are reviewable next to the build scripts
 # whose shapes it depends on -- which it got wrong twice before getting right.
-RI_SCRIPTS_OK="ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_build_v11.sh ri_fuzz.sh ri_soak.sh lane_proof.sh"
+# lane_evlog.py (2026-10-15) joins for the same reason: it reads the lane event
+# log and names what the log cannot explain. Six "looks live but isn't" faults
+# this session were each found by ear and each cost an ear-proof cycle; two of
+# them were lost to a symptom assembled from evidence that never overlapped.
+# A tool that can find that class of mistake belongs where its argument shapes
+# are reviewable, next to lane_proof.sh which produces the log it reads.
+RI_SCRIPTS_OK="ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_build_v11.sh ri_fuzz.sh ri_soak.sh lane_proof.sh lane_evlog.py"
 for f in $(ls "$ROOT/scripts"); do
   case " $RI_SCRIPTS_OK " in *" $f "*) ;; *) echo "FAIL: scripts/$f is not on the shared-script allowlist (${RI_SCRIPTS_OK})"; exit 1 ;; esac
 done

@@ -6572,3 +6572,79 @@ in this ledger.
 `AUDIT 0/0 PASS`. No production code changed in this addendum — the drum branch
 wrapping added in P-RB2 turns out to be a harmless no-op for `bind=NONE` rows,
 kept as forward-compatible rather than removed.
+
+## P-TOOL: the lane-log analyser — the next "looks live but isn't" is a grep
+
+Recommended twice this session and not built until now, which was the right
+order: the thing that finds the class of mistake should come after the class has
+been fully characterised, not in the middle of it.
+
+### Why
+
+Six faults this session were one shape, and **every one was found by the owner
+pressing something and hearing a silence**, then by me reading the log. Each
+round cost an ear-proof cycle — the single most expensive instrument in the
+project, and the one that cannot be parallelised.
+
+Two of those rounds were lost to a subtler failure. A symptom was assembled from
+evidence that **never overlapped**:
+
+```
+dell11  142 x 0a05 (F.Back), 141 x 0a04 (Pan)   <- but send = 0: nothing to hear
+dell13  send = 64, delay audible                 <- but no 0a03/04/05 at all
+```
+
+Neither log shows a defect. Both read as *"the FX knobs do nothing."* Two
+ear-proof cycles went into proving they didn't, and the proof came from putting
+two logs side by side rather than from reading any more code.
+
+`scripts/lane_evlog.py` turns that into a `grep`. It reads a lane event log and
+reports what the log **cannot explain**:
+
+| finding | what it rules out |
+|---|---|
+| `MIXER_NEVER_TOUCHED` | every mixer knob is still at default, so a mixer control "doing nothing" was never tested |
+| `DELAY_SEND_NEVER_TOUCHED` | delay params were moved with the send closed — a **session artefact, not a delay fault** |
+| `SWITCH_REPEATED_VALUE` | a 0/1 switch reported the same value twice running |
+| `NO_PANEL_PUSH` | the panel moved nothing at all |
+
+**A finding is a question, never a verdict.** Each says what it observed and
+what that rules out, and explicitly stops where the log stops —
+`SWITCH_REPEATED_VALUE` cannot distinguish a radio steal from a switch that does
+not toggle, and says so instead of guessing. On the captures it immediately
+names the two-session delay artefact and, unprompted, finds a **third** capture
+(`fxcheck-ev.log`, 1077 panel events) that had sat on disk all session with zero
+mixer events and that nobody had thought to open.
+
+The control registry is **read from `gui/ctlreg.c`**, not duplicated, so one
+source of truth decides what a knob is.
+
+### The anti-tautology guard is the half that matters
+
+A finding tool that reports everything is worse than none, because it trains the
+reader to skim. So `t233` has a second half: a **synthetic clean session** — the
+mixer *is* touched, the delay send *is* opened, switches alternate `1,0,1,0` —
+which must produce **nothing**. And a real capture that *did* use the mixer
+(`m3-owner-fail`, 78 mixer events) must **not** be flagged, or the tool would
+fire on everything and still pass the three "does it find X?" assertions.
+
+### The harness found a real gap in my own test
+
+`t233` was **never RED** — the analyser already existed when the test was
+written — so it is a pin, and `tests/mutate_lane_evlog.py` (**5/5**) is what
+gives it teeth. `m4`, *"the switch finding never fires"*, **SURVIVED the first
+version of this test**, because `SWITCH_REPEATED_VALUE` was only ever asserted
+**absent** on the clean session.
+
+**A finding asserted only in its negative is untested.** The assertion is now
+added and m4 dies.
+
+`AUDIT 0/0 PASS`. `lane_evlog.py` is on the shared-script allowlist beside
+`lane_proof.sh`, which produces the log it reads.
+
+### The remaining cost
+
+The analyser reads **captured** logs, so it still needs someone to capture the
+log after an ear-proof round. The missing half is running it on the Dell
+immediately after each session rather than at the end of mine — worth doing on
+the next round, and it is a command, not a change.
