@@ -38,6 +38,8 @@ int ri_sui_init(struct RISectUI *s, uint8_t section); /* 0 ok, 2 not laid out */
 /* Mixers/master: share one board across canvases (insert radio routing
  * spans sections). Returns 0 ok, 2 when s is not a mixer/master. */
 int ri_sui_bind_board(struct RISectUI *s, struct RIMixBoard *b);
+/* FX canvases share one rack so the live selection is cross-section. */
+int ri_sui_bind_fx_rack(struct RISectUI *s, struct RIFxRack *r);
 int ri_sui_press(struct RISectUI *s, uint32_t idx);
 /* Tap tempo (P9e): the one press that needs a wall clock, so the clock is
  * passed in at the press instead of living in the panel state. ms == 0 means

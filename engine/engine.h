@@ -41,6 +41,13 @@
 #define RI_ENGINE_FX_DELAY 2u
 #define RI_ENGINE_FX_COMP 3u
 #define RI_ENGINE_FX_COUNT 4u
+/* Owner ruling 2026-10-14: engaging an FX panel from the canvas must make it
+ * actually run. route.h holds ONE int8_t owner per unit, so an insert can
+ * belong to exactly one strip -- an earlier proposal to "engage on every
+ * strip" was not representable. An insert nobody owns is therefore claimed
+ * for the Levi (section 4), the instrument this app plays; an insert that is
+ * already owned is left exactly where it is. */
+#define RI_FX_ENGAGE_OWNER 4
 
 /* DSP sub-stage breakdown (Dell 2026-10-02). ri_live_render's DSP stage turned
  * out to be 98 % of the whole render, so the next question is what inside it;

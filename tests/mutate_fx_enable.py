@@ -56,8 +56,10 @@ MUTANTS = {
         [("re", ENG, r"e->fx_on\[i\] = 1u;", "e->fx_on[i] = 0u;")],
 
     # Ids resolve, engine ignores them: the mutant t218 exists to kill.
+    # Retargeted 2026-10-14: the owner ruling replaced the inline assignment
+    # with ri_fx_engage(), so this must delete the CALL, not the old statement.
     "m4-engine-case-deleted":
-        [("re", ENG, r"case RI_FXID_DIST_ENABLE:\s*\n\s*e->fx_on\[RI_ENGINE_FX_DIST\] = value \? 1u : 0u;\s*\n\s*break;\n", "")],
+        [("re", ENG, r"case RI_FXID_DIST_ENABLE:\s*\n\s*ri_fx_engage\(e, RI_ENGINE_FX_DIST, value\);\s*\n\s*break;\n", "")],
 
     # Half the fix: mask kept, gate term dropped.
     "m5-gate-term-dropped":
@@ -66,10 +68,12 @@ MUTANTS = {
           "(mask & (1u << RI_ROUTE_DIST))")],
 
     # A switch that cannot be switched off.
+    # Retargeted 2026-10-14: a switch that cannot be switched off. Inside
+    # ri_fx_engage, making the OFF early-return a no-op.
     "m6-handler-always-live":
         [("re", ENG,
-          r"e->fx_on\[RI_ENGINE_FX_DIST\] = value \? 1u : 0u;",
-          "e->fx_on[RI_ENGINE_FX_DIST] = 1u;")],
+          r"if \(!value\) \{           /\* OFF clears itself and disturbs nobody \*/\n        e->fx_on\[mod\] = 0u;\n        return;\n    \}",
+          "if (!value) { e->fx_on[mod] = 1u; return; }")],
 }
 
 MARKERS = {
@@ -103,9 +107,26 @@ def restore(backups):
             fh.write(data)
 
 
+def assert_baseline():
+    """The gate must be GREEN on unmutated code before any mutant is scored.
+
+    This exists because `ri_build_host.sh all` does not compile the unit
+    test, so a broken t222 still let the harness print 7/7 KILLED while the
+    test had never run once. Scored on the return code, but also on the
+    word PASS: a non-zero gate that is really a BUILD failure must not be
+    mistaken for a kill."""
+    rc, out = run_gate()
+    if rc != 0 or "PASS" not in out:
+        print("BASELINE FAILED (rc=%d) -- every mutant would score as a kill "
+              "for the wrong reason. Fix the gate first.\n%s" % (rc, out[-400:]))
+        sys.exit(2)
+    print("baseline: gate green on unmutated code\n")
+
+
 killed = survived = 0
 backups = {}
 try:
+    assert_baseline()
     for name, ops in MUTANTS.items():
         backups = {}
         touched = set()

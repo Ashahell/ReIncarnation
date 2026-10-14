@@ -5508,3 +5508,126 @@ and the auditors caught it rather than me.
 - **What left-column MASTER drives** — no engine control exists, `t220` keeps
   it inert.
 - The Levi's own pre/post/delay/reverb stay bypassed by default.
+
+## P-FX3: the FX rack is single-active, and engaging it actually runs
+
+Owner ear proof, Dell lane, build `2b52ffc`, 2026-10-14:
+
+> "Delay and DIST work, PCF and COMP don't. Nothing seems to be wired up for
+> the latter two."
+> "With PCF turned on, the meter there doesn't work. Also, moving any of the
+> sliders makes any audible difference. In Comp. the meter doesn't work.
+> Turning the knobs makes no audible difference"
+
+### One defect, not three
+
+The render guard is
+
+```c
+if ((mask & (1u << RI_ROUTE_PCF)) && e->fx_on[RI_ENGINE_FX_PCF]) { ... }
+```
+
+and `mask` comes from the routing table, whose only writer reachable from the
+UI is the **mixer's per-strip insert switches** (`engine.c:1164`). The FX
+canvas enable set `fx_on[]` and assigned no route, so the block never ran.
+
+**The meters were not broken.** `ri_meter_feed()` sits *inside* that same
+guard, so "no sound" and "dark meter" are the same single failure. PCF and
+Comp were dead in both respects while Dist was alive in both — that symmetry
+is the proof. P-FX2's wiring was handed a zero because the FX was not
+running. Inventory closed at **one** cause: not the switch, not the meters,
+not the parameters.
+
+### Owner ruling
+
+> "we need to make this as intuitive as possible. If the user turns on an FX
+> panel that conflicts with another, that other one should be turned off and
+> the newly activated FX panel should become active."
+
+Two halves. EXCLUSIVITY is the visible one; ENGAGE — "become active" meaning
+*audible* — is the half that was missing.
+
+### I corrected my own proposal before writing code
+
+I told the owner I would "engage on every strip that doesn't already have that
+insert owned". **That is not representable.** `engine/fx/route.h` holds one
+`int8_t owner[RI_ROUTE_NUNITS]` per unit: an insert can belong to at most one
+strip. Corrected rule, and pinned: an insert nobody owns is claimed for
+`RI_FX_ENGAGE_OWNER` (4, the Levi — the instrument this app plays); an insert
+that is **already** owned is left exactly where somebody put it, because
+claiming it would silently steal another strip's insert. t222 asserts the
+owner is never `RI_ROUTE_NONE` *and* is a rendering section, so a mutant that
+assigns an out-of-range owner cannot pass.
+
+### The displaced lamp must be derived, not stored
+
+The four canvases are four separate `struct RISectFx` (`panelui.h` `fx[4]`)
+and none holds a pointer to a sibling — so a canvas that displaces another
+**cannot** reach the displaced canvas's `val[0]`. Storing the selection would
+leave the old lamp lit: a switch that looks live and is not, the exact defect
+class this ruling exists to remove. One `struct RIFxRack` is shared, mirroring
+`ri_sui_bind_board`, which already shares state across canvases because insert
+radio routing spans sections. `ri_sfx_value`/`ri_sfx_led` derive from it.
+
+OFF is deliberately **asymmetric** with ON: it clears itself and disturbs
+nobody, so switching a module off never silently brings the displaced one
+back. Pinned both ways.
+
+### Gates, and two of them caught me
+
+| gate | what it found |
+|---|---|
+| `t64_sectui` | standalone FX canvas with no rack now reads/writes nothing (fail closed) — bound a rack |
+| `t73_midimap` | MIDI CC 74 (PCF) + 77 (Comp) both lit; now Comp **displaces** PCF, same radio behaviour the mixer inserts already had ("808 PCF steals it") |
+| `t67_sectfx` | all four canvases unlaid-out; bound one rack across the loop |
+
+`AUDIT 0/0 PASS`. `t222` RED was **`FAIL 13`** on assertions — deliberately
+*not* the compile failure that the first draft produced, because the
+shared-rack API did not exist yet and a build failure proves nothing.
+Mutation **7/7**; `mutate_fx_enable` retargeted for the new handler shape,
+**6/6**.
+
+### Harness trap, caught late and worth recording
+
+After adding the storage assertion the harness still printed **7/7 KILLED**.
+Every one was fake: the assertion read `unbound.val[...]` on a `struct
+RISectUI` instead of `unbound.u.fx.val[...]`, the test **never compiled**,
+and a non-zero gate reads as a kill. `ri_build_host.sh all` does not compile
+the unit test, so nothing caught it. Both harnesses now run `assert_baseline()`
+first and exit 2 if the gate is not genuinely green, verified by deliberately
+breaking the gate (exit 2, refused to score). This is the recurring lesson of
+this project stated as code: **a kill must be a kill, not a build error.**
+
+`m7` also survived the first honest run, and it was a real gap: `app/sectproof.c`
+serialises `f->u.fx.val[0]` *directly*, bypassing `ri_sfx_value`, so a press
+that quietly wrote a private `1` would be reported there as an enabled FX.
+Found by the harness, not by me. `sectproof` now binds a rack and serialises
+the derived value.
+
+### Documented decisions and known limits
+
+- **Boot state is deliberately NOT exclusive.** `fx_on[]` defaults to all
+  un-bypassed so nothing audible stops being audible on song load. That means
+  "the user has not bypassed anything", not "four modules are live"; the first
+  engage collapses it to one. At boot no insert is routed either, so nothing
+  renders regardless — exclusivity only ever *reduces* the live set.
+- **Delay joins the exclusivity** even though it is not an insert. It rides
+  `e->dline`, not a route unit, so engaging it assigns no route. This is the
+  one judgement call in the change: it means turning on PCF clears Delay.
+  Reversible in one line if the owner wants Delay exempt.
+- **Lamp/engine coupling.** `sync_values` pushes only the *last-hit* control,
+  so a canvas displaced as a side effect of another canvas's press never gets
+  its own push. The **engine is therefore the authority** and the panel is its
+  display; they agree because both implement one rule. A path that changed
+  `fx_on[]` without `ri_fx_engage` would desync the lamps. Consequence: an FX
+  engaged by **MIDI or song automation** moves no lamp — the same readback gap
+  as the COMP level-reduction meter, deliberately not solved here.
+- **Dist's route remains unexplained.** No mixer insert switch was pressed in
+  that session and nothing in song load assigns one, yet Dist ran. Believed to
+  be song/demo automation hitting `engine.c:1164`, **not verified**.
+
+### Not proven by ear
+
+Unit tests, `AUDIT 0/0 PASS`, and a clean AROS build (1200688 bytes). The
+owner's next check is the real one: turn on PCF and Comp and confirm sound and
+meters together — one observation now settles both halves at once.

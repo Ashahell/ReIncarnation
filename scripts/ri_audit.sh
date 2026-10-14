@@ -1114,6 +1114,13 @@ bash "$ROOT/scripts/ri_build_host.sh" test t218_fx_enable >/dev/null || { echo "
 # the portable half -- notably the canvas->engine-unit transpose, which is a
 # real permutation [1,2,0,3] and would light each module's neighbour's meter.
 bash "$ROOT/scripts/ri_build_host.sh" test t219_fx_meters >/dev/null || { echo "FAIL: t219_fx_meters (FX meter levels + canvas->unit transpose)"; exit 1; }
+
+# Owner ear proof 2026-10-14: "PCF and COMP don't work ... the meter there
+# doesn't work ... turning the knobs makes no audible difference". One cause:
+# the panel enable set fx_on[] but assigned no insert route, so the render
+# guard -- and ri_meter_feed inside it -- never ran. Owner ruling: FX panels
+# are mutually exclusive, last-on-wins, and engaging one makes it run.
+bash "$ROOT/scripts/ri_build_host.sh" test t222_fx_exclusive >/dev/null || { echo "FAIL: t222_fx_exclusive (FX rack single-active + engage routes an unowned insert)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

@@ -8,6 +8,7 @@
 #include "gui/ctlreg.h"
 
 static struct RISectUI s1, s2, d8, d9, mx[5], mxl, fx[4], pat[4], tr;
+static struct RIFxRack s_fx_rack; /* shared: the FX rack is single-active */
 static struct RIPanelUI pu;
 static struct RIMidiIn mi;
 
@@ -24,8 +25,10 @@ static void setup(void) {
     }
     ri_sui_init(&mxl, RI_SEC_MIX_LEVI);
     ri_sui_bind_board(&mxl, mx[0].u.mix.board);
+    ri_sfx_rack_init(&s_fx_rack);
     for (i = 0; i < 4; i++) {
         ri_sui_init(&fx[i], (uint8_t)(RI_SEC_PCF + i));
+        ri_sui_bind_fx_rack(&fx[i], &s_fx_rack);
         ri_sui_init(&pat[i], (uint8_t)(RI_SEC_PAT_SYNTH1 + i));
     }
     ri_sui_init(&tr, RI_SEC_TRANSPORT);
@@ -89,8 +92,17 @@ int main(void) {
     RI_ASSERT(on(71) == 1 && ri_sui_led(&tr, RI_STR_RECORD, 0), "B3 71 Record");
     RI_ASSERT(on(73) == 1 && ri_sui_value(&tr, RI_STR_BAR) == 2 && on(72) == 1 && ri_sui_value(&tr, RI_STR_BAR) == 1,
         "bar + / -");
-    RI_ASSERT(on(74) == 1 && ri_sui_led(&fx[0], RI_SFX_ONOFF, 0) && on(77) == 1 && ri_sui_led(&fx[3], RI_SFX_ONOFF, 0),
-        "PCF / Comp enable");
+    /* Owner ruling 2026-10-14: FX panels are mutually exclusive, last-on-wins.
+     * 74 (PCF) lights PCF; 77 (Comp) then DISPLACES it. This is the same
+     * radio behaviour the mixer inserts already had two lines below ("808
+     * PCF steals it"), now applied to the FX canvases -- and it is why the
+     * displaced lamp must be derived from a shared rack rather than stored
+     * per canvas. */
+    RI_ASSERT(on(74) == 1 && ri_sui_led(&fx[0], RI_SFX_ONOFF, 0),
+        "B4 74 PCF enable");
+    RI_ASSERT(on(77) == 1 && ri_sui_led(&fx[3], RI_SFX_ONOFF, 0)
+        && !ri_sui_led(&fx[0], RI_SFX_ONOFF, 0),
+        "A5 77 Comp enable displaces PCF");
     RI_ASSERT(on(80) == 1 && ri_sui_led(&mx[0], RI_SMIX_PCF, 0), "G#4 80 Synth 1 PCF");
     RI_ASSERT(on(88) == 1 && ri_sui_led(&mx[2], RI_SMIX_PCF, 0) && !ri_sui_led(&mx[0], RI_SMIX_PCF, 0),
         "E5 88 808 PCF steals it");

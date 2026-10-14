@@ -12,6 +12,14 @@
 #define RI_SECTFX_H
 #include <stdint.h>
 
+/* Owner ruling 2026-10-14: the FX panels are mutually exclusive, last-on-wins,
+ * and engaging one makes it actually run. One struct holds the selection
+ * because the four canvases are four separate RISectFx (see panelui.h fx[4])
+ * and one of them turning on must be able to dark the other three's lamps.
+ * Mirrors ri_sui_bind_board, which already shares state across canvases
+ * because insert radio routing spans sections. */
+#define RI_SFX_LIVE_NONE 0xFFu
+struct RIFxRack { uint8_t live; }; /* canvas index 0..3, or RI_SFX_LIVE_NONE */
 #define RI_SFX_ONOFF 0u
 #define RI_SFX_METER 1u
 #define RI_SFX_PCF_PATTERN 2u
@@ -24,10 +32,17 @@
 struct RISectFx {
     uint8_t section;            /* RI_SEC_PCF / DELAY / DIST / COMP */
     uint8_t pad[3];
+    struct RIFxRack *rack;        /* shared by the four FX canvases */
     int16_t val[RI_SFX_NCTL];   /* meters included: fed by the engine */
 };
 
 int ri_sfx_init(struct RISectFx *s, uint8_t section); /* 0 ok, 2 not an FX section */
+int ri_sfx_rack_init(struct RIFxRack *r);
+int ri_sfx_bind_rack(struct RISectFx *s, struct RIFxRack *r);
+/* RI_SFX_ONOFF is DERIVED from the rack, never stored per canvas:
+ * a sibling cannot reach another canvas's val[], so storing it would
+ * leave displaced lamps lit. 0 when no rack is bound (fail closed). */
+int ri_sfx_value(const struct RISectFx *s, uint32_t idx);
 int ri_sfx_press(struct RISectFx *s, uint32_t idx);
 int ri_sfx_set_value(struct RISectFx *s, uint32_t idx, int v);
 int ri_sfx_reset(struct RISectFx *s, uint32_t idx);

@@ -424,7 +424,7 @@ static void format_readout(const struct RISectUI *ui, const struct RSectionDiag 
             const struct RISectUI *f = 0;
             GetAttr(MUIA_RSection_State, s_mix[k], (IPTR *)&f);
             put_str(&p, k == 0 ? "PCF " : k == 1 ? " DLY " : k == 2 ? " DST " : " CMP ");
-            put_num(&p, f->u.fx.val[0]);
+            put_num(&p, ri_sui_value(f, RI_SFX_ONOFF));
             *p++ = ':';
             put_num(&p, f->u.fx.val[2]);
             *p++ = '/';
@@ -528,8 +528,17 @@ static void demo(Object *canvas, struct RISectUI *ui) {
     }
     if (ui->section >= RI_SEC_PCF && ui->section <= RI_SEC_COMP) {
         struct RISectUI *f[4];
+        /* One shared rack, exactly as the app binds it: without this the four
+         * presses below are no-ops (fail closed) and the proof stops
+         * exercising the switches at all. Last press wins, so COMP is the
+         * only lamp lit -- that IS the ruled behaviour (t222). */
+        struct RIFxRack rack;
+        ri_sfx_rack_init(&rack);
         for (i = 0; i < 4; i++) {
             GetAttr(MUIA_RSection_State, s_mix[i], (IPTR *)&f[i]);
+            ri_sui_bind_fx_rack(f[i], &rack);
+        }
+        for (i = 0; i < 4; i++) {
             ri_sui_press(f[i], RI_SFX_ONOFF);
             ri_sfx_meter_set(&f[i]->u.fx, RI_SFX_METER, 70 + 20 * (int)i);
         }

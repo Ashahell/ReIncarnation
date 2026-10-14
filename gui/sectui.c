@@ -19,6 +19,12 @@ static int ismix(const struct RISectUI *s) {
     return ri_smix_strip(s->section) >= 0;
 }
 
+int ri_sui_bind_fx_rack(struct RISectUI *s, struct RIFxRack *r) {
+    if (!s || !r || !isfx(s))
+        return 2;
+    return ri_sfx_bind_rack(&s->u.fx, r);
+}
+
 int ri_sui_bind_board(struct RISectUI *s, struct RIMixBoard *b) {
     if (!s || !b || !ismix(s))
         return 2;
@@ -109,7 +115,7 @@ int ri_sui_value(const struct RISectUI *s, uint32_t idx) {
     if (ismix(s))
         return ri_smix_value(s->u.mix.board, s->section, idx);
     if (isfx(s))
-        return idx < RI_SFX_NCTL ? s->u.fx.val[idx] : 0;
+        return ri_sfx_value(&s->u.fx, idx);
     if (ispat(s))
         return ri_spat_value(&s->u.pat, idx);
     if (istr(s))

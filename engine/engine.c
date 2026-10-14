@@ -67,9 +67,12 @@ void ri_engine_init(struct RIEngine *e) {
         e->scratch[i] = e->scratchR[i] = 0.0f;
     /* Routing neutral: no owners, sends 0, pans centre, delay dry. */
     ri_route_init(&e->route);
-    /* Rack live by default: the app-level On/Off can silence a module but
-     * never resurrects one, and nothing that was audible before stops being
-     * audible just by loading a song. */
+    /* Rack UN-BYPASSED by default, so nothing audible before stops being
+     * audible just by loading a song. Note this boot state is deliberately
+     * NOT exclusive: it means "the user has not bypassed anything", not
+     * "four modules are live". The first engage collapses it to one member
+     * (ri_fx_engage). At boot no insert is routed either, so nothing renders
+     * regardless -- the exclusivity only ever reduces the live set. */
     for (i = 0; i < RI_ENGINE_FX_COUNT; i++)
         e->fx_on[i] = 1u;
     ri_fxdist_init(&e->dist);
@@ -313,25 +316,66 @@ int ri_engine_assign_insert(struct RIEngine *e, uint32_t unit, int owner) {
     return ri_route_assign(&e->route, unit, owner);
 }
 
+/* Owner ruling 2026-10-14: "as intuitive as possible. If the user turns on an
+ * FX panel that conflicts with another, that other one should be turned off
+ * and the newly activated FX panel should become active."
+ *
+ * Two halves. EXCLUSIVITY is the visible one. ENGAGE is the half that was
+ * missing and the half the ear proof found: the panel switch used to set
+ * fx_on[] only, and the render guard is
+ *
+ *   if ((mask & (1u << RI_ROUTE_PCF)) && e->fx_on[RI_ENGINE_FX_PCF])
+ *
+ * so with nothing owning the insert the block never ran -- silent, and dark
+ * on the meter too, because ri_meter_feed() sits inside that same block. An
+ * unowned insert is therefore claimed for RI_FX_ENGAGE_OWNER.
+ *
+ * Only one strip can own a unit (route.h: owner[] is a single int8_t), so
+ * "engage everywhere" is not representable; an insert that is already owned
+ * is left exactly where somebody put it. */
+static int ri_fx_unit_of(uint32_t mod) {
+    switch (mod) {
+    case RI_ENGINE_FX_DIST: return (int)RI_ROUTE_DIST;
+    case RI_ENGINE_FX_PCF:  return (int)RI_ROUTE_PCF;
+    case RI_ENGINE_FX_COMP: return (int)RI_ROUTE_COMP;
+    default: break;
+    }
+    return -1; /* Delay rides e->dline, not an insert -- no unit to claim */
+}
+
+static void ri_fx_engage(struct RIEngine *e, uint32_t mod, uint8_t value) {
+    uint32_t i;
+    int unit;
+    if (!value) {           /* OFF clears itself and disturbs nobody */
+        e->fx_on[mod] = 0u;
+        return;
+    }
+    for (i = 0; i < RI_ENGINE_FX_COUNT; i++)
+        e->fx_on[i] = (i == mod) ? 1u : 0u;
+    unit = ri_fx_unit_of(mod);
+    if (unit >= 0 && ri_route_owner(&e->route, (uint32_t)unit) == RI_ROUTE_NONE)
+        ri_route_assign(&e->route, (uint32_t)unit, RI_FX_ENGAGE_OWNER);
+}
+
 void ri_engine_fx_set(struct RIEngine *e, uint32_t id, uint8_t value) {
     if (!e)
         return;
     switch (id) {
     /* Rack enable. Fail-soft like every other branch here (value != 0 is
-     * live), and it never touches route ownership: a module can be switched
-     * off here and still be assigned, so switching it back on restores
-     * exactly the routing that was there before. */
+     * live). Switching OFF never touches route ownership, so switching back
+     * on restores exactly the routing that was there before; switching ON
+     * does claim an unowned insert, which is the owner's "become active". */
     case RI_FXID_PCF_ENABLE:
-        e->fx_on[RI_ENGINE_FX_PCF] = value ? 1u : 0u;
+        ri_fx_engage(e, RI_ENGINE_FX_PCF, value);
         break;
     case RI_FXID_DELAY_ENABLE:
-        e->fx_on[RI_ENGINE_FX_DELAY] = value ? 1u : 0u;
+        ri_fx_engage(e, RI_ENGINE_FX_DELAY, value);
         break;
     case RI_FXID_DIST_ENABLE:
-        e->fx_on[RI_ENGINE_FX_DIST] = value ? 1u : 0u;
+        ri_fx_engage(e, RI_ENGINE_FX_DIST, value);
         break;
     case RI_FXID_COMP_ENABLE:
-        e->fx_on[RI_ENGINE_FX_COMP] = value ? 1u : 0u;
+        ri_fx_engage(e, RI_ENGINE_FX_COMP, value);
         break;
     case RI_FXID_DIST_DRIVE:
         e->dist.drive = value > 127u ? 127u : value;

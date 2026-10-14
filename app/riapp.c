@@ -305,6 +305,7 @@ static uint8_t s_levi_slot;
 static IPTR s_changes[C_N];
 static int s_meter_shown[5];
 static uint16_t s_key_sent = 0xFFFFu; /* keybed key we last sent note-on for */
+static struct RIFxRack s_fx_rack;      /* shared by the four FX canvases */
 static int s_mst_shown[2]; /* MASTER strip L/R meter shadows */
 
 /* Demo song, bank table, transport and meters live in app/core (T8).
@@ -3288,6 +3289,23 @@ static int riapp_main(int argc, char **argv) {
     for (i = 0; i < 5; i++)                 /* one mixer board, five strips */
         if (c_mix_canvas[i] != C_MIX)
             ri_sui_bind_board(s_ui[c_mix_canvas[i]], s_ui[C_MIX]->u.mix.board);
+    /* One FX rack shared by the four FX canvases (owner ruling 2026-10-14:
+     * the panels are mutually exclusive, last-on-wins, and engaging one makes
+     * it actually run). Same shape as the shared mixer board above -- the
+     * canvases are four separate RISectFx and none can reach a sibling, so
+     * without this the displaced module's lamp would stay lit.
+     *
+     * NOTE the coupling this creates: sync_values pushes only the last-hit
+     * control, so a canvas displaced as a SIDE EFFECT of another canvas's
+     * press never gets its own push. The engine is therefore the authority
+     * (ri_fx_engage applies the same exclusivity itself) and the panel is
+     * the display of it; the two agree because both implement one rule. A
+     * path that changed fx_on[] without going through ri_fx_engage would
+     * desync the lamps -- the same readback gap as the COMP level-reduction
+     * meter, and deliberately not solved here. */
+    ri_sfx_rack_init(&s_fx_rack);
+    for (i = C_FX0; i <= C_FX3; i++)
+        ri_sui_bind_fx_rack(s_ui[i], &s_fx_rack);
     ri_sui_bind_board(s_ui[C_MST], s_ui[C_MIX]->u.mix.board); /* MASTER shares it */
     /* The panel shows the demo: 303A/B steps mirror bank slots 0;
      * 808/909 canvases mirror their bank slot 0 (empty until programmed). */

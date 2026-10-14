@@ -40,7 +40,16 @@ int main(void) {
     RI_ASSERT(ri_sui_press(&b, RI_SMST_COMP) == 1 && ri_sui_led(&b, RI_SMST_COMP, 0) == 1, "master comp");
     ri_sui_init(&b, RI_SEC_DELAY);
     RI_ASSERT(ri_sui_step(&b, RI_SFX_DLY_STEPS, 1) == 1 && ri_sui_value(&b, RI_SFX_DLY_STEPS) == 4, "fx arrow route");
-    RI_ASSERT(ri_sui_press(&b, RI_SFX_ONOFF) == 1 && ri_sui_led(&b, RI_SFX_ONOFF, 0) == 1, "fx on/off route");
+    /* A canvas with no rack bound reads and writes nothing (fail closed,
+     * t222), so the route test binds one -- exactly as riapp.c does for the
+     * four FX canvases. Without it this asserts the fail-closed path and
+     * passes for the wrong reason. */
+    {
+        struct RIFxRack rack;
+        ri_sfx_rack_init(&rack);
+        ri_sui_bind_fx_rack(&b, &rack);
+        RI_ASSERT(ri_sui_press(&b, RI_SFX_ONOFF) == 1 && ri_sui_led(&b, RI_SFX_ONOFF, 0) == 1, "fx on/off route");
+    }
     RI_ASSERT(ri_sui_step(&a, RI_SMIX_PAN, 1) == 0, "arrows only on value displays");
     ri_sui_init(&b, RI_SEC_PAT_808);
     RI_ASSERT(ri_sui_set(&b, RI_SPAT_BANK, 1) == 1 && ri_sui_set(&b, RI_SPAT_PATTERN, 3) == 1 &&

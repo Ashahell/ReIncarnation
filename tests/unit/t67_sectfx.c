@@ -8,11 +8,19 @@
 int main(void) {
     struct RISectFx s;
     uint32_t sec;
+    struct RIFxRack rack;
     int i;
     RI_ASSERT(ri_sfx_init(&s, RI_SEC_909) == 2 && ri_sfx_init(&s, RI_SEC_MASTER) == 2, "only FX sections");
     RI_ASSERT(ri_sfx_init(0, RI_SEC_PCF) == 2, "null");
+    /* One shared rack across the four canvases, as riapp.c binds them. The
+     * On/Off state is DERIVED from it (owner ruling 2026-10-14), so a canvas
+     * with no rack reads off and stays off no matter how many times it is
+     * pressed -- this loop would pass for the wrong reason without one. Each
+     * iteration re-claims the rack, so the lamp is lit when asserted. */
+    ri_sfx_rack_init(&rack);
     for (sec = RI_SEC_PCF; sec <= RI_SEC_COMP; sec++) {
         RI_ASSERT(ri_sfx_init(&s, (uint8_t)sec) == 0, "init %u", sec);
+        ri_sfx_bind_rack(&s, &rack);
         RI_ASSERT(ri_sfx_led(&s, RI_SFX_ONOFF) == 0, "unit %u starts bypassed", sec);
         RI_ASSERT(ri_sfx_press(&s, RI_SFX_ONOFF) == 1 && ri_sfx_led(&s, RI_SFX_ONOFF) == 1, "on/off %u", sec);
         RI_ASSERT(ri_sfx_press(&s, RI_SFX_METER) == 0 && ri_sfx_set_value(&s, RI_SFX_METER, 9) == 0, "meter read-only");
