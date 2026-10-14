@@ -14,6 +14,7 @@ void ri_midi_init(struct RIMidiIn *m, uint8_t channel) {
     m->midi_led_ms = 0;
     m->messages = m->ignored = 0;
 }
+    /* STUB: reporting lands in t232's implementation, not here. */
 
 static int led(struct RIPanelUI *p, uint32_t idx, int v) {
     int old;
@@ -42,7 +43,7 @@ static struct RISectUI *ui_of(struct RIPanelUI *p, uint32_t sec) {
 }
 
 /* Control Change: Appendix C via the registry. */
-static int cc(struct RIPanelUI *p, uint8_t num, uint8_t val) {
+static int cc(struct RIMidiIn *m, struct RIPanelUI *p, uint8_t num, uint8_t val) {
     const struct RICtlDef *d = ri_ctlreg_by_cc(num);
     struct RISectUI *u;
     uint32_t idx;
@@ -53,17 +54,59 @@ static int cc(struct RIPanelUI *p, uint8_t num, uint8_t val) {
     span = d->max_v - d->min_v;
     if (d->kind == RI_CK_SWITCH) {           /* on at >= 64 (E0); press to match */
         int want = val >= 64u, now = ri_sui_value(u, idx) != 0;
-        return want != now ? ri_sui_press(u, idx) : 0;
+        if (want == now)
+            return 0;
+        /* Press matches a click, but a section may decline to press a switch
+         * it drives some other way -- 303A's Waveform is the case the census
+         * found, and before this fallback CC 23 moved NOTHING at all, which is
+         * the same "looks live, isn't" shape as everything else this session.
+         * Fall back to an absolute set, which every switch accepts. */
+        if (!ri_sui_press(u, idx) && !ri_sui_set(u, idx, want))
+            return 0;
+        goto report;
     }
     if (d->kind == RI_CK_SELECTOR)           /* n positions over 0..127 */
         v = d->min_v + (int)((uint32_t)val * (uint32_t)(span + 1) / 128u);
     else                                      /* knob / fader: linear, 127 = max */
         v = d->min_v + (int)(((uint32_t)val * (uint32_t)span + 63u) / 127u);
-    return ri_sui_set(u, idx, v);
+    if (!ri_sui_set(u, idx, v))
+        return 0;
+report:
+    /* Report the value the model ACTUALLY settled at, not the intent, so the
+     * shell's push can never disagree with the lamp. For a switch that is a
+     * toggle, and for a derived control (insert lamps come from b->route) the
+     * intent and the settled value differ -- and the settled value is what the
+     * engine must be told. */
+    m->touch_reg = d->reg_id;
+    m->touch_val = (int16_t)ri_sui_value(u, idx);
+    m->touched = 1u;
+    return 1;
 }
 
-/* Note On — Appendix C "Various Switches" (p. 199, every mode). */
-static int note_various(struct RIPanelUI *p, uint8_t n) {
+/* Report a control a Note On moved, so the shell can push it (t232).
+ *
+ * Records the value the model SETTLED at rather than the intent: a toggle's
+ * intent and its result differ, and for a DERIVED control (insert lamps come
+ * from b->route, the FX enable from RIFxRack.live) only the settled value is
+ * what the engine should be told. Reading it back from the model is also what
+ * guarantees the push cannot disagree with the lamp.
+ *
+ * `m` is threaded in rather than reached through the panel because the report
+ * belongs to the MESSAGE, not to the panel state: one message changes at most
+ * one control, so this is exact rather than a last-one-wins approximation. */
+static int note_hit(struct RIMidiIn *m, struct RISectUI *u, uint32_t idx,
+    int changed) {
+    if (!changed || !u)
+        return changed;
+    m->touch_reg = (uint16_t)(((uint32_t)u->section << 8) | (idx & 0xFFu));
+    m->touch_val = (int16_t)ri_sui_value(u, idx);
+    m->touched = 1u;
+    return 1;
+}
+
+/* Note On -- Appendix C "Various Switches" (p. 199, every mode). Every hit is
+ * funnelled through note_hit() so the control it touched is reported. */
+static int note_various(struct RIMidiIn *m, struct RIPanelUI *p, uint8_t n) {
     struct RISectUI *u;
     if (n >= 65u && n <= 68u) {              /* focus to Synth 1 / Synth 2 / 808 / 909 */
         if (p->focus == n - 65u)
@@ -86,16 +129,21 @@ static int note_various(struct RIPanelUI *p, uint8_t n) {
     case 71: return p->tr ? ri_sui_press(p->tr, RI_STR_RECORD) : 0;
     case 72: return p->tr ? ri_sui_step(p->tr, RI_STR_BAR, -1) : 0;
     case 73: return p->tr ? ri_sui_step(p->tr, RI_STR_BAR, 1) : 0;
+    /* 69..73 (transport) are deliberately NOT reported: sync_transport()
+     * already polls the panel every frame, so those are consumed without a
+     * control-plane push and reporting them would double-handle. */
     case 74: case 75: case 76: case 77:     /* PCF / Delay / Dist / Comp enable */
         u = p->fx[n - 74u];
-        return u ? ri_sui_press(u, RI_SFX_ONOFF) : 0;
-    case 94: return p->mix[4] ? ri_sui_press(p->mix[4], RI_SMST_COMP) : 0;
+        return u ? note_hit(m, u, RI_SFX_ONOFF, ri_sui_press(u, RI_SFX_ONOFF)) : 0;
+    case 94: return p->mix[4]
+        ? note_hit(m, p->mix[4], RI_SMST_COMP, ri_sui_press(p->mix[4], RI_SMST_COMP)) : 0;
     default: break;
     }
     if (n >= 78u && n <= 93u) {              /* per section: Mix, Dist, PCF, Comp */
         static const uint8_t sw[4] = { RI_SMIX_ONOFF, RI_SMIX_DIST, RI_SMIX_PCF, RI_SMIX_COMP };
         u = p->mix[(n - 78u) / 4u];
-        return u ? ri_sui_press(u, sw[(n - 78u) % 4u]) : 0;
+        return u ? note_hit(m, u, sw[(n - 78u) % 4u],
+            ri_sui_press(u, sw[(n - 78u) % 4u])) : 0;
     }
     return 0;
 }
@@ -117,7 +165,7 @@ static int note_pattern(struct RIPanelUI *p, uint8_t n) {
 }
 
 /* Note On — the focused section's switches (p. 202–204). */
-static int note_section(struct RIPanelUI *p, uint8_t n) {
+static int note_section(struct RIMidiIn *m, struct RIPanelUI *p, uint8_t n) {
     uint32_t f = p->focus;
     if (f <= RI_FOCUS_SYNTH2) {
         static const uint8_t sw[8] = { RI_S303_DOWN, RI_S303_UP, RI_S303_ACCENT, RI_S303_SLIDE,
@@ -133,20 +181,21 @@ static int note_section(struct RIPanelUI *p, uint8_t n) {
         if (!u || n > 39u)
             return 0;
         if (n <= 27u)                        /* Step 1..16 on/off = a step click */
-            return ri_sui_press(u, step0 + (uint32_t)(n - 12u));
-        return ri_sui_set(u, sel, n - 28);   /* Instrument AC .. (Selection order) */
+            { uint32_t ix = step0 + (uint32_t)(n - 12u);
+              return note_hit(m, u, ix, ri_sui_press(u, ix)); }
+        return note_hit(m, u, sel, ri_sui_set(u, sel, n - 28));   /* Instrument AC .. (Selection order) */
     }
 }
 
-static int note_on(struct RIPanelUI *p, uint8_t n) {
+static int note_on(struct RIMidiIn *m, struct RIPanelUI *p, uint8_t n) {
     if (n >= 64u)
-        return note_various(p, n);
+        return note_various(m, p, n);
     if (n < 12u)
         return 0;
     /* Same precedence as the typewriter keys (docs/evidence/gui/keyboard.md):
      * the focused section's switches win the overlap with pattern notes. */
     if (p->opts.program_synth && ((p->focus <= RI_FOCUS_SYNTH2 && n <= 32u) || (p->focus >= RI_FOCUS_808 && n <= 39u)))
-        return note_section(p, n);
+        return note_section(m, p, n);
     if (p->opts.select_patterns)
         return note_pattern(p, n);
     return 0;
@@ -171,6 +220,7 @@ int ri_midi_msg(struct RIMidiIn *m, struct RIPanelUI *p, uint8_t status, uint8_t
         return 0;
     m->messages++;
     m->midi_led_ms = RI_MIDI_LED_MS;
+    m->touch_reg = 0; m->touch_val = 0; m->touched = 0;
     ch |= led(p, RI_STR_MIDI, 1);
     if (status >= 0xF8u) {                   /* realtime */
         if (status == 0xFAu)                 /* Start: count from the downbeat */
@@ -192,8 +242,8 @@ int ri_midi_msg(struct RIMidiIn *m, struct RIPanelUI *p, uint8_t status, uint8_t
     d1 &= 0x7Fu;
     d2 &= 0x7Fu;
     switch (status & 0xF0u) {
-    case 0xB0: ch |= cc(p, d1, d2); break;
-    case 0x90: if (d2) ch |= note_on(p, d1); break;   /* velocity 0 = note off */
+    case 0xB0: ch |= cc(m, p, d1, d2); break;
+    case 0x90: if (d2) ch |= note_on(m, p, d1); break;   /* velocity 0 = note off */
     default: m->ignored++; break;
     }
     if (ch)

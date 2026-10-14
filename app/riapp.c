@@ -1083,6 +1083,23 @@ static void midi_drain(void) {
         }
         ri_midi_msg(&s_midi, &s_panel, s_midi_msgs[i].b[0], s_midi_msgs[i].b[1],
             s_midi_msgs[i].b[2]);
+        /* A G7 message changed a PANEL control; push it (t232).
+         *
+         * Without this the lamp moved and the engine never heard it: the G7
+         * path is panel-only, and sync_values() -- the one per-frame pusher --
+         * gates on per-CANVAS change counters that a MIDI message never bumps,
+         * because it does not go through the canvas event handler.
+         * s_panel.changes was read in exactly one place and only redrew.
+         *
+         * The map reports the registry id and the value the model SETTLED at,
+         * so this cannot disagree with the lamp. `touched` is the flag rather
+         * than "reg != 0": 303A's Waveform switch has the legitimate registry
+         * id 0x0000. Transport is excluded deliberately -- sync_transport()
+         * polls it every frame, and pushing it would double-handle. */
+        if (s_midi.touched) {
+            ri_panel_ctl_send(&s_core.ctl, s_midi.touch_reg, (int)s_midi.touch_val);
+            evlog("MIDI", "panel push %04x=%d", s_midi.touch_reg, (int)s_midi.touch_val);
+        }
         /* Transport edges are momentary commands: a Play followed by Stop
          * in the same drained batch must still reach the engine as two
          * transitions, rather than collapsing to the batch-final state. */

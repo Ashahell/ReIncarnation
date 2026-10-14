@@ -6437,3 +6437,80 @@ A control driven by **MIDI** follows a different path into the engine and still
 has no engine→panel readback, so a hardware CC that changes `fx_on[]` or a route
 can still move no lamp. That is the same missing mechanism from the other side,
 and it is the next item, not a solved one.
+
+## P-RB2: a G7 CC moved the panel and never reached the engine
+
+Last commit claimed this gap existed and did not verify it. It does — and it is
+the **purest** instance of the class, because the lamp moves and the sound does
+not.
+
+### Two MIDI devices, two paths, one of them deaf
+
+```
+G7  (Appendix C)  cc() in midimap.c -> ri_sui_press / ri_sui_set   PANEL ONLY
+M4  (Leviasynth)  midi_drain -> ri_ctl_send / ri_ctl_send2         ENGINE ONLY
+```
+
+The G7 change was then never pushed, because `sync_values()` — the one
+per-frame pusher — gates on **per-canvas** `MUIA_RSection_Changes`, and a MIDI
+message never goes through the canvas event handler. `s_panel.changes` was read
+in **exactly one place**, and all it did there was redraw:
+
+```c
+if (s_panel.changes != ch0)
+    for (i = 0u; i < 15u; i++) MUI_Redraw(s_canvas[i], MADF_DRAWOBJECT);
+```
+
+So: redraw yes, push no. **No test caught it** — `t73` exercises the map
+against the panel and never looks at the engine, and the shell half is not
+host-testable. What did catch it was reading the two MIDI paths side by side
+after `t231` closed the automation side, which is the same move that dissolved
+the delay report.
+
+### The fix: report, then push exactly that control
+
+`RIMidiIn` gained `touch_reg` / `touch_val` / `touched`. `cc()` and the Note-On
+handlers record the value the model **settled at**, not the intent — a toggle's
+intent and its result differ, and for a derived control (insert lamps from
+`b->route`, the FX enable from `RIFxRack.live`) only the settled value is what
+the engine should be told. Reading it back from the model is also what
+guarantees the push cannot disagree with the lamp. The shell then pushes that
+one control and logs `MIDI panel push 04xx=n`.
+
+Transport (notes 69–73) is **excluded**: `sync_transport()` already polls it
+every frame, so pushing it would double-handle.
+
+### Three things the census found that I would have shipped past
+
+1. **`touched`, not `reg != 0`.** 303A's Waveform switch has the legitimate
+   registry id **`0x0000`** (section 0, index 0), so a zero reg_id is
+   indistinguishable from "nothing touched". My first sentinel silently dropped
+   that control's push. This is the second time in this project that a *sentinel*
+   collided with real data (the first was a `#define`d value reused as "unset").
+2. **CC 23 moved nothing at all.** `cc()` pressed the switch; 303A's section
+   declined, so a CC for the Waveform control did nothing — same shape as
+   everything else this session, found by a census that walks **all** mapped
+   CCs rather than the handful anybody thought to try. `cc()` now falls back to
+   an absolute `ri_sui_set`.
+3. **The fixture had to be wired like the app.** `ui_of()` indexes `mix[]` as
+   `sec - RI_SEC_MIX_SYNTH1` with LEVI at 5, and also needs `synth[]`, `drum[]`
+   and `pat[]`. Wiring only some made 74 CCs unreachable and the census
+   miscounted them as unreportable.
+
+### `RED` was `FAIL 6` after a `FAIL 7` that included a fixture fault
+
+The first run failed 7 — but one was **my fixture**: the FX canvases had no rack
+bound, so the enable was fail-closed and did nothing, which masked the defect
+behind a different symptom. Only after binding one did RED isolate to the real
+thing: every reporting assertion failing, **and the lamp assertions passing** —
+which is the asymmetry itself.
+
+`AUDIT 0/0 PASS`, AROS build 1207696 bytes. **Not proven by ear.**
+
+### What is still not covered
+
+MIDI **note-driven** pattern and section switches go through `note_pattern` /
+`note_section`; `note_section` is now reported, `note_pattern` is **not** — its
+controls are panel selection with no engine target, so there is nothing to push,
+but that is an assumption rather than a census result and should be verified
+before the next MIDI change.

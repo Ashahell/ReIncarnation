@@ -27,6 +27,19 @@ struct RIMidiIn {
     uint32_t clocks;        /* MIDI clocks since Start (24 per quarter) */
     uint16_t midi_led_ms;   /* MIDI-in LED on-time left */
     uint32_t messages, ignored;
+    /* WHICH control the last message changed, and the value it set it to.
+     * 0 = nothing this message. Reported so the shell can push exactly that
+     * one control: a G7 CC changes the PANEL, and sync_values() -- the only
+     * per-frame pusher -- gates on per-CANVAS change counters that a MIDI
+     * message never bumps. So the lamp moved and the engine never heard it
+     * (t232). One message changes at most one control, so this is exact. */
+    uint16_t touch_reg;
+    int16_t touch_val;
+    /* NOT "touch_reg != 0" as the sentinel: 303A's Waveform switch has the
+     * legitimate registry id 0x0000 (section 0, index 0), so a zero reg_id is
+     * indistinguishable from "nothing touched". The census caught this by
+     * reporting a mapped CC that moved a control and pushed nothing. */
+    uint8_t touched;
 };
 
 #define RI_MIDI_LED_MS 100u /* E0: how long the MIDI LED stays lit per message */

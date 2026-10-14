@@ -1176,6 +1176,11 @@ bash "$ROOT/scripts/ri_build_host.sh" test t230_mute_automatable >/dev/null || {
 # refuse switches outright, so those lamps never moved. t231 drives each row
 # to the opposite of its current value and asserts the LAMP MOVES.
 bash "$ROOT/scripts/ri_build_host.sh" test t231_automation_readback >/dev/null || { echo "FAIL: t231_automation_readback (automation/MIDI readback moves FX and mixer switch lamps)"; exit 1; }
+# The other side of the same missing mechanism: a G7 CC changed the PANEL
+# and nothing pushed it, because sync_values gates on per-CANVAS counters a
+# MIDI message never bumps. t232 pins that the map REPORTS the control it
+# touched, which is the portable half the shell push consumes.
+bash "$ROOT/scripts/ri_build_host.sh" test t232_midi_push >/dev/null || { echo "FAIL: t232_midi_push (G7 CC/Note reports the control it changed so the shell can push it)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every
