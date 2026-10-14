@@ -1140,6 +1140,10 @@ bash "$ROOT/scripts/ri_build_host.sh" test t223_fx_lamp_repaint >/dev/null || { 
 # test header for why the obvious invariant is unsound (135 flagged, 5 real).
 # Gated because it must keep running and keep printing its census.
 bash "$ROOT/scripts/ri_build_host.sh" test t224_decorative_sweep >/dev/null || { echo "FAIL: t224_decorative_sweep (decorative-control sweep must still run)"; exit 1; }
+# The strip green squares. Owner 2026-10-14: "add it" -- they had no engine
+# target at all, so they lit and did nothing. t225 also pins that a muted strip
+# stops feeding the SHARED delay line, not just the mixer output.
+bash "$ROOT/scripts/ri_build_host.sh" test t225_strip_mute >/dev/null || { echo "FAIL: t225_strip_mute (mixer strip mute silences the section AND its delay send)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

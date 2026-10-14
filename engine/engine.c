@@ -88,6 +88,7 @@ void ri_engine_init(struct RIEngine *e) {
     for (i = 0; i < RI_ROUTE_NSECTIONS; i++) {
         e->pan[i] = RI_ENGINE_PAN_CENTER;
         e->send[i] = 0;
+                e->mute[i] = 0;
         e->level[i] = 127u; /* unity: the pre-fader engine, bit-identical */
         e->lvl_applied[i] = 1.0f;
     }
@@ -208,6 +209,13 @@ static void engine_section_stereo(struct RIEngine *e, uint32_t section,
     t = (double)e->send[section] / 127.0;
     sg = t * t;
     engine_pan_gains(e->pan[section], &gl, &gr);
+    /* Muted strip: no mixer output AND no send contribution (owner
+     * 2026-10-14). sg is zeroed too -- see ri_engine_set_mute. */
+    if (section < RI_ROUTE_NSECTIONS && e->mute[section]) {
+        gl = 0.0;
+        gr = 0.0;
+        sg = 0.0;
+    }
     /* R8c: the Levi is section 4 and has its OWN accumulate here, so a tap
      * added only to engine_section would have left the fifth stem
      * unwritten -- a file of the caller's fill. Both sides differ for a
@@ -284,6 +292,13 @@ static void engine_section(struct RIEngine *e, uint32_t section,
     t = (double)e->send[section] / 127.0;
     sg = t * t; /* square law (E0 P-17), 0 -> exactly 0 */
     engine_pan_gains(e->pan[section], &gl, &gr);
+    /* Muted strip: no mixer output AND no send contribution (owner
+     * 2026-10-14). sg is zeroed too -- see ri_engine_set_mute. */
+    if (section < RI_ROUTE_NSECTIONS && e->mute[section]) {
+        gl = 0.0;
+        gr = 0.0;
+        sg = 0.0;
+    }
     /* R8c: the SAME term the accumulator below is summing, narrowed to
      * float, written at the slice's real position. A mono section has no
      * scratchR (t206) so both sides carry the same sample -- which is what
@@ -462,6 +477,13 @@ int ri_engine_set_pan(struct RIEngine *e, uint32_t section, uint8_t v) {
     if (!e || section >= RI_ROUTE_NSECTIONS)
         return 2;
     e->pan[section] = v > 127u ? 127u : v;
+    return 0;
+}
+
+int ri_engine_set_mute(struct RIEngine *e, uint32_t section, uint8_t v) {
+    if (!e || section >= RI_ROUTE_NSECTIONS)
+        return 2;
+    e->mute[section] = v ? 1u : 0u;
     return 0;
 }
 
@@ -1236,6 +1258,12 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val,
         uint32_t strip = hi - 1u;
         int owner = strip == RI_AUTO_STRIP_MASTER ? RI_ROUTE_MASTER
             : strip == RI_AUTO_STRIP_LEVI ? 4 : (int)strip;
+        if (lo == RI_AUTO_MIX_MUTE) {
+            if (strip == RI_AUTO_STRIP_MASTER)
+                return;   /* no master mute; the master fader is the level */
+            ri_engine_set_mute(e, (uint32_t)owner, val);
+            return;
+        }
         if (lo >= RI_AUTO_MIX_DIST && lo < RI_AUTO_MIX_DIST + RI_ROUTE_NUNITS) {
             uint32_t unit = lo - RI_AUTO_MIX_DIST;
             if (strip == RI_AUTO_STRIP_MASTER && unit != RI_ROUTE_COMP)

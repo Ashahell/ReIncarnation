@@ -60,7 +60,8 @@
 #define RI_BIND_INSERT 9u  /* ri_engine_assign_insert(engine_id = unit, voice = owner) */
 #define RI_BIND_TEMPO 10u  /* ri_engine_set_tempo */
 #define RI_BIND_LEVEL 11u  /* ri_engine_set_level(voice = route section) */
-#define RI_BIND_LEVI 12u   /* levi_set_param_ui on every voice (section-wide) */
+#define RI_BIND_LEVI 12u
+#define RI_BIND_MUTE 13u   /* ri_engine_set_mute(voice = route section) */   /* levi_set_param_ui on every voice (section-wide) */
 
 #define RI_MIDI_CC_NONE 0xFFu
 

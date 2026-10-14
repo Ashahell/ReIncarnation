@@ -11,6 +11,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "gui/ctlreg.h"
 #include "engine/dsp/rb303.h"
+#include "engine/fx/route.h"
 #include "engine/dsp/rb808.h"
 #include "engine/dsp/rb909.h"
 #include "engine/fx/route.h"
@@ -121,7 +122,12 @@ int main(void) {
     RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MASTER, "", "Level")) == 0x0B50u,
         "Master Level key 0x0B50");
     for (s = RI_SEC_MIX_SYNTH1; s <= RI_SEC_MIX_909; s++) {
-        RI_ASSERT(!find_leg((uint8_t)s, "", "On/Off")->automatable, "mute automatable (sec %u)", s);
+        /* Was !automatable until the owner ruling of 2026-10-14 ("add it"):
+         * the strip mute had no engine target at all, so it was a green
+         * square that changed colour and did nothing. It is now bound to
+         * RI_AUTO_MIX_MUTE and MUST be automatable. t225 covers the sound;
+         * this covers the wiring. -- mute automatable (sec %u) */
+        RI_ASSERT(find_leg((uint8_t)s, "", "On/Off")->automatable, "mute automatable (sec %u)", s);
         RI_ASSERT(find_leg((uint8_t)s, "", "Level")->automatable, "mixer level must be automatable");
     }
     RI_ASSERT(find_leg(RI_SEC_SYNTH1, "", "Cutoff")->automatable, "Cutoff must be automatable");
@@ -170,6 +176,16 @@ int main(void) {
              * 0x0A11..14 are the rack enables (owner 2026-10-13). */
             RI_ASSERT(d->engine_id >= 0x0A00u && d->engine_id <= 0x0A14u,
                 "fx id %04x", d->engine_id);
+            break;
+        case RI_BIND_MUTE:
+            /* Strip mute (owner 2026-10-14, "add it"). The green squares had
+             * no engine target at all before this; now they carry a route
+             * section in `voice` and no engine_id. MASTER has no mute row --
+             * its fader is the level -- so every MUTE voice must be a real
+             * section index, not RI_ROUTE_MASTER (5) or out of range. */
+            RI_ASSERT(d->engine_id == 0u, "mute carries no engine id %04x", d->engine_id);
+            RI_ASSERT(d->voice < RI_ROUTE_NSECTIONS,
+                "mute voice %u must be a rendering section, not master/none", d->voice);
             break;
         case RI_BIND_LEVI:
             /* 0x0E27..2A bias knobs (P2), 0x0E2B..37 algo modes/morph/solo/mute (P3), 0x0E38..44 filters + VCA (P4),
@@ -277,7 +293,13 @@ int main(void) {
         RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_LEVI, "", "Level")) == 0x0B60u, "levi level key");
         RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_LEVI, "", "Pan")) == 0x0B61u, "levi pan key");
         RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_LEVI, "", "Comp")) == 0x0B65u, "levi comp key");
-        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_SYNTH1, "", "On/Off")) == 0u, "mute: no key");
+        /* Was == 0u, "mute: no key" -- the pin that HELD THE BUG IN PLACE.
+         * Owner 2026-10-14 (mixer): "all meters remain lit after you turn
+         * their panel off using the green square ... Looks like the green
+         * square has no effect at all". t60 recorded that as intended
+         * behaviour; it was not. Now bound to MIX(strip, MUTE) = 0x0B16. */
+        RI_ASSERT(ri_ctlreg_auto_id(find_leg(RI_SEC_MIX_SYNTH1, "", "On/Off")) == 0x0B16u,
+            "mute key 0x0B16");
         RI_ASSERT(ri_ctlreg_auto_id(0) == 0u, "null");
         RI_ASSERT(find_leg(RI_SEC_MIX_909, "", "Level")->bind == RI_BIND_LEVEL &&
                   find_leg(RI_SEC_MIX_909, "", "Level")->voice == 3u, "strip level bound");

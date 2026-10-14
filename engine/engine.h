@@ -211,7 +211,8 @@ struct RIEngine {
     uint8_t pcf_base, pcf_q, pcf_amt, pcf_mode, pcf_pattern, pcf_decay;
     struct RiFXComp comp;
     uint8_t pan[RI_ROUTE_NSECTIONS]; /* 0..127 per section */
-    uint8_t send[RI_ROUTE_NSECTIONS]; /* 0..127 post-insert mono send */
+    uint8_t send[RI_ROUTE_NSECTIONS];
+    uint8_t mute[RI_ROUTE_NSECTIONS]; /* strip mute; 1 = silenced */ /* 0..127 post-insert mono send */
     uint8_t level[RI_ROUTE_NSECTIONS]; /* strip fader 0..127, 127 = unity */
     float lvl_applied[RI_ROUTE_NSECTIONS]; /* zipless slew state */
     uint8_t master; /* S4b song-data fader 0..127, 127 = unity */
@@ -366,6 +367,11 @@ int ri_engine_assign_insert(struct RIEngine *e, uint32_t unit, int owner);
 void ri_engine_fx_set(struct RIEngine *e, uint32_t id, uint8_t value);
 int ri_engine_set_pan(struct RIEngine *e, uint32_t section, uint8_t v);
 int ri_engine_set_send(struct RIEngine *e, uint32_t section, uint8_t v);
+/* Strip mute (owner 2026-10-14). Silences the section's mixer output AND
+ * its delay send: sendbus is summed across every section into one shared
+ * delay line, so scaling only the pan gains would leave a muted strip audible
+ * through the delay. Returns 2 on a null engine or an out-of-range section. */
+int ri_engine_set_mute(struct RIEngine *e, uint32_t section, uint8_t v);
 /* Section level fader (mixer strip Level, E0 P-17 law (v/127)^2, 127 =
  * unity = the pre-fader engine, so the neutral path stays bit-identical).
  * Post-insert, pre-meter/send/pan; zipless slew over RI_MIX_RAMP_SMP.

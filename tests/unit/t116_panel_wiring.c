@@ -101,6 +101,17 @@ static void direct(struct RIEngine *e, uint16_t key, uint8_t val) {
                 ri_route_assign(&e->route, unit, RI_ROUTE_NONE);
             return;
         }
+        /* Strip mute (owner 2026-10-14, "add it"). Mirrors engine.c: the
+         * MASTER strip has no mute -- its fader is the level. Note this
+         * direct() is a REFERENCE COPY of the engine dispatch, so mirroring
+         * it proves the panel path and the direct path agree, not that the
+         * engine is right; t225 is what proves the engine is right. */
+        if (lo == RI_AUTO_MIX_MUTE) {
+            if (strip == RI_AUTO_STRIP_MASTER)
+                return;
+            ri_engine_set_mute(e, (uint32_t)owner, val);
+            return;
+        }
         if (strip == RI_AUTO_STRIP_MASTER) {
             if (lo == RI_AUTO_MIX_LEVEL)
                 ri_engine_set_master(e, val);

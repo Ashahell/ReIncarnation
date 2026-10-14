@@ -5881,3 +5881,66 @@ asserting nothing. METER rows are excluded by kind and stay unbound on purpose
 - **Delay FX knobs** — binding and engine handler both verified correct; the
   break is downstream and NOT found.
 - **Insert rockers** — repaint coupling, still unfixed.
+
+## P-MIX1: the mixer strip green squares now mute (owner: "add it")
+
+Owner ear proof, mixer, 2026-10-14:
+
+> "all meters remain lit after you turn their panel off using the green
+> square. ... all panels remain audible as well. Looks like the green square
+> has no effect at all (other then changing color when pressed)."
+
+Found by the P-DEC1 sweep with no prior knowledge: `0400 0500 0600 0700 1400`,
+all five strip mutes.
+
+### Cause
+
+All five rows were `bind=NONE, automatable=0`, and **there was no
+`RI_AUTO_MIX_MUTE` anywhere in the engine** — the concept did not exist. The
+press toggled `b->val[strip][0]` (hence the colour change) and the push was
+skipped. So this was never a broken wire; it was a missing feature.
+
+**`t60` had pinned the bug in place.** It asserted *"mute: no key"* — the
+absence of a target was recorded as intended behaviour, in the same breath as
+the deliberate meter negative control. A green square that changes colour and
+does nothing passed its own audit for the whole project. That is the failure
+mode worth remembering: **an assertion that documents a defect is worse than no
+assertion**, because it converts "uninvestigated" into "verified".
+
+### What was added
+
+`RI_AUTO_MIX_MUTE 6` (clear of the insert range 3..5), `RI_BIND_MUTE 13`,
+`e->mute[]`, `ri_engine_set_mute()`, five allow-list keys, and the five rows
+rebound. Applied in **both** `engine_section` copies (mono and stereo).
+
+**The half that is easy to get wrong, and is pinned:** a muted strip must stop
+feeding the shared delay line as well as the mixer output. `sendbus` is summed
+across every section into one delay, so scaling only the pan gains would leave
+a muted strip audible *through the delay* while silent in the mix — the exact
+"looks muted but isn't" shape this whole session has been chasing. `t225`
+asserts a muted strip renders **bit-identical to neutral** both dry and with an
+open send.
+
+### Gates that caught the consequences
+
+| gate | what it found |
+|---|---|
+| `t60` | *"mute: no key"* — the pin holding the bug in place; and *"mute automatable"* |
+| `t77` | `0x0B66` was asserted **not** allowed; mapped 289→294; allow-list 1154→1159 |
+| `t116` | `direct()` is a reference mirror of the engine's MIX dispatch and had no MUTE case |
+
+`t116`'s `direct()` only proves the panel path and the direct path **agree** —
+not that either is right. `t225` is what proves the engine is right. That
+distinction is recorded in the test so nobody later reads t116 as engine
+coverage.
+
+`AUDIT 0/0 PASS`. **RED for `t225` was a compile failure** for the two symbols
+that did not exist; the wiring assertions then went RED on assertions. Four
+bugs were mine in that test and all are recorded in its comments: a baseline
+that loaded the same notes as the fixture (so `differ` was trivially false), a
+baseline that skipped `ri_engine_load` (short read, stale tail), `N = 2048`
+being too short for the 303 to sound, and `RI_ENGINE_S303A` being a **0x01
+bitmask** rather than a section index — which had me muting section 1 and
+proving nothing about section 0.
+
+**Not proven by ear.**

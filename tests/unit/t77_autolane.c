@@ -119,7 +119,10 @@ int main(void) {
         RI_ASSERT(ri_auto_allowed(0x0B30u) == 1 && ri_auto_allowed(0x0B00u) == 0, "mixer key; legacy panel ids refused");
         RI_ASSERT(ri_auto_allowed(0x0B50u) == 1, "master level song data (S4b owner deviation)");
         RI_ASSERT(ri_auto_allowed(0x0B60u) == 1 && ri_auto_allowed(0x0B65u) == 1 &&
-            ri_auto_allowed(0x0B66u) == 0, "levi strip keys 0x0B60-65");
+            /* 0x0B66 is now ALLOWED: low byte 6 is RI_AUTO_MIX_MUTE (owner
+             * 2026-10-14, "add it" -- the strip green squares). The range
+             * ended at 65 precisely because 66 was unmapped. */
+            ri_auto_allowed(0x0B66u) == 1, "levi strip keys 0x0B60-66 incl MUTE");
         RI_ASSERT(ri_auto_touch(&lane, &pass, 2u, 72u, 96u, 0x0401u, 64u) == 2,
             "excluded refused");
         /* Replace at same (tick, ctl): no duplicate growth. */
@@ -236,7 +239,7 @@ int main(void) {
                 RI_ASSERT(found, "unlisted automatable");
                 listed++;
             }
-            RI_ASSERT(mapped == 289u, "mapped count %u (+4 FX rack enable 2026-10-13; (+4 bias P2, +13 algo P3, +13 filters P4, +3 env P5a, +16 macros P5b, +3 voice P6a, +13 voice P6b, +13 stereo P6c, +8 delay P7a, +9 reverb P7b, +12 modfx P7c, +13 arp P8b, +15 seq P8c, +3 ribbon P8d, +6 perf amounts P9b + 5 zones P9c + 2 performance buttons P9d; the LFO step gate is UI-only)", mapped);
+            RI_ASSERT(mapped == 294u, "mapped count %u (+5 strip mute 2026-10-14; +4 FX rack enable 2026-10-13; (+4 bias P2, +13 algo P3, +13 filters P4, +3 env P5a, +16 macros P5b, +3 voice P6a, +13 voice P6b, +13 stereo P6c, +8 delay P7a, +9 reverb P7b, +12 modfx P7c, +13 arp P8b, +15 seq P8c, +3 ribbon P8d, +6 perf amounts P9b + 5 zones P9c + 2 performance buttons P9d; the LFO step gate is UI-only)", mapped);
             RI_ASSERT(listed == 27u, "listed count %u (-4 FX On/Off moved to mapped)", listed);
             { /* reverse: every allowed key belongs to an automatable control */
                 uint32_t key, nallow = 0u;
@@ -278,7 +281,7 @@ int main(void) {
                         owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 1154u, "allow-list size %u (+4 FX rack enable 2026-10-13; (272 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
+                RI_ASSERT(nallow == 1159u, "allow-list size %u (+5 strip mute 2026-10-14; +4 FX rack enable 2026-10-13; (272 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
                     "5 x 15 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys + 13 env-bpm P8a + 13 arp P8b + 15 seq P8c + 3 ribbon P8d + 15 lfo-step P8e + 6 perf amounts P9b + 5 zones P9c + 2 performance buttons P9d + 5 live note/performance M4c/M4d)", nallow);
             }
         }

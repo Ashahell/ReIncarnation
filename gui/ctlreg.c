@@ -184,7 +184,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(909, 43, STEP, "Steps", "Step 14", 0, 3, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(909, 44, STEP, "Steps", "Step 15", 0, 3, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(909, 45, STEP, "Steps", "Step 16", 0, 3, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
-    R(MIX_SYNTH1, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(MIX_SYNTH1, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 1, MUTE, 0, 0),
     R(MIX_SYNTH1, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_SYNTH1, 2, FADER, "", "Level", 0, 127, 100, 11, 1, LEVEL, 0, 0),
     R(MIX_SYNTH1, 3, KNOB, "", "Pan", 0, 127, 64, 12, 1, PAN, 0, 0),
@@ -192,7 +192,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MIX_SYNTH1, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 0),
     R(MIX_SYNTH1, 6, SWITCH, "", "PCF", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_PCF, 0),
     R(MIX_SYNTH1, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 0),
-    R(MIX_SYNTH2, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(MIX_SYNTH2, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 1, MUTE, 0, 1),
     R(MIX_SYNTH2, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_SYNTH2, 2, FADER, "", "Level", 0, 127, 100, 14, 1, LEVEL, 0, 1),
     R(MIX_SYNTH2, 3, KNOB, "", "Pan", 0, 127, 64, 15, 1, PAN, 0, 1),
@@ -200,7 +200,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MIX_SYNTH2, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 1),
     R(MIX_SYNTH2, 6, SWITCH, "", "PCF", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_PCF, 1),
     R(MIX_SYNTH2, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 1),
-    R(MIX_808, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(MIX_808, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 1, MUTE, 0, 2),
     R(MIX_808, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_808, 2, FADER, "", "Level", 0, 127, 100, 17, 1, LEVEL, 0, 2),
     R(MIX_808, 3, KNOB, "", "Pan", 0, 127, 64, 18, 1, PAN, 0, 2),
@@ -208,7 +208,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MIX_808, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 2),
     R(MIX_808, 6, SWITCH, "", "PCF", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_PCF, 2),
     R(MIX_808, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 2),
-    R(MIX_909, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(MIX_909, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 1, MUTE, 0, 3),
     R(MIX_909, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_909, 2, FADER, "", "Level", 0, 127, 100, 20, 1, LEVEL, 0, 3),
     R(MIX_909, 3, KNOB, "", "Pan", 0, 127, 64, 21, 1, PAN, 0, 3),
@@ -216,7 +216,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MIX_909, 5, SWITCH, "", "Dist", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_DIST, 3),
     R(MIX_909, 6, SWITCH, "", "PCF", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_PCF, 3),
     R(MIX_909, 7, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, 3),
-    R(MIX_LEVI, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
+    R(MIX_LEVI, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 1, MUTE, 0, 4),
     R(MIX_LEVI, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MIX_LEVI, 2, FADER, "", "Level", 0, 127, 100, 109, 1, LEVEL, 0, 4),
     R(MIX_LEVI, 3, KNOB, "", "Pan", 0, 127, 64, 110, 1, PAN, 0, 4),
@@ -814,6 +814,8 @@ uint16_t ri_ctlreg_auto_id(const struct RICtlDef *d) {
         return RI_AUTO_ID_MIX(auto_strip_of(d->voice), RI_AUTO_MIX_PAN);
     case RI_BIND_SEND:
         return RI_AUTO_ID_MIX(auto_strip_of(d->voice), RI_AUTO_MIX_SEND);
+    case RI_BIND_MUTE:
+        return RI_AUTO_ID_MIX(auto_strip_of(d->voice), RI_AUTO_MIX_MUTE);
     case RI_BIND_INSERT:
         return RI_AUTO_ID_MIX(d->voice == (uint16_t)RI_ROUTE_MASTER ? RI_AUTO_STRIP_MASTER
             : auto_strip_of(d->voice), RI_AUTO_MIX_DIST + d->engine_id);
