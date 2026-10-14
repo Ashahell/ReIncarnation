@@ -6303,3 +6303,61 @@ the lane logs**. The Delay "FX knobs do nothing" report dissolved the moment two
 session logs were put side by side (P-DLY1), and the invertion in P-MIX3 was
 only visible as a *sign* because the value sequences were reconstructed rather
 than assumed.
+
+## P-MIX4: the mixer mute vs manual p. 56 — SETTLED, keep it Song-automatable
+
+Owner instruction: *"settle the mute/p.56 call"*.
+
+**Ruling: KEEP `automatable = 1`**, reversing the parity article's line *"Mixer
+on/off is the mute and is not Song-automated (p. 56)"*. P-MIX1 set it as a side
+effect of making the mute work at all; this makes it a decision.
+
+### The deciding evidence
+
+**No shipped song automates any mixer control.** All 20 goldens are text
+scaffolds (`# … SCAFFOLD (NOT RBNG; real codec is Task 13)`) and none carries a
+`0x0Bxx` key. So granting the capability is provably **inert today** — it
+reverses nothing about existing content.
+
+Second: reverting would create a **new asymmetry**. Level, Pan and Send on the
+same strip *are* automatable, so a functional mute that cannot be shown when a
+song moves it is a worse defect than the fidelity deviation.
+
+Third: the manual **could not be read** — none in the repository, web search
+unavailable. The p. 56 claim reaches us second-hand through the parity article,
+so it is a weaker input than the three measured facts, not a disregarded one.
+
+Note what the owner was asked and did **not** say: "add it" was about the
+*mute*, not about Song-recordability. That gap is why this is recorded as a
+ruling rather than assumed consent.
+
+### `t230` is a pin, and it was never RED
+
+The decision was already implemented, so the test was green the moment it was
+written. **A test that was never red proves nothing by itself**, which is stated
+in its header rather than left implicit — its teeth come from
+`tests/mutate_mute_automatable.py` (**3/3**), which breaks each claim it makes:
+
+- `m1` — `automatable` back to 0, the literal drift a future reader
+  "restoring manual fidelity" would reintroduce while thinking they were careful
+- `m2` — the mute keys dropped from `RI_AUTO_ALLOW`, leaving `automatable = 1`
+  with no recording half: a **half**-automatable control, subtler than either
+  state
+- `m3` — the tripwire made to see a mixer-automating song that is not there,
+  proving the guard can fire. A guard that cannot fail is not a guard.
+
+### The tripwire
+
+`t230` censors the shipped corpus. **The day a song automates a mixer control,
+the test fails and demands the call again** — because that is the moment the
+deviation stops being free. The corpus is greppable only while it is text; when
+the real RBNG codec lands the census must be revisited, and the test says so.
+
+### Reversibility
+
+One line (`automatable = 1` → `0`), plus the allow-list keys and the `t60` pin.
+A fidelity call should be **cheap to undo, not expensive**, and that is why the
+decision is this reversible rather than argued into the engine.
+
+`AUDIT 0/0 PASS`. Prior leaf annotated in place with a dated Status note —
+pending → SETTLED — and left standing.

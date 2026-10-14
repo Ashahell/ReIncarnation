@@ -1165,6 +1165,12 @@ bash "$ROOT/scripts/ri_build_host.sh" test t228_press_repaint >/dev/null || { ec
 # t225 + t116 both stayed green through it. t229 drives the panel value
 # through the real bridge and asserts on the RENDER, which neither did.
 bash "$ROOT/scripts/ri_build_host.sh" test t229_mute_join >/dev/null || { echo "FAIL: t229_mute_join (strip On/Off sign: lamp-on must be audible)"; exit 1; }
+# The mixer mute vs manual p. 56, SETTLED 2026-10-15: keep it
+# Song-automatable. t230 is a PIN over an already-implemented decision, so it
+# was never RED; tests/mutate_mute_automatable.py is what gives it teeth (3/3).
+# Its tripwire census fails the day a shipped song automates a mixer control,
+# because that is the moment the deviation stops being free.
+bash "$ROOT/scripts/ri_build_host.sh" test t230_mute_automatable >/dev/null || { echo "FAIL: t230_mute_automatable (mute automatable decision + inertness tripwire)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every
