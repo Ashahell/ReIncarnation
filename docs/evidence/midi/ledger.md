@@ -5354,3 +5354,92 @@ table while keeping their geometry would double-draw them and **survive**
 this harness. `t220` pins the geometry and the panel value; it cannot see
 the art table. That visual overlap is covered by the lane, not by a host
 test.
+## P-KEY1 (PART 1 of 2): the keybed now has a release edge — nothing plays yet
+
+Owner spec: "the keys play notes, through the Leviasynth note path MIDI input
+already uses (the ear proof heard it). They write the pitch into the selected
+step only while STEP RECORD is lit (Step Recording p. 105, step record mode
+p. 117). That keeps today's step entry, just behind the button the hardware
+uses for it. Velocity is fixed (an E0 default, 100)."
+
+**THIS COMMIT IS THE PORTABLE EDGE LAYER ONLY. NOTHING SENDS A NOTE YET.**
+`key_id` is tracked and tested, and no consumer reads it — pressing a key
+still only writes the step pitch, exactly as before. Read `PASS keybed` as
+"the release edge exists", not "the keybed is playable". Part 2 (the shell
+sends note-on/note-off, the STEP RECORD button, the step-pitch gate) is not
+started.
+
+### The reading I got wrong, and what replaced it
+
+I claimed **no release was observable at all** and put a three-way choice to
+the owner about adding it, one option being changes to shared widget
+plumbing. That was wrong. I had generalised from `RSectionDiag`:
+
+```c
+LONG events, buttons;   /* cumulative counters */
+ULONG last_hit;         /* reg_id hit — a LEVEL, not an edge */
+```
+
+`RSectionDiag` is the **diagnostic** view. The event path already splits
+press from release — `rsection.mcc.c` builds `kind` from
+SELECTDOWN/SELECTUP/MENUDOWN, and `ri_cev_button` already branches on it:
+
+```c
+int kind = (im->Code == SELECTDOWN) ? 0 : (im->Code == SELECTUP) ? 1 : (im->Code == MENUDOWN) ? 2 : -1;
+```
+
+`kind==0` reaches `ri_sui_press`; `kind==1` was used only to cancel a drag.
+So the release edge **existed** and was simply being discarded. That is the
+same measurement-as-conclusion error committed in the same round where the
+rule against it was written down, and it would have justified touching
+shared widget plumbing that was already correct. No owner decision was
+needed.
+
+### What this commit does
+
+One field: `struct RICevState.key_id`, the keybed key currently held
+(`RI_CEV_NODRAG` = none), carrying the same pollable shape `drag_id` and
+`rep_idx` already use. Set on `SELECTDOWN` for the 13 pitch keys
+(`RI_SLEVI_KEY0..+13`, note = `60 + (idx-24)`), cleared on `SELECTUP`, and
+initialised in `ri_cev_init`. `kind==1` now ends whatever `kind==0` started —
+key, drag or repeat.
+
+### RED -> GREEN, and a mistake in my own probe
+
+```
+RED   compile: struct RICevState has no member named 'key_id'
+GREEN PASS keybed
+```
+
+Getting there took a wrong turn worth recording: my test converted
+`ri_geo_bbox`'s output through `ri_geo_px` a second time, so the probe
+landed off the keybed entirely and every key read as `ffff`. `ri_geo_bbox`
+already returns window px at the given zoom (panelgeo.h:60). A test that
+cannot find its own subject should be the first thing suspected, not the
+last.
+
+### Mutation score: 5/5 killed, all behavioural
+
+`tests/mutate_keybed.py`: latch-call-deleted, release-keeps-key,
+range-guard-dropped, init-leaves-unset, key-range-off-by-one.
+
+Two harness false kills, the same `-Werror` trap as before: deleting the
+latch call left `levi_key_latch` unused and `range-guard-dropped` left
+`section`/`idx` unused, both scoring `-99 BUILD FAILED` and being counted as
+kills. Now `(0, ...)`-style replacements keep the symbols referenced.
+
+**`m3` also found a real hole in my own test.** My only non-key case was a
+KNOB — and a knob press takes the *drag* branch, never reaching the latch — so
+dropping the key-range guard entirely survived, which would have let every
+momentary switch in the panel strand its indicator lit. A PAGE UP button case
+now covers it.
+
+### What part 2 needs, all already present
+
+- note path: `ri_ctl_send2(ctl, RI_CTL_LEVI_NOTE, vel, hi)` (`hi` carries note + on/off)
+- record arm: `RI_CTL_LEVI_SEQREC 0x0EB5` -> `s->seqrec`, already wired
+- STEP RECORD button: art label at `{262, 280}` — **label only**, no registry row, no geometry
+- velocity 100 is the owner's E0 default; the step-pitch gate is the owner's spec
+
+Still open: **what left-column MASTER drives** — no engine control exists,
+and `t220` deliberately keeps it inert so it cannot be wired to nothing.

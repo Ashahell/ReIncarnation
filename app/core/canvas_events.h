@@ -23,6 +23,14 @@ struct RICevState {
     uint16_t rep_idx;   /* arrow repeat target or RI_CEV_NODRAG */
     int8_t rep_dir;
     uint32_t rep_ticks;
+    /* Keybed key currently HELD, or RI_CEV_NODRAG (owner 2026-10-13).
+     * A key needs both edges: note-on on press, note-off on release, or the
+     * voice hangs. The shell polls this and compares against what it last
+     * saw, exactly as it already does for drag_id — which is why it lives
+     * here and not in a new MUI attribute. RI_CEV_NODRAG on release is the
+     * whole reason this field exists: `last_hit` in RSectionDiag is a LEVEL
+     * and cannot express "let go". */
+    uint16_t key_id;
 };
 
 void ri_cev_init(struct RICevState *st);

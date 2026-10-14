@@ -5,6 +5,7 @@
 
 #include "gui/keymap.h"
 #include "gui/knob_logic.h"
+#include "gui/sectlevi.h"
 
 static long cev_to_n(const struct RICtlDef *d, int v) {
     int span = d->max_v - d->min_v;
@@ -26,6 +27,7 @@ void ri_cev_init(struct RICevState *st) {
     st->rep_idx = RI_CEV_NODRAG;
     st->rep_dir = 0;
     st->rep_ticks = 0u;
+    st->key_id = RI_CEV_NODRAG;
 }
 
 uint32_t ri_cev_tick(struct RICevState *st, struct RISectUI *ui) {
@@ -53,6 +55,19 @@ uint32_t ri_cev_key(struct RICevState *st, struct RISectUI *ui,
     return RI_CEV_EAT;
 }
 
+/* Keybed keys latch until release so the shell can send note-on now and
+ * note-off on SELECTUP. Only the Levi's 13 pitch keys do this: every other
+ * button is momentary, and latching one would strand its indicator lit. */
+static void levi_key_latch(struct RICevState *st, uint32_t section, uint16_t id) {
+    uint32_t idx;
+    if (!st)
+        return;
+    idx = id & 0xFFu;
+    if (section == RI_SEC_LEVI && idx >= RI_SLEVI_KEY0 &&
+        idx < RI_SLEVI_KEY0 + RI_SLEVI_KEYS)
+        st->key_id = id;
+}
+
 uint32_t ri_cev_button(struct RICevState *st, struct RISectUI *ui,
     struct RIPanelUI *panel, const struct RIGeoSection *geo, int zoom,
     int lx, int ly, int w, int h, int kind, uint32_t ms) {
@@ -69,11 +84,15 @@ uint32_t ri_cev_button(struct RICevState *st, struct RISectUI *ui,
         ri_panel_click(panel, ui->section))
         out |= RI_CEV_CHANGED;
     if (kind == 1) {
+        /* SELECTUP ends whatever SELECTDOWN started: an arrow repeat, a
+         * drag, and a held key. The key case is the reason this branch
+         * clears state it did not set -- without it a note-off has nowhere
+         * to go and the voice hangs (owner 2026-10-13). */
+        int held = (st->key_id != RI_CEV_NODRAG) || (st->drag_id != RI_CEV_NODRAG);
         st->rep_idx = RI_CEV_NODRAG;
-        if (st->drag_id == RI_CEV_NODRAG)
-            return out;
+        st->key_id = RI_CEV_NODRAG;
         st->drag_id = RI_CEV_NODRAG;
-        return out | RI_CEV_EAT;
+        return held ? (out | RI_CEV_EAT) : out;
     }
     if (id == RI_CEV_NODRAG)
         return out;
@@ -102,7 +121,7 @@ uint32_t ri_cev_button(struct RICevState *st, struct RISectUI *ui,
         st->acc_dx = st->acc_dy = 0.0;
         st->last_x = lx;
         st->last_y = ly;
-    } else if (ri_sui_tap(ui, idx, ms) || ri_sui_press(ui, idx)) {
+    } else if (ri_sui_tap(ui, idx, ms) || (levi_key_latch(st, ui->section, id), ri_sui_press(ui, idx))) {
         /* A tap that moved the tempo needs no ordinary press: ri_str_press
          * has no case for the key, and a tap without a clock falls through
          * to it and does nothing. */

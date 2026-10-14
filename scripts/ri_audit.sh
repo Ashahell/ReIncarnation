@@ -1120,6 +1120,11 @@ bash "$ROOT/scripts/ri_build_host.sh" test t219_fx_meters >/dev/null || { echo "
 # zoom, the panel value actually moving, and that MASTER stays unlaid-out
 # because it has no engine target at all.
 bash "$ROOT/scripts/ri_build_host.sh" test t220_levi_knobs >/dev/null || { echo "FAIL: t220_levi_knobs (promoted Levi knobs: geometry + live value; MASTER stays inert)"; exit 1; }
+# The keybed needs BOTH edges or a voice hangs: RICevState gains key_id (the
+# held key), set on SELECTDOWN and cleared on SELECTUP. Last-hit is a level
+# and cannot express "let go". t221 pins both edges and that momentary
+# buttons and knobs hold no key.
+bash "$ROOT/scripts/ri_build_host.sh" test t221_keybed >/dev/null || { echo "FAIL: t221_keybed (keybed press/release edge; only the 13 pitch keys latch)"; exit 1; }
 test -f "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: missing pcf engine ledger"; exit 1; }
 grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks P-15"; exit 1; }
 grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }
