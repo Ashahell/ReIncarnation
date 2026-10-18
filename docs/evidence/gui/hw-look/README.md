@@ -376,3 +376,28 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   answering and only an owner restart recovered it. On these agents use
   plain file `get`/`put`; list directories with `exec "List …"`, which
   only the bounded-exec build can answer.
+
+## S7 skin cycle closed: one Ctrl+M, one skin (2026-10-18)
+
+- **Four presses, four lines, no oscillation** (this is what the earlier
+  1789-line run failed to show): `Classic → 808-RI → Template → Stale →
+  Classic`, each `SKIN sync=… current=…`. Press+release back-to-back in
+  one job is the whole requirement; the old oscillation was a held key
+  repeating at ~3 Hz plus interleaved owner input, not a code defect.
+- **Captures** (Drums page, 808 section focused via a click at (700,200)):
+  `dell-s7-cycle-A-808RI.png`, `-B-template.png`, `-C-stale.png`,
+  `-D-classic.png`. Pixel diffs: A↔B differ (4,944 px), B↔D identical,
+  A↔C identical.
+- **The identical pairs are explained, not defects:**
+  - `Template` holds only `Skin.manifest` (no images) → every part falls
+    back to Classic, so it *must* render identically (fallback proven).
+  - `Stale/bg02.png` is byte-identical to `808-RI/bg02.png`
+    (md5 `6146b2fcfe0ef164211cbb160b35e134`) → identical render is
+    correct; the two sets are duplicates on disk.
+  - `Classic` is the built-in fallback, not a Mods directory: `Mods/`
+    holds exactly `Stale`, `Template`, `808-RI`, and the app reports
+    `installed=4` (3 dirs + Classic).
+- **Acceptance script:** `docs/evidence/gui/lane-click-proof.md` — the
+  coordinate map, the three acceptance jobs, the skin-cycle job, the
+  three lane failure signatures (refused exec = wrong build; silent ping
+  = wedged lane; no session = nobody dialed) and the traps.
