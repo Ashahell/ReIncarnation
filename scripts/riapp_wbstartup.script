@@ -1,0 +1,19 @@
+; ReIncarnation -- RIAPP Workbench frontend.
+;
+; WHY HERE AND NOT IN S:User-Startup: the startup-sequence runs User-Startup
+; BEFORE Wanderer, so a GUI app launched from it has no Intuition to open a
+; window on. Wanderer runs the scripts in SYS:WBStartup after the desktop is
+; up, which is the first moment RIAPP can actually appear.
+;
+; The binary lives at SYS:Classes/ReIncarnation/RIAPP (next to Mods/ and
+; Packs/) so it survives reboots; RAM: does not.
+;
+; ENV:ReIncarnation holds the persisted prefs (zoom mode, MIDI settings).
+; ENVARC: is the archive the startup-sequence copies into ENV: at boot, so
+; the guard below only matters on a first boot with no archive yet.
+
+If NOT EXISTS "ENV:ReIncarnation"
+    MakeDir "ENV:ReIncarnation"
+EndIf
+
+Run >NIL: SYS:Classes/ReIncarnation/RIAPP

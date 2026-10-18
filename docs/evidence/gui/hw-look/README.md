@@ -401,3 +401,29 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   coordinate map, the three acceptance jobs, the skin-cycle job, the
   three lane failure signatures (refused exec = wrong build; silent ping
   = wedged lane; no session = nobody dialed) and the traps.
+
+## RIAPP now boots with the machine (2026-10-18)
+
+- Guest install: `SYS:Classes/ReIncarnation/RIAPP` (1,019,528 B, read-back
+  md5 `6b76833e5d0b1285492f84c14bb1d1c9`, identical to the host build) and
+  `SYS:WBStartup/RIAPP` (the script, also kept in the repo as
+  `scripts/riapp_wbstartup.script`).
+- **Why WBStartup and not `S:User-Startup`:** the startup-sequence runs
+  User-Startup *before* Wanderer, so a GUI app launched there has no
+  Intuition to open a window on. Wanderer runs `SYS:WBStartup` scripts
+  after the desktop is up.
+- Prefs need no help: `ENVARC:ReIncarnation/zoom` already exists, and the
+  startup-sequence copies `ENVARC:` into `ENV:` every boot. The script's
+  `MakeDir` guard only covers a first boot with no archive.
+- Proven without a reboot by running the boot path itself: `Execute
+  SYS:WBStartup/RIAPP` started `Process 11`, the `RAM:RIAPP` instance was
+  broken, and the survivor answers lane clicks (`TAB page=1`) and renders
+  (`dell-bootstart-sys.png`).
+- **Finding: the single-instance guard warns, it does not enforce.** With
+  an instance already up, the second one puts up a requester ("Another
+  instance is already running…") and **continues anyway** — after
+  dismissing it there were two live panels. So the guard is a courtesy to
+  the user, not a lock; nothing in the app prevents a second instance.
+  With a WBStartup launch this is now reachable by hand-launching a copy,
+  and two instances both write the same prefs file. Worth hardening
+  (lock file / `prevent` on the prefs) before the MIDI paths depend on it.
