@@ -3220,3 +3220,10 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Evidence: `docs/evidence/gui/hw-look/README.md` (post-reboot section), `dell-s7-mainlane-*.png`
 
 ## [2026-10-18] lint | 0 issues found, 0 auto-fixed
+
+## [2026-10-18] ingest | S7 skin cycle closed + lane click acceptance script
+- Disposition: New (supersedes the "oscillating Ctrl+M" open item)
+- Raw: llm-wiki/raw/articles/2026-10-18-s7-skin-cycle-closed.md
+- Evidence: `docs/evidence/gui/hw-look/dell-s7-cycle-*.png`, `docs/evidence/gui/lane-click-proof.md`
+
+## [2026-10-18] lint | 0 issues found, 0 auto-fixed
