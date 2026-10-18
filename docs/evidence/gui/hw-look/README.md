@@ -406,8 +406,9 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
 
 - Guest install: `SYS:Classes/ReIncarnation/RIAPP` (1,019,528 B, read-back
   md5 `6b76833e5d0b1285492f84c14bb1d1c9`, identical to the host build) and
-  `SYS:WBStartup/RIAPP` (the script, also kept in the repo as
-  `scripts/riapp_wbstartup.script`).
+  `SYS:WBStartup/RIAPP` (the script, kept in the repo as
+  `docs/evidence/gui/riapp-wbstartup.script` (it is a guest artifact, not a
+  shared build script, so it lives outside `scripts/`'s allowlist gate)).
 - **Why WBStartup and not `S:User-Startup`:** the startup-sequence runs
   User-Startup *before* Wanderer, so a GUI app launched there has no
   Intuition to open a window on. Wanderer runs `SYS:WBStartup` scripts
