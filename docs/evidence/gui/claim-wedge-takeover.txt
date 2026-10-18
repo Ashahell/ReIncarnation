@@ -1,0 +1,5 @@
+acquire(wedged claim)   rc=0 (locked, but the stamp is 130 s old -> takeover)
+rename(wedged dir)     ret=-1 IoErr=0
+recreate after rename   handle=OK IoErr=0
+=> takeover is POSSIBLE while the heartbeat is held open
+ACQ DONE

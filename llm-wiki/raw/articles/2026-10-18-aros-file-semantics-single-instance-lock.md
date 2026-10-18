@@ -93,23 +93,23 @@ The lesson that survives: a failed read cannot distinguish "absent" from
 "locked", so use a **create attempt** as the existence test (it fails when
 a live holder has the file open, succeeds when nobody does).
 
-Two observations below rest on **one sample each, taken on a machine that
-already had a Software Failure window up and a wedged process** — the same
-situation that produced two claims already retracted here. Both are marked
-**RE-TEST** and must be re-run on a clean machine before anybody builds on
-them:
+**Both RE-TESTs were re-run on a clean machine and both were wrong** — the
+reviewer's reading of each was the right one:
 
-- **RE-TEST — "`Lock()` on a missing name blocks indefinitely."** A Lock
-  on a missing name is *expected* to return 0/205 at once. A hang points
-  at a stuck handler or at a conflict with the crashed process's own lock,
-  not at Lock. The symptom was real (a probe never finished and its log
-  stayed empty); the attribution is not established.
-- **RE-TEST — "a directory rename returns 0 but still moves the
-  directory."** One observation. Print the raw return plus `IoErr()` for a
-  directory rename onto a **fresh** name.
+| RE-TEST claim | clean-machine result |
+|---|---|
+| "`Lock()` on a missing name blocks indefinitely" | **wrong** — `lock=NULL, IoErr=205`, returns at once (the probe stayed alive) |
+| "a directory rename returns 0 but still moves it" | **wrong** — dir rename to a fresh name: `ret=-1, IoErr=0`; the source was re-creatable, i.e. it *had* moved, with the documented success value |
 
-Ignoring `Rename`'s return value is right either way, so no code depends on
-the answer.
+The earlier "0 but moved" reading has an innocent explanation: the
+destination `.dead-<stamp>-<seq>` already existed from an earlier run, so
+the rename **failed** — and `IoErr()` was read after intervening calls, so
+it showed 0 instead of 203. The displacement had not happened; the code
+that reported "displace failed" was right and its caller was wrong to
+conclude otherwise.
+
+Neither answer changes the code: it ignores `Rename`'s return value and
+lets `CreateDir` decide.
 
 ## 5. Clocks: `DateStamp` is per-boot, so age arithmetic must clamp
 
@@ -133,46 +133,35 @@ how a lock becomes either useless or unusable:
 | present, fresh | a live holder | **busy** | yes (only when unlocked) |
 | present, older than the window | crashed or wedged holder | **take over** | **host only, and on AROS probably never** |
 
-### The AROS hole in that table (review, 2026-10-18 — to be tested)
+### The hole, and what closed it
 
-Because the age is only consulted when *nothing holds the file*, and a
-holder keeps it open for its lifetime, the age branch is only reachable if
-a crashed task's handles are released. If AROS does not close them on a
-crash (or on a wedge the task never exits from), then:
+Because the age was only ever read from the locked heartbeat, a wedged or
+crashed holder locked its own age away and the only recovery was a reboot.
+The lane measurement that opened the way out: **a claim directory can be
+renamed while the file inside it is held open** (`Rename ret=-1, IoErr=0`,
+source immediately re-creatable). So the takeover was always physically
+possible; only the *age* was unreachable.
 
-- a crashed or wedged holder leaves the heartbeat **locked forever**;
-- every later start reads "held, unreadable → busy" until the machine
-  reboots;
-- the only takeover that can happen is the clean-exit leftover directory,
-  which by definition has no heartbeat — the "absent" row.
+The fix is a second file. `hb` stays the liveness lock (opened, never
+closed while held), and `hb.age` is a plain stamp, rewritten on every
+refresh and **never held open**:
 
-That is acceptable *only because the claim lives on `RAM:`*, so a reboot
-clears it — which means the user-facing text must say **reboot**, not
-"wait N seconds". It did say the latter; that was wrong and is fixed.
+- live instance → `hb` is locked → `busy`, structurally, with no age
+  arithmetic at all (the common path, and the cheap one);
+- wedged instance → `hb` still locked, but `hb.age` stops moving → once it
+  passes `RI_CLAIM_TAKEOVER_SEC` (twice the staleness window, so several
+  missed refreshes at 10 s apart) the contender takes over, renaming the
+  directory out of the way and re-creating it.
 
-Open question for the clean pass: does `Rename` of a claim directory
-succeed while the heartbeat inside it is held open? If it does, an
-age-based takeover becomes reachable after all (by reading the age from a
-*second, unlocked* file). If it does not, the crash recovery is the
-reboot, full stop, and the age branch is host-only code.
+Measured on the Dell with a real wedger (heartbeat held open, stamp 130 s
+old): `acquire → rc=0 (locked, but the stamp is 130 s old -> takeover)`.
+The same probe had reported `busy` before this change, with the same state.
 
-## 7. Prove the decision table, not the happy path
-
-The failure modes live in the paths nobody exercises. A scratch probe
-(`RAM:CLAIMPROBE`, linked against the real backend) walks the whole table
-on the target and prints the decision *and its reason* for each row.
-
-Three probe-authoring lessons, each of which cost a round-trip:
-
-- **A probe that keeps its log open loses everything before a crash** —
-  and re-opening a file this process holds is refused anyway (fact 2). One
-  short-lived file per line survives crashes *and* matches the platform.
-- **A probe cannot arrange a state it is itself standing in.** Renaming a
-  file the probe holds open fails; "no live holder" must be arranged after
-  releasing the handle, not while holding it.
-- **Back-dated fixtures must use the fixed clock's units.** Subtracting
-  "30 s" as `30 * TICKS_PER_SECOND` produced an age of 1.1 billion
-  seconds and a table that looked broken. Print the age you expect.
+The threshold is pinned by a test at the *margin*, not just past it: a
+stamp 40 s old must still be busy. That margin is what stops a contender
+that read the stamp microseconds before a refresh from stealing a live
+claim, and a mutant that halves the threshold dies on exactly that
+assertion.
 
 ## 8. Two rounds of correction, from review and from the machine
 
@@ -184,7 +173,12 @@ refusal was luck" — because that path is exactly what a live holder
 produces. Being reviewed is not the same as being corrected, and the fix
 still had to be proved by a probe rather than by an argument either way.
 Round three (review): a crash-path hole nobody had asked about, and two
-single-observation facts that need re-testing on a clean machine.
+single-observation facts that needed re-testing on a clean machine — both
+of which the re-tests then refuted, in the reviewer's favour. The review's
+*inference* about the crash path ("a crashed instance keeps hb locked, so
+the takeover is unreachable") was also correct; its *prognosis* ("if the
+rename works, read the age from a second, unlocked file") is what the
+implementation then did, and that worked.
 
 The transferable lesson: **the number of independent samples behind a
 claim is part of the claim.** A fact recorded from one observation on a

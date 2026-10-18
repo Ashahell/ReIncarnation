@@ -51,6 +51,11 @@ int ri_pal_write_file(const char *path, const void *buf, uint32_t n);
  *     fresh claim). The caller MUST run on 2: an unopenable claim must
  * never be the reason the instrument will not open. */
 #define RI_CLAIM_STALE_SEC 30
+/* A locked heartbeat is taken over only when the UNLOCKED stamp file is
+ * this old: twice the staleness window, so the holder has missed several
+ * refreshes (they are 10 s apart) and a race between a contender's read
+ * and its rename cannot steal a claim from a live instance. */
+#define RI_CLAIM_TAKEOVER_SEC (RI_CLAIM_STALE_SEC * 2)
 int ri_pal_claim_acquire(const char *dir);
 int ri_pal_claim_refresh(const char *dir);
 void ri_pal_claim_release(const char *dir);

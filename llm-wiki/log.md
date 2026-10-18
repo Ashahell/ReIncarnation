@@ -1,4 +1,12 @@
 
+## [2026-10-18] correction #3 | clean-machine re-tests refuted both RE-TEST claims; wedge takeover measured working
+- Disposition: Update
+- RE-TEST 1: `Lock()` on a missing name returns 0/205 at once — it does NOT block (the review was right; the hang was something else)
+- RE-TEST 2: directory rename to a fresh name returns DOSTRUE(-1) with IoErr 0 — the "returns 0 but moves" reading was a failed rename with IoErr clobbered by later calls
+- The decisive measurement: a claim directory CAN be renamed while its heartbeat is held open (ret=-1, source re-creatable), so the wedge takeover is reachable
+- Implemented: `hb.age` (unlocked stamp) beside the `hb` lock; takeover at RI_CLAIM_TAKEOVER_SEC (2x the window). Dell: wedged claim → rc=0 takeover at 130 s.
+
+
 ## [2026-10-18] correction #2 | crash-path hole + RE-TEST markers (from review of 8f97bf6)
 - Disposition: Update
 - Design finding: with the heartbeat held open, the age branch is unreachable while anything holds it — so on AROS a crashed/wedged holder needs a **reboot**, not a wait. Acceptable only because the claim is on RAM:.

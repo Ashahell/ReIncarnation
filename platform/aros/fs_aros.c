@@ -307,6 +307,19 @@ static long claim_stamp_now(void) {
  *      claimed the opposite and sent the first implementation down a dead
  *      end; MODE_NEWFILE is still used because it is explicit about
  *      create-or-truncate.
+ *   5. A claim DIRECTORY can be renamed while a file inside it is held open
+ *      (Dell probe: Rename ret=-1, IoErr=0, source re-creatable). That is
+ *      what makes crash recovery possible at all -- see the age file below.
+ *
+ * Two files, because of (1)+(2): `hb` is the LIVENESS LOCK (opened, never
+ * closed while we hold the claim -- a contender cannot read or re-open it),
+ * and `hb.age` is the plain STAMP, written on every refresh and never held
+ * open. Without the split, a wedged or crashed holder locks its own age
+ * away: the contender cannot read it, never sees that it is old, and the
+ * only recovery is a reboot. With it, the lock gives a fast, structural
+ * "busy" for a live instance, and the age file lets a contender see that a
+ * locked claim has stopped being refreshed and take it over -- the rename
+ * in (5) is what makes that takeover possible.
  */
 static BPTR s_hb;
 static char s_hb_path[192];
@@ -367,9 +380,47 @@ static void claim_hb_close(void) {
         s_hb = 0;
     }
     if (s_hb_path[0]) {
+        char age[208];
+        snprintf(age, sizeof age, "%s.age", s_hb_path);
         DeleteFile((CONST_STRPTR)s_hb_path);
+        DeleteFile((CONST_STRPTR)age);
         s_hb_path[0] = '\0';
     }
+}
+
+/* The stamp file. Never held open, so it is always readable -- that is the
+ * whole point of having it. Same tri-state as the heartbeat: 0 read,
+ * 1 absent, 2 present but unreadable. */
+static int claim_age_read(const char *dir, long *age) {
+    char path[192];
+    long stamp = 0;
+    uint32_t got = 0u;
+    snprintf(path, sizeof path, "%s/hb.age", dir);
+    if (ri_pal_read_file(path, &stamp, (uint32_t)sizeof stamp, &got) == 0 &&
+        got == (uint32_t)sizeof stamp) {
+        *age = claim_stamp_now() - stamp;
+        if (*age < 0)
+            *age = 0;                  /* clock moved: never read as stale */
+        return 0;
+    }
+    {
+        BPTR probe = Open((CONST_STRPTR)path, MODE_NEWFILE);
+        if (probe) {
+            /* It was absent (nobody has ever stamped one): that is what a
+             * holder that died between its two writes looks like. */
+            Close(probe);
+            DeleteFile((CONST_STRPTR)path);
+            return 1;
+        }
+    }
+    return 2;                          /* there and unreadable */
+}
+
+static int claim_age_write(const char *dir) {
+    char path[192];
+    long now = claim_stamp_now();
+    snprintf(path, sizeof path, "%s/hb.age", dir);
+    return ri_pal_write_file(path, &now, (uint32_t)sizeof now);
 }
 
 /* 0 = read, *age set. 1 = nothing there (or no live holder) -> stale.
@@ -408,7 +459,7 @@ int ri_pal_claim_acquire(const char *dir) {
     l = CreateDir((CONST_STRPTR)dir);
     if (l) {
         UnLock(l);
-        if (claim_hb_try_create(dir, 1)) {
+        if (claim_hb_try_create(dir, 1) || claim_age_write(dir)) {
             claim_why("taken but heartbeat unwritable");
             return 2;
         }
@@ -429,13 +480,31 @@ int ri_pal_claim_acquire(const char *dir) {
     {
         int hb = claim_hb_age(dir, &age);
         if (hb == 2) {
-            claim_why("held, heartbeat unreadable -> busy");
+            /* Locked or unreadable. That means SOMEBODY holds it -- usually
+             * the live instance, which is the fast answer. But a holder that
+             * wedged or died leaves exactly the same evidence, and only the
+             * unlocked stamp file can tell those two apart. That split is
+             * what turns "a reboot is the only crash recovery" into "a
+             * wedged instance is taken over after a minute". */
+            int ra = claim_age_read(dir, &age);
+            if (ra == 0 && age > RI_CLAIM_TAKEOVER_SEC) {
+                snprintf(s_claim_why, sizeof s_claim_why,
+                    "locked, but the stamp is %ld s old -> takeover", age);
+                goto takeover;
+            }
+            if (ra == 1) {
+                /* Locked, and nobody ever wrote a stamp: a holder that died
+                 * between its two writes, or a claim nobody is keeping. */
+                snprintf(s_claim_why, sizeof s_claim_why,
+                    "locked, no stamp -> takeover");
+                goto takeover;
+            }
+            claim_why(ra == 0 ? "held, stamp fresh -> busy"
+                              : "held, stamp unreadable -> busy");
             return 1;
         }
         if (hb == 1) {
             claim_why("undated (no heartbeat) -> takeover");
-            snprintf(s_claim_why, sizeof s_claim_why,
-                "undated (no heartbeat) -> takeover");
             goto takeover;
         }
     }
@@ -482,13 +551,13 @@ takeover:
         return 1;                      /* somebody else won: they hold it */
     }
     UnLock(l);
-    return claim_hb_try_create(dir, 1) ? 2 : 0;
+    return (claim_hb_try_create(dir, 1) || claim_age_write(dir)) ? 2 : 0;
 }
 
 int ri_pal_claim_refresh(const char *dir) {
     if (!dir || !dir[0] || !s_hb)
         return 2;
-    if (claim_hb_refresh()) {
+    if (claim_hb_refresh() || claim_age_write(dir)) {
         snprintf(s_claim_why, sizeof s_claim_why, "refresh failed (lost the claim?)");
         return 2;
     }

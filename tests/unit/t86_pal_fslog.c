@@ -143,10 +143,63 @@ int main(void) {
         ri_pal_claim_release(claim);
         RI_ASSERT(mkdir(claim, 0700) == 0, "claim dir again");
         RI_ASSERT(mkdir(hb, 0700) == 0, "hb is a directory: present, unreadable");
-        RI_ASSERT(ri_pal_claim_acquire(claim) == 1, "unreadable claim is busy");
-        RI_ASSERT(strstr(ri_pal_claim_last(), "unreadable") != 0,
-            "reason names the unreadable heartbeat: %s", ri_pal_claim_last());
+        /* Locked-but-stamped: the wedge case the second review found. The
+         * heartbeat alone cannot answer it (it is locked), so the answer
+         * comes from the UNLOCKED stamp file: fresh -> busy, old ->
+         * takeover. This is the branch that turns "a reboot is the only
+         * crash recovery" into "a wedged instance is taken over". */
+        {
+            char age[640];
+            FILE *f;
+            long now = (long)time(0);
+            snprintf(age, sizeof(age), "%s/hb.age", claim);
+            f = fopen(age, "wb");
+            RI_ASSERT(f != 0, "stamp file written");
+            if (f) { fprintf(f, "%ld\n", now); fclose(f); }
+            RI_ASSERT(ri_pal_claim_acquire(claim) == 1,
+                "locked with a FRESH stamp stays busy");
+            RI_ASSERT(strstr(ri_pal_claim_last(), "fresh") != 0,
+                "reason names the fresh stamp: %s", ri_pal_claim_last());
+            /* The boundary that makes the threshold mean something: an age
+             * past RI_CLAIM_STALE_SEC but not past the takeover threshold
+             * must STILL be busy. That margin is what stops a contender that
+             * read the stamp just before a refresh from stealing a live
+             * claim, so it is pinned rather than left to the constant. */
+            f = fopen(age, "wb");
+            RI_ASSERT(f != 0, "stamp file rewritten");
+            if (f) {
+                fprintf(f, "%ld\n", now - (long)RI_CLAIM_STALE_SEC - 10L);
+                fclose(f);
+            }
+            RI_ASSERT(ri_pal_claim_acquire(claim) == 1,
+                "inside the margin: still busy");
+            RI_ASSERT(strstr(ri_pal_claim_last(), "fresh") != 0,
+                "margin case reports busy: %s", ri_pal_claim_last());
+            f = fopen(age, "wb");
+            RI_ASSERT(f != 0, "stamp file rewritten again");
+            if (f) {
+                fprintf(f, "%ld\n", now - (long)RI_CLAIM_TAKEOVER_SEC - 30L);
+                fclose(f);
+            }
+            RI_ASSERT(ri_pal_claim_acquire(claim) == 0,
+                "locked with an OLD stamp is taken over");
+            RI_ASSERT(strstr(ri_pal_claim_last(), "old") != 0,
+                "reason names the stale stamp: %s", ri_pal_claim_last());
+            RI_ASSERT(ri_pal_claim_acquire(claim) == 1,
+                "the takeover is exclusive");
+            ri_pal_claim_release(claim);
+            /* Locked, and NO stamp at all: a holder that died between its
+             * two writes. Nobody is refreshing anything, so this is not a
+             * live instance and must not hold the instrument. */
+            RI_ASSERT(mkdir(claim, 0700) == 0, "claim dir for the no-stamp case");
+            RI_ASSERT(mkdir(hb, 0700) == 0, "hb locked again");
+            RI_ASSERT(ri_pal_claim_acquire(claim) == 0,
+                "locked with no stamp is taken over");
+            RI_ASSERT(strstr(ri_pal_claim_last(), "no stamp") != 0,
+                "reason names the missing stamp: %s", ri_pal_claim_last());
+        }
         rmdir(hb);
+        ri_pal_claim_release(claim);
         rmdir(claim);
         /* Refresh reports honestly: on a claim we no longer hold (released,
          * taken over, or wiped with RAM:) it cannot write a heartbeat and

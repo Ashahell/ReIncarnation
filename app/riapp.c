@@ -3345,23 +3345,23 @@ static int riapp_main(int argc, char **argv) {
          * is that this process ends here instead of becoming a second
          * writer on the prefs and a second window on the desktop.
          *
-         * The message says REBOOT, and that is a correction (2026-10-18
-         * review): it used to promise that waiting RI_CLAIM_STALE_SEC
-         * seconds would free the claim. On AROS the holder keeps the
-         * heartbeat file OPEN, and a task that dies without closing it
-         * leaves it locked -- so a wedged instance is not aged out by
-         * waiting, and the stale-age takeover cannot even be reached (the
-         * age is only consulted when nothing holds the file). The claim
-         * lives on RAM:, so a reboot is what actually clears it. Whether
-         * AROS closes a crashed task's handles is being tested on a clean
-         * machine; until it is, the honest instruction names the one
-         * recovery that is certain. */
-        char msg[256];
+         * Three corrections to this text, in order (2026-10-18). It first
+         * promised that waiting RI_CLAIM_STALE_SEC seconds freed the claim;
+         * then, after review, it said only "reboot". Both were wrong for the
+         * same reason: the holder keeps the heartbeat file OPEN, so a
+         * contender cannot read it and never sees it go stale. The fix is
+         * the second file -- an UNLOCKED stamp -- and the lane measured the
+         * result: a wedged claim (heartbeat still locked, nothing refreshing
+         * it) is taken over once that stamp passes
+         * RI_CLAIM_TAKEOVER_SEC. So the honest instruction names all three
+         * possibilities in the order they actually happen. */
+        char msg[320];
         snprintf(msg, sizeof msg,
             "RIAPP is already running, or a previous one did not exit"
             " cleanly.\n\nIf it is running, close it first. If nothing is"
-            " running, reboot: the claim lives in RAM:, and an instance that"
-            " died holding it keeps it until then.");
+            " running, start again in %d s: a wedged copy is taken over"
+            " then. Rebooting also clears it, since the claim lives in"
+            " RAM:.", (int)RI_CLAIM_TAKEOVER_SEC);
         rlog("RIAPP claim: busy at %s, refusing to start\n", (IPTR)s_claim, 0, 0, 0, 0);
         evlog("RUN", "refused: instance claim busy");
         /* The in-house requester (same EasyRequestArgs shape as every

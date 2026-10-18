@@ -133,6 +133,42 @@ int ri_pal_write_file(const char *path, const void *buf, uint32_t n) {
 /* 0 read, 1 absent (no live holder), 2 present but unreadable. Same tri-state
  * as the AROS backend -- see the comment there for why absent is stale and
  * unreadable is busy. */
+/* The stamp file: never held open, so always readable. See the AROS backend
+ * for why the liveness lock and the stamp have to be two files. */
+static int claim_age_read(const char *dir, long *age) {
+    char path[512];
+    FILE *f;
+    long v = 0;
+    struct stat st;
+    snprintf(path, sizeof path, "%s/hb.age", dir);
+    if (stat(path, &st) != 0)
+        return 1;                      /* absent: nobody stamped it */
+    f = fopen(path, "rb");
+    if (!f)
+        return 2;
+    if (fscanf(f, "%ld", &v) != 1) {
+        fclose(f);
+        return 2;
+    }
+    fclose(f);
+    *age = (long)time(0) - v;
+    if (*age < 0)
+        *age = 0;
+    return 0;
+}
+
+static int claim_age_write(const char *dir) {
+    char path[512];
+    FILE *f;
+    snprintf(path, sizeof path, "%s/hb.age", dir);
+    f = fopen(path, "wb");
+    if (!f)
+        return 1;
+    fprintf(f, "%ld\n", (long)time(0));
+    fclose(f);
+    return 0;
+}
+
 static int claim_hb_read(const char *dir, long *secs) {
     char path[512];
     FILE *f;
@@ -179,7 +215,7 @@ int ri_pal_claim_acquire(const char *dir) {
         return 2;
     }
     if (mkdir(dir, 0700) == 0) {
-        if (claim_hb_write(dir)) {
+        if (claim_hb_write(dir) || claim_age_write(dir)) {
             snprintf(s_claim_why, sizeof s_claim_why, "taken but heartbeat unwritable");
             return 2;
         }
@@ -193,7 +229,21 @@ int ri_pal_claim_acquire(const char *dir) {
     {
         int hb = claim_hb_read(dir, &stamp);
         if (hb == 2) {
-            snprintf(s_claim_why, sizeof s_claim_why, "held, heartbeat unreadable -> busy");
+            /* Locked/unreadable: the live instance, or a wedged one. Only
+             * the unlocked stamp tells them apart. */
+            int ra = claim_age_read(dir, &age);
+            if (ra == 0 && age > (long)RI_CLAIM_TAKEOVER_SEC) {
+                snprintf(s_claim_why, sizeof s_claim_why,
+                    "locked, but the stamp is %ld s old -> takeover", age);
+                goto takeover;
+            }
+            if (ra == 1) {
+                snprintf(s_claim_why, sizeof s_claim_why,
+                    "locked, no stamp -> takeover");
+                goto takeover;
+            }
+            snprintf(s_claim_why, sizeof s_claim_why,
+                ra == 0 ? "held, stamp fresh -> busy" : "held, stamp unreadable -> busy");
             return 1;                  /* cannot tell -> do not evict */
         }
         if (hb == 1) {
@@ -244,7 +294,7 @@ takeover:
 int ri_pal_claim_refresh(const char *dir) {
     if (!dir || !dir[0])
         return 2;
-    if (claim_hb_write(dir)) {
+    if (claim_hb_write(dir) || claim_age_write(dir)) {
         snprintf(s_claim_why, sizeof s_claim_why, "refresh failed (not the holder?)");
         return 2;
     }
@@ -256,6 +306,8 @@ void ri_pal_claim_release(const char *dir) {
     if (!dir || !dir[0])
         return;
     snprintf(path, sizeof(path), "%s/hb", dir);
+    unlink(path);
+    snprintf(path, sizeof(path), "%s/hb.age", dir);
     unlink(path);
     rmdir(dir);
 }

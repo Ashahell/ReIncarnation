@@ -477,20 +477,34 @@ the design and the record needed fixing twice.
      one stayed open). The probe path no longer keeps a handle.
 - **Two dead-looking claims, opposite answers:** heartbeat **absent** →
   takeover; heartbeat **present but unreadable/locked** → hold.
-- **Crash recovery on AROS is a reboot, and the user is told so.** Second
-  review: because the holder keeps the heartbeat open, the age is only
-  consulted when nothing holds it — so if a crashed task's handles are not
-  released, the age branch is unreachable and a wedged instance holds the
-  claim until the machine reboots. Acceptable *only* because the claim is
-  on `RAM:`. The busy requester used to promise "wait 30 s and start
-  again", which is untrue; it now says reboot. To be tested on the clean
-  pass (a holder wedged mid-session, then a second start).
-- **Two facts marked RE-TEST:** "`Lock()` on a missing name blocks" and
-  "a directory rename returns 0 but still moves the directory" — one
-  sample each, both taken while a crash window was up and a process was
-  wedged. Same pattern as the two claims that had to be retracted, so they
-  carry the marker rather than being quietly promoted to fact. No code
-  depends on either.
+- **Crash recovery: measured, not argued.** The second review said the
+  age branch was unreachable on AROS, because the holder keeps the
+  heartbeat open and a dead task never releases it. That is right — and it
+  was also fixable. A clean-machine probe found the claim **directory can
+  be renamed while the file inside it is held open** (`ret=-1, IoErr=0`,
+  source re-creatable), so only the *age* was unreachable. Second file:
+  `hb` stays the liveness lock, `hb.age` is an unlocked stamp rewritten on
+  every refresh. Live instance → `busy` with no age arithmetic; wedged
+  instance → takeover once the stamp passes `RI_CLAIM_TAKEOVER_SEC` (2×
+  the window, so several missed refreshes). Measured with a real wedger:
+  `acquire → rc=0 (locked, but the stamp is 130 s old -> takeover)`
+  (`docs/evidence/gui/claim-wedge-takeover.txt`); the same state returned
+  `busy` before the change. The requester now says all three things —
+  close it, or start again in 60 s, or reboot.
+- **Both RE-TESTs refuted on the clean machine.** `Lock()` on a missing
+  name returns `NULL/205` at once (it does **not** block — the hang was
+  something else, and the reviewer was right); a directory rename to a
+  fresh name returns **DOSTRUE(-1)** with `IoErr 0`, so "returns 0 but
+  still moves it" was a *failed* rename whose `IoErr` had been clobbered by
+  later calls. Four claims in this file have now been retracted or refuted
+  by raw-value probes; that ratio is the lesson, not the individual facts.
+- **Machine state:** clean after the owner's reboot. `AROSTCP` running,
+  main lane on the capable agent (`ATCPBIN.clean`, 146,464 B), x-lane
+  binary re-uploaded to `RAM:ATCPX`. One RIAPP instance running from
+  `SYS:Classes/ReIncarnation/RIAPP`, answering lane clicks
+  (`dell-claim-final-panel.png`). `SYS:ATCPBIN` reverted to the
+  pre-bounded-exec build across the reboot — my copy does not survive one,
+  so the stick copy still needs doing (owner's call).
 - **Proof:** end to end a second `Run` of RIAPP shows the requester over
   the live panel (`dell-s7-instance-claim-refusal.png`), owns no window,
   touches no prefs, and exits when dismissed; `RUN claim rc=0 taken` pins
