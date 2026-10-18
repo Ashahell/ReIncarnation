@@ -1,4 +1,11 @@
 
+## [2026-10-18] correction #2 | crash-path hole + RE-TEST markers (from review of 8f97bf6)
+- Disposition: Update
+- Design finding: with the heartbeat held open, the age branch is unreachable while anything holds it — so on AROS a crashed/wedged holder needs a **reboot**, not a wait. Acceptable only because the claim is on RAM:.
+- Fixed: the busy requester promised "wait 30 s and start again"; it now says reboot.
+- Marked RE-TEST: "Lock() on a missing name blocks" and "a directory rename returns 0 but still moves the directory" — one sample each, taken with a crash window up and a wedged process.
+
+
 ## [2026-10-18] correction | AROS file-semantics article: two claims retracted
 - Disposition: Update (same article, raw-value probe `RAM:APIPROBE`)
 - Retracted: "MODE_READWRITE does not create" (it does — docs are right); "Rename returns FALSE on success" (DOSTRUE(-1) for files; a directory rename returns 0 either way); "Examine misreports" (unproven, withdrawn)

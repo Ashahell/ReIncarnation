@@ -82,19 +82,34 @@ This SDK also has **no `RemoveDir`**, so a displaced lock directory cannot
 be deleted from a program at all — keep displaced copies few, uniquely
 named, and obviously dead.
 
-## 4. Don't test existence by reading — and beware `Lock()`
+## 4. Don't test existence by reading — and don't trust a single observation
 
 The original code asked `Examine()` whether the heartbeat existed, on the
 theory that it "answers 'here it is' for a missing name". **That theory
 was never tested** and is withdrawn; the symptom it explained was
 `ERROR_LOCKED` (fact 2), i.e. a *locked* file is not a *missing* one.
 
-Two lessons that survive: a failed read cannot distinguish "absent" from
+The lesson that survives: a failed read cannot distinguish "absent" from
 "locked", so use a **create attempt** as the existence test (it fails when
-a live holder has the file open, succeeds when nobody does); and **never
-call `Lock()` on a name that may not exist** — on this AROS it **blocks
-indefinitely**. That call was added to a probe to test the theory and hung
-it, silently, with an empty log and a process that would not die.
+a live holder has the file open, succeeds when nobody does).
+
+Two observations below rest on **one sample each, taken on a machine that
+already had a Software Failure window up and a wedged process** — the same
+situation that produced two claims already retracted here. Both are marked
+**RE-TEST** and must be re-run on a clean machine before anybody builds on
+them:
+
+- **RE-TEST — "`Lock()` on a missing name blocks indefinitely."** A Lock
+  on a missing name is *expected* to return 0/205 at once. A hang points
+  at a stuck handler or at a conflict with the crashed process's own lock,
+  not at Lock. The symptom was real (a probe never finished and its log
+  stayed empty); the attribution is not established.
+- **RE-TEST — "a directory rename returns 0 but still moves the
+  directory."** One observation. Print the raw return plus `IoErr()` for a
+  directory rename onto a **fresh** name.
+
+Ignoring `Rename`'s return value is right either way, so no code depends on
+the answer.
 
 ## 5. Clocks: `DateStamp` is per-boot, so age arithmetic must clamp
 
@@ -111,15 +126,35 @@ whatever `sizeof long` is on the target, not 4.)
 Two dead-looking states need **opposite** answers, and conflating them is
 how a lock becomes either useless or unusable:
 
-| heartbeat | meaning | answer |
-|---|---|---|
-| absent | nobody is heartbeating (a live holder writes it at acquire) | **stale → take over** |
-| present, unreadable | an I/O problem, not evidence of death | **busy → refuse** |
-| present, fresh | a live holder | **busy → refuse** |
-| present, older than the window | crashed or wedged holder | **stale → take over** |
+| heartbeat | meaning | answer | reachable? |
+|---|---|---|---|
+| absent | nobody is heartbeating | **take over** | yes — clean exit, or RAM: wipe |
+| present, unreadable (202) | held open by somebody | **busy** | yes — the live-holder case |
+| present, fresh | a live holder | **busy** | yes (only when unlocked) |
+| present, older than the window | crashed or wedged holder | **take over** | **host only, and on AROS probably never** |
 
-Put the claim on a **volatile** volume (RAM:) so a reboot clears it, and
-let the heartbeat handle the case a reboot does not cover: a crash.
+### The AROS hole in that table (review, 2026-10-18 — to be tested)
+
+Because the age is only consulted when *nothing holds the file*, and a
+holder keeps it open for its lifetime, the age branch is only reachable if
+a crashed task's handles are released. If AROS does not close them on a
+crash (or on a wedge the task never exits from), then:
+
+- a crashed or wedged holder leaves the heartbeat **locked forever**;
+- every later start reads "held, unreadable → busy" until the machine
+  reboots;
+- the only takeover that can happen is the clean-exit leftover directory,
+  which by definition has no heartbeat — the "absent" row.
+
+That is acceptable *only because the claim lives on `RAM:`*, so a reboot
+clears it — which means the user-facing text must say **reboot**, not
+"wait N seconds". It did say the latter; that was wrong and is fixed.
+
+Open question for the clean pass: does `Rename` of a claim directory
+succeed while the heartbeat inside it is held open? If it does, an
+age-based takeover becomes reachable after all (by reading the age from a
+*second, unlocked* file). If it does not, the crash recovery is the
+reboot, full stop, and the age branch is host-only code.
 
 ## 7. Prove the decision table, not the happy path
 
@@ -139,7 +174,24 @@ Three probe-authoring lessons, each of which cost a round-trip:
   "30 s" as `30 * TICKS_PER_SECOND` produced an age of 1.1 billion
   seconds and a table that looked broken. Print the age you expect.
 
-## 8. A correction that came from review, not from the machine
+## 8. Two rounds of correction, from review and from the machine
+
+Round one (machine): two claims retracted by raw-value probes, after the
+host-side review pointed at the pattern rather than the code.
+Round two (review): the reviewer's own inference was wrong in the
+*reviewer's* favour — "the unreadable path is the busy path, so the
+refusal was luck" — because that path is exactly what a live holder
+produces. Being reviewed is not the same as being corrected, and the fix
+still had to be proved by a probe rather than by an argument either way.
+Round three (review): a crash-path hole nobody had asked about, and two
+single-observation facts that need re-testing on a clean machine.
+
+The transferable lesson: **the number of independent samples behind a
+claim is part of the claim.** A fact recorded from one observation on a
+machine that was already misbehaving deserves the same RE-TEST marker as
+the two that were outright wrong.
+
+## 9. Earlier section, kept for the argument
 
 An owner-side review of this work caught three real defects that the lane
 had not: the clock expression was not seconds and went *backwards* every

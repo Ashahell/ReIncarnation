@@ -476,8 +476,21 @@ the design and the record needed fixing twice.
   3. the existence probe leaked a handle (`s_hb` overwritten while the old
      one stayed open). The probe path no longer keeps a handle.
 - **Two dead-looking claims, opposite answers:** heartbeat **absent** →
-  takeover (crash path; also what stops a leftover claim from wedging the
-  instrument); heartbeat **present but unreadable/locked** → hold.
+  takeover; heartbeat **present but unreadable/locked** → hold.
+- **Crash recovery on AROS is a reboot, and the user is told so.** Second
+  review: because the holder keeps the heartbeat open, the age is only
+  consulted when nothing holds it — so if a crashed task's handles are not
+  released, the age branch is unreachable and a wedged instance holds the
+  claim until the machine reboots. Acceptable *only* because the claim is
+  on `RAM:`. The busy requester used to promise "wait 30 s and start
+  again", which is untrue; it now says reboot. To be tested on the clean
+  pass (a holder wedged mid-session, then a second start).
+- **Two facts marked RE-TEST:** "`Lock()` on a missing name blocks" and
+  "a directory rename returns 0 but still moves the directory" — one
+  sample each, both taken while a crash window was up and a process was
+  wedged. Same pattern as the two claims that had to be retracted, so they
+  carry the marker rather than being quietly promoted to fact. No code
+  depends on either.
 - **Proof:** end to end a second `Run` of RIAPP shows the requester over
   the live panel (`dell-s7-instance-claim-refusal.png`), owns no window,
   touches no prefs, and exits when dismissed; `RUN claim rc=0 taken` pins
