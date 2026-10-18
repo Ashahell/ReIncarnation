@@ -341,3 +341,38 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   `RAM:CLICK.LOG`-style files lock while open (Break/close first, then
   get); e6320 needs a manual redial after every reboot; a private
   pair+port (`e6320x`/9294, `spike-s6.service`) isolates proof traffic.
+
+## Post-reboot lane repair + S6 acceptance on one agent (2026-10-18)
+
+- **Root cause of the dead lane (not the reboot):** every agent on the
+  Dell predated the bounded exec lane. Both servers refuse
+  `exec_result` without `proto>=2`
+  (`ProtocolErr: … predates the bounded exec lane`), so *all* shell/UI
+  jobs failed on both lanes while file `get`/`put` kept working — the
+  exact split that hid it. Builds seen: `SYS:ATCPBIN` 121,864 B
+  (`556c72c3…`) and `RAM:ATCPNEW` 119,136 B (`fe1fc3ea…`, the approved
+  click-fixed build, which still had no `proto`).
+- **Fix:** rebuild from `origin/main` **with** `-DATCP_BOUNDED_EXEC=1`
+  (`scripts/build_atcpbin_fix.sh`, 0 unresolved GLOBAL UND) →
+  144,752 B, md5 `1bb124840131e0afb70ba3a03f48025a`. That tree already
+  contains the click fixes (`4f03fd7d` is an ancestor of main), so
+  one binary serves input + exec.
+- **Persistence:** `S:Startup-Sequence` executes `S:User-Startup`,
+  which runs `Run SYS:ATCPBIN agent 192.168.1.81 9292 e6320` — so the
+  boot-visible name is `SYS:ATCPBIN`, not `S:`. Copied the new build
+  there (`Copy RAM:ATCPX SYS:ATCPBIN`, read-back hash verified
+  identical) and restarted it: next boot dials the capable agent with
+  no hand work.
+- **S6 acceptance, main lane, persisted binary:** tab clicks
+  `TAB page=1` → `page=0` → `page=3` (Mix capture
+  `dell-s7-mainlane-mix.png`); rail power toggle
+  `VIS dev=2 show=0 mask=1b` → `show=1 mask=1f` → `show=0`, render
+  follows (`dell-s7-mainlane-rail-toggle.png`); knob drag `CTL 021b=8`.
+  Coordinates re-grounded on this build: tabs y≈167 (Synths 70,
+  Drums 130, Mix 250), rail y≈128 (303 x≈33, 909 x≈100), 808 CUT OFF
+  knob ≈(420,256).
+- **Lane hazard (self-inflicted, recorded):** a directory `get`
+  (`--get SYS:`) wedged the old agent's command lane — `ping` stopped
+  answering and only an owner restart recovered it. On these agents use
+  plain file `get`/`put`; list directories with `exec "List …"`, which
+  only the bounded-exec build can answer.
