@@ -90,6 +90,7 @@
 #include "gui/zoomfit.h"
 #include "gui/skin_aros.h"
 #include "gui/panelui.h"
+#include "gui/skinsect.h"
 #include "gui/panelctl.h"
 #include "gui/midimap.h"
 #include "gui/miditrans.h"
@@ -1564,6 +1565,37 @@ static void win_title_song(const char *leaf) {
         SetAttrs(s_win, MUIA_Window_Title, (IPTR)s_wintitle, TAG_DONE);
 }
 
+/* S7: a song that carries per-section skins (SKAS) chooses them for the
+ * panel. Only a song that says something applies: a uniform song leaves
+ * the live assignment alone, so loading an ordinary .rbng never throws
+ * away a Ctrl+M choice. ri_skinassign_apply_song owns that rule; this is
+ * the app's half -- apply, then re-sync the registry so the render
+ * follows, and log enough to tell the two cases apart on the lane. */
+static void skin_sync_current(void);
+static void song_apply_skins(const char *path) {
+    int changed = 0;
+    const char *leaf = path, *q;
+    for (q = path; *q; q++)
+        if (*q == ':' || *q == '/')
+            leaf = q + 1;
+    if (s_song.nskin == 0u) {
+        evlog("SKIN", "song=%s none", leaf);
+        return;
+    }
+    if (ri_skinassign_apply_song(&s_panel.skin_assign, &s_song, s_modptrs,
+            1u + s_nmods, &changed) != 0) {
+        rlog("RIAPP skin: song %s refused\n", leaf, 0, 0, 0, 0);
+        return;
+    }
+    evlog("SKIN", "song=%s n=%u changed=%d", leaf, (unsigned long)s_song.nskin,
+        changed ? 1 : 0);
+    if (!changed)
+        return;
+    skin_sync_current();
+    rlog("RIAPP skin: song %s applied %u entr%s\n", leaf,
+        (unsigned long)s_song.nskin, s_song.nskin == 1u ? "y" : "ies", 0, 0);
+}
+
 static int song_load_path(const char *path) {
     static char err[160];
     struct RICoreSong cs;
@@ -1625,6 +1657,7 @@ static int song_load_path(const char *path) {
         ri_art_tr_set_song(leaf);
         win_title_song(ri_art_tr_song());
     }
+    song_apply_skins(path);
     rlog("RIAPP song %s: %ld bars at %ld BPM\n", path, (long)s_core.song_bars, (long)s_song.tempo);
     evlog("SONG", "load %s bars=%lu bpm=%lu", path, (unsigned long)s_core.song_bars, (unsigned long)s_song.tempo);
     ri_str_press(&t->u.tr, RI_STR_PLAY);

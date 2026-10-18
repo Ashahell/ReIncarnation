@@ -1,6 +1,8 @@
 /* gui/skinsect.c — per-section skin assignment bodies (S7, 2026-09-29).
  * Pure C, no allocation: fixed tables, bounded copies, fail-closed.
  */
+#include <string.h>
+
 #include "gui/skinsect.h"
 
 static uint32_t sect_norm(uint32_t section) {
@@ -190,5 +192,36 @@ int ri_skinassign_from_song(struct RISkinAssign *a, const struct RISong *s,
             if (ri_skinassign_set(a, k, s->mods[0].name) != 0)
                 return 2;
     }
+    return 0;
+}
+
+int ri_skinassign_apply_song(struct RISkinAssign *a, const struct RISong *s,
+    const char *const *installed, uint32_t n, int *changed) {
+    /* `changed` is deliberately NOT from_song's `dirty`: dirty means "the
+     * song names a mod that is not installed" (the registry needs a resync
+     * to fall back per part), which says nothing about whether the table
+     * moved. The caller needs both facts but only one flag, so compare the
+     * effective table ourselves -- the SYNTH2 follow rule included, so a
+     * SYNTH1-only song reads as unchanged rather than as a rewrite. */
+    struct RISkinAssign before;
+    uint32_t k;
+    int rc, dirty = 0, diff = 0;
+    if (!a || !s)
+        return 2;
+    if (changed)
+        *changed = 0;
+    if (s->nskin == 0u)
+        return 0;
+    before = *a;
+    rc = ri_skinassign_from_song(a, s, installed, n, &dirty);
+    if (rc != 0)
+        return rc;
+    for (k = 0u; k < RI_SEC_COUNT; k++)
+        if (strcmp(ri_skinassign_get(&before, k), ri_skinassign_get(a, k)) != 0) {
+            diff = 1;
+            break;
+        }
+    if (changed)
+        *changed = diff;
     return 0;
 }

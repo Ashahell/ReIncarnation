@@ -107,6 +107,47 @@ int main(void) {
     RI_ASSERT(ri_skinassign_from_song(&a, &s, inst, 3u, 0) == 0, "empty apply");
     RI_ASSERT(ri_skinassign_uniform_classic(&a), "empty classic");
     RI_ASSERT(ri_skinassign_from_song(0, &s, inst, 3u, &dirty) == 2, "null assign");
+    /* App-level policy (2026-10-18): loading a song must apply the song's
+     * per-section choice ONLY when the song actually carries one. A
+     * uniform song (no SKAS) says nothing about skins, so it must leave
+     * the live assignment exactly as the user left it -- the reader
+     * above deliberately resolves "no SKAS" to all Classic for a cold
+     * table, and calling it unconditionally on load would silently
+     * throw away the user's Ctrl+M choice every time a plain song
+     * loaded. ri_skinassign_apply_song is the guarded door; the app
+     * calls only it. */
+    s = demo_song();                     /* uniform: nskin == 0 */
+    RI_ASSERT(s.nskin == 0u, "uniform carries no skin");
+    ri_skinassign_init(&a);
+    RI_ASSERT(ri_skinassign_set(&a, RI_SEC_808, "808-RI") == 0, "preset 808");
+    dirty = 1;
+    RI_ASSERT(ri_skinassign_apply_song(&a, &s, inst, 3u, &dirty) == 0, "uniform apply ok");
+    RI_ASSERT(!dirty, "uniform reports no change");
+    RI_ASSERT(!strcmp(ri_skinassign_get(&a, RI_SEC_808), "808-RI"),
+        "uniform song keeps the user's choice");
+    RI_ASSERT(!ri_skinassign_uniform_classic(&a), "still not classic");
+    /* A song that does carry one replaces the table (and says so). */
+    s = demo_song();
+    s.skin[0].section = RI_SEC_MIX_909;
+    strcpy(s.skin[0].name, "Template");
+    s.nskin = 1u;
+    dirty = 0;
+    RI_ASSERT(ri_skinassign_apply_song(&a, &s, inst, 3u, &dirty) == 0, "skas apply ok");
+    RI_ASSERT(dirty, "skas reports the change");
+    RI_ASSERT(!strcmp(ri_skinassign_get(&a, RI_SEC_MIX_909), "Template"), "skas applied");
+    RI_ASSERT(!strcmp(ri_skinassign_get(&a, RI_SEC_808), ""), "808 back to Classic");
+    /* An unknown mod is still applied verbatim and still reports dirty
+     * (the caller re-syncs the registry, which falls back per part). */
+    s = demo_song();
+    s.skin[0].section = RI_SEC_808;
+    strcpy(s.skin[0].name, "NoSuchMod");
+    s.nskin = 1u;
+    dirty = 0;
+    RI_ASSERT(ri_skinassign_apply_song(&a, &s, inst, 3u, &dirty) == 0, "unknown apply ok");
+    RI_ASSERT(dirty, "unknown reports dirty");
+    RI_ASSERT(!strcmp(ri_skinassign_get(&a, RI_SEC_808), "NoSuchMod"), "unknown verbatim");
+    RI_ASSERT(ri_skinassign_apply_song(0, &s, inst, 3u, &dirty) == 2, "null assign refused");
+    RI_ASSERT(ri_skinassign_apply_song(&a, 0, inst, 3u, &dirty) == 2, "null song refused");
     /* Reject laws: writer refuses descending; reader refuses duplicates. */
     s = demo_song();
     s.skin[0].section = RI_SEC_808;

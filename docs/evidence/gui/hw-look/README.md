@@ -427,3 +427,38 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   With a WBStartup launch this is now reachable by hand-launching a copy,
   and two instances both write the same prefs file. Worth hardening
   (lock file / `prevent` on the prefs) before the MIDI paths depend on it.
+
+## S7 completed: a song now chooses the skins (2026-10-18)
+
+- **The gap:** the SKAS chunk had a codec and tests, but nothing in the
+  app ever called it — `skinassign_to_song` / `ri_skinassign_from_song`
+  had no call sites, so per-section skins were a session-only UI choice
+  that died with the app. There is no save path in the app at all, so only
+  the load side is wired.
+- **The policy, and why it needed its own function:** the reader resolves
+  "song carries no SKAS" to *all Classic*, which is right for a cold
+  table and wrong for a live session — calling it on every load would
+  throw away the user's Ctrl+M choice each time an ordinary song played.
+  `ri_skinassign_apply_song` (`gui/skinsect.c`) is the guarded door:
+  `nskin == 0` → table untouched, no change reported. It reports
+  **changed** (did the effective table move, SYNTH2 rule included), not
+  `from_song`'s **dirty** (does the song name a mod that is not
+  installed) — two different questions, one flag at the call site.
+- **Tests RED first** (t128): the unguarded version fails exactly
+  "uniform song keeps the user's choice" / "still not classic" / "skas
+  reports the change". Two mutants die on the right lines — inverted
+  `nskin` guard, and a snapshot taken after the call instead of before.
+- **Dell proof** (captures `dell-s7-song-skin-applied.png`,
+  `dell-s7-song-skin-policy.png`): a song carrying `SKAS 808→808-RI`
+  loads and the 808 renders skinned (`SKIN song=… n=1 changed=1`); a
+  two-entry playlist then cycles skinned → uniform → skinned and the log
+  reads `SKIN song=tiny-plain.rbng none` with **no** `sync=` line after
+  it, and the skinned reload reports `changed=0` — the choice survives,
+  and the registry is not churned. Captures confirm the 808 is still
+  amber after several uniform loads.
+- **Lane facts earned doing it:** the playlist auto-advance is the only
+  mid-session song load reachable without a file requester, and it needs
+  `song_bars > 0` — a song whose track is zeroed reports `bars=0` and
+  `song_poll_end` returns early, so the fixture truncates the track to
+  two bars instead of clearing it. `Break <name>` does not resolve a
+  path; `Break <number>` does.

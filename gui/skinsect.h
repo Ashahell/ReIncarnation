@@ -52,5 +52,12 @@ int skinassign_to_song(const struct RISkinAssign *a, struct RISong *s);
  * 0 ok, 2 bad song/assign. */
 int ri_skinassign_from_song(struct RISkinAssign *a, const struct RISong *s,
     const char *const *installed, uint32_t n, int *dirty);
+/* The guarded door for the app's load path: apply the song's per-section
+ * choice ONLY when the song carries one (nskin > 0). A uniform song says
+ * nothing about skins, so *a is left untouched and *changed is 0 -- the
+ * caller's live choice survives loading a plain song. Same return law as
+ * ri_skinassign_from_song. */
+int ri_skinassign_apply_song(struct RISkinAssign *a, const struct RISong *s,
+    const char *const *installed, uint32_t n, int *changed);
 
 #endif
