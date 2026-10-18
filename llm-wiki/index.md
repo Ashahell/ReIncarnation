@@ -1,3 +1,4 @@
+- [raw/articles/2026-10-18-aros-gui-app-autostart-wbstartup.md](raw/articles/2026-10-18-aros-gui-app-autostart-wbstartup.md) — **2026-10-18 — Autostarting an AROS GUI app: `SYS:WBStartup`, not `User-Startup`.** User-Startup runs before Wanderer (no Intuition yet); ENVARC→ENV copy makes prefs persistence free; verify by running the boot path, not by rebooting; a single-instance requester that warns but does not enforce lets two instances write the same prefs.
 # ReIncarnation llm-wiki — index
 
 Project knowledge for ReIncarnation (AROS audio upgrade + Rebirth 2.0 re-creation).

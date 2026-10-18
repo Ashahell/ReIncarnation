@@ -1,3 +1,8 @@
+## [2026-10-18] ingest | AROS GUI app autostart via SYS:WBStartup
+- Disposition: New (AROS-general: startup ordering, prefs persistence, instance guard)
+- Raw: llm-wiki/raw/articles/2026-10-18-aros-gui-app-autostart-wbstartup.md
+- Evidence: `scripts/riapp_wbstartup.script`, `docs/evidence/gui/hw-look/dell-bootstart-sys.png`
+
 # ReIncarnation llm-wiki — log
 
 ## [2026-09-28] ingest | GUI hardware-look pass
