@@ -370,11 +370,20 @@ static int claim_hb_try_create(const char *dir, int keep) {
  * the claim lives in hb.age, which is written by path.
  *
  * It was being rewritten every refresh, which looked harmless and was not:
- * Seek() does not reposition this buffered handle here, so each refresh
- * appended 8 bytes -- measured on the Dell at 112 -> 152 bytes in 25 s,
- * growing without bound, with the file's own timestamp never advancing so
- * the growth was invisible from the listing. The content was never read by
- * anyone, so writing it was pure liability. */
+ * the rewrite was `Seek(s_hb, 0, SEEK_SET)`, and those are two different
+ * vocabularies. dos.library wants OFFSET_BEGINNING/CURRENT/END = -1/0/1
+ * (dos/dos.h), while SEEK_SET/CUR/END = 0/1/2 are the *stdio* names
+ * (aros/types/seek.h). So the call was Seek(fh, 0, OFFSET_CURRENT): seek
+ * zero bytes from where we already were, and every write appended.
+ * Measured on the Dell at 112 -> 152 bytes in 25 s, growing without bound,
+ * with the file's own timestamp never advancing -- which is why the growth
+ * was invisible from a directory listing.
+ *
+ * Two lessons, both paid for: a caller constant mix-up is not a platform
+ * fact (this one was recorded as "AROS does not reposition a buffered
+ * handle" before anyone read the header), and a file nobody reads is doing
+ * something you did not ask of it. scripts/ri_audit.sh now fails on
+ * SEEK_SET/SEEK_CUR/SEEK_END in any file that calls dos.library Seek(). */
 static int claim_hb_refresh(void) {
     return s_hb ? 0 : 1;               /* the open handle IS the heartbeat */
 }

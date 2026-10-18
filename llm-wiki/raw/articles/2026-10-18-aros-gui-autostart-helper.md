@@ -71,10 +71,25 @@ the first process on the machine — launched by the helper.
   hashing after two reboots. An earlier session had seen it revert; whatever
   did that, it does not now. Verify by hash after a boot rather than by
   trusting either story.
-- **`Seek()` does not reposition a buffered dos handle here.** A lock file
-  rewritten with `Seek(0)` + `Write` appended instead: 8 bytes per refresh,
-  unbounded, and the file's own timestamp never advanced, so a directory
-  listing showed a plausible-looking size for hours. The fix was to stop
-  writing: the file's contents were never read by anyone — its only job was
-  to be *open*. **A file that is written but never read is doing something
-  you have not asked it to do.**
+- **A lock file that grew instead of being rewritten — and the cause was a
+  caller constant, not the platform.** `hb` was refreshed with
+  `Seek(s_hb, 0, SEEK_SET)`, and the two vocabularies disagree:
+  `dos/dos.h` defines `OFFSET_BEGINNING/CURRENT/END` as **-1/0/1**, while
+  `SEEK_SET/CUR/END` are the **stdio** names and values **0/1/2**. So the
+  call was `Seek(fh, 0, OFFSET_CURRENT)` — zero bytes from the current
+  position — and every refresh appended: 8 bytes each, unbounded, with the
+  file's own timestamp never advancing, so a directory listing showed a
+  plausible size for hours. All three stdio names are wrong for dos.library,
+  and not in the same way: `SEEK_CUR` (1) means *end of file* there, and
+  `SEEK_END` (2) is not a valid mode at all. The fix was to stop writing —
+  the file's contents were never read by anyone, its only job was to be
+  *open* — and `scripts/ri_audit.sh` now fails on any of the three stdio
+  names in a file that calls dos.library `Seek()`.
+
+  **This was the third time in one session** that a caller mistake was
+  recorded as an "AROS does X" fact (the others: `Rename`'s return value,
+  and `Lock()` appearing to block). The rule that now goes with it: before
+  claiming the platform did something surprising, rule out the caller —
+  constants from the wrong header, return-value conventions, a NULL lock
+  passed where a lock was expected, an `IoErr()` read after other calls have
+  already overwritten it. Every one of the three had a dull, local cause.

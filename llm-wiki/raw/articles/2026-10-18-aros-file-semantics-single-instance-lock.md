@@ -194,6 +194,28 @@ backend that knows it lost must stop acting like a holder.
 Each got a mutant: skipping the token check, and ignoring the modal
 deadline, both die on their own assertions.
 
+## 9. Three "AROS does X" findings that were all caller bugs
+
+Worth keeping together, because the pattern is the lesson and the
+individual facts were worth nothing:
+
+| claimed | reality |
+|---|---|
+| "`Lock()` on a missing name blocks indefinitely" | returns `NULL`/205 at once; the hang was elsewhere |
+| "`Rename` returns FALSE on success" | it returns DOSTRUE(-1); the code had compared against the wrong convention and read `IoErr()` after other calls had overwritten it |
+| "`Seek()` does not reposition a buffered handle" | two vocabularies: dos.library is `OFFSET_BEGINNING/CURRENT/END` = **-1/0/1**, stdio's `SEEK_SET/CUR/END` = **0/1/2**. `Seek(fh, 0, SEEK_SET)` was `OFFSET_CURRENT` — zero bytes from here — so every write appended |
+
+Each one was recorded as a property of the platform because the symptom was
+real, the probe was on a machine that was already misbehaving, and nobody
+opened the header. The rule now attached to every future "AROS does X":
+**rule out the caller first** — constants from the wrong header,
+return-value conventions, a NULL lock where a lock was expected, an
+`IoErr()` read too late. Three of three were dull and local.
+
+`scripts/ri_audit.sh` now fails on `SEEK_SET`/`SEEK_CUR`/`SEEK_END` in any
+file that calls dos.library `Seek()`, so the third one cannot recur
+unnoticed.
+
 ## 8. Two rounds of correction, from review and from the machine
 
 Round one (machine): two claims retracted by raw-value probes, after the

@@ -1554,6 +1554,41 @@ done
 # them were lost to a symptom assembled from evidence that never overlapped.
 # A tool that can find that class of mistake belongs where its argument shapes
 # are reviewable, next to lane_proof.sh which produces the log it reads.
+# dos.library Seek() constants gate (2026-10-18, review 5). The SDK has TWO
+# vocabularies: dos/dos.h defines OFFSET_BEGINNING/CURRENT/END as -1/0/1,
+# while SEEK_SET/CUR/END (aros/types/seek.h) are the *stdio* names and
+# values 0/1/2. They are not interchangeable, and not even in the same
+# direction: SEEK_CUR (1) means end-of-file to dos.library and SEEK_END (2)
+# is not a valid mode at all. A `Seek(fh, 0, SEEK_SET)` is therefore
+# "zero bytes from the current position" -- it appends, silently. That cost a
+# real bug here (a lock file growing 8 bytes per refresh while its timestamp
+# stood still), and it was first written up as "AROS does not reposition a
+# buffered handle", which was wrong: the caller mixed up constants.
+#
+# The rule this enforces: in a file that calls dos.library Seek(), the mode
+# argument is spelled OFFSET_BEGINNING/OFFSET_CURRENT/OFFSET_END.
+# Comments are stripped first: the comment in fs_aros.c that explains this
+# very bug has to be able to NAME the constants it is warning about.
+_seekfiles=$(grep -rln "Seek(" "$ROOT/platform/aros" "$ROOT/app" 2>/dev/null || true)
+for _f in $_seekfiles; do
+  _hits=$(awk '
+    /\/\*/ { inc = 1 }
+    {
+      line = $0
+      sub(/\/\/.*$/, "", line)
+      if (inc == 0 && line ~ /(^|[^A-Za-z_])SEEK_(SET|CUR|END)([^A-Za-z_]|$)/)
+        print NR ": " line
+      if (index($0, "*/") > 0) inc = 0
+    }' "$_f")
+  if [ -n "$_hits" ]; then
+    echo "FAIL: ${_f#$ROOT/} uses SEEK_SET/SEEK_CUR/SEEK_END in dos.library Seek()."
+    echo "      dos.library wants OFFSET_BEGINNING (-1), OFFSET_CURRENT (0), OFFSET_END (1);"
+    echo "      the SEEK_* names are stdio's (0/1/2) and mean something else here."
+    echo "$_hits" | head -n 3 | sed 's/^/      /'
+    exit 1
+  fi
+done
+
 # Instance-claim modal gate (2026-10-18, review 2). A requester or a file
 # picker BLOCKS the main loop, so the claim's stamp stops refreshing while
 # the instance is healthy -- and without the modal marker a second start

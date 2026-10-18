@@ -525,14 +525,30 @@ the design and the record needed fixing twice.
   still moves it" was a *failed* rename whose `IoErr` had been clobbered by
   later calls. Four claims in this file have now been retracted or refuted
   by raw-value probes; that ratio is the lesson, not the individual facts.
-- **The heartbeat was growing, and measuring caught what reading missed.**
-  `hb` is the liveness lock and its *contents* are never read (the age lives
-  in `hb.age`), yet it was being rewritten on every refresh — and `Seek()`
-  does not reposition this buffered handle, so each refresh **appended** 8
-  bytes: 112 → 152 bytes in 25 s, growing without bound, with the file's
-  own timestamp never advancing so the growth was invisible in a listing.
-  The write is now gone: the handle being open *is* the heartbeat. Verified
-  on the Dell — `hb` holds at 8 B across 40 s while `hb.age` advances.
+- **The heartbeat was growing — and the cause was our own constant, not
+  AROS.** `hb` is the liveness lock and its *contents* are never read (the
+  age lives in `hb.age`), yet it was rewritten on every refresh with
+  `Seek(s_hb, 0, SEEK_SET)`. Two vocabularies, not interchangeable:
+  dos.library is `OFFSET_BEGINNING/CURRENT/END` = **-1/0/1**, while
+  `SEEK_SET/CUR/END` are stdio's **0/1/2**. So the call was
+  `Seek(fh, 0, OFFSET_CURRENT)` — zero bytes from here — and every refresh
+  **appended** 8 bytes: 112 → 152 B in 25 s, unbounded, with the file's
+  timestamp never advancing, so a listing showed a plausible size for hours.
+  All three stdio names are wrong for dos.library and not in the same
+  direction: `SEEK_CUR` (1) means end-of-file there, `SEEK_END` (2) is not a
+  valid mode. The write is gone — the handle being open *is* the heartbeat
+  (verified: `hb` holds at 8 B across 40 s while `hb.age` advances) — and
+  `scripts/ri_audit.sh` now fails on any `SEEK_*` name in a file that calls
+  dos.library `Seek()` (verified both ways, comments exempt so the warning
+  comment can name the constants).
+- **Three "AROS does X" findings this session were all caller bugs** — the
+  `Seek` constants, `Rename`'s return convention, and `Lock` apparently
+  blocking. Same pattern, so it is now written down: **before claiming the
+  platform did something surprising, rule out the caller** — constants from
+  the wrong header, return-value conventions, a NULL lock where a lock was
+  expected, an `IoErr()` read after other calls overwrote it. Three of three
+  were dull and local, and two of them reached two wikis before anyone
+  opened a header.
 - **Machine state:** one RIAPP instance from
   `SYS:Classes/ReIncarnation/RIAPP`, claim held, lane clicks answered
   (`TAB page=0` → `page=1`); `AROSTCP` running; main lane on the installed
