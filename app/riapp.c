@@ -1504,6 +1504,13 @@ static void song_ui_sync(void) {
  * not raise a requester". This enforces it. In quiet mode the log line below
  * IS the response, and deliberately so: it is reachable over atcpbin with no
  * human at the keyboard, which a modal box on an unattended Dell is not. */
+/* Claim helpers, defined further down next to the rest of the claim code;
+ * the requester wrappers below need them, and they must exist BEFORE any
+ * blocking UI call so the modal stamp is written in time. */
+static void instance_claim_modal(int enter);
+static void instance_claim_lost(void);
+static int instance_claim_held;   /* 1 while this process owns the claim */
+
 static void song_fail(const char *what, const char *path, const char *why) {
     struct EasyStruct es;
     IPTR args[3];
@@ -1519,7 +1526,9 @@ static void song_fail(const char *what, const char *path, const char *why) {
     args[0] = (IPTR)what;
     args[1] = (IPTR)path;
     args[2] = (IPTR)why;
+    instance_claim_modal(1);
     EasyRequestArgs(NULL, &es, NULL, (RAWARG)args);
+    instance_claim_modal(0);
 }
 
 /* Say so when the sound card could not be opened (owner 2026-10-02). The null
@@ -1548,7 +1557,9 @@ static void audio_fail(long err) {
         "\n\nRIAPP will run without sound (offline render only)."
         "\nClose the other program and start RIAPP again.";
     es.es_GadgetFormat = (CONST_STRPTR)"OK";
+    instance_claim_modal(1);
     EasyRequestArgs(NULL, &es, NULL, NULL);
+    instance_claim_modal(0);
 }
 
 /* The loaded song's name lives in the window title (owner Dell 2026-10-05):
@@ -1715,6 +1726,10 @@ static int song_pick(const char *title, const char *pattern, char *path, ULONG c
         song_fail("file", title, "no file requester");
         return 2;
     }
+    /* The marker goes here, not at the allocation: AllocAslRequestTags does
+     * not block, and a stamp written before a long setup is staler by the
+     * time the dialog opens. */
+    instance_claim_modal(1);
     if (!AslRequest(fr, 0))
         rlog("RIAPP %s: cancelled\n", title);
     else if (!fr->fr_File || !fr->fr_File[0])
@@ -1742,6 +1757,7 @@ static int song_pick(const char *title, const char *pattern, char *path, ULONG c
         rlog("RIAPP %s: picked %s%s\n", title, path, ok ? "" : " (no usable file)");
     }
     FreeAslRequest(fr);
+    instance_claim_modal(0);
     return ok ? 0 : 2;
 }
 
@@ -2887,7 +2903,15 @@ static int zoom_persist_read(void) {
     return ri_zoom_parse(buf, got);
 }
 
+/* Refuse to write prefs once the claim is lost: two instances writing the
+ * same files is the damage the claim exists to prevent, and a displaced
+ * instance that keeps writing is exactly how that happens (2026-10-18
+ * review, second pass). */
 static void zoom_persist_write(int mode) {
+    if (!instance_claim_held) {
+        rlog("RIAPP prefs: not writing, the claim is not held\n", 0, 0, 0, 0, 0);
+        return;
+    }
     char base[64], path[80], buf[8];
     int n;
     if (!DOSBase)
@@ -3266,7 +3290,6 @@ static void midi_setup(void) {
  * 2 (undecidable) runs the app: an unopenable claim must never be the
  * reason the instrument will not open. */
 static char s_claim[128];
-static int s_claim_held;
 
 static int instance_claim(void) {
     char base[64];
@@ -3278,7 +3301,7 @@ static int instance_claim(void) {
     if (ri_pal_path_join(s_claim, sizeof s_claim, base, "RIAPP.lock") != 0)
         return 0;
     rc = ri_pal_claim_acquire(s_claim);
-    s_claim_held = (rc == 0);
+    instance_claim_held = (rc == 0);
     /* Always say what the claim decided and why: on a lane the only
      * difference between "another instance" and "this volume is
      * read-only" is this line, and a silent lock is undiagnosable. */
@@ -3293,21 +3316,56 @@ static int instance_claim(void) {
 }
 
 static void instance_claim_refresh(void) {
-    if (!s_claim_held)
+    int rc;
+    if (!instance_claim_held)
         return;
-    if (ri_pal_claim_refresh(s_claim) == 2) {
+    rc = ri_pal_claim_refresh(s_claim);
+    if (rc == RI_CLAIM_REFRESH_LOST) {
+        instance_claim_lost();
+        return;
+    }
+    if (rc == 2) {
         /* We are no longer the holder (RAM: cleared under us, or a stale
          * takeover). Say so once; the next refresh simply stops trying. */
-        s_claim_held = 0;
+        instance_claim_held = 0;
         rlog("RIAPP claim: lost %s\n", (IPTR)s_claim, 0, 0, 0, 0);
     }
 }
 
+/* A requester or a file picker BLOCKS the main loop, so the claim's stamp
+ * stops moving while the instance is perfectly healthy. Without a marker a
+ * second start would take over a live instance after
+ * RI_CLAIM_TAKEOVER_SEC -- two writers on ENVARC (2026-10-18 review, second
+ * pass). "Alive but blocked" and "wedged" are not distinguishable from
+ * outside a process on this platform, so the honest signal is the one the
+ * holder itself stamps before it blocks.
+ *
+ * scripts/ri_audit.sh enforces the second half of that sentence: every
+ * blocking UI call site in app/ must sit between these two calls, so a new
+ * requester cannot be added without a marker. */
+static void instance_claim_modal(int enter) {
+    if (!instance_claim_held)
+        return;
+    if (ri_pal_claim_modal(s_claim, enter) != 0)
+        rlog("RIAPP claim: modal stamp failed (%d)\n", (IPTR)ri_pal_claim_last(),
+            0, 0, 0, 0);
+}
+
+/* Displaced: somebody else holds the claim now. The prefs are the shared
+ * resource both instances would be writing, so this instance must stop
+ * writing them -- not merely mention it in the log. */
+static void instance_claim_lost(void) {
+    instance_claim_held = 0;
+    rlog("RIAPP claim: LOST at %s (%s) -- this copy stops writing prefs\n",
+        (IPTR)s_claim, (IPTR)ri_pal_claim_last(), 0, 0, 0);
+    evlog("RUN", "claim LOST: %s", ri_pal_claim_last());
+}
+
 static void instance_claim_release(void) {
-    if (!s_claim_held)
+    if (!instance_claim_held)
         return;
     ri_pal_claim_release(s_claim);
-    s_claim_held = 0;
+    instance_claim_held = 0;
 }
 
 static int riapp_main(int argc, char **argv) {
@@ -4106,7 +4164,7 @@ static int riapp_main(int argc, char **argv) {
          * 30 s staleness window. Cheap (one small file write), and it is
          * what lets a crashed instance's claim be taken over instead of
          * locking the instrument until the next reboot. */
-        if (s_claim_held && ++claim_hb >= 100u) {
+        if (instance_claim_held && ++claim_hb >= 100u) {
             claim_hb = 0u;
             instance_claim_refresh();
         }

@@ -1554,6 +1554,53 @@ done
 # them were lost to a symptom assembled from evidence that never overlapped.
 # A tool that can find that class of mistake belongs where its argument shapes
 # are reviewable, next to lane_proof.sh which produces the log it reads.
+# Instance-claim modal gate (2026-10-18, review 2). A requester or a file
+# picker BLOCKS the main loop, so the claim's stamp stops refreshing while
+# the instance is healthy -- and without the modal marker a second start
+# would take over a live instance after RI_CLAIM_TAKEOVER_SEC, leaving two
+# writers on ENVARC. The marker is only as good as its coverage, and this is
+# the coverage: every blocking UI CALL in app/ must sit within a few lines
+# after instance_claim_modal(1). It fails the moment a new requester is
+# added without one, which is the point -- the alternative is a guard that
+# rots silently the first time somebody adds a dialog.
+#
+# Ignores comments (which name these functions in prose) and the allocation
+# call AllocAslRequestTags, which is not the blocking one.
+_misses=0
+_bushold=0
+_n=0
+while IFS= read -r _line; do
+  _n=$((_n + 1))
+  case "$_line" in
+    *"claim: busy at"*) _bushold=1 ;;
+    *"if (rack_classes_make"*) _bushold=0 ;;
+  esac
+  _code=$(printf '%s' "$_line" | sed -e 's,^[ \t]*,,' -e 's,//.*$,,' -e 's,/\*.*$,,')
+  case "$_code" in
+    ""|\**) : ;;                      # blank or still a comment
+    *EasyRequestArgs*|*AslRequest*)
+      # Free/Alloc variants are not the blocking call.
+      case "$_code" in
+        *FreeAslRequest*|*AllocAslRequest*) continue ;;
+      esac
+      if [ "$_bushold" = 1 ]; then continue; fi   # the refusal box: we hold nothing
+      _marked=0
+      _k=$((_n - 1))
+      while [ "$_k" -gt 0 ] && [ $((_n - _k)) -le 4 ]; do
+        case "$(sed -n "${_k}p" "$ROOT/app/riapp.c")" in
+          *instance_claim_modal*) _marked=1; break ;;
+        esac
+        _k=$((_k - 1))
+      done
+      if [ "$_marked" = 0 ]; then
+        echo "FAIL: blocking UI call in app/ without a claim modal marker (line $_n):"
+        echo "      $_line"
+        _misses=1
+      fi ;;
+  esac
+done < "$ROOT/app/riapp.c"
+if [ "$_misses" = 1 ]; then exit 1; fi
+
 RI_SCRIPTS_OK="ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_build_v11.sh ri_fuzz.sh ri_soak.sh lane_proof.sh lane_evlog.py"
 for f in $(ls "$ROOT/scripts"); do
   case " $RI_SCRIPTS_OK " in *" $f "*) ;; *) echo "FAIL: scripts/$f is not on the shared-script allowlist (${RI_SCRIPTS_OK})"; exit 1 ;; esac

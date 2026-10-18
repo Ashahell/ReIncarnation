@@ -1,4 +1,12 @@
 
+## [2026-10-18] correction #4 | modal eviction + dead loss detection (from review of 5640a74)
+- Disposition: Update
+- Attribution corrected: the two-file (lock + unlocked stamp) design is MINE, not the review's
+- Defect A: a requester blocks the main loop, so a healthy instance looked like a wedge and could be evicted → modal deadline stamped before blocking; `scripts/ri_audit.sh` now fails the build if a blocking UI call in app/ has no marker (verified: passes clean, fails an injected dialog)
+- Defect B: writing the stamp by path is not ownership → the stamp names its holder (task + acquire stamp); refresh reads it first and returns RI_CLAIM_REFRESH_LOST, the PAL drops its held state, and the app stops writing prefs
+- Mutants: skipping the token check and ignoring the modal deadline both die
+
+
 ## [2026-10-18] correction #3 | clean-machine re-tests refuted both RE-TEST claims; wedge takeover measured working
 - Disposition: Update
 - RE-TEST 1: `Lock()` on a missing name returns 0/205 at once — it does NOT block (the review was right; the hang was something else)

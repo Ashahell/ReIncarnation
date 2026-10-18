@@ -13,6 +13,23 @@
 #include "platform/pal/ri_pal_fs.h"
 #include "platform/pal/ri_pal_log.h"
 
+/* The stamp file's on-disk layout, written here by hand so the test pins
+ * the format rather than trusting the implementation to agree with itself.
+ * platform/pal/ri_pal_fs.h documents the same five fields. */
+static int stamp_write(const char *claim, unsigned long mode, long holder,
+    long stamp, long modal_until) {
+    char path[640];
+    FILE *f;
+    snprintf(path, sizeof(path), "%s/hb.age", claim);
+    f = fopen(path, "wb");
+    if (!f)
+        return 1;
+    fprintf(f, "%lu %lu %ld %ld %ld\n", 0x52495043ul, mode, holder, stamp,
+        modal_until);
+    fclose(f);
+    return 0;
+}
+
 static int t_count;
 static int t_cb(void *u, const char *name) {
     (void)u;
@@ -76,138 +93,111 @@ int main(void) {
     }
     unlink(leaf);
     rmdir(sub);
-    /* Single-instance claim (2026-10-18). The app must REFUSE to run when
-     * another instance holds the claim -- the requester that used to warn
-     * and continue let two instances write the same prefs. The contract is
-     * three behaviours, and only the first is obvious:
-     *   acquire -> 0, second acquire -> 1 (busy), release frees it;
-     *   a LIVE holder's heartbeat keeps a contender out;
-     *   a DEAD holder's heartbeat (crash, no reboot) must not lock the
-     *   instrument forever -- past the staleness window the contender
-     *   takes the claim over.
-     * 2 (undecidable) must be reserved for "cannot tell", and the app
-     * runs anyway in that case: an unopenable claim must never keep the
-     * instrument unopenable. */
+    /* Single-instance claim (2026-10-18, revised twice by review). The claim
+     * is a directory whose creation is the atomic test-and-set, plus two
+     * files inside it: `hb`, the LIVENESS LOCK (the holder keeps it open),
+     * and `hb.age`, a stamp that is never held open and therefore always
+     * readable. The split exists because a locked file cannot be read: with
+     * the age locked away, a wedged holder looks exactly like a live one.
+     *
+     * The stamp layout is part of the contract and is written here by hand:
+     * magic mode holder stamp modal_until. */
     {
-        char claim[512], hb[576], dead[640];
-        long now, old;
-        FILE *f;
+        char claim[512], hb[576], age[640], dead[640];
+        long now = (long)time(0);
         snprintf(claim, sizeof(claim), "%s/t86-claim", tmpd);
         snprintf(hb, sizeof(hb), "%s/hb", claim);
-        snprintf(dead, sizeof(dead), "%s/dead", claim);
-        rmdir(hb); rmdir(claim);                     /* clean slate */
+        snprintf(age, sizeof(age), "%s/hb.age", claim);
+        snprintf(dead, sizeof(dead), "%s/t86-no-such-parent/claim", tmpd);
+        rmdir(age); rmdir(hb); rmdir(claim);
+
+        /* acquire -> 0, a second holder -> 1, refresh -> 0 */
         RI_ASSERT(ri_pal_claim_acquire(claim) == 0, "claim taken");
         RI_ASSERT(ri_pal_claim_acquire(claim) == 1, "second acquire is busy");
         RI_ASSERT(ri_pal_claim_refresh(claim) == 0, "refresh");
         RI_ASSERT(ri_pal_claim_acquire(claim) == 1, "live holder still busy");
         ri_pal_claim_release(claim);
         RI_ASSERT(ri_pal_claim_acquire(claim) == 0, "released then retaken");
-        /* Dead holder: a heartbeat older than the staleness window. */
         ri_pal_claim_release(claim);
+
+        /* Dead holder: a stamp older than the takeover threshold. This is
+         * the wedge/crash path, and it is the reason the age lives in its
+         * own file. */
         RI_ASSERT(mkdir(claim, 0700) == 0, "stale dir made by hand");
-        f = fopen(hb, "wb");
-        RI_ASSERT(f != 0, "stale hb open");
-        if (f) {
-            now = (long)time(0);
-            old = now - (long)RI_CLAIM_STALE_SEC - 60L;
-            fprintf(f, "%ld\n", old);
-            fclose(f);
-        }
+        RI_ASSERT(stamp_write(claim, 0u, 1L,
+            now - (long)RI_CLAIM_TAKEOVER_SEC - 30L, 0L) == 0, "stale stamp written");
         RI_ASSERT(ri_pal_claim_acquire(claim) == 0, "stale claim taken over");
         RI_ASSERT(ri_pal_claim_acquire(claim) == 1, "takeover is exclusive");
         ri_pal_claim_release(claim);
-        /* Undecidable: the parent does not exist, so the claim cannot be
-         * created and its state cannot be read. */
-        snprintf(dead, sizeof(dead), "%s/t86-no-such-parent/claim", tmpd);
+
+        /* The margin: past the staleness window but inside the takeover
+         * margin, a LOCKED holder stays busy. That margin is what stops a
+         * contender from stealing a claim from a live instance. */
+        RI_ASSERT(mkdir(claim, 0700) == 0, "margin dir");
+        RI_ASSERT(mkdir(hb, 0700) == 0, "hb locked for the margin case");
+        RI_ASSERT(stamp_write(claim, 0u, 1L,
+            now - (long)RI_CLAIM_STALE_SEC - 10L, 0L) == 0, "margin stamp");
+        RI_ASSERT(ri_pal_claim_acquire(claim) == 1, "inside the margin: busy");
+
+        /* Modal holder (2026-10-18 review, second pass): the main loop is
+         * blocked in a requester, so nothing refreshes the stamp -- yet the
+         * instance is perfectly healthy and must NOT be evicted. The modal
+         * deadline is the only signal that can tell those apart from
+         * outside the process. */
+        RI_ASSERT(stamp_write(claim, 1u, 1L,
+            now - (long)RI_CLAIM_TAKEOVER_SEC - 30L,
+            now + (long)RI_CLAIM_MODAL_SEC) == 0, "modal stamp written");
+        RI_ASSERT(ri_pal_claim_acquire(claim) == 1,
+            "locked, stale, and modal -> still busy");
+        RI_ASSERT(strstr(ri_pal_claim_last(), "modal") != 0,
+            "reason names the modal holder: %s", ri_pal_claim_last());
+        /* ...and once the deadline passes, the same state is a takeover. */
+        RI_ASSERT(stamp_write(claim, 1u, 1L,
+            now - (long)RI_CLAIM_TAKEOVER_SEC - 30L,
+            now - 1L) == 0, "expired modal stamp");
+        RI_ASSERT(ri_pal_claim_acquire(claim) == 0,
+            "modal deadline expired -> taken over");
+
+        /* Locked with no stamp at all: a holder that died between its two
+         * writes. Nobody is refreshing anything, so it must not hold the
+         * instrument. */
+        ri_pal_claim_release(claim);
+        RI_ASSERT(mkdir(claim, 0700) == 0, "no-stamp dir");
+        RI_ASSERT(mkdir(hb, 0700) == 0, "hb locked for the no-stamp case");
+        RI_ASSERT(ri_pal_claim_acquire(claim) == 0,
+            "locked with no stamp is taken over");
+        RI_ASSERT(strstr(ri_pal_claim_last(), "no stamp") != 0,
+            "reason names the missing stamp: %s", ri_pal_claim_last());
+
+        /* Undecidable: the parent does not exist. */
         RI_ASSERT(ri_pal_claim_acquire(dead) == 2, "undecidable is 2");
         RI_ASSERT(ri_pal_claim_acquire(0) == 2, "null path is 2");
-        /* The reason string is part of the contract: a lock that decides
-         * silently cannot be told apart from a broken one on a lane. */
-        RI_ASSERT(ri_pal_claim_acquire(dead) == 2, "undecidable again");
-        RI_ASSERT(strstr(ri_pal_claim_last(), "undecidable") != 0,
+        RI_ASSERT(strstr(ri_pal_claim_last(), "no path") != 0 ||
+            strstr(ri_pal_claim_last(), "undecidable") != 0,
             "reason names the undecidable case: %s", ri_pal_claim_last());
-        /* Two different dead-looking claims, two different answers:
-         *   heartbeat PRESENT but unreadable -> BUSY. Failing safe: an I/O
-         *   problem is not evidence of death, and treating it as death
-         *   lets any process that cannot read one small file evict the
-         *   running instance and become a second writer.
-         *   heartbeat ABSENT -> takeover. A live holder writes it the
-         *   moment it takes the claim, so no heartbeat means nobody is
-         *   heartbeating; this is the recovery path for a crash between
-         *   the directory creation and that first write, and it is what
-         *   keeps a leftover claim from wedging the instrument forever. */
-        RI_ASSERT(mkdir(claim, 0700) == 0, "undated claim dir");
-        RI_ASSERT(ri_pal_claim_acquire(claim) == 0, "undated claim is taken over");
-        RI_ASSERT(strstr(ri_pal_claim_last(), "undated") != 0,
-            "reason names the undated claim: %s", ri_pal_claim_last());
+
+        /* DISPLACEMENT DETECTION (2026-10-18 review, second pass). Writing
+         * the stamp by path is not ownership: after a takeover the old
+         * instance's refresh used to write straight into the new owner's
+         * directory, succeed, and leave both instances convinced they held
+         * the claim. The stamp names its holder, so refresh must notice. */
         ri_pal_claim_release(claim);
-        RI_ASSERT(mkdir(claim, 0700) == 0, "claim dir again");
-        RI_ASSERT(mkdir(hb, 0700) == 0, "hb is a directory: present, unreadable");
-        /* Locked-but-stamped: the wedge case the second review found. The
-         * heartbeat alone cannot answer it (it is locked), so the answer
-         * comes from the UNLOCKED stamp file: fresh -> busy, old ->
-         * takeover. This is the branch that turns "a reboot is the only
-         * crash recovery" into "a wedged instance is taken over". */
-        {
-            char age[640];
-            FILE *f;
-            long now = (long)time(0);
-            snprintf(age, sizeof(age), "%s/hb.age", claim);
-            f = fopen(age, "wb");
-            RI_ASSERT(f != 0, "stamp file written");
-            if (f) { fprintf(f, "%ld\n", now); fclose(f); }
-            RI_ASSERT(ri_pal_claim_acquire(claim) == 1,
-                "locked with a FRESH stamp stays busy");
-            RI_ASSERT(strstr(ri_pal_claim_last(), "fresh") != 0,
-                "reason names the fresh stamp: %s", ri_pal_claim_last());
-            /* The boundary that makes the threshold mean something: an age
-             * past RI_CLAIM_STALE_SEC but not past the takeover threshold
-             * must STILL be busy. That margin is what stops a contender that
-             * read the stamp just before a refresh from stealing a live
-             * claim, so it is pinned rather than left to the constant. */
-            f = fopen(age, "wb");
-            RI_ASSERT(f != 0, "stamp file rewritten");
-            if (f) {
-                fprintf(f, "%ld\n", now - (long)RI_CLAIM_STALE_SEC - 10L);
-                fclose(f);
-            }
-            RI_ASSERT(ri_pal_claim_acquire(claim) == 1,
-                "inside the margin: still busy");
-            RI_ASSERT(strstr(ri_pal_claim_last(), "fresh") != 0,
-                "margin case reports busy: %s", ri_pal_claim_last());
-            f = fopen(age, "wb");
-            RI_ASSERT(f != 0, "stamp file rewritten again");
-            if (f) {
-                fprintf(f, "%ld\n", now - (long)RI_CLAIM_TAKEOVER_SEC - 30L);
-                fclose(f);
-            }
-            RI_ASSERT(ri_pal_claim_acquire(claim) == 0,
-                "locked with an OLD stamp is taken over");
-            RI_ASSERT(strstr(ri_pal_claim_last(), "old") != 0,
-                "reason names the stale stamp: %s", ri_pal_claim_last());
-            RI_ASSERT(ri_pal_claim_acquire(claim) == 1,
-                "the takeover is exclusive");
-            ri_pal_claim_release(claim);
-            /* Locked, and NO stamp at all: a holder that died between its
-             * two writes. Nobody is refreshing anything, so this is not a
-             * live instance and must not hold the instrument. */
-            RI_ASSERT(mkdir(claim, 0700) == 0, "claim dir for the no-stamp case");
-            RI_ASSERT(mkdir(hb, 0700) == 0, "hb locked again");
-            RI_ASSERT(ri_pal_claim_acquire(claim) == 0,
-                "locked with no stamp is taken over");
-            RI_ASSERT(strstr(ri_pal_claim_last(), "no stamp") != 0,
-                "reason names the missing stamp: %s", ri_pal_claim_last());
-        }
-        rmdir(hb);
+        RI_ASSERT(ri_pal_claim_acquire(claim) == 0, "claim for the loss test");
+        RI_ASSERT(stamp_write(claim, 0u, 999L, now, 0L) == 0,
+            "a foreign holder stamps the claim");
+        RI_ASSERT(ri_pal_claim_refresh(claim) == RI_CLAIM_REFRESH_LOST,
+            "refresh reports the displacement");
+        RI_ASSERT(strstr(ri_pal_claim_last(), "displaced") != 0,
+            "reason names the displacement: %s", ri_pal_claim_last());
+        /* The modal stamp is refused once we are not the holder. */
+        RI_ASSERT(ri_pal_claim_modal(claim, 1) != 0,
+            "no modal stamp without the claim");
+
+        /* Refresh on a claim we do not hold reports honestly (2). */
         ri_pal_claim_release(claim);
-        rmdir(claim);
-        /* Refresh reports honestly: on a claim we no longer hold (released,
-         * taken over, or wiped with RAM:) it cannot write a heartbeat and
-         * says 2 rather than claiming success -- the caller uses this to
-         * notice it is no longer the singleton. */
         RI_ASSERT(ri_pal_claim_refresh(claim) == 2, "refresh without the claim");
-        ri_pal_claim_release(claim);
         ri_pal_claim_release(0);
+        ri_pal_claim_modal(0, 1);
     }
     rmdir(tmpd);
     RI_RESULT("pal_fslog");

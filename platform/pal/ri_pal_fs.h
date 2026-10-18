@@ -56,8 +56,21 @@ int ri_pal_write_file(const char *path, const void *buf, uint32_t n);
  * refreshes (they are 10 s apart) and a race between a contender's read
  * and its rename cannot steal a claim from a live instance. */
 #define RI_CLAIM_TAKEOVER_SEC (RI_CLAIM_STALE_SEC * 2)
+/* How long a blocking UI call (a requester, a file picker) is allowed to
+ * hold the claim without the holder having to refresh it. The main loop
+ * does not run while such a call blocks, so without this an open dialog
+ * looks exactly like a wedge after RI_CLAIM_TAKEOVER_SEC. Longer than any
+ * dialog a person is expected to sit in; a modal left open beyond it can
+ * still be displaced, which is the documented limit. */
+#define RI_CLAIM_MODAL_SEC 900
 int ri_pal_claim_acquire(const char *dir);
 int ri_pal_claim_refresh(const char *dir);
+/* 0 ok, 2 = cannot tell, RI_CLAIM_REFRESH_LOST = the stamp names another
+ * holder, i.e. we were displaced and are no longer the singleton. Distinct
+ * from 2 because the app must STOP writing prefs then, not merely complain. */
+#define RI_CLAIM_REFRESH_LOST 3
+/* Stamp a modal deadline before a blocking UI call; clear it after. 0 ok. */
+int ri_pal_claim_modal(const char *dir, int enter);
 void ri_pal_claim_release(const char *dir);
 /* Why the last acquire decided what it decided ("taken", "busy age=12",
  * "stale age=93 -> takeover", "heartbeat unreadable", "IoErr 205"). A lock

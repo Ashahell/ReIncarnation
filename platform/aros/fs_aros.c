@@ -323,6 +323,7 @@ static long claim_stamp_now(void) {
  */
 static BPTR s_hb;
 static char s_hb_path[192];
+static long s_claim_token;
 static char s_claim_why[64];
 
 static void claim_why(const char *text) {
@@ -388,26 +389,58 @@ static void claim_hb_close(void) {
     }
 }
 
-/* The stamp file. Never held open, so it is always readable -- that is the
- * whole point of having it. Same tri-state as the heartbeat: 0 read,
- * 1 absent, 2 present but unreadable. */
-static int claim_age_read(const char *dir, long *age) {
+/* The stamp file, and it carries more than a time.
+ *
+ * The token exists because "write by path" is not ownership (2026-10-18
+ * review, second pass). After a takeover the displaced instance still has
+ * its own heartbeat handle, and it used to write hb.age straight into the
+ * NEW owner's directory: the write succeeded, refresh returned success,
+ * and both instances believed they held the claim while both wrote
+ * ENVARC. So the stamp names its holder -- this task's address plus the
+ * stamp written when it took the claim -- and every refresh READS it back
+ * first. A stamp that is not ours means we were displaced, and the caller
+ * is told.
+ *
+ * The modal deadline exists because the main loop stops running while a
+ * requester is up (EasyRequestArgs and AslRequest block it). Without it a
+ * healthy instance sitting in a dialog looks exactly like a wedge after
+ * RI_CLAIM_TAKEOVER_SEC, and a second start takes it over. Entering a
+ * blocking call therefore stamps a deadline, and a contender will not take
+ * over before it passes. The limit is deliberate and documented: a dialog
+ * left open longer than the grace period can still be evicted, because
+ * "alive but blocked" and "wedged" are not distinguishable from outside a
+ * process on this platform -- so the marker is the only honest signal, and
+ * scripts/ri_audit.sh fails the build if a new modal call site appears
+ * without one. */
+#define CLAIM_MAGIC 0x52495043u       /* 'RIPC' */
+
+struct claim_stamp {
+    uint32_t magic;
+    uint32_t mode;                     /* 0 live, 1 modal */
+    long holder;                       /* task address + acquire stamp */
+    long stamp;                        /* seconds */
+    long modal_until;                  /* seconds; only read in mode 1 */
+};
+
+static long claim_token(void) {
+    struct Task *t = FindTask(0L);
+    /* Two instances differ by task address; the acquire stamp keeps the
+     * token unique across a process that takes the claim twice. */
+    return ((long)(IPTR)t) ^ (claim_stamp_now() << 1);
+}
+
+static int claim_stamp_read(const char *dir, struct claim_stamp *out) {
     char path[192];
-    long stamp = 0;
     uint32_t got = 0u;
     snprintf(path, sizeof path, "%s/hb.age", dir);
-    if (ri_pal_read_file(path, &stamp, (uint32_t)sizeof stamp, &got) == 0 &&
-        got == (uint32_t)sizeof stamp) {
-        *age = claim_stamp_now() - stamp;
-        if (*age < 0)
-            *age = 0;                  /* clock moved: never read as stale */
+    if (ri_pal_read_file(path, out, (uint32_t)sizeof *out, &got) == 0 &&
+        got == (uint32_t)sizeof *out && out->magic == CLAIM_MAGIC)
         return 0;
-    }
     {
         BPTR probe = Open((CONST_STRPTR)path, MODE_NEWFILE);
         if (probe) {
-            /* It was absent (nobody has ever stamped one): that is what a
-             * holder that died between its two writes looks like. */
+            /* Absent: nobody has ever stamped one. That is what a holder
+             * that died between its two writes looks like. */
             Close(probe);
             DeleteFile((CONST_STRPTR)path);
             return 1;
@@ -416,11 +449,17 @@ static int claim_age_read(const char *dir, long *age) {
     return 2;                          /* there and unreadable */
 }
 
-static int claim_age_write(const char *dir) {
+static int claim_stamp_write(const char *dir, int modal) {
     char path[192];
-    long now = claim_stamp_now();
+    struct claim_stamp st;
+    memset(&st, 0, sizeof st);
+    st.magic = CLAIM_MAGIC;
+    st.mode = modal ? 1u : 0u;
+    st.holder = s_claim_token;
+    st.stamp = claim_stamp_now();
+    st.modal_until = modal ? claim_stamp_now() + (long)RI_CLAIM_MODAL_SEC : 0L;
     snprintf(path, sizeof path, "%s/hb.age", dir);
-    return ri_pal_write_file(path, &now, (uint32_t)sizeof now);
+    return ri_pal_write_file(path, &st, (uint32_t)sizeof st);
 }
 
 /* 0 = read, *age set. 1 = nothing there (or no live holder) -> stale.
@@ -459,7 +498,8 @@ int ri_pal_claim_acquire(const char *dir) {
     l = CreateDir((CONST_STRPTR)dir);
     if (l) {
         UnLock(l);
-        if (claim_hb_try_create(dir, 1) || claim_age_write(dir)) {
+        s_claim_token = claim_token();
+        if (claim_hb_try_create(dir, 1) || claim_stamp_write(dir, 0)) {
             claim_why("taken but heartbeat unwritable");
             return 2;
         }
@@ -479,6 +519,7 @@ int ri_pal_claim_acquire(const char *dir) {
      * manual retry in a case that should not happen at all. */
     {
         int hb = claim_hb_age(dir, &age);
+        struct claim_stamp st;
         if (hb == 2) {
             /* Locked or unreadable. That means SOMEBODY holds it -- usually
              * the live instance, which is the fast answer. But a holder that
@@ -486,11 +527,25 @@ int ri_pal_claim_acquire(const char *dir) {
              * unlocked stamp file can tell those two apart. That split is
              * what turns "a reboot is the only crash recovery" into "a
              * wedged instance is taken over after a minute". */
-            int ra = claim_age_read(dir, &age);
-            if (ra == 0 && age > RI_CLAIM_TAKEOVER_SEC) {
+            int ra = claim_stamp_read(dir, &st);
+            if (ra == 0) {
+                age = claim_stamp_now() - st.stamp;
+                if (age < 0)
+                    age = 0;
+                if (st.mode == 1u && claim_stamp_now() < st.modal_until) {
+                    snprintf(s_claim_why, sizeof s_claim_why,
+                        "locked and modal until +%ld s -> busy",
+                        st.modal_until - claim_stamp_now());
+                    return 1;          /* a dialog is up: it is alive */
+                }
+                if (age > RI_CLAIM_TAKEOVER_SEC) {
+                    snprintf(s_claim_why, sizeof s_claim_why,
+                        "locked, but the stamp is %ld s old -> takeover", age);
+                    goto takeover;
+                }
                 snprintf(s_claim_why, sizeof s_claim_why,
-                    "locked, but the stamp is %ld s old -> takeover", age);
-                goto takeover;
+                    "held, stamp %ld s old -> busy", age);
+                return 1;
             }
             if (ra == 1) {
                 /* Locked, and nobody ever wrote a stamp: a holder that died
@@ -499,8 +554,7 @@ int ri_pal_claim_acquire(const char *dir) {
                     "locked, no stamp -> takeover");
                 goto takeover;
             }
-            claim_why(ra == 0 ? "held, stamp fresh -> busy"
-                              : "held, stamp unreadable -> busy");
+            claim_why("held, stamp unreadable -> busy");
             return 1;
         }
         if (hb == 1) {
@@ -551,14 +605,41 @@ takeover:
         return 1;                      /* somebody else won: they hold it */
     }
     UnLock(l);
-    return (claim_hb_try_create(dir, 1) || claim_age_write(dir)) ? 2 : 0;
+    s_claim_token = claim_token();
+    return (claim_hb_try_create(dir, 1) || claim_stamp_write(dir, 0)) ? 2 : 0;
 }
 
 int ri_pal_claim_refresh(const char *dir) {
+    struct claim_stamp st;
     if (!dir || !dir[0] || !s_hb)
         return 2;
-    if (claim_hb_refresh() || claim_age_write(dir)) {
+    /* Read our own stamp back BEFORE writing: if it names somebody else we
+     * have been displaced (2026-10-18 review, second pass), and writing
+     * anyway is what let two instances both believe they held the claim. */
+    if (claim_stamp_read(dir, &st) == 0 && st.holder != s_claim_token) {
+        snprintf(s_claim_why, sizeof s_claim_why,
+            "displaced: the stamp belongs to another holder");
+        return 3;
+    }
+    if (claim_hb_refresh() || claim_stamp_write(dir, 0)) {
         snprintf(s_claim_why, sizeof s_claim_why, "refresh failed (lost the claim?)");
+        return 2;
+    }
+    return 0;
+}
+
+/* Called before a blocking UI call and after it. The deadline is what
+ * stops a healthy instance sitting in a requester from looking like a wedge
+ * to the next start (see the note above struct claim_stamp). */
+int ri_pal_claim_modal(const char *dir, int enter) {
+    if (!dir || !dir[0])
+        return 2;
+    if (!s_hb) {
+        snprintf(s_claim_why, sizeof s_claim_why, "modal stamp without holding the claim");
+        return 2;
+    }
+    if (claim_stamp_write(dir, enter ? 1 : 0)) {
+        snprintf(s_claim_why, sizeof s_claim_why, "modal stamp write failed");
         return 2;
     }
     return 0;
@@ -567,5 +648,6 @@ int ri_pal_claim_refresh(const char *dir) {
 void ri_pal_claim_release(const char *dir) {
     if (!dir || !dir[0])
         return;
-    claim_hb_close();
+    claim_hb_close();                  /* only clears files we still own */
+    s_claim_token = 0L;
 }

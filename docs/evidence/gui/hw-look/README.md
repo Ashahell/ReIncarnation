@@ -480,7 +480,10 @@ the design and the record needed fixing twice.
 - **Crash recovery: measured, not argued.** The second review said the
   age branch was unreachable on AROS, because the holder keeps the
   heartbeat open and a dead task never releases it. That is right — and it
-  was also fixable. A clean-machine probe found the claim **directory can
+  was also fixable. (The split into a lock file and an unlocked stamp file
+  is **my** design, prompted by a question I had written into the ledger
+  myself; an earlier version of this entry and of the article credited it to
+  the review.) A clean-machine probe found the claim **directory can
   be renamed while the file inside it is held open** (`ret=-1, IoErr=0`,
   source re-creatable), so only the *age* was unreachable. Second file:
   `hb` stays the liveness lock, `hb.age` is an unlocked stamp rewritten on
@@ -491,6 +494,26 @@ the design and the record needed fixing twice.
   (`docs/evidence/gui/claim-wedge-takeover.txt`); the same state returned
   `busy` before the change. The requester now says all three things —
   close it, or start again in 60 s, or reboot.
+- **Two concurrency defects the two-file change introduced** (review, round
+  four), both fixed with a mutant each:
+  - *A live instance was evictable while a requester was up.* The main
+    loop stops inside `EasyRequestArgs`/`AslRequest`, so the stamp froze
+    while the instance was healthy. Now a **modal deadline** is stamped
+    before any blocking call and no takeover happens before it passes
+    (15 min grace; a dialog left open beyond that can still be displaced,
+    which is the documented limit — "alive but blocked" and "wedged" are
+    not distinguishable from outside a process here). `scripts/ri_audit.sh`
+    fails the build if a blocking UI call appears in `app/` without a
+    marker — verified both ways (passes clean, fails an injected dialog),
+    because a guard whose coverage depends on remembering is not a guard.
+  - *Loss detection was dead.* "Write by path" is not ownership: after a
+    takeover the displaced instance wrote `hb.age` into the **new** owner's
+    directory, the write succeeded, and both instances believed they held
+    the claim. The stamp now names its holder (task address + acquire
+    stamp); every refresh reads it back first, a foreign stamp returns
+    `RI_CLAIM_REFRESH_LOST`, the PAL drops its held state, and the app
+    **stops writing prefs**. Gate-tested on the Dell: the lock now holds
+    `hb` + `hb.age` (32 B each, the 5-field stamp).
 - **Both RE-TESTs refuted on the clean machine.** `Lock()` on a missing
   name returns `NULL/205` at once (it does **not** block — the hang was
   something else, and the reviewer was right); a directory rename to a

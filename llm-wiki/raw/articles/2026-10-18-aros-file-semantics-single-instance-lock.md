@@ -163,6 +163,37 @@ that read the stamp microseconds before a refresh from stealing a live
 claim, and a mutant that halves the threshold dies on exactly that
 assertion.
 
+## 8. Two more defects the two-file change introduced (review, round four)
+
+Both were found by reading the code against the new design rather than by
+a probe, and both are the kind that only bite under concurrency:
+
+**A live instance was evictable while a requester was up.** The main loop
+stops running inside `EasyRequestArgs` and `AslRequest`, so the stamp stops
+moving while the instance is perfectly healthy — and after
+`RI_CLAIM_TAKEOVER_SEC` a second start would take it over, leaving two
+writers on the prefs. Before the two-file design this was impossible,
+because "the heartbeat is locked" *was* the busy answer. The fix is a
+marker the holder stamps **before** it blocks: a modal deadline, past which
+no takeover happens. The honest limit: "alive but blocked" and "wedged" are
+indistinguishable from outside a process here, so the holder's own marker is
+the only signal available — which is why `scripts/ri_audit.sh` now fails the
+build when a blocking UI call appears in `app/` without one. A guard whose
+coverage depends on remembering is not a guard.
+
+**Loss detection was dead.** "Write by path" is not ownership. After a
+takeover, the displaced instance's refresh wrote `hb.age` straight into the
+**new** owner's directory, the write succeeded, refresh returned success —
+and both instances went on believing they held the claim. The stamp now
+names its holder (task address + acquire stamp) and every refresh reads it
+back first; a stamp that is not ours returns a distinct code
+(`RI_CLAIM_REFRESH_LOST`) so the caller can **stop writing prefs** rather
+than merely log. The PAL clears its own held state on that path too: a
+backend that knows it lost must stop acting like a holder.
+
+Each got a mutant: skipping the token check, and ignoring the modal
+deadline, both die on their own assertions.
+
 ## 8. Two rounds of correction, from review and from the machine
 
 Round one (machine): two claims retracted by raw-value probes, after the
@@ -176,9 +207,18 @@ Round three (review): a crash-path hole nobody had asked about, and two
 single-observation facts that needed re-testing on a clean machine — both
 of which the re-tests then refuted, in the reviewer's favour. The review's
 *inference* about the crash path ("a crashed instance keeps hb locked, so
-the takeover is unreachable") was also correct; its *prognosis* ("if the
-rename works, read the age from a second, unlocked file") is what the
-implementation then did, and that worked.
+the takeover is unreachable") was also correct, and both RE-TESTs it asked
+for refuted my claims.
+
+**Attribution correction (2026-10-18): the two-file design — `hb` as the
+liveness lock, `hb.age` as an unlocked stamp — is mine, not the review's.**
+The review said the age branch looked dead on AROS and asked for a test of
+the crashed-holder case; the question "if the rename works, is an age-based
+takeover reachable at all?" was written into this article by me, and the
+split into two files is what I then built in response to my own question.
+I attributed the design to the review in the ledger and in a report; that
+was wrong, and an idea borrowed from a reviewer is worth less in the record
+than one that was actually reasoned out.
 
 The transferable lesson: **the number of independent samples behind a
 claim is part of the claim.** A fact recorded from one observation on a

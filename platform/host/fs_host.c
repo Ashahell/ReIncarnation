@@ -133,38 +133,52 @@ int ri_pal_write_file(const char *path, const void *buf, uint32_t n) {
 /* 0 read, 1 absent (no live holder), 2 present but unreadable. Same tri-state
  * as the AROS backend -- see the comment there for why absent is stale and
  * unreadable is busy. */
-/* The stamp file: never held open, so always readable. See the AROS backend
- * for why the liveness lock and the stamp have to be two files. */
-static int claim_age_read(const char *dir, long *age) {
+/* The stamp file: never held open, so always readable, and it carries the
+ * holder's token and modal deadline as well as the time. See the AROS
+ * backend for why each of those is there -- the token because "write by
+ * path" is not ownership, the modal deadline because the main loop stops
+ * refreshing while a requester is up. */
+#define CLAIM_MAGIC_HOST 0x52495043u
+
+struct claim_stamp_host {
+    uint32_t magic;
+    uint32_t mode;
+    long holder;
+    long stamp;
+    long modal_until;
+};
+
+static long s_claim_token;
+static int s_claim_held;   /* the host has no held-open handle; this is the equivalent */
+
+static int claim_stamp_read(const char *dir, struct claim_stamp_host *out) {
     char path[512];
     FILE *f;
-    long v = 0;
     struct stat st;
     snprintf(path, sizeof path, "%s/hb.age", dir);
     if (stat(path, &st) != 0)
-        return 1;                      /* absent: nobody stamped it */
+        return 1;                      /* absent */
     f = fopen(path, "rb");
     if (!f)
         return 2;
-    if (fscanf(f, "%ld", &v) != 1) {
-        fclose(f);
-        return 2;
-    }
+    if (fscanf(f, "%lu %lu %ld %ld %ld", (unsigned long *)&out->magic,
+            (unsigned long *)&out->mode, &out->holder, &out->stamp,
+            &out->modal_until) != 5)
+        out->magic = 0u;
     fclose(f);
-    *age = (long)time(0) - v;
-    if (*age < 0)
-        *age = 0;
-    return 0;
+    return out->magic == CLAIM_MAGIC_HOST ? 0 : 2;
 }
 
-static int claim_age_write(const char *dir) {
+static int claim_stamp_write(const char *dir, int modal) {
     char path[512];
     FILE *f;
     snprintf(path, sizeof path, "%s/hb.age", dir);
     f = fopen(path, "wb");
     if (!f)
         return 1;
-    fprintf(f, "%ld\n", (long)time(0));
+    fprintf(f, "%lu %lu %ld %ld %ld\n", (unsigned long)CLAIM_MAGIC_HOST,
+        modal ? 1ul : 0ul, s_claim_token, (long)time(0),
+        modal ? (long)time(0) + (long)RI_CLAIM_MODAL_SEC : 0L);
     fclose(f);
     return 0;
 }
@@ -215,7 +229,9 @@ int ri_pal_claim_acquire(const char *dir) {
         return 2;
     }
     if (mkdir(dir, 0700) == 0) {
-        if (claim_hb_write(dir) || claim_age_write(dir)) {
+        s_claim_token = (long)time(0) ^ (long)(sizeof dir);
+        s_claim_held = 1;
+        if (claim_hb_write(dir) || claim_stamp_write(dir, 0)) {
             snprintf(s_claim_why, sizeof s_claim_why, "taken but heartbeat unwritable");
             return 2;
         }
@@ -231,19 +247,33 @@ int ri_pal_claim_acquire(const char *dir) {
         if (hb == 2) {
             /* Locked/unreadable: the live instance, or a wedged one. Only
              * the unlocked stamp tells them apart. */
-            int ra = claim_age_read(dir, &age);
-            if (ra == 0 && age > (long)RI_CLAIM_TAKEOVER_SEC) {
+            struct claim_stamp_host st;
+            int ra = claim_stamp_read(dir, &st);
+            if (ra == 0) {
+                age = (long)time(0) - st.stamp;
+                if (age < 0)
+                    age = 0;
+                if (st.mode == 1u && (long)time(0) < st.modal_until) {
+                    snprintf(s_claim_why, sizeof s_claim_why,
+                        "locked and modal until +%ld s -> busy",
+                        st.modal_until - (long)time(0));
+                    return 1;          /* a dialog is up: it is alive */
+                }
+                if (age > (long)RI_CLAIM_TAKEOVER_SEC) {
+                    snprintf(s_claim_why, sizeof s_claim_why,
+                        "locked, but the stamp is %ld s old -> takeover", age);
+                    goto takeover;
+                }
                 snprintf(s_claim_why, sizeof s_claim_why,
-                    "locked, but the stamp is %ld s old -> takeover", age);
-                goto takeover;
+                    "held, stamp %ld s old -> busy", age);
+                return 1;
             }
             if (ra == 1) {
                 snprintf(s_claim_why, sizeof s_claim_why,
                     "locked, no stamp -> takeover");
                 goto takeover;
             }
-            snprintf(s_claim_why, sizeof s_claim_why,
-                ra == 0 ? "held, stamp fresh -> busy" : "held, stamp unreadable -> busy");
+            snprintf(s_claim_why, sizeof s_claim_why, "held, stamp unreadable -> busy");
             return 1;                  /* cannot tell -> do not evict */
         }
         if (hb == 1) {
@@ -288,14 +318,46 @@ takeover:
     }
     if (mkdir(dir, 0700) != 0)
         return 1;                      /* somebody else won the race */
+    s_claim_token = (long)time(0) ^ (long)(sizeof dir);
+    s_claim_held = 1;
     return claim_hb_write(dir) ? 2 : 0;
 }
 
 int ri_pal_claim_refresh(const char *dir) {
     if (!dir || !dir[0])
         return 2;
-    if (claim_hb_write(dir) || claim_age_write(dir)) {
+    {
+        /* Our own stamp, read back before we write: a stamp naming somebody
+         * else means we were displaced, and writing anyway is what let two
+         * instances both believe they held the claim. */
+        struct claim_stamp_host st;
+        if (claim_stamp_read(dir, &st) == 0 && st.holder != s_claim_token) {
+            /* Drop our own held state here too, not just in the caller:
+             * a PAL that knows it lost must stop acting like a holder, or a
+             * later ri_pal_claim_modal would stamp the new owner's claim. */
+            s_claim_held = 0;
+            s_claim_token = 0L;
+            snprintf(s_claim_why, sizeof s_claim_why,
+                "displaced: the stamp belongs to another holder");
+            return RI_CLAIM_REFRESH_LOST;
+        }
+    }
+    if (claim_hb_write(dir) || claim_stamp_write(dir, 0)) {
         snprintf(s_claim_why, sizeof s_claim_why, "refresh failed (not the holder?)");
+        return 2;
+    }
+    return 0;
+}
+
+int ri_pal_claim_modal(const char *dir, int enter) {
+    if (!dir || !dir[0])
+        return 2;
+    if (!s_claim_held) {
+        snprintf(s_claim_why, sizeof s_claim_why, "modal stamp without holding the claim");
+        return 2;
+    }
+    if (claim_stamp_write(dir, enter ? 1 : 0)) {
+        snprintf(s_claim_why, sizeof s_claim_why, "modal stamp write failed");
         return 2;
     }
     return 0;
@@ -310,4 +372,6 @@ void ri_pal_claim_release(const char *dir) {
     snprintf(path, sizeof(path), "%s/hb.age", dir);
     unlink(path);
     rmdir(dir);
+    s_claim_token = 0L;
+    s_claim_held = 0;
 }
