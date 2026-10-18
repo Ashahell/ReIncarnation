@@ -6648,3 +6648,62 @@ The analyser reads **captured** logs, so it still needs someone to capture the
 log after an ear-proof round. The missing half is running it on the Dell
 immediately after each session rather than at the end of mine — worth doing on
 the next round, and it is a command, not a change.
+
+## EAR PROOF: the dell17 session passes (Dell lane, build `a384db7`)
+
+Log: `docs/evidence/midi/dell17-a384db7-earproof.log` (1411 events, 1227 panel
+`CTL` events). The log's own `RUN` line names the build, `build=a384db7`. One
+RIAPP window, `zombie-nation.rbng` (from `songs/local/`) loaded and playing at
+140 BPM. The staged byte count and sha are **not** in this log and were not
+recorded separately, so they are not stated here.
+
+Owner, 2026-10-18:
+
+> "The dell17 session at a384db7 sounded right."
+
+### Scope of that confirmation, stated precisely
+
+This is a **blanket** pass, like the `f087b82` one, and it was given by
+choosing a prepared reply rather than in the owner's own words. It covers
+**what the session touched**, and the log says exactly what that was:
+
+| section | controls moved (count) |
+|---|---|
+| Synth 1 (303) | Accent 153, Decay 138, Reso 69, Cutoff 49, Tune 36, Env Mod 26 |
+| 909 | Flam 122, HT Tune 109, AC Level 95, CC Tune 89, Flam button 1 |
+| 808 | HT Tune 10, Instrument Selection 5, steps 1/5/11/15 (`DSTEP`), HT/CP switches |
+| mixer | 909 Level 93, 808 Level 70 |
+| PCF | Q 62, Amt 25, On/Off 2 |
+| Delay | F.Back 62, On/Off 1 — **with the send open** (`DLY send=50`, later `26`) |
+| Dist, Comp | On/Off 2 and 1 |
+
+**The delay result is the first one that counts.** Both earlier "the delay
+does nothing" sessions failed because the send and the FX knobs were exercised
+in *different* sessions. Here the `DLY` lines show `send=50 fb=40`, then
+`send=26 fb=127`, in one session — F.Back was moved with the send open, which
+is the overlap condition the `f087b82` entry said the next delay check must
+meet. Ruling (c) is unchanged; this is the first ear evidence that the delay
+path is audible end to end.
+
+`scripts/lane_evlog.py` on this capture: **nothing unexplained** (exit 0). It
+is the first ear-proof log run through the analyser, which is the follow-up the
+previous entry asked for — though it was run here afterwards, not on the Dell
+during the session.
+
+All three tab switches report `xruns+0`.
+
+### What this session did NOT exercise, and so does not prove
+
+- **MIDI input.** The only `NOTEIN` lines are the startup binding report
+  (`played=0 refused=0 seen=0`); no MIDI arrived during the session. **P-RB2**
+  (a G7 CC reaching the engine) is therefore **not** heard by this pass, and
+  neither is the MIDI half of **P-RB1**.
+- **P-RB1 by song automation.** The song was playing, but the log cannot say
+  whether automation drove a switch lamp the owner was watching. Not claimed.
+- **Synth 2, the Leviasynth panel, the keybed** — untouched. The keybed
+  (`2b52ffc`) has still never been heard.
+- **The Synth 1 / Synth 2 mixer strips and left-column MASTER** — untouched.
+
+Everything listed as still open under the `f087b82` ear proof stays open,
+except that the delay now has an overlapping send-and-feedback session behind
+it.
