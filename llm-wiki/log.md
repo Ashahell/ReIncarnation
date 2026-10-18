@@ -1,4 +1,10 @@
 
+## [2026-10-18] ingest | AROS GUI autostart: the helper route, verified by reboot
+- Disposition: New (supersedes the WBStartup claim in 2026-10-18-aros-gui-app-autostart-wbstartup.md)
+- Raw: llm-wiki/raw/articles/2026-10-18-aros-gui-autostart-helper.md
+- Evidence: app came up as Process 1 after the owner's reboot, launched by RIBOOT
+
+
 ## [2026-10-18] correction #4 | modal eviction + dead loss detection (from review of 5640a74)
 - Disposition: Update
 - Attribution corrected: the two-file (lock + unlocked stamp) design is MINE, not the review's

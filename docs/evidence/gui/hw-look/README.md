@@ -402,37 +402,41 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   three lane failure signatures (refused exec = wrong build; silent ping
   = wedged lane; no session = nobody dialed) and the traps.
 
-## RIAPP now boots with the machine (2026-10-18)
+## RIAPP boots with the machine — verified, by a route that took three tries
 
-- Guest install: `SYS:Classes/ReIncarnation/RIAPP` (1,019,528 B, read-back
-  md5 `6b76833e5d0b1285492f84c14bb1d1c9`, identical to the host build) and
-  `SYS:WBStartup/RIAPP` (the script, kept in the repo as
-  `docs/evidence/gui/riapp-wbstartup.script` (it is a guest artifact, not a
-  shared build script, so it lives outside `scripts/`'s allowlist gate)).
-- **Why WBStartup and not `S:User-Startup`:** the startup-sequence runs
-  User-Startup *before* Wanderer, so a GUI app launched there has no
-  Intuition to open a window on. Wanderer runs `SYS:WBStartup` scripts
-  after the desktop is up.
-- Prefs need no help: `ENVARC:ReIncarnation/zoom` already exists, and the
-  startup-sequence copies `ENVARC:` into `ENV:` every boot. The script's
-  `MakeDir` guard only covers a first boot with no archive.
-- Proven without a reboot by running the boot path itself: `Execute
-  SYS:WBStartup/RIAPP` started `Process 11`, the `RAM:RIAPP` instance was
-  broken, and the survivor answers lane clicks (`TAB page=1`) and renders
-  (`dell-bootstart-sys.png`).
-- **CORRECTION (2026-10-18, later the same day): there was no guard at
-  all.** The first reading of this was "a single-instance guard warns but
-  does not enforce": a requester appeared over the second instance and the
-  app carried on. Reading the source settled it — no such guard exists.
-  That requester is the **audio-failure box**: the second instance got as
-  far as opening its window and then failed to open `ahi.device`
-  exclusively ("check `status` for a running RIAPP and close it before
-  starting another"). The lesson is the one worth keeping: a box that
-  *mentions* the real cause is not a guard, and reading the low-res
-  capture instead of the source produced a confident wrong answer.
-  The real hazard stands though — on a lane where two instances CAN share
-  the audio device (null backend, or a device that allows it), both go on
-  writing `ENVARC:ReIncarnation/`. Fixed below with an actual claim.
+**It works:** after the owner's reboot, `RIAPP` is **Process 1** on the Dell
+— the first thing on the machine — started by `SYS:Classes/ReIncarnation/RIBOOT`
+(Process 7, still waiting on it), with the claim live. The agent dialled
+unattended as well. Boot path: `S:Startup-Sequence` → `S:User-Startup`
+(agent, then the RIBOOT line) → Wanderer → RIBOOT waits it out → RIAPP.
+
+The route matters more than the result, because two documented-sounding
+paths were tried first and **neither works on this install**:
+
+1. **`SYS:WBStartup/`** (AmigaOS's Wanderer startup directory) — installed,
+   present, correct, and never executed.
+2. **`S:WBStartup/`** (the startup volume, my second guess) — same.
+3. Reading the binaries settled it rather than another guess:
+   `SYS:System/Wanderer/Tools/ExecuteStartup` (v0.2, 2007) scans
+   `sys:WBStartup/` **and `sys:WBStartup/?#?.info`**. So the first location
+   was right — and running it by hand starts **nothing** on this install:
+   verified with a bare script, and then with an icon copied from
+   `Utilities` (which, if honoured, would have opened a Utilities window).
+   Neither did anything. The inert files were deleted rather than left
+   looking like an autostart that works.
+
+**What is there instead:** `RIBOOT` (18,208 B, 40 lines of C). It exists
+because `S:User-Startup` runs *before* Wanderer, so a GUI app launched from
+there has no Intuition — the wait has to live somewhere, and
+`ExecuteStartup` is not doing it here. `RIBOOT` sleeps past Wanderer's
+startup then executes the app; `S:User-Startup` ends with
+`Run >NIL: SYS:Classes/ReIncarnation/RIBOOT 12`. Tested by hand before
+wiring: `RIBOOT 6` brought RIAPP up as a new process.
+
+**Also settled by this boot:** `SYS:ATCPBIN` **survives a reboot** —
+read back after two reboots as `9bedbc4ef8169aedbef1bfb4a734997f`,
+146,464 B, byte-identical to the installed build. The agent connects with no
+hand-start. Whatever reverted it earlier in the session, it does not now.
 
 ## A real single-instance guard (2026-10-18) — corrected after review
 
@@ -521,13 +525,19 @@ the design and the record needed fixing twice.
   still moves it" was a *failed* rename whose `IoErr` had been clobbered by
   later calls. Four claims in this file have now been retracted or refuted
   by raw-value probes; that ratio is the lesson, not the individual facts.
-- **Machine state:** clean after the owner's reboot. `AROSTCP` running,
-  main lane on the capable agent (`ATCPBIN.clean`, 146,464 B), x-lane
-  binary re-uploaded to `RAM:ATCPX`. One RIAPP instance running from
-  `SYS:Classes/ReIncarnation/RIAPP`, answering lane clicks
-  (`dell-claim-final-panel.png`). `SYS:ATCPBIN` reverted to the
-  pre-bounded-exec build across the reboot — my copy does not survive one,
-  so the stick copy still needs doing (owner's call).
+- **The heartbeat was growing, and measuring caught what reading missed.**
+  `hb` is the liveness lock and its *contents* are never read (the age lives
+  in `hb.age`), yet it was being rewritten on every refresh — and `Seek()`
+  does not reposition this buffered handle, so each refresh **appended** 8
+  bytes: 112 → 152 bytes in 25 s, growing without bound, with the file's
+  own timestamp never advancing so the growth was invisible in a listing.
+  The write is now gone: the handle being open *is* the heartbeat. Verified
+  on the Dell — `hb` holds at 8 B across 40 s while `hb.age` advances.
+- **Machine state:** one RIAPP instance from
+  `SYS:Classes/ReIncarnation/RIAPP`, claim held, lane clicks answered
+  (`TAB page=0` → `page=1`); `AROSTCP` running; main lane on the installed
+  agent; x-lane agent relaunchable by one `exec`; two wedger probes from the
+  crash test cleared by the reboot.
 - **Proof:** end to end a second `Run` of RIAPP shows the requester over
   the live panel (`dell-s7-instance-claim-refusal.png`), owns no window,
   touches no prefs, and exits when dismissed; `RUN claim rc=0 taken` pins

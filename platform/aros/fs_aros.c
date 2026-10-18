@@ -364,15 +364,19 @@ static int claim_hb_try_create(const char *dir, int keep) {
     return 0;
 }
 
+/* The heartbeat is NEVER written after it is created, and that is the whole
+ * design rather than an omission. Its only job is to be OPEN: a contender
+ * that cannot re-open or read it knows somebody holds it. The freshness of
+ * the claim lives in hb.age, which is written by path.
+ *
+ * It was being rewritten every refresh, which looked harmless and was not:
+ * Seek() does not reposition this buffered handle here, so each refresh
+ * appended 8 bytes -- measured on the Dell at 112 -> 152 bytes in 25 s,
+ * growing without bound, with the file's own timestamp never advancing so
+ * the growth was invisible from the listing. The content was never read by
+ * anyone, so writing it was pure liability. */
 static int claim_hb_refresh(void) {
-    long now = claim_stamp_now();
-    if (!s_hb)
-        return 1;
-    if (Seek(s_hb, 0, SEEK_SET) < 0)
-        return 1;
-    if (Write(s_hb, (APTR)&now, (LONG)sizeof now) != (LONG)sizeof now)
-        return 1;
-    return 0;
+    return s_hb ? 0 : 1;               /* the open handle IS the heartbeat */
 }
 
 static void claim_hb_close(void) {

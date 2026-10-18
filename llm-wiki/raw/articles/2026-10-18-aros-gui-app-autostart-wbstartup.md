@@ -57,6 +57,15 @@ not open `ahi.device` exclusively. Two lessons, both general:
   and the app must **exit** rather than warn. Run anyway when the claim is
   undecidable: an unopenable lock must never be the reason the instrument
   will not open.
+- **SUPERSEDED on the autostart mechanism (2026-10-18, later).** The
+  `SYS:WBStartup` advice below does not work on this AROS install: neither
+  `SYS:WBStartup` nor `S:WBStartup` is executed, and AROS's
+  `Wanderer:Tools/ExecuteStartup` — which the binaries show scanning
+  `sys:WBStartup/` and `sys:WBStartup/?#?.info` — starts nothing when run by
+  hand. What works is a 40-line helper that waits out Wanderer's startup and
+  then executes the app, verified across a real reboot; see
+  `2026-10-18-aros-gui-autostart-helper.md`. The single-instance material in
+  this article is unaffected.
 - **Implemented and lane-proven** (ReIncarnation `9395d0d` plus the
   corrections after review): `ri_pal_claim_acquire/refresh/release` in the
   PAL, a claim on `RAM:`, and the app refusing to start on a busy claim.
