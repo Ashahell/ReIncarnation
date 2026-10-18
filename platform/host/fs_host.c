@@ -223,18 +223,18 @@ takeover:
      * directory fails, so a fixed ".dead" would make the second takeover
      * in a session always lose the race and report busy forever. */
     {
+        /* One attempt with a name nothing else can be holding, for the same
+         * reason as the AROS backend: a destination that already exists
+         * makes the displacement fail, and retrying after losing that race
+         * would steal the claim from whoever won it. Losing here is BUSY. */
+        static unsigned long seq;
         char dead[560];
-        int n;
-        for (n = 0; n < 16; n++) {
-            snprintf(dead, sizeof(dead), "%s.dead%s", dir,
-                n ? "" : "");
-            if (n)
-                snprintf(dead + strlen(dead), sizeof(dead) - strlen(dead), "%d", n);
-            if (rename(dir, dead) == 0)
-                break;
-        }
-        if (n >= 16)
-            return 1;                  /* cannot even displace it: busy */
+        snprintf(dead, sizeof(dead), "%s.dead-%ld-%lu", dir, (long)time(0),
+            ++seq);
+        /* Return value ignored on purpose: whether the platform reports
+         * success as -1 (AmigaDOS DOSTRUE, as this AROS does for files) or
+         * 0 (POSIX), the mkdir below decides who owns the claim. */
+        (void)rename(dir, dead);
     }
     if (mkdir(dir, 0700) != 0)
         return 1;                      /* somebody else won the race */

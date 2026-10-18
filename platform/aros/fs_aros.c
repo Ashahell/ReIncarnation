@@ -275,27 +275,39 @@ int ri_pal_write_file(const char *path, const void *buf, uint32_t n) {
  * the filesystem), and the stale path renames the whole claim directory so
  * exactly one contender can win the takeover -- this SDK has no RemoveDir,
  * so the displaced directory stays on disk with its dead heartbeat. */
+/* SECONDS, and deliberately not "minutes*50 + ticks" (2026-10-18 review):
+ * that expression is not seconds and is not monotonic -- ds_Tick resets
+ * every minute, so the stamp jumps BACKWARDS at the boundary, while within
+ * a minute the age comes out 50x too large (a heartbeat 0.6 s old reads as
+ * 30 s and the claim is taken over from a live holder). Age now compares
+ * directly against RI_CLAIM_STALE_SEC, and ds_Days keeps the stamp
+ * meaningful across a reboot as well as across a minute. */
 static long claim_stamp_now(void) {
     struct DateStamp ds;
     DateStamp(&ds);
-    return (long)ds.ds_Minute * (long)TICKS_PER_SECOND + (long)ds.ds_Tick;
+    return (long)ds.ds_Days * 86400L + (long)ds.ds_Minute * 60L +
+        (long)ds.ds_Tick / (long)TICKS_PER_SECOND;
 }
 
-/* The heartbeat, and the three facts about locking this proved on the Dell:
- *   1. Open(path, MODE_READWRITE) does NOT create a missing file here --
- *      MODE_NEWFILE does (that is why ri_pal_write_file uses it).
- *   2. A file another process holds open for writing CANNOT be re-opened
- *      MODE_NEWFILE (or written) by a second process. A heartbeat that
- *      reopens on every refresh therefore fails the moment a contender
- *      probes it, and the contender then concludes the holder is dead --
- *      the exact inversion we want to avoid.
- *   3. Reading such a file is fine.
- * So the holder opens it ONCE and writes through that handle for as long
- * as it lives, and a contender cannot create it -> which is direct
- * evidence that a live holder has it open, and therefore that the claim
- * is held. Conversely, when no holder exists the create succeeds, which
- * is the same "no live holder" answer the absent-heartbeat case needs.
- * Both ends therefore share one primitive with one set of semantics. */
+/* The heartbeat. What the lane probe (RAM:APIPROBE, raw values in
+ * docs/evidence) actually established, corrected where an earlier note in
+ * this file was wrong:
+ *
+ *   1. A file another process holds open for writing can be neither
+ *      re-opened MODE_NEWFILE (IoErr 202) nor READ (MODE_OLDFILE returns
+ *      NULL, 202). An earlier version of this comment claimed reads were
+ *      fine; they are not, and the whole busy/stale split depends on it.
+ *   2. Therefore the holder keeps ONE handle open for its lifetime: a
+ *      contender that can neither read nor create the heartbeat is looking
+ *      at a live holder, and "busy" is structural rather than a lucky race.
+ *   3. After a crash nothing holds the file, both operations succeed, and
+ *      the age decides -- which is the only path to a takeover.
+ *   4. Open(path, MODE_READWRITE) DOES create a missing file here (handle
+ *      OK, IoErr 0), exactly as the AmigaOS docs say. An earlier note here
+ *      claimed the opposite and sent the first implementation down a dead
+ *      end; MODE_NEWFILE is still used because it is explicit about
+ *      create-or-truncate.
+ */
 static BPTR s_hb;
 static char s_hb_path[192];
 static char s_claim_why[64];
@@ -308,7 +320,14 @@ const char *ri_pal_claim_last(void) {
     return s_claim_why;
 }
 
-static int claim_hb_try_create(const char *dir) {
+/* Create the heartbeat unless something already holds it open. keep != 0
+ * means "we are the holder": the handle stays open for the process
+ * lifetime (a held-open file is what makes a contender's create fail, which
+ * is the evidence it uses). The existence probe passes keep = 0: on the
+ * takeover path the directory it wrote into is about to be renamed away,
+ * and keeping that handle would leak it -- the second create used to
+ * overwrite s_hb and strand the first one open (2026-10-18 review). */
+static int claim_hb_try_create(const char *dir, int keep) {
     char path[192];
     long now = claim_stamp_now();
     BPTR f;
@@ -320,8 +339,12 @@ static int claim_hb_try_create(const char *dir) {
         Close(f);
         return 1;
     }
-    /* Kept open on purpose -- see note 2. Closing here is what made every
-     * contender's probe able to steal the claim. */
+    if (!keep) {
+        Close(f);
+        DeleteFile((CONST_STRPTR)path);
+        return 0;                      /* probe only: leave nothing behind */
+    }
+    /* Kept open on purpose -- see note 2. */
     s_hb = f;
     snprintf(s_hb_path, sizeof s_hb_path, "%s", path);
     return 0;
@@ -365,7 +388,7 @@ static int claim_hb_age(const char *dir, long *age) {
         return 0;
     }
     /* Unreadable or absent: the create tells them apart. */
-    if (claim_hb_try_create(dir) == 0) {
+    if (claim_hb_try_create(dir, 0) == 0) {
         return 1;                      /* it was absent: no live holder */
     }
     snprintf(s_claim_why, sizeof s_claim_why,
@@ -385,7 +408,7 @@ int ri_pal_claim_acquire(const char *dir) {
     l = CreateDir((CONST_STRPTR)dir);
     if (l) {
         UnLock(l);
-        if (claim_hb_try_create(dir)) {
+        if (claim_hb_try_create(dir, 1)) {
             claim_why("taken but heartbeat unwritable");
             return 2;
         }
@@ -423,36 +446,43 @@ int ri_pal_claim_acquire(const char *dir) {
     }
     snprintf(s_claim_why, sizeof s_claim_why, "stale (%ld s) -> takeover", age);
 takeover:
-    /* Displace the stale claim, then PROVE the displacement by creating
-     * the claim name again. Two reasons not to trust Rename's return code:
-     * AmigaDOS returns FALSE (0) on success and TRUE on error, which is
-     * the opposite of every other call here (a loop written the obvious
-     * way stops at the first successful rename and then reports the
-     * claim as un-displaceable forever); and the number of live
-     * displaced claims in RAM: is small enough that trying names is
-     * cheap. CreateDir is the only atomic test-and-set on this platform,
-     * so it is also the only thing that gets to decide. */
+    /* Displace ONCE, then let the atomic primitive decide (2026-10-18
+     * review). The old loop renamed on EVERY iteration: a competitor that
+     * won between our rename and our CreateDir had its brand-new live claim
+     * renamed away on our next iteration, so "exactly one contender wins"
+     * was false and two instances could both end up holding it. One
+     * rename, one CreateDir; a failure means somebody else owns it now. */
     {
+        /* One attempt, with a name nothing else can already be holding.
+         * The probe settled the semantics: Rename() returns DOSTRUE(-1) on
+         * success and FALSE(0) with IoErr on failure (205 missing, 203 when
+         * the destination exists), so a fixed ".dead" that is already there
+         * makes the displacement fail and a stale claim unrecoverable for
+         * the rest of the session. The stamp keeps it unique in practice;
+         * if the rename fails anyway (a competitor took it microseconds
+         * earlier) the CreateDir below decides, and that competitor keeps
+         * the claim. Trying further names after losing that race is what
+         * used to steal a live claim from whoever won it. */
+        static unsigned long seq;
         char dead[208];
-        int n;
-        for (n = 0; n < 16; n++) {
-            if (n)
-                snprintf(dead, sizeof(dead), "%s.dead%d", dir, n);
-            else
-                snprintf(dead, sizeof(dead), "%s.dead", dir);
-            Rename((CONST_STRPTR)dir, (CONST_STRPTR)dead);
-            l = CreateDir((CONST_STRPTR)dir);
-            if (l)
-                break;                 /* displaced: the claim is ours */
-        }
-        if (!l) {
-            snprintf(s_claim_why, sizeof s_claim_why,
-                "stale, but not displaceable (IoErr %ld)", (long)IoErr());
-            return 1;                  /* somebody is holding it after all */
-        }
+        snprintf(dead, sizeof(dead), "%s.dead-%ld-%lu", dir, claim_stamp_now(),
+            ++seq);
+        /* The return value is deliberately ignored. The probe found
+         * DOSTRUE(-1) for a successful FILE rename on this AROS -- which is
+         * what the docs say -- but a DIRECTORY rename here comes back 0
+         * while still having moved the directory, so any test on the return
+         * code is a trap. The CreateDir below is the only verdict that
+         * matters, and it is the platform's atomic test-and-set. */
+        (void)Rename((CONST_STRPTR)dir, (CONST_STRPTR)dead);
+    }
+    l = CreateDir((CONST_STRPTR)dir);
+    if (!l) {
+        snprintf(s_claim_why, sizeof s_claim_why,
+            "displaced, but not re-creatable (IoErr %ld) -> busy", (long)IoErr());
+        return 1;                      /* somebody else won: they hold it */
     }
     UnLock(l);
-    return claim_hb_try_create(dir) ? 2 : 0;
+    return claim_hb_try_create(dir, 1) ? 2 : 0;
 }
 
 int ri_pal_claim_refresh(const char *dir) {

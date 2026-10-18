@@ -434,50 +434,60 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   the audio device (null backend, or a device that allows it), both go on
   writing `ENVARC:ReIncarnation/`. Fixed below with an actual claim.
 
-## A real single-instance guard (2026-10-18, later)
+## A real single-instance guard (2026-10-18) — corrected after review
 
-The correction above says there was no guard. Now there is one, and the
-lane cost four bugs that only AROS can teach:
+The correction below says there was no guard. Now there is one, and both
+the design and the record needed fixing twice.
 
 - **The claim** (`ri_pal_claim_acquire/refresh/release`, `platform/`):
-  `CreateDir` is the atomic test-and-set (a lock directory on `RAM:`, new
+  `CreateDir` as the atomic test-and-set (a lock directory on `RAM:`, new
   `RI_PATH_RUN`), plus a heartbeat file the holder keeps **open** for as
-  long as it lives. 0 claimed / 1 busy / 2 undecidable, and the app runs
-  on 2 — an unopenable claim must never be the reason the instrument will
-  not open. Every decision logs its reason (`ri_pal_claim_last`), because
-  a lock that decides silently cannot be told from a broken one on a lane.
-- **Four AROS facts, all found by the lane, none guessable:**
-  1. `Open(path, MODE_READWRITE)` does **not** create a missing file;
-     `MODE_NEWFILE` does. The heartbeat was silently never written.
-  2. A file another process holds open for writing cannot be re-opened
-     `MODE_NEWFILE` by a second process. So the holder keeps its handle
-     and writes through it — and a contender's inability to create the
-     heartbeat is direct evidence that a live holder has it.
-  3. `Rename()` returns **FALSE (0) on success** (AmigaDOS convention),
-     the opposite of every other call here. A loop written the obvious way
-     stops at the first *successful* rename and then reports the claim as
-     un-displaceable forever. Displacement is now *verified* by
-     `CreateDir` succeeding, so no return-code convention is trusted.
-  4. `Examine()` answers "here it is" for a name that is not there, so it
-     cannot decide "absent"; the existence test is the write instead.
-- **Two dead-looking claims, opposite answers** (the part that matters):
-  heartbeat **absent** → nobody is heartbeating → takeover (this is the
-  crash-between-create-and-write path, and what stops a leftover claim
-  from wedging the instrument forever); heartbeat **present but
-  unreadable** → an I/O problem is not evidence of death → hold.
-- **Proof:** a scratch probe (`RAM:CLAIMPROBE`, never committed) walks the
-  AROS decision table on the Dell — take `0`, second holder `1`, refresh
-  `0`, crashed-without-heartbeat `0`, crashed-with-stale-heartbeat `0`
-  (1600 s old), heartbeat-occupied `1` — each with its reason string.
-  End to end, a second `Run` of RIAPP shows the requester over the live
-  panel (`dell-s7-instance-claim-refusal.png`), owns no window, touches
-  no prefs, and exits when dismissed; `RUN claim rc=0 taken` pins the
-  winner's decision in the evlog.
-- **Cost of a dirty machine:** three zombie instances and a locked evlog
-  made every later run look like a code bug. The evlog can only be owned
-  by one process (same locking rule), so a second instance's log lines
-  vanish — break everything by number first, and read the *tail* of the
-  session log, not the first match.
+  long as it lives, refreshed every 10 s, released on exit. 0 claimed /
+  1 busy / 2 undecidable, and the app runs on 2. Every decision logs its
+  reason (`ri_pal_claim_last`) — a lock that decides silently cannot be
+  told from a broken one on a lane.
+- **What the probes actually established** (raw values, `RAM:APIPROBE`, one
+  short-lived file per line so a crash cannot lose the log):
+  - a file another process holds open for writing can be **neither
+    re-opened `MODE_NEWFILE` (IoErr 202) nor read** (`MODE_OLDFILE` returns
+    NULL, 202). So "busy" is structural, not a lucky race: a live holder
+    makes both contender probes fail; after a crash neither fails and the
+    age decides — the takeover is reachable only when nothing holds it;
+  - `Open(MODE_READWRITE)` **does** create on this AROS (handle OK, IoErr
+    0), exactly as the docs say. My earlier claim that it did not was
+    wrong and is retracted;
+  - `Rename()` returns **DOSTRUE(-1)** for a successful file rename (my
+    "FALSE on success" claim was wrong), **0 + IoErr** for failure (205
+    missing, 203 onto an existing name) — and a **directory** rename comes
+    back 0 *while still having moved the directory*, so no test on the
+    return value is safe. The displacement is attempted once with a unique
+    name and then **`CreateDir` decides**;
+  - `Lock()` on a name that may not exist **blocks indefinitely**. It was
+    added to a probe to test a theory and hung it with an empty log.
+- **Three defects from owner review, none visible to the passing tests:**
+  1. the clock expression was **not seconds** (`ds_Minute * 50 + ds_Tick`)
+     and went backwards every minute, so a 0.6 s old heartbeat read as
+     stale and a live claim could be taken over. Now
+     `ds_Days*86400 + ds_Minute*60 + ds_Tick/TICKS_PER_SECOND`; the probe
+     prints three stamps 1000 ticks apart and they differ by exactly 20;
+  2. the takeover loop renamed on **every** iteration, so a competitor that
+     won mid-race had its fresh claim renamed away — two live instances.
+     One attempt, then `CreateDir` decides;
+  3. the existence probe leaked a handle (`s_hb` overwritten while the old
+     one stayed open). The probe path no longer keeps a handle.
+- **Two dead-looking claims, opposite answers:** heartbeat **absent** →
+  takeover (crash path; also what stops a leftover claim from wedging the
+  instrument); heartbeat **present but unreadable/locked** → hold.
+- **Proof:** end to end a second `Run` of RIAPP shows the requester over
+  the live panel (`dell-s7-instance-claim-refusal.png`), owns no window,
+  touches no prefs, and exits when dismissed; `RUN claim rc=0 taken` pins
+  the winner's decision in the evlog.
+- **Machine state:** a crash window from the first interrupted probe run is
+  still on screen, one `RAM:APIPROBE` process is stuck in a blocking
+  `Lock()` (unkillable by Break), and `RAM:` carries leftovers from both.
+  `AROSTCP` is running again; the **x-lane scratch agent `RAM:ATCPX` is
+  gone** (killed by my break-all loop) and has not been restarted — the
+  main lane `e6320` is the one in use, and a reboot restores both.
 
 ## S7 completed: a song now chooses the skins (2026-10-18)
 

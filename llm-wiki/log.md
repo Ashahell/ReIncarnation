@@ -1,4 +1,11 @@
 
+## [2026-10-18] correction | AROS file-semantics article: two claims retracted
+- Disposition: Update (same article, raw-value probe `RAM:APIPROBE`)
+- Retracted: "MODE_READWRITE does not create" (it does — docs are right); "Rename returns FALSE on success" (DOSTRUE(-1) for files; a directory rename returns 0 either way); "Examine misreports" (unproven, withdrawn)
+- Added: reads of a held-open file also fail (202) — the busy path is structural; `Lock()` on a missing name blocks; never test existence by reading
+- From owner review: the clock was not seconds and went backwards each minute (live claim stealable), takeover loop could rename away a competitor's claim, existence probe leaked a handle
+
+
 ## [2026-10-18] ingest | AROS file semantics a single-instance lock must respect
 - Disposition: New (AROS-general; supersedes "the requester was a guard")
 - Raw: llm-wiki/raw/articles/2026-10-18-aros-file-semantics-single-instance-lock.md

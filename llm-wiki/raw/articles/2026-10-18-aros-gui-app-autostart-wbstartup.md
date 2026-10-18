@@ -36,14 +36,33 @@ app, and it exists by default (empty on a stock install).
    by hand and confirm the survivor answers input — that proves the script,
    the path and the binary together.
 
-## Trap: the single-instance requester does not enforce
+## Trap: a box that mentions the cause is not a guard
 
-Launching a second copy with one already up produced a requester ("Another
-instance is already running…") whose OK button **did not stop it**: after
-dismissing it, two full live panels existed side by side, both writing the
-same prefs file. A guard that only warns is worse than none once two
-instances can write shared state — use a lock file or `prevent` on the
-shared file, or make the second instance exit after the requester.
+Launching a second copy with one already up produced a requester, and after
+dismissing it two full live panels existed side by side. The obvious
+conclusion — "the app has a single-instance guard, and it only warns" —
+was **wrong**: reading the source showed no such guard exists. The box was
+the *audio* failure: the second instance opened its window and then could
+not open `ahi.device` exclusively. Two lessons, both general:
+
+- A requester that **names the real cause** is not a guard. Read the source
+  before writing down what the app enforces; a confident wrong answer here
+  cost a whole hardening cycle's worth of wrong reasoning.
+- The hazard is still real wherever the exclusive resource is *not*
+  exclusive: a null audio backend, or a device that permits sharing, lets
+  the second instance run to completion, and two instances then write the
+  same prefs. A real guard is an atomic claim of its own — directory
+  creation is atomic (`CreateDir` on AROS, `mkdir` elsewhere), a heartbeat
+  keeps a crashed holder from locking the instrument until the next boot,
+  and the app must **exit** rather than warn. Run anyway when the claim is
+  undecidable: an unopenable lock must never be the reason the instrument
+  will not open.
+- **Implemented and lane-proven** (ReIncarnation `9395d0d` plus the
+  corrections after review): `ri_pal_claim_acquire/refresh/release` in the
+  PAL, a claim on `RAM:`, and the app refusing to start on a busy claim.
+  The AROS file semantics that shape it — including the two of my own
+  claims that a raw-value probe had to retract — are written up in
+  `2026-10-18-aros-file-semantics-single-instance-lock.md`.
 
 ## Facts worth keeping
 
