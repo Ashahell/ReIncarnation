@@ -3213,3 +3213,10 @@ Register (same visibility-only bit); activation later. t98 reverts to
 - Note: the "FX knobs do nothing" report dissolved the moment **two lane logs were placed side by side**, and it had been believed to be a live defect for three rounds. Both lane logs are now preserved under `docs/evidence/midi/` because `/tmp` is tmpfs; the diagnostic line exists so the same conflation cannot silently recur.
 - Note: `t224`'s invariant was **written, measured, found unsound and thrown away** (135 flagged, ~5 real) rather than shipped as a gate. It now reports its census and says why in its header. Recorded because the failure mode — a gate that fails 135 times and teaches everyone to ignore it — is worse than no gate.
 - Note: **still no ear evidence** for the keybed (`017e5e7`/`2b52ffc`), which is the oldest work in this range.
+
+## [2026-10-18] ingest | ATCP dead lane — bounded-exec switch is the discriminator
+- Disposition: New (lane-repair runbook; supersedes the "reboot broke the lane" reading)
+- Raw: llm-wiki/raw/articles/2026-10-18-atcp-bounded-exec-dead-lane.md
+- Evidence: `docs/evidence/gui/hw-look/README.md` (post-reboot section), `dell-s7-mainlane-*.png`
+
+## [2026-10-18] lint | 0 issues found, 0 auto-fixed
