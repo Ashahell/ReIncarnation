@@ -420,14 +420,64 @@ Three small fixes plus a wiring audit, all on the Dell as `RAM:RIAPPS6`:
   SYS:WBStartup/RIAPP` started `Process 11`, the `RAM:RIAPP` instance was
   broken, and the survivor answers lane clicks (`TAB page=1`) and renders
   (`dell-bootstart-sys.png`).
-- **Finding: the single-instance guard warns, it does not enforce.** With
-  an instance already up, the second one puts up a requester ("Another
-  instance is already running…") and **continues anyway** — after
-  dismissing it there were two live panels. So the guard is a courtesy to
-  the user, not a lock; nothing in the app prevents a second instance.
-  With a WBStartup launch this is now reachable by hand-launching a copy,
-  and two instances both write the same prefs file. Worth hardening
-  (lock file / `prevent` on the prefs) before the MIDI paths depend on it.
+- **CORRECTION (2026-10-18, later the same day): there was no guard at
+  all.** The first reading of this was "a single-instance guard warns but
+  does not enforce": a requester appeared over the second instance and the
+  app carried on. Reading the source settled it — no such guard exists.
+  That requester is the **audio-failure box**: the second instance got as
+  far as opening its window and then failed to open `ahi.device`
+  exclusively ("check `status` for a running RIAPP and close it before
+  starting another"). The lesson is the one worth keeping: a box that
+  *mentions* the real cause is not a guard, and reading the low-res
+  capture instead of the source produced a confident wrong answer.
+  The real hazard stands though — on a lane where two instances CAN share
+  the audio device (null backend, or a device that allows it), both go on
+  writing `ENVARC:ReIncarnation/`. Fixed below with an actual claim.
+
+## A real single-instance guard (2026-10-18, later)
+
+The correction above says there was no guard. Now there is one, and the
+lane cost four bugs that only AROS can teach:
+
+- **The claim** (`ri_pal_claim_acquire/refresh/release`, `platform/`):
+  `CreateDir` is the atomic test-and-set (a lock directory on `RAM:`, new
+  `RI_PATH_RUN`), plus a heartbeat file the holder keeps **open** for as
+  long as it lives. 0 claimed / 1 busy / 2 undecidable, and the app runs
+  on 2 — an unopenable claim must never be the reason the instrument will
+  not open. Every decision logs its reason (`ri_pal_claim_last`), because
+  a lock that decides silently cannot be told from a broken one on a lane.
+- **Four AROS facts, all found by the lane, none guessable:**
+  1. `Open(path, MODE_READWRITE)` does **not** create a missing file;
+     `MODE_NEWFILE` does. The heartbeat was silently never written.
+  2. A file another process holds open for writing cannot be re-opened
+     `MODE_NEWFILE` by a second process. So the holder keeps its handle
+     and writes through it — and a contender's inability to create the
+     heartbeat is direct evidence that a live holder has it.
+  3. `Rename()` returns **FALSE (0) on success** (AmigaDOS convention),
+     the opposite of every other call here. A loop written the obvious way
+     stops at the first *successful* rename and then reports the claim as
+     un-displaceable forever. Displacement is now *verified* by
+     `CreateDir` succeeding, so no return-code convention is trusted.
+  4. `Examine()` answers "here it is" for a name that is not there, so it
+     cannot decide "absent"; the existence test is the write instead.
+- **Two dead-looking claims, opposite answers** (the part that matters):
+  heartbeat **absent** → nobody is heartbeating → takeover (this is the
+  crash-between-create-and-write path, and what stops a leftover claim
+  from wedging the instrument forever); heartbeat **present but
+  unreadable** → an I/O problem is not evidence of death → hold.
+- **Proof:** a scratch probe (`RAM:CLAIMPROBE`, never committed) walks the
+  AROS decision table on the Dell — take `0`, second holder `1`, refresh
+  `0`, crashed-without-heartbeat `0`, crashed-with-stale-heartbeat `0`
+  (1600 s old), heartbeat-occupied `1` — each with its reason string.
+  End to end, a second `Run` of RIAPP shows the requester over the live
+  panel (`dell-s7-instance-claim-refusal.png`), owns no window, touches
+  no prefs, and exits when dismissed; `RUN claim rc=0 taken` pins the
+  winner's decision in the evlog.
+- **Cost of a dirty machine:** three zombie instances and a locked evlog
+  made every later run look like a code bug. The evlog can only be owned
+  by one process (same locking rule), so a second instance's log lines
+  vanish — break everything by number first, and read the *tail* of the
+  session log, not the first match.
 
 ## S7 completed: a song now chooses the skins (2026-10-18)
 

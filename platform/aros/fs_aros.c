@@ -18,6 +18,7 @@
 #include <proto/exec.h>
 
 #include <string.h>
+#include <stdio.h>
 
 /* First mounted sticky volume, else "" when there is none. Never opens a
  * requester and never allocates. The candidate list is in
@@ -135,6 +136,10 @@ int ri_pal_path(enum ri_path p, char *out, uint32_t cap) {
         s = RI_PAL_STICKY_FALLBACK;
         break;
     case RI_PATH_PREFS: s = "ENVARC:ReIncarnation/"; break;
+    /* Run state (the instance claim) belongs on RAM: and nowhere else: the
+     * claim has to disappear with the boot, not survive as a stale file on
+     * a durable volume where it would keep the instrument unopenable. */
+    case RI_PATH_RUN: s = "RAM:"; break;
     case RI_PATH_PACKS: s = "SYS:Classes/ReIncarnation/Packs/"; break;
     default: break;
     }
@@ -259,4 +264,209 @@ int ri_pal_write_file(const char *path, const void *buf, uint32_t n) {
     w = n ? Write(f, (APTR)buf, n) : 0;
     Close(f);
     return w == (LONG)n ? 0 : 1;
+}
+
+/* Single-instance claim. CreateDir is the atomic test-and-set (it returns a
+ * lock, or 0 with IoErr ERROR_OBJECT_EXISTS when the name is taken), and the
+ * heartbeat inside is what keeps a CRASHED holder from locking the
+ * instrument until the next reboot: the claim lives on RAM:, so a reboot
+ * clears it anyway, but a wedge does not reboot. DateStamp is the clock on
+ * both ends (same value in every process, unlike a wall clock read through
+ * the filesystem), and the stale path renames the whole claim directory so
+ * exactly one contender can win the takeover -- this SDK has no RemoveDir,
+ * so the displaced directory stays on disk with its dead heartbeat. */
+static long claim_stamp_now(void) {
+    struct DateStamp ds;
+    DateStamp(&ds);
+    return (long)ds.ds_Minute * (long)TICKS_PER_SECOND + (long)ds.ds_Tick;
+}
+
+/* The heartbeat, and the three facts about locking this proved on the Dell:
+ *   1. Open(path, MODE_READWRITE) does NOT create a missing file here --
+ *      MODE_NEWFILE does (that is why ri_pal_write_file uses it).
+ *   2. A file another process holds open for writing CANNOT be re-opened
+ *      MODE_NEWFILE (or written) by a second process. A heartbeat that
+ *      reopens on every refresh therefore fails the moment a contender
+ *      probes it, and the contender then concludes the holder is dead --
+ *      the exact inversion we want to avoid.
+ *   3. Reading such a file is fine.
+ * So the holder opens it ONCE and writes through that handle for as long
+ * as it lives, and a contender cannot create it -> which is direct
+ * evidence that a live holder has it open, and therefore that the claim
+ * is held. Conversely, when no holder exists the create succeeds, which
+ * is the same "no live holder" answer the absent-heartbeat case needs.
+ * Both ends therefore share one primitive with one set of semantics. */
+static BPTR s_hb;
+static char s_hb_path[192];
+static char s_claim_why[64];
+
+static void claim_why(const char *text) {
+    snprintf(s_claim_why, sizeof s_claim_why, "%s", text);
+}
+
+const char *ri_pal_claim_last(void) {
+    return s_claim_why;
+}
+
+static int claim_hb_try_create(const char *dir) {
+    char path[192];
+    long now = claim_stamp_now();
+    BPTR f;
+    snprintf(path, sizeof(path), "%s/hb", dir);
+    f = Open((CONST_STRPTR)path, MODE_NEWFILE);
+    if (!f)
+        return 1;                      /* held open by someone: a live holder */
+    if (Write(f, (APTR)&now, (LONG)sizeof now) != (LONG)sizeof now) {
+        Close(f);
+        return 1;
+    }
+    /* Kept open on purpose -- see note 2. Closing here is what made every
+     * contender's probe able to steal the claim. */
+    s_hb = f;
+    snprintf(s_hb_path, sizeof s_hb_path, "%s", path);
+    return 0;
+}
+
+static int claim_hb_refresh(void) {
+    long now = claim_stamp_now();
+    if (!s_hb)
+        return 1;
+    if (Seek(s_hb, 0, SEEK_SET) < 0)
+        return 1;
+    if (Write(s_hb, (APTR)&now, (LONG)sizeof now) != (LONG)sizeof now)
+        return 1;
+    return 0;
+}
+
+static void claim_hb_close(void) {
+    if (s_hb) {
+        Close(s_hb);
+        s_hb = 0;
+    }
+    if (s_hb_path[0]) {
+        DeleteFile((CONST_STRPTR)s_hb_path);
+        s_hb_path[0] = '\0';
+    }
+}
+
+/* 0 = read, *age set. 1 = nothing there (or no live holder) -> stale.
+ * 2 = there and unreadable, or held open by a live holder -> busy. */
+static int claim_hb_age(const char *dir, long *age) {
+    char path[192];
+    long stamp = 0;
+    uint32_t got = 0u;
+    int rc;
+    snprintf(path, sizeof(path), "%s/hb", dir);
+    rc = ri_pal_read_file(path, &stamp, (uint32_t)sizeof stamp, &got);
+    if (rc == 0 && got == (uint32_t)sizeof stamp) {
+        *age = claim_stamp_now() - stamp;
+        if (*age < 0)
+            *age = 0;                  /* clock moved: never read as stale */
+        return 0;
+    }
+    /* Unreadable or absent: the create tells them apart. */
+    if (claim_hb_try_create(dir) == 0) {
+        return 1;                      /* it was absent: no live holder */
+    }
+    snprintf(s_claim_why, sizeof s_claim_why,
+        "held, heartbeat not readable (rc=%d got=%lu IoErr %ld)", rc,
+        (unsigned long)got, (long)IoErr());
+    return 2;
+}
+
+int ri_pal_claim_acquire(const char *dir) {
+    BPTR l;
+    long age = 0;
+    s_claim_why[0] = '\0';
+    if (!dir || !dir[0]) {
+        claim_why("no path");
+        return 2;
+    }
+    l = CreateDir((CONST_STRPTR)dir);
+    if (l) {
+        UnLock(l);
+        if (claim_hb_try_create(dir)) {
+            claim_why("taken but heartbeat unwritable");
+            return 2;
+        }
+        claim_why("taken");
+        return 0;
+    }
+    if (IoErr() != ERROR_OBJECT_EXISTS) {
+        snprintf(s_claim_why, sizeof s_claim_why, "undecidable (IoErr %ld)",
+            (long)IoErr());
+        return 2;                      /* no parent, read-only volume */
+    }
+    /* An unreadable heartbeat means something made this directory that is
+     * not a holder we can date -- so REFUSE (busy), do not take over.
+     * Treating "cannot tell" as "stale" is a takeover-by-default policy:
+     * it lets any process that cannot read one small file evict the
+     * running instance and become a second writer. Failing safe costs a
+     * manual retry in a case that should not happen at all. */
+    {
+        int hb = claim_hb_age(dir, &age);
+        if (hb == 2) {
+            claim_why("held, heartbeat unreadable -> busy");
+            return 1;
+        }
+        if (hb == 1) {
+            claim_why("undated (no heartbeat) -> takeover");
+            snprintf(s_claim_why, sizeof s_claim_why,
+                "undated (no heartbeat) -> takeover");
+            goto takeover;
+        }
+    }
+    if (age <= (long)RI_CLAIM_STALE_SEC) {
+        snprintf(s_claim_why, sizeof s_claim_why, "held, heartbeat %ld s old -> busy",
+            age);
+        return 1;                      /* a live holder is refreshing it */
+    }
+    snprintf(s_claim_why, sizeof s_claim_why, "stale (%ld s) -> takeover", age);
+takeover:
+    /* Displace the stale claim, then PROVE the displacement by creating
+     * the claim name again. Two reasons not to trust Rename's return code:
+     * AmigaDOS returns FALSE (0) on success and TRUE on error, which is
+     * the opposite of every other call here (a loop written the obvious
+     * way stops at the first successful rename and then reports the
+     * claim as un-displaceable forever); and the number of live
+     * displaced claims in RAM: is small enough that trying names is
+     * cheap. CreateDir is the only atomic test-and-set on this platform,
+     * so it is also the only thing that gets to decide. */
+    {
+        char dead[208];
+        int n;
+        for (n = 0; n < 16; n++) {
+            if (n)
+                snprintf(dead, sizeof(dead), "%s.dead%d", dir, n);
+            else
+                snprintf(dead, sizeof(dead), "%s.dead", dir);
+            Rename((CONST_STRPTR)dir, (CONST_STRPTR)dead);
+            l = CreateDir((CONST_STRPTR)dir);
+            if (l)
+                break;                 /* displaced: the claim is ours */
+        }
+        if (!l) {
+            snprintf(s_claim_why, sizeof s_claim_why,
+                "stale, but not displaceable (IoErr %ld)", (long)IoErr());
+            return 1;                  /* somebody is holding it after all */
+        }
+    }
+    UnLock(l);
+    return claim_hb_try_create(dir) ? 2 : 0;
+}
+
+int ri_pal_claim_refresh(const char *dir) {
+    if (!dir || !dir[0] || !s_hb)
+        return 2;
+    if (claim_hb_refresh()) {
+        snprintf(s_claim_why, sizeof s_claim_why, "refresh failed (lost the claim?)");
+        return 2;
+    }
+    return 0;
+}
+
+void ri_pal_claim_release(const char *dir) {
+    if (!dir || !dir[0])
+        return;
+    claim_hb_close();
 }

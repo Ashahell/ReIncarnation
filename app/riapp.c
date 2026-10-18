@@ -3253,6 +3253,63 @@ static void midi_setup(void) {
         rlog("RIAPP midi: no input on %s\n", s_mset.cluster);
 }
 
+/* Single instance (2026-10-18). There was never a guard here: a second
+ * instance started, opened its window, and only failed when it could not
+ * open ahi.device exclusively -- so what looked like "a guard that warns
+ * but does not enforce" was the audio-failure box, and on a lane where two
+ * instances CAN share the audio device (the null backend, or a device that
+ * allows it) both would go on writing ENVARC:ReIncarnation/. The claim is
+ * the actual guard: atomic directory creation, heartbeat so a crashed
+ * holder cannot lock the instrument until the next reboot, and a refusal to
+ * start rather than a requester over a running copy.
+ *
+ * 2 (undecidable) runs the app: an unopenable claim must never be the
+ * reason the instrument will not open. */
+static char s_claim[128];
+static int s_claim_held;
+
+static int instance_claim(void) {
+    char base[64];
+    int rc;
+    if (!DOSBase)
+        return 0;                       /* host/headless: nothing to guard */
+    if (ri_pal_path(RI_PATH_RUN, base, sizeof base) != 0)
+        return 0;
+    if (ri_pal_path_join(s_claim, sizeof s_claim, base, "RIAPP.lock") != 0)
+        return 0;
+    rc = ri_pal_claim_acquire(s_claim);
+    s_claim_held = (rc == 0);
+    /* Always say what the claim decided and why: on a lane the only
+     * difference between "another instance" and "this volume is
+     * read-only" is this line, and a silent lock is undiagnosable. */
+    rlog("RIAPP claim: %s rc=%d (%s)\n", (IPTR)s_claim, (IPTR)rc,
+        (IPTR)ri_pal_claim_last(), 0, 0);
+    evlog("RUN", "claim rc=%d %s", rc, ri_pal_claim_last());
+    if (rc == 1)
+        return 1;
+    if (rc == 2)
+        rlog("RIAPP claim: undecidable at %s, running anyway\n", (IPTR)s_claim, 0, 0, 0, 0);
+    return 0;
+}
+
+static void instance_claim_refresh(void) {
+    if (!s_claim_held)
+        return;
+    if (ri_pal_claim_refresh(s_claim) == 2) {
+        /* We are no longer the holder (RAM: cleared under us, or a stale
+         * takeover). Say so once; the next refresh simply stops trying. */
+        s_claim_held = 0;
+        rlog("RIAPP claim: lost %s\n", (IPTR)s_claim, 0, 0, 0, 0);
+    }
+}
+
+static void instance_claim_release(void) {
+    if (!s_claim_held)
+        return;
+    ri_pal_claim_release(s_claim);
+    s_claim_held = 0;
+}
+
 static int riapp_main(int argc, char **argv) {
     Object *app, *win, *row;
     LONG ret;
@@ -3261,6 +3318,7 @@ static int riapp_main(int argc, char **argv) {
     float rate = 48000.0f;
     int i, rc;
     ULONG hb = 0u; /* wedge-diagnostic heartbeat counter (see loop) */
+    ULONG claim_hb = 0u; /* instance-claim refresh counter (100 ticks) */
     struct MsgPort *tport = 0;
     struct timerequest *treq = 0;
     int timer_ok = 0, timer_armed = 0;
@@ -3282,6 +3340,33 @@ static int riapp_main(int argc, char **argv) {
         rlog("RIAPP LOG build=%s diag=%lu\n", RIAPP_BUILD_HASH,
             (unsigned long)rsection_diag_enabled());
     evlog_open();
+    if (instance_claim() != 0) {
+        /* Refuse, do not warn. The requester names the way out; the point
+         * is that this process ends here instead of becoming a second
+         * writer on the prefs and a second window on the desktop. */
+        char msg[256];
+        snprintf(msg, sizeof msg,
+            "RIAPP is already running.\n\nThe running copy keeps the panel"
+            " and the settings; close it first, or wait %d s after a crash"
+            " and start again.", RI_CLAIM_STALE_SEC);
+        rlog("RIAPP claim: busy at %s, refusing to start\n", (IPTR)s_claim, 0, 0, 0, 0);
+        evlog("RUN", "refused: instance claim busy");
+        /* The in-house requester (same EasyRequestArgs shape as every
+         * other user-facing box): this SDK's DisplayAlert is not the
+         * AmigaDOS four-argument form, and one house style beats two. */
+        if (DOSBase) {
+            struct EasyStruct es;
+            IPTR args[1];
+            es.es_StructSize = sizeof es;
+            es.es_Flags = 0;
+            es.es_Title = (CONST_STRPTR)"RIAPP";
+            es.es_TextFormat = (CONST_STRPTR)"%s";
+            es.es_GadgetFormat = (CONST_STRPTR)"OK";
+            args[0] = (IPTR)msg;
+            EasyRequestArgs(NULL, &es, NULL, (RAWARG)args);
+        }
+        return 1;
+    }
     if (rack_classes_make() != 0 && DOSBase)
         rlog("RIAPP rack classes unavailable (plain buttons, flat bay)\n", 0, 0, 0, 0, 0);
     evlog("RUN", "frames=%lu vol=%s build=%s", frames, s_evvol, RIAPP_BUILD_HASH);
@@ -4004,6 +4089,14 @@ static int riapp_main(int argc, char **argv) {
          * redraw us, max + mean, so a knob-drag session reports both. */
         /* The latency report rides the same 30 s heartbeat, so it lands in the
          * same log set and the same rotation window as everything else. */
+        /* Instance claim heartbeat: every 100 ticks (10 s), a third of the
+         * 30 s staleness window. Cheap (one small file write), and it is
+         * what lets a crashed instance's claim be taken over instead of
+         * locking the instrument until the next reboot. */
+        if (s_claim_held && ++claim_hb >= 100u) {
+            claim_hb = 0u;
+            instance_claim_refresh();
+        }
         if (++hb >= 300u) {
             lat_report();
             s_lat.lat_have = 0;    /* this pass writes the log: not input latency */
@@ -4313,6 +4406,11 @@ static int riapp_main(int argc, char **argv) {
  * log handle is always closed (no atexit in the v11 link). */
 int main(int argc, char **argv) {
     int rc = riapp_main(argc, argv);
+    /* Release on the way out, including the refusal path (where the claim
+     * was never taken, so this is a no-op). RAM: takes the rest anyway;
+     * releasing keeps a clean quit from leaving a claim a stale-takeover
+     * would otherwise have to reason about. */
+    instance_claim_release();
     rlog_close();
     return rc;
 }

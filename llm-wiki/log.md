@@ -1,3 +1,9 @@
+
+## [2026-10-18] ingest | AROS file semantics a single-instance lock must respect
+- Disposition: New (AROS-general; supersedes "the requester was a guard")
+- Raw: llm-wiki/raw/articles/2026-10-18-aros-file-semantics-single-instance-lock.md
+- Evidence: `docs/evidence/gui/hw-look/dell-s7-instance-claim-refusal.png`, probe decision table
+
 ## [2026-10-18] ingest | S7 song-skin completion + the guarded load door
 - Disposition: New (S7 closed; supersedes "chunk exists but unwired")
 - Raw: llm-wiki/raw/articles/2026-10-18-s7-song-skin-completion.md

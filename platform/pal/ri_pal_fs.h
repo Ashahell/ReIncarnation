@@ -13,7 +13,8 @@ enum ri_path {
     RI_PATH_SONGS = 2,  /* songs */
     RI_PATH_TEMP = 3,   /* temp/wav/log: AROS first USB/stick vol else RAM:, Win %TEMP% */
     RI_PATH_PREFS = 4,  /* prefs: AROS ENVARC:, Win %APPDATA% */
-    RI_PATH_PACKS = 5   /* sample packs: AROS SYS:Classes/ReIncarnation/Packs/ */
+    RI_PATH_PACKS = 5,  /* sample packs: AROS SYS:Classes/ReIncarnation/Packs/ */
+    RI_PATH_RUN = 6    /* run state that must die with the boot: AROS RAM:. */
 };
 
 /* Write the base dir for p into out[cap] (NUL-terminated). 0 ok. */
@@ -36,5 +37,28 @@ int ri_pal_list_dirs(const char *dir, int (*cb)(void *u, const char *name), void
 /* Whole-file helpers (bounded, caller buffer). 0 ok. */
 int ri_pal_read_file(const char *path, void *buf, uint32_t cap, uint32_t *got);
 int ri_pal_write_file(const char *path, const void *buf, uint32_t n);
+
+/* Single-instance claim (2026-10-18). RIAPP writes prefs under
+ * ENVARC:ReIncarnation/ and its window is a singleton; the requester that
+ * used to announce a second instance did NOT stop it, so two instances
+ * wrote the same files. A claim is a directory whose creation is atomic,
+ * with a heartbeat file inside so a CRASHED holder cannot lock the
+ * instrument until the next reboot (a claim on a volatile volume dies
+ * with the boot; a claim on a durable one would not).
+ *
+ * 0 = claimed / refreshed, 1 = another live instance holds it,
+ * 2 = undecidable (no claim, parent missing, heartbeat unreadable on a
+ *     fresh claim). The caller MUST run on 2: an unopenable claim must
+ * never be the reason the instrument will not open. */
+#define RI_CLAIM_STALE_SEC 30
+int ri_pal_claim_acquire(const char *dir);
+int ri_pal_claim_refresh(const char *dir);
+void ri_pal_claim_release(const char *dir);
+/* Why the last acquire decided what it decided ("taken", "busy age=12",
+ * "stale age=93 -> takeover", "heartbeat unreadable", "IoErr 205"). A lock
+ * that decides silently is a lock nobody can debug: the return code alone
+ * cannot tell "another instance" from "this volume is read-only". Owned by
+ * the PAL so the decision detail never depends on the caller's logger. */
+const char *ri_pal_claim_last(void);
 
 #endif
