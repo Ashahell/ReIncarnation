@@ -549,6 +549,19 @@ the design and the record needed fixing twice.
   gone** (killed by my break-all loop) and has not been restarted — the
   main lane `e6320` is the one in use, and a reboot restores both.
 
+## Owner verdicts
+
+- **2026-10-18 — "the 808 looks fine."** The `808-RI` skin on the 808
+  section, seen in `dell-s7-cycle-A-808ri.png` and in the Drums-page
+  captures. That is the last open visual gate on S7: the per-section skin
+  is accepted, so the Ctrl+M cycle, the song-carried SKAS chunk and the
+  per-part fallback all stand as delivered rather than as "awaiting a
+  verdict".
+- Still open, and only the owner can settle them: the in-house font vs a
+  licensed one; keyboard tab switching (and which keys); the Mix master
+  fader being monitoring-only rather than song data; and whether rack
+  furniture (bay, rails, power buttons, tabs) should ever become skinnable.
+
 ## S7 completed: a song now chooses the skins (2026-10-18)
 
 - **The gap:** the SKAS chunk had a codec and tests, but nothing in the
