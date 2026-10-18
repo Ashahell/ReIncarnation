@@ -38,7 +38,8 @@ Health check that distinguishes the three common failures:
 |---|---|---|
 | tabs row | y = 167 | Synths 70, Drums 130, PAT 194, FX ~222, Mix 250 |
 | device rail (power) | y = 128 | x = 33 toggles `dev=2` (808) on the Drums page |
-| 808 CUT OFF knob | (420, 256) | drag target for `CTL` |
+| **808** CUT OFF knob | (1024, 290) | Drums page, top-right of the 808 panel |
+| **303** CUT OFF knob | (420, 256) | **Synths** page — on Drums this point is not a knob and the drag produces no `CTL` line |
 | neutral panel spot (focus) | (700, 200) | inside the 808 panel, no control |
 
 The first click on an inactive window only activates it — send the
@@ -67,14 +68,22 @@ a log line alone proves the handler ran, not the redraw.
 
 ## 4. Knob drag
 
+On the Drums page (808 + 909 visible), from a focused section:
+
 ```bash
-$SP --wait 300 --ui-press l,420,256 --exec "wait 1" \
-    --ui-move 420,280 --ui-move 420,310 --exec "wait 1" \
-    --ui-release l,420,310 --exec "wait 2" \
+$SP --wait 300 --ui-click l,700,200 --exec "wait 2" \
+    --ui-press l,1024,290 --exec "wait 1" \
+    --ui-move 1024,320 --ui-move 1024,360 --exec "wait 1" \
+    --ui-release l,1024,360 --exec "wait 2" \
     --exec "Search Vk4aros:RIAPP-EV.LOG CTL"
 ```
 
-Pass: a `CTL <cc>=<value>` line (`021b=8` on this build).
+Pass: two `CTL 021b=` lines — the value at the drag's start and at its end
+(`021b=11` then `021b=8` on 2026-10-18). **A drag at (420,256) on this
+page produces nothing at all**: that coordinate is the 303's CUT OFF knob on
+the *Synths* page, and on Drums it lands between controls. One silent
+no-op there cost a debugging round on 2026-10-18 — the coordinates are
+per-page, not per-panel.
 `--ui-move` takes `x,y` only — no button prefix; `--ui-press/--ui-release`
 take `button,x,y`. Mixing the forms aborts the job with a `ValueError`
 after the press has already been delivered.
