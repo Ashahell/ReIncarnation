@@ -1,3 +1,4 @@
+- [raw/articles/2026-10-18-s7-song-skin-completion.md](raw/articles/2026-10-18-s7-song-skin-completion.md) — **2026-10-18 — S7 completed: a song chooses the skins.** The chunk had no call site; the obvious wiring would reset the user's Ctrl+M choice on every load, so the load path got a guarded door (`nskin==0` → untouched). `changed` vs `dirty` are different questions. Playlist auto-advance needs `song_bars>0`; `Break <name>` does not work on the guest.
 - [raw/articles/2026-10-18-aros-gui-app-autostart-wbstartup.md](raw/articles/2026-10-18-aros-gui-app-autostart-wbstartup.md) — **2026-10-18 — Autostarting an AROS GUI app: `SYS:WBStartup`, not `User-Startup`.** User-Startup runs before Wanderer (no Intuition yet); ENVARC→ENV copy makes prefs persistence free; verify by running the boot path, not by rebooting; a single-instance requester that warns but does not enforce lets two instances write the same prefs.
 # ReIncarnation llm-wiki — index
 

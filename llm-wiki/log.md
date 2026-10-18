@@ -1,3 +1,8 @@
+## [2026-10-18] ingest | S7 song-skin completion + the guarded load door
+- Disposition: New (S7 closed; supersedes "chunk exists but unwired")
+- Raw: llm-wiki/raw/articles/2026-10-18-s7-song-skin-completion.md
+- Evidence: `docs/evidence/gui/hw-look/dell-s7-song-skin-{applied,policy}.png`
+
 ## [2026-10-18] ingest | AROS GUI app autostart via SYS:WBStartup
 - Disposition: New (AROS-general: startup ordering, prefs persistence, instance guard)
 - Raw: llm-wiki/raw/articles/2026-10-18-aros-gui-app-autostart-wbstartup.md
