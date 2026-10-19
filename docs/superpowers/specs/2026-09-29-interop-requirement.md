@@ -143,6 +143,7 @@ In priority order. Each item is a requirement to design later; none is designed 
 - **Licences:** VST3 SDK (dual GPLv3 / proprietary), AU (Apple), CLAP (MIT). This is an owner decision.
 
 **R12. MIDI over the network (optional):** RTP-MIDI / AppleMIDI, so an AROS machine and a DAW PC can exchange clock and notes over Ethernet without MIDI hardware. It depends on the AROSTCP quality, like R10.
+- **2026-10-19:** upstream now has CAMD AppleMIDI drivers (#1586, merged) and a `netmidid` service in review (#1678/#1679). For what the Dell needs and what we can test now, see `2026-10-19-r12-network-midi-assessment.md`.
 
 ### Not possible
 
