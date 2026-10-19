@@ -1,0 +1,35 @@
+### runA (clocksniff-runA.log)
+== all stamps
+clocks=16995 (F8 stamps)  intervals=16994  span=303.463844 s  rate=56.0001 intervals/s
+mean=17857.117 us  median=16030.126  sd=4523.196
+min=0.1  max=56354.8  p1=3465.8  p5=11040.3  p95=23589.4  p99=31619.3
+nominal=17857.1429   mean-nominal=-0.0260 us   worst-nominal=+38497.622 us
+        0-       100 us:    135 ( 0.79%)
+      100-      8000 us:    174 ( 1.02%)
+     8000-     12000 us:    654 ( 3.85%)
+    12000-     16000 us:   7135 (41.99%)
+    16000-     19500 us:   2708 (15.94%)
+    19500-     22000 us:   5190 (30.54%)
+    22000-     30000 us:    805 ( 4.74%)
+    30000-     70000 us:    193 ( 1.14%)
+    70000- 999999999 us:      0 ( 0.00%)
+
+no startup gap > 1 s: the stamp stream is one continuous play
+
+### runB (clocksniff-runB.log)
+== all stamps
+clocks=16992 (F8 stamps)  intervals=16991  span=303.410377 s  rate=56.0001 intervals/s
+mean=17857.123 us  median=16037.560  sd=4346.064
+min=0.1  max=54949.3  p1=4280.7  p5=11086.0  p95=23114.3  p99=29718.4
+nominal=17857.1429   mean-nominal=-0.0198 us   worst-nominal=+37092.164 us
+        0-       100 us:    107 ( 0.63%)
+      100-      8000 us:    188 ( 1.11%)
+     8000-     12000 us:    653 ( 3.84%)
+    12000-     16000 us:   7156 (42.12%)
+    16000-     19500 us:   2661 (15.66%)
+    19500-     22000 us:   5240 (30.84%)
+    22000-     30000 us:    820 ( 4.83%)
+    30000-     70000 us:    166 ( 0.98%)
+    70000- 999999999 us:      0 ( 0.00%)
+
+no startup gap > 1 s: the stamp stream is one continuous play

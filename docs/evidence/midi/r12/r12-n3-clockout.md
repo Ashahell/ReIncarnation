@@ -1,11 +1,16 @@
-# R12 N3 — clock out on the wire: 56.000 clocks/s, mean 17857.3 µs (2026-10-19)
+# R12 N3 — clock out on the wire: two 5-minute runs, mean 17857.1 µs (2026-10-19)
 
 ## Labels
 
 **N3** (clock-out measurement) on the Dell e6320, over the real LAN, through
-`rtpmidid` to an ALSA subscriber. The N1j gate is a separate run on the same
+`rtpmidid` to an ALSA subscriber. Two independent runs, each one continuous
+play of **303.4 s** (5.06 min). The N1j gate is a separate run on the same
 build and is recorded separately. Nothing here is inferred from the peerless
 run on riqemu1.
+
+This supersedes the 30 s probe recorded earlier in this file; that probe
+(1681 clocks in 30.000 s, mean 17857.3 µs) is consistent with the two runs
+below but is not a run of record.
 
 ## Setup
 
@@ -17,44 +22,154 @@ run on riqemu1.
   ignores its `port` argument), so this is the honest configuration for a
   clock-only test. The self-loop is visible in the evlog (the app hears its
   own F8s) and changes nothing about the outgoing timing.
-- Song `zombie-nation.rbng`, 151 bars at **140 BPM**, autoplay at load.
-  24 ppqn gives a nominal **56.000 clocks/s** and a nominal interval of
-  `60e6 / 140 / 24` = **17857.14 µs**.
 - Host `192.168.1.81`: `rtpmidid 24.12.2` with
-  `--rtpmidi-discover false`; session `CONNECTED`; the Dell appears as
-  `alsapeer arosbox` on ALSA port **128:2**.
-- `clocksniff 30 128:2` (host): subscribes to 128:2, prints one
-  `CLOCK_MONOTONIC` nanosecond stamp per `F8`, 30 s window.
-  `/home/miller/.worktrees/r12-tools/clocksniff.c`.
+  `--rtpmidi-discover false`; session `CONNECTED` (the peer exists as
+  `alsapeer arosbox` on ALSA port **128:2** for the whole run; the sniffer's
+  subscription to it succeeded).
+- `clocksniff 335 128:2` (host): subscribes to 128:2, prints one
+  `CLOCK_MONOTONIC` nanosecond stamp per `F8` (`tools/clocksniff.c`).
+
+### The test song: 176 bars at 140 BPM
+
+The only 140 BPM song in the tree is `zombie-nation.rbng`, 151 bars =
+258.9 s — shorter than the **5 minutes** N3 asks for — and the app's
+transport loop is not wired (`ri_loop_clamp` has no caller). Rather than
+stitch two plays together, the run uses a derived test song:
+
+- `r12-n3-long140.rbng` (10090 B, sha256 `cba87db9…` beside this file) is
+  `songs/local/zombie-nation/zombie-nation.rbng` with **one** change: the
+  STRK slot vector of the last sounding bar (row 150, `[0,0,0,7,0]`) is
+  copied to row 175. Rows 151–174 stay slot 0 (silent). That makes the last
+  sounding bar 176, so `ri_core_load_song()` reports
+  **`RIAPP song RAM:long140.rbng: 176 bars at 140 BPM`**.
+- The transport plays one bar of tail past the last sounding bar
+  (`song_poll_end()` stops at `song_bars + 1`), so a run is **177 bars =
+  303.43 s**. The measured first→last stamp spans below are 303.464 s and
+  303.410 s.
+- The clock producer is per audio block and independent of note content, so
+  the silent bars still carry clock.
+
+### Run procedure (and the discarded first attempt)
+
+The first attempt started the sniffer while the previous RIAPP instance was
+still playing. Its log contains 132 stamps (2.336 s) from that instance, an
+**11.52 s startup gap**, then the new instance's play: 16995 stamps over
+303.458 s. That run was discarded as a run of record (the post-gap segment
+alone agrees with runA, which is a useful cross-check).
+
+The two runs of record therefore do, in this order:
+
+1. `Break NAME=SYS:Classes/ReIncarnation/RIAPP C` and wait 4 s — no F8s on
+   the wire;
+2. start `clocksniff 335 128:2` on the host;
+3. launch RIAPP (`Run ... RIAPP SONG=RAM:long140.rbng`) with the config above;
+4. let the song end, then pull `Vk4aros:RIAPP.LOG`.
+
+Each run is one app process, one song load, one continuous play. The stamp
+streams have **no gap > 1 s** (checked by the stats script), and the app's
+final heartbeat says `run=0` — the song ended, not the measurement window.
 
 ## Result
 
+| | runA | runB |
+|---|---|---|
+| F8 stamps in window | 16995 | 16992 |
+| span, first→last stamp | 303.463844 s | 303.410377 s |
+| intervals | 16994 | 16991 |
+| rate | 56.0001 intervals/s | 56.0001 intervals/s |
+| **mean interval** | **17857.117 µs** | **17857.123 µs** |
+| mean − nominal (17857.1429) | −0.026 µs | −0.020 µs |
+| median | 16030.1 µs | 16037.6 µs |
+| standard deviation | 4523.2 µs | 4346.1 µs |
+| min | 0.1 µs | 0.1 µs |
+| **max (worst gap)** | **56354.8 µs** | **54949.3 µs** |
+| p1 | 3465.8 µs | 4280.7 µs |
+| p5 | 11040.3 µs | 11086.0 µs |
+| p95 | 23589.4 µs | 23114.3 µs |
+| p99 | 31619.3 µs | 29718.4 µs |
+
+Both runs cover **5.06 minutes of play**, continuously, on the same build.
+The distribution of the 16994 / 16991 intervals:
+
+runA:
+
 ```
-clocks=1681  span=30.000 s  rate=56.000/s
-mean=17857.3 us  median=16064.5  sd=3834.9
-min=0.2  max=53274.5  p1=7017.3  p5=13465.1  p95=21856.2  p99=26667.4
-nominal=17857.1   mean-nominal=+0.1 us   worst-nominal=+35417.3 us
+     0-  100 us:   135 ( 0.79%)
+   100- 8000 us:   174 ( 1.02%)
+  8000-12000 us:   654 ( 3.85%)
+ 12000-16000 us:  7135 (41.99%)
+ 16000-19500 us:  2708 (15.94%)
+ 19500-22000 us:  5190 (30.54%)
+ 22000-30000 us:   805 ( 4.74%)
+ 30000-70000 us:   193 ( 1.14%)
 ```
 
-- **Rate is exact**: 1681 clocks in 30.000 s = 55.9997/s against 56.0000/s.
-- **Mean interval is exact**: 17857.3 µs against 17857.1 µs (+0.1 µs,
-  0.0006%), and against the assessment's 17853 µs estimate.
-- Guest-side counters agree: `RIAPP clk: on=1 run=1 pend=0 dropped=0
-  sent=853 err=0` then `sent=1710` on the next heartbeat (~15 s later,
-  ≈56/s). The ring never backs up and nothing is dropped.
-
-Distribution of the 1680 intervals:
+runB:
 
 ```
-     0-  100 us:    6 ( 0.4%)
-   100- 8000 us:   15 ( 0.9%)
-  8000-12000 us:   51 ( 3.0%)
- 12000-16000 us:  700 (41.7%)
- 16000-19500 us:  304 (18.1%)
- 19500-22000 us:  536 (31.9%)
- 22000-30000 us:   58 ( 3.5%)
- 30000-70000 us:   10 ( 0.6%)
+     0-  100 us:   107 ( 0.63%)
+   100- 8000 us:   188 ( 1.11%)
+  8000-12000 us:   653 ( 3.84%)
+ 12000-16000 us:  7156 (42.12%)
+ 16000-19500 us:  2661 (15.66%)
+ 19500-22000 us:  5240 (30.84%)
+ 22000-30000 us:   820 ( 4.83%)
+ 30000-70000 us:   166 ( 0.98%)
 ```
+
+- **Rate and mean are exact over five minutes**: 56.0001 intervals/s and
+  17857.117 / 17857.123 µs against 17857.1429 µs (0.026 / 0.020 µs low).
+- The two runs agree with each other to 0.006 µs on the mean and to 1.4 ms
+  on the span.
+- Guest counters during both runs: `pend=0 dropped=0 err=0` on **every**
+  clock heartbeat (20 per run), and `xruns=0` on **every** heartbeat line
+  (20 per run). Final running heartbeats:
+
+  ```
+  runA  buffers=55385 xruns=0 render_max=3235 us wake_max=81 us load=261/1000 overloads=0
+  runB  buffers=55506 xruns=0 render_max=3282 us wake_max=46 us load=260/1000 overloads=0
+  ```
+
+  Clock out did not cost audio: no xrun and no overload in 5 minutes.
+
+## Instrumentation accounting, and the sender-side mean
+
+RIAPP does **not** log an interval mean (`MIDISEND` logs `mean_us`; RIAPP
+logs counters). What the log carries is, once per ~15 s heartbeat, `t=`,
+`buffers=` and `sent=`. The sender-side mean below is derived from the first
+and last heartbeat with `run=1`, using those counters and the period the log
+itself reports (`audio: ... period=5333 us`):
+
+| | runA | runB |
+|---|---|---|
+| first `run=1` hb (`t`, `buffers`, `sent`) | 9304, 2895, 858 | 9667, 2876, 853 |
+| last `run=1` hb | 9581, 55385, 16535 | 9944, 55506, 16572 |
+| Δbuffers | 52490 | 52630 |
+| Δsent | 15677 | 15719 |
+| **sender mean = Δbuffers × 5333.333 µs / Δsent** | **17857.16 µs** | **17856.95 µs** |
+
+The host measured 17857.117 / 17857.123 µs over the whole run; the
+sender-side window (the run=1 heartbeats, 280 s of the 303 s) gives
+17857.16 / 17856.95 µs. The two sides agree to **0.05 µs**.
+
+`sent` counts **messages** through the PAL sink, including the start/stop
+bytes, and this closes the accounting exactly:
+
+| | guest `sent` (final) | host F8 | host non-F8 (`others`) |
+|---|---|---|---|
+| runA | 16997 | 16995 | 2 |
+| runB | 16994 | 16992 | 2 |
+
+16997 = 16995 F8 + FA + FC, and 16994 = 16992 + FA + FC. Nothing was lost
+between the app's sink and the ALSA subscriber.
+
+**The `t=` line is not a usable timebase at this precision.** It is a
+DateStamp with 1 s resolution, and over these runs it advances ~1.1% slower
+than both the audio-buffer clock and the host's `CLOCK_MONOTONIC` (runA:
+277 s of `t=` against 279.95 s of buffers for the same two heartbeats). That
+is why the sender-side mean above uses `buffers=`, not `t=`. The cause of
+the DateStamp skew was not investigated; it does not affect the clock
+schedule, which is derived from the audio sample clock.
 
 ## Why the spread is what it is
 
@@ -64,26 +179,31 @@ every clock that became due since the last call, so an F8 leaves at the
 **first block boundary after its sample-accurate due time**. At 140 BPM the
 due times fall 3.35 blocks apart, so the instantaneous interval between
 clocks alternates between 3 and 4 blocks — 16.0 ms and 21.3 ms — with the
-occasional 2-block 10.7 ms catch-up. That is the 12–22 ms mass above.
+occasional 2-block 10.7 ms catch-up. That is the 12–22 ms mass above
+(88% of the intervals).
 
 The rate is still exact because the producer is **cumulative**
-(`o->last_tick < owed`), which is deliberate: a skipped render call emits
-what it owes instead of silently dropping clock bytes. Over 30 s that law
-holds to 0.1 µs.
+(`o->last_tick < owed`): a skipped render call emits what it owes instead of
+silently dropping clock bytes. Over 303 s that law holds to 0.03 µs.
 
-The long tail (0.6% over 30 ms, worst 53.3 ms) is the same quantisation plus
-host-side scheduling; it is not a rate error — the mean over the window is
-0.1 µs from nominal.
+The sender's 1 ms pump is not the cause of either the block spacing or the
+tail: `app/timerres.c` measured the Dell's `UNIT_MICROHZ` 1 ms wait at
+**min 1019 / mean 1977 / max 7928 µs** over 200 waits — slower than asked,
+but well below the 16/21 ms block spacing — and `pend=0` in every heartbeat
+says the ring never waited on it.
+
+The tail (1.1% / 1.0% over 30 ms, worst 56.4 / 54.9 ms) is the same
+quantisation plus host-side scheduling; it is not a rate error.
 
 ## Measurement caveat
 
 `clocksniff` timestamps events when it **drains** the ALSA sequencer, not
 when the packet arrived. Events delivered in one poll wake-up therefore
-collapse to ~0 µs (the 0.4% bucket) even though the wire spacing was not
-zero. The measured spread is an **upper bound** on the guest's wire jitter;
-the rate and mean are unaffected.
+collapse to ~0 µs (the 0.6–0.8% first bucket) even though the wire spacing
+was not zero. The measured spread is an **upper bound** on the guest's wire
+jitter; the rate and mean are unaffected.
 
-## The two defects this measurement found (fixed before the numbers above)
+## The two defects this measurement found (fixed before these runs)
 
 The first clock attempt produced **zero** F8 for 20 s while the app reported
 `clkout=1` and "playing". Two independent defects, each masking the other:
@@ -133,25 +253,22 @@ Fix: one `Wait()` on the timer port bit **and** the stop bit, reap the reply
 only when the port fired, and let `CheckIO/AbortIO/WaitIO` cancel an
 outstanding tick when stop wins the race. The sender now pumps every ~1 ms.
 
-Both fixes are in `5194334`; the measurement above is from that build.
+Both fixes are in `5194334`; the measurements above are from that build.
 
 ## Artifacts
 
-`/home/miller/.worktrees/r12-logs/r12-n3/`:
+In this directory:
 
-- `clocksniff-30s.log` — 1681 timestamp lines + header
-- `stats.txt` — the exact summary and histogram above
-- `riapp-log-excerpt.txt` — `build=5194334`, `midi in=...`, the two clk
-  heartbeat lines
-- `pre-fix-ring-full-sent0.txt` — the `pend=255 ... sent=0` signature
-- `tasklist-unmodified-head.txt` — receiver present, sender absent
-- `tasklist-after-fix.txt` — both `RIAPP midi` and `RIAPP midi-out`
-- `timerres.txt` — AROS `UNIT_MICROHZ` 1 ms wait actually takes
-  min 1019 / mean 1977 / max 7928 µs over 200 waits (the pump is not the
-  30 ms tail's cause)
+- `r12-n3-runA-clocks.log`, `r12-n3-runB-clocks.log` — one
+  `CLOCK_MONOTONIC` nanosecond stamp per F8 (16995 / 16992 lines).
+- `r12-n3-runA-heartbeat.txt`, `r12-n3-runB-heartbeat.txt` — the guest session
+  from `RIAPP LOG build=` to the last heartbeat: song line, 20 × `t=`,
+  `buffers=` and `clk:` lines.
+- `r12-n3-stats.txt` — `tools`-independent interval statistics for both logs.
+- `r12-n3-long140.rbng` — the derived 176-bar test song.
 
-Tools in the repo: `tools/clocksniff.c` (host, `-lasound`) and
-`tools/timerres.c` (ABIv11 probe, build line in its header).
+The scripts that produced the numbers (stats, run driver) and the full
+unfiltered guest logs are in `/home/miller/.worktrees/r12-logs/r12-n3b/`.
 
 ## Not proven
 
@@ -162,5 +279,6 @@ Tools in the repo: `tools/clocksniff.c` (host, `-lasound`) and
   per audio block by design, so a sample-accurate wire clock would need a
   producer called at finer granularity. The **rate** is already exact; the
   **instantaneous spacing** is quantised.
-- Whether the 0.6% >30 ms tail is guest-side or host-side: `clocksniff`
+- Whether the >30 ms tail (1.1%) is guest-side or host-side: `clocksniff`
   timestamps at drain time, so it cannot separate them.
+- The cause of the guest DateStamp (`t=`) skew against the audio clock.
