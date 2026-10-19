@@ -39,7 +39,7 @@ SDK="$VK/src/abi/v11/sdk/Developer"
 [ -d "$SDK/include" ] || { echo "FAIL: v11 SDK absent ($SDK)"; exit 1; }
 PATH="$TC:$PATH"
 export PATH
-OBJ=/tmp/ri/arosv11/riapp
+OBJ="${RI_OBJ:-/tmp/ri/arosv11/riapp}"
 mkdir -p "$OBJ"
 HASH="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo '?')"
 # Flags as recorded in the wiki article (no -Werror: the v11 SDK headers warn
