@@ -55,6 +55,22 @@ collides with #1585 and was applied hunk-by-hunk at both sites instead.
 The driver and both link libraries compile **unchanged** against the ABIv11
 SDK. Nothing upstream was patched to make them fit.
 
+## Lane outages — corrected (my error)
+
+The first version of this file said the Dell lane was down on **"a quota on
+the Dell's own volume"**, inferred from `[Errno 122] Disk quota exceeded` plus
+`df` on `/home` showing 1.7 T free. **That was wrong.** Errno 122 is a *Linux*
+errno, so it came from the **host**, not from AROS on the Dell. The e6320 spool
+is `/tmp/spike_spool_laptop`, which lives on the host's `/tmp` tmpfs, and
+`/tmp` had filled (4.9 G of 15 G, and the spike spool is inside it). The owner
+cleared `/tmp`; the Dell redialled and is **live**: `session 28 (e6320)`
+connected from `192.168.1.60`, and a `version` exec round-trips
+`RESULT: PASS`.
+
+The mistake was checking the wrong volume and then attributing a host-side
+errno to the guest. Same shape as the three earlier "AROS does X" findings the
+plan warns about in §0: **rule out the caller before blaming the far end.**
+
 ## The ABIv11 failure — exact cause
 
 `netmidid` fails on `workbench/network/netmidid/network.c:16`:
@@ -108,14 +124,115 @@ and tokens weaken, not the protocol. So a **runtime** fallback would be
 functionally acceptable for a lane test; it is the *compile-time* include that
 blocks. Recorded as an option for the owner, not taken unilaterally.
 
+## The ABIv11 entropy fix (build-only shim, owner-directed)
+
+Owner direction: shim it for the ABIv11 build; do not patch the protocol.
+
+The upstream contract is preserved exactly. `netmidi_network_random()` already
+returns -1 when the resource cannot be opened, and `random32()` in `main.c`
+already handles that. So the guard is in `network.c`:
+
+```c
+#include <proto/exec.h>                 /* still needed: OpenLibrary/CloseLibrary */
+#ifndef RI_NETMIDI_NO_ENTROPY
+#include <proto/entropy.h>
+#include <resources/entropy.h>
+#endif
+...
+#ifdef RI_NETMIDI_NO_ENTROPY
+int netmidi_network_random(void *buffer, size_t length)
+{ (void)buffer; (void)length; return -1; }
+#else
+   ... upstream body, unchanged ...
+#endif
+```
+
+The define is set in **our build config only**
+(`r12netmidi-v11-build/config/make.cfg`), never in upstream source:
+
+```
+RI_NETMIDI_NO_ENTROPY = 1
+CONFIG_CPPFLAGS += -DRI_NETMIDI_NO_ENTROPY
+```
+
+`USER_CPPFLAGS +=` does **not** work here: `netmidid/mmakefile.src` line 17 does
+`USER_CPPFLAGS := -DNETMIDI_SERVICE`, which replaces the variable and silently
+discards the append (measured: the first attempt compiled with the define
+absent and still failed on `proto/entropy.h`). `CONFIG_CPPFLAGS` survives,
+because `target.cfg:114` composes
+`TARGET_CPPFLAGS = $(USER_INCLUDES) $(CONFIG_CPPFLAGS) $(USER_CPPFLAGS)`.
+
+### Proof the shim is what actually got built
+
+Not inferred from a passing exit code — disassembled:
+
+```
+0000000000004a90 <netmidi_network_random>:
+    4a90:	b8 ff ff ff ff       	mov    $0xffffffff,%eax
+    4a95:	c3                   	ret
+```
+
+`GetEntropy` / `entropy.resource` references in the binary: **0**. Upstream's
+own fallback string is still present: `netmidid: no random source; identifiers
+are weak`.
+
+**A false pass was caught and killed here.** The first "successful" v11 build
+was NOT using the shim: a leftover generated `proto/entropy.h` from the reverted
+entropy staging was still in the build tree, so `network.c` compiled the real
+function and linked `OpenResource(ENTROPYNAME)`. The disassembly showed a real
+function body, not the stub, which is what exposed it. The leftover header
+(`bin/pc-x86_64/gen/include/proto/entropy.h`, `bin/pc-x86_64/AROS/Development/
+include/proto/entropy.h`, `.../resources/entropy.h`, and `gen/rom/entropy`) was
+deleted and the cached depfile `gen/workbench/network/netmidid/network.d` — which
+still listed the removed header — had to be deleted too before the guard could
+be exercised. Only then did the honest compile fail on `proto/entropy.h`, which
+is what led to the `CONFIG_CPPFLAGS` fix above.
+
+| artifact | bytes | sha256 |
+|---|---|---|
+| `System/Network/Services/netmidid` (ABIv11, shimmed) | 122448 | `c71fe8ff5a63396004951af74bb336b1da62687ba28d9216f3478c02f0cb1172` |
+
+### Known limitation of the Dell build (recorded, not hidden)
+
+SSRC and peer tokens are weak on the Dell. The seed is **not** constant:
+`now_ticks()` is `gettimeofday()` in 10 kHz units (`main.c:91-96`), and
+`random32()` does `srand((unsigned)(now ^ (now>>32)))` once per process. Two
+starts one second apart seed differently, and there are 3.6 M distinct seeds
+across an hour at 10 kHz granularity, so a restarted session cannot be mistaken
+for the old one by a peer. For the current epoch the `now>>32` term is only
+~4093, so the seed is effectively the low 32 bits of the tick count. Adequate
+for a LAN test; not a security claim.
+
+### ABIv11 build is now 4 of 4
+
+`camd.library`, `DEVS:Midi/applemidi`, `librtpmidi.a` and `netmidid` all build
+for ABIv11. The driver and the link libraries still compile **unchanged**; the
+only conditional compile is the one entropy stub above.
+
+## Scratch location (corrected)
+
+Scratch moved off `/tmp` to `/home/miller/.worktrees/`:
+`r12netmidi-v1{,-build}`, `r12netmidi-v11{,-build}`.
+
+**Relocation hazard, recorded because it cost real time.** Rewriting the old
+path across both build trees with a bulk `sed -i` also rewrote **ELF binaries**
+in those trees. `mmake`, `collect-aros`, `collect-aros32` and ~20 other host
+tools were corrupted (`missing section headers`, sizes changed), which surfaced
+as `Segmentation fault (core dumped)` from `make`, then from `clang: error:
+unable to execute command` at link. Every damaged file was restored from the
+pristine lane trees (`abi/v1/core-pc-x86_64`, `abi/v11/core-pc-x86_64-m0`) by
+identical relative path, and the lane trees themselves were checked and are
+**clean**. Both scratch builds then reproduce byte-identical artifacts
+(`camd.library` `baca61a1…` v1 / `f2026d94…` v11, `applemidi` `9363a85d…`,
+`librtpmidi.a` `a4645602…`), which is the proof the move was lossless.
+**Rule: never bulk-`sed` a build tree; filter to text files.**
+
 ## Status vs the plan
 
-- **N0**: ABIv1 complete. ABIv11 partial — 3 of 4; `netmidid` needs an owner
-  decision (this is the plan's §3 "an ABIv11 build fails" gate).
-- **N1**: not started. **riqemu1 is DOWN** — its spike server listens on 9295
-  but no QEMU process is running. Also gated: `rtpmidid` is not installed on the
-  host and the plan requires owner approval before installing anything there.
-- **N2/N3**: not started. The **Dell lane is DOWN** — `spike-laptop.service`
-  logged `session 23 (e6320) ended: [Errno 122] Disk quota exceeded`. Host disk
-  is fine (204 G used of 1.9 T), so this is a quota on the Dell's own volume and
-  needs the owner.
+- **N0**: COMPLETE for both ABIs.
+- **N1**: riqemu1 was DOWN (spike server on 9295 up, no QEMU). Started per
+  owner instruction.
+- **N2**: Dell is reachable — `session 28 (e6320)` connected from
+  `192.168.1.60`, and a `version` exec round-trips PASS. Staging can begin;
+  the `camd` install still needs the owner's reboot.
+- **N3**: blocked behind N2.
