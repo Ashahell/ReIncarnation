@@ -167,17 +167,12 @@ Dell is `.60`).
   (expected 17857 µs), the spread and the worst gap, next to the existing
   `mean_us=17853` schedule figure, which is the sender side only.
 
-**T3 — a DAW on the Linux host (replaces the Ableton test).** The owner has
-no access to Ableton (2026-10-19). Use **Ardour** (GPL, in Arch `extra`,
-9.8): it can follow external **MIDI Clock** as a transport master, so it
-covers the same "a DAW follows the Dell" case. It takes its ports from the
-ALSA sequencer, where `rtpmidid` exposes the Dell's session.
-- In Ardour: set the transport master to MIDI Clock on the `rtpmidid` port
-  for the Dell, then press play on the Dell.
-- Pass: Ardour follows tempo and Start/Stop, and an Ardour MIDI track routed
-  to that port plays the 808 on channel 10.
-- `aseqdump` stays the instrument for T1/T2. Ardour is only for this
-  end-to-end check.
+**T3 — a DAW end to end: deferred (owner, 2026-10-19).** There is no
+Ableton, and the owner chose to **stick to `aseqdump` for now** rather than
+install a Linux DAW. A DAW following the Dell's clock is therefore **not
+tested**. If it is wanted later, Ardour (GPL, Arch `extra`) is the candidate:
+it is expected to follow external MIDI Clock as a transport master
+(**unverified**).
 
 ## What actually waits on the open PRs
 
@@ -193,8 +188,8 @@ ALSA sequencer, where `rtpmidid` exposes the Dell's session.
 
 ## Owner decisions (2026-10-19)
 
-1. **No access to Ableton.** T3 uses a Linux DAW instead (Ardour, above) and
-   `aseqdump` for the measurements.
+1. **No access to Ableton.** Use `aseqdump` only; no Linux DAW for now, so T3
+   is deferred.
 2. **A draft upstream branch on the Dell is acceptable**, pinned to a commit,
    until #1678/#1679 merge.
 3. **Priority:** **R7 (SMF) goes first.** Without Ableton, R12's headline
@@ -202,5 +197,5 @@ ALSA sequencer, where `rtpmidid` exposes the Dell's session.
    runs alongside it as lane work, scoped to **T1/T2: plumbing plus the
    clock-out measurement**. The brief is
    `docs/superpowers/plans/2026-10-19-r12-network-midi-opencode-prompt.md`.
-   T3 (Ardour) follows if T2 passes. The `RIAPP_MIDI_OUT` app change waits
+   The `RIAPP_MIDI_OUT` app change waits
    until T2 has shown that the path works.

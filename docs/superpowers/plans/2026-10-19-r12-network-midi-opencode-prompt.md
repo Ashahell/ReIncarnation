@@ -119,8 +119,8 @@ threshold is set.** This phase produces the number, and the owner judges it.
 - Update the assessment's status line and the interop spec's R12 entry.
 - Add a ledger entry.
 - Name everything that was **not** proven. In particular: inbound clock (P1)
-  stays parked, and nothing here tests a real DAW (T3 Ardour is a separate,
-  later step).
+  stays parked, and nothing here tests a real DAW (deferred by the owner: `aseqdump`
+  only for now).
 
 ## 3. Stop and ask the owner when
 
