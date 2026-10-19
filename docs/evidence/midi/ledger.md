@@ -6707,3 +6707,60 @@ All three tab switches report `xruns+0`.
 Everything listed as still open under the `f087b82` ear proof stays open,
 except that the delay now has an overlapping send-and-feedback session behind
 it.
+
+## R12: AppleMIDI on the Dell — notes both ways, clock out 56.0001/s (2026-10-19)
+
+R12 asked whether an AROS machine and a DAW can exchange clock and notes
+over Ethernet without MIDI hardware. On the Dell e6320 (ABIv11) the answer
+is now measured, not expected.
+
+**Built and staged.** `camd.library` 41.1 (53904 B, 2026-10-18 21:41,
+sha256 `f2026d94…`, pulled from the guest), `DEVS:Midi/applemidi` (#1586),
+the `rtpmidi` link library (#1587 + #1678) and `netmidid` (#1679), all from
+the pinned draft heads recorded in `r12-n0-builds.md`. The host runs
+`rtpmidid 24.12.2 --port 5004 --rtpmidi-discover false`; the session is
+`CONNECTED` and the Dell appears as alsapeer `arosbox`.
+
+**Gate (N1 on the Dell).** Guest→host: 33 messages, 17 note-on / 16
+note-off seen at ALSA `128:2`. Host→guest: `aplaymidi` moves `NOTEIN
+played` and `seen` on every run (0→3, 0→4 in the recorded pass). The one
+`refused` per file is the channel-10 **drum release**: a drum has no gate,
+so `ri_notein_note()` refuses and counts it by design (`midi_io/note_in.c`,
+"a drum has no gate to release"). It is a pre-existing M5 semantic, not an
+R12 defect; the counter's documented meaning ("bound, but the note is not in
+the map") is wider than what it counts. Recorded, not changed.
+
+**Clock out (N3, two runs).** 24 ppqn at 140 BPM = 56.000 clocks/s. On the
+host, `clocksniff` stamps every F8 as it reaches ALSA. The only 140 BPM song
+is 151 bars = 258.9 s and RIAPP has no wired transport loop, so the runs use
+a derived 176-bar test song (`r12-n3-long140.rbng`; one STRK row copied,
+sha256 `cba87db9…`). One bar of tail makes 177 bars = 303.43 s per run:
+
+| run | F8 | span | mean | nominal | max | p99 | xruns | dropped |
+|---|---|---|---|---|---|---|---|---|
+| A | 16995 | 303.464 s | 17857.117 µs | 17857.143 | 56354.8 | 31619.3 | 0 | 0 |
+| B | 16992 | 303.410 s | 17857.123 µs | 17857.143 | 54949.3 | 29718.4 | 0 | 0 |
+
+Rate 56.0001 intervals/s in both. The guest's counters close the accounting
+exactly: `sent` (messages) 16997/16994 = F8 16995/16992 + FA + FC. The
+sender side, derived from `buffers=`/`sent=` over the running heartbeats
+(RIAPP has no native `mean_us`), is 17857.16/17856.95 µs.
+
+The spread is not drift: the producer fills the ring once per 256-frame
+audio block (5.33 ms), so the 3.35-block spacing alternates 16.0/21.3 ms
+(88% of intervals). The mean is exact because the producer is cumulative.
+The ~1% >30 ms tail is not separated between guest scheduling and host ALSA
+delivery; `clocksniff` stamps at drain time, so the spread is an upper
+bound.
+
+**Two defects found and fixed before the runs** (build `5194334`). The app
+started the clock sender before `ri_pal_midi_open_in()`, whose close path
+stopped it again; and `sender_task` waited on the timer port and then on the
+stop signal in two `Wait`s, hanging after one empty pump. Fixed in
+`app/riapp.c` and `platform/aros/midi_camd.c`; both are recorded in
+`r12-n3-clockout.md`.
+
+**Not proven:** any DAW (the far peer is `rtpmidid` + an ALSA subscriber),
+MMC out, CC out (the gate's 33-message file carried notes only), clock **in**
+at 140 BPM (P1 stays parked: CAMD delivery, not the network), and the split
+of the >30 ms tail.

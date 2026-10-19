@@ -1,9 +1,15 @@
 # R12 network MIDI: can upstream AppleMIDI connect the Dell to Ableton?
 
-**Status:** assessment, 2026-10-19. Nothing is built or tested. Every
-statement below is either read from upstream source or PR text (cited), or
-read from this tree (file:line). It is marked **unverified** where it is a
-plan or an expectation.
+**Status:** assessment written 2026-10-19, before anything was built. It was
+then built for ABIv11 and run on the Dell the same day: the N1 gate is met
+(notes both directions through `rtpmidid`) and clock out was measured twice
+over 5.06 minutes — **56.0001 intervals/s, mean 17857.12 µs** against a
+17857.14 µs nominal, **0 xruns, 0 dropped** (`docs/evidence/midi/r12/`).
+The body below is kept as written, with a result note under the table. What
+is still unproven is named in `r12-n3-clockout.md` and in the MIDI ledger.
+Every statement below is either read from upstream source or PR text
+(cited), or read from this tree (file:line); **unverified** marks a plan or
+an expectation.
 
 **Parent:** interop requirement `2026-09-29-interop-requirement.md`, **R12**:
 *"RTP-MIDI / AppleMIDI, so an AROS machine and a DAW PC can exchange clock and
@@ -29,6 +35,11 @@ waits on an upstream merge:
    driver is found on 64-bit. That includes the new ones.
 3. A **one-setting app change**, because RIAPP sends and receives on the
    same CAMD cluster, and a network port has separate `in` and `out` clusters.
+
+**All three are done (2026-10-19).** The four pieces build for ABIv11, the
+camd rebuild is installed on the Dell, and the clock-out test uses the
+no-change route (`RIAPP_MIDI_IN=applemidi.out.0`). `RIAPP_MIDI_OUT` itself
+is still unimplemented — see the result note under "The app change".
 
 ## What upstream has, and where it is
 
@@ -117,6 +128,10 @@ selection", so this finishes R4 rather than adding scope.
 `RIAPP_MIDI_IN=applemidi.out.0`. The receiver then listens on a cluster
 nothing sends to, which is harmless for that test.
 
+**Result (2026-10-19):** not implemented. The clock-out test used exactly the
+no-change route above, so the app still has one cluster setting. This stays
+the first thing to add when a DAW needs both directions at once (R5 + R6).
+
 ## What it gives the interop requirement
 
 | item | over AppleMIDI | why |
@@ -128,6 +143,14 @@ nothing sends to, which is harmless for that test.
 | G7 remote CC in | expected to work | Same as R5. |
 | **P1 clock in at 140 BPM** | **no improvement** | The limit is our receiver seeing CAMD deliveries in 10 ms system-tick batches, stamped at drain time. A network hop ends in the same CAMD delivery, with more jitter before it. Stays parked. **Unverified** whether `netmidid` passes RTP timestamps into CAMD at all. |
 | R10 Ableton Link | unrelated | Link is its own UDP multicast protocol. AppleMIDI doesn't stand in for it. |
+
+**Measured on the Dell (2026-10-19):** R2 clock out — two 5.06-minute runs,
+56.0001 intervals/s, mean 17857.12 µs against 17857.14 nominal, 0 xruns,
+0 dropped (`r12-n3-clockout.md`). R5 note input — `played` and `seen` move
+on every `aplaymidi` run. R6 note out — 33 messages, 33 events at the host.
+**Still unverified:** CC out (the gate's file carried notes only), MMC out,
+a real DAW, and P1 clock in (parked; the limit is CAMD delivery, not the
+network).
 
 **The measurement the interop spec says is missing becomes possible.** The
 spec records that *"the wire spread is not measurable with this

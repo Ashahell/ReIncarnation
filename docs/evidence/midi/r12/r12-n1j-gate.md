@@ -8,9 +8,11 @@ different evidence; nothing here reuses the peerless capture.
 
 ## The run
 
-- Dell e6320 (ABIv11, `192.168.1.60`): `LIBS:camd.library` 41.1 (8.10.2026),
-  `DEVS:Midi/applemidi` 11880 B, `SYS:System/Network/Services/netmidid`
-  128496 B, both from the #1679 branch.
+- Dell e6320 (ABIv11, `192.168.1.60`): `LIBS:camd.library` 41.1
+  (53904 B, 2026-10-18 21:41, sha256 `f2026d94…` — read back off the guest
+  and hashed on 2026-10-19; see Corrections), `DEVS:Midi/applemidi` 11880 B,
+  `SYS:System/Network/Services/netmidid` 128496 B, both from the #1679
+  branch.
 - `ENV:NetMIDI` on the Dell:
 
   ```
@@ -144,6 +146,12 @@ plus the expected `CK`/`RS` keepalive traffic. No journal, no errors.
   the claim left a blocked "another instance is running" requester and no log
   line. Start RIAPP once, after stopping the previous instance with
   `Break NAME=SYS:Classes/ReIncarnation/RIAPP C`.
+- The Dell's `LIBS:camd.library` was first written here as "41.1
+  (8.10.2026)", which is the **old** M0 library, not the one the gate ran on.
+  The file on the guest is 53904 B, dated 2026-10-18 21:41, sha256
+  `f2026d949c923d1ada72154a4c0383c674b7ae904c34108cb9fe4960f15bb8be`
+  (pulled from the guest on 2026-10-19). The gate numbers are unchanged; only
+  the artifact identification was stale.
 
 ## Artifact identity — the first pass ran on a binary the repo cannot rebuild
 

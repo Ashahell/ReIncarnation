@@ -144,6 +144,7 @@ In priority order. Each item is a requirement to design later; none is designed 
 
 **R12. MIDI over the network (optional):** RTP-MIDI / AppleMIDI, so an AROS machine and a DAW PC can exchange clock and notes over Ethernet without MIDI hardware. It depends on the AROSTCP quality, like R10.
 - **2026-10-19:** upstream now has CAMD AppleMIDI drivers (#1586, merged) and a `netmidid` service in review (#1678/#1679). For what the Dell needs and what we can test now, see `2026-10-19-r12-network-midi-assessment.md`.
+- **2026-10-19 (result):** the Dell is an AppleMIDI peer over the LAN to `rtpmidid`; notes pass both ways (17 on/16 off guest→host, `played`/`seen` move host→guest). Clock out, measured at the far end twice over 5.06 min: **56.0001 intervals/s, mean 17857.12 µs** (nominal 17857.14), 0 xruns, 0 dropped. Clock **in** (P1) is unchanged and parked; no DAW has been tested. Evidence: `docs/evidence/midi/r12/`.
 
 ### Not possible
 
