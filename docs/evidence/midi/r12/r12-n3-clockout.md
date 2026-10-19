@@ -150,8 +150,8 @@ Both fixes are in `5194334`; the measurement above is from that build.
   min 1019 / mean 1977 / max 7928 µs over 200 waits (the pump is not the
   30 ms tail's cause)
 
-Host tools: `/home/miller/.worktrees/r12-tools/clocksniff.c`,
-`timerres.c`.
+Tools in the repo: `tools/clocksniff.c` (host, `-lasound`) and
+`tools/timerres.c` (ABIv11 probe, build line in its header).
 
 ## Not proven
 
