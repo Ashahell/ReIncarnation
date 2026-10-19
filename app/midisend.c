@@ -596,7 +596,8 @@ int main(int argc, char **argv) {
             APTR lock = LockCAMD(CD_Linkages);
             while ((c = NextCluster(c)) != NULL && nc < 40) {
                 const UBYTE *nm = (const UBYTE *)c->mcl_Node.ln_Name;
-                Printf((CONST_STRPTR)"SELFTEST cluster %ld name %s\n", nc++, (STRPTR)nm);
+                Printf((CONST_STRPTR)"SELFTEST cluster %ld name %s\n", nc++,
+                    nm ? (STRPTR)nm : (STRPTR)"(null)");
             }
             UnlockCAMD(lock);
         }

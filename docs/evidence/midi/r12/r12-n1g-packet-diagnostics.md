@@ -18,8 +18,10 @@ upstream). Two attempts at the sink were needed and both failures are worth
 recording:
 
 1. `Open()` + `WriteChars` to `RAM:nm.marker` — the file was **created** but
-   received **zero bytes**. `VPrintf` is not declared in this SDK; same failure
-   class as the earlier stdout sink.
+   received **zero bytes**. That was my caller bug, not a filesystem fault:
+   `WriteChars()` writes to `Output()`, not to the handle returned by
+   `Open()`. `Write(fh, ...)` or `FPuts(fh, ...)` is the correct call (both
+   dos.library, not exec). `VPrintf` is not declared in this SDK.
 2. Plain `printf` + `fflush`, which is **proven** to work here. The reason
    post-`freopen` markers were invisible before is that `main()` sends stdout
    to `NIL:` unless `netmidid.log` names a file — so **post-freopen
@@ -77,9 +79,13 @@ The hand-written python responder sent **zero** replies for most of its life
 because it used small-integer command codes while AppleMIDI commands are
 **two ASCII characters** (`IN` = `0x494E`). When fixed it revealed the real
 behaviour above. It then replied `ACK`, which `exchange_command()` rejects
-(only IN/OK/NO/BY are exchange commands) — RFC 6295 answers an invitation with
-`IN`. The probe is a diagnostic, not a peer; `rtpmidid` is the real one and is
-what these numbers come from.
+(only IN/OK/NO/BY are exchange commands). **The original sentence here —
+"RFC 6295 answers an invitation with IN" — is retracted.** The responder
+answers an invitation with `OK` (`0x4F4B`); the `IN` was my probe's own reply
+(N1i). The session handshake is Apple's MIDI Network Driver Protocol; RFC 6295
+is the RTP-MIDI **payload**, not this control exchange. The probe is a
+diagnostic, not a peer; `rtpmidid` is the real one and is what these numbers
+come from.
 
 ## Gate status
 

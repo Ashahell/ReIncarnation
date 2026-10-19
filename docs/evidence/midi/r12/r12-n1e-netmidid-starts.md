@@ -109,11 +109,13 @@ does not complete.
 ## Instrumentation note
 
 Markers are a **local debug build, never upstream**, and live in a scratch
-worktree. Sink is `Open()`/`WriteChars` to `RAM:nm.marker`, deliberately
-independent of stdout — the first two attempts used stdout and both produced
-false readings. `WriteChars` is core exec and needs no varargs machinery, which
-avoids both the hand-rolled LVO offset and `VPrintf`, which is not declared in
-this SDK.
+worktree. The first sink attempt was `Open()`/`WriteChars` to `RAM:nm.marker`;
+the file was created but stayed empty. That was a caller bug: `WriteChars()`
+writes to `Output()`, not to the handle returned by `Open()`, so it was never
+writing to the marker file. The fix is `Write(fh, ...)` or `FPuts(fh, ...)`
+(dos.library, not exec). The working sink here is plain `printf` + `fflush`,
+with stdout redirected by `netmidid.log`; `VPrintf` is not declared in this
+SDK.
 
 ## Still not proven
 

@@ -1,11 +1,14 @@
 # R12 N1f — host-only NAT probe: the source ports settle it (2026-10-19)
 
-> **CORRECTION — see `r12-n1i-probe-artifact-and-nat.md`.** This probe was
-> still bound to UDP 5004 (`SO_REUSEADDR`) during later tests, so it, not
-> rtpmidid, answered the guest. The NAT conclusion is nevertheless **right in
-> substance**: AppleMIDI's control+1 data-port pairing does not survive
-> slirp. The reply goes to control+1 while the guest's data flow is mapped
-> elsewhere.
+> **CORRECTION — see `r12-n1i-probe-artifact-and-nat.md`.** This file's
+> conclusion was **WRONG**, and N1i is the finding. The probe was still bound
+> to UDP 5004 (`SO_REUSEADDR`) during later tests, so it, not rtpmidid,
+> answered the guest. N1f concluded that the NAT was not the cause, that the
+> control+1 pairing held, and that a `hostfwd` was not justified; **all three
+> are withdrawn.** N1i measured the real behaviour: slirp breaks AppleMIDI's
+> control+1 data-port pairing, and the reply goes to control+1 while the
+> guest's data flow is mapped elsewhere. The body below is kept as the record
+> of that wrong turn, not as a finding.
 
 ## Labels, corrected (owner)
 

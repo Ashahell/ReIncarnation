@@ -9,10 +9,12 @@ different evidence; nothing here reuses the peerless capture.
 ## The run
 
 - Dell e6320 (ABIv11, `192.168.1.60`): `LIBS:camd.library` 41.1
-  (53904 B, 2026-10-18 21:41, sha256 `f2026d94…` — read back off the guest
-  and hashed on 2026-10-19; see Corrections), `DEVS:Midi/applemidi` 11880 B,
-  `SYS:System/Network/Services/netmidid` 128496 B, both from the #1679
-  branch.
+  (53904 B, sha256 `f2026d94…`, read back off the guest and hashed on
+  2026-10-19; its `$VER` is `camd.library 41.1 (19.10.2026)`, matching the N0
+  build — the 2026-10-18 21:41 file timestamp is the Dell's file clock, not a
+  build date), `DEVS:Midi/applemidi` 11880 B, and
+  `SYS:System/Network/Services/netmidid` 128496 B, sha256 `dad3644b…` (a
+  **local debug build** of #1679 — see below).
 - `ENV:NetMIDI` on the Dell:
 
   ```
@@ -58,7 +60,33 @@ netmidid: session connected port=0
 
 Gate check 1 (session connects): met.
 
-## Gate check 2 — guest to host
+### The netmidid on the wire was a debug build
+
+The gate did **not** run on the clean 122448 B shimmed netmidid recorded in
+N0 (`c71fe8ff…`). It ran on a **local debug build**:
+
+```
+SYS:System/Network/Services/netmidid   128496 B
+sha256 dad3644bf57ce9c4fc80e49857164bb5f2bba9ef04a12ed895880a2a67b2049c
+```
+
+(pulled from the Dell and hashed on 2026-10-19). Diff from the #1679 head
+`db9e3073`: **191 insertions, 3 deletions**, all in three files:
+
+| file | change |
+|---|---|
+| `main.c` | +161: `NM_DBG` markers (M0–M3, R0–R5, exit paths), `TX`/`RX` packet dumps (command, token, address, port), `MATCH`/`PHASE`/`PEERS_RECEIVE` state dumps |
+| `network.c` | +25/−3: the build-only `RI_NETMIDI_NO_ENTROPY` shim (N0) and `nm_bindlog` |
+| `network.h` | +5: `nm_bindlog` declaration |
+
+The markers are `printf` to the `netmidid.log` sink; bind logging reports the
+socket call and `Errno()`. **No session or protocol logic changed**:
+`rtpmidi/session.c`, `applemidi.c` and the peer table are untouched. The one
+semantic change is the entropy shim, which returns -1 so `random32()` takes
+upstream's own fallback (weak SSRC/token; wire protocol unchanged). The clean
+build remains the recorded artifact; **the gate has not been re-run on it.**
+
+## Gate check 2 — guest to host (test tool, not RIAPP)
 
 Guest: `RAM:MIDISEND applemidi.out.0 RAM:R5-NOTEIN.MID.TXT`
 
@@ -78,6 +106,11 @@ Host: `aseqdump -p 128:2`
 ```
 
 Totals: **17 Note on / 16 Note off** (33 messages sent, 33 events seen).
+
+**This is a test-tool result, not RIAPP's note out.** The sender was
+`RAM:MIDISEND`; RIAPP's own note/CC out path (`RIAPP_MIDI_DEVOUT`) was not
+exercised. RIAPP's proven paths are **R5 note in** (check 3) and **R2 clock
+out** (N3).
 
 ## Gate check 3 — host to guest
 
@@ -148,10 +181,13 @@ plus the expected `CK`/`RS` keepalive traffic. No journal, no errors.
   `Break NAME=SYS:Classes/ReIncarnation/RIAPP C`.
 - The Dell's `LIBS:camd.library` was first written here as "41.1
   (8.10.2026)", which is the **old** M0 library, not the one the gate ran on.
-  The file on the guest is 53904 B, dated 2026-10-18 21:41, sha256
+  The file on the guest is 53904 B, sha256
   `f2026d949c923d1ada72154a4c0383c674b7ae904c34108cb9fe4960f15bb8be`
-  (pulled from the guest on 2026-10-19). The gate numbers are unchanged; only
-  the artifact identification was stale.
+  (pulled from the guest on 2026-10-19); its `$VER` is
+  `camd.library 41.1 (19.10.2026)`, matching the N0 build. The date reported
+  by the guest's `List`, 2026-10-18 21:41, is the Dell's **file clock**, not
+  a build date. The gate numbers are unchanged; only the artifact
+  identification was stale.
 
 ## Artifact identity — the first pass ran on a binary the repo cannot rebuild
 
@@ -173,8 +209,8 @@ before it was replaced, and the whole gate was re-run on the committed build
 | check | old binary | build 5194334 |
 |---|---|---|
 | session connects | met | met |
-| 2: guest -> host | 17 on / 16 off | **17 on / 16 off** |
-| 3: host -> guest | played 0->3, seen 0->4 | **played 0->3, seen 0->4** |
+| 2: guest -> host (MIDISEND) | 17 on / 16 off | **17 on / 16 off** |
+| 3: host -> guest (RIAPP) | played 0->3, seen 0->4 | **played 0->3, seen 0->4** |
 
 Same numbers, same one `refused` per file (the channel-10 note-off). The
 gate statement therefore holds for the reproducible build, not just for the
@@ -192,6 +228,10 @@ stray one.
 - `RIAPP.deployed-2026-10-19.bin` — the pre-existing Dell binary the first
   pass ran on (sha256 `56af77a9…`), kept because it is not reproducible from
   the repo
+- `netmidid.deployed-2026-10-19.bin` — the 128496 B debug netmidid the gate
+  ran on (sha256 `dad3644b…`)
+- `netmidid-instrumentation.diff` — its full diff from #1679 head `db9e3073`
+  (191 insertions, 3 deletions)
 - `gate2-rerun-aseqdump.log`, `gate3-rerun-before.txt`,
   `gate3-rerun-after.txt` — the same two checks on build `5194334`
 
@@ -200,6 +240,7 @@ stray one.
 - A DAW (Ableton or any other) end to end; the far peer here is rtpmidid
   24.12.2.
 - Clock out (N3) — not measured in this run; measured separately in
-  `r12-n3-clockout.md` (same build, 56.000 clocks/s, mean 17857.3 µs).
+  `r12-n3-clockout.md` (same RIAPP build, two 5.06-minute runs, 56.0001
+  clocks/s, mean 17857.12 µs).
 - Whether the channel-10 note-off `refused` accounting matters musically (it
   is a one-shot percussion map; N2 detail).

@@ -7,6 +7,10 @@
 > session completes. The real blocker is slirp breaking AppleMIDI's
 > control+1 data-port pairing. Everything below is kept as the record of a
 > wrong turn, not as a finding.
+>
+> Two technical statements below are also wrong: the session handshake is
+> Apple's MIDI Network Driver Protocol, **not** RFC 6295 (that RFC is the
+> RTP-MIDI payload), and `OK` is **`0x4F4B`**, not `0x4143`.
 
 ## Labels
 
@@ -15,7 +19,9 @@
 ## The finding
 
 The session never advances past the control phase because **the two ends
-expect opposite halves of the RFC 6295 handshake**.
+expect opposite halves of the session handshake** (as I then read it; the
+handshake is Apple's MIDI Network Driver Protocol, not RFC 6295 — RFC 6295 is
+the payload).
 
 `rtpmidi/session.c:131`, the inviter path:
 
@@ -32,15 +38,17 @@ if (!on_data_port && session->phase == APPLEMIDI_SESSION_INVITING_CONTROL) {
 ```
 
 To move `INVITING_CONTROL → INVITING_DATA`, netmidid requires the peer to
-answer with **`OK` (`0x4143`)**.
+answer with **`OK` (`0x4F4B`)**.
 
 **Observed from `rtpmidid` on the Dell: command `18766` = `0x494E` = `IN`.
 Never `OK`.** So the reply is discarded and netmidid retries forever
 (`invitation timed out`).
 
-The asymmetry: RFC 6295 has the *responder* answer an invitation with `IN`,
-while netmidid — which is the **initiator** here — is waiting for `OK`. Both
-ends are holding the handshake shape of the other role.
+The asymmetry I inferred — that the *responder* answers an invitation with
+`IN` while netmidid waits for `OK` — **is retracted**: the responder answers
+`OK` (`0x4F4B`), and the `IN` in this capture was my probe (N1i). The session
+handshake is Apple's MIDI Network Driver Protocol; RFC 6295 is the payload
+format, not this exchange.
 
 ## The measurement that settles it
 
@@ -72,10 +80,15 @@ that turned out to be it.
 
 ## Also found on the Dell
 
-`netmidid` **cannot bind UDP 5004/5005**: `RX exit: cannot bind UDP port
-pair`. With `local_port=5010` it binds fine (`listening on UDP 5010/5011`), so
-5004/5005 are already taken on the Dell by something else. Not yet identified;
-it may simply be an AROSTCP service. **Unverified.**
+`netmidid` **could not bind UDP 5004/5005** in this run: `RX exit: cannot bind
+UDP port pair`. The holder was an **earlier netmidid**, not an AROSTCP
+service: the N1e/N1g runs left several instances started with `Run RAM:NMD4`
+and `Run SYS:...` alive on 5004/5005, and this run started another copy
+without stopping them. With `local_port=5010` it bound fine (`listening on
+UDP 5010/5011`). N1j later bound 5004 cleanly with a single instance, after
+the Dell was rebooted at 15:57 (the agent socket reset and returned as session
+32), which cleared the old copies. "It may simply be an AROSTCP service" is
+withdrawn.
 
 ## What this is and is not
 
@@ -90,8 +103,9 @@ them without checking upstream:
 **Upstream's own evidence is only node-rtpmidi against node-rtpmidi**, so this
 pair may simply never have been tested together. That is exactly the gap the
 assessment flagged. **I have not verified either reading** — it needs the
-#1679 head's stated protocol intent and rtpmidid's RFC 6295 behaviour checked
-side by side, and it is **upstream code, which is out of scope** per the plan.
+#1679 head's stated protocol intent and rtpmidid's control-handshake behaviour
+checked side by side, and it is **upstream code, which is out of scope** per
+the plan.
 
 ## Gate status
 
@@ -101,5 +115,4 @@ specific, reproducible protocol mismatch rather than a mystery.
 ## Not proven
 
 - Which of the two implementations is at fault.
-- Why the Dell cannot bind 5004/5005.
 - N3's clock-out spread: untouched, and it depends on this session existing.

@@ -26,6 +26,10 @@ below but is not a run of record.
   `--rtpmidi-discover false`; session `CONNECTED` (the peer exists as
   `alsapeer arosbox` on ALSA port **128:2** for the whole run; the sniffer's
   subscription to it succeeded).
+- The Dell's `netmidid` is the same **local debug build** as N1j (128496 B,
+  sha256 `dad3644b…`; markers and bind logging plus the build-only entropy
+  shim, no protocol change). The markers go to `NIL:` unless `netmidid.log`
+  names a file; they do not alter forwarding.
 - `clocksniff 335 128:2` (host): subscribes to 128:2, prints one
   `CLOCK_MONOTONIC` nanosecond stamp per `F8` (`tools/clocksniff.c`).
 
@@ -36,9 +40,11 @@ The only 140 BPM song in the tree is `zombie-nation.rbng`, 151 bars =
 transport loop is not wired (`ri_loop_clamp` has no caller). Rather than
 stitch two plays together, the run uses a derived test song:
 
-- `r12-n3-long140.rbng` (10090 B, sha256 `cba87db9…` beside this file) is
-  `songs/local/zombie-nation/zombie-nation.rbng` with **one** change: the
-  STRK slot vector of the last sounding bar (row 150, `[0,0,0,7,0]`) is
+- The derived test song is **not in the repo**: it is cover-derived, so it
+  lives in `songs/local/` (git-ignored) as `r12-n3-long140.rbng`, 10090 B,
+  sha256 `cba87db91cb594c129ba7ef240d95367c393275b1a126b3e10c07e2d9f9debf9`.
+  It is `songs/local/zombie-nation/zombie-nation.rbng` with **one** change:
+  the STRK slot vector of the last sounding bar (row 150, `[0,0,0,7,0]`) is
   copied to row 175. Rows 151–174 stay slot 0 (silent). That makes the last
   sounding bar 176, so `ri_core_load_song()` reports
   **`RIAPP song RAM:long140.rbng: 176 bars at 140 BPM`**.
@@ -116,6 +122,29 @@ runB:
  22000-30000 us:   820 ( 4.83%)
  30000-70000 us:   166 ( 0.98%)
 ```
+
+### Phase residual against an ideal grid
+
+The interval table says how far apart consecutive clocks are; the phase
+residual says how far each clock is from where an ideal 17857.1429 µs grid
+would put it. With `r_i = (t_i - t_0) - i × 17857.1429 µs`, then removing
+the constant offset (the mean of `r`, which is only where the first stamp
+happens to sit on the grid):
+
+| residual, mean offset removed | runA | runB |
+|---|---|---|
+| standard deviation | 3476.7 µs | 3277.3 µs |
+| min (early) | −5.41 ms | −5.33 ms |
+| p99 | +13.90 ms | +12.68 ms |
+| **max (late)** | **+38.51 ms** | **+39.04 ms** |
+| raw residual at the last stamp (drift) | −0.44 ms | −0.34 ms |
+
+The residual is bounded, not a random walk: it returns toward the grid
+because the producer is cumulative. The +38.5 / +39.0 ms maxima are the same
+>30 ms tail as the interval table (1.1% / 1.0%), and the standard deviation
+is dominated by the 16/21 ms block alternation. The sub-millisecond
+end-of-run residual is the rate being exact to 0.03 µs. The raw mean offset
+was −1.16 ms (runA) and −0.34 ms (runB); it is a constant phase, not drift.
 
 - **Rate and mean are exact over five minutes**: 56.0001 intervals/s and
   17857.117 / 17857.123 µs against 17857.1429 µs (0.026 / 0.020 µs low).
@@ -195,6 +224,32 @@ says the ring never waited on it.
 The tail (1.1% / 1.0% over 30 ms, worst 56.4 / 54.9 ms) is the same
 quantisation plus host-side scheduling; it is not a rate error.
 
+## Fix design for the owner (recorded, not built)
+
+The 16/21 ms alternation is a release-time artifact, not a rate error. The
+fix is latency compensation: carry the due time with each message and let
+the sender hold it until due.
+
+1. `midi_out_render()` stamps every ring entry with its **due time** — the
+   same audio-clock/sample position that decides `owed` today — not only the
+   byte count.
+2. `sender_task` reads the entry, compares due time with now, and waits until
+   due before handing it to the PAL sink.
+3. Run the schedule behind a **fixed delay of at least one audio block**
+   (5.33 ms at 256 frames / 48 kHz), so the sender always sees an entry
+   before its due time. The delay is the cost; the mean and rate do not
+   change.
+4. The hold uses the existing timer tick. `app/timerres.c` measured that tick
+   on the Dell at **mean 1977 µs, min 1019 µs, max 7928 µs** over 200 waits,
+   so expect a **few milliseconds** of residual jitter around the due time,
+   not ~1 ms. A finer hold needs a better timer source, which is a separate
+   question.
+5. Keep the cumulative `last_tick < owed` law. This changes *when* a byte is
+   released, not *which* bytes are owed.
+
+This is R2's latency-compensation item. It is **not built** in this pass; the
+runs above are the un-compensated baseline.
+
 ## Measurement caveat
 
 `clocksniff` timestamps events when it **drains** the ALSA sequencer, not
@@ -265,7 +320,10 @@ In this directory:
   from `RIAPP LOG build=` to the last heartbeat: song line, 20 × `t=`,
   `buffers=` and `clk:` lines.
 - `r12-n3-stats.txt` — `tools`-independent interval statistics for both logs.
-- `r12-n3-long140.rbng` — the derived 176-bar test song.
+
+The derived song is deliberately **not** in this directory or in git: it is a
+cover derivative, kept outside the repo in `songs/local/` (git-ignored),
+10090 B, sha256 `cba87db9…`; its derivation is in the Setup section.
 
 The scripts that produced the numbers (stats, run driver) and the full
 unfiltered guest logs are in `/home/miller/.worktrees/r12-logs/r12-n3b/`.
@@ -275,10 +333,11 @@ unfiltered guest logs are in `/home/miller/.worktrees/r12-logs/r12-n3b/`.
 - A DAW or hardware clock follower; the far peer is `rtpmidid 24.12.2`
   forwarding to ALSA, and `clocksniff` is the observer.
 - Clock **in** (the Dell following an external master) — a different lane.
-- Jitter below the 5.33 ms block quantisation: the producer's ring is filled
-  per audio block by design, so a sample-accurate wire clock would need a
-  producer called at finer granularity. The **rate** is already exact; the
-  **instantaneous spacing** is quantised.
+- Jitter after the fix design above: not measured, because it is not built.
+  The un-compensated baseline is quantised at the 5.33 ms block; holding each
+  entry to its due time should reduce that to the sender's timer resolution
+  (~2 ms mean, 7.9 ms max measured), not to ~1 ms. The **rate** is already
+  exact; the **instantaneous spacing** is what the fix changes.
 - Whether the >30 ms tail (1.1%) is guest-side or host-side: `clocksniff`
   timestamps at drain time, so it cannot separate them.
 - The cause of the guest DateStamp (`t=`) skew against the audio clock.

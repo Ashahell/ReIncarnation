@@ -10,11 +10,15 @@ clock out is a drift-free 24 ppqn schedule driven by the render's audio
 sample clock — the tick count at a position is a pure function of that
 position, so it cannot drift — and MMC in lands on the *follower's* intents,
 so a master sending clock and a master sending MMC drive one path.
-**MMC out and the clock-out LED landed 2026-10-10**, and the clock-out
-schedule is now **measured on both lanes**: `mean_us=17856` (riqemu1) and
-`17853` (Dell) against a theoretical 17857.14 for 140 BPM at 24 ppqn —
-0.04 % and 0.02 % out, counts exact. `MIDIRX` was retired; its four faults
-are recorded, including the one that mattered (it stamped its own poll drain
+**MMC out and the clock-out LED landed 2026-10-10.** The clock-out **schedule**
+was measured on both lanes through a **local CAMD receiver**: `mean_us=17856`
+(riqemu1) and `17853` (Dell) against a theoretical 17857.14 for 140 BPM at
+24 ppqn — 0.04 % and 0.02 % out, counts exact. That is the
+producer-through-CAMD path, **not a network wire**. RIAPP clock out first
+reached a wire at `5194334`: at the far ALSA end, two 5.06-minute runs
+measured **56.0001 intervals/s and mean 17857.12 µs**, 0 xruns, 0 dropped
+(N3, `docs/evidence/midi/r12/`). `MIDIRX` was retired; its four faults are
+recorded, including the one that mattered (it stamped its own poll drain
 rather than the arrival).
 
 **The wire *spread* is not measurable with this architecture**, and that is a
@@ -144,7 +148,7 @@ In priority order. Each item is a requirement to design later; none is designed 
 
 **R12. MIDI over the network (optional):** RTP-MIDI / AppleMIDI, so an AROS machine and a DAW PC can exchange clock and notes over Ethernet without MIDI hardware. It depends on the AROSTCP quality, like R10.
 - **2026-10-19:** upstream now has CAMD AppleMIDI drivers (#1586, merged) and a `netmidid` service in review (#1678/#1679). For what the Dell needs and what we can test now, see `2026-10-19-r12-network-midi-assessment.md`.
-- **2026-10-19 (result):** the Dell is an AppleMIDI peer over the LAN to `rtpmidid`; notes pass both ways (17 on/16 off guest→host, `played`/`seen` move host→guest). Clock out, measured at the far end twice over 5.06 min: **56.0001 intervals/s, mean 17857.12 µs** (nominal 17857.14), 0 xruns, 0 dropped. Clock **in** (P1) is unchanged and parked; no DAW has been tested. Evidence: `docs/evidence/midi/r12/`.
+- **2026-10-19 (result):** the Dell is an AppleMIDI peer over the LAN to `rtpmidid`. The session carries notes both ways, but attribution matters: guest→host 17 on/16 off came from the **`MIDISEND` test tool**, and host→guest moved **RIAPP's** `played`/`seen`. RIAPP's proven paths are **R5 note in** and **R2 clock out**; RIAPP note/CC out is not tested. Clock out, measured at the far end twice over 5.06 min: **56.0001 intervals/s, mean 17857.12 µs** (nominal 17857.14), 0 xruns, 0 dropped. The gate ran on a **local debug netmidid** (128496 B, sha256 `dad3644b…`, markers/bind logging only plus the build-only entropy shim), not the clean 122448 B build; it has not been re-run on the clean build. Clock **in** (P1) is unchanged and parked; no DAW has been tested. Evidence: `docs/evidence/midi/r12/`.
 
 ### Not possible
 

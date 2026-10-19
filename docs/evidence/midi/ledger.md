@@ -6708,22 +6708,39 @@ Everything listed as still open under the `f087b82` ear proof stays open,
 except that the delay now has an overlapping send-and-feedback session behind
 it.
 
-## R12: AppleMIDI on the Dell — notes both ways, clock out 56.0001/s (2026-10-19)
+## R12: AppleMIDI on the Dell — session up; RIAPP note in and clock out (2026-10-19)
 
 R12 asked whether an AROS machine and a DAW can exchange clock and notes
-over Ethernet without MIDI hardware. On the Dell e6320 (ABIv11) the answer
-is now measured, not expected.
+over Ethernet without MIDI hardware. On the Dell e6320 (ABIv11) the session
+connects and RIAPP's note in and clock out are now measured, not expected;
+RIAPP's note/CC out is not tested (see the gate paragraph).
 
-**Built and staged.** `camd.library` 41.1 (53904 B, 2026-10-18 21:41,
-sha256 `f2026d94…`, pulled from the guest), `DEVS:Midi/applemidi` (#1586),
-the `rtpmidi` link library (#1587 + #1678) and `netmidid` (#1679), all from
-the pinned draft heads recorded in `r12-n0-builds.md`. The host runs
+**Built and staged.** `camd.library` 41.1 (53904 B, sha256 `f2026d94…`,
+pulled from the guest; `$VER` is `camd.library 41.1 (19.10.2026)` and matches
+the N0 build — the 2026-10-18 21:41 file timestamp is the Dell's file clock,
+not a build date), `DEVS:Midi/applemidi` (#1586), the `rtpmidi` link library
+(#1587 + #1678) and `netmidid` (#1679), all from the pinned draft heads
+recorded in `r12-n0-builds.md`. The host runs
 `rtpmidid 24.12.2 --port 5004 --rtpmidi-discover false`; the session is
 `CONNECTED` and the Dell appears as alsapeer `arosbox`.
 
-**Gate (N1 on the Dell).** Guest→host: 33 messages, 17 note-on / 16
-note-off seen at ALSA `128:2`. Host→guest: `aplaymidi` moves `NOTEIN
-played` and `seen` on every run (0→3, 0→4 in the recorded pass). The one
+**The `netmidid` that ran was a debug build.** `SYS:System/Network/Services/netmidid`
+is 128496 B, sha256 `dad3644b…`, not the clean 122448 B shimmed build from N0
+(`c71fe8ff…`). Its diff from the #1679 head `db9e3073` is **191 insertions, 3
+deletions**: `NM_DBG` markers and `TX`/`RX` packet/state dumps in `main.c`,
+`nm_bindlog` plus the build-only `RI_NETMIDI_NO_ENTROPY` shim in `network.c`,
+and the `nm_bindlog` declaration in `network.h`. No session or protocol code
+changed (`rtpmidi/session.c`, `applemidi.c`, the peer table are untouched);
+the entropy shim only weakens SSRC/token via upstream's own fallback. The
+clean build remains the recorded artifact and **the gate has not been re-run
+on it.**
+
+**Gate (N1 on the Dell).** Guest→host: `MIDISEND` — the test tool, not
+RIAPP — sent 33 messages, and 17 note-on / 16 note-off appeared at ALSA
+`128:2`. Host→guest: `aplaymidi` moved RIAPP's `NOTEIN played` and `seen` on
+every run (0→3, 0→4 in the recorded pass). So RIAPP's proven paths are **R5
+note in** and **R2 clock out**; the guest→host note result is a test-tool
+result only, and RIAPP note/CC out (`RIAPP_MIDI_DEVOUT`) was not tested. The one
 `refused` per file is the channel-10 **drum release**: a drum has no gate,
 so `ri_notein_note()` refuses and counts it by design (`midi_io/note_in.c`,
 "a drum has no gate to release"). It is a pre-existing M5 semantic, not an
@@ -6733,8 +6750,9 @@ the map") is wider than what it counts. Recorded, not changed.
 **Clock out (N3, two runs).** 24 ppqn at 140 BPM = 56.000 clocks/s. On the
 host, `clocksniff` stamps every F8 as it reaches ALSA. The only 140 BPM song
 is 151 bars = 258.9 s and RIAPP has no wired transport loop, so the runs use
-a derived 176-bar test song (`r12-n3-long140.rbng`; one STRK row copied,
-sha256 `cba87db9…`). One bar of tail makes 177 bars = 303.43 s per run:
+a derived 176-bar test song (sha256 `cba87db9…`, 10090 B: one STRK row copied
+in `zombie-nation`; kept outside git in `songs/local/`, since it is
+cover-derived). One bar of tail makes 177 bars = 303.43 s per run:
 
 | run | F8 | span | mean | nominal | max | p99 | xruns | dropped |
 |---|---|---|---|---|---|---|---|---|
@@ -6760,7 +6778,12 @@ stop signal in two `Wait`s, hanging after one empty pump. Fixed in
 `app/riapp.c` and `platform/aros/midi_camd.c`; both are recorded in
 `r12-n3-clockout.md`.
 
+**Known trap for the next step.** `ri_pal_midi_send_start()` ignores its
+`port` argument and sends to the cluster the input open selected; a real
+`RIAPP_MIDI_OUT` must fix that before it can split the send cluster. Not
+changed here.
+
 **Not proven:** any DAW (the far peer is `rtpmidid` + an ALSA subscriber),
-MMC out, CC out (the gate's 33-message file carried notes only), clock **in**
-at 140 BPM (P1 stays parked: CAMD delivery, not the network), and the split
-of the >30 ms tail.
+RIAPP note/CC out (`RIAPP_MIDI_DEVOUT`; the gate's 33 messages were sent by
+`MIDISEND`), MMC out, clock **in** at 140 BPM (P1 stays parked: CAMD
+delivery, not the network), and the split of the >30 ms tail.
