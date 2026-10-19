@@ -1,5 +1,10 @@
 # R12 N1g — full packet diagnostics: where the session stalls (2026-10-19)
 
+> **PARTLY WITHDRAWN — see `r12-n1i-probe-artifact-and-nat.md`.** The peer in
+> this capture was my Python probe (still bound to UDP 5004), not rtpmidid.
+> The `action=0` readings and the token hypothesis below describe the probe's
+> behaviour. The diagnostics themselves are sound and reusable.
+
 ## Labels
 
 **Peerless check**: met (netmidid starts, reads config, idles).

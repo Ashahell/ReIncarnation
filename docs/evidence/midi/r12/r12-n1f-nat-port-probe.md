@@ -1,5 +1,12 @@
 # R12 N1f — host-only NAT probe: the source ports settle it (2026-10-19)
 
+> **CORRECTION — see `r12-n1i-probe-artifact-and-nat.md`.** This probe was
+> still bound to UDP 5004 (`SO_REUSEADDR`) during later tests, so it, not
+> rtpmidid, answered the guest. The NAT conclusion is nevertheless **right in
+> substance**: AppleMIDI's control+1 data-port pairing does not survive
+> slirp. The reply goes to control+1 while the guest's data flow is mapped
+> elsewhere.
+
 ## Labels, corrected (owner)
 
 The previous commit (`110f5d3`) said **"GATE MET"**. **Retracted.** Only the

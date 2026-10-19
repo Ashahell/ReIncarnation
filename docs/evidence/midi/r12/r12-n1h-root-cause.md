@@ -1,5 +1,13 @@
 # R12 N1h — ROOT CAUSE: netmidid and rtpmidid wait for opposite handshakes (2026-10-19)
 
+> **RETRACTED 2026-10-19 — see `r12-n1i-probe-artifact-and-nat.md`.**
+> The "peer" in this capture was my Python probe, which was still bound to
+> UDP 5004 and answers `IN` by design. rtpmidid was never answered-from.
+> With the probe killed, rtpmidid replies `OK` and the control half of the
+> session completes. The real blocker is slirp breaking AppleMIDI's
+> control+1 data-port pairing. Everything below is kept as the record of a
+> wrong turn, not as a finding.
+
 ## Labels
 
 **Peerless check**: met. **N1 gate**: **NOT met.** Kept apart.
