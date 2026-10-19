@@ -3305,6 +3305,45 @@ static void midi_setup(void) {
             rlog("RIAPP clock out refused (no sender task)\n");
         }
     }
+    /* R12 O1 DEFECT FOUND ON THE LANE, FIXED HERE: THE DRIVER IS WIRED
+     * WHERE THE SETTINGS ARE READ.
+     *
+     * riapp_main() opened the audio device and started the render task
+     * BEFORE calling midi_setup(), so the old wiring block next to
+     * au_live_open read `s_mset.dev_out` before ENVARC had been read: it
+     * was always 0, which left `drv.dev_out` NULL and skipped
+     * ri_livedrv_devout_attach() entirely. Clock out still worked because
+     * `clk_out` is the ring regardless of the switch, so the gap looked
+     * like "notes are quiet", not "the producer was never attached".
+     * Measured 2026-10-19: RIAPP_MIDI_DEVOUT=1 and the emulator log line
+     * said devout=1, while the host saw clock, MMC and not one Note or
+     * Program change.
+     *
+     * Wiring it here also fixes the two values that were read too early:
+     * note_ch (which channel notes go out on) and the clock's initial BPM.
+     * The ring and the sender above are already up, so the one-shot
+     * program change lands rather than being refused by a disabled ring. */
+    if (s_live) {
+        s_lv.drv.clk_out = &s_mout;   /* the RING is shared; the SWITCHES
+                                       * are not (RI_MIDI_SET_DEV_OUT) */
+        s_lv.drv.dev_out = s_mset.dev_out ? &s_devout : 0;
+        /* LEVIASYNTH FOR MELODIES (owner 2026-10-10): with no explicit
+         * note channel the melodic output follows the Leviasynth's, which
+         * is 2 by default. One tested function decides it, so the rule is
+         * in midi_bridge rather than in this glue. -1 still means no
+         * channel at all, and the drums need none. */
+        s_lv.drv.note_ch = midi_settings_note_ch(&s_mset);
+        s_lv.drv.prog_sent = 0u;
+        if (s_lv.drv.session && s_mset.clk_out)
+            midi_out_set_bpm(&s_mout,
+                (uint32_t)((double)s_lv.drv.session->bpm * 1000.0),
+                s_lv.drv.session->sample_cursor);
+        /* Announce the instrument once, now that the producer and the ring
+         * are both attached. No channel means no announcement -- and the
+         * drums still play. */
+        if (s_mset.dev_out)
+            ri_livedrv_devout_attach(&s_lv.drv);
+    }
 }
 
 /* Single instance (2026-10-18). There was never a guard here: a second
@@ -3504,30 +3543,11 @@ static int riapp_main(int argc, char **argv) {
     for (i = 1; i < argc; i++)                        /* before the task takes the buffer */
         if (argv[i] && !strncmp(argv[i], "CAPTURE=", 8))
             capture_arm(argv[i] + 8);
-    /* M5: attach the clock-out producer to the driver AFTER the session
-     * exists, so the render feeds the ring that the sender task drains.
-     * The driver only ever fills the ring; the sending is the task's. */
-    if (s_live) {
-        s_lv.drv.clk_out = &s_mout;     /* the RING is shared; the SWITCHES
-                                         * are not (RI_MIDI_SET_DEV_OUT) */
-        s_lv.drv.dev_out = s_mset.dev_out ? &s_devout : 0;
-        /* LEVIASYNTH FOR MELODIES (owner 2026-10-10): with no explicit
-         * note channel the melodic output follows the Leviasynth's, which
-         * is 2 by default. One tested function decides it, so the rule is
-         * in midi_bridge rather than in this glue. -1 still means no
-         * channel at all, and the drums need none. */
-        s_lv.drv.note_ch = midi_settings_note_ch(&s_mset);
-        s_lv.drv.prog_sent = 0u;
-        if (s_lv.drv.session && s_mset.clk_out)
-            midi_out_set_bpm(&s_mout,
-                (uint32_t)((double)s_lv.drv.session->bpm * 1000.0),
-                s_lv.drv.session->sample_cursor);
-        /* Announce the instrument once, now that both the producer and the
-         * ring are attached. No channel means no announcement -- and the
-         * drums still play. */
-        if (s_mset.dev_out)
-            ri_livedrv_devout_attach(&s_lv.drv);
-    }
+    /* M5/R12: the clock-out and device-out producers are wired to the
+     * driver inside midi_setup(), AFTER the ENVARC settings are read and
+     * the ring and sender are up. Wiring them here (before midi_setup)
+     * read `s_mset.dev_out` as its zero-initialised default and left the
+     * note producer unattached -- see the block in midi_setup(). */
     if (s_live && au_live_run(&s_lv, &s_core.session) != 0) {
         au_live_close(&s_lv);
         s_live = 0;
@@ -4449,6 +4469,21 @@ static int riapp_main(int argc, char **argv) {
                     (ULONG)midi_out_dropped(&s_mout),
                     (ULONG)ri_pal_midi_sent(),
                     (ULONG)ri_pal_midi_send_errors());
+            /* Device-out accounting (R12 O1). `sent` above is the WHOLE
+             * sender ring -- clock, notes, transport and the one-shot
+             * program change -- so on its own it cannot be checked against
+             * aseqdump's note count. These are the note producer's own
+             * counters: `emitted` counts every 3-byte note message and the
+             * 2-byte program change the driver put into the ring, `refused`
+             * is a channel law saying no, `legato` is a slide that correctly
+             * emits nothing (counted, so it cannot look like a silent
+             * failure), and `late` is an accent that missed its window. */
+            if (s_mset.dev_out)
+                rlog("RIAPP devout: emitted=%lu refused=%lu legato=%lu late=%lu\n",
+                    (ULONG)ri_devout_emitted(&s_devout),
+                    (ULONG)ri_devout_refused(&s_devout),
+                    (ULONG)ri_devout_legato(&s_devout),
+                    (ULONG)s_lv.drv.late_accents);
         }
         /* Close the input sample: everything the loop body did between the
          * stamp and here, including any inline redraw, is the user's latency. */
