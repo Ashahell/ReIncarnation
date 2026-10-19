@@ -167,13 +167,17 @@ Dell is `.60`).
   (expected 17857 µs), the spread and the worst gap, next to the existing
   `mean_us=17853` schedule figure, which is the sender side only.
 
-**T3 — Ableton (owner).** It needs a macOS or Windows machine with Live, and
-**which machine that is, is an owner question.**
-- macOS: Audio MIDI Setup → MIDI Network Setup, create a session, then add
-  the Dell by IP (no mDNS until #1591). Windows: rtpMIDI, same steps.
-- In Live: enable **Sync** on the session's input port, then play on the Dell.
-- Pass: Live follows tempo and Start/Stop, and a Live MIDI track plays the
-  808 on channel 10.
+**T3 — a DAW on the Linux host (replaces the Ableton test).** The owner has
+no access to Ableton (2026-10-19). Use **Ardour** (GPL, in Arch `extra`,
+9.8): it can follow external **MIDI Clock** as a transport master, so it
+covers the same "a DAW follows the Dell" case. It takes its ports from the
+ALSA sequencer, where `rtpmidid` exposes the Dell's session.
+- In Ardour: set the transport master to MIDI Clock on the `rtpmidid` port
+  for the Dell, then press play on the Dell.
+- Pass: Ardour follows tempo and Start/Stop, and an Ardour MIDI track routed
+  to that port plays the 808 on channel 10.
+- `aseqdump` stays the instrument for T1/T2. Ardour is only for this
+  end-to-end check.
 
 ## What actually waits on the open PRs
 
@@ -187,11 +191,16 @@ Dell is `.60`).
 - **Not a PR, and slower than any of them:** a deadwood2 sync from ADT, which
   would put this in the ABIv11 tree itself. We should not wait for it.
 
-## Open questions for the owner
+## Owner decisions (2026-10-19)
 
-1. **Where does Ableton run?** macOS or Windows, and on the same LAN as the
-   Dell? T3 can't be planned without that answer.
-2. **Is a draft upstream branch acceptable on the Dell** for T2/T3, pinned
-   to a commit, until #1678/#1679 merge?
-3. **R12 was optional and listed under P4.** This makes it reachable now,
-   before the port. Does it move up, ahead of R7 (SMF)?
+1. **No access to Ableton.** T3 uses a Linux DAW instead (Ardour, above) and
+   `aseqdump` for the measurements.
+2. **A draft upstream branch on the Dell is acceptable**, pinned to a commit,
+   until #1678/#1679 merge.
+3. **Priority:** **R7 (SMF) goes first.** Without Ableton, R12's headline
+   payoff can't be shown, and R7 can be verified entirely on the host. R12
+   runs alongside it as lane work, scoped to **T1/T2: plumbing plus the
+   clock-out measurement**. The brief is
+   `docs/superpowers/plans/2026-10-19-r12-network-midi-opencode-prompt.md`.
+   T3 (Ardour) follows if T2 passes. The `RIAPP_MIDI_OUT` app change waits
+   until T2 has shown that the path works.
