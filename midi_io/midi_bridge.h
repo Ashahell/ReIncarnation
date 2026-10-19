@@ -92,6 +92,13 @@ void midi_bridge_note_link(struct RIMidiBridge *b, uint32_t lost);
 
 struct RIMidiSettings {
     char cluster[64];  /* input cluster name */
+    /* R12: OUTBOUND cluster. Empty means "the input cluster" -- see
+     * midi_settings_out(). That is why an existing setup with only
+     * RIAPP_MIDI_IN set behaves exactly as it did before this field
+     * existed, and why the default is not a copied literal: a driver port
+     * has separate in and out clusters (`applemidi.in.N` /
+     * `applemidi.out.N`), an app-to-app cluster has one for both. */
+    char out_cluster[64];
     uint8_t channel;   /* 1..16, user-facing (midimap takes channel - 1) */
     uint8_t sync;      /* RI_SYNC_* */
     uint8_t levi_ch;   /* 1..16 */
@@ -142,6 +149,15 @@ int midi_settings_note_ch(const struct RIMidiSettings *s);
  *    which is R6f's "0 = unassigned, never defaulted" verbatim.
  */
 int midi_settings_notein_ch(const struct RIMidiSettings *s, uint32_t dev);
+
+/* The cluster OUTBOUND sends use: `out_cluster` when one was named, and
+ * otherwise the input cluster. Never NULL; "" only for a NULL settings.
+ * This is the one place the "out defaults to in" law lives, so the setting
+ * cannot be ignored in one caller while honoured in another. */
+const char *midi_settings_out(const struct RIMidiSettings *s);
+/* Name the outbound cluster. Non-empty, and it must fit the field; 0 on
+ * success, 1 refused (previous value kept). */
+int midi_settings_set_out(struct RIMidiSettings *s, const char *name);
 
 void midi_settings_defaults(struct RIMidiSettings *s);
 /* 0 accepted, 1 bad field/value (previous value kept). */

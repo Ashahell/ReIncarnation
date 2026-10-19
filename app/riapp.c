@@ -769,7 +769,10 @@ static void sync_transport(void) {
         else if (st == RI_TR_STOPPED)
             fn = midi_mmc_out_stop(&s_mmcout, f, sizeof f);
         if (fn && !s_mmc_echo) {
-            if (ri_pal_midi_send(s_mset.cluster, f, fn) == 0)
+            /* SAME OUT CLUSTER AS THE SENDER TASK. Both callers name
+             * midi_settings_out(), so the PAL's one-link rule never sees a
+             * mismatch in normal use. */
+            if (ri_pal_midi_send(midi_settings_out(&s_mset), f, fn) == 0)
                 evlog("MMC", "tx=%u bytes=%lu", (ULONG)f[4], (ULONG)fn);
             else
                 evlog("MMC", "tx=%u refused", (ULONG)f[4]);
@@ -3148,6 +3151,15 @@ static void midi_setup(void) {
             }
             s_mset.cluster[k] = 0;
         }
+        /* R12: the OUTBOUND cluster. Absent means "use RIAPP_MIDI_IN", so
+         * every existing setup is unchanged; a network driver port needs
+         * them separate (`applemidi.in.N` / `applemidi.out.N`). */
+        r = GetVar((STRPTR)"RIAPP_MIDI_OUT", (STRPTR)cb, (LONG)sizeof cb - 1u, 0L);
+        if (r > 0) {
+            cb[sizeof cb - 1u] = 0;
+            if (midi_settings_set_out(&s_mset, cb) != 0)
+                rlog("RIAPP midi: RIAPP_MIDI_OUT refused (empty or too long)\n");
+        }
         if (midi_getnum("RIAPP_MIDI_CH", &v))
             midi_settings_set(&s_mset, RI_MIDI_SET_CHANNEL, v);
         if (midi_getnum("RIAPP_MIDI_SYNC", &v))
@@ -3174,9 +3186,10 @@ static void midi_setup(void) {
         if (midi_getnum("RIAPP_MIDI_NOTECH", &v))
             midi_settings_set(&s_mset, RI_MIDI_SET_NOTE_CH, v);
     }
-    rlog("RIAPP midi in=%s ch=%u sync=%u levi=%u clkout=%u lat=%d devout=%u notech=%u\n",
-        s_mset.cluster, s_mset.channel, s_mset.sync, s_mset.levi_ch,
-        s_mset.clk_out, s_mset.lat_ms, s_mset.dev_out, s_mset.note_ch);
+    rlog("RIAPP midi in=%s out=%s ch=%u sync=%u levi=%u clkout=%u lat=%d devout=%u notech=%u\n",
+        s_mset.cluster, midi_settings_out(&s_mset), s_mset.channel, s_mset.sync,
+        s_mset.levi_ch, s_mset.clk_out, s_mset.lat_ms, s_mset.dev_out,
+        s_mset.note_ch);
     ri_midi_init(&s_midi, (uint8_t)(s_mset.channel - 1u));
     /* M4 channel table (E0, ledgered): the remote on its channel, the
      * Leviasynth on RIAPP_MIDI_LEVI_CH (default 2). */
@@ -3275,15 +3288,16 @@ static void midi_setup(void) {
      * drained, and the host received no clock at all. Measured on the Dell,
      * 2026-10-19: `enabled=0` at the CLK evlog, no sender in TaskList,
      * clocksniff on 128:2 = 0 clocks over 20 s. There is also a second
-     * reason for this order: the AROS sender sends to the cluster the input
-     * open selected, and `ri_pal_midi_send_start` ignores its `port`
-     * argument, so a sender started first would send to the wrong cluster.
+     * reason for this order: `ri_pal_midi_open_in()` closes the current MIDI
+     * state, and the sender is part of that state. R12 also gives the sender
+     * its own outbound cluster (`midi_settings_out`), so it no longer has to
+     * borrow the input open's cluster.
      *
      * The sender must only start once the input open has settled: both the
      * clock ring and the note-out ring are drained by this one task. */
     if (s_mset.clk_out || s_mset.dev_out) {
         midi_out_enable(&s_mout, 1);
-        if (ri_pal_midi_send_start(s_mset.cluster, &s_mout) != 0) {
+        if (ri_pal_midi_send_start(midi_settings_out(&s_mset), &s_mout) != 0) {
             /* Fail closed: a sender we could not start means BOTH are off,
              * not a half-working clock or a producer nobody is draining. */
             midi_out_enable(&s_mout, 0);

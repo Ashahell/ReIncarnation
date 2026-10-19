@@ -118,6 +118,36 @@ int main(void) {
         RI_ASSERT(midi_settings_set(&s, RI_MIDI_SET_LAT_MS, 201L) == 1 && s.lat_ms == -50, "lat rej");
         RI_ASSERT(midi_settings_set(&s, 99u, 1L) == 1, "field rej");
         RI_ASSERT(midi_settings_set(0, RI_MIDI_SET_CHANNEL, 1L) == 1, "null rej");
+        /* R12: RIAPP_MIDI_OUT DEFAULTS TO THE INPUT CLUSTER. The first
+         * case is what leaves every existing single-cluster setup
+         * unchanged; renaming the input and watching the output follow is
+         * what separates "defaults to in" from "defaults to the literal
+         * `riapp`" (both look identical until the input is changed). */
+        RI_ASSERT(!strcmp(midi_settings_out(&s), s.cluster),
+            "out defaults to in (%s)", midi_settings_out(&s));
+        strcpy(s.cluster, "applemidi.in.0");
+        RI_ASSERT(!strcmp(midi_settings_out(&s), "applemidi.in.0"),
+            "out follows a renamed in (%s)", midi_settings_out(&s));
+        RI_ASSERT(midi_settings_set_out(&s, "applemidi.out.0") == 0,
+            "an explicit out is accepted");
+        RI_ASSERT(!strcmp(midi_settings_out(&s), "applemidi.out.0"),
+            "an explicit out overrides in (%s)", midi_settings_out(&s));
+        RI_ASSERT(midi_settings_set_out(&s, "") == 1,
+            "an empty out is refused, not 'no cluster'");
+        RI_ASSERT(!strcmp(midi_settings_out(&s), "applemidi.out.0"),
+            "a refused out keeps the previous value");
+        {
+            char longname[80];
+            memset(longname, 'x', sizeof longname - 1u);
+            longname[sizeof longname - 1u] = 0;
+            RI_ASSERT(midi_settings_set_out(&s, longname) == 1,
+                "a too-long out is refused, not truncated");
+            RI_ASSERT(!strcmp(midi_settings_out(&s), "applemidi.out.0"),
+                "the too-long refusal kept the previous value");
+        }
+        RI_ASSERT(midi_settings_set_out(0, "x") == 1, "null settings out");
+        RI_ASSERT(midi_settings_set_out(&s, 0) == 1, "null name out");
+        RI_ASSERT(!strcmp(midi_settings_out(0), ""), "null settings has no out");
     }
     /* Value push: shadow, one send per change, right lane key. */
     {

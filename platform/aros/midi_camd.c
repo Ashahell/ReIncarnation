@@ -260,6 +260,9 @@ struct RIMidiBridge *ri_pal_midi_bridge(void) {
 }
 
 static struct RIMidiOut *s_out;          /* BORROWED: render writes it */
+/* THE SENDER'S OWN DESTINATION (R12). Empty means the open cluster, which
+ * is what a backend without a separate out setting has always done. */
+static char s_sendcluster[64];
 static struct Task *s_stask;
 static struct MsgPort *s_sport;
 static struct timerequest *s_streq;
@@ -309,10 +312,26 @@ static void tx_release(void) {
     ri_atomic_store_rel(&s_tx_busy, 0u);
 }
 
+/* A SysEx handed to camd's PutSysEx must START with F0, END with F7 and
+ * carry 7-bit data between them: PutSysEx walks the buffer until it sees a
+ * byte >= 0x80, so a frame that does not satisfy that contract makes camd
+ * read past the caller's buffer. Validate before the link, not after it. */
+static int sysex_ok(const uint8_t *msg, uint32_t len) {
+    uint32_t i;
+    if (msg[0] != 0xF0u || msg[len - 1u] != 0xF7u)
+        return 0;
+    for (i = 1u; i + 1u < len; i++)
+        if (msg[i] >= 0x80u)
+            return 0;
+    return 1;
+}
+
 int ri_pal_midi_send(const char *port, const uint8_t *msg, uint32_t len) {
-    ULONG pkt;
+    ULONG pkt = 0;
     const char *dst;
-    if (!msg || len == 0u || len > 3u)
+    if (!msg || len == 0u)
+        return 1;
+    if (len > 3u && !sysex_ok(msg, len))
         return 1;
     if (!lazy_base())
         return 1;
@@ -347,8 +366,9 @@ int ri_pal_midi_send(const char *port, const uint8_t *msg, uint32_t len) {
      * `s_cluster` is empty there and every message would have been dropped.) */
     if (s_txcluster[0] && strcmp(dst, s_txcluster) != 0)
         return 1;
-    pkt = ((ULONG)msg[0] << 24) | ((ULONG)(len > 1u ? msg[1] : 0u) << 16) |
-        ((ULONG)(len > 2u ? msg[2] : 0u) << 8);
+    if (len <= 3u)
+        pkt = ((ULONG)msg[0] << 24) | ((ULONG)(len > 1u ? msg[1] : 0u) << 16) |
+            ((ULONG)(len > 2u ? msg[2] : 0u) << 8);
     /* ONE TASK AT A TIME ON THE LINK, AND THE LINK IS BUILT UNDER IT TOO.
      * The claim goes as late as possible -- after every check that can refuse
      * -- so the contended window is only the create/link/put sequence. Taking
@@ -381,9 +401,17 @@ int ri_pal_midi_send(const char *port, const uint8_t *msg, uint32_t len) {
             if (!s_txlink)
                 rc = 1;
         }
-        if (rc == 0 && s_txlink)
-            PutMidi(s_txlink, pkt);
-        else
+        if (rc == 0 && s_txlink) {
+            /* MMC (and any other SysEx) is LONGER THAN A SHORT MESSAGE, so
+             * PutMidi cannot carry it and the old `len > 3` refusal is why
+             * every MMC send was refused on AROS. PutSysEx is the same
+             * link's SysEx call: one link, one destination, same turnstile,
+             * so the one-link rule the short path enforces still holds. */
+            if (len > 3u)
+                PutSysEx(s_txlink, (UBYTE *)msg);   /* read-only below */
+            else
+                PutMidi(s_txlink, pkt);
+        } else
             rc = 1;
         tx_release();
         return rc;
@@ -448,6 +476,7 @@ void ri_pal_midi_close(void) {
     s_cb = 0;
     s_user = 0;
     s_cluster[0] = 0;
+    s_sendcluster[0] = 0;   /* the sender this named was joined above */
     s_have_bridge = 0;
 }
 
@@ -470,7 +499,8 @@ void ri_pal_midi_close(void) {
 
 static int send_sink(const uint8_t *msg, uint32_t len, void *user) {
     (void)user;
-    if (ri_pal_midi_send(0, msg, len) != 0) {
+    /* s_sendcluster, NOT NULL: NULL would mean the input cluster. */
+    if (ri_pal_midi_send(s_sendcluster, msg, len) != 0) {
         s_send_err++;
         return 1;              /* stop this pump; retry next tick */
     }
@@ -594,10 +624,18 @@ static void sender_task(void) {
 }
 
 int ri_pal_midi_send_start(const char *port, struct RIMidiOut *o) {
-    uint32_t spins = 0u;
-    (void)port;               /* ri_pal_midi_send() uses the open cluster */
+    uint32_t spins = 0u, i;
     if (!o || s_stask)
         return 1;
+    /* THE SENDER USES THE PORT IT WAS GIVEN (R12). It used to ignore `port`
+     * and send to the cluster the INPUT open selected. On an app-to-app
+     * setup those are the same cluster; on a driver port they are not
+     * (`applemidi.in.N` vs `applemidi.out.N`), which is why the first clock
+     * proof had to point RIAPP_MIDI_IN at the OUTPUT cluster. NULL/"" keeps
+     * the old meaning: ri_pal_midi_send() falls back to the open cluster. */
+    for (i = 0u; port && port[i] && i < sizeof s_sendcluster - 1u; i++)
+        s_sendcluster[i] = port[i];
+    s_sendcluster[i] = 0;
     s_out = o;
     s_sent = 0u;
     s_send_err = 0u;

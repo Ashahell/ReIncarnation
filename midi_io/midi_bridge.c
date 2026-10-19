@@ -178,6 +178,29 @@ int midi_settings_notein_ch(const struct RIMidiSettings *s, uint32_t dev) {
     }
 }
 
+const char *midi_settings_out(const struct RIMidiSettings *s) {
+    if (!s)
+        return "";
+    /* EMPTY OUT MEANS "THE INPUT CLUSTER", not "no cluster". A setup that
+     * names only RIAPP_MIDI_IN therefore sends where it always did -- which
+     * is the whole back-compatibility requirement of R12's split. */
+    return s->out_cluster[0] ? s->out_cluster : s->cluster;
+}
+
+int midi_settings_set_out(struct RIMidiSettings *s, const char *name) {
+    uint32_t i;
+    if (!s || !name || !name[0])
+        return 1;
+    for (i = 0u; name[i]; i++) {
+        if (i >= sizeof s->out_cluster - 1u)
+            return 1;           /* refuse rather than truncate */
+    }
+    for (i = 0u; name[i]; i++)
+        s->out_cluster[i] = name[i];
+    s->out_cluster[i] = 0;
+    return 0;
+}
+
 void midi_settings_defaults(struct RIMidiSettings *s) {
     static const char dflt[] = "riapp";
     uint32_t i;
@@ -187,6 +210,7 @@ void midi_settings_defaults(struct RIMidiSettings *s) {
         s->cluster[i] = 0;
     for (i = 0u; dflt[i] && i < sizeof s->cluster - 1u; i++)
         s->cluster[i] = dflt[i];
+    s->out_cluster[0] = 0;   /* follow `cluster` until someone says otherwise */
     s->channel = 1u;
     s->sync = RI_SYNC_INTERNAL;
     s->levi_ch = 2u;

@@ -786,6 +786,45 @@ comments are what a reboot takes away.
   just sent it is a feedback loop, and a locate would bounce between the
   two machines.
 
+### CORRECTION 2026-10-19: the MMC out above never reached a wire
+
+The paragraph above describes the code as it was written, not as it behaved.
+On 2026-10-19 the out path was traced end to end and **no MMC frame could
+have left the machine**, for three independent reasons:
+
+1. **The bytes were not MMC.** `emit6()` wrote `F0 7E 7F 06 <cmd> F7` --
+   `7E` is Universal **non-real-time** SysEx, not MMC's `7F` -- and sent
+   PLAY=`01` / STOP=`02`, which are the wire's Stop and Play the other way
+   round. RIAPP's own `midi_mmc_cmd()` requires `7F`, so the app would have
+   rejected every frame it emitted had one come back.
+2. **The test pinned the wrong bytes.** `t191` asserted those same `7E` and
+   swapped command bytes, so the suite stayed green while the frame was
+   wrong. A test that copies the implementation cannot catch a wrong wire
+   format; the corrected test asserts the spec bytes `F0 7F 7F 06 02 F7`
+   (Play) and `F0 7F 7F 06 01 F7` (Stop), and checks that `midi_mmc_cmd()`
+   agrees with them.
+3. **The platform layer refused the message.** `ri_pal_midi_send()` accepted
+   only 1..3 bytes (`len > 3` returned an error), while an MMC frame is 6
+   or 10 bytes. The refusal was logged as `MMC tx=... refused`, which reads
+   like a transient failure rather than a size the API never accepted. The
+   same function also sent everything on the **input** link regardless of
+   the cluster argument, so clock/notes and MMC could not be placed on
+   separate devices.
+
+**Fixed in the O0 commit of this brief**: spec Play/Stop bytes (and LOCATE's
+`7E` header corrected to `7F`), t191 re-pinned to the spec, `RIAPP_MIDI_OUT`
+added so the out cluster is explicit (empty follows `RIAPP_MIDI_IN`), and the
+AROS PAL now selects the requested cluster and uses CAMD `PutSysEx()` for
+long frames, with the buffer validated as a well-formed `F0 ... F7` message
+first. **The wire proof is O1 in this brief**, not this correction.
+
+**Still divergent, recorded rather than silently fixed:** RIAPP's LOCATE
+payload is `F0 7F 7F 06 04 <16-bit beats> 00 00 F7`, which is the dialect
+its *in* path (`finish()` in `midi_mmc.c`) reads, **not** the MMC standard
+`F0 7F <dev> 06 44 06 01 <hr> <mn> <sc> <fr> <ff> F7`. Changing it would
+change the app's own follower protocol, so it is left as-is and named as a
+divergence for the owner.
+
 ## M5i: the schedule on a real lane, and four attempts at a 1 ms timer (2026-10-10)
 
 - **THE ANSWER, at last, from a lane: `mean_us=17856`** against a

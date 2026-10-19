@@ -129,7 +129,14 @@ int midi_mmc_out_enabled(const struct RIMidiMmcOut *m) {
     return (m && m->enabled) ? 1 : 0;
 }
 
-/* The 6-byte non-sysex transport frame: F0 7E 7F 06 <cmd> F7. */
+/* The 6-byte transport frame: F0 7F 7F 06 <cmd> F7.
+ *
+ * 7F is Universal REAL-TIME SysEx; 7E is the NON-real-time form and is not
+ * MMC. The old frame said 7E. It also sent PLAY=01 / STOP=02, which are the
+ * wire's STOP/PLAY the other way round (MMC: 01 Stop, 02 Play, 03 Deferred
+ * Play). Our own midi_mmc_cmd() requires 7F and maps 02/03 to play and 01 to
+ * stop, so RIAPP would have rejected every MMC frame it emitted -- and t191
+ * pinned those wrong bytes, which is why the suite stayed green. */
 static uint32_t emit6(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap,
     uint8_t cmd) {
     if (!m || !buf)
@@ -146,7 +153,7 @@ static uint32_t emit6(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap,
         return 0u;
     }
     buf[0] = SYSEX_START;
-    buf[1] = 0x7Eu;            /* non-realtime */
+    buf[1] = 0x7Fu;            /* Universal REAL-TIME SysEx */
     buf[2] = 0x7Fu;            /* all devices */
     buf[3] = 0x06u;            /* MMC command */
     buf[4] = cmd;
@@ -156,11 +163,11 @@ static uint32_t emit6(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap,
 }
 
 uint32_t midi_mmc_out_play(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap) {
-    return emit6(m, buf, cap, 0x01u);
+    return emit6(m, buf, cap, 0x02u);   /* MMC Play */
 }
 
 uint32_t midi_mmc_out_stop(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap) {
-    return emit6(m, buf, cap, 0x02u);
+    return emit6(m, buf, cap, 0x01u);   /* MMC Stop */
 }
 
 uint32_t midi_mmc_out_locate(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap,
@@ -181,10 +188,10 @@ uint32_t midi_mmc_out_locate(struct RIMidiMmcOut *m, uint8_t *buf, uint32_t cap,
     if (pos > 0xFFFFu)
         pos = 0xFFFFu;
     buf[0] = SYSEX_START;
-    buf[1] = 0x7Eu;
+    buf[1] = 0x7Fu;            /* Universal REAL-TIME SysEx, like play/stop */
     buf[2] = 0x7Fu;
     buf[3] = 0x06u;
-    buf[4] = 0x04u;            /* LOCATE */
+    buf[4] = 0x04u;            /* LOCATE (see the unit note above) */
     buf[5] = (uint8_t)((pos >> 8) & 0xFFu);   /* big endian, as read */
     buf[6] = (uint8_t)(pos & 0xFFu);
     buf[7] = 0x00u;            /* frames  */

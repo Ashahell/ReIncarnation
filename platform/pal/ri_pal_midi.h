@@ -12,6 +12,10 @@ typedef void (*ri_midi_in)(void *user, const uint8_t *msg, uint32_t len,
 struct RIMidiBridge;
 
 int ri_pal_midi_open_in(const char *port, ri_midi_in cb, void *user);
+/* `port` names the destination cluster; NULL/"" sends to the one
+ * ri_pal_midi_open_in() was given. A 1-3 byte message is a short MIDI
+ * message; a longer one MUST be a complete SysEx (F0 ... F7, 7-bit data)
+ * and goes out as SysEx on the same link. */
 int ri_pal_midi_send(const char *port, const uint8_t *msg, uint32_t len);
 void ri_pal_midi_close(void);
 /* Bridge router (M2): the backend feeds it; queue-direct users (RIAPP)
@@ -29,8 +33,10 @@ void ri_pal_midi_poll(void);
  *
  * `o` is BORROWED, not owned, and must outlive the sender: the render
  * writes it, the sender reads it, and both use the ring's SPSC discipline
- * (render = producer, sender = consumer). `port` is a camd cluster name or
- * NULL for the one ri_pal_midi_open_in() was given.
+ * (render = producer, sender = consumer). `port` is the camd cluster this
+ * sender sends to; NULL/"" means the one ri_pal_midi_open_in() was given.
+ * The backend MUST use `port` when it is named -- an input driver port and
+ * its output port are different clusters (R12).
  *
  * 0 started, non-zero refused (no timer device, no task, already running).
  * `ri_pal_midi_send_stop()` joins the task. A backend that has no task
