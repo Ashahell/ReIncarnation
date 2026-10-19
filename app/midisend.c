@@ -594,10 +594,9 @@ int main(int argc, char **argv) {
             struct MidiCluster *c = NULL;
             LONG nc = 0;
             APTR lock = LockCAMD(CD_Linkages);
-            while ((c = NextCluster(c)) != NULL && nc < 12) {
+            while ((c = NextCluster(c)) != NULL && nc < 40) {
                 const UBYTE *nm = (const UBYTE *)c->mcl_Node.ln_Name;
-                Printf((CONST_STRPTR)"SELFTEST cluster %ld at %lx name %02lx %02lx %02lx %02lx\n", nc++, (IPTR)c,
-                    nm ? (ULONG)nm[0] : 0UL, nm ? (ULONG)nm[1] : 0UL, nm ? (ULONG)nm[2] : 0UL, nm ? (ULONG)nm[3] : 0UL);
+                Printf((CONST_STRPTR)"SELFTEST cluster %ld name %s\n", nc++, (STRPTR)nm);
             }
             UnlockCAMD(lock);
         }
