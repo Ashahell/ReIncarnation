@@ -542,9 +542,27 @@ static void sender_task(void) {
         s_streq->tr_time.tv_secs = 0;
         s_streq->tr_time.tv_micro = 1000;
         SendIO((struct IORequest *)s_streq);
-        WaitPort(s_sport);
-        sigs = Wait(1UL << s_skill_sig);
-        (void)GetMsg(s_sport);   /* the timer reply */
+        /* WAIT FOR THE TICK **OR** THE STOP, ONE WAIT (2026-10-19).
+         *
+         * This used to be `WaitPort(s_sport)` followed by
+         * `Wait(1UL << s_skill_sig)`. The first call already waited out the
+         * 1 ms tick; the second then blocked until someone signalled stop,
+         * which nobody does while clock out is meant to run. So the loop
+         * executed exactly once -- the pump at the top, with an empty ring
+         * at startup -- and then hung forever: no error, the task present
+         * and "waiting" in TaskList, the ring full at 255, `sent=0`,
+         * `err=0`, and not one F8 on the wire after 40 s of playback. The
+         * heartbeat's `RIAPP clk: on=1 run=1 pend=255 dropped=... sent=0`
+         * is the signature (Dell, 2026-10-19).
+         *
+         * Both wakeups belong in ONE Wait, because the stop must also wake a
+         * task that is sitting in its 1 ms tick. The timer reply is reaped
+         * only when the port signal is the one that fired; when stop wins the
+         * race, CheckIO/AbortIO/WaitIO below cancel the outstanding tick
+         * before the loop breaks. */
+        sigs = Wait((1UL << s_sport->mp_SigBit) | (1UL << s_skill_sig));
+        if (sigs & (1UL << s_sport->mp_SigBit))
+            (void)GetMsg(s_sport);   /* the timer reply */
         if (!CheckIO((struct IORequest *)s_streq))
             AbortIO((struct IORequest *)s_streq);
         WaitIO((struct IORequest *)s_streq);

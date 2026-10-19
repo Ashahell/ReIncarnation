@@ -3246,16 +3246,6 @@ static void midi_setup(void) {
     ri_devout_init(&s_devout, s_mset.dev_out);
     if (s_mset.dev_out)
         ri_devout_enable(&s_devout, 1);
-    if (s_mset.clk_out || s_mset.dev_out) {
-        midi_out_enable(&s_mout, 1);
-        if (ri_pal_midi_send_start(s_mset.cluster, &s_mout) != 0) {
-            /* Fail closed: a sender we could not start means BOTH are off,
-             * not a half-working clock or a producer nobody is draining. */
-            midi_out_enable(&s_mout, 0);
-            ri_devout_enable(&s_devout, 0);
-            rlog("RIAPP clock out refused (no sender task)\n");
-        }
-    }
     evlog("CLK", "out=%u enabled=%u lat_ms=%u",
         (ULONG)s_mset.clk_out, (ULONG)midi_out_pending(&s_mout),
         (ULONG)s_mset.lat_ms);
@@ -3275,6 +3265,32 @@ static void midi_setup(void) {
     ri_panel_midi_shadow_init(s_midi_uis, s_midi_sec, 15u, s_midi_sh);
     if (ri_pal_midi_open_in(s_mset.cluster, 0, 0) != 0)
         rlog("RIAPP midi: no input on %s\n", s_mset.cluster);
+    /* START THE SENDER AFTER THE INPUT IS OPEN (2026-10-19).
+     *
+     * `ri_pal_midi_open_in()` begins with `ri_pal_midi_close()`, which joins
+     * and stops the clock-out sender. The sender used to be started a few
+     * lines ABOVE the open, so every start with `RIAPP_MIDI_CLKOUT=1` killed
+     * its own sender immediately: `ri_pal_midi_send_start` returned 0 (no
+     * "clock out refused"), no `RIAPP midi-out` task existed, the ring never
+     * drained, and the host received no clock at all. Measured on the Dell,
+     * 2026-10-19: `enabled=0` at the CLK evlog, no sender in TaskList,
+     * clocksniff on 128:2 = 0 clocks over 20 s. There is also a second
+     * reason for this order: the AROS sender sends to the cluster the input
+     * open selected, and `ri_pal_midi_send_start` ignores its `port`
+     * argument, so a sender started first would send to the wrong cluster.
+     *
+     * The sender must only start once the input open has settled: both the
+     * clock ring and the note-out ring are drained by this one task. */
+    if (s_mset.clk_out || s_mset.dev_out) {
+        midi_out_enable(&s_mout, 1);
+        if (ri_pal_midi_send_start(s_mset.cluster, &s_mout) != 0) {
+            /* Fail closed: a sender we could not start means BOTH are off,
+             * not a half-working clock or a producer nobody is draining. */
+            midi_out_enable(&s_mout, 0);
+            ri_devout_enable(&s_devout, 0);
+            rlog("RIAPP clock out refused (no sender task)\n");
+        }
+    }
 }
 
 /* Single instance (2026-10-18). There was never a guard here: a second
@@ -4406,6 +4422,19 @@ static int riapp_main(int argc, char **argv) {
                 s_core.session.player.sounding_slot[2], s_core.session.player.sounding_slot[3],
                 s_core.session.player.pending_slot[0], s_core.session.player.pending_slot[1],
                 s_core.session.player.pending_slot[2], s_core.session.player.pending_slot[3]);
+            /* Clock-out visibility (2026-10-19): the heartbeat could say
+             * "playing" while the ring was empty, the sender absent and the
+             * wire silent. These five numbers separate the stages: on/run is
+             * the producer's state, pend is what the producer filled and the
+             * sender has not drained, sent/err is what actually left the PAL
+             * sink. Logged only when clock or note out is enabled. */
+            if (s_mset.clk_out || s_mset.dev_out)
+                rlog("RIAPP clk: on=%lu run=%lu pend=%lu dropped=%lu sent=%lu err=%lu\n",
+                    (ULONG)s_mout.enabled, (ULONG)s_mout.running,
+                    (ULONG)midi_out_pending(&s_mout),
+                    (ULONG)midi_out_dropped(&s_mout),
+                    (ULONG)ri_pal_midi_sent(),
+                    (ULONG)ri_pal_midi_send_errors());
         }
         /* Close the input sample: everything the loop body did between the
          * stamp and here, including any inline redraw, is the user's latency. */
