@@ -1,4 +1,18 @@
-# R12 N1e — netmidid starts, reads its config and idles: GATE MET (2026-10-19)
+# R12 N1e — netmidid starts, reads its config and idles (PEERLESS CHECK ONLY)
+
+> **LABEL CORRECTION (2026-10-19, owner).** The commit that added this file
+> said "GATE MET". That was **wrong** and is retracted: only the **peerless**
+> check passed — "netmidid starts, reads its config and idles".
+>
+> **The N1 gate is NOT met.** It is three checks, and none of the other two has
+> run: the session has **not** been observed connected on both sides,
+> `MIDISEND` to `applemidi.out.0` has **not** been seen in `aseqdump`, and
+> `aplaymidi` has **not** moved `NOTEIN played=`.
+>
+> From here on the two are kept apart explicitly: **peerless checks** (does the
+> service start, read config, idle, expose ports) are tracked separately from
+> the **N1 gate** (an established AppleMIDI session with notes crossing in
+> both directions).
 
 ## The root cause was mine, not the build's
 
@@ -72,9 +86,9 @@ Recorded, as asked:
 The **r12 claim stays retracted**: ABIv1 tree-built binaries that demonstrably
 run carry 7 (`camd.library`) and 5 (`C:Version`) `mov %rax,%r12` sites.
 
-## GATE: MET
+## PEERLESS CHECK: MET. N1 GATE: NOT MET.
 
-`netmidid` starts, reads its config and idles.
+`netmidid` starts, reads its config and idles. **That is all this shows.**
 
 ```
 netmidid: listening on UDP 5004/5005
