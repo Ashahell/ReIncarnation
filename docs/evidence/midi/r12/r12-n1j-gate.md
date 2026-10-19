@@ -30,6 +30,9 @@ different evidence; nothing here reuses the peerless capture.
   exported over mDNS and its removal removed the Dell's alsa peer (see
   "Corrections").
 - RIAPP started with `RIAPP_MIDI_IN=applemidi.in.0`, after `netmidid`.
+  The first pass below ran on the binary that was already on the Dell; the
+  gate was then re-run, unchanged, on the repo build `5194334` — see
+  "Artifact identity" at the end.
 
 Session, host peer log:
 
@@ -142,6 +145,33 @@ plus the expected `CK`/`RS` keepalive traffic. No journal, no errors.
   line. Start RIAPP once, after stopping the previous instance with
   `Break NAME=SYS:Classes/ReIncarnation/RIAPP C`.
 
+## Artifact identity — the first pass ran on a binary the repo cannot rebuild
+
+The gate was first measured on the `RIAPP` that was already on the Dell:
+
+```
+SYS:Classes/ReIncarnation/RIAPP   1032784 bytes   Today 05:46:59
+sha256 56af77a94d4a7ee15cbbdb5585d700c61ea8d077d7e76cc3d92fb10f4b549406
+RIAPP LOG build=?        <- no build hash: not produced by scripts/ri_build_v11.sh
+```
+
+The repo build at the time was `1204720` B with `build=c84b27e`. The sizes
+and the missing hash say the first pass was **not** the repo artifact, even
+though it carried the same clock/sender strings. The old binary was copied
+to `/home/miller/.worktrees/r12-logs/r12-n1j/RIAPP.deployed-2026-10-19.bin`
+before it was replaced, and the whole gate was re-run on the committed build
+(`5194334`, `1205072` B, `RIAPP LOG build=5194334`):
+
+| check | old binary | build 5194334 |
+|---|---|---|
+| session connects | met | met |
+| 2: guest -> host | 17 on / 16 off | **17 on / 16 off** |
+| 3: host -> guest | played 0->3, seen 0->4 | **played 0->3, seen 0->4** |
+
+Same numbers, same one `refused` per file (the channel-10 note-off). The
+gate statement therefore holds for the reproducible build, not just for the
+stray one.
+
 ## Artifacts
 
 `/home/miller/.worktrees/r12-logs/r12-n1j/`:
@@ -151,11 +181,17 @@ plus the expected `CK`/`RS` keepalive traffic. No journal, no errors.
 - `netmidid-before.txt`, `netmidid-after.txt`, `netmidid-delta.txt` — guest
   session and receive log
 - `rtpmidid-peer.log` — host session, CONNECTED, alsapeer
+- `RIAPP.deployed-2026-10-19.bin` — the pre-existing Dell binary the first
+  pass ran on (sha256 `56af77a9…`), kept because it is not reproducible from
+  the repo
+- `gate2-rerun-aseqdump.log`, `gate3-rerun-before.txt`,
+  `gate3-rerun-after.txt` — the same two checks on build `5194334`
 
 ## Not proven
 
 - A DAW (Ableton or any other) end to end; the far peer here is rtpmidid
   24.12.2.
-- Clock out (N3) — not measured in this run.
+- Clock out (N3) — not measured in this run; measured separately in
+  `r12-n3-clockout.md` (same build, 56.000 clocks/s, mean 17857.3 µs).
 - Whether the channel-10 note-off `refused` accounting matters musically (it
   is a one-shot percussion map; N2 detail).
