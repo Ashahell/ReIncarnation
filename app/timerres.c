@@ -12,13 +12,17 @@
  *
  * Prints 200 waits: per-iteration EClock microseconds, min/mean/max.
  *
+ * usage: TIMERRES [outfile]
+ *   The 2026-10-19 Dell run passed RAM:TR.RES; the path is a caller
+ *   argument so this source carries no platform volume literal.
+ *
  * build (ABIv11, the same flags as scripts/ri_build_v11.sh):
  *   VK=~/Work/projects/Vulkan4Aros
  *   SDK=$VK/src/abi/v11/sdk/Developer
  *   PATH=$VK/src/abi/v11/toolchain-core-x86_64:$PATH
  *   x86_64-aros-gcc -std=gnu99 -O2 -mcmodel=large -mno-red-zone \
  *     -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$SDK/include \
- *     -c tools/timerres.c -o timerres.o
+ *     -c app/timerres.c -o timerres.o
  *   x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 \
  *     -nostartfiles -no-pie -o TIMERRES timerres.o $SDK/lib/startup.o \
  *     -L$SDK/lib -lamiga -ldos -lexec -lautoinit
@@ -39,7 +43,7 @@ static uint64_t eclk_us(struct EClockVal *ev, ULONG freq)
     return t / freq * 1000000u + (t % freq) * 1000000u / freq;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     struct MsgPort *p;
     struct timerequest *tr;
@@ -83,12 +87,20 @@ int main(void)
         sum += d;
     }
 
-    f = fopen("RAM:TR.RES", "w");
-    if (f) {
-        fprintf(f, "n=%d min=%llu mean=%llu max=%llu us\n", n,
+    {
+        const char *out = (argc > 1) ? argv[1] : 0;
+        if (out) {
+            f = fopen(out, "w");
+            if (f) {
+                fprintf(f, "n=%d min=%llu mean=%llu max=%llu us\n", n,
+                    (unsigned long long)min, (unsigned long long)(sum / (uint64_t)n),
+                    (unsigned long long)max);
+                fclose(f);
+            }
+        }
+        printf("n=%d min=%llu mean=%llu max=%llu us\n", n,
             (unsigned long long)min, (unsigned long long)(sum / (uint64_t)n),
             (unsigned long long)max);
-        fclose(f);
     }
     CloseDevice((struct IORequest *)tr);
     DeleteIORequest(tr);
