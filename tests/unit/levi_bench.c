@@ -5,8 +5,8 @@
  * timings are median-of-7 with min/max. Two build modes:
  *
  *   timing only : gcc -std=gnu99 -O2 -I. -o /tmp/levi_bench
- *                     tests/unit/levi_bench.c /tmp/ri/build/*.o -lm -lpng
- *   with profile: same but -DRI_LEVI_PROFILE and /tmp/ri/prof/*.o
+ *                     tests/unit/levi_bench.c "$RI_TMP"/build/*.o -lm -lpng
+ *   with profile: same but -DRI_LEVI_PROFILE and "$RI_TMP"/prof/*.o
  *                 (profile objects live in a separate directory; the
  *                 shipping objects are untouched — see G5 evidence).
  *

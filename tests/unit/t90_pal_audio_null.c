@@ -27,8 +27,8 @@ static void t_pull(void *user, void *out, uint32_t frames) {
 }
 
 static int render_wav(uint32_t *size_out) {
-    /* Default backend path (/tmp/ri/null.wav) and length (2 s): no env. */
-    const char *path = "/tmp/ri/null.wav";
+    /* Default backend path (RI_TMP_ROOT "/null.wav") and length (2 s). */
+    const char *path = RI_TMP_ROOT "/null.wav";
     struct ri_audio_cfg c;
     struct ri_audio_info got;
     FILE *f;
@@ -72,7 +72,7 @@ static uint32_t fnv_file(const char *path, uint32_t *size_out) {
 }
 
 int main(void) {
-    const char *p1 = "/tmp/ri/null.wav";
+    const char *p1 = RI_TMP_ROOT "/null.wav";
     uint32_t s1 = 0u, s2 = 0u, h1, h2;
     t_phase = 0u;
     RI_ASSERT(render_wav(&s1) == 0, "render a");

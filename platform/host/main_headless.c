@@ -44,8 +44,8 @@ static void pull(void *user, void *out, uint32_t frames) {
 
 int main(int argc, char **argv) {
     const struct RIPatternBank *b4[5];
-    /* Backend defaults: /tmp/ri/null.wav, 2 s (no env needed). */
-    const char *wav = "/tmp/ri/null.wav";
+    /* Backend defaults: RI_TMP_ROOT "/null.wav", 2 s (no env needed). */
+    const char *wav = RI_TMP_ROOT "/null.wav";
     struct ri_audio_cfg c;
     struct ri_audio_info got;
     uint32_t q, rc = 1u;
@@ -118,10 +118,10 @@ int main(int argc, char **argv) {
             ri_raster_init(&r, px, w, h);
             ri_raster_clear(&r, 0x000000u);
             ri_raster_replay(&r, &dl, 0);
-            if (ri_raster_write_png("/tmp/ri/panel.png", &r) != 0)
+            if (ri_raster_write_png(RI_TMP_ROOT "/panel.png", &r) != 0)
                 rc = 1u;
             else
-                printf("headless: /tmp/ri/panel.png %ux%u hash=%08x\n", w, h, ri_raster_hash(&r));
+                printf("headless: " RI_TMP_ROOT "/panel.png %ux%u hash=%08x\n", w, h, ri_raster_hash(&r));
         } else {
             rc = 1u;
         }

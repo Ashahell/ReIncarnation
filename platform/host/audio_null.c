@@ -85,7 +85,7 @@ int ri_pal_audio_start(void) {
         return 1;
     path = getenv("RI_NULL_WAV");
     if (!path || !path[0])
-        path = "/tmp/ri/null.wav";
+        path = RI_TMP_ROOT "/null.wav";
     secs = env_u32("RI_NULL_SECONDS", 2u);
     total = secs * s_got.rate;
     f = fopen(path, "wb");

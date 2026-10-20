@@ -5,7 +5,7 @@
  * must be byte-identical (8 steps * 12000 samples * 2 B @48k).
  * On mismatch the test reports max abs int16 diff + first diff offset
  * (characterizes state carryover: settle-gap song vs loop-reset design)
- * and fails. File under /tmp/ri/run/t21 (audit-created).
+ * and fails. File under RI_TMP_ROOT "/run/t21" (audit-created).
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include "audio_io/audio.h"
 
-#define T21L_DIR "/tmp/ri/run/t21"
+#define T21L_DIR RI_TMP_ROOT "/run/t21"
 #define T21L_SONG T21L_DIR "/loop.rbng"
 #define T21L_WAV T21L_DIR "/loop.wav"
 /* 16th = 24 ticks = 6000 samples @120 BPM/48 kHz; 8-step loop = 48000.

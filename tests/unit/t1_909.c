@@ -324,9 +324,9 @@ int main(void) {
         uint32_t i;
         for (i = 0; i < 256; i++)
             pcm[i] = (int16_t)(i * 100);
-        RI_ASSERT(rbnm_write_pack("/tmp/ri/run/t9_good.rbnm", WL, 2, MANF) == 0,
+        RI_ASSERT(rbnm_write_pack(RI_TMP_ROOT "/run/t9_good.rbnm", WL, 2, MANF) == 0,
             "write good pack");
-        RI_ASSERT(rbnm_validate_file("/tmp/ri/run/t9_good.rbnm", err, sizeof err) == 0,
+        RI_ASSERT(rbnm_validate_file(RI_TMP_ROOT "/run/t9_good.rbnm", err, sizeof err) == 0,
             "good pack rejected: %s", err);
         RI_ASSERT(rbnm_validate_manifest_text(MANF, err, sizeof err) == 0,
             "good manifest rejected: %s", err);
@@ -335,11 +335,11 @@ int main(void) {
             "gap manifest accepted");
         printf("gap reason: %s\n", err);
         /* mutant 2: truncated file (120-byte prefix rewrite) */
-        RI_ASSERT(rbnm_write_pack("/tmp/ri/run/t9_trunc.rbnm", WL, 2, MANF) == 0,
+        RI_ASSERT(rbnm_write_pack(RI_TMP_ROOT "/run/t9_trunc.rbnm", WL, 2, MANF) == 0,
             "write trunc pack");
         {
             static unsigned char buf[4096];
-            FILE *g = fopen("/tmp/ri/run/t9_good.rbnm", "rb");
+            FILE *g = fopen(RI_TMP_ROOT "/run/t9_good.rbnm", "rb");
             FILE *h = 0;
             uint32_t got = 0;
             if (g) {
@@ -347,20 +347,20 @@ int main(void) {
                 fclose(g);
             }
             RI_ASSERT(got == 120, "prefix read");
-            h = fopen("/tmp/ri/run/t9_trunc.rbnm", "wb");
+            h = fopen(RI_TMP_ROOT "/run/t9_trunc.rbnm", "wb");
             RI_ASSERT(h != 0, "rewrite trunc");
             if (h) {
                 fwrite(buf, 1, got, h);
                 fclose(h);
             }
         }
-        RI_ASSERT(rbnm_validate_file("/tmp/ri/run/t9_trunc.rbnm", err, sizeof err) == 1,
+        RI_ASSERT(rbnm_validate_file(RI_TMP_ROOT "/run/t9_trunc.rbnm", err, sizeof err) == 1,
             "truncated pack accepted");
         printf("trunc reason: %s\n", err);
         /* mutant 3: SMPL frames lie (patch S909 frames of T-KICK +1) */
         {
             static unsigned char img[4096];
-            FILE *g = fopen("/tmp/ri/run/t9_good.rbnm", "rb");
+            FILE *g = fopen(RI_TMP_ROOT "/run/t9_good.rbnm", "rb");
             uint32_t got = 0, k;
             int patched = 0;
             if (g) {
@@ -377,14 +377,14 @@ int main(void) {
                 }
             }
             RI_ASSERT(patched, "mutant patch site found");
-            g = fopen("/tmp/ri/run/t9_lie.rbnm", "wb");
+            g = fopen(RI_TMP_ROOT "/run/t9_lie.rbnm", "wb");
             RI_ASSERT(g != 0, "write lie");
             if (g) {
                 fwrite(img, 1, got, g);
                 fclose(g);
             }
         }
-        RI_ASSERT(rbnm_validate_file("/tmp/ri/run/t9_lie.rbnm", err, sizeof err) == 1,
+        RI_ASSERT(rbnm_validate_file(RI_TMP_ROOT "/run/t9_lie.rbnm", err, sizeof err) == 1,
             "frame-lie pack accepted");
         printf("lie reason: %s\n", err);
         /* mutant 4: gap pack (MANF missing a layer row) */
@@ -393,10 +393,10 @@ int main(void) {
             const char *nl = strchr(MANF, '\n');
             RI_ASSERT(nl != 0, "manf split");
             memcpy(manf_short, nl + 1, strlen(nl + 1) + 1u);
-            RI_ASSERT(rbnm_write_pack("/tmp/ri/run/t9_short.rbnm", WL, 2,
+            RI_ASSERT(rbnm_write_pack(RI_TMP_ROOT "/run/t9_short.rbnm", WL, 2,
                 manf_short) == 0, "write short pack");
         }
-        RI_ASSERT(rbnm_validate_file("/tmp/ri/run/t9_short.rbnm", err, sizeof err) == 1,
+        RI_ASSERT(rbnm_validate_file(RI_TMP_ROOT "/run/t9_short.rbnm", err, sizeof err) == 1,
             "short-manifest pack accepted");
         printf("short reason: %s\n", err);
     }

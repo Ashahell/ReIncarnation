@@ -83,18 +83,18 @@ int main(void) {
 
     /* ---- RBNG: Levi banks (v1.5) and Levi + automation read back. ---- */
     RI_ASSERT(parse("RBS 1\nPLEVI 3 8 2 50,57\nTRACK 0 0 0 0 0 0 3\nAUTO 0 0x0E00 70\n", err) == 0, "levi song");
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t140.rbng", &S, err, sizeof err) == 0, "write: %s", err);
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t140.rbng", &S, err, sizeof err) == 0, "write: %s", err);
     rbng_song_init(&R);
     R.atrk = EVR;
     R.atrk_cap = 64u;
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t140.rbng", &R, err, sizeof err) == 0, "read back: %s", err);
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t140.rbng", &R, err, sizeof err) == 0, "read back: %s", err);
     for (k = 0u; k < R.nbanks && R.bank[k].instance != 4u; k++)
         ;
     RI_ASSERT(k < R.nbanks && R.bank[k].kind == RI_PATTERN_KIND_LEVI &&
         !memcmp(&R.bank[k].pat[3], &S.bank[4].pat[3], sizeof S.bank[4].pat[3]), "Levi bank round-trips");
     RI_ASSERT(R.natrk == 1u && R.track.slot[0][4] == 3u, "automation + Levi track round-trip");
     {
-        FILE *f = fopen("/tmp/ri/run/t140.rbng", "rb");
+        FILE *f = fopen(RI_TMP_ROOT "/run/t140.rbng", "rb");
         unsigned char h[24];
         RI_ASSERT(f && fread(h, 1, 24, f) == 24u, "header bytes");
         if (f)
@@ -115,11 +115,11 @@ int main(void) {
     S.atrk[0].ctl = 0x0300u;
     S.atrk[0].val = 70u;
     S.natrk = 1u;
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t140b.rbng", &S, err, sizeof err) == 0, "levi track + automation, no bank");
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t140b.rbng", &S, err, sizeof err) == 0, "levi track + automation, no bank");
     rbng_song_init(&R);
     R.atrk = EVR;
     R.atrk_cap = 64u;
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t140b.rbng", &R, err, sizeof err) == 0, "minor 4 file reads: %s", err);
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t140b.rbng", &R, err, sizeof err) == 0, "minor 4 file reads: %s", err);
 
     /* ---- Playlists. ---- */
     {

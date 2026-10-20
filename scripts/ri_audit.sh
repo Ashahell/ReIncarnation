@@ -49,7 +49,10 @@ echo "== Phase 0d: no test ships ungated =="
 # Run it deliberately, not as part of the gate:
 #   ./scripts/ri_build_host.sh all
 #   gcc -std=gnu99 -O2 -I. -o /tmp/levi_bench tests/unit/levi_bench.c \
-#       /tmp/ri/build/*.o -lm -lpng && /tmp/levi_bench
+#       "$RI_TMP"/build/*.o -lm -lpng && /tmp/levi_bench
+#   (RI_TMP defaults to /tmp/ri; a lane that shares the machine with
+#   another one must set it to its own folder, or the two lanes build into
+#   one directory and link each other's objects.)
 #
 # bench_build is the display-list build, same shape: it prints, per section, how
 # many commands the whole section emits against how many a 64x16 damage box
@@ -73,7 +76,7 @@ echo "== Phase 0d: no test ships ungated =="
 # signal check (an unbound 909 renders exact silence through an early return,
 # so a bench without layers would measure nothing and look confident).
 #   gcc -std=gnu99 -O2 -I. -o /tmp/drum_bench tests/unit/drum_bench.c \
-#       /tmp/ri/build/*.o -lm -lpng && /tmp/drum_bench
+#       "$RI_TMP"/build/*.o -lm -lpng && /tmp/drum_bench
 UNGATED_ALLOW=" levi_bench bench_build bench_trbar drum_bench "
 for f in "$ROOT"/tests/unit/*.c; do
   t="$(basename "$f" .c)"
@@ -107,10 +110,18 @@ bash "$ROOT/scripts/ri_build_host.sh" test t39_meg_veg >/dev/null || { echo "FAI
 bash "$ROOT/scripts/ri_build_host.sh" test t40_logslide >/dev/null || { echo "FAIL: t40_logslide (slide slews log2(f): octave rate constant)"; exit 1; }
 echo "-- re-render-compare --"
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "FAIL: host build"; exit 1; }
-OUT=/tmp/ri/build
-CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT"
+# ONE root for every build artefact. RI_TMP is exported, so
+# ri_audit.sh, ri_build_aros.sh and build/portable.mk all resolve it the
+# same way, and two lanes on one machine can point it at their own
+# folder and share NOTHING: the objects, the run scaffolds, the probe
+# artifacts and the portable build all follow it. (2026-10-20: the n36a
+# lane's first audit failed LINKING objects this lane was rebuilding.)
+RI_TMP="${RI_TMP:-/tmp/ri}"
+export RI_TMP
+OUT="$RI_TMP/build"
+CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT -DRI_TMP_ROOT=\"$RI_TMP\""
 gcc $CFLAGS -o "$OUT/render" "$ROOT/tools/render.c" "$OUT"/*.o -lpng || { echo "FAIL: render build"; exit 1; }
-A=/tmp/ri/run/audit
+A="$RI_TMP/run/audit"
 mkdir -p "$A"
 "$OUT/render" --math dc --out "$A/math-dc.wav" || exit 1
 "$OUT/render" --math sine --out "$A/math-sine.wav" || exit 1
@@ -650,7 +661,7 @@ grep -q "#ifndef __AROS__" "$ROOT/audio_io/probe_ahi.c" || { echo "FAIL: probe l
 grep -q '#error "probe_ahi.c is AROS-only' "$ROOT/audio_io/probe_ahi.c" || { echo "FAIL: probe lacks AROS-only #error"; exit 1; }
 if grep -rn "probe_ahi" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: probe leaks into host build"; exit 1; fi
 bash "$ROOT/scripts/ri_build_aros.sh" >/dev/null || { echo "FAIL: AROS build (stub+probe)"; exit 1; }
-test -f /tmp/ri/aros/probe_ahi || { echo "FAIL: probe_ahi artifact missing"; exit 1; }
+test -f "$RI_TMP/aros/probe_ahi" || { echo "FAIL: probe_ahi artifact missing"; exit 1; }
 # Same hygiene contract for probe_rate (2026-10-03, the rate probe). It is a
 # second AHI-only executable and the host-build leak is the same hazard: a
 # file including <devices/ahi.h> cannot compile natively, so the guard has to be
@@ -659,7 +670,7 @@ test -f "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: missing audio_io/probe_ra
 grep -q "#ifndef __AROS__" "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks __AROS__ guard"; exit 1; }
 grep -q '#error "probe_rate.c is AROS-only' "$ROOT/audio_io/probe_rate.c" || { echo "FAIL: probe_rate lacks AROS-only #error"; exit 1; }
 if grep -rn "probe_rate" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: probe_rate leaks into host build"; exit 1; fi
-test -f /tmp/ri/aros/probe_rate || { echo "FAIL: probe_rate artifact missing"; exit 1; }
+test -f "$RI_TMP/aros/probe_rate" || { echo "FAIL: probe_rate artifact missing"; exit 1; }
 # The rate probe must read the negotiated rate back and never trust the request.
 # CORRECTION 2026-10-07: AHIDB_Frequency without AHIDB_FrequencyArg is entry 0
 # of the codec's list, not the running rate (Device/modeinfo.c ~297-305); the
@@ -677,7 +688,7 @@ test -f "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: missing audio_io/probe
 grep -q "#ifndef __AROS__" "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: probe_rate_hw lacks __AROS__ guard"; exit 1; }
 grep -q '#error "probe_rate_hw.c is AROS-only' "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: probe_rate_hw lacks AROS-only #error"; exit 1; }
 if grep -rn "probe_rate_hw" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: probe_rate_hw leaks into host build"; exit 1; fi
-test -f /tmp/ri/aros/probe_rate_hw || { echo "FAIL: probe_rate_hw artifact missing"; exit 1; }
+test -f "$RI_TMP/aros/probe_rate_hw" || { echo "FAIL: probe_rate_hw artifact missing"; exit 1; }
 # The hardware-rate probe must timestamp SoundFunc callbacks with ReadEClock
 # and report the mixer rate from AHIC_MixFreq_Query beside the measured rate.
 grep -q "AHIC_MixFreq_Query" "$ROOT/audio_io/probe_rate_hw.c" || { echo "FAIL: probe_rate_hw does not read the mixer rate"; exit 1; }
@@ -717,7 +728,7 @@ echo "--     fingerprint. It is a good fingerprint and not a safety signal."
 echo "--   * -ffixed-r12 cannot suppress the v11 sequence: r12 is named in the asm"
 echo "--     template and in a 'register ... __asm__(\"r12\")' variable, so the"
 echo "--     compiler neither allocates nor rewrites it."
-for _ab in /tmp/ri/aros/probe_ahi /tmp/ri/aros/reincarnation_stub.library; do
+for _ab in "$RI_TMP/aros/probe_ahi" "$RI_TMP/aros/reincarnation_stub.library"; do
   _r12=$(x86_64-aros-objdump -d "$_ab" 2>/dev/null | grep -c 'mov[[:space:]]*%rax,%r12' || true)
   test "$_r12" = "0" || { echo "FAIL: stale r12-convention calls in $_ab ($_r12 found)"; exit 1; }
 done
@@ -741,11 +752,11 @@ if grep -rn "malloc\|calloc\|realloc\|Forbid\|Disable(" "$ROOT/audio_io/audio.c"
 echo "-- shared engine core wired (I1 retired §12.3: live == file by construction) --"
 grep -q "ri_engine_render_mono" "$ROOT/audio_io/audio.c" || { echo "FAIL: audio.c not on the shared engine core"; exit 1; }
 if grep -q "RI_LIVE_FULL_GRAPH_UNIMPLEMENTED" "$ROOT/audio_io/audio.c"; then echo "FAIL: retired live-scope marker still present"; exit 1; fi
-mkdir -p /tmp/ri/run/t6 # t6 test writes its scaffold here; clean wipes /tmp/ri
+mkdir -p "$RI_TMP/run/t6" # t6 test writes its scaffold here; clean wipes "$RI_TMP"
 bash "$ROOT/scripts/ri_build_host.sh" test t6_w1backend >/dev/null || { echo "FAIL: t6_w1backend"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t37_engine_single >/dev/null || { echo "FAIL: t37_engine_single (shared core: per-device routing, centre-unity stereo, mono fold == legacy)"; exit 1; }
 gcc $CFLAGS -o "$OUT/compare" "$ROOT/tools/compare.c" || { echo "FAIL: compare build"; exit 1; }
-T6=/tmp/ri/run/t6
+T6="$RI_TMP/run/t6"
 "$OUT/compare" --events-a "$T6/file.events" --events-b "$T6/live.events" --wav-a "$T6/file.wav" --wav-b "$T6/live.wav" | grep -q "COMPARE: IDENTICAL" || { echo "FAIL: file-vs-live differ (not one renderer)"; exit 1; }
 echo "-- AROS compile of backend TUs (compile-only, no link) --"
 if [ ! -f "$VK/scripts/aros_build_env.sh" ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found at $VK"; exit 1; fi
@@ -775,7 +786,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t21_seqloop >/dev/null || { echo "FAI
 bash "$ROOT/scripts/ri_build_host.sh" test t21_songsteps >/dev/null || { echo "FAIL: t21_songsteps"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t27_copypaste >/dev/null || { echo "FAIL: t27_copypaste (TC-2.10.3)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_schedfeed >/dev/null || { echo "FAIL: t21_schedfeed"; exit 1; }
-mkdir -p /tmp/ri/run/t21 # t21_songfile writes its scaffold here (t6 pattern)
+mkdir -p "$RI_TMP/run/t21" # t21_songfile writes its scaffold here (t6 pattern)
 bash "$ROOT/scripts/ri_build_host.sh" test t21_songfile >/dev/null || { echo "FAIL: t21_songfile"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_looppcm >/dev/null || { echo "FAIL: t21_looppcm"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t21_snapbuild >/dev/null || { echo "FAIL: t21_snapbuild"; exit 1; }
@@ -822,7 +833,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t115_master_live >/dev/null || { echo
 bash "$ROOT/scripts/ri_build_host.sh" test t116_panel_wiring >/dev/null || { echo "FAIL: t116_panel_wiring (panel wiring audit)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t121_zoomfit >/dev/null || { echo "FAIL: t121_zoomfit (S5 auto-fit zoom)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t124_skinsect >/dev/null || { echo "FAIL: t124_skinsect (S7 section assignment)"; exit 1; }
-mkdir -p /tmp/ri/run/t128 # t128_skinchunk writes its songs here (t6 pattern)
+mkdir -p "$RI_TMP/run/t128" # t128_skinchunk writes its songs here (t6 pattern)
 bash "$ROOT/scripts/ri_build_host.sh" test t128_skinchunk >/dev/null || { echo "FAIL: t128_skinchunk (S7 skin song chunk)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t94_pal_fpu >/dev/null || { echo "FAIL: t94_pal_fpu (portability T9)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t95_riapp_core >/dev/null || { echo "FAIL: t95_riapp_core (portability T8)"; exit 1; }
@@ -941,16 +952,16 @@ grep -q '^      \*)        CF="$CF9_O0" ;;' "$ROOT/scripts/ri_build_aros.sh" || 
 grep -q 'RI_V11_MIX_OPT' "$ROOT/scripts/ri_build_v11.sh" || { echo "FAIL: ri_build_v11.sh lost its mixed-build option (RI_V11_MIX_OPT)"; exit 1; }
 echo "-- mixed build: RIAPP is engine/ -O2 + app+GUI -O0 in BOTH the v1 and v11 lane scripts --"
 echo "-- portability T8: headless core runs without AROS (WAV; PNG after T2) --"
-gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I"$ROOT" -o "$OUT/headless" "$ROOT/platform/host/main_headless.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: headless build"; exit 1; }
-rm -f /tmp/ri/null.wav
-"$OUT/headless" >/tmp/ri/headless1.log 2>&1 || { echo "FAIL: headless run"; exit 1; }
-grep -q "xruns=0" /tmp/ri/headless1.log || { echo "FAIL: headless xruns"; exit 1; }
-test -f /tmp/ri/panel.png || { echo "FAIL: headless panel PNG"; exit 1; }
-cp /tmp/ri/null.wav /tmp/ri/null-a.wav
-cp /tmp/ri/panel.png /tmp/ri/panel-a.png
-"$OUT/headless" >/tmp/ri/headless2.log 2>&1 || { echo "FAIL: headless rerun"; exit 1; }
-cmp -s /tmp/ri/null-a.wav /tmp/ri/null.wav || { echo "FAIL: headless not deterministic"; exit 1; }
-cmp -s /tmp/ri/panel-a.png /tmp/ri/panel.png || { echo "FAIL: headless PNG not deterministic"; exit 1; }
+gcc -std=c99 -O2 -Wall -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I"$ROOT" -DRI_TMP_ROOT=\"$RI_TMP\" -o "$OUT/headless" "$ROOT/platform/host/main_headless.c" "$OUT"/*.o -lm -lpng || { echo "FAIL: headless build"; exit 1; }
+rm -f "$RI_TMP/null.wav"
+"$OUT/headless" >"$RI_TMP/headless1.log" 2>&1 || { echo "FAIL: headless run"; exit 1; }
+grep -q "xruns=0" "$RI_TMP/headless1.log" || { echo "FAIL: headless xruns"; exit 1; }
+test -f "$RI_TMP/panel.png" || { echo "FAIL: headless panel PNG"; exit 1; }
+cp "$RI_TMP/null.wav" "$RI_TMP/null-a.wav"
+cp "$RI_TMP/panel.png" "$RI_TMP/panel-a.png"
+"$OUT/headless" >"$RI_TMP/headless2.log" 2>&1 || { echo "FAIL: headless rerun"; exit 1; }
+cmp -s "$RI_TMP/null-a.wav" "$RI_TMP/null.wav" || { echo "FAIL: headless not deterministic"; exit 1; }
+cmp -s "$RI_TMP/panel-a.png" "$RI_TMP/panel.png" || { echo "FAIL: headless PNG not deterministic"; exit 1; }
 # portability T1: PAL atomics header is include-clean (stdint/stddef only;
 # ri_pal_log.h additionally allows stdarg.h for the varargs decl)
 if grep -n "#include" "$ROOT/platform/pal/"*.h | grep -v "stdint.h\|stddef.h\|stdarg.h"; then echo "FAIL: pal header include leak"; exit 1; fi
@@ -997,7 +1008,7 @@ test -f "$SG/sched-check.events" || { echo "FAIL: missing sched-check event gold
 test -f "$SG/sched-check.wav" || { echo "FAIL: missing sched-check wav golden"; exit 1; }
 test -f "$SG/sched-check.wav.sha256" || { echo "FAIL: missing sched-check sidecar"; exit 1; }
 (cd "$ROOT" && sha256sum -c tests/golden/songs/sched-check.wav.sha256) || { echo "FAIL: sched-check sha256 mismatch"; exit 1; }
-T7=/tmp/ri/run/audit7
+T7="$RI_TMP/run/audit7"
 mkdir -p "$T7"
 "$OUT/render" --song "$SG/sched-check.rbng" --out "$T7/sched-check.wav" --dump-events "$T7/sched-check.events" || exit 1
 "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$T7/sched-check.events" --wav-a "$SG/sched-check.wav" --wav-b "$T7/sched-check.wav" | grep -q "COMPARE: IDENTICAL" || { echo "FAIL: sched-check re-render differs (not deterministic)"; exit 1; }
@@ -1040,7 +1051,7 @@ for v in bd sd lt mt ht lc mc hc rs cl cp ch oh cy cb ma storm; do
   test -f "$SG8/$v.wav.sha256" || { echo "FAIL: missing sidecar 808/$v.wav.sha256"; exit 1; }
 done
 (cd "$ROOT" && sha256sum -c tests/golden/808/bd.wav.sha256 tests/golden/808/sd.wav.sha256 tests/golden/808/lt.wav.sha256 tests/golden/808/mt.wav.sha256 tests/golden/808/ht.wav.sha256 tests/golden/808/lc.wav.sha256 tests/golden/808/mc.wav.sha256 tests/golden/808/hc.wav.sha256 tests/golden/808/rs.wav.sha256 tests/golden/808/cl.wav.sha256 tests/golden/808/cp.wav.sha256 tests/golden/808/ch.wav.sha256 tests/golden/808/oh.wav.sha256 tests/golden/808/cy.wav.sha256 tests/golden/808/cb.wav.sha256 tests/golden/808/ma.wav.sha256 tests/golden/808/storm.wav.sha256) || { echo "FAIL: 808 golden sha256 mismatch"; exit 1; }
-T8=/tmp/ri/run/audit8
+T8="$RI_TMP/run/audit8"
 mkdir -p "$T8"
 for v in bd sd lt mt ht lc mc hc rs cl cp ch oh cy cb ma storm; do
   "$OUT/render" --808 "$v" --out "$T8/$v.wav" >/dev/null || exit 1
@@ -1070,7 +1081,7 @@ test -f "$PK/MANIFEST.txt" || { echo "FAIL: missing pack manifest"; exit 1; }
 "$OUT/inspect" --rbnm "$PK/pack.rbnm" | grep -q "RBNM OK" || { echo "FAIL: pack.rbnm rejected"; exit 1; }
 "$OUT/inspect" --manifest "$PK/MANIFEST.txt" | grep -q "MANIFEST OK" || { echo "FAIL: MANIFEST rejected"; exit 1; }
 echo "-- manifest-gap negative gates (audit fails on any gap) --"
-T9=/tmp/ri/run/audit9
+T9="$RI_TMP/run/audit9"
 mkdir -p "$T9"
 head -1 "$PK/MANIFEST.txt" | sed 's/;map=[^;]*//' > "$T9/gap.manf"
 tail -n +2 "$PK/MANIFEST.txt" >> "$T9/gap.manf"
@@ -1100,8 +1111,8 @@ echo "-- S909 render-diff (pack differs from default) --"
 "$OUT/render" --909pack bd --out "$T9/pack.wav" >/dev/null || exit 1
 if "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$SG/sched-check.events" --wav-a "$T9/dflt.wav" --wav-b "$T9/pack.wav" | grep -q "COMPARE: IDENTICAL"; then echo "FAIL: pack renders identical to default (S909 dead)"; exit 1; fi
 echo "== Phase 10: PCF black-box route + FX trio (Task 10, gate G10) =="
-T10=/tmp/ri/run/audit10
-mkdir -p "$T10" /tmp/ri/run/t10
+T10="$RI_TMP/run/audit10"
+mkdir -p "$T10" "$RI_TMP/run/t10"
 bash "$ROOT/scripts/ri_build_host.sh" test t1_fx >/dev/null || { echo "FAIL: t1_fx"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t25_pcfcutoff >/dev/null || { echo "FAIL: t25_pcfcutoff (TC-2.5.2)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t25_delay >/dev/null || { echo "FAIL: t25_delay (TC-2.5.3)"; exit 1; }
@@ -1222,13 +1233,17 @@ test -f "$ROOT/docs/evidence/pcf/red-t1_fx.txt" || { echo "FAIL: missing RED evi
 test -f "$ROOT/reference/pcf-table.bin" || { echo "FAIL: missing pcf-table.bin (missing-is-broken)"; exit 1; }
 test -f "$ROOT/reference/pcf-patterns.bin" || { echo "FAIL: missing pcf-patterns.bin (missing-is-broken)"; exit 1; }
 echo "-- negative gate (no table -> pcf build fails with the #error) --"
-mv "$ROOT/reference/pcf-table.bin" "$T10/hide.bin"
-if bash "$ROOT/scripts/ri_build_host.sh" pcf >"$T10/neg.log" 2>&1; then
-  mv "$T10/hide.bin" "$ROOT/reference/pcf-table.bin"
+# The table's ABSENCE is what the build script branches on, so the negative
+# case is produced by POINTING IT AT A PATH THAT IS NOT THERE -- not by
+# moving the repo's table away. It used to `mv` the real file aside and back,
+# which MUTATES the checkout: two lanes working in one repo raced for that
+# file and one of them died on "mv: cannot stat .../pcf-table.bin" (measured
+# 2026-10-20, with the two audits running concurrently). Nothing in the
+# checkout is touched now, so the lanes share nothing.
+PCF_TABLE="$T10/absent.bin" bash "$ROOT/scripts/ri_build_host.sh" pcf >"$T10/neg.log" 2>&1 && {
   echo "FAIL: pcf build accepted a missing table"
   exit 1
-fi
-mv "$T10/hide.bin" "$ROOT/reference/pcf-table.bin"
+}
 grep -q "PCF table unverified" "$T10/neg.log" || { echo "FAIL: pcf failure is not the #error gate"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" pcf >/dev/null || { echo "FAIL: pcf rebuild after restore"; exit 1; }
 echo "-- pcf goldens re-verified --"
@@ -1255,7 +1270,7 @@ echo "-- FX render-diff (chain differs from dry: path live, not a rename) --"
 "$OUT/render" --fx dry --out "$T10/dry.wav" >/dev/null || exit 1
 if "$OUT/compare" --events-a "$SG/sched-check.events" --events-b "$SG/sched-check.events" --wav-a "$T10/dry.wav" --wav-b "$T10/fx-chain.wav" | grep -q "COMPARE: IDENTICAL"; then echo "FAIL: fx chain renders identical to dry (FX dead)"; exit 1; fi
 echo "== Phase 11: mixer + RIDevice registry (Task 11, gate G11) =="
-T11=/tmp/ri/run/audit11
+T11="$RI_TMP/run/audit11"
 mkdir -p "$T11"
 bash "$ROOT/scripts/ri_build_host.sh" test t1_mixer >/dev/null || { echo "FAIL: t1_mixer"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t26_gainstage >/dev/null || { echo "FAIL: t26_gainstage (TC-2.6.1)"; exit 1; }
@@ -1361,7 +1376,7 @@ PYEOF
 test -z "$RLOG_NONL" || { echo "FAIL: rlog format without trailing \\n at app/riapp.c line(s): $RLOG_NONL"; exit 1; }
 echo "-- RIAPP log lines: every rlog format ends in a newline --"
 echo "== Phase 13: formats full + MIDI + automation + ARexx + datatypes + fuzz (Task 13, gate G13) =="
-T13=/tmp/ri/run/audit13
+T13="$RI_TMP/run/audit13"
 mkdir -p "$T13/c1" "$T13/c2" "$T13/rs" "$T13/regen"
 bash "$ROOT/scripts/ri_build_host.sh" test t1_formats >/dev/null || { echo "FAIL: t1_formats"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t30_modpack >/dev/null || { echo "FAIL: t30_modpack (TC-2.12.1/2.12.5)"; exit 1; }
@@ -1450,7 +1465,7 @@ for tu in project/sha256.c project/rbng.c project/arexx.c project/undo.c midi_io
   x86_64-aros-gcc $CFLAGS_FMT -c "$ROOT/$tu" -o "$OUT/aros/${bn}_aros.o" || { echo "FAIL: $tu AROS compile"; exit 1; }
 done
 echo "== Phase 14: REL soak/docs/installer/beta-exit (Task 14, gate G14) =="
-T14=/tmp/ri/run/audit14
+T14="$RI_TMP/run/audit14"
 mkdir -p "$T14"
 bash "$ROOT/scripts/ri_build_host.sh" test t1_rel >"$T14/rel.log" 2>&1 || { echo "FAIL: t1_rel"; exit 1; }
 grep -q "PASS rel" "$T14/rel.log" || { echo "FAIL: t1_rel no PASS"; exit 1; }
@@ -1689,7 +1704,7 @@ if grep -rn "RectFill\|BltBitMapRastPort\|WritePixelArrayAlpha\|ObtainBestPen\|A
   --include="*.c" --include="*.h" --include="*.inc" 2>/dev/null; then echo "FAIL: drawing call in portable code"; exit 1; fi
 # Portable build (T10, owner build-system call §8.2 pending — Makefile keeps
 # zero deps): core + host PAL + t84 + headless, all green.
-make -f "$ROOT/build/portable.mk" test headless >/tmp/ri/portable.log 2>&1 || { echo "FAIL: portable build"; exit 1; }
+make -f "$ROOT/build/portable.mk" RI_TMP="$RI_TMP" test headless >"$RI_TMP/portable.log" 2>&1 || { echo "FAIL: portable build"; exit 1; }
 # mingw-w64 compile-only gate: SKIP — toolchain absent on this machine (say so).
 if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
   echo "FAIL: mingw gate not implemented (toolchain present but gate missing)";

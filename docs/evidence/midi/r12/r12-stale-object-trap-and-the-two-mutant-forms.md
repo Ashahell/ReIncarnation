@@ -173,3 +173,51 @@ that no longer exists. `OUT` is now per checkout, derived from the absolute
 The step that proves it: the audit passes in the main tree, the audit passes
 in the worktree, the worktree is **removed**, and the main tree's audit
 **still passes**. That last step is the one that failed before.
+
+## The FOURTH instance: per-LANE state, and the audit that is the gate
+
+The per-checkout OUT separates two CHECKOUTS. It does not separate two
+LANES, because both lanes work in **one** checkout. What was still shared:
+
+- `OUT=/tmp/ri/build`, hard-coded in `scripts/ri_build_host.sh` **and**
+  `scripts/ri_audit.sh` — two copies that had to agree;
+- the run scaffolds (`/tmp/ri/run/…`), the probe artefacts
+  (`/tmp/ri/aros/…`) and the portable build;
+- `ri_build_host.sh clean` = `rm -rf /tmp/ri`, which wiped **every** lane's
+  and every checkout's builds mid-run.
+
+The n36a lane's first audit failed **linking** objects this lane was
+rebuilding, and two concurrent runs can produce a **false GREEN** from mixed
+objects.
+
+**One root now**: `RI_TMP="${RI_TMP:-/tmp/ri}"`, defined the same way in
+every script, exported so the children inherit it, and every artefact
+derived from it — `build/`, `run/`, `aros/`, `portable-*`. `clean` removes
+only `$RI_TMP`.
+
+Getting there needed **four** measurements, each of which the first fix
+missed:
+
+| # | what the first attempt missed | how it showed up |
+|---|---|---|
+| 1 | the C sources still hard-coded `/tmp/ri` (113 sites in 21 files) | the audit read `$RI_TMP/run/t6/…` while the test wrote `/tmp/ri/run/t6/…` → *"FAIL: file-vs-live differ"* |
+| 2 | the macro must expand to a **string literal**, not a bare path | `-DRI_TMP_ROOT=$RI_TMP` → *"expected expression before '/' token"*; the quotes have to survive into gcc: `-DRI_TMP_ROOT=\"$RI_TMP\"` |
+| 3 | one test wrote its artefacts with **relative** paths, so they landed in the CWD — the repo root, which both lanes share | t217 read the other lane's `t217f_out32.wav` → *"FAIL: t217_wavfloat"* |
+| 4 | the pcf negative gate **moved a repo file** aside and back | two lanes raced for `reference/pcf-table.bin` → *"mv: cannot stat"*; the gate now points the build at a path that is not there (`PCF_TABLE=…`), and nothing in the checkout is touched |
+| 5 | the **sweep** found four more scripts with their own hard-coded `/tmp/ri` | `ri_soak.sh` benched against `/tmp/ri/build` — the OTHER lane's objects — so one lane's soak failed while the other rebuilt that directory; `ri_fuzz.sh`, `ri_build_v11.sh` and `lane_proof.sh` had the same shape. All four now derive from `RI_TMP` too. |
+
+**The sweep is the part that matters.** The owner named two scripts; the
+audit actually *calls* seven (`ri_build_host.sh`, `ri_build_aros.sh`,
+`ri_soak.sh`, `ri_fuzz.sh`, `ri_build_v11.sh`, plus the two it greps), and
+every one of them had to agree on the root or the separation is a fiction:
+a lane's soak would bench against the other lane's objects and a lane's
+fuzz would write into the other lane's run directory.
+
+Proof, both:
+
+| proof | result |
+|---|---|
+| two audits started at the same time with different `RI_TMP` | **both `AUDIT 0/0 PASS`** |
+| `clean` under one `RI_TMP` | lane A: 968 files → 0; **lane B: 968 files, 216 M, untouched** |
+
+The default (no `RI_TMP`) is unchanged and still passes.

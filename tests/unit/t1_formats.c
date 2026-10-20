@@ -95,9 +95,9 @@ int main(void) {
     int present;
 
     /* --- 1. RBNG write→read round trip (exact, incl. automation) --- */
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t13-rt.rbng", &s, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t13-rt.rbng", &s, err,
         sizeof err) == 0, "write: %s", err);
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-rt.rbng", &r, err,
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-rt.rbng", &r, err,
         sizeof err) == 0, "read: %s", err);
     RI_ASSERT(r.tempo == 140 && r.ppq == 96 && r.nsteps == 16, "song hdr");
     for (i = 0; i < 16u; i++)
@@ -118,83 +118,83 @@ int main(void) {
     RI_ASSERT(strcmp(r.cprg, s.cprg) == 0, "cprg");
 
     /* --- 2. serialize-parse-serialize byte-identical --- */
-    RI_ASSERT(file_bytes("/tmp/ri/run/t13-rt.rbng", A, sizeof A, &na) == 0,
+    RI_ASSERT(file_bytes(RI_TMP_ROOT "/run/t13-rt.rbng", A, sizeof A, &na) == 0,
         "read A");
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-rt.rbng", &r, err,
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-rt.rbng", &r, err,
         sizeof err) == 0, "re-read: %s", err);
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t13-rt2.rbng", &r, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t13-rt2.rbng", &r, err,
         sizeof err) == 0, "re-write: %s", err);
-    RI_ASSERT(file_bytes("/tmp/ri/run/t13-rt2.rbng", B, sizeof B, &nb) == 0,
+    RI_ASSERT(file_bytes(RI_TMP_ROOT "/run/t13-rt2.rbng", B, sizeof B, &nb) == 0,
         "read B");
     RI_ASSERT(na == nb && memcmp(A, B, na) == 0, "round-trip %u vs %u", na,
         nb);
 
     /* --- 3. unknown-chunk preservation (TST1 survives the round trip) --- */
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t13-unk0.rbng", &s, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t13-unk0.rbng", &s, err,
         sizeof err) == 0, "base: %s", err);
-    RI_ASSERT(rbng_test_inject_unknown("/tmp/ri/run/t13-unk0.rbng",
-        "/tmp/ri/run/t13-unk.rbng", "TST1", "payload-xyz", 11u) == 0,
+    RI_ASSERT(rbng_test_inject_unknown(RI_TMP_ROOT "/run/t13-unk0.rbng",
+        RI_TMP_ROOT "/run/t13-unk.rbng", "TST1", "payload-xyz", 11u) == 0,
         "inject");
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-unk.rbng", &r, err,
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-unk.rbng", &r, err,
         sizeof err) == 0, "unk read: %s", err);
     RI_ASSERT(r.nunknown == 1u, "nunknown %u", r.nunknown);
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t13-unk2.rbng", &r, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t13-unk2.rbng", &r, err,
         sizeof err) == 0, "unk rewrite: %s", err);
-    RI_ASSERT(file_bytes("/tmp/ri/run/t13-unk.rbng", A, sizeof A, &na) == 0,
+    RI_ASSERT(file_bytes(RI_TMP_ROOT "/run/t13-unk.rbng", A, sizeof A, &na) == 0,
         "unk A");
-    RI_ASSERT(file_bytes("/tmp/ri/run/t13-unk2.rbng", B, sizeof B, &nb) == 0,
+    RI_ASSERT(file_bytes(RI_TMP_ROOT "/run/t13-unk2.rbng", B, sizeof B, &nb) == 0,
         "unk B");
     RI_ASSERT(na == nb && memcmp(A, B, na) == 0, "unk preserved %u vs %u",
         na, nb);
     RI_ASSERT(rbng_art_fallback(&r) == 1, "no SKIN => fallback");
-    RI_ASSERT(rbng_test_inject_unknown("/tmp/ri/run/t13-unk0.rbng",
-        "/tmp/ri/run/t13-skin.rbng", "SKIN", "art", 3u) == 0, "skin");
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-skin.rbng", &r, err,
+    RI_ASSERT(rbng_test_inject_unknown(RI_TMP_ROOT "/run/t13-unk0.rbng",
+        RI_TMP_ROOT "/run/t13-skin.rbng", "SKIN", "art", 3u) == 0, "skin");
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-skin.rbng", &r, err,
         sizeof err) == 0, "skin read: %s", err);
     RI_ASSERT(rbng_art_fallback(&r) == 0, "SKIN => full art");
 
     /* lowercase-unknown chunk id must be rejected, not skipped */
-    RI_ASSERT(rbng_test_inject_unknown("/tmp/ri/run/t13-unk0.rbng",
-        "/tmp/ri/run/t13-low.rbng", "tst1", "x", 1u) == 0, "low inject");
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-low.rbng", &r, err,
+    RI_ASSERT(rbng_test_inject_unknown(RI_TMP_ROOT "/run/t13-unk0.rbng",
+        RI_TMP_ROOT "/run/t13-low.rbng", "tst1", "x", 1u) == 0, "low inject");
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-low.rbng", &r, err,
         sizeof err) != 0, "lowercase unknown accepted");
     RI_ASSERT(strstr(err, "tst1") != 0, "err names chunk: %s", err);
 
     /* --- 4. VERS forward-compat: major reject / minor-newer preserve --- */
-    RI_ASSERT(rbng_test_set_vers("/tmp/ri/run/t13-unk0.rbng",
-        "/tmp/ri/run/t13-maj.rbng", 2u, 0u, 0u) == 0, "maj");
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-maj.rbng", &r, err,
+    RI_ASSERT(rbng_test_set_vers(RI_TMP_ROOT "/run/t13-unk0.rbng",
+        RI_TMP_ROOT "/run/t13-maj.rbng", 2u, 0u, 0u) == 0, "maj");
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-maj.rbng", &r, err,
         sizeof err) != 0, "major=2 accepted");
     RI_ASSERT(strstr(err, "VERS") != 0, "major err names VERS: %s", err);
-    RI_ASSERT(rbng_test_set_vers("/tmp/ri/run/t13-unk.rbng",
-        "/tmp/ri/run/t13-min.rbng", 1u, 3u, 0u) == 0, "min");
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-min.rbng", &r, err,
+    RI_ASSERT(rbng_test_set_vers(RI_TMP_ROOT "/run/t13-unk.rbng",
+        RI_TMP_ROOT "/run/t13-min.rbng", 1u, 3u, 0u) == 0, "min");
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-min.rbng", &r, err,
         sizeof err) == 0, "minor=3 rejected: %s", err);
     RI_ASSERT(r.nunknown == 1u, "minor-newer keeps unknown");
-    RI_ASSERT(rbng_test_set_vers("/tmp/ri/run/t13-unk0.rbng",
-        "/tmp/ri/run/t13-flg.rbng", 1u, 0u, 0x80000000u) == 0, "flg");
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-flg.rbng", &r, err,
+    RI_ASSERT(rbng_test_set_vers(RI_TMP_ROOT "/run/t13-unk0.rbng",
+        RI_TMP_ROOT "/run/t13-flg.rbng", 1u, 0u, 0x80000000u) == 0, "flg");
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-flg.rbng", &r, err,
         sizeof err) != 0, "unknown feature flag accepted");
 
     /* --- 5. corrupt chunk aborts naming chunk ID + byte offset --- */
-    RI_ASSERT(file_bytes("/tmp/ri/run/t13-unk0.rbng", fbuf, sizeof fbuf,
+    RI_ASSERT(file_bytes(RI_TMP_ROOT "/run/t13-unk0.rbng", fbuf, sizeof fbuf,
         &nf) == 0, "fbuf");
     fbuf[20] = 0x7fu; /* inflate a chunk length inside PATT/SVers region */
     {
-        FILE *f = fopen("/tmp/ri/run/t13-bad.rbng", "wb");
+        FILE *f = fopen(RI_TMP_ROOT "/run/t13-bad.rbng", "wb");
         RI_ASSERT(f != 0, "bad open");
         if (f) {
             fwrite(fbuf, 1, nf, f);
             fclose(f);
         }
     }
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-bad.rbng", &r, err,
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-bad.rbng", &r, err,
         sizeof err) != 0, "corrupt accepted");
     RI_ASSERT(strstr(err, "@") != 0, "err lacks @offset: %s", err);
 
     /* --- 6. MODR missing-mod warn path (assert prompt string) --- */
     s = demo_song();
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t13-rt.rbng", &s, err,
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t13-rt.rbng", &s, err,
         sizeof err) == 0, "re-read2: %s", err);
     {
         static const char *have[1] = { "other-mod" };
@@ -210,7 +210,7 @@ int main(void) {
     }
 
     /* --- 7. CPRG hook --- */
-    RI_ASSERT(rbng_cprg_line("/tmp/ri/run/t13-rt.rbng", cprg, sizeof cprg) == 0,
+    RI_ASSERT(rbng_cprg_line(RI_TMP_ROOT "/run/t13-rt.rbng", cprg, sizeof cprg) == 0,
         "cprg hook");
     RI_ASSERT(strstr(cprg, "2026") != 0, "cprg text: %s", cprg);
 
@@ -315,11 +315,11 @@ int main(void) {
 
     /* --- 15. RBNM-full: reserialize byte-identical + CPRG extract --- */
     RI_ASSERT(rbnm_reserialize("reference/packs/classic-01/pack.rbnm",
-        "/tmp/ri/run/t13-pack2.rbnm", err, sizeof err) == 0, "reser: %s",
+        RI_TMP_ROOT "/run/t13-pack2.rbnm", err, sizeof err) == 0, "reser: %s",
         err);
     RI_ASSERT(file_bytes("reference/packs/classic-01/pack.rbnm", A, sizeof A,
         &na) == 0, "pack A");
-    RI_ASSERT(file_bytes("/tmp/ri/run/t13-pack2.rbnm", B, sizeof B, &nb) == 0,
+    RI_ASSERT(file_bytes(RI_TMP_ROOT "/run/t13-pack2.rbnm", B, sizeof B, &nb) == 0,
         "pack B");
     RI_ASSERT(na == nb && memcmp(A, B, na) == 0, "pack identical %u/%u", na,
         nb);

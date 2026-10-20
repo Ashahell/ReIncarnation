@@ -31,6 +31,9 @@
 #   out-binary   default: /tmp/opencode/RIAPP.v11
 set -e
 ROOT="${1:-/home/miller/Work/projects/ReIncarnation}"
+# ONE build root, shared with the other scripts (see scripts/ri_build_host.sh).
+RI_TMP="${RI_TMP:-/tmp/ri}"
+export RI_TMP
 OUTBIN="${2:-/tmp/opencode/RIAPP.v11}"
 VK=/home/miller/Work/projects/Vulkan4Aros
 TC="$VK/src/abi/v11/toolchain-core-x86_64"
@@ -39,7 +42,7 @@ SDK="$VK/src/abi/v11/sdk/Developer"
 [ -d "$SDK/include" ] || { echo "FAIL: v11 SDK absent ($SDK)"; exit 1; }
 PATH="$TC:$PATH"
 export PATH
-OBJ="${RI_OBJ:-/tmp/ri/arosv11/riapp}"
+OBJ="${RI_OBJ:-$RI_TMP/arosv11/riapp}"
 mkdir -p "$OBJ"
 HASH="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo '?')"
 # Flags as recorded in the wiki article (no -Werror: the v11 SDK headers warn

@@ -232,9 +232,9 @@ int main(void) {
         s.natrk = 1u;
         r.atrk = rbuf;
         r.atrk_cap = 4u;
-        RI_ASSERT(rbng_write_song("/tmp/ri/run/t115-m.rbng", &s, err,
+        RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t115-m.rbng", &s, err,
             sizeof err) == 0, "write master atrk: %s", err);
-        RI_ASSERT(rbng_read_song("/tmp/ri/run/t115-m.rbng", &r, err,
+        RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t115-m.rbng", &r, err,
             sizeof err) == 0, "read master atrk: %s", err);
         RI_ASSERT(r.natrk == 1u && r.atrk[0].ctl == RI_CTL_MASTER_LEVEL &&
             r.atrk[0].val == 90u, "atrk carries master");

@@ -10,11 +10,12 @@
  * Writes skin format 1 (FORMAT/NAME/VERSION header, ctlreg section/kind
  * tokens, knob strips named by role via ri_skin_knob_role).
  *
- * Build: gcc -std=c99 -O2 -Wall -Wextra -I. -o /tmp/ri/mkskin tools/mkskin.c \
- *   /tmp/ri/build/panelgeo.o /tmp/ri/build/ctlreg.o /tmp/ri/build/knob_art.o \
- *   /tmp/ri/build/skin.o /tmp/ri/build/sha256.o -lpng \
- *   && mkdir -p /tmp/ri/skinsout && /tmp/ri/mkskin /tmp/ri/skinsout
- * (needs a full `ri_build_host.sh all` first for the .o files).
+ * Build: gcc -std=c99 -O2 -Wall -Wextra -I. -o "$RI_TMP/mkskin" tools/mkskin.c \
+ *   "$RI_TMP"/build/panelgeo.o "$RI_TMP"/build/ctlreg.o "$RI_TMP"/build/knob_art.o \
+ *   "$RI_TMP"/build/skin.o "$RI_TMP"/build/sha256.o -lpng \
+ *   && mkdir -p "$RI_TMP/skinsout" && "$RI_TMP/mkskin" "$RI_TMP/skinsout"
+ * (needs a full `ri_build_host.sh all` first for the .o files; RI_TMP
+ * defaults to /tmp/ri.)
  */
 #include <stdio.h>
 #include <stdlib.h>

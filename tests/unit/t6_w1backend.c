@@ -7,7 +7,8 @@
  * AHI-missing fallback string.
  *
  * Hermetic: the song text (== tests/golden/303/first-light.rbng body) is
- * embedded and written to /tmp/ri/run/t6/song.rbng, so the test needs no CWD.
+ * embedded and written to RI_TMP_ROOT "/run/t6/song.rbng", so the test needs
+ * no CWD. (RI_TMP is the one build root; a lane sets it to its own folder.)
  */
 #include <stdio.h>
 #include <string.h>
@@ -15,7 +16,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "audio_io/audio.h"
 
-#define T6_DIR "/tmp/ri/run/t6"
+#define T6_DIR RI_TMP_ROOT "/run/t6"
 #define T6_SONG T6_DIR "/song.rbng"
 #define T6_FILE_WAV T6_DIR "/file.wav"
 #define T6_LIVE_WAV T6_DIR "/live.wav"

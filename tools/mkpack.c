@@ -17,8 +17,8 @@
  *
  * Build (host, like the other tools):
  *   gcc -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off
- *     -fno-unsafe-math-optimizations -ftrapv -I. -o /tmp/ri/build/mkpack
- *     tools/mkpack.c /tmp/ri/build/OBJECTS -lm
+ *     -fno-unsafe-math-optimizations -ftrapv -I. -o "$RI_TMP/build/mkpack"
+ *     tools/mkpack.c "$RI_TMP"/build/OBJECTS -lm
  * (OBJECTS = the host core objects.)
  */
 #include <stdio.h>

@@ -37,7 +37,15 @@ else
     echo "WARN: v1 build-pc SDK absent under $VK, falling back to env SDK (expect r12 faults on guest)"
     SDK="$AROS_SDK_INCLUDE"
 fi
-OUT=/tmp/ri/aros
+# ONE root for every build artefact. RI_TMP is exported, so
+# ri_audit.sh, ri_build_aros.sh and build/portable.mk all resolve it the
+# same way, and two lanes on one machine can point it at their own
+# folder and share NOTHING: the objects, the run scaffolds, the probe
+# artifacts and the portable build all follow it. (2026-10-20: the n36a
+# lane's first audit failed LINKING objects this lane was rebuilding.)
+RI_TMP="${RI_TMP:-/tmp/ri}"
+export RI_TMP
+OUT="$RI_TMP/aros"
 mkdir -p "$OUT"
 x86_64-aros-gcc -c -mcmodel=large -mno-red-zone -ffixed-r12 -Wall "$ROOT/audio_io/aros_stub.c" -o "$OUT/aros_stub.o"
 x86_64-aros-ld -r "$OUT/aros_stub.o" -o "$OUT/reincarnation_stub.library"
@@ -64,7 +72,7 @@ x86_64-aros-gcc $CFLAGS_AROS -c "$ROOT/audio_io/probe_rate_hw.c" -o "$OUT/probe_
 # libposixc where the cross-gcc LIB_SPEC expects libcrt/libstdlib/libcrtcrtprog.
 # Symlink-shim the old names + link stdio/POSIX explicitly, else
 # `cannot find -lstdlib -lcrt` at link time.
-SHIM=/tmp/ri/libshim_v1
+SHIM="$RI_TMP/libshim_v1"
 mkdir -p "$SHIM"
 for _n in libcrt libstdlib libcrtprog; do ln -sf "$SDK/../lib/libstdc.a" "$SHIM/$_n.a"; done
 STARTUP=()

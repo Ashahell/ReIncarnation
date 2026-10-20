@@ -12,8 +12,21 @@ set -e
 # invocation as ./ri_build_host.sh, where a bare "$(dirname $0)/.." would
 # name the PARENT of the repo root.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT=/tmp/ri/build
-CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT"
+# ONE root for every build artefact. RI_TMP is exported, so
+# ri_audit.sh, ri_build_aros.sh and build/portable.mk all resolve it the
+# same way, and two lanes on one machine can point it at their own
+# folder and share NOTHING: the objects, the run scaffolds, the probe
+# artifacts and the portable build all follow it. (2026-10-20: the n36a
+# lane's first audit failed LINKING objects this lane was rebuilding.)
+RI_TMP="${RI_TMP:-/tmp/ri}"
+export RI_TMP
+OUT="$RI_TMP/build"
+# -DRI_TMP_ROOT carries the lane's scratch root as a STRING LITERAL (the
+# quotes are part of the value, and survive the unquoted expansion of
+# CFLAGS), so a test can build a path by concatenating it: the sources
+# derive their scaffold paths from the SAME root the scripts use, and two
+# lanes cannot write each other's files.
+CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT -DRI_TMP_ROOT=\"$RI_TMP\""
 mkdir -p "$OUT"
 MOD_kernels="engine/dsp/kernels.c"
 MOD_engine="engine/engine.c engine/live.c"
@@ -37,8 +50,14 @@ compile_list() { for f in $1; do test -f "$ROOT/$f" || { echo "MISSING $f"; exit
 # missing table fails the pcf target with the compiler error (negative
 # gate). `all` skips pcf when the table is absent (fails that target only,
 # never all); `pcf` is strict.
+# PCF_TABLE overrides where the pcf build looks for its ledger-verified
+# table. The negative gate points it at a path that is NOT there, so the
+# build takes the "no table" branch and must fail with the #error -- without
+# MOVING the repo's table away, which used to mutate the checkout and made
+# two lanes working in one repo race for that file.
 build_pcf() {
-  if [ -f "$ROOT/reference/pcf-table.bin" ]; then
+  local table="${PCF_TABLE:-$ROOT/reference/pcf-table.bin}"
+  if [ -f "$table" ]; then
     gcc $CFLAGS -DPCF_TABLE_VERIFIED=1 -c "$ROOT/engine/fx/pcf.c" -o "$OUT/pcf.o";
   elif [ "$1" = strict ]; then
     echo "pcf: table missing, proving the gate (expect #error)";
@@ -111,7 +130,7 @@ case "${1:-all}" in
     gcc $CFLAGS -pthread -o "$OUT/$2" "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" "$OUT"/*.o -lm -lpng 2>/dev/null || \
     gcc $CFLAGS -pthread -o "$OUT/$2" $(ls "$ROOT/tests/unit/$2.c" "$ROOT/tests/property/$2.c" 2>/dev/null) "$OUT"/*.o -lm -lpng
     "$OUT/$2" || exit 1 ;;  # propagate test failures (was masked by BUILD OK echo)
-  clean) rm -rf /tmp/ri ;;
+  clean) rm -rf "$RI_TMP" ;;
   *) echo "unknown target $1"; exit 1 ;;
 esac
 echo "BUILD $1 OK"

@@ -14,9 +14,12 @@
 # no-crash is gate G13.
 set -e
 ROOT="$(dirname "$0")/.."
+# ONE build root, shared with the other scripts (see scripts/ri_build_host.sh).
+RI_TMP="${RI_TMP:-/tmp/ri}"
+export RI_TMP
 N="${1:-500}"
-OUT=/tmp/ri/build
-FUZZ=/tmp/ri/run/fuzz13
+OUT="$RI_TMP/build"
+FUZZ="$RI_TMP/run/fuzz13"
 mkdir -p "$FUZZ"
 rm -f "$FUZZ"/f*.rbng "$FUZZ"/f*.rbnm
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null

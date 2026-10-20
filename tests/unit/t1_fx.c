@@ -17,7 +17,7 @@
 
 #define SR 48000.0f
 #define SRU 48000u
-#define T10D "/tmp/ri/run/t10/"
+#define T10D RI_TMP_ROOT "/run/t10/"
 
 static float IN[SRU], OA[SRU], OB[SRU];
 static float DLBUF[96000];

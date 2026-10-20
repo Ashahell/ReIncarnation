@@ -485,9 +485,9 @@ int main(void) {
     /* ---- STRK codec: round-trip, three rejects, legacy shape, and the
      * track-without-banks minor fix. ---- */
     {
-        const char *FA = "/tmp/ri/run/t59-strk.rbng";
-        const char *FM = "/tmp/ri/run/t59-mut.rbng";
-        const char *FL = "/tmp/ri/run/t59-legacy.rbng";
+        const char *FA = RI_TMP_ROOT "/run/t59-strk.rbng";
+        const char *FM = RI_TMP_ROOT "/run/t59-mut.rbng";
+        const char *FL = RI_TMP_ROOT "/run/t59-legacy.rbng";
         struct RISong s, r;
         char err[256];
         unsigned char buf[16384];
@@ -596,11 +596,11 @@ int main(void) {
     /* ---- ATRK automation chunk (v1.2): 3000-event round-trip, minor
      * iff present, legacy AUTO-only byte-identity. ---- */
     {
-        const char *FB = "/tmp/ri/run/t59-atrk.rbng";
-        const char *FM2 = "/tmp/ri/run/t59-atrk-mut.rbng";
-        const char *FL2 = "/tmp/ri/run/t59-atrk-legacy.rbng";
-        const char *F1 = "/tmp/ri/run/t59-atrk-auto1.rbng";
-        const char *F2 = "/tmp/ri/run/t59-atrk-auto2.rbng";
+        const char *FB = RI_TMP_ROOT "/run/t59-atrk.rbng";
+        const char *FM2 = RI_TMP_ROOT "/run/t59-atrk-mut.rbng";
+        const char *FL2 = RI_TMP_ROOT "/run/t59-atrk-legacy.rbng";
+        const char *F1 = RI_TMP_ROOT "/run/t59-atrk-auto1.rbng";
+        const char *F2 = RI_TMP_ROOT "/run/t59-atrk-auto2.rbng";
         struct RISong s, r;
         static struct RBAutoEv big[3000], back[3000];
         char err[256];

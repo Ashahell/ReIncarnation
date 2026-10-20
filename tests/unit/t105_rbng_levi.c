@@ -33,9 +33,9 @@ int main(void) {
     /* Classic song (no Levi use): col 4 stays 0 through a round trip. */
     s.track.slot[0][0] = 5u;
     s.track.slot[2][3] = 9u;
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t105-c.rbng", &s, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t105-c.rbng", &s, err,
         sizeof err) == 0, "write classic: %s", err);
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t105-c.rbng", &r, err,
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t105-c.rbng", &r, err,
         sizeof err) == 0, "read classic: %s", err);
     RI_ASSERT(r.track.slot[0][0] == 5u, "classic col0");
     RI_ASSERT(r.track.slot[2][3] == 9u, "classic col3");
@@ -50,19 +50,19 @@ int main(void) {
     s = demo_song();
     s.track.slot[0][4] = 7u;
     s.track.slot[5][4] = 3u;
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t105-l.rbng", &s, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t105-l.rbng", &s, err,
         sizeof err) == 0, "write levi: %s", err);
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t105-l.rbng", &r, err,
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t105-l.rbng", &r, err,
         sizeof err) == 0, "read levi: %s", err);
     RI_ASSERT(r.track.slot[0][4] == 7u, "col4 kept");
     RI_ASSERT(r.track.slot[5][4] == 3u, "col4 kept");
     RI_ASSERT(r.track.slot[1][4] == 0u, "col4 default");
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t105-l2.rbng", &r, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t105-l2.rbng", &r, err,
         sizeof err) == 0, "rewrite: %s", err);
     {
         /* Deterministic re-emit: same song, same bytes. */
-        FILE *f1 = fopen("/tmp/ri/run/t105-l.rbng", "rb");
-        FILE *f2 = fopen("/tmp/ri/run/t105-l2.rbng", "rb");
+        FILE *f1 = fopen(RI_TMP_ROOT "/run/t105-l.rbng", "rb");
+        FILE *f2 = fopen(RI_TMP_ROOT "/run/t105-l2.rbng", "rb");
         long n1, n2;
         RI_ASSERT(f1 && f2, "reopen");
         if (f1 && f2) {
@@ -77,13 +77,13 @@ int main(void) {
     }
     /* Mismatched shape+minor: unreadable direction rejects, readable
      * direction parses (4-wide grid is self-describing at any minor). */
-    RI_ASSERT(rbng_test_set_vers("/tmp/ri/run/t105-l.rbng",
-        "/tmp/ri/run/t105-lm1.rbng", 1u, 1u, 0u) == 0, "downgrade");
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t105-lm1.rbng", &r, err,
+    RI_ASSERT(rbng_test_set_vers(RI_TMP_ROOT "/run/t105-l.rbng",
+        RI_TMP_ROOT "/run/t105-lm1.rbng", 1u, 1u, 0u) == 0, "downgrade");
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t105-lm1.rbng", &r, err,
         sizeof err) != 0, "5-wide minor-1 accepted: %s", err);
-    RI_ASSERT(rbng_test_set_vers("/tmp/ri/run/t105-c.rbng",
-        "/tmp/ri/run/t105-cm4.rbng", 1u, 4u, 0u) == 0, "upgrade");
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t105-cm4.rbng", &r, err,
+    RI_ASSERT(rbng_test_set_vers(RI_TMP_ROOT "/run/t105-c.rbng",
+        RI_TMP_ROOT "/run/t105-cm4.rbng", 1u, 4u, 0u) == 0, "upgrade");
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t105-cm4.rbng", &r, err,
         sizeof err) == 0, "4-wide minor-4 rejected: %s", err);
     RI_ASSERT(r.track.slot[0][0] == 5u, "upgraded col0");
     RI_ASSERT(r.track.slot[0][4] == 0u, "upgraded col4");

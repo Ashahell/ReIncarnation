@@ -76,14 +76,14 @@ int main(void) {
     }
 
     /* --- round-trip: reserialize byte-identical --- */
-    CHECK(rbnm_reserialize(T30_PACK, "/tmp/ri/run/t30_pack2.rbnm", err,
+    CHECK(rbnm_reserialize(T30_PACK, RI_TMP_ROOT "/run/t30_pack2.rbnm", err,
         sizeof err) == 0, "reser: %s", err);
     f = fopen(T30_PACK, "rb");
     if (f) {
         na = (long)fread(A, 1, sizeof A, f);
         fclose(f);
     }
-    f = fopen("/tmp/ri/run/t30_pack2.rbnm", "rb");
+    f = fopen(RI_TMP_ROOT "/run/t30_pack2.rbnm", "rb");
     if (f) {
         nb = (long)fread(B, 1, sizeof B, f);
         fclose(f);

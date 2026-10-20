@@ -44,7 +44,10 @@ set -u
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SPIKE=/home/miller/Work/projects/Vulkan4Aros/scripts/spike_server.py
-OUT=/tmp/ri/laneproof
+# ONE build root, shared with the other scripts (see scripts/ri_build_host.sh).
+RI_TMP="${RI_TMP:-/tmp/ri}"
+export RI_TMP
+OUT="$RI_TMP/laneproof"
 RUN=300
 
 BUILD=1
@@ -114,7 +117,7 @@ if [ "$BUILD" = 1 ]; then
         #
         #   * `ri_build_aros.sh . out riapp` prints "STUB BUILD OK" and BUILDS
         #     NOTHING. The correct invocation is the BARE target name, and it
-        #     writes to its own OUT (/tmp/ri/aros) rather than to a path you
+        #     writes to its own OUT ($RI_TMP/aros) rather than to a path you
         #     name -- so the copy below is not tidiness, it is the only way to
         #     get the file.
         #   * THERE IS NO `midisend` TARGET ON v1**, unlike v11. MIDISEND is
@@ -125,8 +128,8 @@ if [ "$BUILD" = 1 ]; then
         #     given a real target for.
         bash "$ROOT/scripts/ri_build_aros.sh" riapp    || exit 1
         bash "$ROOT/scripts/ri_build_aros.sh" sections || exit 1
-        cp /tmp/ri/aros/RIAPP    "$OUT/$RIAPP" || exit 1
-        cp /tmp/ri/aros/MIDISEND "$OUT/$MSEND" || exit 1
+        cp "$RI_TMP"/aros/RIAPP    "$OUT/$RIAPP" || exit 1
+        cp "$RI_TMP"/aros/MIDISEND "$OUT/$MSEND" || exit 1
     fi
 fi
 
@@ -257,8 +260,8 @@ else
     echo "  *** Almost always a modal requester wedging its command path."
     echo "  *** Move the queued jobs out of the spool so a later agent does not"
     echo "  *** replay them, then reboot:"
-    echo "      mkdir -p /tmp/ri/moved_jobs"
-    echo "      mv $SPOOL/jobs/*.json /tmp/ri/moved_jobs/"
+    echo "      mkdir -p $RI_TMP/moved_jobs"
+    echo "      mv $SPOOL/jobs/*.json $RI_TMP/moved_jobs/"
     echo "  *** Nothing below can be concluded from this run. Stopping."
     exit 6
 fi

@@ -122,7 +122,7 @@ int main(void) {
         "and must not be told the delay send was closed");
 
     /* ---- the anti-tautology guard ---- */
-    snprintf(path, sizeof path, "/tmp/ri-t233-clean-%u.log", (unsigned)getpid());
+    snprintf(path, sizeof path, RI_TMP_ROOT "-t233-clean-%u.log", (unsigned)getpid());
     write_clean(path);
     j = run(path);
     RI_ASSERT(j != 0, "the analyser produced output for the clean session");
@@ -137,7 +137,7 @@ int main(void) {
     remove(path);
 
     /* ---- an empty session must say so, not pass silently ---- */
-    snprintf(path, sizeof path, "/tmp/ri-t233-empty-%u.log", (unsigned)getpid());
+    snprintf(path, sizeof path, RI_TMP_ROOT "-t233-empty-%u.log", (unsigned)getpid());
     { FILE *f = fopen(path, "w"); if (f) { fprintf(f, "ev 1 0 RUN build=x\n"); fclose(f); } }
     j = run(path);
     RI_ASSERT(has(j, "NO_PANEL_PUSH", 0),

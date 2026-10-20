@@ -23,7 +23,7 @@ void ri_pal_midi_poll(void);
 
 static const char *cap_path(void) {
     const char *e = getenv("RI_MIDI_HOST_CAPTURE");
-    return (e && e[0]) ? e : "/tmp/ri/midi_capture.txt";
+    return (e && e[0]) ? e : RI_TMP_ROOT "/midi_capture.txt";
 }
 
 int ri_pal_midi_open_in(const char *port, ri_midi_in cb, void *user) {

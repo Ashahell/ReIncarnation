@@ -37,9 +37,14 @@
 #include "project/sample_guard.h"   /* the ONE guard, pinned directly */
 
 
-#define T217_SONG  "t217f_song.txt"
-#define T217_WAV32 "t217f_out32.wav"
-#define T217_WAV16 "t217f_out16.wav"
+/* The artefacts go under the ONE build root (RI_TMP), like every other
+ * scratch path: a relative name lands in the CURRENT DIRECTORY, which for
+ * the audit is the repo root -- and two lanes working in one checkout would
+ * write each other's song and WAV. Measured 2026-10-20: with the two lanes
+ * concurrent, one of them read the other's t217f_out32.wav and failed. */
+#define T217_SONG  RI_TMP_ROOT "/t217f_song.txt"
+#define T217_WAV32 RI_TMP_ROOT "/t217f_out32.wav"
+#define T217_WAV16 RI_TMP_ROOT "/t217f_out16.wav"
 
 static int fails = 0;
 #define CHECK(cond, ...) do { \

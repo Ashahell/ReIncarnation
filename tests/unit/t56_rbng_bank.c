@@ -8,8 +8,8 @@
 #include "engine/seq/pattern.h"
 #include "project/rbng.h"
 
-#define T56A "/tmp/ri/run/t56-rt.rbng"
-#define T56B "/tmp/ri/run/t56-mut.rbng"
+#define T56A RI_TMP_ROOT "/run/t56-rt.rbng"
+#define T56B RI_TMP_ROOT "/run/t56-mut.rbng"
 
 static char ERR[256];
 static char WARN[512];

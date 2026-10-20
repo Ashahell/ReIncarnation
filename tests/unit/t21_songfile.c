@@ -1,7 +1,7 @@
 /* t21_songfile — file-level song path (WBS 2.1 builder file leg).
  * RBNG write -> read -> converter -> walker, all pinned: round-trip
  * step equality, 4 converted steps, 6 emitted events with exact
- * (sample,type,value,flags). Writes under /tmp/ri/run/t21 (audit
+ * (sample,type,value,flags). Writes under RI_TMP_ROOT "/run/t21" (audit
  * creates it; write/read failures assert with the codec err string,
  * never crash). No production code is expected to change (codec,
  * converter, walker frozen green) — this pins their composition
@@ -15,7 +15,7 @@
 #include "engine/seq/clock.h"
 #include "project/rbng.h"
 
-#define T21F_DIR "/tmp/ri/run/t21"
+#define T21F_DIR RI_TMP_ROOT "/run/t21"
 #define T21F_SONG T21F_DIR "/song.rbng"
 
 static int fails = 0;

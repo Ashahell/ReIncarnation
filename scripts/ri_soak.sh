@@ -1,6 +1,6 @@
 #!/bin/bash
 # ri_soak.sh — Task-14 time-boxed host soak (shared tooling, gate G14).
-# usage: ri_soak.sh SECONDS [OUTDIR]   (OUTDIR default /tmp/ri/soak)
+# usage: ri_soak.sh SECONDS [OUTDIR]   (OUTDIR default $RI_TMP/soak)
 #
 # What it does: builds the host tree, runs tools/bench once (worst-case
 # DSP blocks, determinism-checked inside bench), then loops the render
@@ -20,8 +20,15 @@
 # failed-or-nondeterministic renders, and it reads 0 by assertion.
 set -u
 ROOT="$(dirname "$0")/.."
+# ONE build root, shared with the other scripts (see scripts/ri_build_host.sh).
+# It used to be a hard-coded /tmp/ri here, so the soak built and benched
+# against the OTHER lane's objects when two lanes ran at once -- measured
+# 2026-10-20: one lane's soak failed while the other's was rebuilding the
+# same directory.
+RI_TMP="${RI_TMP:-/tmp/ri}"
+export RI_TMP
 SECS="${1:-60}"
-OUT="${2:-/tmp/ri/soak}"
+OUT="${2:-$RI_TMP/soak}"
 case "$SECS" in
   ''|*[!0-9]*) echo "usage: $0 SECONDS [OUTDIR]"; exit 2 ;;
 esac
@@ -36,7 +43,7 @@ echo "SOAK machine: $(uname -srmo) nproc=$(nproc) gcc=$(gcc -dumpfullversion) fl
 echo "SOAK deadline: ${SECS}s out=$OUT date=$(date -u +%FT%TZ)"
 
 bash "$ROOT/scripts/ri_build_host.sh" all >/dev/null || { echo "SOAK FAIL: host build"; exit 1; }
-BOUT=/tmp/ri/build
+BOUT="$RI_TMP/build"
 gcc $CFLAGS -o "$BOUT/bench" "$ROOT/tools/bench.c" "$BOUT"/*.o -lm -lpng || { echo "SOAK FAIL: bench build"; exit 1; }
 gcc $CFLAGS -o "$BOUT/render" "$ROOT/tools/render.c" "$BOUT"/*.o -lm -lpng || { echo "SOAK FAIL: render build"; exit 1; }
 R="$BOUT/render"

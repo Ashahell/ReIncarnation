@@ -57,14 +57,14 @@ int main(void) {
     RI_ASSERT(ri_pal_path(RI_PATH_PACKS, dir, sizeof(dir)) == 0, "packs");
     RI_ASSERT(ri_pal_path_join(leaf, sizeof(leaf), dir, "x") == 0, "packs join");
     /* path_join. */
-    RI_ASSERT(ri_pal_path_join(dir, sizeof(dir), "/tmp/ri", "x.wav") == 0, "join ok");
-    RI_ASSERT(strcmp(dir, "/tmp/ri/x.wav") == 0, "join %s", dir);
-    RI_ASSERT(ri_pal_path_join(dir, sizeof(dir), "/tmp/ri/", "x.wav") == 0, "join slash ok");
-    RI_ASSERT(strcmp(dir, "/tmp/ri/x.wav") == 0, "join slash %s", dir);
-    RI_ASSERT(ri_pal_path_join(dir, 8u, "/tmp/ri", "x.wav") != 0, "join trunc");
+    RI_ASSERT(ri_pal_path_join(dir, sizeof(dir), RI_TMP_ROOT "", "x.wav") == 0, "join ok");
+    RI_ASSERT(strcmp(dir, RI_TMP_ROOT "/x.wav") == 0, "join %s", dir);
+    RI_ASSERT(ri_pal_path_join(dir, sizeof(dir), RI_TMP_ROOT "/", "x.wav") == 0, "join slash ok");
+    RI_ASSERT(strcmp(dir, RI_TMP_ROOT "/x.wav") == 0, "join slash %s", dir);
+    RI_ASSERT(ri_pal_path_join(dir, 8u, RI_TMP_ROOT "", "x.wav") != 0, "join trunc");
     RI_ASSERT(ri_pal_path_join(0, 0u, "a", "b") != 0, "join null");
     /* read/write round-trip. */
-    snprintf(tmpd, sizeof(tmpd), "/tmp/ri/t86-%d", (int)getpid());
+    snprintf(tmpd, sizeof(tmpd), RI_TMP_ROOT "/t86-%d", (int)getpid());
     mkdir(tmpd, 0700);
     RI_ASSERT(ri_pal_path_join(leaf, sizeof(leaf), tmpd, "rw.bin") == 0, "leaf");
     for (i = 0u; i < sizeof(wbuf); i++)
@@ -74,14 +74,14 @@ int main(void) {
     RI_ASSERT(ri_pal_read_file(leaf, rbuf, sizeof(rbuf), &got) == 0, "read");
     RI_ASSERT(got == sizeof(wbuf), "got %u", got);
     RI_ASSERT(memcmp(wbuf, rbuf, sizeof(wbuf)) == 0, "roundtrip");
-    RI_ASSERT(ri_pal_read_file("/tmp/ri/t86-no-such-file.bin", rbuf, sizeof(rbuf), &got) != 0, "read miss");
+    RI_ASSERT(ri_pal_read_file(RI_TMP_ROOT "/t86-no-such-file.bin", rbuf, sizeof(rbuf), &got) != 0, "read miss");
     /* list_dirs sees the subdir we make. */
     snprintf(sub, sizeof(sub), "%s/sub", tmpd);
     mkdir(sub, 0700);
     t_count = 0;
     RI_ASSERT(ri_pal_list_dirs(tmpd, t_cb, 0) == 0, "scan");
     RI_ASSERT(t_count >= 1, "scan found %d", t_count);
-    RI_ASSERT(ri_pal_list_dirs("/tmp/ri/t86-no-such-dir", t_cb, 0) != 0, "scan miss");
+    RI_ASSERT(ri_pal_list_dirs(RI_TMP_ROOT "/t86-no-such-dir", t_cb, 0) != 0, "scan miss");
     /* log_format parity with snprintf. */
     {
         char a[128], b[128];

@@ -55,12 +55,12 @@ int main(void) {
     RI_ASSERT(ri_skinassign_set(&a, RI_SEC_SYNTH1, "Template") == 0, "set 303");
     RI_ASSERT(skinassign_to_song(&a, &s) == 0, "to song");
     RI_ASSERT(s.nskin == 2u, "two entries");
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t128/t128-s.rbng", &s, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t128/t128-s.rbng", &s, err,
         sizeof err) == 0, "write skas: %s", err);
-    RI_ASSERT(file_minor("/tmp/ri/run/t128/t128-s.rbng") == 3, "minor 3");
+    RI_ASSERT(file_minor(RI_TMP_ROOT "/run/t128/t128-s.rbng") == 3, "minor 3");
     memset(&r, 0, sizeof r);
     rbng_song_init(&r);
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t128/t128-s.rbng", &r, err,
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t128/t128-s.rbng", &r, err,
         sizeof err) == 0, "read skas: %s", err);
     RI_ASSERT(r.nskin == 2u && r.skin[0].section == RI_SEC_SYNTH1 &&
         !strcmp(r.skin[0].name, "Template") && r.skin[1].section == RI_SEC_808 &&
@@ -70,13 +70,13 @@ int main(void) {
     ri_skinassign_init(&a);
     RI_ASSERT(skinassign_to_song(&a, &s) == 0, "uniform to song");
     RI_ASSERT(s.nskin == 0u, "no entries");
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t128/t128-c.rbng", &s, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t128/t128-c.rbng", &s, err,
         sizeof err) == 0, "write classic: %s", err);
-    RI_ASSERT(file_minor("/tmp/ri/run/t128/t128-c.rbng") == 0, "minor 0");
+    RI_ASSERT(file_minor(RI_TMP_ROOT "/run/t128/t128-c.rbng") == 0, "minor 0");
     /* Apply: SKAS verbatim + dirty on unknown; MODR[0] fallback; empty. */
     memset(&r, 0, sizeof r);
     rbng_song_init(&r);
-    RI_ASSERT(rbng_read_song("/tmp/ri/run/t128/t128-s.rbng", &r, err,
+    RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t128/t128-s.rbng", &r, err,
         sizeof err) == 0, "reread: %s", err);
     ri_skinassign_init(&a);
     RI_ASSERT(ri_skinassign_from_song(&a, &r, inst, 3u, &dirty) == 0, "apply");
@@ -155,11 +155,11 @@ int main(void) {
     s.skin[1].section = RI_SEC_SYNTH1;
     strcpy(s.skin[1].name, "Template");
     s.nskin = 2u;
-    RI_ASSERT(rbng_write_song("/tmp/ri/run/t128/t128-bad.rbng", &s, err,
+    RI_ASSERT(rbng_write_song(RI_TMP_ROOT "/run/t128/t128-bad.rbng", &s, err,
         sizeof err) != 0, "descending refused");
     {
         /* Patch the valid file's second entry to duplicate the first. */
-        FILE *f = fopen("/tmp/ri/run/t128/t128-s.rbng", "rb");
+        FILE *f = fopen(RI_TMP_ROOT "/run/t128/t128-s.rbng", "rb");
         static unsigned char buf[4096];
         size_t n, o;
         RI_ASSERT(f != 0, "reopen");
@@ -176,7 +176,7 @@ int main(void) {
             size_t e0 = o + 8u + 2u;
             size_t l0 = buf[e0 + 1u];
             buf[e0 + 2u + l0] = buf[e0];
-            f = fopen("/tmp/ri/run/t128/t128-dup.rbng", "wb");
+            f = fopen(RI_TMP_ROOT "/run/t128/t128-dup.rbng", "wb");
             RI_ASSERT(f != 0, "dup open");
             if (f) {
                 RI_ASSERT(fwrite(buf, 1, n, f) == n, "dup write");
@@ -185,7 +185,7 @@ int main(void) {
         }
         memset(&r, 0, sizeof r);
         rbng_song_init(&r);
-        RI_ASSERT(rbng_read_song("/tmp/ri/run/t128/t128-dup.rbng", &r, err,
+        RI_ASSERT(rbng_read_song(RI_TMP_ROOT "/run/t128/t128-dup.rbng", &r, err,
             sizeof err) != 0, "duplicate refused");
     }
     RI_RESULT("skinchunk");

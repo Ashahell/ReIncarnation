@@ -12,10 +12,20 @@ ROOT := $(dir $(lastword $(MAKEFILE_LIST)))..
 # sources, and when that checkout is removed the main tree's next build dies
 # with "No rule to make target <deleted path>" -- a failure in the other
 # tree, caused by a build that ran in a directory that no longer exists.
-# Measured 2026-10-20, by exactly that route. Overridable: OUT=... make ...
-OUT ?= /tmp/ri/portable-$(subst /,_,$(abspath $(ROOT)))
+# Measured 2026-10-20, by exactly that route.
+#
+# RI_TMP is the ONE root every build artefact derives from, so a lane can
+# point it at its own folder and share nothing with the other lane (the
+# objects, the run scaffolds, the probe artifacts, this portable build).
+# Overridable: RI_TMP=... make ... / OUT=... make ...
+RI_TMP ?= /tmp/ri
+OUT ?= $(RI_TMP)/portable-$(subst /,_,$(abspath $(ROOT)))
 CC ?= gcc
-CFLAGS ?= -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$(ROOT)
+# RI_TMP_ROOT is the lane's scratch root as a STRING LITERAL: the single
+# quotes keep the double quotes for the compiler, so a source can build a
+# path by concatenating it (RI_TMP_ROOT "/run/x"). Without it the sources
+# that take their scratch path from the root fail to compile here.
+CFLAGS ?= -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$(ROOT) -DRI_TMP_ROOT='"$(RI_TMP)"'
 
 CORE_TU := \
   app/core/live_driver.c app/core/canvas_events.c \

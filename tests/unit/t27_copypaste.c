@@ -42,10 +42,10 @@ int main(void) {
         w.steps[i].note = NOTES[i];
         w.steps[i].flags = FLAGS[i];
     }
-    CHECK(rbng_write_song("/tmp/ri/run/t27_copy.rbng", &w, err,
+    CHECK(rbng_write_song(RI_TMP_ROOT "/run/t27_copy.rbng", &w, err,
         sizeof err) == 0, "write: %s", err);
     memset(&r, 0, sizeof r);
-    CHECK(rbng_read_song("/tmp/ri/run/t27_copy.rbng", &r, err,
+    CHECK(rbng_read_song(RI_TMP_ROOT "/run/t27_copy.rbng", &r, err,
         sizeof err) == 0, "read: %s", err);
     CHECK(r.nsteps == 16, "nsteps %u", r.nsteps);
     for (i = 0; i < 16; i++) {

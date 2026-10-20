@@ -28,8 +28,8 @@ int main(void) {
     char script[256], cap[256];
     FILE *f;
     uint8_t out[3];
-    snprintf(script, sizeof script, "/tmp/ri/t89-%d.txt", (int)getpid());
-    snprintf(cap, sizeof cap, "/tmp/ri/t89cap-%d.txt", (int)getpid());
+    snprintf(script, sizeof script, RI_TMP_ROOT "/t89-%d.txt", (int)getpid());
+    snprintf(cap, sizeof cap, RI_TMP_ROOT "/t89cap-%d.txt", (int)getpid());
     unlink(cap);
     f = fopen(script, "w");
     RI_ASSERT(f != 0, "script open");
@@ -45,7 +45,7 @@ int main(void) {
     RI_ASSERT(t_when[0] == 12000u && t_when[1] == 24000u && t_when[2] == 36000u, "times");
     RI_ASSERT(t_len[1] == 3u && t_got[1][0] == 0xB0u, "ev1");
     RI_ASSERT(t_len[2] == 3u && t_got[2][0] == 0x80u, "ev2");
-    RI_ASSERT(ri_pal_midi_open_in("/tmp/ri/t89-nope.txt", t_cb, 0) != 0, "miss");
+    RI_ASSERT(ri_pal_midi_open_in(RI_TMP_ROOT "/t89-nope.txt", t_cb, 0) != 0, "miss");
     out[0] = 0x90u;
     out[1] = 0x40u;
     out[2] = 0x7Fu;
