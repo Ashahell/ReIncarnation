@@ -271,7 +271,7 @@ static LONG s_skill_sig = -1;
 static LONG s_sparent_sig = -1;
 static struct Task *s_sparent;
 static ri_atomic_u32 s_sstop, s_stask_done, s_sready;
-static volatile uint32_t s_sent, s_send_err;
+static volatile uint32_t s_sent, s_send_err, s_clk_sent, s_noteon_sent;
 
 /* THE LINK IS SHARED BY TWO TASKS, AND NOW IT SAYS SO.
  *
@@ -505,6 +505,17 @@ static int send_sink(const uint8_t *msg, uint32_t len, void *user) {
         return 1;              /* stop this pump; retry next tick */
     }
     s_sent++;
+    /* 0xF8 on its own is a clock. Counted separately because `s_sent` is
+     * the whole ring and the accounting needs the clock half measured
+     * rather than inferred from tempo and duration (R12 O1). */
+    if (len == 1u && msg[0] == 0xF8u)
+        s_clk_sent++;
+    /* A note-ON among them. `sent` and even `clocks` cannot separate a
+     * re-sent note-on from a note-off, and the R12 O1 accounting needs to
+     * know whether a duplicate note-on left THIS process or appeared
+     * further down the lane (RTP-MIDI, netmidid, CAMD). */
+    if (len == 3u && (msg[0] & 0xF0u) == 0x90u && msg[2] != 0u)
+        s_noteon_sent++;
     return 0;
 }
 
@@ -639,6 +650,8 @@ int ri_pal_midi_send_start(const char *port, struct RIMidiOut *o) {
     s_out = o;
     s_sent = 0u;
     s_send_err = 0u;
+    s_clk_sent = 0u;
+    s_noteon_sent = 0u;
     ri_atomic_store_rel(&s_sstop, 0u);
     ri_atomic_store_rel(&s_stask_done, 0u);
     ri_atomic_store_rel(&s_sready, 0u);
@@ -712,3 +725,5 @@ void ri_pal_midi_send_stop(void) {
 
 uint32_t ri_pal_midi_sent(void) { return s_sent; }
 uint32_t ri_pal_midi_send_errors(void) { return s_send_err; }
+uint32_t ri_pal_midi_clocks(void) { return s_clk_sent; }
+uint32_t ri_pal_midi_noteons(void) { return s_noteon_sent; }

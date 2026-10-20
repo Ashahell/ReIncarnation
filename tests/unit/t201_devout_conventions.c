@@ -47,6 +47,8 @@
 #include "engine/seq/pattern.h"
 #include "engine/seq/sched.h"
 #include "midi_io/midi_devout.h"
+#include "midi_io/midi_bridge.h"
+#include "midi_io/note_in.h"
 
 #define CH 5u
 
@@ -100,8 +102,8 @@ int main(void) {
         /* The caller insists on channel 5 for a drum. */
         w = ri_devout_emit(&D, B, sizeof B, CH, RI_DEVOUT_808, &x, 0u);
         RI_ASSERT(w == 3u, "the 808 hit emitted (%u)", (unsigned)w);
-        RI_ASSERT(B[0] == (uint8_t)(0x90u | RI_DEVOUT_GM_PERCUSSION),
-            "on GM channel 10, not on the caller's %u (%02X)",
+        RI_ASSERT(B[0] == 0x99u,
+            "on GM channel 10 = wire nibble 9 (0x99), not the caller's %u (%02X)",
             (unsigned)CH, (unsigned)B[0]);
         RI_ASSERT(B[1] == 36u, "still the bass drum (%u)", (unsigned)B[1]);
         RI_ASSERT(ri_devout_override(&D) == 1u,
@@ -111,7 +113,7 @@ int main(void) {
         ri_devout_init(&D, 1);
         ri_devout_assign(&D, 0u, 3u);
         w = ri_devout_emit(&D, B, sizeof B, 3u, RI_DEVOUT_909, &x, 0u);
-        RI_ASSERT(w == 3u && B[0] == (uint8_t)(0x90u | RI_DEVOUT_GM_PERCUSSION),
+        RI_ASSERT(w == 3u && B[0] == 0x99u,
             "and the 909 too (%02X)", (unsigned)B[0]);
     }
 
@@ -133,8 +135,69 @@ int main(void) {
         RI_ASSERT(ri_devout_emit(&D, B, sizeof B, CH, RI_DEVOUT_808, &x, 0u)
             == 3u, "drums need no melodic channel assigned (%u)",
             (unsigned)w);
-        RI_ASSERT(B[0] == (uint8_t)(0x90u | RI_DEVOUT_GM_PERCUSSION),
-            "and land on channel 10 (%02X)", (unsigned)B[0]);
+        RI_ASSERT(B[0] == 0x99u,
+            "and land on channel 10 (0x99, got %02X)", (unsigned)B[0]);
+    }
+
+    /* --- 2c. ROUND TRIP: OUR OWN DRUMS ARE NOTES OUR OWN INPUT ACCEPTS -
+     *
+     * The defect this pins: `RI_DEVOUT_GM_PERCUSSION` (the human 10) was
+     * put straight into the status byte, so the drums left as `0x9A` --
+     * MIDI channel 11 -- while `midi_settings_notein_ch()` binds the 808 at
+     * wire nibble 9. RIAPP could not have recognised its own drum output.
+     * So assert the LITERAL byte (not `0x90 | the same constant`, which is
+     * how t200/t201/t202 agreed with the bug) and feed it back through
+     * `ri_notein_note()`. The raw-nibble version is mutant DM. */
+    {
+        struct RINoteIn in;
+        struct RINoteInEvent ev;
+        struct RIMidiSettings S;
+        struct RIDevEvent x;
+        int ch;
+        memset(&S, 0, sizeof S);
+        ch = midi_settings_notein_ch(&S, RI_NOTEIN_DEV_808);
+        RI_ASSERT(ch == 9,
+            "our own input binds the 808 at wire nibble 9 (%d)", ch);
+        ri_notein_init(&in);
+        RI_ASSERT(ri_notein_bind(&in, (uint32_t)ch, RI_NOTEIN_DEV_808) == 0,
+            "and the bind is accepted");
+
+        memset(&x, 0, sizeof x);
+        x.note = 60u;
+        x.vel = ri_devout_velocity(0u);
+        ri_devout_init(&D, 1);
+        w = ri_devout_emit(&D, B, sizeof B, CH, RI_DEVOUT_808, &x, RB808_BD);
+        RI_ASSERT(w == 3u, "the 808 bass drum emits (%u)", (unsigned)w);
+        RI_ASSERT(B[0] == 0x99u,
+            "as 0x99 -- channel 10, nibble 9 (got %02X)", (unsigned)B[0]);
+        RI_ASSERT((B[0] & 0x0Fu) == (uint8_t)ch,
+            "on the same nibble our input binds (%u vs %d)",
+            (unsigned)(B[0] & 0x0Fu), ch);
+        RI_ASSERT(B[1] == 36u, "bass drum note 36 (%u)", (unsigned)B[1]);
+
+        memset(&ev, 0, sizeof ev);
+        ev.ch = (uint8_t)(B[0] & 0x0Fu);
+        ev.note = B[1];
+        ev.vel = B[2];
+        ev.on = 1u;
+        RI_ASSERT(ri_notein_note(&in, &ev) == 0,
+            "and ri_notein_note accepts the emitted drum");
+        RI_ASSERT(ev.resolved == 1u, "resolved");
+        RI_ASSERT(ev.dev == RI_NOTEIN_DEV_808,
+            "as the 808 (%u)", (unsigned)ev.dev);
+        RI_ASSERT(ev.inst == 0u,
+            "bass drum lane 0 (%u)", (unsigned)ev.inst);
+        RI_ASSERT(in.refused == 0u, "with nothing refused (%u)",
+            (unsigned)in.refused);
+
+        /* A drum note-off, if one is ever produced, is on the same nibble. */
+        memset(&x, 0, sizeof x);
+        x.note = 60u;
+        x.is_off = 1u;
+        ri_devout_init(&D, 1);
+        w = ri_devout_emit(&D, B, sizeof B, CH, RI_DEVOUT_808, &x, RB808_BD);
+        RI_ASSERT(w == 3u && B[0] == 0x89u,
+            "an 808 release is 0x89 (%02X)", (unsigned)B[0]);
     }
 
     /* --- 3. TWO VELOCITIES, AND THEY MATCH THE EXPORT ---------------- */

@@ -4463,12 +4463,14 @@ static int riapp_main(int argc, char **argv) {
              * sender has not drained, sent/err is what actually left the PAL
              * sink. Logged only when clock or note out is enabled. */
             if (s_mset.clk_out || s_mset.dev_out)
-                rlog("RIAPP clk: on=%lu run=%lu pend=%lu dropped=%lu sent=%lu err=%lu\n",
+                rlog("RIAPP clk: on=%lu run=%lu pend=%lu dropped=%lu sent=%lu err=%lu clocks=%lu nen=%lu\n",
                     (ULONG)s_mout.enabled, (ULONG)s_mout.running,
                     (ULONG)midi_out_pending(&s_mout),
                     (ULONG)midi_out_dropped(&s_mout),
                     (ULONG)ri_pal_midi_sent(),
-                    (ULONG)ri_pal_midi_send_errors());
+                    (ULONG)ri_pal_midi_send_errors(),
+                    (ULONG)ri_pal_midi_clocks(),
+                    (ULONG)ri_pal_midi_noteons());
             /* Device-out accounting (R12 O1). `sent` above is the WHOLE
              * sender ring -- clock, notes, transport and the one-shot
              * program change -- so on its own it cannot be checked against

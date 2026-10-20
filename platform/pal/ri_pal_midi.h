@@ -52,8 +52,17 @@ int ri_pal_midi_send_start(const char *port, struct RIMidiOut *o);
  * 0 ok, non-zero refused. */
 int ri_pal_midi_init_lib(void);
 void ri_pal_midi_send_stop(void);
-/* Counters for the ev-log: messages handed to camd, and refusals. */
+/* Counters for the ev-log: messages handed to camd, refusals. */
 uint32_t ri_pal_midi_sent(void);
 uint32_t ri_pal_midi_send_errors(void);
+/* Clock messages among those sent: `sent` counts the WHOLE ring, so it
+ * cannot be compared with a note count on its own. This one is a guest
+ * COUNTER, not an estimate from BPM x duration -- the R12 O1 accounting
+ * depends on being able to name the clock half of `sent` directly. */
+uint32_t ri_pal_midi_clocks(void);
+/* Note-ON messages among those sent (3-byte 0x9n with a non-zero velocity).
+ * `sent` counts the whole ring and cannot tell a duplicated note-on from a
+ * note-off; this counter can, and it says whether a duplicate left RIAPP. */
+uint32_t ri_pal_midi_noteons(void);
 
 #endif

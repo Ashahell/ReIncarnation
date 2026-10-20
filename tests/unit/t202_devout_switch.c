@@ -216,8 +216,8 @@ int main(void) {
         r.flags = 0u;   /* plain velocity, carried by the producer */
         RI_ASSERT(ri_devout_record(&V, W, sizeof W, CH, &r) == 3u,
             "an 808 note still emits with no melodic channel");
-        RI_ASSERT(W[0] == (uint8_t)(0x90u | RI_DEVOUT_GM_PERCUSSION),
-            "on channel 10 (%02X)", (unsigned)W[0]);
+        RI_ASSERT(W[0] == 0x99u,
+            "on channel 10 = wire nibble 9 (0x99, got %02X)", (unsigned)W[0]);
         RI_ASSERT(midi_out_put(&O, W, 3u) == 3u, "and reaches the ring");
         RI_ASSERT(drain() == 3u, "three bytes, unannounced (%u)",
             (unsigned)drain());

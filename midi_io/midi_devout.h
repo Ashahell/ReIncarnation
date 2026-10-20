@@ -61,8 +61,24 @@
  * instrument and plays a wrong pitched tone, or nothing at all. So
  * `ri_devout_emit` OVERRIDES the channel for the 808 and the 909 and counts
  * the override. A user who only wants the 808 out therefore needs no melodic
- * channel configured, which is the other half of the decision. */
-#define RI_DEVOUT_GM_PERCUSSION 10u
+ * channel configured, which is the other half of the decision.
+ *
+ * CHANNEL NUMBERING -- and this is where the code was wrong once. A MIDI
+ * status byte numbers channels 0..15, so the human channel 10 is wire nibble
+ * 9: a note-on is `0x99`, not `0x9A`. `RI_DEVOUT_GM_PERCUSSION` is the
+ * HUMAN, 1-based number (the owner's decision of 2026-10-10);
+ * `RI_DEVOUT_GM_PERCUSSION_NIBBLE` is what goes into the status byte and
+ * indexes `assigned[]`. The melodic path already arrives as a nibble
+ * (`midi_settings_note_ch()` returns the setting minus one), so `assigned[]`
+ * has ONE meaning: a wire nibble. t201 asserts the literal `0x99`.
+ *
+ * It matters beyond the byte: RIAPP's OWN NOTE INPUT binds the 808 at nibble
+ * 9 (`midi_settings_notein_ch()`), so the raw-nibble version put the output
+ * on a channel our input would have called unclaimed -- a loopback would not
+ * have recognised its own drums. t201's round trip pins that. */
+#define RI_DEVOUT_GM_PERCUSSION 10u          /* human, 1-based */
+#define RI_DEVOUT_GM_PERCUSSION_NIBBLE \
+    (RI_DEVOUT_GM_PERCUSSION - 1u)            /* wire nibble: 9 */
 
 /* THE PROGRAM, for the one program change sent on enable. GM has no 303
  * program, so ANY value here is a convention, and this is a named constant

@@ -163,6 +163,27 @@ int main(void) {
     RI_ASSERT(R[0].kind == RI_NOTEK_NOTE && R[1].kind == RI_NOTEK_LATE_ACCENT,
         "which is exactly how a caller counts accents the wire cannot carry");
 
+    /* --- A 303 ACCENT IS NOT A SECOND NOTE ---------------------------- */
+    /* R12 O1 saw accented 303 note-ons repeated on the wire, 15.8 ms
+     * apart. This is where that could START if the engine were producing
+     * it: the scheduler emits an accented 303 step as a NOTE_ON carrying
+     * RI_EVFLAG_ACCENT **plus** a separate RI_EV_ACCENT event (both at the
+     * same sample -- tools/render --dump-events shows it). The total
+     * accent is a 303 *parameter* change, not a hit, so it must add no
+     * record. One accented step is one note, here and on the tap. */
+    E.cursor = 0u;
+    ev(RI_EV_NOTE_ON, 0u, 0u, 36u, RI_EVFLAG_ACCENT);
+    n = drain();
+    RI_ASSERT(n == 1u, "an accented 303 step is ONE record (%u)",
+        (unsigned)n);
+    RI_ASSERT(R[0].kind == RI_NOTEK_NOTE && R[0].is_off == 0u,
+        "and it is the note-on");
+    RI_ASSERT((R[0].flags & RI_EVFLAG_ACCENT) != 0u, "with its accent flag");
+    ev(RI_EV_ACCENT, 0u, RI_VOICE_ALL, 0u, 0u);
+    n = drain();
+    RI_ASSERT(n == 0u, "the 303 total accent adds NO record (%u)",
+        (unsigned)n);
+
     /* --- LOAD MUST NOT CLEAR IT --------------------------------------- */
     /* ri_engine_load runs once per 256-frame render buffer on the live
      * path. A tap reset there would cap the ring at one block's notes. */

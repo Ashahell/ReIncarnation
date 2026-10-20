@@ -329,16 +329,22 @@ uint32_t ri_devout_emit(struct RIDevOut *d, uint8_t *buf, uint32_t cap,
         /* Decision 2: GM defines percussion on channel 10 and nowhere else,
          * so the caller's melodic channel does not apply to a drum. The
          * override is counted: a session where most notes arrive on a
-         * channel the caller never chose should be visible, not silent. */
-        if (channel != RI_DEVOUT_GM_PERCUSSION)
+         * channel the caller never chose should be visible, not silent.
+         *
+         * CONVERT TO THE WIRE NIBBLE HERE. The constant is the human,
+         * 1-based channel 10; a status byte numbers channels 0..15, so the
+         * byte is `0x99`, not `0x9A`. `assigned[]` is indexed by the same
+         * nibble the melodic path uses, so the claim and the note land on
+         * the same entry. */
+        if (channel != RI_DEVOUT_GM_PERCUSSION_NIBBLE)
             d->override_ch++;
-        channel = RI_DEVOUT_GM_PERCUSSION;
+        channel = RI_DEVOUT_GM_PERCUSSION_NIBBLE;
         /* Claimed implicitly, because it is not a choice: leaving the
          * assignment requirement in place would mean the override moved the
          * note to a channel nothing had claimed, and every drum would be
          * refused for arriving where it was just sent. The MELODIC channel
          * stays opt-in -- an unclaimed one is still refused there. */
-        d->assigned[RI_DEVOUT_GM_PERCUSSION] = 1u;
+        d->assigned[RI_DEVOUT_GM_PERCUSSION_NIBBLE] = 1u;
     }
     if (note == 0u) {
         d->refused++;

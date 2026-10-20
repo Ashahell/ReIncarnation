@@ -136,8 +136,9 @@ int main(void) {
     n = render();
     RI_ASSERT(n == 3u, "a drum reaches the wire with no melodic channel (%u)",
         (unsigned)n);
-    RI_ASSERT(s_wire[0] == (uint8_t)(0x90u | RI_DEVOUT_GM_PERCUSSION),
-        "on GM channel 10 (%02X)", (unsigned)s_wire[0]);
+    RI_ASSERT(s_wire[0] == 0x99u,
+        "on GM channel 10 = wire nibble 9 (0x99, got %02X)",
+        (unsigned)s_wire[0]);
     RI_ASSERT(s_drv.devout_refused == 0u,
         "and nothing was refused (%lu)", (unsigned long)s_drv.devout_refused);
     ev(RI_EV_NOTE_ON, 0u, 0u, 46u, 0u);  /* a 303 note, same state */
@@ -184,6 +185,37 @@ int main(void) {
     RI_ASSERT(n == 3u && s_wire[2] == ri_devout_velocity(RI_EVFLAG_ACCENT),
         "an accent is louder on the wire too (%u vs %u)", (unsigned)s_wire[2],
         (unsigned)ri_devout_velocity(RI_EVFLAG_ACCENT));
+
+    /* --- ONE BAR, ONE ACCENTED 303 NOTE: ONE NOTE-ON ------------------ */
+    /* R12 O1: accented 303 note-ons reached the Dell wire TWICE, 15.8 ms
+     * apart, and never an unaccented one. The scheduler emits an accented
+     * 303 step as a NOTE_ON carrying RI_EVFLAG_ACCENT **and** a separate
+     * RI_EV_ACCENT event at the same sample (`tools/render --song` on a
+     * one-bar, one-accent song shows exactly 1 NOTE_ON + 1 ACCENT + 1
+     * NOTE_OFF). Feed that pair and count what leaves: one note-on, then
+     * the release, and no third message. If this ever says 6, the
+     * duplicate is RIAPP's and not the lane's. */
+    fixture();
+    attach();
+    ev(RI_EV_NOTE_ON, 0u, 0u, 36u, RI_EVFLAG_ACCENT);
+    ev(RI_EV_ACCENT, 0u, RI_VOICE_ALL, 0u, 0u);
+    n = render();
+    RI_ASSERT(n == 3u, "one accented step is ONE note-on on the wire (%u)",
+        (unsigned)n);
+    RI_ASSERT((s_wire[0] & 0xF0u) == 0x90u && s_wire[1] == 36u,
+        "note 36 on (%02X %u)", (unsigned)s_wire[0], (unsigned)s_wire[1]);
+    RI_ASSERT(ri_devout_emitted(&s_dev) == 1u,
+        "and ONE message emitted (%lu)",
+        (unsigned long)ri_devout_emitted(&s_dev));
+    RI_ASSERT(s_drv.devout_refused == 0u, "nothing refused (%lu)",
+        (unsigned long)s_drv.devout_refused);
+    ev(RI_EV_NOTE_OFF, 0u, 0u, 36u, 0u);
+    n = render();
+    RI_ASSERT(n == 3u && (s_wire[0] & 0xF0u) == 0x80u,
+        "then the release, and no second note-on (%02X)", (unsigned)s_wire[0]);
+    RI_ASSERT(ri_devout_emitted(&s_dev) == 2u,
+        "two messages for the bar, not three (%lu)",
+        (unsigned long)ri_devout_emitted(&s_dev));
 
     /* --- the drum path, THROUGH THE USER'S SLOT MAP -------------------- */
     /* Lane 5 default is the rim shot. Move it to the kick: the wire must

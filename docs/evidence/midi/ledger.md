@@ -1352,7 +1352,9 @@ pinned by t201 with a mutant that undoes it.
    on channel 10 and nowhere else — a drum note on channel 3 selects a
    melodic instrument and plays a wrong pitched tone, or nothing.
    `ri_devout_emit` **overrides** the channel for the 808/909 and counts the
-   override (`CB`, `CC`). Two consequences are pinned because either one on
+   override (`CB`, `CC`). **The code violated this from R6e until R12 O1b**
+   (it put the 1-based constant into the status byte, `0x9A` = channel 11);
+   see "R12 O1: the drum-channel defect" at the end of §R12. Two consequences are pinned because either one on
    its own would be a bug:
    - **Channel 10 is claimed implicitly** (`CD`). Without that, the override
      moves the note to a channel nothing had claimed and every drum is
@@ -6820,7 +6822,36 @@ stop signal in two `Wait`s, hanging after one empty pump. Fixed in
 **Known trap for the next step.** `ri_pal_midi_send_start()` ignores its
 `port` argument and sends to the cluster the input open selected; a real
 `RIAPP_MIDI_OUT` must fix that before it can split the send cluster. Not
-changed here.
+changed here. **(Closed in R12 O0, commit `95facca`: the sender is wired to
+the port named by `RIAPP_MIDI_OUT`, defaulting to `cluster`; see
+`r12-o1-notes-and-mmc-on-the-dell.md`.)**
+
+### R12 O1: the drum-channel defect, against the 2026-10-10 decision
+
+**A defect, not a choice.** The owner decided on 2026-10-10 (convention 2
+above) that drums go out on **GM channel 10**. The code did not: it put
+`RI_DEVOUT_GM_PERCUSSION` (`10`) straight into the status byte, so a drum
+note-on left as `0x9A` -- **channel 11** -- while the melodic path converts
+its 1-based setting to a nibble and the note input binds the 808 at nibble
+`9`. Input and output disagreed, and RIAPP could not have recognised its own
+drum output on a loopback.
+
+The tests did not catch it because t200, t201 and t202 built the expected
+byte from the same constant (`0x90 | RI_DEVOUT_GM_PERCUSSION`), so they
+agreed with the bug. That is the MMC-bytes pattern: an expectation derived
+from the code under test.
+
+**Fixed** (R12 O1b). `RI_DEVOUT_GM_PERCUSSION` stays the human 1-based
+number, as decided; `RI_DEVOUT_GM_PERCUSSION_NIBBLE` is the wire nibble
+(`9`) and indexes `assigned[]` with the same meaning the melodic path uses.
+The tests now assert literal `0x99` (note-on) and `0x89` (release) and carry
+a round trip: every drum message devout emits is fed through
+`ri_notein_note()` and must resolve to the 808 bass drum. The raw-nibble
+version is a mutant and dies.
+
+*(The all-unaccented O1 failures and the duplicated accent note-ons are
+recorded in `r12-o1-notes-and-mmc-on-the-dell.md`; the duplication is NOT
+established as downstream.)*
 
 **Not proven:** any DAW (the far peer is `rtpmidid` + an ALSA subscriber),
 RIAPP note/CC out (`RIAPP_MIDI_DEVOUT`; the gate's 33 messages were sent by
