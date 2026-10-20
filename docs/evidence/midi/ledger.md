@@ -7288,32 +7288,61 @@ the shape of the row group.
 | | fixed tree | mutant (the pre-fix shape) |
 |---|---|---|
 | the run | the panel build fails, the app tears down cleanly | the panel build fails the same way |
-| the log | `RIAPP teardown: canvases=21 parentless=5 sections=14,15,19,0,1` then `RIAPP closed: … xruns=0 …` | the same lines, and then the alert |
-| the screen | **no requester** — 2 windows, the panel never opens | **`Recoverable Alert!` at 401,289 564x191** — 3 windows |
+| the log | `RIAPP teardown: canvases=21 parentless=5 sections=14,15,19,0,1` then `RIAPP closed: … xruns=0 …` | `RIAPP teardown: canvases=21 parentless=4 sections=15,19,0,1` then `RIAPP closed: …` |
+| the screen | **2 windows** — no requester | **3 windows** — `Recoverable Alert!` at 401,289 564x191 |
 | what AROS says | — | `AN_FreeTwice` — the allocator caught the second free of a block it had already freed |
+
+The parentless counts differ, and that is the fingerprint: in the mutant the
+**section 14 canvas (the synth tab's first pattern canvas) is missing from
+the list**, because Zune already freed it behind the app's back and the
+teardown's `MUIA_Parent` ask on a freed object does not answer. The fixed
+tree still has it in the list, because the fixed build never let Zune take
+that canvas.
 
 The mutant is the fixed tree with the pre-fix page build and the pre-fix
 teardown branch put back, so **the same forced failure kills the old shape
 and not the new one**. That is the whole claim: the fix removes the double
 free, and the requester is the allocator saying so.
 
-**WHICH BINARIES, STATED EXACTLY.** The A/B was measured with the fixed tree
-as it stood when the run happened: the page build, the failure path and the
-teardown are the ones below, and the forced failure lands on the **synth tab's
-first row** — which is why the fixed run's parentless set is
-`14,15,19,0,1` (the two synth pattern canvases, the Levi's pattern canvas and
-the two synth voice canvases: the synth page never got built, so its four
-canvases have no owner, and the Levi's pattern canvas never has one either).
-**After** the A/B, two leak fixes were made to the same file — `rack_slot()`
-and `rack_page_gap()` now dispose the objects their failure paths leave
-behind (the seams, the spacers, the rails), because those are custom-class
-instances and one left alive outlives the class drop. **Those fixes are on
-the error path of the mix and FX strips, which the forced synth-page failure
-never reaches**, so they cannot change the A/B: the synth page fails first,
-`pages` is never built, and the mix/FX code is not called at all. The
-mutation harness and the full audit were re-run after the fixes, and both
-pass — but the lane measurement stands as taken, and the owner may want the
-A/B repeated on the final binaries when the Dell is back.
+**WHICH BINARIES, STATED EXACTLY.** The A/B was run on the **final** tree —
+the page build, the failure path, the teardown, and the two leak fixes to
+`rack_slot()` / `rack_page_gap()` that came after the first attempt. The
+mutant is that same tree with the pre-fix page build and the pre-fix teardown
+branch put back, so **the same forced failure kills the old shape and not
+the new one**.
+
+The forced failure lands on the **synth tab's first row** — which is why the
+fixed run's parentless set is `14,15,19,0,1` (the two synth pattern canvases,
+the Levi's pattern canvas and the two synth voice canvases: the synth page
+never got built, so its four canvases have no owner, and the Levi's pattern
+canvas never has one either).
+
+**AND A HARNESS BUG THAT ALMOST Faked THE A/B.** The first attempt after the
+reboot reported "the mutant does not crash" — and that was **not a
+measurement**: `RAM:` is wiped by a reboot, and the command file that sets
+the switches and starts the app (`o1page2.cmd`) lived on `RAM:`. It was
+never re-pushed, so `Execute RAM:o1page2.cmd` failed, **the app never ran
+at all**, and the log pull failed — and the script then read the **stale
+log file from the previous session** and printed it as if it were fresh. Two
+things had to be true for that to pass silently, and both were true: the
+pull's failure was swallowed by `>/dev/null 2>&1`, and the destination file
+was never cleared, so the old contents were still there.
+
+The fix is in the harness (`/tmp/opencode/ab6.sh`, a probe file, not in the
+repo): the command files are pushed on **every** run, the log file is
+**removed before the pull**, and a pull that fails or produces nothing is a
+**hard failure** — "NO MEASUREMENT" — rather than a silent pass. A run that
+does not happen must not be able to look like a run that happens and does
+not crash.
+
+**A SECOND LESSON, THE SAME SHAPE AS THE FIRST.** The measurement that
+*did* work in that first attempt was the "no crash" one, and it was wrong
+for the same reason the first A/B's "mutant crashes" was almost wrong: a
+number that looks like a result but is the previous result. The only reason
+it was caught is that the two runs' buffer counts differed (`buffers=8` vs
+`buffers=7`) — a detail nobody would have looked at, had the counts been
+equal. **A measurement that is not checked against something that should
+have changed is not a measurement.**
 
 **The failed build was found by the A/B, and the diagnostic that found it was
 almost wrong.** The first version of the switch armed the empty lookup with a
@@ -7362,24 +7391,31 @@ The teardown now counts, before any dispose, the canvases with no parent:
 
 ### NOT PROVEN, AND NOT OURS
 
-**The Dell is wedged and needs the owner's reboot.** The mutant's
-`Recoverable Alert!` requester is **modal**: it holds the screen, so the
-guest agent's command lane stops answering, and `--exec` / `--ui-windows` /
-`--get` all time out. The six jobs this session had queued at that moment
-(the alert's OK button, `Status`, `--ui-windows`) were **moved out of the
-spool** to `/tmp/opencode/spool_held_jobs/`, so a recovering agent will not
-replay them. **The reboot is the owner's to do** — the agent cannot reboot
-its own guest (`C:Reboot` is itself an exec and is blocked by the very
-requester that is up).
+**The stray `SYS:Classes/ReIncarnation/RIAPP` CLI task is GONE after the
+reboot.** It was there before the first run of this session, it did not
+answer a `Break` by name, and it was not a process this session started or
+killed. After the owner's reboot the task list carries **no** RIAPP task at
+all, so it did not survive the reboot: it was a leftover of an earlier run,
+not a persistent daemon and not a kernel-side ghost. This work still does
+**not** claim it was the leak these fixes remove — it is an **unexplained
+stray from before `908b4f6`, of unknown cause** — but the question "is it
+still there?" now has an answer, and it is **no**.
 
-**The Dell still carries a `SYS:Classes/ReIncarnation/RIAPP` CLI task that
-this work does not explain.** It was there before the first run of this
-session, it does not answer a `Break` by name, and it is not the process
-this session started or killed. It is an **unexplained stray process from
-before `908b4f6`, of unknown cause** — and this work does **not** claim it is
-the leak these fixes remove. It may still hold resources (an AHI audio
-device, a CAMD link) that later lane results depend on, so it is recorded
-rather than killed.
+**The Dell is wedged again**, in exactly the way the mutant's alert wedges
+it: the `Recoverable Alert!` requester is modal, so the guest agent's
+command lane stops answering and `--exec` / `--ui-windows` / `--get` all
+time out. The jobs this session had queued at that moment were moved out of
+the spool to `/tmp/opencode/spool_held_jobs/`, so a recovering agent will
+not replay them. **The reboot is the owner's to do** — the agent cannot
+reboot its own guest (`C:Reboot` is itself an exec, and it is blocked by
+the very requester that is up).
+
+**The original requester's text was still not read.** The alert the owner's
+Dell showed was up on its screen, unreadable from the agent, and the
+reproduction raises a *Recoverable* Alert whose text is also unreadable
+(the guest's font at the scale the agent can capture). What the two share
+is the **mechanism**, established from the source and confirmed by the
+allocator's own `AN_FreeTwice` — not the wording.
 
 ### WHAT IS STILL OPEN
 
@@ -7390,3 +7426,12 @@ rather than killed.
   original alert.
 - The `Recoverable Alert!` window wedges the guest agent's command lane, so
   the lane needs the reboot before the next run.
+- **The A/B is now measured on the final binaries**, but it is one pair of
+  runs. A second pair would say whether the mutant's crash is *reliable* or
+  merely *likely* — and the first post-reboot attempt, which reported "no
+  crash", was not a measurement at all (the app never ran), so the lane has
+  no honest data yet on how often the mutant traps.
+- The parent's-count difference (5 vs 4, section 14 missing) is the
+  **deterministic** fingerprint of the defect, and it is the better evidence
+  of the two: it does not depend on the allocator noticing the double free,
+  it depends only on the canvas being freed behind the app's back.
