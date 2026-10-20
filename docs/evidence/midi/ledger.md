@@ -7330,19 +7330,29 @@ device tab page build fails) plus `RIAPP_DIAG=1`, and the log is on `RAM:`
 binaries fail the **same section lookup**; they differ in exactly one thing —
 the shape of the row group.
 
+**THE A/B, RUN TWICE.** The pair was run **twice** on the final binaries,
+and both pairs agree exactly:
+
+| run | fixed tree | mutant (the pre-fix shape) |
+|---|---|---|
+| 1st | 2 windows, no requester; `parentless=5 sections=14,15,19,0,1` | 3 windows, `Recoverable Alert!`; `parentless=4 sections=15,19,0,1` |
+| 2nd | 2 windows, no requester; `parentless=5 sections=14,15,19,0,1` | 3 windows, `Recoverable Alert!`; `parentless=4 sections=15,19,0,1` |
+
+So the reproduction is **2 for 2** on both sides, and the parent's-count
+difference is **identical** in both runs. The fingerprint is the
+**section 14 canvas** (the synth tab's first pattern canvas) **missing from
+the mutant's parentless list**: Zune already freed it behind the app's
+back, so the teardown's `MUIA_Parent` ask on a freed object does not
+answer. The fixed tree still has it, because the fixed build never let
+Zune take that canvas. That difference does not depend on the allocator
+noticing anything — it is the deterministic evidence, and the requester is
+the loud one.
+
 | | fixed tree | mutant (the pre-fix shape) |
 |---|---|---|
-| the run | the panel build fails, the app tears down cleanly | the panel build fails the same way |
 | the log | `RIAPP teardown: canvases=21 parentless=5 sections=14,15,19,0,1` then `RIAPP closed: … xruns=0 …` | `RIAPP teardown: canvases=21 parentless=4 sections=15,19,0,1` then `RIAPP closed: …` |
 | the screen | **2 windows** — no requester | **3 windows** — `Recoverable Alert!` at 401,289 564x191 |
 | what AROS says | — | `AN_BadFreeAddr` — "Memory header not located": the **pooled** free of a chunk that is not in its pool, i.e. the canvas's Zune object freed twice |
-
-The parentless counts differ, and that is the fingerprint: in the mutant the
-**section 14 canvas (the synth tab's first pattern canvas) is missing from
-the list**, because Zune already freed it behind the app's back and the
-teardown's `MUIA_Parent` ask on a freed object does not answer. The fixed
-tree still has it in the list, because the fixed build never let Zune take
-that canvas.
 
 The mutant is the fixed tree with the pre-fix page build and the pre-fix
 teardown branch put back, so **the same forced failure kills the old shape
@@ -7434,6 +7444,74 @@ The teardown now counts, before any dispose, the canvases with no parent:
 | the 303A hidden (`RIAPP_HIDE_DEV=0`) | `parentless=3 sections=14,19,0` — the hidden device's pattern and voice canvases, plus the Levi's |
 | the forced page failure | `parentless=5 sections=14,15,19,0,1` |
 
+### THE SECOND FAILURE, AND IT IS A DIFFERENT ONE: "Software Failure! / Task CON / Illegal address access / nommu_AllocMem"
+
+After the Recoverable Alert was dismissed (the owner reports **no requester**
+on the Dell, and the agent answers again), a **second** requester went up, and
+the owner read it off the screen:
+
+```
+Software Failure!   Task CON, Illegal address access, function nommu_AllocMem
+```
+
+**THIS IS NOT THE SAME ALERT AS THE ONE ABOVE, AND IT IS NOT THE OWNER'S
+ORIGINAL "Software Failure!" EITHER — AND THE LEDGER MUST SAY SO.**
+
+| | alert | number | `AT_DeadEnd`? | wording | raised by |
+|---|---|---|---|---|---|
+| the reproduction | `AN_BadFreeAddr` | `0x0100000F` | **no** | `Recoverable Alert!` | the **allocator**, rejecting an invalid free |
+| this second one | `ACPU_AddressErr` | `0x80000003` | **yes** | `Software Failure!` | a **CPU exception** — the task faulted |
+| the owner's original (2026-10-12) | `ACPU_AddressErr`, per the ledger's own earlier reading | `0x80000003` | yes | `Software Failure!` | a CPU exception in an **RIAPP** task (`Task: 0x…EF90 - RIAPP midi-out`) |
+
+**"Illegal address access" is `ACPU_AddressErr` (`0x80000003`,
+`compiler/include/exec/alerts.h:31`) — a CPU exception, not a memory
+alert.** `rom/exec/alertstrings.c:45` lists it under the **CPU** strings
+(`cpustrings`), and `Alert_GetTitle` (`alertstrings.c:426`) gives it
+"Software Failure!" **because `0x80000003` has the `AT_DeadEnd` bit
+(`0x80000000`) set** — the same high bit that `AT_DeadEnd` uses. So the
+"Software Failure!" wording and the "Illegal address access" wording come
+from **one** alert number, and the title is decided by the flags, exactly
+as for the recoverable one.
+
+**AND THE TASK NAME IS THE PART THAT MATTERS MOST: `CON`.** The alert
+prints the name of the task that **raised** it
+(`rom/alerthook/alerthook.c`: `tname = task->tc_Node.ln_Name`). `CON` is
+the **console device process** — a *system* task, not RIAPP. Compare the
+ledger's own 2026-10-12 reading of the original crash, where the task was
+`RIAPP midi-out`. So:
+
+- the **reproduction's** alert was raised by the **allocator, inside the
+  RIAPP process** (the process is the one that freed the chunk twice);
+- **this** alert was raised by the **console process**, which means the
+  corruption had spread far enough to fault a **system** task, or the
+  console was touched by the corrupted state;
+- the **owner's original** was raised by an **RIAPP** task.
+
+**So the three are the same FAMILY (a corrupted heap) but not the same
+fault, and the ledger does not merge them.** What the second one adds is
+the strongest evidence yet that this is **memory corruption, not a tidy
+bug**: a Zune object freed twice does not merely trip an allocator check —
+it hands the heap a chunk that has been returned to a pool, and the next
+thing that touches it is a *system* task faulting on an address that is no
+longer a valid allocation. `nommu_AllocMem` is the **non-pooled** system
+allocator (`rom/exec/memory_nommu.c:20`, reached from
+`rom/exec/allocmem.c:115`), so the fault is in the *general* heap walk
+(`ForeachNode(&SysBase->MemList, mh)`) — the console's own allocation
+found a **corrupted `MemList`**.
+
+**That is the mechanism, end to end:** the double free corrupts the memory
+manager's structures, and the corruption is then walked by every later
+allocation in the system, including a system task's.
+
+**NOT PROVEN:** that the console's fault and the mutant's `AN_BadFreeAddr`
+are the *same* run's two alerts. The Recoverable Alert was dismissed and
+the "Software Failure!" appeared afterwards, and the reproduction's log
+ends at `RIAPP closed:` — so the sequence is consistent with "the RIAPP
+process's alert was dismissed, and the corrupted heap then took the console
+down", but the ledger does not claim to have watched that happen: the
+agent's command lane was already wedged by the first alert, and the second
+window is only known from the owner's reading of the screen.
+
 ### NOT PROVEN, AND NOT OURS
 
 **The stray `SYS:Classes/ReIncarnation/RIAPP` CLI task is GONE after the
@@ -7462,10 +7540,9 @@ wording for the failing free**, not by a shape that merely resembles the
 crash. (It also corrects the earlier `AN_FreeTwice` guess, above: same
 defect, different — and more specific — test.)
 
-**AND IT EXPLAINS WHY THE OWNER'S WINDOW SAYS "Software Failure!" AND THE
-REPRODUCTION'S SAYS "Recoverable Alert!" — the two are the SAME defect, and
-the wording is the alerthook's, not the alert's.** `rom/alerthook/alerthook.c`
-picks the wording from the **flags**:
+**AND IT EXPLAINS THE WORDING — but the two windows are NOT the same alert
+number, and this ledger does not claim they are.** `rom/alerthook/alerthook.c`
+picks the title from the **flags**:
 
 ```c
         if(SysBase->LastAlert[0] & AG_NoMemory)
@@ -7476,10 +7553,8 @@ picks the wording from the **flags**:
             buf = mystrcpy(buf, recov, -1);   /* "Recoverable Alert!" */
 ```
 
-`AT_DeadEnd` is `0x80000000` and `AN_BadFreeAddr` is `0x0100000F` — **the
-alert number never carries the wording; the flags do.** And the *same*
-`AN_BadFreeAddr` is raised on three paths with **different flags**
-(`rom/exec/memory.c`):
+`AT_DeadEnd` is `0x80000000`. The *same* `AN_BadFreeAddr` is raised on three
+pooled-free paths with **different flags** (`rom/exec/memory.c`):
 
 | pooled-free failure | flags | requester |
 |---|---|---|
@@ -7487,24 +7562,14 @@ alert number never carries the wording; the flags do.** And the *same*
 | the pool's magic is wrong (`PME_FREE_INV_POOL`, line 1274) | **`AT_DeadEnd`** | **`Software Failure!`** |
 | the chunk is in a different pool (`PME_FREE_MXD_POOL`, line 1279) | `0` | **`Recoverable Alert!`** |
 
-So **one defect, one alert number, two different words** — and which word
-appears depends on how far the allocator got before it noticed. The
-reproduction lands on the first (recoverable); the owner's original window
-was the **dead-end** variant, which means the owner's crash got *further*
-into the allocator's checks before it objected — a **more corrupted** heap
-state, which is what a crash that has already scribbled on the heap looks
-like. That is consistent, and it is a **difference in degree, not in kind**.
-
-**So the claim, stated as narrowly as the evidence allows:** the owner's
-"Software Failure!" and the reproduction's "Recoverable Alert!" are the
-**same alert number** (`AN_BadFreeAddr`, "Memory header not located") and
-therefore **the same class of failure** — the allocator rejecting a free of
-an address that is not a valid pooled chunk. The reproduction proves the
-mechanism this ledger describes: a Zune object freed twice. It does **not**
-prove the owner's crash was the *same object* freed twice, and this ledger
-does not claim it was — the original window's text was read, but the
-**reproduction's** text is what names the alert, and the two windows'
-wording difference is a flag difference in the same alert.
+So one alert number can carry either wording, and the reproduction landed on
+the recoverable one. The owner's original window said "Software Failure!" —
+which this alert number can also produce, **on the dead-end path**, and
+which is also what a **CPU exception** produces (`ACPU_AddressErr` is
+`0x80000003`, `AT_DeadEnd` included). The two readings of the owner's
+window — a dead-end `AN_BadFreeAddr`, or a CPU exception — cannot be
+told apart from the title alone, and the section below records the second
+observation, which is a CPU exception in a **system** task.
 
 ### WHAT IS STILL OPEN
 
@@ -7512,17 +7577,23 @@ wording difference is a flag difference in the same alert.
   not located" (`AN_BadFreeAddr`) — so the **mechanism** is no longer in
   question: the allocator rejected a free of an address that is not a valid
   pooled chunk, and a Zune object freed twice is exactly that. What is
-  still open is **how often it traps**: one pair of A/B runs is not a
-  frequency, and the first post-reboot attempt (which reported "no crash")
-  was not a measurement at all, so the lane has no honest data on the rate.
-- **The reproduction's requester is `Recoverable Alert!` and the owner's
-  original was `Software Failure!`** — the same alert number, different
-  flags (`AT_DeadEnd` set or not). The reproduction therefore proves the
-  mechanism but not the *degree*: the owner's window means the allocator
-  got further into its checks before objecting, i.e. a more corrupted heap.
-  Same class of failure, not demonstrably the same object.
-- The `Recoverable Alert!` window wedges the guest agent's command lane, so
-  the lane needs the reboot before the next run.
+  still open is **how often it traps**: the lane has now run the pair
+  **twice** (fixed: 2 windows, no requester, both times; mutant: 3 windows,
+  the Recoverable Alert, both times), which is a rate of 2/2 for the
+  *reproduction* — but the *owner's* crash is a different alert, and its
+  frequency is unknown.
+- **The second failure is the open question, and it is the important
+  one.** A **system** task (the console) faulted on `ACPU_AddressErr`
+  inside `nommu_AllocMem` after the double free. So the corruption escaped
+  the process that caused it. Whether the owner's original
+  "Software Failure!" (an RIAPP task, 2026-10-12) and this console fault
+  are the same corruption is **not** established — one is a CPU exception
+  in an app task, the other a CPU exception in a system task.
+- The `Recoverable Alert!` **is** dismissible (the owner dismissed it and
+  the agent came back), but the **"Software Failure!" is not** — it is a
+  dead-end alert, and it wedges the lane for good. That is the difference
+  between the two requesters, and it is the practical reason the lane
+  needs the owner's reboot.
 - **The A/B is now measured on the final binaries**, but it is one pair of
   runs. A second pair would say whether the mutant's crash is *reliable* or
   merely *likely* — and the first post-reboot attempt, which reported "no
