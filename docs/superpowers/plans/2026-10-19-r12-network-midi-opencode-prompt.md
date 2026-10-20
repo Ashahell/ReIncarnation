@@ -45,8 +45,15 @@
 - The Dell's `camd.library` today is `41.1 (8.10.2026)`, 53816 B. It has
   #1483 but **not #1585**, so **no `DEVS:Midi` driver loads** on 64-bit until
   camd is rebuilt.
-- **riqemu1** is ABIv1 = ADT master (`src/abi/v1/AROS`, `6f62b30830`,
-  2026-10-12). Pull to get #1585/#1586/#1676.
+- **riqemu1** is ABIv1 = ADT master (`src/abi/v1/AROS`, **`47f7091d0a`**,
+  2026-10-20; it was `6f62b30830` on 2026-10-12 and that is the commit the
+  earlier runs recorded). Pull to get #1585/#1586/#1676. The new commit is
+  `aros/0012: drop the _GNU_SOURCE guard — upstream master already has the
+  fix`: it retires our `aros/0012` cdefs patch, which upstream `8965203a37`
+  had already made unnecessary, so `sys/cdefs.h` in the tree is again exactly
+  upstream master's. **Any further riqemu1 rebuild must record
+  `47f7091d0a`**, not `6f62b30830` — a rebuild record that names the old
+  commit names a tree that no longer exists.
 - **`netmidid`** is a plain bsdsocket program. Its config is `ENV:NetMIDI`
   (`local_port`, `peer_ip`, `peer_port`, `accept`), it stops on CTRL-C, and
   it attaches to `DEVS:Midi/applemidi`'s adapters. On both lanes it is
