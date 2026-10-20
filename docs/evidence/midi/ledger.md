@@ -7124,4 +7124,77 @@ the gate says the source. A run would show the symptom only if the process
 exited on one of the five paths — a requester or a failed allocation, not
 something to arrange on purpose.
 
+### The last of it: the teardown deleted the CLASSES while their instances were still alive (2026-10-20)
+
+**Found in the review of the review.** `riapp_teardown()` disposes what it
+can reach and then drops the custom classes — but on the failure paths the
+instances it could not reach are still alive:
+
+| rc | the objects with no owner | what the teardown did |
+|---|---|---|
+| 5 (a canvas) | the canvases already created (`s_canvas[0..i-1]`) — the row does not exist yet, so they have **no parent at all** | not disposed |
+| 5 (the row) | the same canvases, still parentless | not disposed |
+| 7 (!win) | the row (`s_root`) — no window owns it | not disposed |
+| 8 (!app) | the window (`s_win`) — no application owns it | closed, but **not disposed** |
+
+And then `rack_classes_drop()` deleted `s_art_mcc` / `s_bay_mcc` and
+`ri_rsection_dispose_class()` deleted `s_rsection_class` — **while
+instances of them were still alive**. That is the Zune/MUI rule broken: a
+custom class must not be deleted while an instance of it exists.
+
+**THE OWNERSHIP CHAIN, WHICH DECIDES WHAT IS DISPOSED.** The application owns
+the window; the window owns the row; the row owns the pages; the pages own
+the canvases (`tab_device_page` puts a canvas in a `prow` group as a `Child`).
+So the teardown disposes **the top-most owner only** — a child is never
+disposed separately from its parent, or it is disposed twice:
+
+```
+if (s_app)        dispose the application      (it owns the window)
+else if (s_win)   dispose the window           (it owns the row)
+else if (s_root)  dispose the row              (it owns the pages and canvases)
+else              dispose each s_canvas[i]     (no parent at all: each is its own owner)
+then              drop the classes
+```
+
+Every pointer is file-scope (`s_win` already was, `s_app` is new, `s_root`
+and `s_canvas[]` already were) and is NULLed after its dispose.
+
+**THE GATE (host).** `t236` now also requires that the teardown disposes
+**every possible owner** (`s_app`, `s_win`, `s_root`, `s_canvas[i]`) and that
+the class drop comes **after** the disposes. Two more mutants, both killed:
+
+| mutant | the gate says |
+|---|---|
+| the classes are dropped **first** | **FAIL** — *"the class drop is at 162421, BEFORE the first dispose at 163394: a custom class is deleted while an instance of it still exists"*, and the same for the rsection class |
+| the canvases are **never disposed** | **FAIL** — *"riapp_teardown() never disposes MUI_DisposeObject(s_canvas[i]): that owner would survive, and its class is deleted underneath it"* |
+
+**THE RUN THAT FORCES A FAILURE PATH.** `RIAPP_FAIL_RSECTION=<n>` makes the
+n-th `ri_rsection_create()` return NULL, so the rc 5 canvas path can be
+taken on purpose. It is honoured **only with `RIAPP_DIAG=1`** (the debug
+switch) and is read with `GetVar`, not `getenv` — the same reason the diag
+switch is: `getenv` would pull a symbol into the `sections` module and break
+its link gate.
+
+On the Dell (2026-10-20, ABIv11, `build=908b4f6`):
+
+| step | measured |
+|---|---|
+| the forced run | `RIAPP LOG build=908b4f6 diag=1`; the MIDI came up (`in=applemidi.in.0 out=applemidi.out.0 clkout=1 devout=1`); the render ran 13 buffers; the log ends with the teardown — `RIAPP clk: … (final)` and `RIAPP closed: buffers=13 xruns=0 …` — and **no panel line**, so the app stopped at the canvas stage ✓ |
+| the TaskList after it | **no `RIAPP midi` and no `RIAPP midi-out`** — the bridge task and the clock/device sender were JOINED by the teardown ✓✓ |
+| a second forced run | the same, and the RIAPP task count did **not** grow: the two runs leave nothing behind ✓ |
+| a healthy run afterwards (`RIAPP_DIAG=0`, `RIAPP_FAIL_RSECTION=0` restored) | `RIAPP render`, `RIAPP midi` and `RIAPP midi-out` are all present ✓ — the switch is inert, and the lane is left as it was found ✓ |
+
+**One observation, NOT ours.** The TaskList carries a `SYS:Classes/ReIncarnation/RIAPP`
+CLI task at a low address (0x1041360) that does **not** answer a `Break` by
+name. It is present before and after the two forced runs, the count does not
+grow, and it is the O2e run's app — a leftover of the O2e binary, i.e. of
+exactly the leak this work removes. It was left alone: it is not ours to kill,
+and it is a good live specimen of the class.
+
+**Not proven:** the other two failure paths (rc 7 and rc 8) were not run on
+the lane — only the rc 5 canvas path was forced, because it is the one that
+leaves objects with no parent at all (the hardest case). The rc 7 and rc 8
+paths dispose the row and the window respectively, and the gate says the
+source says so.
+
 

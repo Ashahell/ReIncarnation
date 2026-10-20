@@ -721,6 +721,31 @@ APTR ri_rsection_create(ULONG section, LONG zoom) {
     struct MUI_CustomClass *mcc = ri_rsection_class();
     if (!mcc)
         return NULL;
+    /* DIAGNOSTIC (2026-10-20): RIAPP_FAIL_RSECTION=<n> makes the n-th
+     * create FAIL, so the failure paths of riapp_main (the canvas, the row,
+     * the window, the application) can be exercised ON PURPOSE instead of
+     * waited for. It is honoured only with RIAPP_DIAG=1 -- the debug
+     * switch -- and it is read with GetVar, like every other ENVARC read in
+     * this module: getenv would pull a symbol in and break the `sections`
+     * link gate (RISECT must have no undefined symbols). */
+    if (rsection_diag_enabled()) {
+        static long s_fail_at = -1;
+        static long s_fail_n = 0;
+        if (s_fail_at < 0) {
+            char v[16];
+            long k = 0;
+            s_fail_at = 0;
+            if (GetVar((STRPTR)"RIAPP_FAIL_RSECTION", (STRPTR)v,
+                       (ULONG)sizeof v, 0L) > 0) {
+                while (v[k] >= '0' && v[k] <= '9' && k < (long)sizeof v - 1) {
+                    s_fail_at = s_fail_at * 10 + (v[k] - '0');
+                    k++;
+                }
+            }
+        }
+        if (s_fail_at > 0 && ++s_fail_n == s_fail_at)
+            return NULL;              /* the forced failure */
+    }
     return (APTR)NewObject(mcc->mcc_Class, NULL,
         TAG_SECTION, section,
         TAG_ZOOM, zoom,

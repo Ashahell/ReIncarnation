@@ -3530,6 +3530,7 @@ static void instance_claim_release(void) {
  * clean up.
  */
 static void riapp_teardown(void) {
+    int i;
     capture_finish("quit");
     ri_pal_midi_close(); /* bridge task teardown (M2) AND the clock/device sender */
     /* FINAL counters, after the sender has stopped. The periodic line is
@@ -3564,13 +3565,40 @@ static void riapp_teardown(void) {
                 (unsigned long)(s_lv.drv.session ? ri_live_stages(s_lv.drv.session)->playing_buffers : 0u),
                 (unsigned long)(s_lv.drv.session ? ri_live_stages(s_lv.drv.session)->stopped_buffers : 0u));
     }
-    if (s_win) {
+    if (s_win)
         SetAttrs(s_win, MUIA_Window_Open, FALSE, TAG_DONE);
-        s_win = 0;
-    }
+    /* THE OBJECTS THAT HAVE NO OWNER YET (2026-10-20). The classes are
+     * deleted just below, and deleting a custom class while an instance of
+     * it still exists is the Zune/MUI rule broken -- so the top-most owner
+     * is disposed FIRST:
+     *
+     *   the application owns the window, and the window owns the row, and
+     *   the row owns the pages, and the pages own the canvases;
+     *
+     *   with no application but a window, the window is the top-most owner;
+     *   with no window but a row, the row is;
+     *   with no row at all -- the canvas-create and row-create failures --
+     *   the canvases have no parent whatsoever and each is its own owner.
+     *
+     * ONLY the top-most owner is disposed: a child is never disposed
+     * separately from its parent, or it is disposed twice. */
     if (s_app) {
         MUI_DisposeObject(s_app);
         s_app = 0;
+        s_win = 0;          /* the application owned the window */
+    } else if (s_win) {
+        MUI_DisposeObject(s_win);
+        s_win = 0;
+    } else if (s_root) {
+        MUI_DisposeObject(s_root);
+        s_root = 0;
+    } else {
+        for (i = 0; i < C_N; i++) {
+            if (s_canvas[i]) {
+                MUI_DisposeObject(s_canvas[i]);
+                s_canvas[i] = 0;
+            }
+        }
     }
     rack_classes_drop();
     ri_rsection_dispose_class();

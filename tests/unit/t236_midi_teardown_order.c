@@ -78,7 +78,6 @@ int main(void) {
                 "bridge task and the clock/device sender would stay running");
         }
     }
-
     /* The render may not start before the outputs are wired (t235's rule, and
      * the point after which a teardown is owed). */
     at_prepare = ri_src_find(src, len, "midi_prepare();", main_start);
@@ -106,6 +105,54 @@ int main(void) {
                 at, at_teardown_call);
         }
         RI_ASSERT(n_returns >= 1, "riapp_main() has no return at all");
+    }
+
+    /* EVERY OWNER THAT CAN EXIST MUST BE DISPOSED, AND THE CLASSES MUST BE
+     * DROPPED AFTER THEM. The classes are custom classes; deleting one while
+     * an instance of it still exists is the Zune/MUI rule broken. The owners
+     * are a chain -- the application owns the window, the window owns the
+     * row, the row owns the pages, the pages own the canvases -- and with no
+     * row at all the canvases have no parent and each is its own owner.
+     * So the teardown must mention every one of them, and the class drop
+     * must come after the disposes. */
+    {
+        long th_start = 0, th_end = 0;
+        const char *owners[4];
+        long first_dispose = -1, at_class = -1;
+        size_t oi;
+        owners[0] = "MUI_DisposeObject(s_app)";
+        owners[1] = "MUI_DisposeObject(s_win)";
+        owners[2] = "MUI_DisposeObject(s_root)";
+        owners[3] = "MUI_DisposeObject(s_canvas[i])";
+        if (ri_src_function_range(src, len, "riapp_teardown", &th_start,
+                                  &th_end) == 0) {
+            for (oi = 0; oi < 4; oi++) {
+                long at = ri_src_find(src, len, owners[oi], th_start);
+                RI_ASSERT(at > th_start && at < th_end,
+                    "riapp_teardown() never disposes %s: that owner would "
+                    "survive, and its class is deleted underneath it",
+                    owners[oi]);
+            }
+            first_dispose = ri_src_find(src, len, "MUI_DisposeObject(", th_start);
+            at_class = ri_src_find(src, len, "rack_classes_drop();", th_start);
+            RI_ASSERT(at_class > th_start && at_class < th_end,
+                "riapp_teardown() never drops the rack classes");
+            if (at_class > 0) {
+                RI_ASSERT(first_dispose > 0 && first_dispose < at_class,
+                    "the class drop is at %ld, BEFORE the first dispose at "
+                    "%ld: a custom class is deleted while an instance of it "
+                    "still exists", at_class, first_dispose);
+                at_class = ri_src_find(src, len, "ri_rsection_dispose_class();",
+                                       th_start);
+                RI_ASSERT(at_class > th_start && at_class < th_end,
+                    "riapp_teardown() never drops the rsection class");
+                if (at_class > 0)
+                    RI_ASSERT(first_dispose > 0 && first_dispose < at_class,
+                        "the rsection class is dropped at %ld, BEFORE the first "
+                        "dispose at %ld: the canvases are instances of it",
+                        at_class, first_dispose);
+            }
+        }
     }
 
     free(src);
