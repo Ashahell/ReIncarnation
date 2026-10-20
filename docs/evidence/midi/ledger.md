@@ -6857,16 +6857,35 @@ and `nen=` on every `RIAPP clk:` line (0xF8 and note-ons handed to CAMD); the
 O1 clock figure was *derived* from `sent`, not measured, and the earlier
 "<=1751 note messages" bound is retracted.
 
-**The duplicated accent note-ons are not downstream.** O1b carried **0**
-duplicate pairs in 1750 note events with the same song, port and detector;
-the O1 pairs were identical (note 36, velocity 112/112, 15.75-15.86 ms apart)
-and remain unexplained. The engine and scheduler are ruled out by t199/t200
-and a one-bar `tools/render --dump-events` dump (one NOTE_ON + one ACCENT +
-one NOTE_OFF per accented step). Recorded as **OPEN**, not as a lane fault.
-The all-unaccented O1 failures and the full per-pair table are in
-`r12-o1-notes-and-mmc-on-the-dell.md`.
+**The duplicated accent note-ons are downstream — hop found (O2).** The pairs
+were real and consistent (channel 0, note 36, velocity 112/112, 15.7-16.0 ms
+apart) but O1b happened to carry **0** in 1750 events. O2 ran a counter at
+RIAPP's CAMD boundary and read netmidid's published status:
+
+| Counted at | Value |
+|---|---|
+| RIAPP `PutMidi` (`n36a`) | **38** |
+| netmidid `msg_out`, delta over the run | 2711 (wire total minus the 5) |
+| host wire (`aseqdump`) | **43** |
+
+43 - 38 = 5 = the five pairs, so the second copy never left the app; the
+wire is also 5 above netmidid's encoded count, so it never left the guest's
+RTP-MIDI message encoder either. The host log shows why: every 337 packets
+(6.0 s at 56 Hz) netmidid emits a **channel journal** whose chapter N carries
+the previous packet's accent note-on with the RFC 6295 "must play on" (Y) bit
+set (`81 F1 24 F0` = one note, note 36, velocity 112|Y). rtpmidid v24.12
+(`lib/rtppeer.cpp`, `parse_journal` -> `parse_journal_chapter_N`) calls
+`midi_event()` for every Y=1 note **unconditionally** -- it does not apply the
+journal only on a lost packet -- so the note is played a second time one
+packet later. That also explains the run-to-run variation: the pair appears
+only when the 337-packet checkpoint lands right after an accent (O1b was the
+zero-phase run); it is not RIAPP flakiness. Evidence, log lines and the
+negative `MIDISEND` probes are in
+`r12-o2-both-directions-and-the-duplicate-hop.md`. The lane fix (journal only
+on a gap, and/or the sender's Y semantics) is the owner's decision; nothing
+was changed for it.
 
 **Not proven:** any DAW (the far peer is `rtpmidid` + an ALSA subscriber),
-RIAPP note/CC out (`RIAPP_MIDI_DEVOUT`; the gate's 33 messages were sent by
-`MIDISEND`), MMC out, clock **in** at 140 BPM (P1 stays parked: CAMD
-delivery, not the network), and the split of the >30 ms tail.
+RIAPP **CC** out (`ri_devout_cc()` still has no caller; O3 is the design
+note), a real DAW's clock following, clock **in** at 140 BPM (P1 stays parked:
+CAMD delivery, not the network), and the split of the >30 ms tail.
