@@ -151,4 +151,25 @@ Proved, all three:
 |---|---|
 | from the repo root | `AUDIT 0/0 PASS` (unchanged) |
 | `(cd /tmp && ~/Work/projects/ReIncarnation/scripts/ri_audit.sh)` | `AUDIT 0/0 PASS`; `ri_build_aros.sh` from `/tmp` prints `AROS STUB BUILD OK` / `AROS PROBE BUILD OK` |
-| a worktree under `~/.worktrees` with `VK_ROOT=~/Work/projects/Vulkan4Aros` | the AROS build step passes — it could not even find the toolchain before |
+| a worktree under `~/.worktrees` with `VK_ROOT=~/Work/projects/Vulkan4Aros` | the AROS build step passes — it could not even find the toolchain before — and the **whole audit** passes there too |
+
+## And the THIRD instance: a shared output directory between two checkouts
+
+Running proof 3 in a worktree **broke the main tree's next audit**, and the
+reason is the same class one level down: `build/portable.mk` derives `ROOT`
+from its own location (so the main tree and a worktree are different source
+trees) but wrote both into **one** output directory, `/tmp/ri/portable`. The
+worktree's dependency files then name ITS sources, and when the worktree was
+removed, the main tree's next build died with
+
+    make: *** No rule to make target
+    '/home/miller/.worktrees/ri-audit-vk-test/build/../app/core/live_driver.c',
+    needed by '/tmp/ri/portable/app/core/live_driver.o'.  Stop.
+
+— a failure in the **other** tree, caused by a build that ran in a directory
+that no longer exists. `OUT` is now per checkout, derived from the absolute
+`ROOT` and still overridable (`OUT=… make …`).
+
+The step that proves it: the audit passes in the main tree, the audit passes
+in the worktree, the worktree is **removed**, and the main tree's audit
+**still passes**. That last step is the one that failed before.
