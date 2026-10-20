@@ -7512,6 +7512,46 @@ down", but the ledger does not claim to have watched that happen: the
 agent's command lane was already wedged by the first alert, and the second
 window is only known from the owner's reading of the screen.
 
+### THE AGENT'S OWN CLICK: HOW A QUEUED JOB BECOMES A REPEATED INPUT STREAM
+
+The owner reported that **something was sending UI input events to the Dell
+while RIAPP was playing zombie-nation**. It was this session's own doing,
+and the mechanism is worth writing down, because it is a way to *cause* the
+very symptom one is investigating.
+
+**WHAT HAPPENED.** This session tried to dismiss the mutant's `Recoverable
+Alert!` with a click on its OK button. The click went into a job file
+(`ui_move` + `ui_click` at 921,452) and the job was **queued**. The Dell's
+agent was wedged by the modal requester, so the job could not run — and the
+spool server's loop (`spike_server.py`: `jpath = next_job(dirs)`) takes
+jobs from `jobs/` **in name order and runs them the moment a session
+connects**. So the job sat in `jobs/` and was **re-run on every new agent
+connection**, each time moving the mouse to 921,452 and clicking there.
+
+**The click landed on the RIAPP panel** — the alert had been dismissed in
+the meantime — so the input stream was **clicking the app itself**, which
+is why the owner saw RIAPP playing zombie-nation with input events
+arriving. The same click had earlier dismissed the alert, which is what let
+the wedged lane answer at all.
+
+**THE FIX, AND THE LESSON.** The queued jobs were moved out of the spool
+(`/tmp/opencode/spool_held_jobs_2/`) and the stuck `submit` process killed;
+the queue is empty and the session is idle. The lesson for the next session:
+**a click aimed at a requester is not a one-shot command** — it is a job
+that will be replayed every time the lane comes back, at whatever the
+screen happens to show by then. The mutating actions (`ui_click`,
+`ui_press`, `ui_rawkey`) are the dangerous ones: `exec` and `ui_windows`
+only *read*, and a stuck read job is merely a wasted lane, not a corrupted
+one.
+
+**AND THE LEDGER'S OWN CLAIM NEEDS THE CORRECTION.** This section said the
+`Recoverable Alert!` "wedges the guest agent's command lane" and that the
+reboot was the only way out. **That is wrong for the recoverable one**: the
+owner dismissed it (by clicking, or otherwise) and the lane came back
+(23 ms). The **dead-end** "Software Failure!" is the one that needs the
+reboot — and the *first* thing this session's click did was dismiss a
+recoverable alert, so the Dell was never actually stuck on it.
+
 ### NOT PROVEN, AND NOT OURS
 
 **The stray `SYS:Classes/ReIncarnation/RIAPP` CLI task is GONE after the
@@ -7524,14 +7564,17 @@ not a persistent daemon and not a kernel-side ghost. This work still does
 stray from before `908b4f6`, of unknown cause** — but the question "is it
 still there?" now has an answer, and it is **no**.
 
-**The Dell is wedged again**, in exactly the way the mutant's alert wedges
-it: the `Recoverable Alert!` requester is modal, so the guest agent's
-command lane stops answering and `--exec` / `--ui-windows` / `--get` all
-time out. The jobs this session had queued at that moment were moved out of
-the spool to `/tmp/opencode/spool_held_jobs/`, so a recovering agent will
-not replay them. **The reboot is the owner's to do** — the agent cannot
-reboot its own guest (`C:Reboot` is itself an exec, and it is blocked by
-the very requester that is up).
+**The Dell is alive again, and the lane is answered.** The `Recoverable
+Alert!` turned out to be **dismissible** — the owner's own click cleared it,
+and the agent answers again (23 ms). The "Software Failure!" that followed
+it is a **dead-end** alert and *is* a different matter: a dead-end requester
+has no OK button, so it stays up until the reboot. **The reboot is the
+owner's to do** — the agent cannot reboot its own guest (`C:Reboot` is
+itself an exec, and it is blocked by the very requester that is up). Until
+then, this session sends **no mutating actions** to the lane: the spool
+queue is empty, the session is idle, and the jobs that were queued are held
+in `/tmp/opencode/spool_held_jobs/` and `/tmp/opencode/spool_held_jobs_2/`
+so no agent will replay them.
 
 **The alert text WAS read — by the owner, off the Dell's screen.** "RIAPP:
 Memory header not located" is `AN_BadFreeAddr`, and it closes the last gap
@@ -7590,10 +7633,10 @@ observation, which is a CPU exception in a **system** task.
   are the same corruption is **not** established — one is a CPU exception
   in an app task, the other a CPU exception in a system task.
 - The `Recoverable Alert!` **is** dismissible (the owner dismissed it and
-  the agent came back), but the **"Software Failure!" is not** — it is a
-  dead-end alert, and it wedges the lane for good. That is the difference
-  between the two requesters, and it is the practical reason the lane
-  needs the owner's reboot.
+  the agent came back); the **"Software Failure!" is not** — it is a
+  dead-end alert (`AT_DeadEnd` set), it has no OK button, and it wedges
+  the lane for good. That is the difference between the two requesters, and
+  it is why the lane now needs the owner's reboot.
 - **The A/B is now measured on the final binaries**, but it is one pair of
   runs. A second pair would say whether the mutant's crash is *reliable* or
   merely *likely* — and the first post-reboot attempt, which reported "no
