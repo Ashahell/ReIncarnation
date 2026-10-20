@@ -6849,6 +6849,32 @@ a round trip: every drum message devout emits is fed through
 `ri_notein_note()` and must resolve to the 808 bass drum. The raw-nibble
 version is a mutant and dies.
 
+**The mutant is now PROVEN to die, and proving it found a trap in the build
+(2026-10-20).** Replacing the nibble with the raw 1-based value
+(`RI_DEVOUT_GM_PERCUSSION_NIBBLE` = `RI_DEVOUT_GM_PERCUSSION`) and
+rebuilding the `formats` module makes `t201_devout_conventions` fail with
+six assertion failures and **rc=1**: the emitted drum is `0x9A`, its nibble
+is 10, the note input binds the 808 at nibble 9, so the note is **unclaimed
+and refused** — the round trip is what kills it, not the literal byte
+alone.
+
+The first attempt at that proof **passed**, and the reason was a build
+hazard, not a weak test: `ri_build_host.sh test NAME` links the objects
+already in `/tmp/ri/build` and **rebuilds nothing**, so a header-only edit
+— a constant, a struct, an inline — left the objects stale and the test
+answered for the OLD code. A mutant that was never compiled looks exactly
+like a mutant that survived. `ri_audit.sh` was never at risk (it builds
+`all` first), but a hand-run test was, and so was any session that checked a
+mutant by hand.
+
+**Fixed in the build script** (2026-10-20): `ri_build_host.sh test NAME`
+now rebuilds any module whose object is older than the newest header in the
+tree, before it links. The check is deliberately coarse — ANY newer header
+invalidates an object — because it is cheap (a full rebuild is **7.6 s**) and
+it cannot be wrong in the unsafe direction. Over-rebuilding costs a second;
+missing a rebuild costs a conclusion. Re-run of the same mutant with only
+the `test` target now **fails as it must** (rc=1).
+
 **Measured on the wire (O1b, `build=bcbe62b`).** 669 drum note-ons on the
 `aseqdump` column `9` (nibble 9 = status `0x99` = MIDI channel 10) and **0**
 on column `10`. The guest still binds the input side as `NOTEIN dev 2 ch 10

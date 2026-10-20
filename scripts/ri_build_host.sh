@@ -36,11 +36,54 @@ build_pcf() {
   else
     echo "pcf: SKIP (table unverified)";
   fi }
+# Rebuild any module whose object is older than the NEWEST header in the tree.
+# A header-only edit (a constant, a struct, an inline) otherwise leaves the
+# objects stale, and a test that links them answers for the old code. That is
+# not a hypothetical: on 2026-10-20 the drum-channel mutant DM appeared to
+# SURVIVE t201 for exactly this reason, and died the moment the module was
+# recompiled. A green that was never rebuilt proves nothing.
+#
+# The check is deliberately coarse -- ANY header newer than an object
+# invalidates it -- because it is cheap and it cannot be wrong in the unsafe
+# direction. Over-rebuilding costs a second; missing a rebuild costs a
+# conclusion.
+rebuild_stale_headers() {
+  [ -d "$OUT" ] || return 0
+  local newest
+  newest=$(ls -t $(find "$ROOT" -name '*.h' -not -path '*/.git/*' 2>/dev/null) 2>/dev/null | head -1)
+  [ -n "$newest" ] || return 0
+  local mod srcs o stale_mod
+  for mod in kernels engine clock sched formats dsp303 dsp808 dsp909 dsplevi fx mixer audio gui core draw; do
+    eval "srcs=\"\$MOD_$mod\""
+    stale_mod=""
+    for src in $srcs; do
+      o="$OUT/$(basename "$src" .c).o"
+      [ -f "$o" ] || continue
+      if [ -n "$(find "$o" -newer "$newest" -print -quit 2>/dev/null)" ]; then
+        :                       # the object is newer than the newest header: fine
+      else
+        stale_mod="$mod"; break
+      fi
+    done
+    if [ -n "$stale_mod" ]; then
+      echo "-- $stale_mod: a header is newer than its objects -- rebuilding"
+      compile_list "$srcs"
+    fi
+  done
+}
 case "${1:-all}" in
   kernels|engine|clock|sched|dsp303|dsp808|dsp909|dsplevi|fx|mixer|audio|gui|formats|core|draw) compile_list "$(eval echo \$MOD_$1)" ;;
   pcf) build_pcf strict ;;
   all) for t in kernels engine clock sched formats dsp303 dsp808 dsp909 dsplevi fx mixer audio gui core draw; do "$0" $t; done; build_pcf skip ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
+    # A HEADER change must invalidate the objects that use it. This target
+    # links the objects in $OUT, and nothing else rebuilt them, so a session
+    # that edited a header and then ran a test linked STALE objects: the test
+    # answered for the old code, and a mutant looked like it had survived.
+    # Measured 2026-10-20: the drum-channel mutant DM "passed" t201 until
+    # the module was recompiled, and then failed as it must. The audit builds
+    # `all` first and was never at risk, but a hand-run test was.
+    rebuild_stale_headers
     # -lpng: the T7 host image backend (platform/host/image_host.c); present
     # on dev/CI Linux alongside the mkskin toolchain dep. All other tests
     # link it harmlessly (no png symbols pulled unless referenced).
