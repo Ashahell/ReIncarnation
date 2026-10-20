@@ -5,7 +5,15 @@
 # Owner decision §8.2 (CMake vs Makefile) pending — this Makefile keeps zero deps.
 
 ROOT := $(dir $(lastword $(MAKEFILE_LIST)))..
-OUT ?= /tmp/ri/portable
+# OUT is PER CHECKOUT, and the reason is the same class as the CWD-relative
+# paths in the scripts: ROOT comes from this makefile's own location, so the
+# main tree and a worktree are DIFFERENT source trees that would otherwise
+# share ONE output directory. The worktree's dependency files then name ITS
+# sources, and when that checkout is removed the main tree's next build dies
+# with "No rule to make target <deleted path>" -- a failure in the other
+# tree, caused by a build that ran in a directory that no longer exists.
+# Measured 2026-10-20, by exactly that route. Overridable: OUT=... make ...
+OUT ?= /tmp/ri/portable-$(subst /,_,$(abspath $(ROOT)))
 CC ?= gcc
 CFLAGS ?= -std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$(ROOT)
 
