@@ -22,6 +22,7 @@
 #include <math.h>
 #include "project/rbnm.h"
 #include "engine/dsp/rb909.h"
+#include "platform/pal/ri_tmp.h"
 
 #define T30_SR 48000u
 #define T30_PACK "reference/packs/classic-01/pack.rbnm"

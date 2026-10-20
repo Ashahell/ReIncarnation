@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include "platform/pal/ri_tmp.h"
 
 static ri_midi_in s_cb;
 static void *s_user;

@@ -14,6 +14,7 @@
 #include "project/rbng.h"
 #include "engine/seq/sched.h"
 #include "engine/seq/songsteps.h"
+#include "platform/pal/ri_tmp.h"
 
 static int fails = 0;
 #define CHECK(cond, ...) do { \

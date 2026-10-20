@@ -18,6 +18,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "engine/dsp/rb909.h"
 #include "project/rbnm.h"
+#include "platform/pal/ri_tmp.h"
 
 #define SR 48000.0f
 #define SRU 48000u

@@ -35,6 +35,7 @@
 
 #include "audio_io/audio.h"
 #include "project/sample_guard.h"   /* the ONE guard, pinned directly */
+#include "platform/pal/ri_tmp.h"
 
 
 /* The artefacts go under the ONE build root (RI_TMP), like every other

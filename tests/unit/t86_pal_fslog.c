@@ -12,6 +12,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "platform/pal/ri_pal_fs.h"
 #include "platform/pal/ri_pal_log.h"
+#include "platform/pal/ri_tmp.h"
 
 /* The stamp file's on-disk layout, written here by hand so the test pins
  * the format rather than trusting the implementation to agree with itself.

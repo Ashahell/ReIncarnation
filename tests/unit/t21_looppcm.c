@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "audio_io/audio.h"
+#include "platform/pal/ri_tmp.h"
 
 #define T21L_DIR RI_TMP_ROOT "/run/t21"
 #define T21L_SONG T21L_DIR "/loop.rbng"

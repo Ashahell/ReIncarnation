@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include "platform/pal/ri_tmp.h"
 
 static struct ri_audio_cfg s_cfg;
 static ri_audio_pull s_pull;

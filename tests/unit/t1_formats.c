@@ -22,6 +22,7 @@
 #include "project/undo.h"
 #include "midi_io/midi.h"
 #include "engine/seq/sched.h"
+#include "platform/pal/ri_tmp.h"
 
 static struct RISong demo_song(void) {
     static struct RISong s;

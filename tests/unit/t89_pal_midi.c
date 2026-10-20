@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include "tests/helpers/ri_assert.h"
 #include "platform/pal/ri_pal_midi.h"
+#include "platform/pal/ri_tmp.h"
 
 static uint8_t t_got[8][32];
 static uint32_t t_len[8];

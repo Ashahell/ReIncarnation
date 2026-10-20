@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include "tests/helpers/ri_assert.h"
 #include "audio_io/audio.h"
+#include "platform/pal/ri_tmp.h"
 
 #define T6_DIR RI_TMP_ROOT "/run/t6"
 #define T6_SONG T6_DIR "/song.rbng"

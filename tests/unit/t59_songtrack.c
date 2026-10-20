@@ -8,6 +8,7 @@
 #include "engine/seq/songtrack.h"
 #include "engine/seq/songtrack_emit.h"   /* emitter: RIEvent/RITempoMap users */
 #include "project/rbng.h"   /* STRK read/write + rbng_test_* helpers */
+#include "platform/pal/ri_tmp.h"
 
 /* Song geometry comes from transport.h; the track must not fork it. */
 typedef char ri_t59_bars_match[(RI_SONGTRACK_BARS == RI_SONG_BARS) ? 1 : -1];

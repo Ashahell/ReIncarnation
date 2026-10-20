@@ -1,11 +1,13 @@
 #!/bin/bash
 # build.sh — cross-build BLITPROBE for v11 (Dell F2 baseline).
 # usage: build.sh
-# Output: /tmp/ri/blitprobe/BLITPROBE.v11
+# Output: $RI_TMP/blitprobe/BLITPROBE.v11
 set -e
 ROOT="/home/miller/Work/projects/ReIncarnation"
 VK="/home/miller/Work/projects/Vulkan4Aros"
-OUT=/tmp/ri/blitprobe
+# ONE build root, shared with the other scripts (see scripts/ri_build_host.sh).
+RI_TMP="${RI_TMP:-/tmp/ri}"
+OUT="$RI_TMP/blitprobe"
 mkdir -p "$OUT"
 TC="$VK/src/abi/v11/toolchain-core-x86_64"
 SDK="$VK/src/abi/v11/sdk/Developer"

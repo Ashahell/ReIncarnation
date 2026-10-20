@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include "tests/helpers/ri_assert.h"
 #include "platform/pal/ri_pal_audio.h"
+#include "platform/pal/ri_tmp.h"
 
 static uint32_t t_phase;
 

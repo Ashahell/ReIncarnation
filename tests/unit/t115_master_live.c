@@ -19,6 +19,7 @@
 #include "engine/seq/ctlplane.h"
 #include "engine/seq/autolane.h"
 #include "project/rbng.h"
+#include "platform/pal/ri_tmp.h"
 
 #define SR 48000.0f
 #define BPM 120.0f

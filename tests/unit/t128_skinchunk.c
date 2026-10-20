@@ -13,6 +13,7 @@
 #include "project/rbng.h"
 #include "gui/skinsect.h"
 #include "gui/ctlreg.h"
+#include "platform/pal/ri_tmp.h"
 
 static struct RISong demo_song(void) {
     static struct RISong s;

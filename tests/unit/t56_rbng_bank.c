@@ -7,6 +7,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "engine/seq/pattern.h"
 #include "project/rbng.h"
+#include "platform/pal/ri_tmp.h"
 
 #define T56A RI_TMP_ROOT "/run/t56-rt.rbng"
 #define T56B RI_TMP_ROOT "/run/t56-mut.rbng"

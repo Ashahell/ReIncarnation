@@ -10,6 +10,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "project/rbng.h"
 #include "engine/seq/songtrack.h"
+#include "platform/pal/ri_tmp.h"
 
 static struct RISong demo_song(void) {
     static struct RISong s;

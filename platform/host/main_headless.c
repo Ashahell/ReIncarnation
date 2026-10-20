@@ -17,6 +17,7 @@
 #include "gui/sectui.h"
 #include "gui/sectmix.h"
 #include "platform/host/raster.h"
+#include "platform/pal/ri_tmp.h"
 
 #define SR 48000u
 #define CHUNK 256u

@@ -14,6 +14,7 @@
 #include "engine/seq/sched.h"
 #include "engine/seq/clock.h"
 #include "project/rbng.h"
+#include "platform/pal/ri_tmp.h"
 
 #define T21F_DIR RI_TMP_ROOT "/run/t21"
 #define T21F_SONG T21F_DIR "/song.rbng"

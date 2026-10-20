@@ -30,6 +30,7 @@
 #include <string.h>
 #include "tests/helpers/ri_assert.h"
 #include <unistd.h>
+#include "platform/pal/ri_tmp.h"
 
 #ifndef RI_REPO_ROOT
 #define RI_REPO_ROOT "."

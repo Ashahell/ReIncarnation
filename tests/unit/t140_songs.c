@@ -16,6 +16,7 @@
 #include "project/playlist.h"
 #include "project/rbng.h"
 #include "app/core/riapp_core.h"
+#include "platform/pal/ri_tmp.h"
 
 static struct RISong S, R;
 static struct RBAutoEv EV[64], EVR[64];

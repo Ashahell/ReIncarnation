@@ -14,6 +14,7 @@
 #include "tests/helpers/ri_assert.h"
 #include "engine/fx/pcf.h"
 #include "engine/fx/fx.h"
+#include "platform/pal/ri_tmp.h"
 
 #define SR 48000.0f
 #define SRU 48000u

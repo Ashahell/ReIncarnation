@@ -1,11 +1,13 @@
 #!/bin/bash
 # build.sh — cross-build MEMTYPE for v11 (Dell) and v1 (QEMU guest).
 # usage: build.sh [v11|v1|all]   (default: all)
-# Outputs: /tmp/ri/memtype/MEMTYPE.v11, /tmp/ri/memtype/MEMTYPE.v1
+# Outputs: $RI_TMP/memtype/MEMTYPE.v11, $RI_TMP/memtype/MEMTYPE.v1
 set -e
 ROOT="/home/miller/Work/projects/ReIncarnation"
 VK="/home/miller/Work/projects/Vulkan4Aros"
-OUT=/tmp/ri/memtype
+# ONE build root, shared with the other scripts (see scripts/ri_build_host.sh).
+RI_TMP="${RI_TMP:-/tmp/ri}"
+OUT="$RI_TMP/memtype"
 mkdir -p "$OUT"
 WHAT="${1:-all}"
 
@@ -51,7 +53,7 @@ build_v1() {
     x86_64-aros-gcc $CF -c "$ROOT/lane/memtype/memtype_decode.c" -o "$OUT/memtype_decode_v1.o"
     # Build-pc CRT rename shim (see scripts/ri_build_aros.sh): the v1 SDK
     # ships libstdc where the cross-gcc LIB_SPEC expects libcrt/libstdlib.
-    SHIM=/tmp/ri/libshim_memtype_v1
+    SHIM="$RI_TMP/libshim_memtype_v1"
     mkdir -p "$SHIM"
     for _n in libcrt libstdlib libcrtprog; do ln -sf "$V1SDK/lib/libstdc.a" "$SHIM/$_n.a"; done
     x86_64-aros-gcc $CF -nostartfiles -no-pie -Wa,-W \
