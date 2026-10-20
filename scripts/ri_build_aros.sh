@@ -2,9 +2,25 @@
 # AROS cross-build. Proves the path works (stub library) and builds the
 # M1.1 AHI measurement probe (Task 5, gate G5).
 set -e
-ROOT="$(dirname "$0")/.."
-if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
-. ../Vulkan4Aros/scripts/aros_build_env.sh
+# ROOT is ABSOLUTE and the script pins itself to the repo root, so every
+# path below is resolved the same way whatever the current directory is.
+# The sibling Vulkan4AROS tree is named through $VK (VK_ROOT overrides it):
+# it used to be named "../Vulkan4Aros" against the CURRENT DIRECTORY, so the
+# build only worked when it was run from the repo root, and a git worktree
+# -- which has no sibling at all -- failed with a message about a missing
+# toolchain when the toolchain was there all along.
+#
+# The optional argument is a TARGET NAME (sections | riapp), never a path,
+# so pinning the CWD cannot break anything a caller passes.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT" || { echo "FAIL: cannot cd $ROOT"; exit 1; }
+VK="${VK_ROOT:-$ROOT/../Vulkan4Aros}"
+if [ ! -f "$VK/scripts/aros_build_env.sh" ]; then
+  echo "FAIL: Vulkan4AROS tree (toolchain source) not found at $VK" >&2
+  echo "      set VK_ROOT to the Vulkan4AROS checkout" >&2
+  exit 1
+fi
+. "$VK/scripts/aros_build_env.sh"
 # Task 1 ledger fact: toolchain binaries live DIRECTLY in $AROS_TOOLCHAIN
 # (no bin/ subdir); callers export PATH themselves.
 export PATH="$AROS_TOOLCHAIN:$PATH"
@@ -13,12 +29,12 @@ export PATH="$AROS_TOOLCHAIN:$PATH"
 # stale r12 convention (verified: 15 mov %rax,%r12 in hello_ri) and fault
 # on first LVO call. ALWAYS build guest binaries against the v1 tree below;
 # verify with: objdump -d $OUT | grep -c 'mov *%rax,%r12'  (must be 0).
-V1SDK="../Vulkan4Aros/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include"
+V1SDK="$VK/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include"
 if [ -d "$V1SDK" ]; then
     # Absolute: derived paths (shim symlinks, -L dirs) must survive CWD changes.
     SDK="$(cd "$V1SDK" && pwd)"
 else
-    echo "WARN: v1 build-pc SDK absent, falling back to env SDK (expect r12 faults on guest)"
+    echo "WARN: v1 build-pc SDK absent under $VK, falling back to env SDK (expect r12 faults on guest)"
     SDK="$AROS_SDK_INCLUDE"
 fi
 OUT=/tmp/ri/aros

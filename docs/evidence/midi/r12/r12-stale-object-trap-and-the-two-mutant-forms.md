@@ -112,19 +112,43 @@ is built from one place. `cd … && pwd` also pins the semantics for an
 invocation as `./ri_build_host.sh`, where a bare `"$(dirname "$0")/.."`
 names the **parent** of the repo root.
 
-**The same class is still live in two scripts this work did not touch, and is
-reported rather than fixed here** (they are the owner's call, and one of
-them is the gate):
+**The same class was still live in two scripts this work did not touch, and
+is now fixed (owner call, 2026-10-20):**
 
 - `scripts/ri_build_aros.sh`: `ROOT="$(dirname "$0")/.."` and, worse, the
-  SIBLING tree is named relative to the current directory —
+  SIBLING tree was named relative to the current directory —
   `../Vulkan4Aros/scripts/aros_build_env.sh` and
-  `../Vulkan4Aros/src/abi/v1/…`. Measured: run from `/tmp`, it fails
+  `../Vulkan4Aros/src/abi/v1/…`. Measured: run from `/tmp`, it failed
   immediately with *"FAIL: Vulkan4AROS tree (toolchain source) not found"*;
 - `scripts/ri_audit.sh`: `ROOT="$(dirname "$0")/.."`, so the audit that calls
-  the script above only works from the repo root — which is why an audit run
-  in a clean worktree fails at *"AROS build (stub+probe)"* for a reason that
-  has nothing to do with the code.
+  the script above only worked from the repo root — which is why an audit run
+  in a clean worktree failed at *"AROS build (stub+probe)"* for a reason that
+  had nothing to do with the code. (It already had a `cd "$ROOT"`; the CWD
+  was pinned but **ROOT itself was relative**, so the pin landed in the
+  wrong place when the script was invoked from elsewhere.)
 
-The one-line fix for each is the same as here: resolve through an absolute
-`ROOT` and stop naming the sibling tree against the CWD.
+Both now use
+
+```sh
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+VK="${VK_ROOT:-$ROOT/../Vulkan4Aros}"
+```
+
+and every `../Vulkan4Aros` is now `"$VK"`, with a guard that **names $VK**
+when it is missing and says that `VK_ROOT` overrides it. `VK_ROOT` exists
+because a git worktree has **no sibling tree at all**: `~/.worktrees/X` has
+no `../Vulkan4Aros` next to it, so a worktree audit could not find the
+toolchain that was sitting right there in the main checkout.
+
+`ri_build_aros.sh` also pins itself with `cd "$ROOT"`. That is safe
+because **neither script takes a path argument**: `ri_audit.sh` takes none
+at all, and `ri_build_aros.sh`'s only argument is a TARGET NAME
+(`sections` | `riapp`), never a path.
+
+Proved, all three:
+
+| proof | result |
+|---|---|
+| from the repo root | `AUDIT 0/0 PASS` (unchanged) |
+| `(cd /tmp && ~/Work/projects/ReIncarnation/scripts/ri_audit.sh)` | `AUDIT 0/0 PASS`; `ri_build_aros.sh` from `/tmp` prints `AROS STUB BUILD OK` / `AROS PROBE BUILD OK` |
+| a worktree under `~/.worktrees` with `VK_ROOT=~/Work/projects/Vulkan4Aros` | the AROS build step passes — it could not even find the toolchain before |

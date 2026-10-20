@@ -1,6 +1,18 @@
 #!/bin/bash
 set -e
-ROOT="$(dirname "$0")/.."
+# ROOT is ABSOLUTE, and the sibling Vulkan4AROS tree is named through $VK.
+# Both used to be resolved against the CURRENT DIRECTORY, so the audit only
+# worked when it was run from the repo root -- and a git worktree, which has
+# no ../Vulkan4Aros next to it at all, failed at the AROS build step for a
+# reason that had nothing to do with the code. That happened once already.
+# VK_ROOT names the sibling explicitly for a checkout that lives elsewhere.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+VK="${VK_ROOT:-$ROOT/../Vulkan4Aros}"
+if [ ! -f "$VK/scripts/aros_build_env.sh" ]; then
+  echo "FAIL: Vulkan4AROS tree (toolchain source) not found at $VK" >&2
+  echo "      set VK_ROOT to the Vulkan4AROS checkout" >&2
+  exit 1
+fi
 # Phase 0d greps this file for gate names, so it needs its own real path —
 # `$0` is wrong under `bash < ri_audit.sh` or a symlinked entry point.
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
@@ -736,12 +748,12 @@ gcc $CFLAGS -o "$OUT/compare" "$ROOT/tools/compare.c" || { echo "FAIL: compare b
 T6=/tmp/ri/run/t6
 "$OUT/compare" --events-a "$T6/file.events" --events-b "$T6/live.events" --wav-a "$T6/file.wav" --wav-b "$T6/live.wav" | grep -q "COMPARE: IDENTICAL" || { echo "FAIL: file-vs-live differ (not one renderer)"; exit 1; }
 echo "-- AROS compile of backend TUs (compile-only, no link) --"
-if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
-. ../Vulkan4Aros/scripts/aros_build_env.sh
+if [ ! -f "$VK/scripts/aros_build_env.sh" ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found at $VK"; exit 1; fi
+. "$VK/scripts/aros_build_env.sh"
 export PATH="$AROS_TOOLCHAIN:$PATH"
 # ABIv1 SDK (2026-09-21): v1 build-pc tree, never the env default (r12 convention).
-V1SDK_ABS="$(cd "$ROOT/../Vulkan4Aros/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include" && pwd)"
-if [ -d "$V1SDK_ABS" ]; then SDK="$V1SDK_ABS"; else echo "FAIL: v1 build-pc SDK absent"; exit 1; fi
+V1SDK_ABS="$(cd "$VK/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include" && pwd)"
+if [ -d "$V1SDK_ABS" ]; then SDK="$V1SDK_ABS"; else echo "FAIL: v1 build-pc SDK absent under $VK"; exit 1; fi
 CFLAGS_AU="-std=c99 -O2 -Wall -Wextra -Werror -mcmodel=large -mno-red-zone -ffixed-r12 -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
 mkdir -p "$OUT/aros" # AROS objects stay out of $OUT: `test` links $OUT/*.o (host)
 x86_64-aros-gcc $CFLAGS_AU -c "$ROOT/audio_io/audio.c" -o "$OUT/aros/audio_aros.o" || { echo "FAIL: audio.c AROS compile"; exit 1; }
@@ -945,11 +957,11 @@ if grep -n "#include" "$ROOT/platform/pal/"*.h | grep -v "stdint.h\|stddef.h\|st
 # portability T6: no hard-coded SYS:/RAM:/ENV: literals outside platform/aros/
 if grep -rn '"SYS:\|"RAM:\|"ENV:' "$ROOT/app" "$ROOT/audio_io" "$ROOT/gui" "$ROOT/project" "$ROOT/midi_io" "$ROOT/engine" "$ROOT/tools" --include="*.c" --include="*.h" | grep -v "platform/aros/"; then echo "FAIL: hard-coded Amiga path outside platform/aros/"; exit 1; fi
 echo "-- portability T6: AROS compile of fs/log backends (compile-only) --"
-if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found (T6)"; exit 1; fi
-. ../Vulkan4Aros/scripts/aros_build_env.sh
+if [ ! -f "$VK/scripts/aros_build_env.sh" ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found at $VK (T6)"; exit 1; fi
+. "$VK/scripts/aros_build_env.sh"
 export PATH="$AROS_TOOLCHAIN:$PATH"
-V1SDK_T6="$(cd "$ROOT/../Vulkan4Aros/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include" && pwd)"
-if [ -d "$V1SDK_T6" ]; then SDK_T6="$V1SDK_T6"; else echo "FAIL: v1 build-pc SDK absent (T6)"; exit 1; fi
+V1SDK_T6="$(cd "$VK/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include" && pwd)"
+if [ -d "$V1SDK_T6" ]; then SDK_T6="$V1SDK_T6"; else echo "FAIL: v1 build-pc SDK absent under $VK (T6)"; exit 1; fi
 CFLAGS_T6="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK_T6 -I$SDK_T6/aros/posixc -I$SDK_T6/aros/stdc"
 mkdir -p "$OUT/aros"
 for tu in platform/aros/fs_aros.c platform/aros/log_aros.c; do
@@ -1308,12 +1320,12 @@ done
 if grep -rn "widgets\|app/main\|app/panel909\|knob_blit\|app/knobproof\|app/riapp\|audio_ahi_live" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS shells leak into host build"; exit 1; fi
 grep -q "Numeric → Knob" "$ROOT/gui/widgets/rknb.mcc.c" || { echo "FAIL: rknb lacks reuse note"; exit 1; }
 echo "-- AROS compile of GUI TUs (compile-only, no link) --"
-if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
-. ../Vulkan4Aros/scripts/aros_build_env.sh
+if [ ! -f "$VK/scripts/aros_build_env.sh" ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found at $VK"; exit 1; fi
+. "$VK/scripts/aros_build_env.sh"
 export PATH="$AROS_TOOLCHAIN:$PATH"
 # ABIv1 SDK (2026-09-21): v1 build-pc tree, never the env default (r12 convention).
-V1SDK_ABS="$(cd "$ROOT/../Vulkan4Aros/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include" && pwd)"
-if [ -d "$V1SDK_ABS" ]; then SDK="$V1SDK_ABS"; else echo "FAIL: v1 build-pc SDK absent"; exit 1; fi
+V1SDK_ABS="$(cd "$VK/src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer/include" && pwd)"
+if [ -d "$V1SDK_ABS" ]; then SDK="$V1SDK_ABS"; else echo "FAIL: v1 build-pc SDK absent under $VK"; exit 1; fi
 CFLAGS_GUI="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
 mkdir -p "$OUT/aros"
 x86_64-aros-gcc $CFLAGS_GUI -c "$ROOT/gui/knob_logic.c" -o "$OUT/aros/knob_logic_aros.o" || { echo "FAIL: knob_logic.c AROS compile"; exit 1; }
@@ -1428,8 +1440,8 @@ for f in midi_io/camd_backend.c project/datatypes/rbng.datatype.c project/dataty
 done
 if grep -rn "camd_backend\|datatypes" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS backends leak into host build"; exit 1; fi
 echo "-- AROS compile of format/MIDI TUs (compile-only, no link) --"
-if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
-. ../Vulkan4Aros/scripts/aros_build_env.sh
+if [ ! -f "$VK/scripts/aros_build_env.sh" ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found at $VK"; exit 1; fi
+. "$VK/scripts/aros_build_env.sh"
 export PATH="$AROS_TOOLCHAIN:$PATH"
 SDK="$AROS_SDK_INCLUDE"
 CFLAGS_FMT="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
@@ -1527,8 +1539,8 @@ grep -q "ri_rbng_datatype_reg" "$ROOT/project/datatypes/rbng.datatype.c" || { ec
 grep -q "ri_rbnm_datatype_reg" "$ROOT/project/datatypes/rbnm.datatype.c" || { echo "FAIL: RBNM reg missing"; exit 1; }
 if grep -rn "arexx_aros\|camd_backend\|datatypes" "$ROOT/scripts/ri_build_host.sh" 2>/dev/null; then echo "FAIL: AROS shells leak into host build"; exit 1; fi
 echo "-- AROS compile of new AROS-side code (compile-only, no link) --"
-if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found"; exit 1; fi
-. ../Vulkan4Aros/scripts/aros_build_env.sh
+if [ ! -f "$VK/scripts/aros_build_env.sh" ]; then echo "FAIL: Vulkan4AROS tree (toolchain source) not found at $VK"; exit 1; fi
+. "$VK/scripts/aros_build_env.sh"
 export PATH="$AROS_TOOLCHAIN:$PATH"
 SDK="$AROS_SDK_INCLUDE"
 CFLAGS_REL="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
