@@ -1295,7 +1295,7 @@ grep -q "Tester:" "$ROOT/docs/evidence/gui/acceptance.md" || { echo "FAIL: accep
 test -f "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: missing RED evidence"; exit 1; }
 grep -q "FAIL" "$ROOT/docs/evidence/gui/red-t1_knob.txt" || { echo "FAIL: RED evidence has no FAIL lines"; exit 1; }
 echo "-- AROS-only shells guarded + out of host build --"
-for f in gui/widgets/rknb.mcc.c gui/widgets/rknb.h gui/widgets/rlbl.mcc.c gui/widgets/rlbl.h gui/widgets/rstp.mcc.c gui/widgets/rstp.h gui/widgets/rfdr.mcc.c gui/widgets/rlvl.mcc.c gui/knob_blit.c app/main.c app/panel909.c app/knobproof.c app/stepproof.c gui/widgets/rsection.mcc.c gui/skin_aros.c gui/skin_aros.h app/sectproof.c app/midisend.c audio_io/audio_ahi_live.c audio_io/audio_ahi_live.h app/riapp.c; do
+for f in gui/widgets/rknb.mcc.c gui/widgets/rknb.h gui/widgets/rlbl.mcc.c gui/widgets/rlbl.h gui/widgets/rstp.mcc.c gui/widgets/rstp.h gui/widgets/rfdr.mcc.c gui/widgets/rlvl.mcc.c gui/knob_blit.c app/main.c app/panel909.c app/knobproof.c app/stepproof.c gui/widgets/rsection.mcc.c gui/skin_aros.c gui/skin_aros.h app/sectproof.c app/midisend.c app/netmidi_status.c audio_io/audio_ahi_live.c audio_io/audio_ahi_live.h app/riapp.c; do
   test -f "$ROOT/$f" || { echo "FAIL: missing $f"; exit 1; }
   grep -q "#ifndef __AROS__" "$ROOT/$f" || { echo "FAIL: $f lacks __AROS__ guard"; exit 1; }
   grep -q '#error ".*AROS-only' "$ROOT/$f" || { echo "FAIL: $f lacks AROS-only #error"; exit 1; }
@@ -1527,7 +1527,7 @@ if [ ! -f ../Vulkan4Aros/scripts/aros_build_env.sh ]; then echo "FAIL: Vulkan4AR
 export PATH="$AROS_TOOLCHAIN:$PATH"
 SDK="$AROS_SDK_INCLUDE"
 CFLAGS_REL="-std=gnu99 -O2 -Wall -Wextra -Werror -Wno-pointer-sign -mcmodel=large -mno-red-zone -mno-ms-bitfields -fno-strict-aliasing -ffixed-r12 -fno-builtin -I$ROOT -I$SDK -I$SDK/aros/posixc -I$SDK/aros/stdc"
-for tu in project/arexx_aros.c midi_io/camd_backend.c project/datatypes/rbng.datatype.c project/datatypes/rbnm.datatype.c gui/catalog.c project/arexx_dispatch.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c; do
+for tu in project/arexx_aros.c midi_io/camd_backend.c project/datatypes/rbng.datatype.c project/datatypes/rbnm.datatype.c gui/catalog.c project/arexx_dispatch.c engine/seq/songtrack.c engine/seq/player.c engine/seq/autolane.c app/netmidi_status.c; do
   bn=$(basename "$tu" .c)
   x86_64-aros-gcc $CFLAGS_REL -c "$ROOT/$tu" -o "$OUT/aros/${bn}_rel_aros.o" || { echo "FAIL: $tu AROS compile"; exit 1; }
 done

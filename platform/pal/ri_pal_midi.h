@@ -64,5 +64,10 @@ uint32_t ri_pal_midi_clocks(void);
  * `sent` counts the whole ring and cannot tell a duplicated note-on from a
  * note-off; this counter can, and it says whether a duplicate left RIAPP. */
 uint32_t ri_pal_midi_noteons(void);
+/* R12 O2 diagnostic: note-ons with exactly the duplicated-accent signature
+ * (status 0x90, note 36, velocity 112). A wire count above this one means
+ * the extra copy appeared below CAMD, not in the app. Remove with the R12
+ * duplicate finding. */
+uint32_t ri_pal_midi_n36a(void);
 
 #endif

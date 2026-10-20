@@ -112,6 +112,22 @@ if [ "${3:-}" = "midisend" ]; then
   echo "AROS MIDISEND v11 BUILD OK ($OUTBIN, $(stat -c%s "$OUTBIN") bytes)"
   exit 0
 fi
+# NETMIDISTATUS (R12 O2): read the running netmidid's public status
+# semaphore.  The duplicate note-on was split app / netmidid / host with
+# these counters, and they are the first thing the next network MIDI
+# question needs.  AROS-only; no CAMD library, one FindSemaphore.
+if [ "${3:-}" = "netmidistatus" ]; then
+  O5="$OBJ/tools"
+  mkdir -p "$O5"
+  x86_64-aros-gcc $CF -c "$ROOT/app/netmidi_status.c" -o "$O5/netmidi_status.o"
+  x86_64-aros-gcc -mcmodel=large -mno-red-zone -ffixed-r12 -nostartfiles -no-pie \
+    -o "$OUTBIN" "$O5/netmidi_status.o" \
+    "$SDK/lib/startup.o" -L "$SDK/lib" -lamiga -ldos -lexec -lautoinit
+  test "$(x86_64-aros-readelf -s "$OUTBIN" | awk '$7=="UND" && $8!=""' | wc -l)" = 0 \
+    || { echo "FAIL: NETMIDISTATUS(v11) unresolved"; exit 1; }
+  echo "AROS NETMIDISTATUS v11 BUILD OK ($OUTBIN, $(stat -c%s "$OUTBIN") bytes)"
+  exit 0
+fi
 # An unrecognised tool name must REFUSE, not fall through. Before this, a
 # typo -- or a name added to a script before its target existed -- silently
 # built RIAPP into whatever filename was asked for: `ri_build_v11.sh .
@@ -120,7 +136,7 @@ fi
 # application as the message sender. A build that succeeds is not proof that
 # it built what you asked for.
 if [ -n "${3:-}" ]; then
-  echo "FAIL: unknown tool '$3' (usage: ri_build_v11.sh <src> <out-riapp> [midiclock|midisend])"
+  echo "FAIL: unknown tool '$3' (usage: ri_build_v11.sh <src> <out-riapp> [midiclock|midisend|netmidistatus])"
   exit 2
 fi
 

@@ -272,6 +272,11 @@ static LONG s_sparent_sig = -1;
 static struct Task *s_sparent;
 static ri_atomic_u32 s_sstop, s_stask_done, s_sready;
 static volatile uint32_t s_sent, s_send_err, s_clk_sent, s_noteon_sent;
+/* R12 O2 diagnostic: the exact signature of the duplicated accent note-on
+ * (303 channel 0, note 36, accent velocity 112). One counter, so the run can
+ * say whether the SECOND copy ever left CAMD -- the split between "RIAPP
+ * produced it" and "it appeared below CAMD". Remove with the finding. */
+static volatile uint32_t s_n36a_sent;
 
 /* THE LINK IS SHARED BY TWO TASKS, AND NOW IT SAYS SO.
  *
@@ -516,6 +521,11 @@ static int send_sink(const uint8_t *msg, uint32_t len, void *user) {
      * further down the lane (RTP-MIDI, netmidid, CAMD). */
     if (len == 3u && (msg[0] & 0xF0u) == 0x90u && msg[2] != 0u)
         s_noteon_sent++;
+    /* R12 O2: the duplicate is always this exact message. Count it HERE,
+     * at the CAMD boundary, so a wire count above this number is proof the
+     * extra copy appeared downstream of the app. */
+    if (len == 3u && msg[0] == 0x90u && msg[1] == 36u && msg[2] == 112u)
+        s_n36a_sent++;
     return 0;
 }
 
@@ -652,6 +662,7 @@ int ri_pal_midi_send_start(const char *port, struct RIMidiOut *o) {
     s_send_err = 0u;
     s_clk_sent = 0u;
     s_noteon_sent = 0u;
+    s_n36a_sent = 0u;
     ri_atomic_store_rel(&s_sstop, 0u);
     ri_atomic_store_rel(&s_stask_done, 0u);
     ri_atomic_store_rel(&s_sready, 0u);
@@ -727,3 +738,4 @@ uint32_t ri_pal_midi_sent(void) { return s_sent; }
 uint32_t ri_pal_midi_send_errors(void) { return s_send_err; }
 uint32_t ri_pal_midi_clocks(void) { return s_clk_sent; }
 uint32_t ri_pal_midi_noteons(void) { return s_noteon_sent; }
+uint32_t ri_pal_midi_n36a(void) { return s_n36a_sent; }
