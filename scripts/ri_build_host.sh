@@ -1,7 +1,17 @@
 #!/bin/bash
 # usage: ri_build_host.sh [kernels|clock|sched|dsp303|dsp808|dsp909|fx|pcf|mixer|audio|gui|all|test NAME|golden NAME|clean]
 set -e
-ROOT="$(dirname "$0")/.."
+# ROOT is made ABSOLUTE, and every path in this script is built from it.
+# The module lists below name REPO-RELATIVE sources, so anything that
+# resolves one of them against the CURRENT directory is wrong the moment the
+# script is invoked from anywhere but the repo root. That is not
+# hypothetical: rebuild_stale()'s source check did exactly that, and the
+# stale-object trap it exists to close came back through the other door --
+# run from /tmp, the check matched nothing, the rebuild never happened, and
+# a mutant passed. `cd ... && pwd` also pins the semantics for an
+# invocation as ./ri_build_host.sh, where a bare "$(dirname $0)/.." would
+# name the PARENT of the repo root.
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT=/tmp/ri/build
 CFLAGS="-std=c99 -O2 -Wall -Wextra -Werror -pedantic -ffp-contract=off -fno-unsafe-math-optimizations -ftrapv -I$ROOT"
 mkdir -p "$OUT"
@@ -65,8 +75,10 @@ rebuild_stale() {
     for src in $srcs; do
       o="$OUT/$(basename "$src" .c).o"
       if [ ! -f "$o" ]; then stale_mod="$mod"; why="$src (no object)"; break; fi
-      # (a) the SOURCE is newer than its own object
-      if [ -n "$(find "$src" -newer "$o" -print -quit 2>/dev/null)" ]; then
+      # (a) the SOURCE is newer than its own object. The source is named
+      # REPO-RELATIVE, so it is resolved through ROOT, never against the
+      # current directory.
+      if [ -n "$(find "$ROOT/$src" -newer "$o" -print -quit 2>/dev/null)" ]; then
         stale_mod="$mod"; why="$src is newer than its object"; break
       fi
       # (b) the coarse header rule: ANY newer header invalidates the object

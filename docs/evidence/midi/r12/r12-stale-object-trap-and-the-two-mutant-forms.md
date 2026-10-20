@@ -85,3 +85,46 @@ looks like" findings: the drum fix's own claim about its mutant was sound,
 and the instrument that was supposed to prove it was the thing that lied.
 The instrument was not wrong about the mutant; it was wrong about which
 code it was looking at.
+
+## And the trap had a third form: the CHECK was itself CWD-dependent
+
+The source check in `rebuild_stale()` was written as
+
+    if [ -n "$(find "$src" -newer "$o" ...)" ]
+
+but `$src` comes from the module lists and is **repo-relative**
+(`engine/dsp/kernels.c`), while `compile_list` compiles `"$ROOT/$f"`. So
+`find` resolved the source against the **current directory**: from the repo
+root it happened to work, and from anywhere else it matched **nothing**,
+rule (a) silently never fired, the object stayed stale, and the trap came
+back through the other door.
+
+Measured, with the `.c`-only mutant in place:
+
+| invocation | before the fix | after the fix |
+|---|---|---|
+| `scripts/ri_build_host.sh test t201…` (repo root) | rc=1 — the rebuild fired | rc=1 |
+| `(cd /tmp && ~/Work/projects/ReIncarnation/scripts/ri_build_host.sh test t201…)` | **rc=0 — the mutant PASSED, no rebuild** | **rc=1**, 16 assertion failures, and the log says *"`midi_io/midi_devout.c` is newer than its object -- rebuilding"* |
+
+The fix is `find "$ROOT/$src"`, and `ROOT` is now made **absolute**
+(`ROOT="$(cd "$(dirname "$0")/.." && pwd)"`) so that every path in the script
+is built from one place. `cd … && pwd` also pins the semantics for an
+invocation as `./ri_build_host.sh`, where a bare `"$(dirname "$0")/.."`
+names the **parent** of the repo root.
+
+**The same class is still live in two scripts this work did not touch, and is
+reported rather than fixed here** (they are the owner's call, and one of
+them is the gate):
+
+- `scripts/ri_build_aros.sh`: `ROOT="$(dirname "$0")/.."` and, worse, the
+  SIBLING tree is named relative to the current directory —
+  `../Vulkan4Aros/scripts/aros_build_env.sh` and
+  `../Vulkan4Aros/src/abi/v1/…`. Measured: run from `/tmp`, it fails
+  immediately with *"FAIL: Vulkan4AROS tree (toolchain source) not found"*;
+- `scripts/ri_audit.sh`: `ROOT="$(dirname "$0")/.."`, so the audit that calls
+  the script above only works from the repo root — which is why an audit run
+  in a clean worktree fails at *"AROS build (stub+probe)"* for a reason that
+  has nothing to do with the code.
+
+The one-line fix for each is the same as here: resolve through an absolute
+`ROOT` and stop naming the sibling tree against the CWD.
