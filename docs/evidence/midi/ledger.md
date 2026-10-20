@@ -7251,16 +7251,61 @@ So a group built as `{Child, pat, Child, voice}` with `voice` **NULL** takes
 `pat` with it. The app never asked for that, and `s_canvas[]` still points
 at it.
 
-AROS's allocator is the one that notices. `rom/exec/memory.c`:
+AROS's allocator is the one that notices — and **the alert text the owner
+read off the Dell's screen names the exact failure**: "RIAPP: Memory header
+not located". That string is `AN_BadFreeAddr` (`0x0100000F`,
+`compiler/include/exec/alerts.h`), from `rom/exec/alertstrings.c:126`:
 
 ```
-795:                    Alert(AN_FreeTwice);
-823:                Alert(AN_FreeTwice);
+    { AN_FreeTwice,     "Memory freed twice" },
+    ...
+    { AN_BadFreeAddr,   "Memory header not located" },
 ```
 
-`AN_FreeTwice` is `0x01000009` (`compiler/include/exec/alerts.h`), and
+**So it is `AN_BadFreeAddr`, NOT `AN_FreeTwice`** — and the difference
+matters, because it says *which* free failed, and therefore *what* was
+freed twice. `AN_FreeTwice` is raised inside the chunk allocator when the
+block being freed **overlaps a chunk already on the free list**
+(`rom/exec/memory.c:795,823`). The alert on the Dell is the other one:
+`AN_BadFreeAddr` from the **pooled** free path
+(`rom/exec/memory.c:1264`, `PoolManagerAlert(PME_FREE_NO_CHUNK, 0, …)`),
+whose own words are *"The chunk does not belong to a pool"*.
+
+**AND THAT NAMES THE FREED TWICE THING EXACTLY.** A Zune object is **not**
+a plain `AllocVec` block: `rom/intuition/rootclass.c` allocates it from the
+**class memory pool** —
+
+```c
+#    define alloc(a, b)   AllocPooled(a, b)
+#    define free(a, b, c) FreePooled(a, b, c)
+```
+
+— and the pool is created `MEMF_SEM_PROTECTED`
+(`rom/intuition/newobjecta.c:118`). So the canvas's memory is a **pooled
+chunk**, and the second `FreePooled` of it finds the chunk is no longer in
+the pool: `memory.c`'s `InternalFreePooled` reads the `MemHeader` pointer
+stored just before the block, finds it does not describe a live chunk of
+that pool, and raises `PME_FREE_NO_CHUNK` → `Alert(AN_BadFreeAddr | 0)`.
+
+`flags=0` means **no `AT_DeadEnd`**, which is why the requester is
+**`Recoverable Alert!`** (`rom/alerthook/alerthook.c`: only `AT_DeadEnd` gets
+the "Software Failure!" wording) — and why the process **survived** it and
+the teardown's remaining lines were still written.
+
+**What the text adds that the source alone did not.** Before this, the
+claim rested on the *shape* of the defect plus an alert whose text nobody
+could read. Now the text is read, and it names the failing free: a
+**pooled** free of a chunk that is not in its pool. That is the signature
+of freeing the same Zune object **twice** — and the Zune object is the
+canvas. It also **corrects** the earlier guess in this ledger, which
+attributed the alert to `AN_FreeTwice` from reading `memory.c` and seeing
+"double free" in the headline. Same defect; the allocator noticed it by a
+different — and more specific — test: not "this overlaps the free list" but
+"this belongs to no pool chunk".
+
 `rom/alerthook/alerthook.c` turns a non-`AT_DeadEnd` alert into the
-**`Recoverable Alert!`** requester — the window the owner's Dell showed.
+**`Recoverable Alert!`** requester — the window the owner's Dell showed, and
+the window the reproduction raises.
 
 ### THE FIX, IN THREE PARTS (all in `app/riapp.c`)
 
@@ -7290,7 +7335,7 @@ the shape of the row group.
 | the run | the panel build fails, the app tears down cleanly | the panel build fails the same way |
 | the log | `RIAPP teardown: canvases=21 parentless=5 sections=14,15,19,0,1` then `RIAPP closed: … xruns=0 …` | `RIAPP teardown: canvases=21 parentless=4 sections=15,19,0,1` then `RIAPP closed: …` |
 | the screen | **2 windows** — no requester | **3 windows** — `Recoverable Alert!` at 401,289 564x191 |
-| what AROS says | — | `AN_FreeTwice` — the allocator caught the second free of a block it had already freed |
+| what AROS says | — | `AN_BadFreeAddr` — "Memory header not located": the **pooled** free of a chunk that is not in its pool, i.e. the canvas's Zune object freed twice |
 
 The parentless counts differ, and that is the fingerprint: in the mutant the
 **section 14 canvas (the synth tab's first pattern canvas) is missing from
@@ -7410,20 +7455,72 @@ not replay them. **The reboot is the owner's to do** — the agent cannot
 reboot its own guest (`C:Reboot` is itself an exec, and it is blocked by
 the very requester that is up).
 
-**The original requester's text was still not read.** The alert the owner's
-Dell showed was up on its screen, unreadable from the agent, and the
-reproduction raises a *Recoverable* Alert whose text is also unreadable
-(the guest's font at the scale the agent can capture). What the two share
-is the **mechanism**, established from the source and confirmed by the
-allocator's own `AN_FreeTwice` — not the wording.
+**The alert text WAS read — by the owner, off the Dell's screen.** "RIAPP:
+Memory header not located" is `AN_BadFreeAddr`, and it closes the last gap
+in this section: the crash is now identified by the **allocator's own
+wording for the failing free**, not by a shape that merely resembles the
+crash. (It also corrects the earlier `AN_FreeTwice` guess, above: same
+defect, different — and more specific — test.)
+
+**AND IT EXPLAINS WHY THE OWNER'S WINDOW SAYS "Software Failure!" AND THE
+REPRODUCTION'S SAYS "Recoverable Alert!" — the two are the SAME defect, and
+the wording is the alerthook's, not the alert's.** `rom/alerthook/alerthook.c`
+picks the wording from the **flags**:
+
+```c
+        if(SysBase->LastAlert[0] & AG_NoMemory)
+            buf = mystrcpy(buf, nomem, -1);
+        else if(SysBase->LastAlert[0] & AT_DeadEnd)
+            buf = mystrcpy(buf, sfail, -1);   /* "Software Failure!" */
+        else
+            buf = mystrcpy(buf, recov, -1);   /* "Recoverable Alert!" */
+```
+
+`AT_DeadEnd` is `0x80000000` and `AN_BadFreeAddr` is `0x0100000F` — **the
+alert number never carries the wording; the flags do.** And the *same*
+`AN_BadFreeAddr` is raised on three paths with **different flags**
+(`rom/exec/memory.c`):
+
+| pooled-free failure | flags | requester |
+|---|---|---|
+| the chunk is in no pool (`PME_FREE_NO_CHUNK`, line 1264) | `0` | **`Recoverable Alert!`** |
+| the pool's magic is wrong (`PME_FREE_INV_POOL`, line 1274) | **`AT_DeadEnd`** | **`Software Failure!`** |
+| the chunk is in a different pool (`PME_FREE_MXD_POOL`, line 1279) | `0` | **`Recoverable Alert!`** |
+
+So **one defect, one alert number, two different words** — and which word
+appears depends on how far the allocator got before it noticed. The
+reproduction lands on the first (recoverable); the owner's original window
+was the **dead-end** variant, which means the owner's crash got *further*
+into the allocator's checks before it objected — a **more corrupted** heap
+state, which is what a crash that has already scribbled on the heap looks
+like. That is consistent, and it is a **difference in degree, not in kind**.
+
+**So the claim, stated as narrowly as the evidence allows:** the owner's
+"Software Failure!" and the reproduction's "Recoverable Alert!" are the
+**same alert number** (`AN_BadFreeAddr`, "Memory header not located") and
+therefore **the same class of failure** — the allocator rejecting a free of
+an address that is not a valid pooled chunk. The reproduction proves the
+mechanism this ledger describes: a Zune object freed twice. It does **not**
+prove the owner's crash was the *same object* freed twice, and this ledger
+does not claim it was — the original window's text was read, but the
+**reproduction's** text is what names the alert, and the two windows'
+wording difference is a flag difference in the same alert.
 
 ### WHAT IS STILL OPEN
 
-- The mutant's alert is the allocator catching the double free; the crash the
-  owner saw was the same shape. **The original requester's text was not read**
-  — it was up on the Dell's screen, unreadable from the agent — so the two
-  are the same crash by construction and by symptom, not by reading the
-  original alert.
+- The crash is identified by the allocator's own wording — "Memory header
+  not located" (`AN_BadFreeAddr`) — so the **mechanism** is no longer in
+  question: the allocator rejected a free of an address that is not a valid
+  pooled chunk, and a Zune object freed twice is exactly that. What is
+  still open is **how often it traps**: one pair of A/B runs is not a
+  frequency, and the first post-reboot attempt (which reported "no crash")
+  was not a measurement at all, so the lane has no honest data on the rate.
+- **The reproduction's requester is `Recoverable Alert!` and the owner's
+  original was `Software Failure!`** — the same alert number, different
+  flags (`AT_DeadEnd` set or not). The reproduction therefore proves the
+  mechanism but not the *degree*: the owner's window means the allocator
+  got further into its checks before objecting, i.e. a more corrupted heap.
+  Same class of failure, not demonstrably the same object.
 - The `Recoverable Alert!` window wedges the guest agent's command lane, so
   the lane needs the reboot before the next run.
 - **The A/B is now measured on the final binaries**, but it is one pair of
