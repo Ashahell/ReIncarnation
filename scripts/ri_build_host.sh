@@ -36,37 +36,46 @@ build_pcf() {
   else
     echo "pcf: SKIP (table unverified)";
   fi }
-# Rebuild any module whose object is older than the NEWEST header in the tree.
-# A header-only edit (a constant, a struct, an inline) otherwise leaves the
-# objects stale, and a test that links them answers for the old code. That is
-# not a hypothetical: on 2026-10-20 the drum-channel mutant DM appeared to
-# SURVIVE t201 for exactly this reason, and died the moment the module was
-# recompiled. A green that was never rebuilt proves nothing.
+# Rebuild any module whose object is older than its own SOURCE, or older than
+# the NEWEST header in the tree. A stale object is a stale object whichever
+# way it happened, and the test target links the objects in $OUT without
+# rebuilding them:
 #
-# The check is deliberately coarse -- ANY header newer than an object
-# invalidates it -- because it is cheap and it cannot be wrong in the unsafe
-# direction. Over-rebuilding costs a second; missing a rebuild costs a
-# conclusion.
-rebuild_stale_headers() {
+#   * a HEADER edit (a constant, a struct, an inline) leaves every object that
+#     includes it stale. Measured 2026-10-20: the drum-channel mutant DM
+#     appeared to SURVIVE t201 for exactly this reason, and died the moment
+#     the module was recompiled.
+#   * a .c-ONLY edit is the same trap in its other form: the object for that
+#     one source is older than the source, and nothing else noticed.
+#
+# A green that was never rebuilt proves nothing.
+#
+# The header rule is deliberately coarse -- ANY header newer than an object
+# invalidates it -- because it is cheap (a full rebuild is 7.6 s) and it
+# cannot be wrong in the unsafe direction. Over-rebuilding costs a second;
+# missing a rebuild costs a conclusion.
+rebuild_stale() {
   [ -d "$OUT" ] || return 0
   local newest
   newest=$(ls -t $(find "$ROOT" -name '*.h' -not -path '*/.git/*' 2>/dev/null) 2>/dev/null | head -1)
-  [ -n "$newest" ] || return 0
-  local mod srcs o stale_mod
+  local mod srcs src o stale_mod why
   for mod in kernels engine clock sched formats dsp303 dsp808 dsp909 dsplevi fx mixer audio gui core draw; do
     eval "srcs=\"\$MOD_$mod\""
-    stale_mod=""
+    stale_mod=""; why=""
     for src in $srcs; do
       o="$OUT/$(basename "$src" .c).o"
-      [ -f "$o" ] || continue
-      if [ -n "$(find "$o" -newer "$newest" -print -quit 2>/dev/null)" ]; then
-        :                       # the object is newer than the newest header: fine
-      else
-        stale_mod="$mod"; break
+      if [ ! -f "$o" ]; then stale_mod="$mod"; why="$src (no object)"; break; fi
+      # (a) the SOURCE is newer than its own object
+      if [ -n "$(find "$src" -newer "$o" -print -quit 2>/dev/null)" ]; then
+        stale_mod="$mod"; why="$src is newer than its object"; break
+      fi
+      # (b) the coarse header rule: ANY newer header invalidates the object
+      if [ -n "$newest" ] && [ -z "$(find "$o" -newer "$newest" -print -quit 2>/dev/null)" ]; then
+        stale_mod="$mod"; why="a header is newer than $(basename "$o")"; break
       fi
     done
     if [ -n "$stale_mod" ]; then
-      echo "-- $stale_mod: a header is newer than its objects -- rebuilding"
+      echo "-- $stale_mod: $why -- rebuilding"
       compile_list "$srcs"
     fi
   done
@@ -76,14 +85,14 @@ case "${1:-all}" in
   pcf) build_pcf strict ;;
   all) for t in kernels engine clock sched formats dsp303 dsp808 dsp909 dsplevi fx mixer audio gui core draw; do "$0" $t; done; build_pcf skip ;;
   test) test -n "$2" || { echo "usage: $0 test NAME"; exit 1; }
-    # A HEADER change must invalidate the objects that use it. This target
-    # links the objects in $OUT, and nothing else rebuilt them, so a session
-    # that edited a header and then ran a test linked STALE objects: the test
-    # answered for the old code, and a mutant looked like it had survived.
-    # Measured 2026-10-20: the drum-channel mutant DM "passed" t201 until
-    # the module was recompiled, and then failed as it must. The audit builds
-    # `all` first and was never at risk, but a hand-run test was.
-    rebuild_stale_headers
+    # A change to a SOURCE or a HEADER must invalidate the objects it built
+    # into. This target links the objects in $OUT, and nothing else rebuilt
+    # them, so a session that edited one and then ran a test linked STALE
+    # objects: the test answered for the old code, and a mutant looked like
+    # it had survived. Measured 2026-10-20, both forms: the drum-channel
+    # mutant DM "passed" t201 until the module was recompiled, and then
+    # failed as it must.
+    rebuild_stale
     # -lpng: the T7 host image backend (platform/host/image_host.c); present
     # on dev/CI Linux alongside the mkskin toolchain dep. All other tests
     # link it harmlessly (no png symbols pulled unless referenced).
