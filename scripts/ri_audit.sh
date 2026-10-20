@@ -1231,6 +1231,18 @@ bash "$ROOT/scripts/ri_build_host.sh" test t235_midi_wiring_order >/dev/null || 
 # survive every early return. The check is structural and the comments are
 # blanked first, so a comment cannot satisfy it.
 bash "$ROOT/scripts/ri_build_host.sh" test t236_midi_teardown_order >/dev/null || { echo "FAIL: t236_midi_teardown_order (every exit path of riapp_main tears the MIDI tasks down)"; exit 1; }
+# t237 pins the OWNERSHIP of the canvases. Zune's group creation FAILS when
+# a Child tag is NULL, and a failing group DISPOSES the children it already
+# took (the family's dispose walks the child list): a device row built with
+# a lookup that can be NULL frees the canvas next to it behind the app's
+# back, while s_canvas[] still points at it, and the teardown then disposes
+# it a second time. The other half is the same rule from the teardown's
+# side: a canvas that is in no page (a device the rack hides, the Levi's
+# pattern canvas) has no owner to dispose it, so the teardown must count
+# the parentless ones -- before any dispose, or the ask is a use-after-free
+# -- and dispose them before the classes are dropped. t236 pins the order,
+# t237 the ownership.
+bash "$ROOT/scripts/ri_build_host.sh" test t237_canvas_ownership >/dev/null || { echo "FAIL: t237_canvas_ownership (the page build never hands Zune a canvas it does not own)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

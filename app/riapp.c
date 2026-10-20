@@ -289,6 +289,20 @@ static char s_tablbl[5][16];
 #define RIAPP_CHROME_W 32
 #define RIAPP_CHROME_H 72
 static Object *s_root;          /* window root group (zoom InitChange) */
+/* THE PANEL'S GROUPS BEFORE THEY HAVE AN OWNER (2026-10-20). The teardown
+ * has to be able to reach them: a failure between the build and the
+ * OM_ADDMEMBER leaves them with no owner, and they hold the canvases. A
+ * canvas that is still alive when its class is deleted is the Zune/MUI rule
+ * broken, so the teardown disposes them (the pages group first: it owns the
+ * device pages). */
+static Object *s_devpage[5];  /* the device tab pages: synth, drums, levi, mix, fx */
+static Object *s_rail;        /* the device rail */
+static Object *s_strip;       /* the hardware tab strip */
+static Object *s_trslot;      /* the transport slot (holds the C_TR canvas) */
+/* 1 = the canvas is in no group at all (Zune's MUIA_Parent is NULL). The
+ * teardown counts them BEFORE any dispose and disposes them after the
+ * owner: the owner's dispose cannot reach a canvas that has no parent. */
+static int s_canvas_noparent[C_N];
 static Object *s_zoomitems[4];  /* View menu items (zoom checkmarks) */
 static int s_zoom_mode = RI_ZOOMFIT_FIT; /* -1 Fit, else content zoom */
 static Object *s_songitems[5]; /* Songs menu items (NULL when the menu failed) */
@@ -2097,13 +2111,75 @@ static void meter_round(ULONG mix_freq) {
     }
 }
 
+/* DIAGNOSTIC (2026-10-20): RIAPP_FAIL_PAGE=<n> makes the n-th device tab
+ * page fail, so the page-build failure path can be taken ON PURPOSE instead
+ * of waited for. It is honoured only with RIAPP_DIAG=1 -- the debug switch
+ * -- and it is read with GetVar, like every other ENVARC read in this file
+ * (getenv is not used here: the ENVARC is what the lane sets). The failure
+ * is arranged as the REAL shape: the canvas lookup comes back empty, so
+ * the build has to cope with a canvas that is not there. */
+static int s_fail_page = -1;  /* the page call that must fail (0 = none) */
+static int s_page_calls;      /* the page calls so far */
+static ULONG s_fail_section;  /* the section whose lookup comes back empty */
+/* The arming is a FLAG, not a value (2026-10-20). Section 0 is a real
+ * section -- RI_SEC_SYNTH1 -- so a "0 means not armed" sentinel silently
+ * DISABLED the switch for the synth tab's first row: the panel built
+ * normally and the lane measured a healthy run instead of the failure.
+ * That is the 2026-10-12 lesson again, in a new shape: a diagnostic that
+ * does not fire measures nothing and looks like a pass. */
+static int s_fail_armed;      /* 1 = s_fail_section's lookup comes back empty */
+
+static int page_must_fail(void) {
+    if (s_fail_page < 0) {
+        char v[16];
+        long k = 0;
+        long n = 0;
+        s_fail_page = 0;
+        if (rsection_diag_enabled() &&
+            GetVar((STRPTR)"RIAPP_FAIL_PAGE", (STRPTR)v, (LONG)sizeof v, 0L) > 0) {
+            while (v[k] >= '0' && v[k] <= '9' && k < (long)sizeof v - 1) {
+                n = n * 10 + (v[k] - '0');
+                k++;
+            }
+            s_fail_page = (int)n;
+        }
+    }
+    s_page_calls++;
+    return s_fail_page > 0 && s_page_calls == s_fail_page;
+}
+
 /* Canvas object for a section id (tab rows follow the t98 model). */
 static Object *canvas_for_section(ULONG sec) {
     int i;
+    /* DIAGNOSTIC (2026-10-20): the lookup of one SECTION comes back
+     * empty, so the "the canvas is not there" shape can be arranged on
+     * purpose. Keying it on the section, not on the next call, is what lets
+     * the A/B on the lane differ in exactly one thing: the row group is
+     * built from the lookup (the pre-fix shape) or from a local (the fix),
+     * and both take the failure at the same place. */
+    if (s_fail_armed && sec == s_fail_section) {
+        s_fail_armed = 0;
+        return 0;
+    }
     for (i = 0; i < C_N; i++)
         if (c_sections[i] == sec)
             return s_canvas[i];
     return 0;
+}
+
+/* Release the s_canvas[] entry of a canvas that is about to be freed with
+ * the group that holds it: a stale entry is a second dispose, and asking a
+ * freed canvas for its parent (the teardown does, to find the parentless
+ * ones) is a use-after-free. */
+static void canvas_entry_release(Object *c) {
+    int i;
+    if (!c)
+        return;
+    for (i = 0; i < C_N; i++)
+        if (s_canvas[i] == c) {
+            s_canvas[i] = 0;
+            return;
+        }
 }
 
 /* One device tab page: a row (pattern + voice canvas) per visible device.
@@ -2111,7 +2187,8 @@ static Object *canvas_for_section(ULONG sec) {
 static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
     uint32_t *devs, Object **objs, uint32_t cap, uint32_t *n_out) {
     struct RITabDev rows[5];
-    uint32_t n, r;
+    uint32_t n, r, added = 0u;
+    int must_fail;
     Object *page;
     if (!vis)
         return 0;
@@ -2121,34 +2198,81 @@ static Object *tab_device_page(uint32_t group, struct RIVisSet *vis,
         return 0;
     if (n_out)
         *n_out = 0u;
+    must_fail = page_must_fail();
+    /* DIAGNOSTIC (2026-10-20): the FIRST row's voice canvas is "not there".
+     * The arm is set HERE, before the loop and before any lookup of the
+     * row, so the lookup that comes back empty is the same one in both
+     * shapes -- the voice canvas of the first row -- and the A/B on the
+     * lane differs in exactly one thing: the shape of the row group.
+     *
+     * The arm is a FLAG and not a value: section 0 is RI_SEC_SYNTH1, a
+     * real section, so a "0 means not armed" sentinel silently DISABLED
+     * this switch for the synth tab -- the panel built normally and the
+     * lane measured a healthy run instead of the failure. A diagnostic
+     * that does not fire measures nothing and looks like a pass. */
+    if (must_fail && n > 0u) {
+        s_fail_section = rows[0].voice_sec;
+        s_fail_armed = 1;
+    }
     for (r = 0u; r < n; r++) {
-        Object *prow;
+        Object *prow, *pat = 0, *voice = 0;
         if (rows[r].pat_sec == RI_TAB_PAT_NONE) {
             /* Levi voice-only row (owner 2026-09-29): the real
              * instrument has no pattern section; the bank engine
              * (C_P4/sync_pat) keeps running on slot 0 underneath. */
+            voice = canvas_for_section(rows[r].voice_sec);
+        } else {
+            pat = canvas_for_section(rows[r].pat_sec);
+            voice = canvas_for_section(rows[r].voice_sec);
+        }
+        /* THE LOOKUPS COME FIRST, AND THEY ARE CHECKED BEFORE THE GROUP IS
+         * CREATED (2026-10-20). Zune's group creation FAILS when a Child
+         * tag is NULL -- and a failing group DISPOSES the children it
+         * already took (the family's dispose walks the child list). So a
+         * row built as {Child, pat, Child, voice} with `voice` NULL
+         * disposes `pat` BEHIND THE APP'S BACK, while s_canvas[] still
+         * points at it: the teardown would dispose that canvas a second
+         * time. A missing canvas therefore fails the build HERE, before
+         * Zune ever sees a NULL Child. */
+        if (!voice || (!pat && rows[r].pat_sec != RI_TAB_PAT_NONE))
+            goto fail;
+        if (rows[r].pat_sec == RI_TAB_PAT_NONE) {
             prow = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
-                MUIA_Group_Spacing, 2,
-                Child, (IPTR)canvas_for_section(rows[r].voice_sec), TAG_DONE);
-            if (!prow || !canvas_for_section(rows[r].voice_sec))
-                return 0;
+                MUIA_Group_Spacing, 2, Child, (IPTR)voice, TAG_DONE);
         } else {
             prow = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
                 MUIA_Group_Spacing, 2,
-                Child, (IPTR)canvas_for_section(rows[r].pat_sec),
-                Child, (IPTR)canvas_for_section(rows[r].voice_sec), TAG_DONE);
-            if (!prow || !canvas_for_section(rows[r].pat_sec) ||
-                !canvas_for_section(rows[r].voice_sec))
-                return 0;
+                Child, (IPTR)pat, Child, (IPTR)voice, TAG_DONE);
         }
+        if (!prow)
+            goto fail;
         DoMethod(page, OM_ADDMEMBER, (IPTR)prow);
         if (devs && objs && n_out && *n_out < cap) {
             devs[*n_out] = rows[r].device;
             objs[*n_out] = prow;
             (*n_out)++;
         }
+        added = r + 1u;
     }
-    return (n > 0u) ? page : 0;
+    if (n == 0u) {
+        /* No device in this tab: the page is empty, and an empty page is
+         * not a page. It is disposed here, or it leaks. */
+        MUI_DisposeObject(page);
+        return 0;
+    }
+    return page;
+fail:
+    /* THE PARTLY BUILT PAGE (2026-10-20). The page owns the rows added so
+     * far, and a row owns the canvases of its device: disposing the page
+     * frees those canvases, so their entries are released FIRST -- a stale
+     * entry is a second dispose, and the teardown asks every canvas for
+     * its parent (a use-after-free on a freed one). */
+    for (r = 0u; r < added; r++) {
+        canvas_entry_release(canvas_for_section(rows[r].pat_sec));
+        canvas_entry_release(canvas_for_section(rows[r].voice_sec));
+    }
+    MUI_DisposeObject(page);
+    return 0;
 }
 
 /* Keep only the parts of rects and axis lines inside the clip box (the
@@ -2444,10 +2568,52 @@ static Object *bay_group(struct TagItem *tags) {
 static Object *rack_slot(Object *mod) {
     Object *l = rart(RART_SEAM_L), *r = rart(RART_SEAM_R), *fill, *unit;
     fill = (Object *)MUI_NewObject(MUIC_Rectangle, TAG_DONE);
-    unit = (l && r && fill) ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
-        MUIA_Group_Spacing, 0, Child, (IPTR)l, Child, (IPTR)mod, Child, (IPTR)r, TAG_DONE) : 0;
-    return unit ? (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 0,
-        Child, (IPTR)unit, Child, (IPTR)fill, TAG_DONE) : 0;
+    /* THE CHILDREN ARE CHECKED BEFORE THE GROUP IS CREATED (2026-10-20).
+     * Zune's group creation FAILS when a Child tag is NULL, and a failing
+     * group DISPOSES the children it already took. A NULL canvas would
+     * therefore take the seams down with it -- and, further down the
+     * chain, the canvas of a sibling.
+     *
+     * The seams and the fill are OURS (the canvas is the caller's), so the
+     * early return disposes them: an object left alive here outlives the
+     * class drop at the end of the teardown. */
+    if (!l || !r || !fill || !mod) {
+        if (l)
+            MUI_DisposeObject(l);
+        if (r)
+            MUI_DisposeObject(r);
+        if (fill)
+            MUI_DisposeObject(fill);
+        return 0;
+    }
+    unit = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
+        MUIA_Group_Spacing, 0, Child, (IPTR)l, Child, (IPTR)mod, Child, (IPTR)r, TAG_DONE);
+    if (!unit) {
+        /* The group failed. Its children were all non-NULL (checked above),
+         * so the failure is the group's own allocation and Zune took
+         * nothing: the seams and the canvas are still alive. The seams
+         * are ours; the canvas is the caller's. */
+        MUI_DisposeObject(l);
+        MUI_DisposeObject(r);
+        MUI_DisposeObject(fill);
+        return 0;
+    }
+    {
+        Object *outer = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 0,
+            Child, (IPTR)unit, Child, (IPTR)fill, TAG_DONE);
+        if (!outer) {
+            /* The outer group failed, so it took nothing: the unit and the
+             * fill are still ours. Disposing the unit frees the CANVAS it
+             * owns, so the s_canvas[] entry is released FIRST -- a stale
+             * entry is a second dispose, and the teardown asks every
+             * canvas for its parent (a use-after-free on a freed one). */
+            canvas_entry_release(mod);
+            MUI_DisposeObject(unit);
+            MUI_DisposeObject(fill);
+            return 0;
+        }
+        return outer;
+    }
 }
 
 /* Rack bay page: rail | bay | modules (touching, tops aligned, centred)
@@ -2455,9 +2621,9 @@ static Object *rack_slot(Object *mod) {
  * module's slot for ShowMe; gap_after inserts a 6 px double-seam gap
  * after that module index (S4: the MASTER strip stands apart). */
 static Object *rack_page_gap(Object *const *mods, uint32_t n, Object **slots, uint32_t gap_after) {
-    Object *row, *col, *l, *r, *sp[4], *gap = 0;
+    Object *row, *col = 0, *l = 0, *r = 0, *sp[4], *gap = 0, *page = 0;
     struct TagItem tags[8];
-    uint32_t i;
+    uint32_t i, made = 0u;
     /* Weight 1 against the spacers' 100: the row stays at the tallest
      * module, so the bay splits evenly above and below. */
     row = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Horiz, TRUE,
@@ -2467,25 +2633,32 @@ static Object *rack_page_gap(Object *const *mods, uint32_t n, Object **slots, ui
     for (i = 0u; i < n; i++) {
         Object *slot = rack_slot(mods[i]);
         if (!slot)
-            return 0;
+            goto fail;
         if (slots)
             slots[i] = slot;
         DoMethod(row, OM_ADDMEMBER, (IPTR)slot);
+        made = i + 1u;
         if (i == gap_after) {
             gap = (Object *)MUI_NewObject(MUIC_Rectangle, MUIA_FixWidth, 6, TAG_DONE);
             if (!gap)
-                return 0;
+                goto fail;
             DoMethod(row, OM_ADDMEMBER, (IPTR)gap);
         }
     }
     for (i = 0u; i < 4u; i++)
         sp[i] = (Object *)MUI_NewObject(MUIC_Rectangle, TAG_DONE);
-    col = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 0,
-        Child, (IPTR)sp[0], Child, (IPTR)row, Child, (IPTR)sp[1], TAG_DONE);
     l = rart(RART_RAIL);
     r = rart(RART_RAIL);
-    if (!col || !l || !r || !sp[2] || !sp[3])
-        return 0;
+    /* THE CHILDREN ARE CHECKED BEFORE THE GROUP IS CREATED (2026-10-20):
+     * a NULL Child tag makes Zune's group creation FAIL, and a failing
+     * group disposes the children it already took -- here that would be
+     * the row, and with it every canvas in the slots. */
+    if (!sp[0] || !sp[1] || !sp[2] || !sp[3])
+        goto fail;
+    col = (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_Spacing, 0,
+        Child, (IPTR)sp[0], Child, (IPTR)row, Child, (IPTR)sp[1], TAG_DONE);
+    if (!col || !l || !r)
+        goto fail;
     tags[0].ti_Tag = MUIA_Group_Horiz;   tags[0].ti_Data = TRUE;
     tags[1].ti_Tag = MUIA_Group_Spacing; tags[1].ti_Data = 0;
     tags[2].ti_Tag = MUIA_InnerLeft;     tags[2].ti_Data = 0;
@@ -2493,17 +2666,52 @@ static Object *rack_page_gap(Object *const *mods, uint32_t n, Object **slots, ui
     tags[4].ti_Tag = MUIA_InnerTop;      tags[4].ti_Data = 0;
     tags[5].ti_Tag = MUIA_InnerBottom;   tags[5].ti_Data = 0;
     tags[6].ti_Tag = TAG_DONE;           tags[6].ti_Data = 0;
-    {
-        Object *page = bay_group(tags);
-        if (!page)
-            return 0;
-        DoMethod(page, OM_ADDMEMBER, (IPTR)l);
-        DoMethod(page, OM_ADDMEMBER, (IPTR)sp[2]);
-        DoMethod(page, OM_ADDMEMBER, (IPTR)col);
-        DoMethod(page, OM_ADDMEMBER, (IPTR)sp[3]);
-        DoMethod(page, OM_ADDMEMBER, (IPTR)r);
-        return page;
+    page = bay_group(tags);
+    if (!page)
+        goto fail;
+    DoMethod(page, OM_ADDMEMBER, (IPTR)l);
+    DoMethod(page, OM_ADDMEMBER, (IPTR)sp[2]);
+    DoMethod(page, OM_ADDMEMBER, (IPTR)col);
+    DoMethod(page, OM_ADDMEMBER, (IPTR)sp[3]);
+    DoMethod(page, OM_ADDMEMBER, (IPTR)r);
+    return page;
+fail:
+    /* THE PARTLY BUILT PAGE (2026-10-20). The row owns the slots, and a
+     * slot owns its canvas: disposing the row frees those canvases, so
+     * their entries are released first -- a stale entry is a second
+     * dispose, and the teardown asks every canvas for its parent (a
+     * use-after-free on a freed one).
+     *
+     * The objects that NO group owns are disposed here: the rails and the
+     * spacers are custom-class instances, and one left alive here outlives
+     * the class drop at the end of the teardown. What a group DOES own is
+     * not disposed again -- the col group owns the row, the slots, the gap
+     * and sp[0]/sp[1], and disposing them twice is the double free this
+     * whole change exists to remove. */
+    for (i = 0u; i < made; i++)
+        canvas_entry_release(mods[i]);
+    if (col) {
+        MUI_DisposeObject(col);   /* the col group owns the row */
+        col = 0;
+        row = 0;
+        gap = 0;                  /* the row owned the gap */
+        sp[0] = 0;
+        sp[1] = 0;
+    } else if (row) {
+        MUI_DisposeObject(row);   /* the row owns the slots and the gap */
+        row = 0;
+        gap = 0;
     }
+    if (gap)
+        MUI_DisposeObject(gap);
+    if (l)
+        MUI_DisposeObject(l);
+    if (r)
+        MUI_DisposeObject(r);
+    for (i = 0u; i < 4u; i++)
+        if (sp[i])
+            MUI_DisposeObject(sp[i]);
+    return 0;
 }
 #define rack_page(mods, n, slots) rack_page_gap(mods, n, slots, 99u)
 
@@ -3531,6 +3739,46 @@ static void instance_claim_release(void) {
  */
 static void riapp_teardown(void) {
     int i;
+    /* THE CANVASES THAT ARE IN NO PAGE AT ALL (2026-10-20). Zune keeps the
+     * parent of every child it takes: MUIA_Parent is the group (or its
+     * family) that owns the object, and NULL when it has none. A canvas
+     * with no parent is in no page -- the device the rack hides gets no
+     * row, and the Levi's pattern canvas (C_P4) has none either, the Levi
+     * tab showing the voice only -- and the owner's dispose below cannot
+     * reach such a canvas: the application owns the window, the window owns
+     * the row, the row owns the pages, and the pages own the canvases that
+     * are IN a page. A canvas outside that chain is the app's to dispose,
+     * and it has to be disposed before the classes are dropped.
+     *
+     * The count is taken HERE, before anything is disposed: after the
+     * owner's dispose the in-tree canvases are gone, and asking a freed
+     * object for its parent is a use-after-free. */
+    for (i = 0; i < C_N; i++) {
+        Object *parent = 0;
+        s_canvas_noparent[i] = 0;
+        if (s_canvas[i] && GetAttr(MUIA_Parent, s_canvas[i], (IPTR *)&parent)
+            && !parent)
+            s_canvas_noparent[i] = 1;
+    }
+    if (DOSBase) {
+        int n = 0;
+        char list[192];
+        int len = 0;
+        list[0] = 0;
+        for (i = 0; i < C_N; i++) {
+            int w;
+            if (!s_canvas_noparent[i])
+                continue;
+            n++;
+            w = snprintf(list + len, sizeof list - (size_t)len, "%s%lu",
+                len ? "," : "", (unsigned long)c_sections[i]);
+            if (w < 0 || (size_t)(len + w) >= sizeof list)
+                break;
+            len += w;
+        }
+        rlog("RIAPP teardown: canvases=%d parentless=%d sections=%s\n",
+            (int)C_N, n, list);
+    }
     capture_finish("quit");
     ri_pal_midi_close(); /* bridge task teardown (M2) AND the clock/device sender */
     /* FINAL counters, after the sender has stopped. The periodic line is
@@ -3567,18 +3815,20 @@ static void riapp_teardown(void) {
     }
     if (s_win)
         SetAttrs(s_win, MUIA_Window_Open, FALSE, TAG_DONE);
-    /* THE OBJECTS THAT HAVE NO OWNER YET (2026-10-20). The classes are
-     * deleted just below, and deleting a custom class while an instance of
-     * it still exists is the Zune/MUI rule broken -- so the top-most owner
-     * is disposed FIRST:
+    /* THE OWNERS, TOP-MOST FIRST (2026-10-20). The classes are deleted
+     * just below, and deleting a custom class while an instance of it
+     * still exists is the Zune/MUI rule broken -- so the top-most owner is
+     * disposed FIRST:
      *
      *   the application owns the window, and the window owns the row, and
-     *   the row owns the pages, and the pages own the canvases;
+     *   the row owns the pages, the rail, the tab strip and the transport
+     *   slot, and those own the canvases;
      *
      *   with no application but a window, the window is the top-most owner;
      *   with no window but a row, the row is;
-     *   with no row at all -- the canvas-create and row-create failures --
-     *   the canvases have no parent whatsoever and each is its own owner.
+     *   with no row at all -- the canvas, page and row failures -- the
+     *   groups the panel was built from never got an owner, and they are
+     *   disposed here.
      *
      * ONLY the top-most owner is disposed: a child is never disposed
      * separately from its parent, or it is disposed twice. */
@@ -3586,18 +3836,51 @@ static void riapp_teardown(void) {
         MUI_DisposeObject(s_app);
         s_app = 0;
         s_win = 0;          /* the application owned the window */
+        s_root = 0;         /* the window owned the row */
     } else if (s_win) {
         MUI_DisposeObject(s_win);
         s_win = 0;
+        s_root = 0;         /* the window owned the row */
     } else if (s_root) {
         MUI_DisposeObject(s_root);
         s_root = 0;
     } else {
-        for (i = 0; i < C_N; i++) {
-            if (s_canvas[i]) {
-                MUI_DisposeObject(s_canvas[i]);
-                s_canvas[i] = 0;
+        /* NO ROW: the panel's groups have no owner. The pages group owns
+         * the device pages, so it goes first and they go with it. */
+        if (s_pages) {
+            MUI_DisposeObject(s_pages);
+            s_pages = 0;
+            for (i = 0; i < 5; i++)
+                s_devpage[i] = 0;
+        } else {
+            for (i = 0; i < 5; i++) {
+                if (s_devpage[i]) {
+                    MUI_DisposeObject(s_devpage[i]);
+                    s_devpage[i] = 0;
+                }
             }
+        }
+        if (s_rail) {
+            MUI_DisposeObject(s_rail);
+            s_rail = 0;
+        }
+        if (s_strip) {
+            MUI_DisposeObject(s_strip);
+            s_strip = 0;
+        }
+        if (s_trslot) {
+            MUI_DisposeObject(s_trslot);
+            s_trslot = 0;
+        }
+    }
+    /* THE CANVASES WITH NO PARENT: in no page at all (a device the rack
+     * hides, the Levi's pattern canvas). The owner's dispose cannot reach
+     * them, so they are disposed here -- before the classes, because a
+     * custom class must not be deleted while an instance of it exists. */
+    for (i = 0; i < C_N; i++) {
+        if (s_canvas[i] && s_canvas_noparent[i]) {
+            MUI_DisposeObject(s_canvas[i]);
+            s_canvas[i] = 0;
         }
     }
     rack_classes_drop();
@@ -3975,17 +4258,40 @@ static int riapp_main(int argc, char **argv) {
         uint32_t rowdev[3];
         Object *rowobj[3];
         ri_vis_init(&s_vis);
+        /* DIAGNOSTIC (2026-10-20): RIAPP_HIDE_DEV=<n> hides a device at
+         * startup, so the "a device the rack hides has a canvas in no page"
+         * case can be measured on purpose. The value is the DEVICE (0 is the
+         * first one); a value outside the device range hides nothing, which
+         * is how the switch is turned off again. It is honoured only with
+         * RIAPP_DIAG=1 -- the debug switch -- and it is read with GetVar,
+         * like every other ENVARC read here. */
+        if (rsection_diag_enabled()) {
+            char hv[16];
+            long hk = 0, hn = 0;
+            /* The switch is SET, not the value: device 0 is a device. */
+            if (GetVar((STRPTR)"RIAPP_HIDE_DEV", (STRPTR)hv, (LONG)sizeof hv, 0L) > 0) {
+                while (hv[hk] >= '0' && hv[hk] <= '9' && hk < (long)sizeof hv - 1) {
+                    hn = hn * 10 + (hv[hk] - '0');
+                    hk++;
+                }
+                if (hn >= 0 && (uint32_t)hn < RI_VIS_MAX)
+                    ri_vis_set(&s_vis, (uint32_t)hn, 0);
+            }
+        }
         for (r = 0u; r < 5u; r++) {
             s_devrow[r] = 0;
             s_tabs[r] = 0;
         }
         synth_page = tab_device_page(RI_TAB_SYNTH, &s_vis, rowdev, rowobj, 3u, &nrows);
+        s_devpage[RI_TAB_SYNTH] = synth_page;
         for (r = 0u; r < nrows; r++)
             s_devrow[rowdev[r]] = rowobj[r];
         drums_page = tab_device_page(RI_TAB_DRUMS, &s_vis, rowdev, rowobj, 2u, &nrows);
+        s_devpage[RI_TAB_DRUMS] = drums_page;
         for (r = 0u; r < nrows; r++)
             s_devrow[rowdev[r]] = rowobj[r];
         levi_page = tab_device_page(RI_TAB_LEVI, &s_vis, rowdev, rowobj, 1u, &nrows);
+        s_devpage[RI_TAB_LEVI] = levi_page;
         for (r = 0u; r < nrows; r++)
             s_devrow[rowdev[r]] = rowobj[r];
         {
@@ -3995,18 +4301,23 @@ static int riapp_main(int argc, char **argv) {
                 mx[r] = s_canvas[c_mix_canvas[r]];
             mx[5] = s_canvas[C_MST];
             mix_page = rack_page_gap(mx, 6u, mslots, 4u);
+            s_devpage[RI_TAB_MIX] = mix_page;
             for (r = 0u; r < 5u; r++)
                 s_mixslot[r] = mslots[r];
         }
         fx_page = rack_page(&s_canvas[C_FX0], 4u, 0);
+        s_devpage[RI_TAB_FX] = fx_page;
         rail = tab_rail();
+        s_rail = rail;
         strip = tab_strip();
+        s_strip = strip;
         pages = (synth_page && drums_page && levi_page && mix_page && fx_page) ?
             (Object *)MUI_NewObject(MUIC_Group, MUIA_Group_PageMode, TRUE,
                 Child, (IPTR)synth_page, Child, (IPTR)drums_page,
                 Child, (IPTR)levi_page,
                 Child, (IPTR)mix_page, Child, (IPTR)fx_page, TAG_DONE) : 0;
         trslot = rack_slot(s_canvas[C_TR]);
+        s_trslot = trslot;
         s_pages = pages;
         roottags[0].ti_Tag = MUIA_Group_Spacing; roottags[0].ti_Data = 4;
         roottags[1].ti_Tag = MUIA_InnerLeft;     roottags[1].ti_Data = 6;
@@ -4150,6 +4461,21 @@ static int riapp_main(int argc, char **argv) {
             tabs += s_tabs[i] ? 1 : 0;
         rlog("RIAPP panel: tabbed Synths/Drums/Levi/Mix/FX + transport, rack bay (open=%ld rack=%ld tabs=%ld)\n",
             (long)open, (long)(s_art_mcc && s_bay_mcc), (long)tabs, 0, 0);
+    }
+    /* DIAGNOSTIC (2026-10-20): RIAPP_EXIT_AFTER_PANEL=1 leaves through the
+     * NORMAL exit right here -- the panel is up, the window is open, and the
+     * teardown runs exactly as it does when the user quits. The lane cannot
+     * make the app quit (a Break is a kill, not a quit), and the teardown's
+     * measurement needs a teardown: this is how the parentless-canvas count
+     * is read on a HEALTHY panel. Honoured only with RIAPP_DIAG=1 -- the
+     * debug switch. */
+    if (rsection_diag_enabled()) {
+        char ev[8];
+        if (GetVar((STRPTR)"RIAPP_EXIT_AFTER_PANEL", (STRPTR)ev, (LONG)sizeof ev, 0L) > 0
+            && ev[0] == '1') {
+            rc = 0;
+            goto cleanup;
+        }
     }
 
     /* Songs & playlists from the command line: SONG=<file> PLAYLIST=<file>

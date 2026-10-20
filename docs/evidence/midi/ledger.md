@@ -7198,3 +7198,195 @@ paths dispose the row and the window respectively, and the gate says the
 source says so.
 
 
+
+## The Dell's "Software Failure!", found: a NULL Child tag makes Zune free a canvas behind the app's back (2026-10-20)
+
+The owner reported a `Software Failure!` requester on the Dell and asked for a
+screenshot, an investigation and a fix. This section is the finding, the
+measurement that took it, and the fix — and it ends with the one thing on the
+Dell that is **not** ours to close.
+
+### THE CRASH, IN ONE SENTENCE
+
+A device row was built as a Zune group whose `Child` tag carried a canvas
+lookup; when that lookup came back empty, Zune's group creation **failed and
+disposed the children it had already taken** — so the *pattern* canvas was
+freed behind the app's back while `s_canvas[]` still pointed at it, and the
+teardown then freed it a **second** time.
+
+### WHAT ZUNE ACTUALLY DOES (source, not a theory)
+
+The app builds its rows with `MUI_NewObject(MUIC_Group, ..., Child, pat,
+Child, voice, TAG_DONE)`, and `Child` is `MUIA_Group_Child`
+(`libraries/mui.h`: `#define Child MUIA_Group_Child`). So the path is
+**`group.c`**, and it is the same shape as `family.c`'s:
+
+`workbench/libs/muimaster/classes/group.c`, `Group__OM_NEW`:
+
+```c
+        case MUIA_Group_Child:
+            if (tag->ti_Data)
+            {
+                DoMethod(obj, OM_ADDMEMBER, tag->ti_Data);
+                ...
+            }
+            else
+                bad_children = TRUE;
+            break;
+    ...
+    if (bad_children)
+    {
+        CoerceMethod(cl, obj, OM_DISPOSE);
+        return 0;
+    }
+```
+
+and `Group__OM_DISPOSE` disposes `data->family`, whose own dispose
+(`family.c`, `Family__OM_DISPOSE`) walks the child list and disposes **every**
+child it took. (`family.c`'s `Family__OM_NEW` has the identical shape for
+`MUIA_Family_Child`, which is the path a `MUIC_Family` takes.)
+
+So a group built as `{Child, pat, Child, voice}` with `voice` **NULL** takes
+`pat` as a member, then fails, then disposes itself — and the dispose takes
+`pat` with it. The app never asked for that, and `s_canvas[]` still points
+at it.
+
+AROS's allocator is the one that notices. `rom/exec/memory.c`:
+
+```
+795:                    Alert(AN_FreeTwice);
+823:                Alert(AN_FreeTwice);
+```
+
+`AN_FreeTwice` is `0x01000009` (`compiler/include/exec/alerts.h`), and
+`rom/alerthook/alerthook.c` turns a non-`AT_DeadEnd` alert into the
+**`Recoverable Alert!`** requester — the window the owner's Dell showed.
+
+### THE FIX, IN THREE PARTS (all in `app/riapp.c`)
+
+1. **The lookups come first and are checked BEFORE the group is created.** The
+   canvas is looked up into a local, the local is checked for NULL, and only
+   then does the group get built — so Zune never sees a NULL `Child`.
+2. **The failure path disposes the page it had built** and **releases the
+   `s_canvas[]` entries** of the canvases that went with it. A stale entry is
+   a second dispose, and the teardown asks every canvas for its parent
+   (`MUIA_Parent`) — on a freed canvas that is a use-after-free.
+3. **The teardown counts the parentless canvases BEFORE it disposes anything**
+   and disposes them itself, before the classes are dropped. A canvas with no
+   parent is in no page at all (the device the rack hides, the Levi's pattern
+   canvas), so the owner's dispose cannot reach it, and a custom class must
+   not be deleted while an instance of it is alive.
+
+### THE A/B ON THE DELL, MEASURED (2026-10-20, ABIv11)
+
+The failure is forced on purpose with **`RIAPP_FAIL_PAGE=1`** (the first
+device tab page build fails) plus `RIAPP_DIAG=1`, and the log is on `RAM:`
+(`RIAPP_LOG=RAM:`) so a crashed process cannot lock the evidence away. Both
+binaries fail the **same section lookup**; they differ in exactly one thing —
+the shape of the row group.
+
+| | fixed tree | mutant (the pre-fix shape) |
+|---|---|---|
+| the run | the panel build fails, the app tears down cleanly | the panel build fails the same way |
+| the log | `RIAPP teardown: canvases=21 parentless=5 sections=14,15,19,0,1` then `RIAPP closed: … xruns=0 …` | the same lines, and then the alert |
+| the screen | **no requester** — 2 windows, the panel never opens | **`Recoverable Alert!` at 401,289 564x191** — 3 windows |
+| what AROS says | — | `AN_FreeTwice` — the allocator caught the second free of a block it had already freed |
+
+The mutant is the fixed tree with the pre-fix page build and the pre-fix
+teardown branch put back, so **the same forced failure kills the old shape
+and not the new one**. That is the whole claim: the fix removes the double
+free, and the requester is the allocator saying so.
+
+**WHICH BINARIES, STATED EXACTLY.** The A/B was measured with the fixed tree
+as it stood when the run happened: the page build, the failure path and the
+teardown are the ones below, and the forced failure lands on the **synth tab's
+first row** — which is why the fixed run's parentless set is
+`14,15,19,0,1` (the two synth pattern canvases, the Levi's pattern canvas and
+the two synth voice canvases: the synth page never got built, so its four
+canvases have no owner, and the Levi's pattern canvas never has one either).
+**After** the A/B, two leak fixes were made to the same file — `rack_slot()`
+and `rack_page_gap()` now dispose the objects their failure paths leave
+behind (the seams, the spacers, the rails), because those are custom-class
+instances and one left alive outlives the class drop. **Those fixes are on
+the error path of the mix and FX strips, which the forced synth-page failure
+never reaches**, so they cannot change the A/B: the synth page fails first,
+`pages` is never built, and the mix/FX code is not called at all. The
+mutation harness and the full audit were re-run after the fixes, and both
+pass — but the lane measurement stands as taken, and the owner may want the
+A/B repeated on the final binaries when the Dell is back.
+
+**The failed build was found by the A/B, and the diagnostic that found it was
+almost wrong.** The first version of the switch armed the empty lookup with a
+**section value**, using `0` to mean "not armed" — and section 0 is
+`RI_SEC_SYNTH1`, the synth tab's first row. So the switch was **silently
+disabled for exactly the row the lane wanted to fail**: the panel built
+normally, the lane measured a healthy run, and the A/B read as a pass. The
+arming is now a separate **flag** (`s_fail_armed`) from the section it names,
+and `t237` gates that: a diagnostic that cannot fire is not a check, and this
+one measured nothing until it was fixed.
+
+### THE GATES (host)
+
+`tests/unit/t237_canvas_ownership.c` (new) and `tests/unit/t236_midi_teardown_order.c`
+(extended). Both are structural and **blank the comments first**, so a comment
+cannot satisfy them — the 2026-10-12 lesson, again. `t237` pins four rules:
+no `Child` tag takes a function call; the device page checks the lookup before
+the group and its failure path disposes the page; the rack page releases its
+entries; and the forced-failure diagnostic is armed by a flag.
+
+**Ten mutants, ten killed** (`RI_REPO_ROOT` pointed at a mutated tree, so the
+gate reads the broken source and not the repo):
+
+| mutant | the gate says |
+|---|---|
+| a `Child` tag takes a function call | **FAIL** — *"a Child tag takes a function call … Zune's group creation fails on a NULL Child and a failing group DISPOSES the children it already took"* |
+| the missing-canvas check is gone | **FAIL** — *"the missing-canvas check is not between the lookup and the row group"* |
+| the failure path does not dispose the page | **FAIL** — *"tab_device_page() never disposes the page it built"* |
+| the failure path does not release the entries | **FAIL** — *"never releases the s_canvas[] entries"* |
+| the rack page does not release the entries | **FAIL** — *"rack_page_gap() never releases the s_canvas[] entries"* |
+| the teardown is missing | **FAIL** — *"riapp_teardown() is missing"* |
+| the classes are dropped before the disposes | **FAIL** — *"a custom class is deleted while an instance of it still exists"* |
+| the parentless canvases are never disposed | **FAIL** — *"riapp_teardown() never disposes a canvas by itself"* |
+| the parentless count is taken after the dispose | **FAIL** — *"the MUIA_Parent ask is at …, AFTER the first dispose …: asking a freed object for its parent is a use-after-free"* |
+| the arming is a section value with `0` = "not armed" | **FAIL** — *"canvas_for_section() does not test an ARMED flag … section 0 is RI_SEC_SYNTH1 -- a real section"* |
+
+### THE MEASURED PARENTLESS SETS (the owner's first follow-up)
+
+The teardown now counts, before any dispose, the canvases with no parent:
+
+| run | measured |
+|---|---|
+| healthy | `canvases=21 parentless=1 sections=19` — the Levi's pattern canvas (the Levi tab shows the voice only) |
+| the 303A hidden (`RIAPP_HIDE_DEV=0`) | `parentless=3 sections=14,19,0` — the hidden device's pattern and voice canvases, plus the Levi's |
+| the forced page failure | `parentless=5 sections=14,15,19,0,1` |
+
+### NOT PROVEN, AND NOT OURS
+
+**The Dell is wedged and needs the owner's reboot.** The mutant's
+`Recoverable Alert!` requester is **modal**: it holds the screen, so the
+guest agent's command lane stops answering, and `--exec` / `--ui-windows` /
+`--get` all time out. The six jobs this session had queued at that moment
+(the alert's OK button, `Status`, `--ui-windows`) were **moved out of the
+spool** to `/tmp/opencode/spool_held_jobs/`, so a recovering agent will not
+replay them. **The reboot is the owner's to do** — the agent cannot reboot
+its own guest (`C:Reboot` is itself an exec and is blocked by the very
+requester that is up).
+
+**The Dell still carries a `SYS:Classes/ReIncarnation/RIAPP` CLI task that
+this work does not explain.** It was there before the first run of this
+session, it does not answer a `Break` by name, and it is not the process
+this session started or killed. It is an **unexplained stray process from
+before `908b4f6`, of unknown cause** — and this work does **not** claim it is
+the leak these fixes remove. It may still hold resources (an AHI audio
+device, a CAMD link) that later lane results depend on, so it is recorded
+rather than killed.
+
+### WHAT IS STILL OPEN
+
+- The mutant's alert is the allocator catching the double free; the crash the
+  owner saw was the same shape. **The original requester's text was not read**
+  — it was up on the Dell's screen, unreadable from the agent — so the two
+  are the same crash by construction and by symptom, not by reading the
+  original alert.
+- The `Recoverable Alert!` window wedges the guest agent's command lane, so
+  the lane needs the reboot before the next run.

@@ -155,6 +155,52 @@ int main(void) {
         }
     }
 
+    /* THE CANVASES THAT ARE IN NO PAGE AT ALL (2026-10-20, the owner's
+     * third follow-up). Zune keeps the parent of every child it takes:
+     * MUIA_Parent is the group (or its family) that owns the object, and
+     * NULL when it has none. A canvas with no parent is in no page: the
+     * device the rack hides gets no row, and the Levi's pattern canvas
+     * (C_P4) has no row either -- the Levi tab shows the voice only. The
+     * owner's dispose (the application, the window, the row) cannot reach
+     * such a canvas, so the teardown must count them and dispose them,
+     * BEFORE the classes are dropped.
+     *
+     * And the count must be taken before ANY dispose: after the owner's
+     * dispose the in-tree canvases are gone, and asking a freed object
+     * for its parent is a use-after-free. */
+    {
+        long th_start = 0, th_end = 0;
+        long at_parent = -1, at_first_dispose = -1, at_canvas_dispose = -1;
+        if (ri_src_function_range(src, len, "riapp_teardown", &th_start,
+                                  &th_end) == 0) {
+            at_parent = ri_src_find(src, len, "MUIA_Parent", th_start);
+            RI_ASSERT(at_parent > th_start && at_parent < th_end,
+                "riapp_teardown() never asks MUIA_Parent: a canvas that is in "
+                "no page (a device the rack hides, the Levi's pattern canvas) "
+                "survives the owner's dispose, and its class is deleted "
+                "underneath it");
+            at_canvas_dispose = ri_src_find(src, len,
+                                            "MUI_DisposeObject(s_canvas[i])",
+                                            th_start);
+            RI_ASSERT(at_canvas_dispose > th_start && at_canvas_dispose < th_end,
+                "riapp_teardown() never disposes a canvas by itself: the "
+                "parentless ones are the app's to dispose");
+            at_first_dispose = ri_src_find(src, len, "MUI_DisposeObject(",
+                                           th_start);
+            if (at_parent > 0 && at_canvas_dispose > 0)
+                RI_ASSERT(at_parent < at_canvas_dispose,
+                    "the MUIA_Parent ask is at %ld, AFTER the canvas dispose "
+                    "at %ld: the parentless canvases are disposed before they "
+                    "are counted", at_parent, at_canvas_dispose);
+            if (at_parent > 0 && at_first_dispose > 0)
+                RI_ASSERT(at_parent < at_first_dispose,
+                    "the MUIA_Parent ask is at %ld, AFTER the first dispose at "
+                    "%ld: the in-tree canvases are freed by then, and asking a "
+                    "freed object for its parent is a use-after-free",
+                    at_parent, at_first_dispose);
+        }
+    }
+
     free(src);
     RI_RESULT("midi-teardown-order");
 }
