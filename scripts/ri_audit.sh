@@ -1215,6 +1215,15 @@ bash "$ROOT/scripts/ri_build_host.sh" test t233_lane_evlog >/dev/null || { echo 
 # BEFORE the NOTEIN funnel, so notech=1 (which refuses the 303 on the G7's
 # channel) leaves the Levi note untouched. t234 pins both settings shapes.
 bash "$ROOT/scripts/ri_build_host.sh" test t234_levi_independent >/dev/null || { echo "FAIL: t234_levi_independent (the Leviasynth map is independent of the R5 note-in rack)"; exit 1; }
+# t235 pins the INIT ORDER of the MIDI outputs (R12 O1 review, 2026-10-20).
+# The outbound ring is single-producer (the render) and the live driver's
+# fields are read without ordering, so the main task must not write them or
+# produce into the ring while the render runs. R12 O1 (272cf20) moved the
+# wiring into midi_setup(), which runs AFTER au_live_run(): a second producer
+# on an SPSC ring and an unsynchronised read of the render's configuration.
+# The check is structural -- the wiring must live in a function whose CALL
+# SITE precedes the render's -- so renaming the function does not hide it.
+bash "$ROOT/scripts/ri_build_host.sh" test t235_midi_wiring_order >/dev/null || { echo "FAIL: t235_midi_wiring_order (the MIDI outputs are wired before the render starts)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

@@ -6937,3 +6937,129 @@ has no caller), a real DAW's clock following, clock **in** at 140 BPM (P1
 stays parked: CAMD delivery, not the network), the split of the >30 ms tail,
 and 303 note input under O1/O2's `NOTECH=1` (refused; exercised only by O2e's
 short run on a free channel).
+
+### R12 O1's fix, reviewed: it introduced a second defect — the wiring ran AFTER the render started (2026-10-20)
+
+**O1 (272cf20) fixed a real defect and introduced a second one.** The first
+was the init order: `riapp_main()` started the render task before
+`midi_setup()` read ENVARC, so the device-out wiring read `s_mset.dev_out` as
+its zero-initialised default, left `drv.dev_out` NULL and skipped
+`ri_livedrv_devout_attach()` entirely. The clock still went out (the ring is
+the ring regardless of the switch), so the gap looked like "notes are quiet"
+rather than "the producer was never attached".
+
+**The fix moved that wiring INTO `midi_setup()`, and `midi_setup()` runs at
+~3760 — after `au_live_run()` started the render task at ~3551.** So the main
+task, with the render already running:
+
+- wrote `s_lv.drv.clk_out` / `dev_out` / `note_ch` / `prog_sent`, which the
+  render reads with no ordering and no atomics;
+- called `ri_livedrv_devout_attach()`, which `midi_out_put()`s the programme
+  change into the ring — **a second producer on a ring whose producer is the
+  render**, and the render may be putting clock bytes at that instant;
+- called `midi_out_set_bpm()` on the live ring.
+
+**WHY THIS IS NOT A STYLE POINT: THE SPSC RULE.** `midi_io/midi_out.c:3` says
+it in the file's own first paragraph: *"The ring is single-producer (the
+render) and single-consumer (the sender task), so head/tail need no atomics
+here."* Those atomics are not missing; they are **unnecessary under the
+rule**, and the rule is what makes the ring's head/tail safe to read without
+synchronisation. A second producer breaks the premise, not just the
+arithmetic. The same file says the single-producer rule in the only way that
+matters for a reviewer: the ring has *one* producer, and it is the render.
+
+**AND THE CROSS-TASK HISTORY IS NOT HYPOTHETICAL.** On 2026-10-12 this lane
+already crashed on exactly this shape — the main task and a MIDI task sharing
+one link, with nothing between them:
+
+> `RIAPP midi out   Error: illegal address access` / `exec_777_sendio`
+>
+> — *"THE LINK HAD NO MUTEX AND HAD TWO CALLERS. `ri_pal_midi_send` is reached
+> from the sender task (clock out and dev out) **and** from the app's main
+> task."*
+
+That entry's own lesson is why this defect survived a review: *"This cannot be
+host-tested — it needs camd.library, two tasks and a real link — which is
+exactly why it survived."* So it is pinned as **source structure**, and the
+first version of that gate **passed with the fix deleted** — the fix's
+comment contained the text the search looked for — which is why that gate now
+blanks the comments before searching, and why it carries six killed mutants.
+
+**THE FIX (2026-10-20).** `midi_setup()` is split:
+
+- **`midi_prepare()`** runs BEFORE `au_live_run()`: the settings read, the
+  inits, the ring, the enable, the driver wiring, `set_bpm`, the attach, the
+  receiver open and the sender-task start. Everything that touches the render's
+  configuration or produces into its ring now happens while the render does
+  not exist yet.
+- **`midi_setup()`** keeps only the MIDI panel's shadow of the UI values,
+  which needs the PANEL, and the panel is built after the render starts.
+- The receiver open and the sender start moved WITH the rest, and not
+  because they touch the render: `ri_pal_midi_open_in()` begins with
+  `ri_pal_midi_close()`, which joins and stops the clock-out sender (the
+  2026-10-19 defect), so the two cannot be split across the phases — and
+  leaving the start after the render would leave the fail-closed path (no
+  sender -> both outputs off) changing a RUNNING render's state, which is
+  the direct write the spec forbids: the render consumes immutable
+  snapshots, and the control plane reaches it only through the control plane
+  or a snapshot (spec §4).
+- The BPM now comes from `s_core.session`, not `s_lv.drv.session`: the latter
+  is set by `au_live_run()`, so before the render it is still NULL. They are
+  the same struct (`au_live_run` is handed `&s_core.session`), so the value
+  is the one the old code read a few lines later.
+- The order is **asserted, not assumed**: `s_midi_prepared` is set by
+  `midi_prepare()` and tested immediately before the render starts; a
+  violation refuses to start (rc 6) rather than run a half-wired render.
+
+**THE GATE (host).** `tests/unit/t235_midi_wiring_order.c`: the wiring must
+live in a function whose **call site** precedes the render's, and the
+`s_midi_prepared` assert must precede it too. The check is structural and
+**name-independent** (renaming the function does not hide the defect), and
+the comments are **blanked before the search**, so a comment cannot satisfy
+it — the 2026-10-12 lesson, applied to this gate. Three measurements:
+
+| source | the gate says |
+|---|---|
+| the fixed tree | **PASS** |
+| the pre-fix source (`272cf20`'s order) | **FAIL, 8 findings** — e.g. *"`s_lv.drv.clk_out =` lives in midi_setup(), whose call site is at 170525 — AFTER au_live_run() at 160277"* |
+| the pre-fix source plus a **comment-only** mutant carrying every pattern the gate looks for | **FAIL, 8 findings** — the comments do not satisfy it |
+
+**THE DELL RUN (2026-10-20, ABIv11).** The rebuilt agent (the O1b tree plus
+this fix), pushed to the Dell and run with `RIAPP_MIDI_IN=applemidi.in.0`,
+`RIAPP_MIDI_OUT=applemidi.out.0`, `CLKOUT=1`, `DEVOUT=1`, `NOTECH=1`,
+`MMCOUT=1`, song `RAM:o1-song.rbng`; the host capture on the ALSA port
+rtpmidid had open for that session (**128:4**; the port number MOVES with
+the peer connections — the earlier capture on 128:3 saw nothing, and that was
+the capture's port, not the data's).
+
+The wire, in order, from the capture:
+
+```
+128:4   System exclusive           F0 7F 7F 06 02 F7     <- MMC Play
+128:4   Program change          0, program 38              <- THE ONE PC 38
+128:4   Start
+128:4   Note on                 0, note 36, velocity 112   <- the first melodic note
+128:4   Note on                 9, note 36, velocity 64    <- the 808
+128:4   Clock ...                                            <- 2923 of them
+128:4   Note off                0, note 36, velocity 64
+```
+
+| line | measured |
+|---|---|
+| **the one PC 38 before the first melodic note** | **YES** — the capture's second line is the programme change and the fourth is the first melodic note-on |
+| notes | 466 note-ons and 457 note-offs on channel 0, 564 note-ons on channel 9 |
+| clock | 2923 clocks on the wire; the app's own counter says `clocks=2924` |
+| `RIAPP clk:` err | **0** on every line, the last one `sent=4405 err=0 clocks=2924 nen=1022 (final)`, `dropped=0` |
+| the app's settings (from its own log) | `in=applemidi.in.0 out=applemidi.out.0 ch=1 clkout=1 devout=1 notech=1` |
+
+The 303s are refused for INPUT (the G7 remote owns channel 1) — the documented
+input side, unchanged. The wire numbers are the OUTBOUND ones this fix is
+about.
+
+**Not proven:** the same run on a DAW (the far peer is still `rtpmidid` + an
+ALSA subscriber); a torn ring or a torn driver field was NOT observed, and
+the defect is a race — it is fixed by construction (nothing writes those
+fields while the render runs) and not by a reproduction; and the 2026-10-12
+crash itself is not re-triggered here, because that one needed `camd.library`,
+two tasks and a real link.
+

@@ -967,6 +967,13 @@ static struct RIMidiOut s_mout;    /* M5: clock-out producer (render writes it) 
  * needed no transport of its own -- but it has its OWN E0 switch, because
  * clock and notes are different consequences on a slave. */
 static struct RIDevOut s_devout;
+/* THE ORDER IS AN ASSERT, NOT A COMMENT (2026-10-20). Set by
+ * midi_prepare(); checked immediately before the render task starts. The
+ * render consumes the driver's MIDI fields and produces into the ring, so
+ * the main task must not be writing either while it runs (SPSC: one
+ * producer). A violation here is a code error, and starting the render
+ * anyway is how O1's fix broke the ring. */
+static uint8_t s_midi_prepared;
 /* M5h: MMC out (R3's "and add sending"). Separate E0 from clock out on
  * purpose -- driving another machine's transport is a bigger consequence
  * than sending it a clock, so the safe choice (clock only) has to be
@@ -3134,11 +3141,48 @@ static int midi_getnum(const char *name, long *v) {
 /* MIDI input setup (M2): ENVARC: settings, midimap + sync state, value
  * shadow, bridge receiver. Logs the resolved setup; a missing cluster
  * only logs (the bridge idles until gear appears). */
-static void midi_setup(void) {
+/* ── MIDI PREPARE: everything the render will read or produce into ─────────
+ *
+ * (2026-10-20) This function exists because of the SPSC rule, and it runs
+ * BEFORE au_live_run() starts the render task.
+ *
+ * The outbound ring is SINGLE-PRODUCER (the render) and single-consumer
+ * (the sender task) -- midi_out.c:3 says so, and the head/tail need no
+ * atomics BECAUSE of it. The live driver's fields (clk_out, dev_out,
+ * note_ch, prog_sent) are read by the render with no ordering and no
+ * atomics either. So the main task must not touch them, or produce into
+ * the ring, while the render is running: that is a second producer on an
+ * SPSC ring and an unsynchronised read of the render's configuration.
+ *
+ * R12 O1 (272cf20) moved the device-out wiring INTO midi_setup(), which
+ * runs at ~3760 — AFTER au_live_run() started the render at ~3551. So the
+ * main task, with the render already running, wrote s_lv.drv.clk_out /
+ * dev_out / note_ch / prog_sent, called ri_livedrv_devout_attach() (which
+ * midi_out_put()s the programme change into the ring — a second producer on
+ * a ring the render may be filling at that instant), and called
+ * midi_out_set_bpm() on the live ring. The OLD code had stale settings but
+ * ran single-threaded; the fix has to keep BOTH: correct settings AND
+ * everything wired before the render starts.
+ *
+ * The receiver open and the sender-task start came with it, and not
+ * because they touch the render: ri_pal_midi_open_in() begins with
+ * ri_pal_midi_close(), which joins and stops the clock-out sender (the
+ * 2026-10-19 defect), so the open and the start cannot be split across the
+ * two phases. Keeping the start after the render would also leave the
+ * fail-closed path (no sender -> both outputs off) changing a RUNNING
+ * render's state, which is the direct write the spec forbids: the render
+ * consumes immutable snapshots, and the control plane reaches it only
+ * through the control plane or a snapshot (spec §4).
+ *
+ * The BPM comes from s_core.session, not from s_lv.drv.session: au_live_run()
+ * sets the latter, so before the render it is still NULL. They are the same
+ * struct (au_live_run is handed &s_core.session), so the value is the same
+ * one the old code read a few lines later.
+ */
+static void midi_prepare(void) {
     char cb[64];
     LONG r;
     long v;
-    int i;
     midi_settings_defaults(&s_mset);
     if (DOSBase) {
         r = GetVar((STRPTR)"RIAPP_MIDI_IN", (STRPTR)cb, (LONG)sizeof cb - 1u, 0L);
@@ -3248,7 +3292,7 @@ static void midi_setup(void) {
      * nothing. `lat_ms` is the output latency the clock LEADS by, so a
      * master receives the tick no later than the sound it describes. */
     midi_out_init(&s_mout, s_lv.mix_freq ? (uint32_t)s_lv.mix_freq : 48000u,
-        (uint32_t)((s_lv.drv.session ? (double)s_lv.drv.session->bpm : 120.0) * 1000.0),
+        (uint32_t)((s_core.session.bpm) * 1000.0),
         (uint32_t)((uint64_t)s_mset.lat_ms *
             (s_lv.mix_freq ? s_lv.mix_freq : 48000u) / 1000u));
     /* R6 note out (E0, off by default, its OWN switch). The ring and the
@@ -3271,11 +3315,8 @@ static void midi_setup(void) {
     midi_trans_init(&s_mtrans);
     midi_trans_set_source(&s_mtrans, s_mset.sync);
     midi_trans_set_lat(&s_mtrans, s_mset.lat_ms);
-    for (i = 0; i < 15; i++) {
-        s_midi_uis[i] = s_ui[s_val_canvas[i]];
-        s_midi_sec[i] = (uint8_t)c_sections[s_val_canvas[i]];
-    }
-    ri_panel_midi_shadow_init(s_midi_uis, s_midi_sec, 15u, s_midi_sh);
+    /* (the MIDI panel's shadow of the UI values needs the PANEL, which is
+     * built later: it stays in midi_setup().) */
     if (ri_pal_midi_open_in(s_mset.cluster, 0, 0) != 0)
         rlog("RIAPP midi: no input on %s\n", s_mset.cluster);
     /* START THE SENDER AFTER THE INPUT IS OPEN (2026-10-19).
@@ -3306,7 +3347,7 @@ static void midi_setup(void) {
         }
     }
     /* R12 O1 DEFECT FOUND ON THE LANE, FIXED HERE: THE DRIVER IS WIRED
-     * WHERE THE SETTINGS ARE READ.
+     * WHERE THE SETTINGS ARE READ -- AND NOW ALSO BEFORE THE RENDER.
      *
      * riapp_main() opened the audio device and started the render task
      * BEFORE calling midi_setup(), so the old wiring block next to
@@ -3319,10 +3360,17 @@ static void midi_setup(void) {
      * said devout=1, while the host saw clock, MMC and not one Note or
      * Program change.
      *
-     * Wiring it here also fixes the two values that were read too early:
-     * note_ch (which channel notes go out on) and the clock's initial BPM.
-     * The ring and the sender above are already up, so the one-shot
-     * program change lands rather than being refused by a disabled ring. */
+     * O1 moved the wiring into midi_setup(), which fixed the settings and
+     * introduced a second defect: midi_setup() runs AFTER the render task
+     * starts, so the main task was writing the render's configuration and
+     * producing into the render's ring (see the note above midi_prepare()).
+     * The wiring therefore lives in midi_prepare(), before au_live_run():
+     * correct settings AND everything wired before the render starts.
+     *
+     * It also fixes the two values that were read too early: note_ch (which
+     * channel notes go out on) and the clock's initial BPM. The ring and
+     * the sender above are already up, so the one-shot program change
+     * lands rather than being refused by a disabled ring. */
     if (s_live) {
         s_lv.drv.clk_out = &s_mout;   /* the RING is shared; the SWITCHES
                                        * are not (RI_MIDI_SET_DEV_OUT) */
@@ -3334,16 +3382,31 @@ static void midi_setup(void) {
          * channel at all, and the drums need none. */
         s_lv.drv.note_ch = midi_settings_note_ch(&s_mset);
         s_lv.drv.prog_sent = 0u;
-        if (s_lv.drv.session && s_mset.clk_out)
+        if (s_mset.clk_out)
             midi_out_set_bpm(&s_mout,
-                (uint32_t)((double)s_lv.drv.session->bpm * 1000.0),
-                s_lv.drv.session->sample_cursor);
+                (uint32_t)((double)s_core.session.bpm * 1000.0),
+                s_core.session.sample_cursor);
         /* Announce the instrument once, now that the producer and the ring
          * are both attached. No channel means no announcement -- and the
          * drums still play. */
         if (s_mset.dev_out)
             ri_livedrv_devout_attach(&s_lv.drv);
     }
+    /* The invariant this function exists to hold, stated where it can be
+     * checked: the render is not allowed to start until the MIDI outputs
+     * are wired. */
+    s_midi_prepared = 1u;
+}
+
+/* The MIDI panel's shadow of the UI values. It needs the PANEL, which is
+ * built after the render starts, so it cannot live in midi_prepare(). */
+static void midi_setup(void) {
+    int i;
+    for (i = 0; i < 15; i++) {
+        s_midi_uis[i] = s_ui[s_val_canvas[i]];
+        s_midi_sec[i] = (uint8_t)c_sections[s_val_canvas[i]];
+    }
+    ri_panel_midi_shadow_init(s_midi_uis, s_midi_sec, 15u, s_midi_sh);
 }
 
 /* Single instance (2026-10-18). There was never a guard here: a second
@@ -3544,10 +3607,40 @@ static int riapp_main(int argc, char **argv) {
         if (argv[i] && !strncmp(argv[i], "CAPTURE=", 8))
             capture_arm(argv[i] + 8);
     /* M5/R12: the clock-out and device-out producers are wired to the
-     * driver inside midi_setup(), AFTER the ENVARC settings are read and
-     * the ring and sender are up. Wiring them here (before midi_setup)
-     * read `s_mset.dev_out` as its zero-initialised default and left the
-     * note producer unattached -- see the block in midi_setup(). */
+     * driver inside midi_prepare(), which runs HERE — after the ENVARC
+     * settings are read, and BEFORE the render task starts.
+     *
+     * Two defects have been fixed in this one place. The original wiring
+     * block sat next to au_live_open, so it read `s_mset.dev_out` before
+     * ENVARC had been read: it was always 0, which left `drv.dev_out` NULL
+     * and skipped ri_livedrv_devout_attach() entirely. Clock out still
+     * worked because `clk_out` is the ring regardless of the switch, so
+     * the gap looked like "notes are quiet", not "the producer was never
+     * attached". Measured 2026-10-19: RIAPP_MIDI_DEVOUT=1 and the log
+     * said devout=1, while the host saw clock, MMC and not one Note or
+     * Program change.
+     *
+     * R12 O1 (272cf20) then moved the wiring into midi_setup(), which
+     * runs AFTER the render task starts — so the main task wrote the
+     * render's configuration and produced into the render's ring while the
+     * render was running. The ring is single-producer (the render) and the
+     * driver's fields are read without ordering, so that is a second
+     * producer and an unsynchronised read. See the note above
+     * midi_prepare(). */
+    midi_prepare();
+    /* THE ORDER IS CHECKED, NOT ASSUMED. The render must not start with
+     * the MIDI outputs half-wired: the ring has one producer and the
+     * driver's fields have no ordering. Refuse to start rather than run
+     * the render into a ring with two producers. */
+    if (!s_midi_prepared) {
+        if (DOSBase)
+            rlog("RIAPP midi: the render may not start before the MIDI "
+                 "outputs are wired\n", 0, 0, 0, 0);
+        if (s_live)
+            au_live_close(&s_lv);
+        s_live = 0;
+        return 6;
+    }
     if (s_live && au_live_run(&s_lv, &s_core.session) != 0) {
         au_live_close(&s_lv);
         s_live = 0;
@@ -3757,7 +3850,7 @@ static int riapp_main(int argc, char **argv) {
          * plane never overflows. Same mapping live knob turns use. */
         ri_panel_levi_adopt(&s_ui[C_LEVI]->u.slevi, &s_core.ctl, 0, burst_drain);
     }
-    midi_setup(); /* MIDI input (M2): ENVARC: settings, bridge receiver */
+    midi_setup(); /* the MIDI panel's shadow of the UI values (needs the panel) */
     s_tr_state = s_ui[C_TR]->u.tr.tr.state;
     for (i = 0; i < C_N; i++) {
         IPTR ch = 0;
