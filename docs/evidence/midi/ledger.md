@@ -6914,6 +6914,11 @@ in `r12-o2-both-directions-and-the-duplicate-hop.md`. The lane fix (journal
 only on a gap, and/or the sender's Y semantics) is the owner's decision;
 nothing was changed for it, and no upstream report was filed.
 
+**`n36a` removed (owner, 2026-10-20; commit `b296b99`).** The note-36 accent
+counter existed only to split the duplicate hop; that finding is settled
+above, the evidence keeps the numbers it measured, and the general `clocks=` /
+`nen=` counters remain.
+
 **O2's "unclaimed channel 2" was not the Leviasynth going silent
 (2026-10-20).** The gate run's evlog has `LEVI note 36 on/off vel 100`, as
 N1j did; `unclaimed` is the R5 note-in rack's counter, and `midi_drain()`
