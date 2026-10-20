@@ -1187,6 +1187,11 @@ bash "$ROOT/scripts/ri_build_host.sh" test t232_midi_push >/dev/null || { echo "
 # the known findings -- plus a synthetic CLEAN session that must produce none,
 # because a finding tool that reports everything is worse than no tool.
 bash "$ROOT/scripts/ri_build_host.sh" test t233_lane_evlog >/dev/null || { echo "FAIL: t233_lane_evlog (lane-log analyser names known defects, stays quiet on a clean session)"; exit 1; }
+# O2 read "the channel-2 pair is unclaimed" as the Leviasynth going silent.
+# The rack's word is not the Levi map's: midi_drain() runs midi_levi_message()
+# BEFORE the NOTEIN funnel, so notech=1 (which refuses the 303 on the G7's
+# channel) leaves the Levi note untouched. t234 pins both settings shapes.
+bash "$ROOT/scripts/ri_build_host.sh" test t234_levi_independent >/dev/null || { echo "FAIL: t234_levi_independent (the Leviasynth map is independent of the R5 note-in rack)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

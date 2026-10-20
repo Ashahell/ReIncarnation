@@ -30,8 +30,11 @@ exposes drain-time stamps rather than arrival-time ones. Measuring per-message
 wire arrival needs timestamps from camd itself. The physical USB-MIDI proof is
 the owner's.
 
-**Remaining:** R5 (303/808/909 note input), R6, R7 (SMF), P3 and P4 —
-everything still off by default, pending owner decision 1.
+**Remaining:** **R6's CC half** (note out is implemented; CC out is designed
+and decided but not built — `docs/superpowers/specs/2026-10-20-cc-out-design.md`),
+R7 (SMF), P3 and P4. **R4's in/out port selection and R5's note input are
+implemented** and measured on the Dell (R12 O0–O2, 2026-10-20). Everything
+stays off by default, pending owner decision 1.
 Full record: `llm-wiki/raw/articles/2026-10-09-levi-wiring-and-midi-w0-w4-m0-m4.md`;
 E0 defaults in `docs/evidence/midi/ledger.md`.
 
@@ -62,7 +65,7 @@ E0 defaults in `docs/evidence/midi/ledger.md`.
 - Followed takes are **live-only** — no tempo/transport history is recorded (E0, pending owner decision D2).
 - The Sync LED still works as before, driven off the same stream.
 - `midi_io/midi.h`'s `midi_clock_*` display model and `midi_mmc_cmd` are still **unwired and untouched**. Two clock models still coexist; only `midi_follow_*` can drive tempo, and it is the one wired.
-- **Second device (M4).** G7 still owns channel 1 alone; the Leviasynth owns channel 2 with its own CC map (manual pp. 168–169). A CC on one channel can never move the other device's controls, pinned by t183. **No note input for the 303s, 808 or 909 yet** — that is R5.
+- **Second device (M4).** G7 still owns channel 1 alone; the Leviasynth owns channel 2 with its own CC map (manual pp. 168–169). A CC on one channel can never move the other device's controls, pinned by t183. Note input for the 303s, 808 and 909 is R5, implemented and measured (2026-10-20); the 808 is implicit on GM channel 10 and the 303s follow `note_ch`. t234 pins that the Leviasynth map stays independent of the R5 rack.
 
 **Output:**
 - **Clock out and MMC out are built but off by default** (`RIAPP_MIDI_CLKOUT`, default 0). The render fills a byte ring and an AROS sender task carries it to CAMD, so no CAMD call ever happens in the render path. **Nothing else is sent**: the G7 receiver still "never transmits" (manual p. 127), and there is no MIDI out of notes or CC. **Unmeasured**: the F8 intervals as they actually reach a wire — the host tests prove the schedule, not the wire.
@@ -104,7 +107,10 @@ In priority order. Each item is a requirement to design later; none is designed 
 **R3. MMC in and out.** Play, Stop, Locate (sysex). The parser exists (`midi.h`); wire it to the transport, and add sending.
 
 **R4. Settings and indicators:**
-- MIDI in and out port selection (CAMD clusters or links);
+- MIDI in and out port selection (CAMD clusters or links). **Done:** R12 O0
+  (commit `95facca`) added `RIAPP_MIDI_OUT`, defaulting to the
+  `RIAPP_MIDI_IN` value, so a driver port can receive on `applemidi.in.N` and
+  send on `applemidi.out.N` without changing an existing setup;
 - sync source (Internal / MIDI clock / Link later);
 - clock out on/off;
 - latency offset.
@@ -118,6 +124,15 @@ In priority order. Each item is a requirement to design later; none is designed 
 - The spec's "MIDI flood cap" (P-19, OPEN) applies.
 
 **R6. Note and CC output per device.** Patterns play external synths or DAW instruments: 303 steps become notes with velocity for accent, and slides are legato/overlapping; 808/909 instruments become a note map. Knob moves and automation go out as CC, using the same controller numbers as the G7 map (Appendix C), so a DAW can record ReIncarnation's automation.
+- **2026-10-20 (note out measured; CC out not built):** RIAPP's own sender put
+  one programme change before the first note, 303 notes on channel 1, drums on
+  GM channel 10 (column `9`, after O1b fixed the off-by-one), and MMC Play/Stop
+  as `F0 7F 7F 06 02 F7` / `06 01 F7` on the Dell wire (O1,
+  `docs/evidence/midi/r12/r12-o1-notes-and-mmc-on-the-dell.md`). R5 and R6 ran
+  together in one session (O2). CC out has a decided design — G7 remote
+  channel, the 89 bound Appendix C rows, inverse-scaled 0..127, no snapshot,
+  no 14-bit — but no code yet
+  (`docs/superpowers/specs/2026-10-20-cc-out-design.md`).
 
 **R7. Standard MIDI File export and import (SMF type 1).**
 - Export: patterns and song (one track per device), with automation as CC. Accent, slide and flam are mapped to documented note/velocity/CC conventions.
@@ -150,7 +165,8 @@ In priority order. Each item is a requirement to design later; none is designed 
 
 **R12. MIDI over the network (optional):** RTP-MIDI / AppleMIDI, so an AROS machine and a DAW PC can exchange clock and notes over Ethernet without MIDI hardware. It depends on the AROSTCP quality, like R10.
 - **2026-10-19:** upstream now has CAMD AppleMIDI drivers (#1586, merged) and a `netmidid` service in review (#1678/#1679). For what the Dell needs and what we can test now, see `2026-10-19-r12-network-midi-assessment.md`.
-- **2026-10-19 (result):** the Dell is an AppleMIDI peer over the LAN to `rtpmidid`. The session carries notes both ways, but attribution matters: guest→host 17 on/16 off came from the **`MIDISEND` test tool**, and host→guest moved **RIAPP's** `played`/`seen`. RIAPP's proven paths are **R5 note in** and **R2 clock out**; RIAPP note/CC out is not tested. Clock out, measured at the far end twice over 5.06 min: **56.0001 intervals/s, mean 17857.12 µs** (nominal 17857.14), 0 xruns, 0 dropped. The gate ran on a **local debug netmidid** (128496 B, sha256 `dad3644b…`, markers/bind logging only plus the build-only entropy shim), not the clean 122448 B build; it has not been re-run on the clean build. Clock **in** (P1) is unchanged and parked; no DAW has been tested. Evidence: `docs/evidence/midi/r12/`.
+- **2026-10-19 (result):** the Dell is an AppleMIDI peer over the LAN to `rtpmidid`. The session carries notes both ways, but attribution matters: guest→host 17 on/16 off came from the **`MIDISEND` test tool**, and host→guest moved **RIAPP's** `played`/`seen`. Clock out, measured at the far end twice over 5.06 min: **56.0001 intervals/s, mean 17857.12 µs** (nominal 17857.14), 0 xruns, 0 dropped. The gate ran on a **local debug netmidid** (128496 B, sha256 `dad3644b…`, markers/bind logging only plus the build-only entropy shim), not the clean 122448 B build. Clock **in** (P1) is unchanged and parked; no DAW has been tested. Evidence: `docs/evidence/midi/r12/`.
+- **2026-10-20 (result, R12 O0–O3):** `RIAPP_MIDI_OUT` (commit `95facca`) makes the send port separate from the receive port, defaulting to the input value. **RIAPP's own note out and MMC out are on the wire**: one programme change before the first note, 303 notes, drums on GM channel 10 after the O1b fix, and Play/Stop as `F0 7F 7F 06 02 F7` / `06 01 F7` (O1/O1b). R5 and R6 ran together in one session with `err=0` and no clock gap (O2). The duplicated accent note-ons are a **host-side RTP-MIDI journal replay** in rtpmidid v24.12 (RFC 6295's journal is a loss-recovery tool), not RIAPP; the lane fix is the owner's. CC out is **designed and decided** — G7 remote channel, 89 bound Appendix C rows, no snapshot, no 14-bit — but **not built** (`2026-10-20-cc-out-design.md`). The O1/O2 runs could not exercise 303 note input (`NOTECH=1` collides with the G7 remote on channel 1); O2e used `NOTECH=3` on the Dell and both directions worked. Evidence: `r12-o1-…md`, `r12-o2-…md`.
 
 ### Not possible
 

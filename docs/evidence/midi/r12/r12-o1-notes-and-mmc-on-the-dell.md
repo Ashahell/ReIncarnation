@@ -79,6 +79,16 @@ RIAPP_MIDI_CLKOUT=1 RIAPP_MIDI_DEVOUT=1 RIAPP_MIDI_NOTECH=1 RIAPP_MIDI_MMCOUT=1
 RIAPP_LOG=Vk4aros:  RIAPP_EVLOG=Vk4aros:
 ```
 
+**Correction (2026-10-20): `NOTECH=1` collides with the G7 remote, so the
+303s' note INPUT was never exercised in O1 or O1b.** `RIAPP_MIDI_NOTECH=1`
+puts the 303s on MIDI channel 1, which is the G7 remote's channel; the guest
+log says so on both runs (`NOTEIN dev 0 ch 1 REFUSED (channel taken)`,
+`dev 1 ch 1 REFUSED`). Note *output* on channel 1 was fine — `DEV out=1
+ch=1` and 541 note-ons on the wire — but no inbound note could reach a 303.
+Everything this note proves about note input is the **808's** channel-10
+path. A run that needs both directions must put the 303s on a free channel;
+O2e used `NOTECH=3`.
+
 Song: `songs/` **`o1-song.rbng`**, 36 bars at 140 BPM — a short original
 pattern (303 + 808 + 909 + Leviasynth), **not** a `songs/local/` cover. It
 auto-plays on load and auto-stops at the end. Host capture:
@@ -125,6 +135,11 @@ ev 80 11917 TR STOP
 Note the **single** `NOTEIN … seen=0` line: the NOTEIN counters are logged on
 change, so a baseline that never moves is exactly one line. It never moved.
 
+The two `REFUSED (channel taken)` lines are the `NOTECH=1` collision from §2,
+not evidence about the wire: the 303s asked for the G7's channel and were
+refused at startup. The 808 still bound channel 10, which is the only note-in
+path this run exercised.
+
 ## 4. Wire, run B (primary) — `128:3`
 
 ```
@@ -166,7 +181,7 @@ below is the corrected run.
 | **MMC Play and Stop as SysEx `F0 7F 7F 06 02 F7` / `F0 7F 7F 06 01 F7`** | **PASS** | Both frames on the wire in O1. The brief's *unverified* item is resolved: **rtpmidid does forward SysEx to ALSA.** O1b carried Play only (halted before the end). |
 | **Clock still flows on the same port** | **PASS** | O1: 3548 clocks at 55.94/s over 63.408 s on `128:3`; guest `err=0`, `dropped=0`. O1b: 3482 clocks, guest `err=0`, `dropped=0`. |
 | **Accounting: guest `sent` + devout counters vs the wire** | **PASS (explained, and measured on O1b)** | §6. |
-| **No echo: `NOTEIN seen=` must not move** | **PASS** | One `NOTEIN … seen=0` baseline line, never re-emitted (counters log on change). Output port ≠ input port, so no feedback path. |
+| **No echo: `NOTEIN seen=` must not move** | **PASS** | One `NOTEIN … seen=0` baseline line, never re-emitted (counters log on change). Output port ≠ input port, so no feedback path. This is a no-echo result only: with `NOTECH=1` no 303 could accept input, so it says nothing about melodic note input. |
 | **Drums are notes our own input accepts** | **PASS (host test + wire)** | t201 round trip: the 808 binds at nibble 9, the emitted status nibble is 9, and `ri_notein_note()` resolves it to the 808 bass drum. On the wire every drum is on column 9. |
 
 `on=1 run=1 pend=0 dropped=0 sent=… err=0` on every heartbeat; `sent` grows
@@ -421,8 +436,13 @@ this, O1 would have measured a silent device path and called it a lane fault.
 - **CC out** — not built (`ri_devout_cc()` has no caller). O3 is design only.
 - **A real DAW** on the far end; `aseqdump` is a listener, not a recorder.
 - **Clock-in at 140 BPM** into RIAPP while it plays (O2's other half).
+- **303 note input while RIAPP plays out.** O1/O1b set `NOTECH=1`, which the
+  G7 remote already owns, so both 303s were refused; only the 808's channel-10
+  input was exercised. O2e (2026-10-20) exercises a 303 on channel 3 and is
+  recorded in the O2 note.
 - **The O1 duplicate pairs' exact hop** — did not reproduce on O1b; the engine
-  and scheduler are ruled out by host tests, the lane is not.
+  and scheduler are ruled out by host tests, the lane is not. O2 later located
+  it in the host's RTP-MIDI journal replay (`r12-o2-…md` §2).
 - **A note-on/off pairing gate for drums** — drums are one-shot by design, so
   the shared gate must either exclude them or count them explicitly.
 - **A final-counter line at shutdown** — the last heartbeat precedes the close

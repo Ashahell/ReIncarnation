@@ -1,7 +1,8 @@
 # CC out — design note for the owner (R12 O3)
 
-**Status: design only. No code is in this change, and none should be written
-until the choices below are decided.** The brief asks for CC out as R6's
+**Status: DECIDED by the owner on 2026-10-20 (see §10). Design only: no
+code is in this change, and none is to be written until the owner gives the
+implementation its own go-ahead.** The brief asks for CC out as R6's
 second half: "knob moves and automation go out as CC, using the same
 controller numbers as the G7 map (Appendix C), so a DAW can record
 ReIncarnation's automation" (`docs/superpowers/specs/2026-09-29-interop-requirement.md`
@@ -184,15 +185,27 @@ enqueue; it never touches `midi_out`.
   `in`); echo (a wire-tagged value produces no byte); coalescing (a burst's
   final value survives); off by default (not one byte).
 
-## 10. Open questions for the owner
+## 10. Decisions (owner, 2026-10-20) — DECIDED
 
-1. **Channel:** the G7 remote channel (recommended) or the melodic channel?
-2. **Snapshot on transport start:** follow-up, or wanted in the first cut?
-3. **The 12 step-button CCs:** leave them out (recommended) or expose them as
-   pattern automation?
-4. **14-bit CC** for high-resolution knobs: not in v1 (recommended); the G7
-   map is 7-bit.
+The four questions this note ended on are answered:
 
-No code, no spec change, and no test was written for this note. The next move
-is the owner's answer to 1-4; then the implementation can be planned as its
-own phase.
+1. **Channel: the G7 remote channel (`settings.channel`).** DECIDED — this is
+   the recommended option in §4. The CCs and the inbound G7 map share one
+   lane; melodic notes may still be on `note_ch`, so a DAW can record two
+   channels of one performance.
+2. **Snapshot on transport start: a follow-up, not v1.** DECIDED — no
+   snapshot in the first cut, exactly as §7 recommends. A DAW that connects
+   mid-song hears the changes after it connects, not the current state.
+3. **The unbound CC rows: left out.** DECIDED — only the **89** rows with a
+   `midi_cc` **and** a parameter binding (`bind != NONE`) go out. The 13
+   unbound rows (the count in §3; an earlier draft said 12 step-buttons)
+   are excluded, including the transport row.
+4. **No 14-bit CC in v1.** DECIDED — the G7 map is 7-bit, and every value is
+   inverse-scaled into 0..127 as in §5.
+
+Everything else in this note is the proposed implementation shape, not a
+further decision: sources A3 (§2), inverse scaling with the input map's
+arithmetic (§5), the wire-source tag for the echo rule (§6), the coalescing
+tap and ring-occupancy budget (§7), and the render as the ring's only writer
+(§8). The owner has **not** given the go-ahead to build it; that is a separate
+decision. No code, no spec change, and no test was written for this note.

@@ -1,18 +1,20 @@
 # R12 network MIDI: can upstream AppleMIDI connect the Dell to Ableton?
 
 **Status:** assessment written 2026-10-19, before anything was built. It was
-then built for ABIv11 and run on the Dell the same day: the AppleMIDI session
-connected through `rtpmidid`; RIAPP's **R5 note in** and **R2 clock out** were
-measured, and clock out was measured twice over 5.06 minutes — **56.0001
-intervals/s, mean 17857.12 µs** against a 17857.14 µs nominal, **0 xruns,
-0 dropped** (`docs/evidence/midi/r12/`). The guest→host note check used
-**`MIDISEND`, not RIAPP**, so **RIAPP note/CC out is not tested**; its proven
-paths are note in and clock out. The gate ran on a **local debug netmidid**
-(128496 B, sha256 `dad3644b…`; 191 added lines of markers/bind logging plus
-the build-only entropy shim, no session or protocol change), not on the clean
-122448 B build from N0 (`c71fe8ff…`); the gate has not been re-run on the
-clean build. The body below is kept as written, with a result note under the
-table. What is still unproven is named in `r12-n3-clockout.md` and in the MIDI
+then built for ABIv11 and run on the Dell: the AppleMIDI session connected
+through `rtpmidid`; RIAPP's **R5 note in** and **R2 clock out** were measured,
+and clock out was measured twice over 5.06 minutes — **56.0001 intervals/s,
+mean 17857.12 µs** against a 17857.14 µs nominal, **0 xruns, 0 dropped**
+(`docs/evidence/midi/r12/`). R12 O0–O2 (2026-10-20) then made the send port
+separate (`RIAPP_MIDI_OUT`), fixed MMC out and the drum channel, and measured
+**RIAPP's own note out and MMC out** on the wire, with R5 and R6 live in one
+session. **CC out is designed but not built**; a real DAW is still untested.
+The early gate ran on a **local debug netmidid** (128496 B, sha256
+`dad3644b…`; markers/bind logging plus the build-only entropy shim, no
+session or protocol change), not on the clean 122448 B build from N0
+(`c71fe8ff…`); O1b/O2 ran on the clean build. The body below is kept as
+written, with result notes under the table and "The app change". What is still
+unproven is named in the O1/O2 notes, `r12-n3-clockout.md` and the MIDI
 ledger. Every statement below is either read from upstream source or PR text
 (cited), or read from this tree (file:line); **unverified** marks a plan or
 an expectation.
@@ -26,10 +28,10 @@ blocked on our own AROSTCP work. Upstream has now done most of that work.
 
 The pieces are now there for **clock out and notes/CC in both directions**,
 with no MIDI hardware. What is **proven on the Dell today** is RIAPP's **note
-in** (R5) and **clock out** (R2); RIAPP note/CC out is not tested — the
-guest→host notes came from the `MIDISEND` test tool. The Dell becomes an
-AppleMIDI peer, and macOS (built in) or Windows (rtpMIDI) exposes the session
-to Ableton as an ordinary MIDI port.
+in** (R5), **clock out** (R2), **note out** and **MMC out** (R6), the last two
+on RIAPP's own sender after `RIAPP_MIDI_OUT`. CC out is designed but not
+built. The Dell becomes an AppleMIDI peer, and macOS (built in) or Windows
+(rtpMIDI) exposes the session to Ableton as an ordinary MIDI port.
 
 It does **not** help **clock in at 140 BPM** (P1, parked). That limit is how
 CAMD delivers messages to our receiver, and the network path ends in CAMD
@@ -46,9 +48,11 @@ waits on an upstream merge:
    same CAMD cluster, and a network port has separate `in` and `out` clusters.
 
 **All three are done (2026-10-19).** The four pieces build for ABIv11, the
-camd rebuild is installed on the Dell, and the clock-out test uses the
-no-change route (`RIAPP_MIDI_IN=applemidi.out.0`). `RIAPP_MIDI_OUT` itself
-is still unimplemented — see the result note under "The app change".
+camd rebuild is installed on the Dell, and the clock-out test ran.
+`RIAPP_MIDI_OUT` is implemented as of **R12 O0** (commit `95facca`), so the
+Dell can now receive on `applemidi.in.N` and send on `applemidi.out.N`
+without the no-change workaround — see the result note under "The app
+change".
 
 ## What upstream has, and where it is
 
@@ -137,12 +141,14 @@ selection", so this finishes R4 rather than adding scope.
 `RIAPP_MIDI_IN=applemidi.out.0`. The receiver then listens on a cluster
 nothing sends to, which is harmless for that test.
 
-**Result (2026-10-19):** not implemented. The clock-out test used exactly the
-no-change route above, so the app still has one cluster setting. This stays
-the first thing to add when a DAW needs both directions at once (R5 + R6).
-**Known trap for that work:** `ri_pal_midi_send_start()` ignores its `port`
-argument and sends to the cluster the input open selected, so a real
-`RIAPP_MIDI_OUT` must split the send cluster first; not changed here.
+**Result (2026-10-20): implemented in R12 O0, commit `95facca`.** `RIAPP_MIDI_OUT`
+defaults to the `RIAPP_MIDI_IN` value, so every existing setup is unchanged,
+and an empty/unset value follows `cluster`. The sender now uses the port it
+is given: `ri_pal_midi_send_start()` stores `port` and `send_sink()` sends on
+it, as O0's host test and the O1 wire run show. This is the one-setting app
+change, not a new feature: it finishes R4's "MIDI in and out port selection"
+and makes R5 + R6 possible on separate clusters. The old trap note about the
+ignored `port` is retired.
 
 ## What it gives the interop requirement
 
@@ -156,14 +162,20 @@ argument and sends to the cluster the input open selected, so a real
 | **P1 clock in at 140 BPM** | **no improvement** | The limit is our receiver seeing CAMD deliveries in 10 ms system-tick batches, stamped at drain time. A network hop ends in the same CAMD delivery, with more jitter before it. Stays parked. **Unverified** whether `netmidid` passes RTP timestamps into CAMD at all. |
 | R10 Ableton Link | unrelated | Link is its own UDP multicast protocol. AppleMIDI doesn't stand in for it. |
 
-**Measured on the Dell (2026-10-19):** R2 clock out — two 5.06-minute runs,
-56.0001 intervals/s, mean 17857.12 µs against 17857.14 nominal, 0 xruns,
-0 dropped (`r12-n3-clockout.md`). R5 note input — RIAPP's `played` and `seen`
-move on every `aplaymidi` run. The **guest→host note path** was exercised by
-the `MIDISEND` test tool: 33 messages, 33 events at the host; that is not
-RIAPP's R6. **Still unverified:** RIAPP note/CC out (`RIAPP_MIDI_DEVOUT`),
-CC out, MMC out, a real DAW, and P1 clock in (parked; the limit is CAMD
-delivery, not the network).
+**Measured on the Dell:** R2 clock out — two 5.06-minute runs, 56.0001
+intervals/s, mean 17857.12 µs against 17857.14 nominal, 0 xruns, 0 dropped
+(`r12-n3-clockout.md`). R5 note input — RIAPP's `played` and `seen` move on
+every `aplaymidi` run; the O1b drum fix put the 808 on GM channel 10 and the
+O2e run played a 303 on channel 3 as well. **R6 note out and MMC out are now
+RIAPP's own** (R12 O1/O2, `r12-o1-notes-and-mmc-on-the-dell.md`): one
+programme change before the first note, 303 notes on the wire, drums on
+column 9, and `F0 7F 7F 06 02 F7` / `06 01 F7` for Play/Stop. `RIAPP_MIDI_OUT`
+is what made the send port separate from the receive port. R5 and R6 ran
+together in one session (`r12-o2-…md`). **Still unverified:** CC out (design
+decided 2026-10-20, **not built**), a real DAW, and P1 clock in (parked; the
+limit is CAMD delivery, not the network). The O1/O2 runs could not exercise
+303 note input because `NOTECH=1` collides with the G7 remote; O2e used
+`NOTECH=3`.
 
 **The measurement the interop spec says is missing becomes possible.** The
 spec records that *"the wire spread is not measurable with this

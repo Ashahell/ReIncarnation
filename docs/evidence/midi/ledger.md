@@ -6819,12 +6819,12 @@ stop signal in two `Wait`s, hanging after one empty pump. Fixed in
 `app/riapp.c` and `platform/aros/midi_camd.c`; both are recorded in
 `r12-n3-clockout.md`.
 
-**Known trap for the next step.** `ri_pal_midi_send_start()` ignores its
-`port` argument and sends to the cluster the input open selected; a real
-`RIAPP_MIDI_OUT` must fix that before it can split the send cluster. Not
-changed here. **(Closed in R12 O0, commit `95facca`: the sender is wired to
-the port named by `RIAPP_MIDI_OUT`, defaulting to `cluster`; see
-`r12-o1-notes-and-mmc-on-the-dell.md`.)**
+**Sender port: fixed in R12 O0, commit `95facca`.** The sender used to ignore
+its `port` argument and send to the cluster the input open selected; it is
+now wired to the port named by `RIAPP_MIDI_OUT`, defaulting to `cluster`, so
+existing setups are unchanged and `in`/`out` can be separate network ports.
+See `r12-o1-notes-and-mmc-on-the-dell.md`; the trap note that stood here is
+retired.
 
 ### R12 O1: the drum-channel defect, against the 2026-10-10 decision
 
@@ -6898,20 +6898,37 @@ RIAPP's CAMD boundary and read netmidid's published status:
 wire is also 5 above netmidid's encoded count, so it never left the guest's
 RTP-MIDI message encoder either. The host log shows why: every 337 packets
 (6.0 s at 56 Hz) netmidid emits a **channel journal** whose chapter N carries
-the previous packet's accent note-on with the RFC 6295 "must play on" (Y) bit
-set (`81 F1 24 F0` = one note, note 36, velocity 112|Y). rtpmidid v24.12
-(`lib/rtppeer.cpp`, `parse_journal` -> `parse_journal_chapter_N`) calls
-`midi_event()` for every Y=1 note **unconditionally** -- it does not apply the
-journal only on a lost packet -- so the note is played a second time one
-packet later. That also explains the run-to-run variation: the pair appears
-only when the 337-packet checkpoint lands right after an accent (O1b was the
-zero-phase run); it is not RIAPP flakiness. Evidence, log lines and the
-negative `MIDISEND` probes are in
-`r12-o2-both-directions-and-the-duplicate-hop.md`. The lane fix (journal only
-on a gap, and/or the sender's Y semantics) is the owner's decision; nothing
-was changed for it.
+the previous packet's accent note-on with the Y bit set (`81 F1 24 F0` = one
+note, note 36, velocity 112|Y). RFC 6295 Appendix A.6.2 defines Y as a
+sender's play (Y=1) / skip (Y=0) hint for a NoteOn **recovered from the note
+log**, and Section 4 gives the journal its trigger: the receiver repairs when
+a sequence-number break is due to a **packet loss** (the first packet of a
+session is the one other case). rtpmidid v24.12 (`lib/rtppeer.cpp`,
+`parse_journal` -> `parse_journal_chapter_N`) calls `midi_event()` for every
+Y=1 note **unconditionally** -- there is no loss at that seqnum -- so the note
+is played a second time one packet later. That also explains the run-to-run
+variation: the pair appears only when the 337-packet checkpoint lands right
+after an accent (O1b was the zero-phase run); it is not RIAPP flakiness.
+Evidence, log lines, the RFC sections and the negative `MIDISEND` probes are
+in `r12-o2-both-directions-and-the-duplicate-hop.md`. The lane fix (journal
+only on a gap, and/or the sender's Y semantics) is the owner's decision;
+nothing was changed for it, and no upstream report was filed.
+
+**O2's "unclaimed channel 2" was not the Leviasynth going silent
+(2026-10-20).** The gate run's evlog has `LEVI note 36 on/off vel 100`, as
+N1j did; `unclaimed` is the R5 note-in rack's counter, and `midi_drain()`
+runs the Leviasynth map before the rack's funnel. The difference from N1j is
+only that `NOTECH=1` kept the 303s off channel 2 (the G7 remote owns channel
+1, so both 303s were refused), which made the rack unclaimed while the Levi
+map still received the note. The O2b/c/d counter runs never played the gate
+file, so their logs have no `LEVI` line and are not a comparison. t234 pins
+both settings shapes; O2e (`build=8d7cb30`, `NOTECH=3`) confirmed on the
+Dell with channel 2, 3 and 10 in one gate file and `err=0`, 2726 guest clocks
+= 2726 on the wire. No regression, no fix, no mutant.
 
 **Not proven:** any DAW (the far peer is `rtpmidid` + an ALSA subscriber),
-RIAPP **CC** out (`ri_devout_cc()` still has no caller; O3 is the design
-note), a real DAW's clock following, clock **in** at 140 BPM (P1 stays parked:
-CAMD delivery, not the network), and the split of the >30 ms tail.
+RIAPP **CC** out (design decided 2026-10-20, not built; `ri_devout_cc()` still
+has no caller), a real DAW's clock following, clock **in** at 140 BPM (P1
+stays parked: CAMD delivery, not the network), the split of the >30 ms tail,
+and 303 note input under O1/O2's `NOTECH=1` (refused; exercised only by O2e's
+short run on a free channel).

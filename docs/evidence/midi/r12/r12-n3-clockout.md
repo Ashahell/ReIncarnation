@@ -17,11 +17,13 @@ below but is not a run of record.
 - Dell e6320, ABIv11, repo build **`5194334`**
   (`SYS:Classes/ReIncarnation/RIAPP`, 1205072 B, `RIAPP LOG build=5194334`).
 - `RIAPP_MIDI_CLKOUT=1`, `RIAPP_MIDI_IN=applemidi.out.0`, `devout=0`.
-  The input cluster is deliberately the **output** cluster: the AROS sender
-  sends to the cluster the input open selected (`ri_pal_midi_send_start`
-  ignores its `port` argument), so this is the honest configuration for a
-  clock-only test. The self-loop is visible in the evlog (the app hears its
-  own F8s) and changes nothing about the outgoing timing.
+  The input cluster is deliberately the **output** cluster: in the `5194334`
+  build the AROS sender still sent to the cluster the input open selected
+  (`ri_pal_midi_send_start` did not use its `port` argument yet), so this was
+  the honest configuration for a clock-only test. **Fixed later in R12 O0
+  (`95facca`):** the sender now uses the `port` it is given, so this
+  workaround is no longer needed. The self-loop is visible in the evlog (the
+  app hears its own F8s) and changes nothing about the outgoing timing.
 - Host `192.168.1.81`: `rtpmidid 24.12.2` with
   `--rtpmidi-discover false`; session `CONNECTED` (the peer exists as
   `alsapeer arosbox` on ALSA port **128:2** for the whole run; the sniffer's
