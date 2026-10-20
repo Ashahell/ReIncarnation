@@ -1224,6 +1224,13 @@ bash "$ROOT/scripts/ri_build_host.sh" test t234_levi_independent >/dev/null || {
 # The check is structural -- the wiring must live in a function whose CALL
 # SITE precedes the render's -- so renaming the function does not hide it.
 bash "$ROOT/scripts/ri_build_host.sh" test t235_midi_wiring_order >/dev/null || { echo "FAIL: t235_midi_wiring_order (the MIDI outputs are wired before the render starts)"; exit 1; }
+# t236 pins the OTHER half of the same review: every exit path of
+# riapp_main() must tear the MIDI tasks down. On AROS a task still running
+# when its process exits is a task executing UNLOADED CODE, and the bridge
+# task and the clock/device sender task (started by midi_prepare()) used to
+# survive every early return. The check is structural and the comments are
+# blanked first, so a comment cannot satisfy it.
+bash "$ROOT/scripts/ri_build_host.sh" test t236_midi_teardown_order >/dev/null || { echo "FAIL: t236_midi_teardown_order (every exit path of riapp_main tears the MIDI tasks down)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

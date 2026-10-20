@@ -1575,6 +1575,7 @@ static void audio_fail(long err) {
 /* The loaded song's name lives in the window title (owner Dell 2026-10-05):
  * the transport plate has no strip that fits a line of text at every zoom. */
 static Object *s_win;
+static Object *s_app;   /* the MUI application object, so the ONE teardown can dispose it */
 static char s_wintitle[96];
 
 static void win_title_song(const char *leaf) {
@@ -3500,6 +3501,85 @@ static void instance_claim_release(void) {
     instance_claim_held = 0;
 }
 
+/* ── ONE teardown for every exit path (2026-10-20) ────────────────────────
+ *
+ * WHY THIS EXISTS. On AROS a task that is still running when its process
+ * exits is a task executing UNLOADED CODE. The bridge task and the
+ * clock/device sender task are started by midi_prepare(), and until now they
+ * were torn down only on the NORMAL exit — so every early return of
+ * riapp_main() left them running:
+ *
+ *   rc 6  the render-may-not-start guard (new in the 2026-10-20 split);
+ *   rc 5  the canvas create failure;
+ *   rc 5  the rack row failure;
+ *   rc 7  the window failure;
+ *   rc 8  the application failure.
+ *
+ * Most of those already followed the MIDI setup; the rc 6 path is newly
+ * exposed by midi_prepare() moving earlier.
+ *
+ * The order below is the normal exit's order, unchanged: the capture ends,
+ * then the MIDI teardown (the bridge task AND the clock/device sender),
+ * then the final counters — which must be after the sender has stopped,
+ * because the periodic line is up to one heartbeat behind the close and
+ * would hide a 15.8 ms duplicate pair — then the render, then the window
+ * and the application, then the classes, then the log handle.
+ *
+ * The window and the application are file-scope so that this helper can
+ * dispose them: they were locals, and a failure path has no locals to
+ * clean up.
+ */
+static void riapp_teardown(void) {
+    capture_finish("quit");
+    ri_pal_midi_close(); /* bridge task teardown (M2) AND the clock/device sender */
+    /* FINAL counters, after the sender has stopped. The periodic line is
+     * up to one heartbeat behind the close, which is enough to hide a
+     * 15.8 ms duplicate pair; this one is the exact end of the run. */
+    if (DOSBase && (s_mset.clk_out || s_mset.dev_out))
+        rlog("RIAPP clk: on=%lu run=%lu pend=%lu dropped=%lu sent=%lu err=%lu clocks=%lu nen=%lu (final)\n",
+            (ULONG)s_mout.enabled, (ULONG)s_mout.running,
+            (ULONG)midi_out_pending(&s_mout),
+            (ULONG)midi_out_dropped(&s_mout),
+            (ULONG)ri_pal_midi_sent(),
+            (ULONG)ri_pal_midi_send_errors(),
+            (ULONG)ri_pal_midi_clocks(),
+            (ULONG)ri_pal_midi_noteons());
+    if (s_live) {
+        au_live_close(&s_lv);
+        s_live = 0;
+        if (s_cap_mem) {
+            FreeVec(s_cap_mem);
+            s_cap_mem = NULL;
+        }
+        if (DOSBase)
+            rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us wake_max=%lu us wake_total=%lu us wake_n=%lu stg_total_avg=%lu us stg_dsp_avg=%lu us stg_evt_avg=%lu us stg_playing=%lu stg_stopped=%lu\n",
+                ri_atomic_load_acq(&s_lv.drv.buffers), ri_atomic_load_acq(&s_lv.drv.xruns), ri_atomic_load_acq(&s_lv.drv.render_us_max), ri_atomic_load_acq(&s_lv.drv.render_us_sum_ms), s_lv.period_us,
+                ri_atomic_load_acq(&s_lv.drv.wake_us_max), ri_atomic_load_acq(&s_lv.drv.wake_us_sum_ms), ri_atomic_load_acq(&s_lv.drv.wake_n),
+                (unsigned long)(s_lv.drv.session && ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_TOTAL]
+                    ? ri_live_stages(s_lv.drv.session)->sum_us[RI_LIVE_ST_TOTAL] / ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_TOTAL] : 0u),
+                (unsigned long)(s_lv.drv.session && ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_DSP]
+                    ? ri_live_stages(s_lv.drv.session)->sum_us[RI_LIVE_ST_DSP] / ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_DSP] : 0u),
+                (unsigned long)(s_lv.drv.session && ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_EVENTS]
+                    ? ri_live_stages(s_lv.drv.session)->sum_us[RI_LIVE_ST_EVENTS] / ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_EVENTS] : 0u),
+                (unsigned long)(s_lv.drv.session ? ri_live_stages(s_lv.drv.session)->playing_buffers : 0u),
+                (unsigned long)(s_lv.drv.session ? ri_live_stages(s_lv.drv.session)->stopped_buffers : 0u));
+    }
+    if (s_win) {
+        SetAttrs(s_win, MUIA_Window_Open, FALSE, TAG_DONE);
+        s_win = 0;
+    }
+    if (s_app) {
+        MUI_DisposeObject(s_app);
+        s_app = 0;
+    }
+    rack_classes_drop();
+    ri_rsection_dispose_class();
+    if (s_evfh) {
+        Close(s_evfh);
+        s_evfh = 0;
+    }
+}
+
 static int riapp_main(int argc, char **argv) {
     Object *app, *win, *row;
     LONG ret;
@@ -3636,10 +3716,8 @@ static int riapp_main(int argc, char **argv) {
         if (DOSBase)
             rlog("RIAPP midi: the render may not start before the MIDI "
                  "outputs are wired\n", 0, 0, 0, 0);
-        if (s_live)
-            au_live_close(&s_lv);
-        s_live = 0;
-        return 6;
+        rc = 6;
+        goto cleanup;
     }
     if (s_live && au_live_run(&s_lv, &s_core.session) != 0) {
         au_live_close(&s_lv);
@@ -3710,13 +3788,8 @@ static int riapp_main(int argc, char **argv) {
         struct RISectUI *u = 0;
         s_canvas[i] = (Object *)ri_rsection_create(c_sections[i], zoom);
         if (!s_canvas[i]) {
-            if (s_live)
-                au_live_close(&s_lv);
-            if (s_evfh) {
-                Close(s_evfh);
-                s_evfh = 0;
-            }
-            return 5;
+            rc = 5;
+            goto cleanup;
         }
         GetAttr(MUIA_RSection_State, s_canvas[i], (IPTR *)&u);
         s_ui[i] = u;
@@ -3922,13 +3995,8 @@ static int riapp_main(int argc, char **argv) {
         }
     }
     if (!row) {
-        if (s_live)
-            au_live_close(&s_lv);
-        if (s_evfh) {
-            Close(s_evfh);
-            s_evfh = 0;
-        }
-        return 5;
+        rc = 5;
+        goto cleanup;
     }
     s_root = row;
     {
@@ -4012,9 +4080,8 @@ static int riapp_main(int argc, char **argv) {
     }
     s_win = win;
     if (!win) {
-        if (s_live)
-            au_live_close(&s_lv);
-        return 7;
+        rc = 7;
+        goto cleanup;
     }
     app = (Object *)MUI_NewObject(MUIC_Application,
         MUIA_Application_Title, (IPTR)"RIAPP",
@@ -4022,10 +4089,12 @@ static int riapp_main(int argc, char **argv) {
         SubWindow, (IPTR)win,
         TAG_DONE);
     if (!app) {
-        if (s_live)
-            au_live_close(&s_lv);
-        return 8;
+        rc = 8;
+        goto cleanup;
     }
+    /* The teardown disposes it: the application object outlives this scope
+     * because a failure path has no locals to clean up. */
+    s_app = app;
     DoMethod(win, MUIM_Notify, MUIA_Window_CloseRequest, TRUE, (IPTR)app, 2,
         MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit);
     for (i = 0; i < (int)(RI_TAB_COUNT * 5u); i++)
@@ -4614,48 +4683,20 @@ static int riapp_main(int argc, char **argv) {
         DeleteIORequest((struct IORequest *)treq);
     if (tport)
         DeleteMsgPort(tport);
-    capture_finish("quit");
-    ri_pal_midi_close(); /* bridge task teardown (M2) */
-    /* FINAL counters, after the sender has stopped. The periodic line is
-     * up to one heartbeat behind the close, which is enough to hide a
-     * 15.8 ms duplicate pair; this one is the exact end of the run. */
-    if (DOSBase && (s_mset.clk_out || s_mset.dev_out))
-        rlog("RIAPP clk: on=%lu run=%lu pend=%lu dropped=%lu sent=%lu err=%lu clocks=%lu nen=%lu (final)\n",
-            (ULONG)s_mout.enabled, (ULONG)s_mout.running,
-            (ULONG)midi_out_pending(&s_mout),
-            (ULONG)midi_out_dropped(&s_mout),
-            (ULONG)ri_pal_midi_sent(),
-            (ULONG)ri_pal_midi_send_errors(),
-            (ULONG)ri_pal_midi_clocks(),
-            (ULONG)ri_pal_midi_noteons());
-    if (s_live) {
-        au_live_close(&s_lv);
-        if (s_cap_mem) {
-            FreeVec(s_cap_mem);
-            s_cap_mem = NULL;
-        }
-        if (DOSBase)
-            rlog("RIAPP closed: buffers=%lu xruns=%lu render_max=%lu us render_total=%lu ms period=%lu us wake_max=%lu us wake_total=%lu ms wake_n=%lu stg_total_avg=%lu us stg_dsp_avg=%lu us stg_evt_avg=%lu us stg_playing=%lu stg_stopped=%lu\n",
-                ri_atomic_load_acq(&s_lv.drv.buffers), ri_atomic_load_acq(&s_lv.drv.xruns), ri_atomic_load_acq(&s_lv.drv.render_us_max), ri_atomic_load_acq(&s_lv.drv.render_us_sum_ms), s_lv.period_us,
-                ri_atomic_load_acq(&s_lv.drv.wake_us_max), ri_atomic_load_acq(&s_lv.drv.wake_us_sum_ms), ri_atomic_load_acq(&s_lv.drv.wake_n),
-                (unsigned long)(s_lv.drv.session && ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_TOTAL]
-                    ? ri_live_stages(s_lv.drv.session)->sum_us[RI_LIVE_ST_TOTAL] / ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_TOTAL] : 0u),
-                (unsigned long)(s_lv.drv.session && ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_DSP]
-                    ? ri_live_stages(s_lv.drv.session)->sum_us[RI_LIVE_ST_DSP] / ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_DSP] : 0u),
-                (unsigned long)(s_lv.drv.session && ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_EVENTS]
-                    ? ri_live_stages(s_lv.drv.session)->sum_us[RI_LIVE_ST_EVENTS] / ri_live_stages(s_lv.drv.session)->n[RI_LIVE_ST_EVENTS] : 0u),
-                (unsigned long)(s_lv.drv.session ? ri_live_stages(s_lv.drv.session)->playing_buffers : 0u),
-                (unsigned long)(s_lv.drv.session ? ri_live_stages(s_lv.drv.session)->stopped_buffers : 0u));
-    }
-    SetAttrs(win, MUIA_Window_Open, FALSE, TAG_DONE);
-    MUI_DisposeObject(app);
-    rack_classes_drop();
-    ri_rsection_dispose_class();
-    if (s_evfh) {
-        Close(s_evfh);
-        s_evfh = 0;
-    }
-    return 0;
+    /* THE NORMAL EXIT AND EVERY FAILURE PATH LEAVE THROUGH THE SAME TEARDOWN
+     * (2026-10-20). The order is unchanged from the old inline exit: the
+     * capture ends, the MIDI teardown (the bridge task AND the clock/device
+     * sender), the final counters -- which must be after the sender has
+     * stopped -- the render, the window and the application, the classes, the
+     * log handle. What is new is that the EARLY RETURNS come here too: they
+     * used to leave the bridge and sender tasks running, which on AROS is a
+     * task executing unloaded code. */
+    rc = 0;
+    goto cleanup;
+
+cleanup:
+    riapp_teardown();
+    return rc;
 }
 
 /* Every return path of riapp_main leaves through here, so the long-lived

@@ -7063,3 +7063,65 @@ fields while the render runs) and not by a reproduction; and the 2026-10-12
 crash itself is not re-triggered here, because that one needed `camd.library`,
 two tasks and a real link.
 
+### The follow-up: every early return skipped the MIDI teardown, and on AROS that is a task executing unloaded code (2026-10-20)
+
+**Found in the O1 review, after the fix was accepted.** On AROS a task that is
+still running when its process exits is a task executing **unloaded code** —
+the code it was running has been paged out with the process. The bridge task
+and the clock/device sender task are started by `midi_prepare()`, and until
+now they were torn down only on the NORMAL exit of `riapp_main()`. So every
+early return left them running:
+
+| rc | where | before |
+|---|---|---|
+| 6 | the render-may-not-start guard | **newly exposed** by `midi_prepare()` moving earlier |
+| 5 | the canvas create failure | already followed the MIDI setup |
+| 5 | the rack row failure | already followed the MIDI setup |
+| 7 | the window failure | already followed the MIDI setup |
+| 8 | the application failure | already followed the MIDI setup |
+
+**WHAT ELSE EACH PATH SKIPPED, CHECKED RATHER THAN ASSUMED.** The normal
+exit's sequence is: the capture ends, `ri_pal_midi_close()` (the bridge task
+**and** the clock/device sender), the FINAL counters, the render, the window
+and the application, the rack and rsection classes, the log handle. The early
+returns skipped **all** of it. The parts that matter on AROS are the two task
+teardowns (`ri_pal_midi_close()` and `au_live_close()`) and the two resource
+closes (the event-log handle and the capture); the rest are memory and
+MUI-class cleanups. The window and the application were **locals**, so a
+failure path had no way to dispose them — they are now file-scope (`s_win`
+already was, `s_app` is new), so the ONE teardown can.
+
+**THE FIX: ONE teardown, and every exit goes through it.** `riapp_teardown()`
+holds the normal exit's sequence **in the same order** (the capture, the MIDI
+close, the final counters — which must stay after the sender has stopped,
+because the periodic line is up to one heartbeat behind the close and would
+hide a 15.8 ms duplicate pair — the render, the window and the application,
+the classes, the log handle). The five failure paths became
+`rc = N; goto cleanup;`, and the normal exit became `rc = 0; goto cleanup;`.
+One label, one teardown, no path left out.
+
+**THE GATE (host).** `tests/unit/t236_midi_teardown_order.c`: every `return`
+in `riapp_main()` after the `midi_prepare()` call must be preceded by the
+teardown call, and the teardown must call `ri_pal_midi_close()`. The check
+is structural and the **comments are blanked before the search** — the
+2026-10-12 lesson, again: a gate that can be satisfied by a comment is not a
+structural check. Three measurements:
+
+| source | the gate says |
+|---|---|
+| the fixed tree | **PASS** |
+| the pre-fix source | **FAIL** — *"riapp_teardown() is missing: there is no ONE teardown for every exit path"* |
+| the fixed tree with the teardown **dropped from ONE path** (the rc 5 canvas path returns directly) | **FAIL** — *"the return at 173169 comes BEFORE the teardown call at 221595: this exit path leaves the bridge and the clock/device sender running, which on AROS is a task executing unloaded code"* |
+
+t235 and t236 are the two halves of the same review — **set up before the
+render, tear down after it** — and their shared source-scanning helpers now
+live in `tests/helpers/ri_srcscan.h` (one copy, with the comment-blanking in
+it, so neither gate can be satisfied by prose).
+
+**Not proven:** nothing here was run on the Dell, and it does not need to be:
+the defect is that a task outlives its process, which the SOURCE says, and
+the gate says the source. A run would show the symptom only if the process
+exited on one of the five paths — a requester or a failed allocation, not
+something to arrange on purpose.
+
+
