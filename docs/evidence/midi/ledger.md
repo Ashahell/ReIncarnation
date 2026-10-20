@@ -6849,9 +6849,22 @@ a round trip: every drum message devout emits is fed through
 `ri_notein_note()` and must resolve to the 808 bass drum. The raw-nibble
 version is a mutant and dies.
 
-*(The all-unaccented O1 failures and the duplicated accent note-ons are
-recorded in `r12-o1-notes-and-mmc-on-the-dell.md`; the duplication is NOT
-established as downstream.)*
+**Measured on the wire (O1b, `build=bcbe62b`).** 669 drum note-ons on the
+`aseqdump` column `9` (nibble 9 = status `0x99` = MIDI channel 10) and **0**
+on column `10`. The guest still binds the input side as `NOTEIN dev 2 ch 10
+bound`, so output and input now agree. The run also carries a real `clocks=`
+and `nen=` on every `RIAPP clk:` line (0xF8 and note-ons handed to CAMD); the
+O1 clock figure was *derived* from `sent`, not measured, and the earlier
+"<=1751 note messages" bound is retracted.
+
+**The duplicated accent note-ons are not downstream.** O1b carried **0**
+duplicate pairs in 1750 note events with the same song, port and detector;
+the O1 pairs were identical (note 36, velocity 112/112, 15.75-15.86 ms apart)
+and remain unexplained. The engine and scheduler are ruled out by t199/t200
+and a one-bar `tools/render --dump-events` dump (one NOTE_ON + one ACCENT +
+one NOTE_OFF per accented step). Recorded as **OPEN**, not as a lane fault.
+The all-unaccented O1 failures and the full per-pair table are in
+`r12-o1-notes-and-mmc-on-the-dell.md`.
 
 **Not proven:** any DAW (the far peer is `rtpmidid` + an ALSA subscriber),
 RIAPP note/CC out (`RIAPP_MIDI_DEVOUT`; the gate's 33 messages were sent by
