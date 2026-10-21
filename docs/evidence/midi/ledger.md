@@ -7552,17 +7552,61 @@ owner dismissed it (by clicking, or otherwise) and the lane came back
 reboot — and the *first* thing this session's click did was dismiss a
 recoverable alert, so the Dell was never actually stuck on it.
 
+### THE LANE AS THIS SESSION LEAVES IT (after the owner's second reboot)
+
+| | state |
+|---|---|
+| the Dell | **up**, agent answering (61 ms); `RAM:` wiped, so the reboot really happened |
+| the requester | **gone** — the "Software Failure!" was the dead-end one, and the reboot is what cleared it |
+| the running app | `Process 1 Loaded as command: SYS:Classes/ReIncarnation/RIAPP`, playing zombie-nation, `xruns=0 overloads=0`, **no requester** — a **fresh** instance, on a **fresh** claim (`RAM:RIAPP.lock rc=0 (taken)`) |
+| `SYS:Classes/ReIncarnation/RIAPP` | **the FIXED build**, re-installed by this session — the last A/B push had left the **mutant** there, and a lane must not carry a test mutant as its live binary |
+| the spool | **empty**; the session is idle; the jobs that were queued are held in `/tmp/opencode/spool_held_jobs/` and `/tmp/opencode/spool_held_jobs_2/`, so no agent replays them |
+| this session's sends to the lane | **no mutating actions** from here on — `exec` and `ui_windows` only |
+
+**AND A NOTE ON THE BOOT-STARTED INSTANCE, because it is a lane hazard
+rather than a mystery.** The Dell **auto-starts RIAPP at boot** (the
+`RIBOOT` process, and RIAPP as `Process 1`), so a lane that boots into a
+crashed app hands the first command of the day an already-corrupted heap —
+which is very likely how the owner's original "Software Failure!" was
+reached in the first place, and it is worth knowing that the requester on
+an "idle" Dell may belong to an instance that started before anyone
+arrived.
+
 ### NOT PROVEN, AND NOT OURS
 
 **The stray `SYS:Classes/ReIncarnation/RIAPP` CLI task is GONE after the
-reboot.** It was there before the first run of this session, it did not
+reboot — but a RIAPP is running AGAIN, and that corrects this section's
+first claim.** It was there before the first run of this session, it did not
 answer a `Break` by name, and it was not a process this session started or
-killed. After the owner's reboot the task list carries **no** RIAPP task at
-all, so it did not survive the reboot: it was a leftover of an earlier run,
-not a persistent daemon and not a kernel-side ghost. This work still does
-**not** claim it was the leak these fixes remove — it is an **unexplained
-stray from before `908b4f6`, of unknown cause** — but the question "is it
-still there?" now has an answer, and it is **no**.
+killed. After the owner's first reboot the task list carried **no** RIAPP
+task at all, so that one did not survive the reboot: a leftover of an
+earlier run, not a persistent daemon and not a kernel-side ghost.
+
+**After the SECOND reboot a RIAPP is running again** — `Process 1 Loaded as
+command: SYS:Classes/ReIncarnation/RIAPP`, playing zombie-nation from
+`Vk4aros:ReIncarnation/songs/local/zombie-nation/`, with the log showing
+`RIAPP claim: RAM:RIAPP.lock rc=0 (taken)` — a **fresh claim**, on a
+**wiped** `RAM:` (`RIAPP.lock` had to be created again). So it is **not** the
+same task as before: it is a **new instance, started at boot**.
+
+**AND THE LANE SAYS HOW.** The task list carries
+`Process 7 Loaded as command: SYS:Classes/ReIncarnation/RIBOOT` — a **boot
+process** — and the RIAPP is `Process 1`, i.e. among the first things the
+guest started. So the Dell **auto-starts RIAPP at boot**, from a startup
+item or a boot script, and that is what the stray task was all along: the
+**previous session's** auto-started instance, still running when this
+session's first run found it. It is not a daemon, not a kernel-side ghost,
+and not the leak these fixes remove — it is the lane's own boot behaviour
+leaving an instance behind between sessions.
+
+**What this changes, and what it does not.** It **explains** the stray
+("a leftover of the previous session's boot-started instance") without
+claiming it was this work's leak. It does **not** change the fix's
+purpose: the canvas double free is a different defect, and the fix stands
+on its own measurement. It does say something about the **lane's hygiene**:
+the boot-started instance is why a requester can be found on a Dell that
+"has been idle", and a lane that boots into a crashed app is a lane whose
+first command of the day lands on an already-corrupted heap.
 
 **The Dell is alive again, and the lane is answered.** The `Recoverable
 Alert!` turned out to be **dismissible** — the owner's own click cleared it,
