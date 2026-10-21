@@ -45,15 +45,37 @@
 - The Dell's `camd.library` today is `41.1 (8.10.2026)`, 53816 B. It has
   #1483 but **not #1585**, so **no `DEVS:Midi` driver loads** on 64-bit until
   camd is rebuilt.
-- **riqemu1** is ABIv1 = ADT master (`src/abi/v1/AROS`, **`47f7091d0a`**,
-  2026-10-20; it was `6f62b30830` on 2026-10-12 and that is the commit the
-  earlier runs recorded). Pull to get #1585/#1586/#1676. The new commit is
-  `aros/0012: drop the _GNU_SOURCE guard — upstream master already has the
-  fix`: it retires our `aros/0012` cdefs patch, which upstream `8965203a37`
-  had already made unnecessary, so `sys/cdefs.h` in the tree is again exactly
-  upstream master's. **Any further riqemu1 rebuild must record
-  `47f7091d0a`**, not `6f62b30830` — a rebuild record that names the old
-  commit names a tree that no longer exists.
+- **riqemu1** is ABIv1 = ADT master (`src/abi/v1/AROS`). Pull to get
+  #1585/#1586/#1676. **The tree's commit is not pinned here, and must not
+  be**: the v1 tree was rebased onto upstream master on 2026-10-20, and the
+  next rebase will move it again. **Record the commit at BUILD TIME**, with
+  the command:
+
+      git -C src/abi/v1/AROS rev-parse HEAD
+
+  and put THAT value in the rebuild record. A rebuild record that names a
+  hash copied from a plan names a tree that may no longer exist — which is
+  exactly what happened twice here: `6f62b30830` on 2026-10-12 and
+  `47f7091d0a` on 2026-10-20 were both correct on the day they were
+  written and both stale by the next rebase. **The value on 2026-10-21 is
+  `49fbec3dad`** ("rebase onto AROS upstream master bdec29f19a"), and
+  `47f7091d0a` ("aros/0012: drop the _GNU_SOURCE guard") is the one it
+  replaced. The tree's content is upstream master's plus our own series, so
+  `sys/cdefs.h` is again exactly upstream master's — our `aros/0012` cdefs
+  patch is retired because upstream `8965203a37` had already made it
+  unnecessary.
+- **WHAT A REBUILD FROM THE LANE TREE NEEDS TO PROVE, and what it does not.**
+  The riqemu1 binaries in use came from the **JJDSNT #1679 branch**
+  (`review/netmidid-service` @ `db9e3073c3a0645a50dabf388092cece9902e344`),
+  with upstream's **#1585** in it — **not** from our `aros/0074`, which is
+  retired and touches `workbench/libs/camd/openmididevice.c` only. So
+  **nothing in R12 rests on `0074`**, and the rebase does not invalidate
+  any R12 measurement. A rebuild from the lane tree needs a **smoke check,
+  not the re-verify list**: camd lists the **16 + 16 applemidi clusters**,
+  and **netmidid starts and idles**. The full upstream camd/AHI re-verify
+  list is a **Dell (ABIv11)** matter — the Dell's tree is
+  `src/abi/v11/AROS` @ `fbc242c104` and this rebase did not touch it — and
+  it is owed when the **v11** SDK is rebuilt, not for R12.
 - **`netmidid`** is a plain bsdsocket program. Its config is `ENV:NetMIDI`
   (`local_port`, `peer_ip`, `peer_port`, `accept`), it stops on CTRL-C, and
   it attaches to `DEVS:Midi/applemidi`'s adapters. On both lanes it is

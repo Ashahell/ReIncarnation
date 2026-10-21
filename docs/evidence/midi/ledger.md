@@ -7848,3 +7848,46 @@ about the dirty tree first.
 list. On the Dell it becomes true only after the v11 SDK is rebuilt, and
 the AHI capture fix is currently **reverted in the tree that built the
 v1 SDK**, so a naive rebuild would silently drop it.
+
+## R12's scope after the 2026-10-20 AROS rebase: a smoke check, not the re-verify list (2026-10-21)
+
+The re-verify list above is a **v1-lane** list and a **Dell** matter. **R12
+is neither**, and pinning that down here so the next R12 session does not
+inherit a list that is four times its size.
+
+**WHAT THE REBASE TOUCHED.** The AROS **v1** tree was rebased onto upstream
+master `bdec29f19a` on 2026-10-20 (lane commit `49fbec3dad`); the **v11**
+tree (`src/abi/v11/AROS` @ `fbc242c104`), which the **Dell** links, was
+**not touched**. So:
+
+- the **Dell (ABIv11)** is where all of RIAPP's camd/AHI evidence comes
+  from, and its SDK carries **none** of the upstream camd/AHI/MIDI work;
+  the re-verify above is owed **when the v11 SDK is rebuilt**, and not
+  before;
+- **R12 runs on riqemu1, which is ABIv1** — the tree the rebase DID
+  move.
+
+**BUT NOTHING IN R12 RESTS ON THE CHANGE.** The riqemu1 binaries in use
+came from the **JJDSNT #1679 branch**
+(`review/netmidid-service` @ `db9e3073c3a0645a50dabf388092cece9902e344`),
+with upstream's **#1585** in it. They were **not** built from our
+`aros/0074` — which is retired, and which touches
+`workbench/libs/camd/openmididevice.c` and nothing else in the lane's
+path. **No R12 measurement is invalidated by the rebase.**
+
+**SO A REBUILD FROM THE LANE TREE NEEDS A SMOKE CHECK, NOT THE LIST:**
+
+1. camd lists the **16 + 16 applemidi clusters**;
+2. **netmidid starts and idles.**
+
+**AND THE COMMIT MUST BE RECORDED AT BUILD TIME, NOT COPIED FROM A PLAN.**
+The v1 tree's commit was `6f62b30830` on 2026-10-12 and `47f7091d0a` on
+2026-10-20 and is `49fbec3dad` on 2026-10-21. **All three were correct on
+the day they were written**, and the first two are now stale — a hash
+copied from a plan names a tree that may no longer exist. The record is
+the command's output:
+
+    git -C src/abi/v1/AROS rev-parse HEAD
+
+The R12 brief (`docs/superpowers/plans/2026-10-19-r12-network-midi-opencode-prompt.md`)
+now says exactly that, and names `49fbec3dad` as the value on 2026-10-21.
