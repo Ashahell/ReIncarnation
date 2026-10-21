@@ -7690,3 +7690,161 @@ observation, which is a CPU exception in a **system** task.
   **deterministic** fingerprint of the defect, and it is the better evidence
   of the two: it does not depend on the allocator noticing the double free,
   it depends only on the canvas being freed behind the app's back.
+
+## The upstream camd/AHI rebase lands: what ReIncarnation has to re-verify (2026-10-21)
+
+A correction pass on the **AROS** side re-landed the upstream camd/AHI work
+and passed a re-verify list to this side. The list is right about the
+commits; **what it does not say is which AROS tree ReIncarnation actually
+links against, and that is the fact that decides every item on it.**
+
+### THE FACT THAT DECIDES IT: TWO SDKs, TWO DIFFERENT AROS TREES
+
+ReIncarnation builds against **two** SDKs, and they are **not** the same
+AROS tree:
+
+| lane | the SDK it links | the AROS tree behind it | its `camd.library` |
+|---|---|---|---|
+| the **Dell** (ABIv11) | `src/abi/v11/sdk/Developer` → `v11/core-pc-x86_64/bin/pc-x86_64/AROS/Development` | `src/abi/v11/AROS` @ `fbc242c104` | **2026-09-14 11:41** |
+| the **v1 / host** lanes | `src/abi/v1/core-pc-x86_64/bin/pc-x86_64/AROS/Developer` | `src/abi/v1/AROS` @ `49fbec3dad` = **the deployed tree** | **2026-10-20 20:06** |
+
+(`scripts/ri_build_v11.sh:38-40` and `scripts/ri_build_aros.sh:32`.)
+
+**So the eight upstream commits are in the tree the v1 lanes link, and NOT
+in the tree the Dell links.** Measured, not inferred:
+
+- all eight (`b1edfb9866`, `1ce6fd9a98`, `5b9d27bbee`, `a01b5bbed0`,
+  `a29cdff490`, `125197297f`, `c0d71be0d8`, `1f9c3958d0`) are ancestors
+  of `49fbec3dad` in `arw/measure_deployed/wt` — and `49fbec3dad` **is**
+  `src/abi/v1/AROS`, the v1 SDK's tree;
+- in `src/abi/v11/AROS` they are **absent**, and so is the **whole set**:
+  measured by ancestry, the v11 tree has **0 of the 19** upstream
+  camd/MIDI/AHI commits in the v1 base (three of the eight are known
+  objects that are not in `HEAD`, five are not in that repo at all — they
+  came from a *different* upstream, `deadwood2/AROS`, and the v11 tree
+  tracks that fork 30 commits behind);
+- and the **binaries** say it independently: the v1 SDK's `camd.library`
+  carries `"DEVS:Midi"` and `"camd.library: %s port %ld did not open for
+  its waiting links"` — both **new** strings from `5b9d27bbee` — while the
+  v11 SDK's `camd.library` (Sep 14) has **neither**.
+
+**THE CONSEQUENCE, AND IT IS THE OPPOSITE OF THE LIST'S FRAMING.** The list
+asks ReIncarnation to re-verify because "it has twelve upstream camd/AHI/MIDI
+commits in the tree". The list's **eight** named commits are all in the
+v1 tree's 392-commit base, and that base carries **19** upstream
+camd/MIDI/AHI commits in total (not twelve — measured, and the eight named
+are a subset of the nineteen).
+
+For the **Dell** — the lane every piece of RIAPP's MIDI/AHI evidence comes
+from — the tree has **none of the nineteen**: the v11 camd is the
+**September** one. So the Dell's measurements are **not stale
+because upstream moved**; they are measurements of the September camd, and
+they stay valid **until the v11 SDK is rebuilt on the new base**. The
+re-verify becomes necessary at that moment, not now.
+
+### THE LIST, ITEM BY ITEM, AGAINST THE MEASUREMENT
+
+| # | upstream change | reaches ReIncarnation? | what ReIncarnation does with it |
+|---|---|---|---|
+| 1 | the aligned `MidiDeviceData` scan (`b1edfb9866` + `1ce6fd9a98`) | **v1 yes, v11 no** | our retired `aros/0074` is the **same fix** (the arena-hunk skip), and the v1 tree's `openmididevice.c` **differs** from the v11 tree's by exactly that hunk — the v11 tree is the **pre-fix** one |
+| 2 | cluster-notification locking (`5b9d27bbee`) + driver-port lifetime (`a01b5bbed0`) | **v1 yes, v11 no** | `platform/aros/midi_camd.c` opens a camd port and links a receiver; the port-lifetime change moves **when** a port closes, so any **open/close count** ReIncarnation measures on the v1 tree is the thing to re-measure |
+| 3 | the SysEx size report + `MIDI_ErrFilter` (`a29cdff490`) | **v1 yes, v11 no** | `midi_io/midi_mmc.c` frames SysEx itself; the change is in camd's **error path**, so it touches what RIAPP *reports* on a rejected frame |
+| 4 | the network MIDI drivers (`125197297f`, #1586) | **v1 yes, v11 no** | the driver-**enumeration** expected set changes — a driver-enumeration test's expected list is the thing to re-check |
+| 5 | the AHI capture offsets (`c0d71be0d8`) | **v1 yes, v11 no** — and **superseded on v11** | the v11 tree already has the **64-bit** AHI rewrite (`d95fe09f30`), which is a *different* fix for the same overrun; `c0d71be0d8` is the 32-bit-era change |
+| 6 | the rescan filter (`1f9c3958d0`) | **v1 yes, v11 no** | camd skips `*.info`/`*.dbg` when rescanning — a **driver-enumeration** change again |
+| — | the AHI rate report and the camd cluster-name formatting | **not to re-verify** — our `aros/0072`/`0073` are retired because they are upstream now | matches: both are in `src/abi-patches/v1/aros/retired/`, and the v1 `SERIES` says so |
+
+### THE HARNESS PROBLEM IN ITEM 5, WHICH IS NOT A "RE-VERIFY" AT ALL
+
+`c0d71be0d8` changes `*offset += (offs >> 32) * sizeof(struct sample *)` to
+`sizeof(struct sample)` — a **pointer-sized** stride where a **struct-sized**
+one belongs, in the AHI `RECORD` path. That is not a behaviour change to
+re-verify: it is a **bug fix in a 32-bit assumption**, and on the **v11**
+tree the code has already moved past it (the 64-bit rewrite, `d95fe09f30`,
+which is one of the 30 the v11 tree is behind — so the v11 tree is
+**newer** here, not older).
+
+**AND THE AHI CAPTURE FIX IS **NOT** IN THE DELL'S SDK — MEASURED IN THE
+BINARY, NOT IN THE SOURCE.** The v11 `ahi.device` is dated **2026-09-14
+11:37**, and its `RecM8S` advances the offset with **scale 8**
+(`lea (%rax,%r9,8),%edx`) — the `sizeof(struct sample *)` form, i.e. the
+**pre-fix** stride. The v1 `ahi.device` (built 2026-10-20 19:49) uses
+**scale 4** — the **fixed** stride. So the AHI capture fix is in the **v1**
+SDK and **absent** from the **v11** one, exactly like the camd changes.
+
+**A CORRECTION TO THE REPORT'S OWN FIGURES, MEASURED HERE.** The report
+says "the deployed tree (49fbec3dad, **53 dirty**)". There are **two**
+trees at that commit, and they are not the same tree:
+
+| tree | dirty | its AHI capture form |
+|---|---|---|
+| `arw/measure4/wt` | **53** | **fixed** (`sizeof(struct sample)`) |
+| `arw/measure_deployed/wt` | **1071** | **pre-fix** (`sizeof(struct sample *)`) |
+
+The **53** belongs to `measure4/wt`; `measure_deployed/wt` carries
+**1071**. The v1 SDK was built at 19:49–20:07 on 2026-10-20, and its
+`ahi.device` has the **fixed** stride — so the SDK in the tree right now was
+built from the **53-dirty** tree (`measure4/wt`), and the 1071-dirty tree is
+a **different, dirtier** copy at the same commit. **Neither is clean**, but
+they are not the same tree, and the report's "53 dirty" and "the deployed
+tree" do not refer to the same thing.
+
+**What this means for ReIncarnation is small and worth stating exactly: the
+v1 SDK has the camd changes and the AHI capture fix; the v11 SDK has
+neither.** So the re-verify list is **true of the v1 lane** and **not true
+of the Dell** — which is the lane all of RIAPP's camd/AHI evidence comes
+from.
+
+### WHAT REINCARNATION ACTUALLY OWES, AND WHEN
+
+**Nothing needs re-verifying today, and that is a measured statement, not a
+deferral.** The v1 SDK carries the camd changes **and** the AHI capture
+fix; the Dell's SDK carries **neither**; and the Dell is where all of
+RIAPP's camd/AHI evidence comes from. The list's premise — "it has twelve
+upstream commits in the tree" — is true of the **v1** tree and false of the
+**v11** tree, and the lanes are not interchangeable.
+
+**The re-verify is owed at the moment the v11 SDK is rebuilt on the new
+base**, and the order the list gives is the right order for it, because
+that is the order the changes touch the app:
+
+1. the aligned scan (our `aros/0074`'s upstream twin) — the **v11** camd is
+   the pre-fix one, so this is the first thing the Dell would pick up;
+2. the cluster-notification lock and the port lifetime — the open/close
+   counts;
+3. the SysEx size report and `MIDI_ErrFilter` — the MIDI error path;
+4. the network MIDI drivers — the driver-enumeration expected set;
+5. the AHI capture offsets — and on v11 this is **not** `c0d71be0d8` but
+   the 64-bit rewrite already in that tree; the thing to re-measure is the
+   **capture** arithmetic as it lands, not the 32-bit fix;
+6. the rescan filter — driver enumeration again.
+
+**Until then the Dell's evidence stands as measured**, and the honest
+summary of this pass is: the list is right about the commits, and the
+premise that they are "in the tree" is right for one of the two SDKs and
+wrong for the Dell's.
+
+### WHAT WAS DONE HERE, AND NOT DONE
+
+**Done:** the eight commits located and their presence/absence **measured
+per SDK** (by hash in the source trees, and independently by the new
+strings in the built `camd.library` binaries); ReIncarnation's own exposure
+to each item read off the source (`midi_camd.c`'s port/link usage,
+`midi_mmc.c`'s SysEx framing, the absence of any AHI `RECORD` use in
+`audio_ahi_live.c`); the retired-patch state confirmed from the v1 `SERIES`
+and `retired/README.md`; and the **AHI capture fix found reverted in the
+deployed tree's working copy**, with the SDK's build date showing the SDK
+was built from that dirty tree.
+
+**Not done, deliberately:** no AROS tree was rebuilt and no SDK was
+replaced — the v1 SDK's provenance is a question for the AROS side, not
+something to change from here; no ReIncarnation test was re-run against a
+changed SDK, because **no SDK that ReIncarnation links has changed**; and
+the v11 SDK was **not** rebuilt, which is the one action that would make
+items 1-6 bite on the Dell, and which needs the AROS side's decision
+about the dirty tree first.
+
+**The one thing to carry forward:** the re-verify list is a **v1-lane**
+list. On the Dell it becomes true only after the v11 SDK is rebuilt, and
+the AHI capture fix is currently **reverted in the tree that built the
+v1 SDK**, so a naive rebuild would silently drop it.
