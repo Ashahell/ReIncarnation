@@ -38,3 +38,23 @@ Two lessons: **search by what a control drives, not by its label**; and a cascad
 `AUDIT 0/0 PASS`, mutation 5/5, AROS build clean.
 
 **Never heard.** Implemented on unit tests and a clean build only. The lane log gained `LEVI key N on/off` lines, so the next session can confirm the press latched and the note went out before anyone goes looking for the sound. This is the one piece of this session's work with **no ear evidence at all**, and it is older than everything else here.
+
+## Status addendum (2026-10-23, P-KEY2 `d9f2af3`)
+
+Two dated notes, each left standing where it was written rather than rewritten:
+
+- The owner spec's **"(an E0 default, 100)"** and `RI_LEVI_KEY_VEL 100` — **reversed on
+  the owner's say-so 2026-10-23**: the ear round heard the keys and called the volume low,
+  and the fixed value is now **127**, the maximum the note path takes. **Fixedness is
+  unchanged** (the hardware keybed is not velocity-sensitive); only the value moved, and
+  `t238_levi_key_paint` pins the engine's terms (`vel01 == 1.0f`, not 100/127).
+- The **edge layer here was correct, and the paint under it was not**: on 2026-10-23 an
+  owner round logged 18 presses and **every one a white-key note**, because live whites
+  painted the whole keybed band over the black keys, so a 36 Q black survived at about
+  4 Q and the full-width black keys the owner aimed at were art decoration with no control
+  behind them (22 art whites against 13 live keys). See
+  `raw/articles/2026-10-23-the-keybed-painted-slots-it-does-not-own.md`.
+
+**The "Never heard" line still stands** as of this addendum: the fix commit's build
+(1237704 bytes, sha256 `27b5879dfa…`) has not run on the Dell yet, so the keybed remains
+the one piece of this range with no ear evidence.
