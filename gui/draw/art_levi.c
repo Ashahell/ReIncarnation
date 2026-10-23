@@ -394,8 +394,15 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
         int x0 = LEVI_KEY_X0 + LEVI_KEY_W * k;
         int active = k >= 7 && k <= 14;
         uint32_t wk = ri_art_rgb(C_WHITEKEY);
-        if (active)
-            continue;                                  /* live keys draw as controls */
+        if (active) {
+            /* The live slots paint their OWN hit band (470..550) as controls,
+             * so the art lays only the bed the black keys sit on (355..470).
+             * Painting the whole band here is what used to hide the live
+             * black keys under the whites: see ri_levi_key_paint_q. */
+            ri_draw_rect(dl, ox + PX(x0 + 1), oy + PX(LEVI_KEY_Y0),
+                ox + PX(x0 + LEVI_KEY_W - 2), oy + PX(LEVI_BKEY_Y1), wk);
+            continue;
+        }
         ri_draw_rect(dl, ox + PX(x0 + 1), oy + PX(LEVI_KEY_Y0), ox + PX(x0 + LEVI_KEY_W - 2), oy + PX(LEVI_KEY_Y1),
             wk);
         ri_draw_rect(dl, ox + PX(x0 + 1), oy + PX(LEVI_KEY_Y1 - 8), ox + PX(x0 + LEVI_KEY_W - 2),
@@ -478,6 +485,38 @@ static void levi_page(struct ri_dlist *dl, const struct RISectUI *ui, int x0, in
     }
 }
 
+/* THE KEYBED'S PAINT RULE — see the art.h note: ri_art_levi_item builds its
+ * rect from this, and t238 drives the same call, so neither side restates the
+ * rule and a disagreement between "where a key paints" and "where a key is
+ * hit" is a fact about the product, not about a test.
+ *
+ * A key paints THE SLOT IT OWNS. The stretched version this replaces painted
+ * every white over the whole band (355..550), and because the geometry table
+ * lays blacks before whites, each white repainted the blacks beside it: a
+ * 36 Q black key showed about 4 Q, and the full-width black keys the owner
+ * could see -- the art octave's, at x 499..794 and 1325..1620 -- have no
+ * control behind them at all. That is why 18 owner presses logged eight
+ * different WHITE notes and no black one, and why the sixth black key from
+ * the left (the art black at x 1325, over which live white C+ paints up to
+ * 1322) measured 8 image px against 14 for a full key.
+ *
+ * The bed under the black keys is the art's job (see ri_art_bg_levi), which
+ * is why confining this rule does not shorten the white keys: the art lays
+ * white across 355..470 for the live slots, and this paints 470..550. */
+int ri_levi_key_paint_q(const struct RIGeoItem *it, int *x0, int *y0, int *x1, int *y1) {
+    uint32_t idx;
+    if (!it || !x0 || !y0 || !x1 || !y1)
+        return 2;
+    idx = it->reg_id & 0xFFu;
+    if (idx < RI_SLEVI_KEY0 || idx >= RI_SLEVI_KEY0 + RI_SLEVI_KEYS)
+        return 2;
+    *x0 = (int)it->cx - (int)it->w / 2;
+    *x1 = (int)it->cx + (int)it->w / 2;
+    *y0 = (int)it->cy - (int)it->h / 2;
+    *y1 = (int)it->cy + (int)it->h / 2;
+    return 0;
+}
+
 void ri_art_levi_item(struct ri_dlist *dl, const struct RIGeoItem *it, const struct RICtlDef *d,
     const struct RISectUI *ui, int cx, int cy, int hw, int hh, int z) {
     static const int OSCCOL[8] = { C_LEVI_TEAL, C_LEVI_O2, C_LEVI_O3, C_LEVI_O4, C_LEVI_O5, C_LEVI_O6,
@@ -527,12 +566,17 @@ void ri_art_levi_item(struct ri_dlist *dl, const struct RIGeoItem *it, const str
         return;
     }
     if (idx >= RI_SLEVI_KEY0 && idx < RI_SLEVI_KEY0 + RI_SLEVI_KEYS) {       /* keybed key */
+        int bx0, by0, bx1, by1;
         int lit = ri_sui_led(ui, idx, 0);
         int black = hh > PX(50);
-        if (!black) {                      /* white: hit band is the lower part; paint full height */
-            cy = (PX(LEVI_KEY_Y0) + PX(LEVI_KEY_Y1)) / 2 + (cy - PX(510));
-            hh = (PX(LEVI_KEY_Y1) - PX(LEVI_KEY_Y0)) / 2;
-        }
+        if (ri_levi_key_paint_q(it, &bx0, &by0, &bx1, &by1) != 0)
+            return;
+        /* The rule answers in section Q; the box in hand is already canvas
+         * px, so move from this item's own centre by the Q delta. */
+        cx += PX((bx0 + bx1) / 2) - PX((int)it->cx);
+        cy += PX((by0 + by1) / 2) - PX((int)it->cy);
+        hw = PX(bx1 - bx0) / 2;
+        hh = PX(by1 - by0) / 2;
         uint32_t c = ri_art_rgb(black ? C_BLACK : C_WHITEKEY);
         ri_draw_rect(dl, cx - hw, cy - hh, cx + hw, cy + hh, black ? c : ri_art_shade(c, -10));
         ri_draw_rect(dl, cx - hw + 1, cy - hh, cx + hw - 1, cy + hh - PX(8), c);

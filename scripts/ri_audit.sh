@@ -1243,6 +1243,16 @@ bash "$ROOT/scripts/ri_build_host.sh" test t236_midi_teardown_order >/dev/null |
 # -- and dispose them before the classes are dropped. t236 pins the order,
 # t237 the ownership.
 bash "$ROOT/scripts/ri_build_host.sh" test t237_canvas_ownership >/dev/null || { echo "FAIL: t237_canvas_ownership (the page build never hands Zune a canvas it does not own)"; exit 1; }
+# t238 is the owner's keybed round 2026-10-23: of 13 keys only a few were
+# audible, those low, and the 6th black key from the left rendered half. The
+# map, the registry and the latch were all correct -- the PAINT was not: a
+# white key painted the whole band over the blacks beside it, so a 36 Q black
+# showed about 4 Q and the full-width black keys the owner aimed at were art
+# decoration with nothing behind them. t238 drives the map and the drawing's
+# own rule (ri_levi_key_paint_q), pins paint == hit and no paint over another
+# key's centre, and pins the keybed's fixed velocity at the note path's full
+# value (owner ruled the raise, 100 -> 127).
+bash "$ROOT/scripts/ri_build_host.sh" test t238_levi_key_paint >/dev/null || { echo "FAIL: t238_levi_key_paint (a key paints its own hit box; no live key paints another; keybed sends full velocity)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

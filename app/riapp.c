@@ -1902,7 +1902,9 @@ static void meter_round(ULONG mix_freq) {
      * Same path the ear proof heard: RI_CTL_LEVI_NOTE with hi carrying the
      * note and bit 7 as on/off -- ri_ctl_send2, exactly as the MIDI bridge
      * uses it (app/riapp.c, the `la.kind == RI_LEVI_ACT_NOTE` branch).
-     * Velocity is fixed at the owner's E0 default, 100. */
+     * Velocity is fixed, at the owner's raised default: 100 read as "the
+     * volume is low" on the 2026-10-23 ear round, and 127 is the maximum the
+     * note path takes. */
     if (s_dg[C_LEVI]) {
         uint16_t held = (uint16_t)s_dg[C_LEVI]->key_held;
         uint32_t ki = held & 0xFFu;

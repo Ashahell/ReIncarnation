@@ -243,15 +243,19 @@ static const struct { uint8_t sec, z; uint32_t h; } T_PIN[] = {
     { 17u, 1u, 0xf040cea0u },
     { 17u, 2u, 0xfc368a9bu },
     { 17u, 3u, 0x0376ba78u },
-    /* sec 18 = LEVI, re-pinned 2026-10-13 for the same deliberate change as
-     * t92_draw_hash: BALANCE and arp MODE/OCTAVE/GATE/ENTROPY moved out of the
-     * dim DKNOB art table into RI_GEO_LEVI and now draw from their real
-     * value. Only the Levi section moved; every other raster pin is
-     * untouched at all four zooms. */
-    { 18u, 0u, 0x1f7a5aa6u},
-    { 18u, 1u, 0xda5be748u},
-    { 18u, 2u, 0x15d3d60cu},
-    { 18u, 3u, 0xed9e639du},
+    /* sec 18 = LEVI, re-pinned 2026-10-23 for P-KEY2 (the keybed paint rule):
+     * every live key now paints the hit box it owns, and ri_art_bg_levi lays
+     * the white bed (355..470) under the live slots so the black keys have
+     * something white to be black on. The 2026-10-13 re-pin underneath is the
+     * earlier deliberate change — BALANCE and arp MODE/OCTAVE/GATE/ENTROPY
+     * moving out of the dim DKNOB art table into RI_GEO_LEVI and drawing from
+     * their real value. Either way: only the Levi section moved, and every
+     * other raster pin is untouched at all four zooms, which is what tells us
+     * the delta is confined to the Levi panel. */
+    { 18u, 0u, 0x13485eabu},
+    { 18u, 1u, 0xded94c13u},
+    { 18u, 2u, 0x1de18940u},
+    { 18u, 3u, 0x6e785975u},
     { 19u, 0u, 0xc663c06au },
     { 19u, 1u, 0x854d5ab5u },
     { 19u, 2u, 0xecbfc991u },

@@ -244,10 +244,15 @@
 #define RI_SLEVI_KEY0 24u       /* 13 pitch keys: 24..36 = C..C+ */
 #define RI_SLEVI_KEYS 13u
 #define RI_SLEVI_MIDDLE_C 60u
-/* Keybed velocity: fixed, not a knob (owner 2026-10-13, E0 default). The
- * hardware keybed is not velocity-sensitive, and the owner ruled a fixed
- * value rather than an invented curve. */
-#define RI_LEVI_KEY_VEL 100u
+/* Keybed velocity: fixed, not a knob. Ruled 100 on 2026-10-13 as an E0
+ * default; the owner's ear round on 2026-10-23 heard the keys but called the
+ * volume low, and ruled the raise. 127 is the maximum the note path takes
+ * (levi_note_vel clamps 0..127, and t238 pins that the keybed's value
+ * normalises to full velocity at the voice), so the keybed now sends the
+ * loudest note the path can express -- still not velocity-sensitive, because
+ * the hardware keybed is not. t221's header quotes the ORIGINAL ruling of a
+ * fixed 100; the fixed-ness is unchanged, the value is not. */
+#define RI_LEVI_KEY_VEL 127u
 
 struct RISectLevi {
     uint8_t section;           /* RI_SEC_LEVI */

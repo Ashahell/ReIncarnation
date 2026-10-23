@@ -119,6 +119,12 @@ void ri_art_bg_909(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, in
  * page, 7-segment algorithm readout, ribbon steps, keybed keys). */
 void ri_art_levi_item(struct ri_dlist *dl, const struct RIGeoItem *it, const struct RICtlDef *d,
     const struct RISectUI *ui, int cx, int cy, int hw, int hh, int z);
+/* THE KEYBED'S OWN PAINT RULE, in section Q units (absolute, canvas origin
+ * like every other geometry coordinate). ri_art_levi_item builds its rect
+ * from this, so a test that asked "where does a key paint?" gets the drawing's
+ * answer rather than a second copy of the rule that could disagree with it.
+ * Returns 0 and fills the box for a live keybed row, 2 for anything else. */
+int ri_levi_key_paint_q(const struct RIGeoItem *it, int *x0, int *y0, int *x1, int *y1);
 void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z);
 void ri_art_bg_mix(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, int master);
 void ri_art_bg_fx(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, int oy, int z, uint8_t sec);

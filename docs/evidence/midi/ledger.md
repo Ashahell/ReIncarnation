@@ -7891,3 +7891,156 @@ the command's output:
 
 The R12 brief (`docs/superpowers/plans/2026-10-19-r12-network-midi-opencode-prompt.md`)
 now says exactly that, and names `49fbec3dad` as the value on 2026-10-21.
+
+## P-KEY2: the keybed painted the slots it does not own — five of thirteen keys were invisible
+
+The owner's ear round on the re-staged Dell (build `8e98a66`, `RIAPP LOG build=c382b38`)
+said three things about the keybed:
+
+1. "of the 13 piano keys only a few produce something audible";
+2. "the volume is low";
+3. "one of the black keys (the 6th from the left) is only rendered half".
+
+### The presses came from the owner's hands, so the lane logged them
+
+18 presses, and **every one logged a WHITE-key note** — `LEVI key 60/62/64/65/67/69/71/72`
+(C D E F G A B C+), **zero lines** for any of the five black keys (idx 25,27,30,32,34
+= notes 61,63,66,68,70). Six of those presses logged **E**. So the bed was not
+"half broken by luck": **the aim and the picture disagreed**, which is a different
+claim from "the black keys are dead", and the log cannot tell those two apart.
+
+### What is NOT at fault — and the pins that stay GREEN prove it
+
+Driven off the map (`RI_GEO_LEVI`, `gui/ctlreg.c`), the geometry, the registry and the
+latch are all correct:
+
+```
+white rows  cx 882,941,1000,1059,1118,1177,1236,1295   cy 510, w 55, h 80   -> own y 470..550
+black rows  cx 912,971,1089,1148,1207                 cy 412, w 36, h 116  -> own y 354..470
+art band    LEVI_KEY_X0 440 / W 59 / N 22 / Y0 355 / Y1 550 / BKEY_Y1 470, bk[7] = {1,1,0,1,1,1,0}
+```
+
+A press at **each of the 13 rows' centres hit-tests to that row at every zoom**
+(0..3), each key has exactly one geometry row and a `BUTTON` registry row, and the
+black rows sit centred on the white boundaries the art uses: `(882+941)/2 = 911.5`
+against 912, `(941+1000)/2 = 970.5` against 971, a gap at 1029.5 (**E/F — correctly
+no black key**), 1088.5 against 1089, 1147.5 against 1148, 1206.5 against 1207.
+**The map is a correct piano.** t221 already proved the both-edges latch for all 13,
+and it stayed GREEN through this phase.
+
+### The arithmetic on the paint — one line of it, and where the report came from
+
+`gui/draw/art_levi.c`'s live-white branch re-centred a white key's paint over the
+**WHOLE band** (y 355..550) instead of the slot its hit box owns (470..550), and the
+geometry table lays **blacks before whites** (rows 292-296 before 297-304), so every
+white repaints the blacks beside it:
+
+- white C paints x 855..909 across the full height; black C# spans 894..930, so the
+  white covers 894..909;
+- white D paints 914..968 and covers the rest, 914..930;
+- **what survives of a 36 Q black key is 910..913, about 4 Q** — at the lane's
+  scale-2 calibration (22 image px per 59 Q) that is under 2 image px.
+
+The measured capture agrees exactly: the four live black slots sat as **2 image px**
+hairlines (the gap between the whites, not a key), full art blacks measured **14 px**,
+and the key the owner counted sat at **8 px** against 14.
+
+The half key, found two ways: the art skips its blacks for k 7..13, so from the left
+the black keys the owner can SEE are the art octave's five at x 499, 558, 676, 735,
+794 — and then the art black at x **1325, the sixth**, which live white C+ (idx 36,
+painting to 1322) covers from the left, leaving 1322..1343 = **about 21 Q = 8 image px**.
+Same number, same key, from the code and from the pixels.
+
+**And that is why the presses missed.** The full-width black keys the owner aimed at
+are art decoration at x < 853 and x > 1325 — the art band carries 22 whites, the live
+bed 13 (slots k 7..14, x 853..1325) — and there is **no control behind them**. Every
+black-key press therefore landed on a live **white** box: which is exactly the
+18-for-8 log above.
+
+### The invariant, not the symptom — and which half of it was already GREEN
+
+`t238_levi_key_paint` drives the map and the drawing's **own rule**, `ri_levi_key_paint_q`
+(declared in `gui/draw/art.h`, defined in `gui/draw/art_levi.c`, and `ri_art_levi_item`
+derives its rect from it) — the shape that makes "where a key paints" a fact about the
+product and not about a second copy of the rule. The invariant:
+
+1. **a key paints THE SLOT IT CAN HIT** — paint box == hit box, compared **in Q units**;
+2. **no live key's paint covers another live key's centre** — all 13 x 12 pairs, driven
+   from the map, not the two the report happened to name.
+
+Honest about which assertion carried the finding: **the width assertion and the
+centre-coverage assertion were GREEN** on the old code (the whites' x extents stop at
+the boundaries, so no white reaches a black's centre). **The height assertion is the
+finding** — 8 whites painting `355..550` against a hit band of `470..550`.
+
+**RED: 9 failures** = the 8 white-key paint heights + 1 velocity. **GREEN after the fix**,
+with `t220_levi_knobs` and `t221_keybed` unchanged.
+
+### The method trap this phase caught in itself
+
+My first version of the rule classified keys with `it->h > 50` in **raw Q** while the
+drawing classifies on **half-heights** (`hh > PX(50)`). In raw Q that puts the whites
+(h = 80) in the **black** branch, so the rule returned the hit box for every key, the
+invariant went **GREEN with no finding at all**, and the test looked like a passing
+test. The threshold is `it->h / 2 > 50`. The lesson is the standing one — a comparison
+that mixes units passes at one zoom and fails at another while the product is unchanged,
+and a GREEN that comes from the edit not landing is indistinguishable from a real
+GREEN without `grep -c`.
+
+### The fix
+
+- `ri_levi_key_paint_q` paints **the slot a key owns** — cx ± w/2, cy ± h/2. The stretched
+  version is gone; the fix is the same function, not a second one.
+- `ri_art_bg_levi` now **lays the white bed 355..470 for the live slots** (k 7..14) instead
+  of skipping them. This is why confining the paint does **not** shorten the white keys:
+  the art underlay paints 355..470, the control paints 470..550, and the black keys —
+  still skipped by the art, still painted by the controls at 354..470 — now have **white
+  to be black on** instead of panel-dark. The owner's ruling was to keep the geometry and
+  fix only the paint, and the geometry was never touched.
+- `RI_LEVI_KEY_VEL` **100 -> 127**. This is a REVERSAL of the owner's 2026-10-13 fixed-100
+  ruling, and the reversal is recorded where it is read: `gui/sectlevi.h`, the `app/riapp.c`
+  comment, and here. **Fixedness is unchanged** — the hardware keybed is not velocity-sensitive
+  — only the value, at the note path's ceiling (`levi_note_vel` clamps 0..127, t146 owns that
+  clamp and the `vel01` -> level route). t238 pins the engine's own terms: the voice takes the
+  keybed's velocity and `vel01` normalises to **1.0f**, not 100/127.
+
+### The mutation harness, and the division of labour it exposes
+
+`tests/mutate_levi_key_paint.py`, **6/6**, scored on return codes with the marker rule
+(a mutant's marker never requires a token it removes). The gate is **two tests on purpose**,
+and the harness prints which gate killed each mutant:
+
+| mutant | killed by |
+|---|---|
+| m1 the white band stretched again (the exact regression) | t238 + t92 |
+| m2 the box widened to the full pitch | t238 + t92 |
+| m3 the box shifted by 4 Q | t238 + t92 |
+| m4 the velocity lowered back to 100 | t238 + t92 |
+| m5 the DRAWING re-stretches the live whites itself | **t92 only** |
+| m6 the art's bed for the live slots not laid | **t92 only** |
+
+**m5 is the honest limit of t238**: it drives the rule, so a drawing that stops using the
+rule's answer is invisible to it by construction — testing a rule nothing uses tests nothing.
+Only the hash pin sees m5/m6, and the harness says so rather than scoring a quiet 6/6.
+
+### The pins that had to move, and what they confirmed
+
+`t92_draw_hash` and `t93_raster_goldens` each failed **exactly 4** — the four LEVI (sec 18)
+pins — and nothing else. LEVI display-list hashes re-pinned to `1e034651 / a8def2a7 /
+d3afa1c7 / 6cde42a7`; LEVI raster goldens to `13485eab / ded94c13 / 1de18940 / 6e785975`.
+**Twenty other sections untouched at all four zooms, twice over, is what proves the delta
+is confined to the Levi panel** — that is the check working, not a re-pin habit.
+
+`AUDIT 0/0 PASS`. **AROS build 1237704 bytes, sha256 `27b5879dfa8c50a54c97`** (the byte
+count moved 20 328 from `c382b38`'s 1217072 — this build has never run on the Dell).
+
+### Ear-proof scope — what this phase does NOT claim
+
+**Nothing here is ear-proven.** What is proven: the picture and the hit boxes coincide
+(the invariant, in Q), the art's black keys coincide with the live black rows, and the
+keybed's fixed velocity is the path's ceiling (engine terms). What is NOT claimed: that
+the owner now hears all 13 keys, that the white keys' notes are all audible, or that the
+low-volume complaint is closed at the mixer. The next Dell round on **this** build is the
+ear proof, and it is a listening round — `RIAPP_MIDI_DEVOUT 0` and `RIAPP_MIDI_CLKOUT 0`
+per `docs/evidence/midi/leviprobe.run`, because on this machine the camd wire IS the
+cluster the app reads and the app re-ingests its own output.
