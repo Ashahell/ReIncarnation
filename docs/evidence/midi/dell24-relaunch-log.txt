@@ -1,0 +1,398 @@
+RIAPP log: session start, 727405 B of 262144 -> ROLLING to RIAPP.LOG.1
+RIAPP log: previous session kept as RIAPP.LOG.1
+RIAPP LOG build=386abb8 diag=0
+RIAPP claim: RAM:RIAPP.lock rc=0 (undated (no heartbeat) -> takeover)
+RIAPP 909 pack: 11 voices bound
+RIAPP midi in=riapp out=riapp ch=1 sync=0 levi=2 clkout=0 lat=8 devout=0 notech=0
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP skin: installed=4 dir=SYS:Classes/ReIncarnation/Mods/
+RIAPP zoom: mode=1 zoom=0 screen=1366x768
+RIAPP zoom: levi=1
+RIAPP skin: sync=0 zoom=0 current=Classic
+RIAPP zoom: View menu built (1x/1.5x/2x/Fit)
+RIAPP panel: tabbed Synths/Drums/Levi/Mix/FX + transport, rack bay (open=1 rack=1 tabs=5)
+RIAPP song Vk4aros:ReIncarnation/songs/zombie-nation.rbng: open failed (probe; requester suppressed)
+RIAPP song Vk4aros:ReIncarnation/songs/local/zombie-nation.rbng: open failed (probe; requester suppressed)
+RIAPP song Vk4aros:ReIncarnation/songs/local/zombie-nation/zombie-nation.rbng: 151 bars at 140 BPM
+RIAPP play
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=5 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/9 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=2915 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=19 us n=15
+RIAPP stg[1]: avg=32 us max=44 us n=2915
+RIAPP stg[2]: avg=4 us max=14 us n=2915
+RIAPP stg[3]: avg=4 us max=15 us n=2915
+RIAPP stg[4]: avg=4 us max=15 us n=2915
+RIAPP stg[5]: avg=1525 us max=1884 us n=2915
+RIAPP stg[6]: avg=4 us max=15 us n=2915
+RIAPP stg[7]: avg=1606 us max=1967 us n=2915
+RIAPP dstg n=11795
+RIAPP dstg zero   avg=4 us max=17 us
+RIAPP dstg delay  avg=5 us max=16 us
+RIAPP dstg comp   avg=4 us max=16 us
+RIAPP dstg master avg=4 us max=15 us
+RIAPP dstg meter  avg=5 us max=16 us
+RIAPP dstg limit  avg=5 us max=16 us
+RIAPP dstg 303a   avg=76 us max=89 us
+RIAPP dstg 303b   avg=84 us max=99 us
+RIAPP dstg 808    avg=33 us max=88 us
+RIAPP dstg 909    avg=27 us max=58 us
+RIAPP dstg levi   avg=60 us max=74 us
+RIAPP dstg lev-arp avg=4 us max=15 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=8 us max=20 us
+RIAPP dstg lev-mix avg=5 us max=16 us
+RIAPP dstg lev-tempo avg=4 us max=15 us
+RIAPP dstg lev-probe avg=4 us max=16 us
+RIAPP dstg lev-probe2 avg=4 us max=16 us
+RIAPP dstg block  avg=371 us max=431 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=0 fx_samples=0 vus=9
+RIAPP hb: t=16:43:47
+RIAPP hb: buffers=2930 xruns=0 render_max=1982 us wake_max=72 us wake_n=2928 prio=21 arm_us=0 load=318/1000 overloads=0 snd=1/1/1/3 pend=1/1/1/3
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=0 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/9 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=5843 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=19 us n=15
+RIAPP stg[1]: avg=33 us max=45 us n=5843
+RIAPP stg[2]: avg=4 us max=14 us n=5843
+RIAPP stg[3]: avg=4 us max=15 us n=5843
+RIAPP stg[4]: avg=4 us max=16 us n=5843
+RIAPP stg[5]: avg=1575 us max=1884 us n=5843
+RIAPP stg[6]: avg=4 us max=15 us n=5843
+RIAPP stg[7]: avg=1656 us max=1967 us n=5843
+RIAPP dstg n=23642
+RIAPP dstg zero   avg=4 us max=17 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=16 us
+RIAPP dstg master avg=4 us max=15 us
+RIAPP dstg meter  avg=5 us max=16 us
+RIAPP dstg limit  avg=5 us max=16 us
+RIAPP dstg 303a   avg=76 us max=89 us
+RIAPP dstg 303b   avg=85 us max=102 us
+RIAPP dstg 808    avg=45 us max=88 us
+RIAPP dstg 909    avg=27 us max=60 us
+RIAPP dstg levi   avg=60 us max=74 us
+RIAPP dstg lev-arp avg=4 us max=15 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=8 us max=21 us
+RIAPP dstg lev-mix avg=5 us max=16 us
+RIAPP dstg lev-tempo avg=4 us max=15 us
+RIAPP dstg lev-probe avg=4 us max=16 us
+RIAPP dstg lev-probe2 avg=4 us max=16 us
+RIAPP dstg block  avg=384 us max=442 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=0 fx_samples=0 vus=9
+RIAPP hb: t=16:44:03
+RIAPP hb: buffers=5858 xruns=0 render_max=1982 us wake_max=72 us wake_n=5856 prio=21 arm_us=0 load=330/1000 overloads=0 snd=1/1/1/3 pend=1/1/1/3
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=0 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/9 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=8791 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=19 us n=15
+RIAPP stg[1]: avg=33 us max=46 us n=8791
+RIAPP stg[2]: avg=4 us max=15 us n=8791
+RIAPP stg[3]: avg=4 us max=15 us n=8791
+RIAPP stg[4]: avg=4 us max=16 us n=8791
+RIAPP stg[5]: avg=1742 us max=3051 us n=8791
+RIAPP stg[6]: avg=4 us max=15 us n=8791
+RIAPP stg[7]: avg=1823 us max=3134 us n=8791
+RIAPP dstg n=35570
+RIAPP dstg zero   avg=4 us max=17 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=17 us
+RIAPP dstg master avg=4 us max=15 us
+RIAPP dstg meter  avg=5 us max=16 us
+RIAPP dstg limit  avg=5 us max=16 us
+RIAPP dstg 303a   avg=76 us max=99 us
+RIAPP dstg 303b   avg=85 us max=108 us
+RIAPP dstg 808    avg=44 us max=88 us
+RIAPP dstg 909    avg=24 us max=60 us
+RIAPP dstg levi   avg=105 us max=438 us
+RIAPP dstg lev-arp avg=4 us max=16 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=53 us max=385 us
+RIAPP dstg lev-mix avg=5 us max=16 us
+RIAPP dstg lev-tempo avg=4 us max=16 us
+RIAPP dstg lev-probe avg=4 us max=17 us
+RIAPP dstg lev-probe2 avg=4 us max=16 us
+RIAPP dstg block  avg=425 us max=756 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=256 fx_samples=0 vus=331
+RIAPP hb: t=16:44:18
+RIAPP hb: buffers=8806 xruns=0 render_max=3150 us wake_max=72 us wake_n=8804 prio=21 arm_us=0 load=525/1000 overloads=0 snd=0/3/0/0 pend=0/3/0/0
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=0 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/9 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=11751 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=19 us n=15
+RIAPP stg[1]: avg=33 us max=46 us n=11751
+RIAPP stg[2]: avg=4 us max=15 us n=11751
+RIAPP stg[3]: avg=4 us max=15 us n=11751
+RIAPP stg[4]: avg=4 us max=16 us n=11751
+RIAPP stg[5]: avg=1894 us max=3051 us n=11751
+RIAPP stg[6]: avg=4 us max=15 us n=11751
+RIAPP stg[7]: avg=1974 us max=3134 us n=11751
+RIAPP dstg n=47547
+RIAPP dstg zero   avg=4 us max=17 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=17 us
+RIAPP dstg master avg=4 us max=15 us
+RIAPP dstg meter  avg=5 us max=18 us
+RIAPP dstg limit  avg=5 us max=16 us
+RIAPP dstg 303a   avg=76 us max=99 us
+RIAPP dstg 303b   avg=85 us max=108 us
+RIAPP dstg 808    avg=38 us max=88 us
+RIAPP dstg 909    avg=21 us max=60 us
+RIAPP dstg levi   avg=152 us max=438 us
+RIAPP dstg lev-arp avg=4 us max=16 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=100 us max=385 us
+RIAPP dstg lev-mix avg=5 us max=17 us
+RIAPP dstg lev-tempo avg=4 us max=16 us
+RIAPP dstg lev-probe avg=4 us max=17 us
+RIAPP dstg lev-probe2 avg=4 us max=16 us
+RIAPP dstg block  avg=462 us max=756 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=256 fx_samples=0 vus=336
+RIAPP hb: t=16:44:34
+RIAPP hb: buffers=11766 xruns=0 render_max=3150 us wake_max=72 us wake_n=11764 prio=21 arm_us=0 load=501/1000 overloads=0 snd=0/4/0/8 pend=0/4/0/8
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=0 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/9 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=14743 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=19 us n=15
+RIAPP stg[1]: avg=33 us max=46 us n=14743
+RIAPP stg[2]: avg=4 us max=15 us n=14743
+RIAPP stg[3]: avg=4 us max=15 us n=14743
+RIAPP stg[4]: avg=4 us max=16 us n=14743
+RIAPP stg[5]: avg=1984 us max=3051 us n=14743
+RIAPP stg[6]: avg=4 us max=15 us n=14743
+RIAPP stg[7]: avg=2065 us max=3134 us n=14743
+RIAPP dstg n=59653
+RIAPP dstg zero   avg=4 us max=17 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=17 us
+RIAPP dstg master avg=4 us max=16 us
+RIAPP dstg meter  avg=5 us max=18 us
+RIAPP dstg limit  avg=5 us max=16 us
+RIAPP dstg 303a   avg=76 us max=99 us
+RIAPP dstg 303b   avg=85 us max=108 us
+RIAPP dstg 808    avg=31 us max=88 us
+RIAPP dstg 909    avg=24 us max=79 us
+RIAPP dstg levi   avg=178 us max=438 us
+RIAPP dstg lev-arp avg=4 us max=17 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=126 us max=387 us
+RIAPP dstg lev-mix avg=5 us max=17 us
+RIAPP dstg lev-tempo avg=4 us max=16 us
+RIAPP dstg lev-probe avg=4 us max=17 us
+RIAPP dstg lev-probe2 avg=4 us max=16 us
+RIAPP dstg block  avg=485 us max=759 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=128 fx_samples=0 vus=153
+RIAPP hb: t=16:44:50
+RIAPP hb: buffers=14758 xruns=0 render_max=3150 us wake_max=72 us wake_n=14756 prio=21 arm_us=0 load=406/1000 overloads=0 snd=1/0/0/13 pend=1/0/0/13
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=0 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=9/1/10 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=17737 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=19 us n=15
+RIAPP stg[1]: avg=33 us max=46 us n=17737
+RIAPP stg[2]: avg=4 us max=15 us n=17737
+RIAPP stg[3]: avg=4 us max=15 us n=17737
+RIAPP stg[4]: avg=4 us max=16 us n=17737
+RIAPP stg[5]: avg=2060 us max=3051 us n=17737
+RIAPP stg[6]: avg=4 us max=15 us n=17737
+RIAPP stg[7]: avg=2141 us max=3134 us n=17737
+RIAPP dstg n=71767
+RIAPP dstg zero   avg=4 us max=17 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=17 us
+RIAPP dstg master avg=4 us max=16 us
+RIAPP dstg meter  avg=5 us max=18 us
+RIAPP dstg limit  avg=5 us max=16 us
+RIAPP dstg 303a   avg=76 us max=99 us
+RIAPP dstg 303b   avg=85 us max=108 us
+RIAPP dstg 808    avg=27 us max=88 us
+RIAPP dstg 909    avg=29 us max=79 us
+RIAPP dstg levi   avg=196 us max=438 us
+RIAPP dstg lev-arp avg=4 us max=17 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=144 us max=387 us
+RIAPP dstg lev-mix avg=5 us max=17 us
+RIAPP dstg lev-tempo avg=4 us max=16 us
+RIAPP dstg lev-probe avg=4 us max=17 us
+RIAPP dstg lev-probe2 avg=4 us max=17 us
+RIAPP dstg block  avg=504 us max=759 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=192 fx_samples=0 vus=254
+RIAPP hb: t=16:45:06
+RIAPP hb: buffers=17752 xruns=0 render_max=3150 us wake_max=72 us wake_n=17750 prio=21 arm_us=0 load=472/1000 overloads=0 snd=1/3/2/17 pend=1/3/2/17
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=0 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/10 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=20688 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=19 us n=15
+RIAPP stg[1]: avg=33 us max=47 us n=20688
+RIAPP stg[2]: avg=4 us max=15 us n=20688
+RIAPP stg[3]: avg=4 us max=17 us n=20688
+RIAPP stg[4]: avg=4 us max=16 us n=20688
+RIAPP stg[5]: avg=2107 us max=3125 us n=20688
+RIAPP stg[6]: avg=4 us max=16 us n=20688
+RIAPP stg[7]: avg=2188 us max=3207 us n=20688
+RIAPP dstg n=83711
+RIAPP dstg zero   avg=4 us max=17 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=17 us
+RIAPP dstg master avg=4 us max=17 us
+RIAPP dstg meter  avg=5 us max=18 us
+RIAPP dstg limit  avg=5 us max=17 us
+RIAPP dstg 303a   avg=76 us max=99 us
+RIAPP dstg 303b   avg=85 us max=108 us
+RIAPP dstg 808    avg=28 us max=88 us
+RIAPP dstg 909    avg=32 us max=82 us
+RIAPP dstg levi   avg=202 us max=439 us
+RIAPP dstg lev-arp avg=4 us max=17 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=150 us max=387 us
+RIAPP dstg lev-mix avg=5 us max=17 us
+RIAPP dstg lev-tempo avg=4 us max=16 us
+RIAPP dstg lev-probe avg=4 us max=17 us
+RIAPP dstg lev-probe2 avg=4 us max=17 us
+RIAPP dstg block  avg=515 us max=791 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=64 fx_samples=0 vus=64
+RIAPP hb: t=16:45:22
+RIAPP hb: buffers=20703 xruns=0 render_max=3222 us wake_max=72 us wake_n=20701 prio=21 arm_us=0 load=371/1000 overloads=0 snd=3/0/1/20 pend=3/0/1/20
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=0 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/10 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=23627 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=19 us n=15
+RIAPP stg[1]: avg=33 us max=47 us n=23627
+RIAPP stg[2]: avg=4 us max=16 us n=23627
+RIAPP stg[3]: avg=4 us max=17 us n=23627
+RIAPP stg[4]: avg=4 us max=16 us n=23627
+RIAPP stg[5]: avg=2077 us max=3125 us n=23627
+RIAPP stg[6]: avg=4 us max=16 us n=23627
+RIAPP stg[7]: avg=2158 us max=3207 us n=23627
+RIAPP dstg n=95612
+RIAPP dstg zero   avg=4 us max=17 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=17 us
+RIAPP dstg master avg=4 us max=17 us
+RIAPP dstg meter  avg=5 us max=18 us
+RIAPP dstg limit  avg=5 us max=17 us
+RIAPP dstg 303a   avg=76 us max=99 us
+RIAPP dstg 303b   avg=85 us max=108 us
+RIAPP dstg 808    avg=31 us max=88 us
+RIAPP dstg 909    avg=33 us max=85 us
+RIAPP dstg levi   avg=191 us max=439 us
+RIAPP dstg lev-arp avg=4 us max=17 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=140 us max=387 us
+RIAPP dstg lev-mix avg=5 us max=17 us
+RIAPP dstg lev-tempo avg=4 us max=16 us
+RIAPP dstg lev-probe avg=4 us max=17 us
+RIAPP dstg lev-probe2 avg=4 us max=17 us
+RIAPP dstg block  avg=507 us max=791 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=64 fx_samples=0 vus=90
+RIAPP hb: t=16:45:38
+RIAPP hb: buffers=23642 xruns=0 render_max=3222 us wake_max=72 us wake_n=23640 prio=21 arm_us=0 load=355/1000 overloads=0 snd=3/0/0/1 pend=3/0/0/1
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=0 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/10 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=26554 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=19 us n=15
+RIAPP stg[1]: avg=33 us max=47 us n=26554
+RIAPP stg[2]: avg=4 us max=16 us n=26554
+RIAPP stg[3]: avg=4 us max=17 us n=26554
+RIAPP stg[4]: avg=4 us max=16 us n=26554
+RIAPP stg[5]: avg=2029 us max=3125 us n=26554
+RIAPP stg[6]: avg=4 us max=16 us n=26554
+RIAPP stg[7]: avg=2110 us max=3207 us n=26554
+RIAPP dstg n=107451
+RIAPP dstg zero   avg=4 us max=17 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=17 us
+RIAPP dstg master avg=4 us max=17 us
+RIAPP dstg meter  avg=5 us max=18 us
+RIAPP dstg limit  avg=5 us max=17 us
+RIAPP dstg 303a   avg=76 us max=99 us
+RIAPP dstg 303b   avg=85 us max=108 us
+RIAPP dstg 808    avg=31 us max=88 us
+RIAPP dstg 909    avg=33 us max=85 us
+RIAPP dstg levi   avg=180 us max=439 us
+RIAPP dstg lev-arp avg=4 us max=17 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=128 us max=387 us
+RIAPP dstg lev-mix avg=5 us max=17 us
+RIAPP dstg lev-tempo avg=4 us max=17 us
+RIAPP dstg lev-probe avg=4 us max=17 us
+RIAPP dstg lev-probe2 avg=4 us max=17 us
+RIAPP dstg block  avg=496 us max=791 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=0 fx_samples=0 vus=9
+RIAPP hb: t=16:45:53
+RIAPP hb: buffers=26569 xruns=0 render_max=3222 us wake_max=72 us wake_n=26567 prio=21 arm_us=0 load=314/1000 overloads=0 snd=1/0/3/23 pend=1/0/3/23
+RIAPP teardown: canvases=21 parentless=1 sections=19
+RIAPP closed: buffers=28244 xruns=0 render_max=3222 us render_total=59201 ms period=5333 us wake_max=72 us wake_total=547 us wake_n=28242 stg_total_avg=2081 us stg_dsp_avg=2000 us stg_evt_avg=33 us stg_playing=28229 stg_stopped=15
+RIAPP log: session start, 16923 B of 262144 -> keeping
+RIAPP LOG build=386abb8 diag=0
+RIAPP claim: RAM:RIAPP.lock rc=0 (undated (no heartbeat) -> takeover)
+RIAPP 909 pack: 11 voices bound
+RIAPP midi in=riapp out=riapp ch=1 sync=0 levi=2 clkout=0 lat=8 devout=0 notech=0
+audio: AHI low-level mode=0x003e0001 mix=48000 Hz buffer=256 frames period=5333 us
+RIAPP skin: installed=4 dir=SYS:Classes/ReIncarnation/Mods/
+RIAPP zoom: mode=1 zoom=0 screen=1366x768
+RIAPP zoom: levi=1
+RIAPP skin: sync=0 zoom=0 current=Classic
+RIAPP zoom: View menu built (1x/1.5x/2x/Fit)
+RIAPP panel: tabbed Synths/Drums/Levi/Mix/FX + transport, rack bay (open=1 rack=1 tabs=5)
+RIAPP song Vk4aros:ReIncarnation/songs/zombie-nation.rbng: open failed (probe; requester suppressed)
+RIAPP song Vk4aros:ReIncarnation/songs/local/zombie-nation.rbng: open failed (probe; requester suppressed)
+RIAPP song Vk4aros:ReIncarnation/songs/local/zombie-nation/zombie-nation.rbng: 151 bars at 140 BPM
+RIAPP play
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=5 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/9 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=2908 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=18 us n=15
+RIAPP stg[1]: avg=32 us max=44 us n=2908
+RIAPP stg[2]: avg=4 us max=16 us n=2908
+RIAPP stg[3]: avg=4 us max=6 us n=2908
+RIAPP stg[4]: avg=4 us max=11 us n=2908
+RIAPP stg[5]: avg=1524 us max=1860 us n=2908
+RIAPP stg[6]: avg=4 us max=6 us n=2908
+RIAPP stg[7]: avg=1603 us max=1942 us n=2908
+RIAPP dstg n=11766
+RIAPP dstg zero   avg=4 us max=15 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=17 us
+RIAPP dstg master avg=4 us max=14 us
+RIAPP dstg meter  avg=5 us max=16 us
+RIAPP dstg limit  avg=5 us max=17 us
+RIAPP dstg 303a   avg=76 us max=89 us
+RIAPP dstg 303b   avg=84 us max=99 us
+RIAPP dstg 808    avg=33 us max=88 us
+RIAPP dstg 909    avg=27 us max=60 us
+RIAPP dstg levi   avg=60 us max=73 us
+RIAPP dstg lev-arp avg=4 us max=16 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=9 us max=21 us
+RIAPP dstg lev-mix avg=5 us max=17 us
+RIAPP dstg lev-tempo avg=4 us max=16 us
+RIAPP dstg lev-probe avg=4 us max=16 us
+RIAPP dstg lev-probe2 avg=4 us max=15 us
+RIAPP dstg block  avg=371 us max=429 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=0 fx_samples=0 vus=10
+RIAPP hb: t=16:47:52
+RIAPP hb: buffers=2923 xruns=0 render_max=1957 us wake_max=56 us wake_n=2921 prio=21 arm_us=0 load=315/1000 overloads=0 snd=1/1/1/3 pend=1/1/1/3
+RIAPP draw: full_max=0 us full_avg=0 us n=0 part_max=0 us part_avg=0 us n=0 blit_max=0 us allocs=0 box_steps=0/0/0 box_bar=0/0/0 box_other=0/0/0 box_none=0/0/0 build_avg=0 us build_max=0 us boxrep=8/1/9 rpl_max=0 us rpl_avg=0 us blt_max=0 us blt_avg=0 us blt_min=0 us gap_max=0 us gap_avg=0 us bsec=255 bsecsum=0 us diag=0
+RIAPP stg: playing=5841 stopped=15 stopped_avg=11 us
+RIAPP stg[0]: avg=11 us max=18 us n=15
+RIAPP stg[1]: avg=32 us max=44 us n=5841
+RIAPP stg[2]: avg=4 us max=16 us n=5841
+RIAPP stg[3]: avg=4 us max=16 us n=5841
+RIAPP stg[4]: avg=4 us max=11 us n=5841
+RIAPP stg[5]: avg=1573 us max=1874 us n=5841
+RIAPP stg[6]: avg=4 us max=6 us n=5841
+RIAPP stg[7]: avg=1653 us max=1953 us n=5841
+RIAPP dstg n=23634
+RIAPP dstg zero   avg=4 us max=16 us
+RIAPP dstg delay  avg=5 us max=17 us
+RIAPP dstg comp   avg=4 us max=17 us
+RIAPP dstg master avg=4 us max=15 us
+RIAPP dstg meter  avg=5 us max=17 us
+RIAPP dstg limit  avg=5 us max=18 us
+RIAPP dstg 303a   avg=76 us max=89 us
+RIAPP dstg 303b   avg=85 us max=103 us
+RIAPP dstg 808    avg=44 us max=88 us
+RIAPP dstg 909    avg=27 us max=60 us
+RIAPP dstg levi   avg=60 us max=74 us
+RIAPP dstg lev-arp avg=4 us max=17 us
+RIAPP dstg lev-seq avg=4 us max=16 us
+RIAPP dstg lev-voice avg=9 us max=21 us
+RIAPP dstg lev-mix avg=5 us max=17 us
+RIAPP dstg lev-tempo avg=4 us max=16 us
+RIAPP dstg lev-probe avg=4 us max=17 us
+RIAPP dstg lev-probe2 avg=4 us max=15 us
+RIAPP dstg block  avg=383 us max=435 us
+RIAPP vcount: samples=64 lfo_samples=0 lfo_iters=0 voice_calls=512 voice_active=0 fx_samples=0 vus=10
+RIAPP hb: t=16:48:07
+RIAPP hb: buffers=5856 xruns=0 render_max=1969 us wake_max=56 us wake_n=5854 prio=21 arm_us=0 load=329/1000 overloads=0 snd=1/1/1/3 pend=1/1/1/3

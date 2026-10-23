@@ -8044,3 +8044,55 @@ low-volume complaint is closed at the mixer. The next Dell round on **this** bui
 ear proof, and it is a listening round — `RIAPP_MIDI_DEVOUT 0` and `RIAPP_MIDI_CLKOUT 0`
 per `docs/evidence/midi/leviprobe.run`, because on this machine the camd wire IS the
 cluster the app reads and the app re-ingests its own output.
+
+## Dell re-stage and relaunch: the keybed fix's bytes are the bytes on the lane (2026-10-23)
+
+**What ran, recorded at capture time** (`/tmp` is tmpfs, and RAM: dies with the
+guest, so the identity is written here, not left in a temp):
+
+| file | bytes | sha256 (first 20) |
+|---|---|---|
+| `RAM:RIAPP.M4` | 1217912 | `916961f022c8b191546d` |
+
+That binary is the **v11** shape — `ri_build_v11.sh "$ROOT" "$OUT/RIAPP.M4"`
+from `scripts/lane_proof.sh`, whose argument shape puts the OUTPUT in `$2`.
+The build line itself prints `build=386abb8`, and the app log agrees:
+`RIAPP LOG build=386abb8`. **The `ri_build_aros.sh riapp` build quoted in the
+P-KEY2 entry (1237704 B, sha `27b5879dfa…`) is the v1-line shape, not the
+Dell's**; the two build paths produce different bytes, and a sha256 says which
+bytes ran, not what they are. `lane_proof.sh` exists precisely because that
+confusion is a deployed wrong program. Both numbers are recorded because both
+are true of different things: **the Dell ran `916961f0…`/`build=386abb8`.**
+
+**The staging order, as measured:** two `--put`s first (both `sha_ok=True`,
+1217912 B in 199 chunks over the chunked path because the agent lacked a
+bulk put window), then `--ui-close` on the exact title
+`RIAPP live panel - zombie-nation.rbng` (`[closerequest] ok`), then **85 s**
+of wait, then `--run-script RAM:LEVIPROBE.RUN` (`rc=0`, 15 s). Never `--exec`
+(not a shell; one blocked command wedges the agent ~90 s). The close is
+verified by re-listing windows, not by the close line, and the wait is longer
+than `RI_CLAIM_STALE_SEC 30` × 2 because a takeover needs the doubled value.
+The standing `RIAPP 230,323 906x123 [no-close]` window sits BEHIND the panel
+and does not block the launch.
+
+**Verified on the fresh instance:** one RIAPP panel window,
+`claim rc=0 (undated (no heartbeat) -> takeover)`, listening flags off
+(`clkout=0 devout=0`) — which is what `RAM:LEVIPROBE.RUN` sets, because on
+this machine the camd wire IS the cluster the app reads. Transport counters
+grow while `stopped` stays frozen at the 15 startup buffers:
+
+    playing=2908 -> playing=5841, stopped=15 both times, xruns=0
+
+**`playing=` counts rendered buffers, not audible ones** — the counters say the
+transport is running, and the ear round decides what is audible. Log kept as
+`docs/evidence/midi/dell24-relaunch-log.txt`.
+
+**The one thing the listening session has to know before it starts:** this
+instance has already finished the song by the time the owner sits down (151
+bars at 140 BPM ≈ 49 s), and at the end the app emits `TR PLAY` → `TR STOP`
+pairs ~7–13 ms apart — that is the end-of-song rule from `song_poll_end`, not
+a defect, and it is why the previous instance's EV log was 459 KB of those
+pairs. **A `Play` alone at the end cannot replay**; the gesture is
+**Stop-then-Play** (`ri_tr_stop` on an already-stopped transport moves the
+cursor — E1 p. 145 C4, and first stop while stopped goes to Loop Start, or to
+song start when strictly before it).
