@@ -1,0 +1,116 @@
+; leviprobe.run -- start RIAPP on the Dell for an OWNER listening session and
+; do nothing else. The sibling `lane_proof.run` is the scripted MIDI proof; this
+; one exists because that proof is not what a Levi / keybed / mixer ear round
+; needs: MIDISEND playing M4 and R5 into the app during a listening session
+; floods the log with scripted notes and answers questions the owner is not
+; asking. What the owner needs is the app, up, configured, and idle.
+;
+; Run with:  spike_server.py submit --spool /tmp/spike_spool_laptop --wait 90 \
+;              --run-script RAM:LEVIPROBE.RUN
+; NOT with --exec: --exec is not a shell on this lane (a redirect inside it
+; returns rc=0 having written nothing), and ONE blocked command there wedges the
+; agent's whole command path for ~90 s until an owner reboot. Measured, not
+; guessed (llm-wiki 2026-10-02-dell-lane-bare-path-launch, 2026-10-09).
+;
+; COMMENTS ARE ';'. '#', 'REM' and '/*' are each EXECUTED as a command on this
+; shell and each prints "object not found" -- and an unrecognised command STOPS
+; the script, which is how an assumed `Unsetenv` once killed a run at line 25
+; after 19 ms, leaving no app and no log at all.
+;
+; THIS FILE EXISTS IN GIT BECAUSE THE ORIGINAL DID NOT EXIST IN GIT AT ALL. The
+; Dell's RAM: is wiped by every reboot (llm-wiki 2026-10-01-dell-deploy-abiv11;
+; 2026-09-29-lane-reboot-recovery), and the launch script lived ONLY on RAM:.
+; So every re-stage after a reboot silently depended on remembering the bytes
+; that made it, and an app that will not start has no symptom -- it is the same
+; silence as an app that starts and plays nothing. Standing rule: git holds
+; everything load-bearing, RAM: and /tmp hold only regenerables.
+;
+; RECONSTRUCTED 2026-10-23, not copied: the original RAM: bytes are unrecoverable
+; once RAM: has been wiped. The env block is `lane_proof.run`'s, which IS in git;
+; the launch form is the ledger's (P-FX1: "launched from a backgrounded
+; LEVIPROBE.RUN (`Run >NIL:`, not a bare prefix -- a bare prefix blocks and
+; wedges the agent)"). If those two agree, so is this file -- and the checks
+; below are what make that verifiable instead of assumed.
+;
+; WHAT PROVES THE START, IN ORDER: the ev log's first line carries
+; `build=<sha>`, which says WHICH BYTES ran; `RUN`/`SONG load`/`TR PLAY` say it
+; is playing; and `--ui-windows` afterwards MUST show exactly ONE RIAPP window,
+; because a second instance alongside a live one contends and fails SILENTLY
+; (llm-wiki 2026-10-02-one-requester-two-instances). Closing the previous
+; window BEFORE this runs is a step for the caller, not a fix here -- this
+; cannot see what is already up.
+;
+; SET NO REQUESTER, CLOSE NOTHING, NEVER `avail flush` (it can unlink the files
+; being read), NEVER `quit` to a monitor (it kills the machine the proof runs on).
+
+; ---- the env: where the two logs land, and what MIDI is wired to ----------
+; RIAPP_* is read per line, so it must be set HERE: executed by the agent there
+; is no other shell, and the first version of this script started nothing at all
+; because the env was described as "from a shell on the Dell" instead of set.
+setenv RIAPP_EVLOG RAM:
+setenv RIAPP_LOG RAM:
+setenv RIAPP_DEMO 0
+setenv RIAPP_MIDI_IN riapp
+; DEVOUT IS DELIBERATELY 0 HERE, WHERE lane_proof.run SETS IT TO 1. Not a
+; style choice: since commit 272cf20 ("O1: notes and MMC on the Dell wire, and
+; the init-order defect behind a silent devout") devout is no longer silent --
+; it really puts the song's notes on the wire -- and RIAPP_MIDI_IN names the
+; SAME camd cluster the sender writes into, because on one machine "the wire"
+; IS the cluster (lane_proof.run's header: "this is CAMD into CAMD"). So an
+; app with devout on and itself as its own receiver re-ingests everything it
+; sends: measured on this file's first run, 8071 messages SEEN and 6886 PLAYED
+; within 3.6 s of launch, `LEVI note` lines flooding, and RAM:RIAPP-EV.LOG
+; growing ~56 KB per 12 s so that EVERY evidence pull came back
+; `MISMATCH` -- the bulk protocol has no ranged read, so a file that grows
+; mid-transfer is an unusable copy, and an unusable log is what makes the next
+; "looks live but isn't" unfalsifiable rather than a grep.
+;
+; The outbound is still worth testing -- it is what R12/O0..O1 are about -- but
+; it belongs in a session that asks about the outbound, not in one that asks
+; whether a keybed or a mixer mute works. lane_proof.run keeps DEVOUT 1 for
+; exactly that reason.
+; CLKOUT IS 0 HERE FOR THE SAME REASON AS DEVOUT. With DEVOUT 0 the inbound
+; still counted ~300 messages/s and RAM:RIAPP-EV.LOG grew ~3 KB/s -- one
+; `NOTEIN played=...seen=` log line per inbound message -- because the sender
+; is enabled by `clk_out || dev_out`, so a clock out on the same camd cluster
+; the app reads from is the app clocking ITSELF. The rate was ~300 messages/s,
+; which is NOT the measured 56.0001 intervals/s of R12 N3, so the clock is a
+; CANDIDATE for the traffic and not a proven cause: this file's next run shows
+; whether the counter stops climbing with both flags off, and if it does not,
+; the sender is something else and this explanation is wrong.
+;
+; The cost is not cosmetic either way: ~3 KB/s of ev log, one `NOTEIN played=
+; ...seen=` line per inbound message, is ~1 MB over a five-minute owner
+; session, which is what turns an evidence pull into a MISMATCH (the bulk
+; protocol has no ranged read) and an unbounded log into a standing
+; contribution to wedging the guest.
+;
+; A clock-out round is a different session with a different question -- lane
+; proof keeps both flags on. Probed: with DEVOUT 0 and CLKOUT 1 the counter
+; climbed to seen=5249 in 17.6 s; with both off it is what this file's next
+; run either does or does not show.
+setenv RIAPP_MIDI_DEVOUT 0
+setenv RIAPP_MIDI_CLKOUT 0
+setenv RIAPP_MIDI_LATMS 8
+; RIAPP_MIDI_NOTECH is deliberately NOT set -- unset is what makes melodic
+; output follow the Leviasynth channel. It is absent in a bare `setenv` listing,
+; and there is no Unsetenv on this shell to "unset" it with.
+
+; ---- the listener goes first and in the background ------------------------
+; Same reason as lane_proof.run: it must be running BEFORE the app starts and
+; must outlive the session, so a note that arrives while nothing listens has
+; somewhere to go. Staged name is MIDISEND.V11 because it is an ABIv11 build --
+; calling it RAM:MIDISEND once gave "object not found" and skipped half a proof
+; by a name. If it is not in RAM:, this line fails SILENTLY (Run >NIL:), so
+; whether MIDI IN works at all is decided by the log line below, not by this one.
+Run >NIL: RAM:MIDISEND.V11 riapp LISTEN 600 RAM:R6LISTEN.LOG
+
+; ---- the app: backgrounded, or the agent's command path wedges ------------
+; `Run` is asynchronous in AmigaShell; a bare prefix BLOCKS. >NIL: because a
+; requester that inherits the agent's stdout is what the wedge costs.
+Run >NIL: RAM:RIAPP.M4
+
+; The window takes ~11-15 s to open and each Wait returns in ~1.06-1.14 s; ten
+; Waits is what the click harness settled on. Fifteen here, and the CALLER still
+; has to check --ui-windows for exactly one RIAPP window: a Wait is not proof.
+Wait 15
