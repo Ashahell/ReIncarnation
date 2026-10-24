@@ -8139,3 +8139,35 @@ file the lock article describes (`hb` itself still carries the claim instant,
 instances. The reboot erased their `RAM:` content and the byte-identical log pair that
 ended at `hb 16:43:47` while the clock said 17:02 was never explained. No claim is
 made about them; the current instance is the one proven, on `build=386abb8`.
+
+### Correction (same day): the song's `48 866` is buffers, not milliseconds — it is ~4:20 of music
+
+Two claims made in the 2026-10-23 re-stage entry (and repeated in today's evidence
+file) are wrong and are corrected here rather than rewritten. Both are units errors,
+and both were load-bearing.
+
+**The song is ~4 min 20 s, not ~49 s.** The EV `t` field and `stg: playing` are the
+same counter in **audio buffers** (~187.5/s at 48 kHz / 256 frames). Measured:
+
+- two runs, same song from bar 0 — `playing` froze at **48 864** with `TR STOP` at
+  `t=48 873`, and at **48 866** with `TR STOP` at `t=48 881`. 48 866 / 187.5 = **260.6 s**.
+  Their agreement also withdraws item 9's "the earlier stop was an already-advanced
+  cursor": both are the same full-song length;
+- the **`stopped` counter** settles it: `stopped=38 265` at 23:39:26 with the stop at
+  23:36:02 is 204 s of stopped buffers → **187.6/s**. Had the stop really been at 48.9 s
+  wall time, `stopped` would read ~78 000;
+- the **bars** agree: 151 × 16 sixteenths × 0.1071 s = 258.9 s → 48 550 buffers, plus
+  about one bar of lead-in;
+- during play the counter grows 2913 → 8790 in 31 s = **189.6/s**, i.e. the buffer rate,
+  not 1000/s.
+
+**Consequence, and it is a workflow one:** a relaunch buys ~4:20 of song. The
+60-second re-launch cycle was unnecessary churn and would have cut a listening round
+short — worth knowing before the next ear round, since "how long have I got" was being
+answered with a number ten times too small.
+
+**And the PLAY/STOP pairs are a press, not the end-of-song rule.** This run logged
+exactly one `TR STOP` and no pairs after the song ended. A `Play` press at the end does
+emit `TR PLAY` → `TR STOP` within a few ms (`song_poll_end` fires on the next poll), so
+19 575 lines of pairs at ~37 ev/s is repeated presses or a stuck key — the held-key
+auto-repeat the lane notes already warn about — not the app restarting itself.

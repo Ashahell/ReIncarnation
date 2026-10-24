@@ -70,3 +70,46 @@ run in this order, each as a separate spool job on /tmp/spike_spool_laptop.
    no evidence survives, and the EV-log mechanism above shows the inference I was
    drawing from a static EV log was invalid anyway. What is proven is the CURRENT
    instance, above, on build=386abb8.
+
+ADDENDUM, same day, after the song ended (23:36) and the app was relaunched for
+the owner at 23:41:57 (rc=0, fresh instance, playing=2903 stopped=15,
+build=386abb8, SONG load then TR PLAY). The addendum exists because two claims
+made above are WRONG and the numbers that refute them arrived after the file was
+written. They are corrected here, not rewritten above.
+
+A. THE SONG IS ~4 min 20 s, NOT ~49 s. The EV `t` field and `stg: playing` are
+   the same counter, in AUDIO BUFFERS (~187.5/s at 48 kHz / 256 frames) -- not
+   milliseconds. Three independent checks:
+
+   two runs, same song from bar 0:
+       playing froze at 48 864   and TR STOP logged at t = 48 873   (2026-10-22)
+       playing froze at 48 866   and TR STOP logged at t = 48 881   (2026-10-24)
+   48 866 buffers / 187.5 = 260.6 s. The two numbers agreeing across runs also
+   refutes item 9's "the earlier stop was an already-advanced cursor": it is
+   the SAME full-song length, measured twice.
+
+   the stopped counter is the clock that settles it:
+       after the stop, `stopped=38265` at hb 23:39:26
+       stop at 23:36:02 -> 204 s of stopped buffers -> 38265/204 = 187.6/s ✓
+       (if TR STOP had really been at 48.9 s wall time, `stopped` would have had
+       ~416 s to accumulate and would read ~78 000, not 38 265)
+
+   the bar arithmetic agrees:
+       151 bars x 16 sixteenths x (60/140/4 s per sixteenth = 0.1071 s) = 258.9 s
+       258.9 s x 187.5 buffers/s = 48 550 buffers, ~ one bar of lead-in -> ~48 870
+
+   during play the counter grows 2913 -> 8790 in 31 s = 189.6/s -- the buffer
+   rate, NOT 1000/s, which is why it is not a millisecond clock.
+
+   CONSEQUENCE: "the song is ~49 s" was a units error (a buffer count read as
+   milliseconds), repeated in the 2026-10-23 re-stage entry. A relaunch buys
+   ~4:20 of song, so a 60-second relaunch cycle was unnecessary churn and would
+   have cut a listening round short.
+
+B. THE PLAY/STOP PAIRS ARE A PRESS, NOT THE END-OF-SONG RULE. This run logged
+   exactly ONE `TR STOP` (ev 24) and no pairs at all after the song ended. A
+   Play press at the end produces `TR PLAY` then `TR STOP` within a few ms
+   (song_poll_end fires on the next poll), so a long run of pairs at ~37 ev/s is
+   repeated presses or a stuck key -- as the lane note already says, a held raw
+   key auto-repeats. The 19 575-line EV log from the previous session is
+   therefore an input artefact, not the app restarting itself.
