@@ -1,0 +1,50 @@
+Dell re-stage for the 37-key ear round, 2026-10-24 (P-KEY3).
+All host commands are separate spool jobs on /tmp/spike_spool_laptop; the guest
+clock reads year 2013 and is not used for ordering. Recorded at capture time:
+RAM: dies with the guest, so the identity lives here.
+
+1. The lane was live and had a panel up from the PREVIOUS stage:
+   [ui  ] windows 1366x768 screen, 3 window(s)
+          RIAPP live panel - zombie-nation.rbng    0,0 1349x680 [active,close@5,0]
+
+2. Built the v11 shape from the tree (ri_build_v11.sh "$ROOT" "$OUT/RIAPP.M4"):
+   AROS RIAPP v11 BUILD OK (/tmp/ri/laneproof/RIAPP.M4, 1220584 bytes,
+     build=2f6d65f, r12moves=193)
+   sha256 c4c29703a970f964b7ad64f2ac5116203357a2a4cbf6e2d61100361a168287b8
+   The PREVIOUS stage's binary was 1217912 B / sha 916961f022c8b191546d... /
+   build=386abb8, so the 64 672-byte move is the 37-key map, the t239 test and
+   the wiki correction, nothing else.
+
+3. Staged both files over the chunked path (the bulk path wedges on a 1.2 MB
+   put; never `avail flush`, never `quit` to a monitor):
+   [put ] RIAPP.M4 -> RAM:RIAPP.M4  1220584 B in 199 chunks, 9335 ms  sha_ok=True written=1220584 OK
+   [put ] leviprobe.run -> RAM:LEVIPROBE.RUN  7145 B in 2 chunks, 146 ms  sha_ok=True written=7145 OK
+
+4. Closed the old panel by EXACT title and verified by re-listing (the close
+   line alone is ambiguous):
+   [ui  ] close 'RIAPP live panel - zombie-nation.rbng' [closerequest] ok (43 ms)
+   [ui  ] windows 1366x768 screen, 2 window(s)   -> panel absent
+
+5. Waited 85 s (a takeover needs 2 x RI_CLAIM_STALE_SEC 30), then launched with
+   the listening script (NOT --exec: it is not a shell here, and one blocked
+   command wedges the agent ~90 s):
+   [script] 'RAM:LEVIPROBE.RUN' -> rc=0 (15079 ms)
+
+6. The fresh instance, verified three ways:
+   - exactly ONE RIAPP window (a second instance contends and fails silently):
+       RIAPP live panel - zombie-nation.rbng    0,0 1349x680 [active,close@5,0]
+   - its OWN event log names the bytes and the play state:
+       ev 2 0 RUN frames=256 vol=RAM: build=2f6d65f
+       ev 23 15 TR PLAY
+       ev 22 15 SONG load Vk4aros:ReIncarnation/songs/local/zombie-nation/zombie-nation.rbng bars=151 bpm=140
+   - its heartbeat advances with no xruns (two pulls ~15 s apart):
+       RIAPP hb: buffers=5857 xruns=0 render_max=1970 us wake_max=37 us prio=21 load=329/1000 overloads=0
+       RIAPP hb: buffers=8812 xruns=0 render_max=3156 us wake_max=37 us prio=21 load=514/1000 overloads=0
+
+7. What is playing: the song from bar 0 on the 37-key build, DEVOUT 0 and
+   CLKOUT 0 (leviprobe.run), so the app does not re-ingest its own output and
+   the log stays small enough to pull whole. The bed on screen is 22 whites +
+   15 blacks, C4..C7, every one a control (t239); this session is the ear proof
+   the phase cannot supply.
+
+Copies: dell26-ev.log, dell26-app.log (pulled at 18:03, unchanged EV body).
