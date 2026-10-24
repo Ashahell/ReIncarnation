@@ -1908,10 +1908,9 @@ static void meter_round(ULONG mix_freq) {
     if (s_dg[C_LEVI]) {
         uint16_t held = (uint16_t)s_dg[C_LEVI]->key_held;
         uint32_t ki = held & 0xFFu;
-        if (held != 0xFFFFu && ki >= RI_SLEVI_KEY0 &&
-            ki < RI_SLEVI_KEY0 + RI_SLEVI_KEYS) {
+        if (held != 0xFFFFu && ri_levi_key_n((uint16_t)ki) >= 0) {
             if (held != s_key_sent) {
-                uint8_t note = (uint8_t)(RI_SLEVI_MIDDLE_C + (ki - RI_SLEVI_KEY0));
+                uint8_t note = ri_levi_key_note((unsigned)ri_levi_key_n((uint16_t)ki));
                 ri_ctl_send2(&s_core.ctl, RI_CTL_LEVI_NOTE,
                     (uint8_t)RI_LEVI_KEY_VEL, (uint8_t)(0x80u | note));
                 s_key_sent = held;
@@ -1920,7 +1919,9 @@ static void meter_round(ULONG mix_freq) {
             }
         } else if (s_key_sent != 0xFFFFu) {
             uint32_t si = s_key_sent & 0xFFu;
-            uint8_t note = (uint8_t)(RI_SLEVI_MIDDLE_C + (si - RI_SLEVI_KEY0));
+            int sn = ri_levi_key_n((uint16_t)si);
+            uint8_t note = sn >= 0 ? ri_levi_key_note((unsigned)sn)
+                                   : (uint8_t)RI_SLEVI_MIDDLE_C;
             ri_ctl_send2(&s_core.ctl, RI_CTL_LEVI_NOTE, 0u, note);
             s_key_sent = 0xFFFFu;
             evlog("LEVI", "key %u off", (unsigned)note);

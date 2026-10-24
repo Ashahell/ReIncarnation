@@ -8171,3 +8171,91 @@ exactly one `TR STOP` and no pairs after the song ended. A `Play` press at the e
 emit `TR PLAY` → `TR STOP` within a few ms (`song_poll_end` fires on the next poll), so
 19 575 lines of pairs at ~37 ev/s is repeated presses or a stuck key — the held-key
 auto-repeat the lane notes already warn about — not the app restarting itself.
+
+## P-KEY3 — the panel drew a keyboard it did not own: 19 of 32 visible keys were silent (2026-10-24)
+
+**The report, verbatim:** "In the Levi panel, the 1st seven and the last seven white
+piano keys do not produce anything audible. The other white piano keys do produce a
+tone. Also, only the middle 5 black piano keys produce anything audible."
+
+**The arithmetic matched the report exactly, and it needed the picture, not the log.**
+The art laid 22 white keys (pitch 59, x 440..1738) and skipped its black keys only for
+k 7..13, so the panel showed **22 whites + 10 blacks**. The registry had **13** keys
+(ids 24..36) at cx 882..1295 — the middle octave — and the art's live branch painted
+only its own slots. So the drawn-but-dead set was **14 whites (the first seven and the
+last seven) and 5 outer blacks**: the same two groups the owner pressed. P-KEY2 fixed
+which rect a key paints; this phase is the other half of the same rule — *a key the
+panel draws is a control*.
+
+**The owner chose the three-octave bed**, not a smaller picture: 37 keys = 22 white +
+15 black, C4..C7, one semitone per key. That number is forced by the art (5 blacks per
+octave × 3 = 15), not chosen for roundness.
+
+**The ids are a MAP, not a range, and that is the load-bearing decision.** The LEVI
+section's only free run is 228..255 (4..23 and 37..227 are other controls), so 37 keys
+cannot be contiguous. Keys 0..12 keep **24..36** — songs, skins and automation key on
+the ids, and a renumber would have moved every stored reference. Keys 13..36 take
+**228..251**, and `RI_SLEVI_NCTL` grows **228 -> 252** so their values have home. Every
+`idx - RI_SLEVI_KEY0` site is gone: `ri_levi_key_id(n)` / `ri_levi_key_n(id)` /
+`ri_levi_key_note(n)` / `ri_levi_key_black(n)` / `ri_levi_key_slot(n)` in
+`sectlevi.c`, declared in `sectlevi.h` with the band constants the art, the geometry
+and the test all read. Five call sites were rewritten: the step-record write, the key
+LED, the latch in `canvas_events.c`, and the note on/off pair in `riapp.c`.
+
+**The pitch is 59, not 56 — a correction inside this phase.** Planning had recorded
+"22 keys at 59 overran the 1684-wide section". The section is **1756** Q wide
+(`ri_geo_section(RI_SEV_LEVI)` reports it, and t239 now asserts the last key ends at
+1735), and the original art, at pitch 59, ended at 1738: it never overran. The bed
+therefore keeps the art's own pitch, white width 55 and black width 36, so the change
+is *the whole drawn bed is live*, not a resize. The note is left here because the wrong
+width was already being repeated as a reason.
+
+**The art draws no black key at all now.** All 15 blacks are controls, and a control
+paints its own box, so an art black would be decoration by definition. What the art
+still owes them is the white they sit on: `ri_art_bg_levi` lays the bed 355..470 for
+all 22 whites, uniformly (the old `active` special case is gone with its reason).
+`ri_art_levi_item` classifies black/white by `ri_levi_key_black()`, not by
+`hh > PX(50)` — the drawing now asks the same map the geometry does.
+
+**Tests.** `t239_keybed_drawn_is_playable` is new and was written first: RED with **78
+failures** on the old map (white slot 0 at 855..909 against the drawn 442..494; white
+slots 8..21 "has a control (0)"; the census 13 against 37). It derives the slot list
+from the art's band constants and compares box for box against `RI_GEO_LEVI` and the
+registry, so it cannot agree with a second copy of the geometry. GREEN after the map:
+37 slots, 37 controls, 37 registry rows, ids stable for 0..12, chromatic 60..96
+left-to-right, paint rule answers for all 37 and refuses a step control.
+`t238` and `t221` were made map-driven (`ri_levi_key_id(k)`); the only other tests that
+moved are the three that pin `RI_SLEVI_NCTL` (t147/t148/t149, 228 -> 252). The keybed
+legends are now octave-qualified (`C4`…`C7`): "C" would otherwise appear three times in
+automation and help text.
+
+**Pins moved exactly where the panel changed.** `t92_draw_hash` and
+`t93_raster_goldens` each failed **exactly four** — the four LEVI (sec 18) zooms — and
+nothing else, twice over. Re-pinned: display-list `f95e0ef2 / 965d4934 / 7ba7cb22 /
+b3701436`, raster `84be1317 / d00c813f / 54ae8c8c / 2e10198b`. Twenty other sections at
+all four zooms is what confines the delta to the Levi panel.
+
+**The mutation harness, 8/8 on return codes** (`tests/mutate_keybed_map.py`; the marker
+rule holds — no marker requires a token its mutant removes). Gates: t239, t238, t221,
+t149, t92. It prints which gates killed each mutant, including the ones only one gate
+can see:
+
+| mutant | killed by |
+|---|---|
+| m1 the last white key's control deleted | t239, t238, t221, t92 |
+| m2 one black key moved 18 Q off its boundary | t239, t92 |
+| m3 an id collision (228 renumbered onto 229) | t239, t238, t221, t92 |
+| m4 the note map off by one semitone | **t239 only** |
+| m5 the drawing stops using the paint rule | **t92 only** |
+| m6 the art draws a black key with no control | **t92 only** |
+| m7 `NCTL` left at 228 (extension values off the array) | **t149 only** |
+| m8 the latch narrowed to the old octave | **t221 only** |
+
+m5/m6 are t239's honest limit: it sees the map, not the painter. m7 says the row-count
+pin is not decoration. `AUDIT 0/0 PASS` after the harness restored every edit.
+
+**Ear-proof scope.** Nothing here is ear-proven. What is proven: every key the art lays
+out has exactly one control on exactly that box, the ids and notes are the owner's map,
+and the whole bed is inside the panel. The next Dell round on **this** v11 build is the
+proof — `RIAPP_MIDI_DEVOUT 0` and `RIAPP_MIDI_CLKOUT 0` per `docs/evidence/midi/leviprobe.run`.
+Renders: `docs/evidence/midi/pkey3-keybed-z0.png`, `-z1.png`.

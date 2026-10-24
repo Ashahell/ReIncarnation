@@ -504,8 +504,8 @@ int main(void) {
             RI_ASSERT(d->engine_id == ROWS[k].key, "row %u engine id %04x", ROWS[k].row, d->engine_id);
             RI_ASSERT(ri_auto_allowed(ROWS[k].key), "key %04x allowed", ROWS[k].key);
         }
-        RI_ASSERT(RI_SLEVI_GLIDE == 226u && RI_SLEVI_CHORD == 227u && RI_SLEVI_NCTL == 228u,
-            "panel rows (225 + the two buttons, P9d)");
+        RI_ASSERT(RI_SLEVI_GLIDE == 226u && RI_SLEVI_CHORD == 227u && RI_SLEVI_NCTL == 252u,
+            "panel rows (225 + the two buttons, P9d, + the 24 extension keys)");
         RI_ASSERT(ri_auto_allowed(RI_CTL_LEVI_CHORD) && !ri_auto_allowed(0x0ED1u),
             "0x0ED1 refused (past the live keys)");
     }

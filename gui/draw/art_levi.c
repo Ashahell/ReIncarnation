@@ -160,13 +160,10 @@ static const struct LeviText DTEXT[] = {
 #define LEVI_PAGEBOX_H 64
 #define LEVI_RECALL_Y 275
 
-/* Keybed band (Q): wheels, STEP EDIT block, keys over x 440..1738. */
-#define LEVI_KEY_X0 440
-#define LEVI_KEY_W 59
-#define LEVI_KEY_N 22
-#define LEVI_KEY_Y0 355
-#define LEVI_KEY_Y1 550
-#define LEVI_BKEY_Y1 470
+/* Keybed band (Q): wheels, STEP EDIT block, keys over x 440..1738. The key
+ * layout itself is RI_LEVI_KB_* in gui/sectlevi.h -- the art, the geometry
+ * table and t239 all read the same numbers, so a test cannot "prove" a second
+ * copy of the layout. */
 
 static int levi_face(const struct ri_dlist *dl, int face) {
     return face ? face : (dl ? dl->cur_face : 0);
@@ -390,34 +387,17 @@ void ri_art_bg_levi(struct ri_dlist *dl, const struct RIGeoSection *g, int ox, i
     levi_text(dl, ox + PX(290), oy + PX(372), "STEP EDIT", C_LEVI_TEAL, 0);
     levi_text(dl, ox + PX(250), oy + PX(388), "LANE", C_LEVI_LABEL, RI_FACE_S);
     levi_text(dl, ox + PX(368), oy + PX(462), "STEP", C_LEVI_LABEL, RI_FACE_S);
-    for (k = 0; k < LEVI_KEY_N; k++) {
-        int x0 = LEVI_KEY_X0 + LEVI_KEY_W * k;
-        int active = k >= 7 && k <= 14;
-        uint32_t wk = ri_art_rgb(C_WHITEKEY);
-        if (active) {
-            /* The live slots paint their OWN hit band (470..550) as controls,
-             * so the art lays only the bed the black keys sit on (355..470).
-             * Painting the whole band here is what used to hide the live
-             * black keys under the whites: see ri_levi_key_paint_q. */
-            ri_draw_rect(dl, ox + PX(x0 + 1), oy + PX(LEVI_KEY_Y0),
-                ox + PX(x0 + LEVI_KEY_W - 2), oy + PX(LEVI_BKEY_Y1), wk);
-            continue;
-        }
-        ri_draw_rect(dl, ox + PX(x0 + 1), oy + PX(LEVI_KEY_Y0), ox + PX(x0 + LEVI_KEY_W - 2), oy + PX(LEVI_KEY_Y1),
-            wk);
-        ri_draw_rect(dl, ox + PX(x0 + 1), oy + PX(LEVI_KEY_Y1 - 8), ox + PX(x0 + LEVI_KEY_W - 2),
-            oy + PX(LEVI_KEY_Y1), ri_art_shade(wk, -36));
-    }
-    {
-        static const int bk[7] = { 1, 1, 0, 1, 1, 1, 0 };   /* black key after white key n (per octave) */
-        for (k = 0; k < LEVI_KEY_N - 1; k++) {
-            int x = LEVI_KEY_X0 + LEVI_KEY_W * (k + 1);
-            if (!bk[k % 7] || (k >= 7 && k <= 13))
-                continue;
-            ri_art_rect(dl, ox + PX(x - 18), oy + PX(LEVI_KEY_Y0), ox + PX(x + 18), oy + PX(LEVI_BKEY_Y1), C_BLACK);
-            ri_draw_rect(dl, ox + PX(x - 14), oy + PX(LEVI_BKEY_Y1 - 12), ox + PX(x + 14), oy + PX(LEVI_BKEY_Y1 - 4),
-                ri_art_shade(ri_art_rgb(C_BLACK), 22));
-        }
+    /* THE WHITE BED ONLY (owner 2026-10-24). Every key on this bed -- all 22
+     * whites and all 15 blacks -- is a control, and a control paints its own
+     * box: the art no longer draws a black key at all (the 10 it used to draw
+     * outside the live octave were the decoration the owner's ear found). What
+     * the art still owes the blacks is the white they sit on (y 355..470), so
+     * they read as keys on a keyboard rather than holes in the panel. */
+    for (k = 0; k < (int)RI_LEVI_KB_NW; k++) {
+        int x0 = (int)RI_LEVI_KB_X0 + (int)RI_LEVI_KB_PITCH * k;
+        ri_draw_rect(dl, ox + PX(x0 + 1), oy + PX(RI_LEVI_KB_BED),
+            ox + PX(x0 + (int)RI_LEVI_KB_PITCH - 2), oy + PX(RI_LEVI_BK_Y1),
+            ri_art_rgb(C_WHITEKEY));
     }
 #undef PX
 }
@@ -502,13 +482,18 @@ static void levi_page(struct ri_dlist *dl, const struct RISectUI *ui, int x0, in
  *
  * The bed under the black keys is the art's job (see ri_art_bg_levi), which
  * is why confining this rule does not shorten the white keys: the art lays
- * white across 355..470 for the live slots, and this paints 470..550. */
+ * white across 355..470 for every slot, and this paints 470..550 (white) or
+ * 354..470 (black).
+ *
+ * WHICH IDS ARE KEYS is the map's question, not a range: the bed is 37 keys
+ * at 24..36 and 228..251 (P-KEY3), so a range test here would refuse 24 of
+ * them and the item branch would fall through to a knob. */
 int ri_levi_key_paint_q(const struct RIGeoItem *it, int *x0, int *y0, int *x1, int *y1) {
     uint32_t idx;
     if (!it || !x0 || !y0 || !x1 || !y1)
         return 2;
     idx = it->reg_id & 0xFFu;
-    if (idx < RI_SLEVI_KEY0 || idx >= RI_SLEVI_KEY0 + RI_SLEVI_KEYS)
+    if (ri_levi_key_n((uint16_t)idx) < 0)
         return 2;
     *x0 = (int)it->cx - (int)it->w / 2;
     *x1 = (int)it->cx + (int)it->w / 2;
@@ -565,10 +550,10 @@ void ri_art_levi_item(struct ri_dlist *dl, const struct RIGeoItem *it, const str
         }
         return;
     }
-    if (idx >= RI_SLEVI_KEY0 && idx < RI_SLEVI_KEY0 + RI_SLEVI_KEYS) {       /* keybed key */
+    if (ri_levi_key_n((uint16_t)idx) >= 0) {       /* keybed key */
         int bx0, by0, bx1, by1;
         int lit = ri_sui_led(ui, idx, 0);
-        int black = hh > PX(50);
+        int black = ri_levi_key_black((unsigned)ri_levi_key_n((uint16_t)idx));
         if (ri_levi_key_paint_q(it, &bx0, &by0, &bx1, &by1) != 0)
             return;
         /* The rule answers in section Q; the box in hand is already canvas

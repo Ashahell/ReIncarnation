@@ -1253,6 +1253,15 @@ bash "$ROOT/scripts/ri_build_host.sh" test t237_canvas_ownership >/dev/null || {
 # key's centre, and pins the keybed's fixed velocity at the note path's full
 # value (owner ruled the raise, 100 -> 127).
 bash "$ROOT/scripts/ri_build_host.sh" test t238_levi_key_paint >/dev/null || { echo "FAIL: t238_levi_key_paint (a key paints its own hit box; no live key paints another; keybed sends full velocity)"; exit 1; }
+# t239 is the owner's 2026-10-24 ear round: the panel DRAWS a three-octave
+# keyboard but only the middle octave had controls, so the first seven and
+# the last seven whites and the outer blacks were silent. The owner chose to
+# make the whole drawn bed play: 37 keys (22 white + 15 black, C4..C7), the
+# first octave keeping ids 24..36 and keys 13..36 taking 228..251. t239 drives
+# the art's own band constants against the registry and the geometry, so a
+# key drawn without a control fails as "has a control (0)" -- and it pins the
+# chromatic left-to-right run, the id map and the note map.
+bash "$ROOT/scripts/ri_build_host.sh" test t239_keybed_drawn_is_playable >/dev/null || { echo "FAIL: t239_keybed_drawn_is_playable (every drawn key is a control, on its slot, playing C4..C7 in order)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every
@@ -1263,7 +1272,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t220_levi_knobs >/dev/null || { echo 
 # held key), set on SELECTDOWN and cleared on SELECTUP. Last-hit is a level
 # and cannot express "let go". t221 pins both edges and that momentary
 # buttons and knobs hold no key.
-bash "$ROOT/scripts/ri_build_host.sh" test t221_keybed >/dev/null || { echo "FAIL: t221_keybed (keybed press/release edge; only the 13 pitch keys latch)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t221_keybed >/dev/null || { echo "FAIL: t221_keybed (keybed press/release edge; only the pitch keys latch)"; exit 1; }
 test -f "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: missing pcf engine ledger"; exit 1; }
 grep -q "P-15" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks P-15"; exit 1; }
 grep -q "OPEN-04" "$ROOT/docs/evidence/pcf/engine.md" || { echo "FAIL: ledger lacks OPEN-04"; exit 1; }

@@ -10,7 +10,7 @@
 #include "engine/seq/pattern.h"
 #include "engine/dsp/levi.h"
 
-#define RI_SLEVI_NCTL 228u
+#define RI_SLEVI_NCTL 252u   /* ids 228..251 are the keybed's extension keys */
 #define RI_SLEVI_CUTOFF 0u      /* digital filter cutoff */
 #define RI_SLEVI_RESO 1u        /* digital filter resonance */
 #define RI_SLEVI_RATIO 3u       /* modulator ratio */
@@ -241,9 +241,45 @@
 #define RI_SLEVI_STEPREC 204u   /* the existing "Seq"/"Rec" row, not a new index */
 #define RI_SLEVI_DISPLAY 7u     /* EDIT STEP readout */
 #define RI_SLEVI_STEP0 8u       /* 16 step buttons: 8..23 */
-#define RI_SLEVI_KEY0 24u       /* 13 pitch keys: 24..36 = C..C+ */
-#define RI_SLEVI_KEYS 13u
-#define RI_SLEVI_MIDDLE_C 60u
+/* Keybed (owner 2026-10-24): the panel DRAWS a three-octave keyboard, so all of
+ * it must play. 37 keys = 22 white + 15 black, C4..C7, one semitone per key.
+ *
+ * The first octave keeps ids 24..36 -- those were the whole keybed until this
+ * change, and songs, skins and automation keyed on them must not shift. The
+ * section's id space has no free run beside them (4..23 and 37..227 are other
+ * controls), so the remaining 24 keys take 228..251 and the keybed stops being
+ * an id RANGE: ask ri_levi_key_n()/ri_levi_key_id(), never idx - KEY0. The two
+ * replies the owner's ear gave are the reason for the change: 14 whites and 5
+ * blacks were drawn with nothing behind them. */
+#define RI_SLEVI_KEY0 24u        /* key 0 (C4); keys 0..12 keep 24..36 */
+#define RI_SLEVI_KEYS 37u        /* LOGICAL count -- the ids are not contiguous */
+#define RI_SLEVI_KEY_LO 13u      /* keys 0..12 in the old keybed ids */
+#define RI_SLEVI_KEY_EXT0 228u   /* keys 13..36 are 228..251 */
+#define RI_SLEVI_KEY_EXTN 24u
+#define RI_SLEVI_MIDDLE_C 60u    /* key n plays note 60+n (C4..C7) */
+
+/* Keybed layout, shared by the art, the geometry table and the tests: a test
+ * cannot prove "every drawn key is playable" from a second copy of these.
+ * The pitch is the art's own 59 Q and the section is 1756 Q wide
+ * (RI_GEO_LEVI), so 22 whites end at x 1738 -- the position the panel has
+ * drawn since P1. (An earlier note in this phase said the band ran off a
+ * 1684 Q section; the section is 1756, and the drawing never overran.) */
+#define RI_LEVI_KB_X0 440        /* white key 0's left edge */
+#define RI_LEVI_KB_PITCH 59      /* one white key's pitch (the art's own) */
+#define RI_LEVI_KB_NW 22         /* white keys */
+#define RI_LEVI_KB_W 55          /* a white key's own width */
+#define RI_LEVI_KB_Y0 470        /* white keys own 470..550 */
+#define RI_LEVI_KB_Y1 550
+#define RI_LEVI_BK_Y0 354        /* black keys own 354..470, ABOVE the whites */
+#define RI_LEVI_BK_Y1 470
+#define RI_LEVI_BK_W 36
+#define RI_LEVI_KB_BED 355       /* the art lays white 355..470 under the blacks */
+
+uint16_t ri_levi_key_id(unsigned n);     /* key number 0..36 -> registry id */
+int ri_levi_key_n(uint16_t id);          /* registry id -> key number, -1 if none */
+uint8_t ri_levi_key_note(unsigned n);    /* key number -> MIDI note (60+n) */
+int ri_levi_key_black(unsigned n);       /* 1 if the key is black */
+int ri_levi_key_slot(unsigned n);        /* white index k, or the white it follows */
 /* Keybed velocity: fixed, not a knob. Ruled 100 on 2026-10-13 as an E0
  * default; the owner's ear round on 2026-10-23 heard the keys but called the
  * volume low, and ruled the raise. 127 is the maximum the note path takes

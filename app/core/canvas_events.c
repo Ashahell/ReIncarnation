@@ -56,15 +56,16 @@ uint32_t ri_cev_key(struct RICevState *st, struct RISectUI *ui,
 }
 
 /* Keybed keys latch until release so the shell can send note-on now and
- * note-off on SELECTUP. Only the Levi's 13 pitch keys do this: every other
- * button is momentary, and latching one would strand its indicator lit. */
+ * note-off on SELECTUP. Every button that is a keybed key does this -- the
+ * bed is 37 keys at 24..36 and 228..251, so the test is the key MAP, not an
+ * id range; every other button is momentary, and latching one would strand
+ * its indicator lit. */
 static void levi_key_latch(struct RICevState *st, uint32_t section, uint16_t id) {
     uint32_t idx;
     if (!st)
         return;
     idx = id & 0xFFu;
-    if (section == RI_SEC_LEVI && idx >= RI_SLEVI_KEY0 &&
-        idx < RI_SLEVI_KEY0 + RI_SLEVI_KEYS)
+    if (section == RI_SEC_LEVI && ri_levi_key_n((uint16_t)idx) >= 0)
         st->key_id = id;
 }
 

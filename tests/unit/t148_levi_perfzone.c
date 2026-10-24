@@ -409,8 +409,8 @@ int main(void) {
         char tx[16];
         memset(&lv, 0, sizeof lv);
         ri_slevi_init(&lv);
-        RI_ASSERT(RI_SLEVI_PFOCT == 221u && RI_SLEVI_PFBAL == 225u && RI_SLEVI_NCTL == 228u,
-            "panel rows (225 zone rows + the two P9d buttons)");
+        RI_ASSERT(RI_SLEVI_PFOCT == 221u && RI_SLEVI_PFBAL == 225u && RI_SLEVI_NCTL == 252u,
+            "panel rows (225 zone rows + the two P9d buttons + the 24 extension keys)");
         RI_ASSERT(lv.val[RI_SLEVI_PFOCT] == 2 && lv.val[RI_SLEVI_PFMODE] == 0 &&
             lv.val[RI_SLEVI_PFSEL] == 2 && lv.val[RI_SLEVI_PFSPLIT] == 0 &&
             lv.val[RI_SLEVI_PFBAL] == 64, "panel defaults");

@@ -289,19 +289,56 @@ static const struct RIGeoItem RI_GEO_LEVI[] = {
     { SL(6), RI_GEO_RECT, 0, 215, 486, 52, 24 },  /* BACK */
     { SL(5), RI_GEO_RECT, 0, 285, 486, 52, 24 },  /* STEP */
     { SL(7), RI_GEO_RECT, 0, 368, 486, 56, 30 },  /* step readout */
-    { SL(25), RI_GEO_RECT, 0, 912, 412, 36, 116 },  /* black key */
-    { SL(27), RI_GEO_RECT, 0, 971, 412, 36, 116 },  /* black key */
-    { SL(30), RI_GEO_RECT, 0, 1089, 412, 36, 116 },  /* black key */
-    { SL(32), RI_GEO_RECT, 0, 1148, 412, 36, 116 },  /* black key */
-    { SL(34), RI_GEO_RECT, 0, 1207, 412, 36, 116 },  /* black key */
-    { SL(24), RI_GEO_RECT, 0, 882, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
-    { SL(26), RI_GEO_RECT, 0, 941, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
-    { SL(28), RI_GEO_RECT, 0, 1000, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
-    { SL(29), RI_GEO_RECT, 0, 1059, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
-    { SL(31), RI_GEO_RECT, 0, 1118, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
-    { SL(33), RI_GEO_RECT, 0, 1177, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
-    { SL(35), RI_GEO_RECT, 0, 1236, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
-    { SL(36), RI_GEO_RECT, 0, 1295, 510, 55, 80 },  /* white key (lower band; black keys own the top) */
+    /* THE KEYBED (owner 2026-10-24: "the 1st seven and the last seven white
+     * piano keys do not produce anything audible ... only the middle 5 black
+     * piano keys produce anything audible"). The panel draws a three-octave
+     * keyboard, so the geometry lays out all 37 keys: 22 white + 15 black,
+     * C4..C7, at the art's own pitch 59 (the section is 1756 Q wide, so 22
+     * whites end at x 1738 -- an earlier note claimed the band overran a 1684 Q
+     * section; it does not).
+     * Borders: white keys own y 470..550, black keys y 354..470 -- the bands
+     * do not overlap, so no key can paint over another.
+     *
+     * The first octave keeps ids 24..36; keys 13..36 are 228..251. The ids
+     * are therefore a MAP, not a range: t239 walks these rows against the
+     * art's band and t238 checks each one paints the slot it is hit in. */
+    { SL(25), RI_GEO_RECT, 0, 499, 412, 36, 116 },  /* black C#4 */
+    { SL(27), RI_GEO_RECT, 0, 558, 412, 36, 116 },  /* black D#4 */
+    { SL(30), RI_GEO_RECT, 0, 676, 412, 36, 116 },  /* black F#4 */
+    { SL(32), RI_GEO_RECT, 0, 735, 412, 36, 116 },  /* black G#4 */
+    { SL(34), RI_GEO_RECT, 0, 794, 412, 36, 116 },  /* black A#4 */
+    { SL(228), RI_GEO_RECT, 0, 912, 412, 36, 116 },  /* black C#5 */
+    { SL(230), RI_GEO_RECT, 0, 971, 412, 36, 116 },  /* black D#5 */
+    { SL(233), RI_GEO_RECT, 0, 1089, 412, 36, 116 },  /* black F#5 */
+    { SL(235), RI_GEO_RECT, 0, 1148, 412, 36, 116 },  /* black G#5 */
+    { SL(237), RI_GEO_RECT, 0, 1207, 412, 36, 116 },  /* black A#5 */
+    { SL(240), RI_GEO_RECT, 0, 1325, 412, 36, 116 },  /* black C#6 */
+    { SL(242), RI_GEO_RECT, 0, 1384, 412, 36, 116 },  /* black D#6 */
+    { SL(245), RI_GEO_RECT, 0, 1502, 412, 36, 116 },  /* black F#6 */
+    { SL(247), RI_GEO_RECT, 0, 1561, 412, 36, 116 },  /* black G#6 */
+    { SL(249), RI_GEO_RECT, 0, 1620, 412, 36, 116 },  /* black A#6 */
+    { SL(24), RI_GEO_RECT, 0, 469, 510, 55, 80 },  /* white C4 */
+    { SL(26), RI_GEO_RECT, 0, 528, 510, 55, 80 },  /* white D4 */
+    { SL(28), RI_GEO_RECT, 0, 587, 510, 55, 80 },  /* white E4 */
+    { SL(29), RI_GEO_RECT, 0, 646, 510, 55, 80 },  /* white F4 */
+    { SL(31), RI_GEO_RECT, 0, 705, 510, 55, 80 },  /* white G4 */
+    { SL(33), RI_GEO_RECT, 0, 764, 510, 55, 80 },  /* white A4 */
+    { SL(35), RI_GEO_RECT, 0, 823, 510, 55, 80 },  /* white B4 */
+    { SL(36), RI_GEO_RECT, 0, 882, 510, 55, 80 },  /* white C5 */
+    { SL(229), RI_GEO_RECT, 0, 941, 510, 55, 80 },  /* white D5 */
+    { SL(231), RI_GEO_RECT, 0, 1000, 510, 55, 80 },  /* white E5 */
+    { SL(232), RI_GEO_RECT, 0, 1059, 510, 55, 80 },  /* white F5 */
+    { SL(234), RI_GEO_RECT, 0, 1118, 510, 55, 80 },  /* white G5 */
+    { SL(236), RI_GEO_RECT, 0, 1177, 510, 55, 80 },  /* white A5 */
+    { SL(238), RI_GEO_RECT, 0, 1236, 510, 55, 80 },  /* white B5 */
+    { SL(239), RI_GEO_RECT, 0, 1295, 510, 55, 80 },  /* white C6 */
+    { SL(241), RI_GEO_RECT, 0, 1354, 510, 55, 80 },  /* white D6 */
+    { SL(243), RI_GEO_RECT, 0, 1413, 510, 55, 80 },  /* white E6 */
+    { SL(244), RI_GEO_RECT, 0, 1472, 510, 55, 80 },  /* white F6 */
+    { SL(246), RI_GEO_RECT, 0, 1531, 510, 55, 80 },  /* white G6 */
+    { SL(248), RI_GEO_RECT, 0, 1590, 510, 55, 80 },  /* white A6 */
+    { SL(250), RI_GEO_RECT, 0, 1649, 510, 55, 80 },  /* white B6 */
+    { SL(251), RI_GEO_RECT, 0, 1708, 510, 55, 80 },  /* white C7 */
 };
 static const struct RIGeoItem RI_GEO_909[] = {
     { S9(0), RI_GEO_KNOB, 0, 60, 140, 44, 52 },

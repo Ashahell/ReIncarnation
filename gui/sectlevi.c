@@ -39,6 +39,54 @@ static const struct RICtlDef *def(const struct RISectLevi *s, uint32_t idx) {
     return ri_ctlreg_find((uint16_t)((RI_SEC_LEVI << 8) | idx));
 }
 
+/* THE KEYBED MAP (owner 2026-10-24). The bed is 37 chromatic keys C4..C7;
+ * the first octave still lives at ids 24..36 and the rest at 228..251, so
+ * "key n's id" is not KEY0 + n. Every caller used to derive the note as
+ * idx - KEY0, which is why the 24 new keys would have played nonsense.
+ *
+ * White keys per octave and the semitone of each (C D E F G A B), and the
+ * black keys as "after white i" with their semitone. The layout's black
+ * pattern is the same table the art draws from. */
+static const uint8_t LEVI_SEMI_W[7] = { 0u, 2u, 4u, 5u, 7u, 9u, 11u };
+static const uint8_t LEVI_SEMI_B[5] = { 1u, 3u, 6u, 8u, 10u };
+static const uint8_t LEVI_AFTER_W[5] = { 0u, 1u, 3u, 4u, 5u };
+
+uint16_t ri_levi_key_id(unsigned n) {
+    return n < RI_SLEVI_KEY_LO ? (uint16_t)(RI_SLEVI_KEY0 + n)
+                               : (uint16_t)(RI_SLEVI_KEY_EXT0 + (n - RI_SLEVI_KEY_LO));
+}
+
+int ri_levi_key_n(uint16_t id) {
+    if (id >= RI_SLEVI_KEY0 && id < RI_SLEVI_KEY0 + RI_SLEVI_KEY_LO)
+        return (int)(id - RI_SLEVI_KEY0);
+    if (id >= RI_SLEVI_KEY_EXT0 && id < RI_SLEVI_KEY_EXT0 + RI_SLEVI_KEY_EXTN)
+        return (int)(RI_SLEVI_KEY_LO + (id - RI_SLEVI_KEY_EXT0));
+    return -1;
+}
+
+uint8_t ri_levi_key_note(unsigned n) {
+    return (uint8_t)(RI_SLEVI_MIDDLE_C + n);
+}
+
+int ri_levi_key_black(unsigned n) {
+    unsigned i, s = n % 12u;
+    for (i = 0u; i < 7u; i++)
+        if (LEVI_SEMI_W[i] == s)
+            return 0;
+    return 1;
+}
+
+int ri_levi_key_slot(unsigned n) {
+    unsigned o = n / 12u, s = n % 12u, i;
+    for (i = 0u; i < 7u; i++)
+        if (LEVI_SEMI_W[i] == s)
+            return (int)(o * 7u + i);           /* white slot k */
+    for (i = 0u; i < 5u; i++)
+        if (LEVI_SEMI_B[i] == s)
+            return (int)(o * 7u + LEVI_AFTER_W[i]);   /* the white it follows */
+    return -1;
+}
+
 int ri_slevi_init(struct RISectLevi *s) {
     uint32_t i;
     if (!s)
@@ -168,18 +216,21 @@ int ri_slevi_press(struct RISectLevi *s, uint32_t idx) {
                 (uint8_t)ri_levi_get(&s->pat, st, s->sel), 0) == 0;
         return ri_levi_set(&s->pat, st, s->sel, RI_SLEVI_MIDDLE_C, 1) == 0;
     }
-    if (idx >= RI_SLEVI_KEY0 && idx < RI_SLEVI_KEY0 + RI_SLEVI_KEYS) {
-        e = s->edit_step % RI_PATTERN_STEPS;
-        /* STEP RECORD gates the step ENTRY only (owner 2026-10-13; manual
-         * Step Recording p. 105, step record mode p. 117). The NOTE is not
-         * gated and never was: the shell sends it from the keybed edge, so
-         * a key always plays and only the step write waits for the button.
-         * Returning 1 still says "handled" so the edge is latched either
-         * way -- returning 0 here would drop the note with the step. */
-        if (s->val[RI_SLEVI_STEPREC] == 0)
-            return 1;
-        return ri_levi_set(&s->pat, e, s->sel,
-            (uint8_t)(RI_SLEVI_MIDDLE_C + (idx - RI_SLEVI_KEY0)), 1) == 0;
+    {
+        int kn = ri_levi_key_n((uint16_t)idx);
+        if (kn >= 0) {
+            e = s->edit_step % RI_PATTERN_STEPS;
+            /* STEP RECORD gates the step ENTRY only (owner 2026-10-13; manual
+             * Step Recording p. 105, step record mode p. 117). The NOTE is not
+             * gated and never was: the shell sends it from the keybed edge, so
+             * a key always plays and only the step write waits for the button.
+             * Returning 1 still says "handled" so the edge is latched either
+             * way -- returning 0 here would drop the note with the step. */
+            if (s->val[RI_SLEVI_STEPREC] == 0)
+                return 1;
+            return ri_levi_set(&s->pat, e, s->sel,
+                ri_levi_key_note((unsigned)kn), 1) == 0;
+        }
     }
     return 0;
 }
@@ -322,9 +373,12 @@ int ri_slevi_led(const struct RISectLevi *s, uint32_t idx) {
     e = s->edit_step % RI_PATTERN_STEPS;
     if (idx >= RI_SLEVI_STEP0 && idx < RI_SLEVI_STEP0 + RI_PATTERN_STEPS)
         return ri_levi_on(&s->pat, idx - RI_SLEVI_STEP0, s->sel);
-    if (idx >= RI_SLEVI_KEY0 && idx < RI_SLEVI_KEY0 + RI_SLEVI_KEYS)
-        return ri_levi_get(&s->pat, e, s->sel) ==
-            (uint32_t)(RI_SLEVI_MIDDLE_C + (idx - RI_SLEVI_KEY0));
+    {
+        int kn = ri_levi_key_n((uint16_t)idx);
+        if (kn >= 0)
+            return ri_levi_get(&s->pat, e, s->sel) ==
+                (uint32_t)ri_levi_key_note((unsigned)kn);
+    }
     return 0;
 }
 

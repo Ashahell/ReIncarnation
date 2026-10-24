@@ -37,7 +37,7 @@
 #include "gui/panelgeo.h"
 
 #define L(id) ((uint16_t)((uint16_t)(RI_SEC_LEVI << 8) | (uint16_t)(id)))
-#define KEY0 (uint32_t)RI_SLEVI_KEY0
+#define KID(k) ((uint32_t)ri_levi_key_id((unsigned)(k)))
 
 int main(void) {
     const struct RIGeoSection *g = ri_geo_section(RI_SEC_LEVI);
@@ -55,9 +55,10 @@ int main(void) {
     ri_cev_init(&st);
     RI_ASSERT(st.key_id == RI_CEV_NODRAG, "init: no key held");
 
-    /* Press then release, for every key on the bed. */
+    /* Press then release, for every key on the bed. The bed is 37 keys in
+     * two id runs (24..36 and 228..251), so the id comes from the map. */
     for (k = 0u; k < (uint32_t)RI_SLEVI_KEYS; k++) {
-        uint32_t idx = KEY0 + k;
+        uint32_t idx = KID(k);
         int x0, y0, x1, y1;
         RI_ASSERT(ri_geo_bbox(g, L(idx), 0, &x0, &y0, &x1, &y1) == 0,
             "key %u has a box", idx);
@@ -112,18 +113,18 @@ int main(void) {
         int x0, y0, x1, y1, k2;
         ri_slevi_init(&ui.u.slevi);
         ui.section = RI_SEC_LEVI;
-        RI_ASSERT(ri_geo_bbox(g, L(KEY0 + 4), 0, &x0, &y0, &x1, &y1) == 0, "key box");
+        RI_ASSERT(ri_geo_bbox(g, L(KID(4)), 0, &x0, &y0, &x1, &y1) == 0, "key box");
         /* Button off: press latches the note but writes no step. */
         ri_cev_init(&st);
         ri_cev_button(&st, &ui, 0, g, 0, (x0 + x1) / 2, (y0 + y1) / 2, w, h, 0, 0u);
-        RI_ASSERT(st.key_id == L(KEY0 + 4), "note latches even with STEP RECORD off");
+        RI_ASSERT(st.key_id == L(KID(4)), "note latches even with STEP RECORD off");
         /* Button lit: same press, and the step takes the pitch. */
         ri_slevi_init(&ui.u.slevi);
         ui.u.slevi.val[RI_SLEVI_STEPREC] = 1;
         ri_cev_init(&st);
         ri_cev_button(&st, &ui, 0, g, 0, (x0 + x1) / 2, (y0 + y1) / 2, w, h, 0, 0u);
-        RI_ASSERT(st.key_id == L(KEY0 + 4), "note latches with STEP RECORD lit");
-        k2 = (int)(st.key_id - L(KEY0)) + RI_SLEVI_MIDDLE_C;
+        RI_ASSERT(st.key_id == L(KID(4)), "note latches with STEP RECORD lit");
+        k2 = ri_levi_key_n((uint16_t)(st.key_id & 0xFFu)) + RI_SLEVI_MIDDLE_C;
         RI_ASSERT(k2 == RI_SLEVI_MIDDLE_C + 4, "key maps to note %d", k2);
         /* The button is a real control: registered, levered at the engine. */
         {
@@ -142,13 +143,13 @@ int main(void) {
     {
         int x0, y0, x1, y1;
         ri_slevi_init(&ui.u.slevi);
-        RI_ASSERT(ri_geo_bbox(g, L(KEY0 + 4), 0, &x0, &y0, &x1, &y1) == 0, "key box");
+        RI_ASSERT(ri_geo_bbox(g, L(KID(4)), 0, &x0, &y0, &x1, &y1) == 0, "key box");
         ri_cev_init(&st);
         ri_cev_button(&st, &ui, 0, g, 0,
             (x0 + x1) / 2, (y0 + y1) / 2, w, h, 0, 0u);
-        RI_ASSERT(st.key_id == L(KEY0 + 4), "key held");
-        RI_ASSERT(st.key_id - L(KEY0) + RI_SLEVI_MIDDLE_C == RI_SLEVI_MIDDLE_C + 4,
-            "key %u maps to note %d", KEY0 + 4, (int)(st.key_id - L(KEY0)) + RI_SLEVI_MIDDLE_C);
+        RI_ASSERT(st.key_id == L(KID(4)), "key held");
+        RI_ASSERT(ri_levi_key_n((uint16_t)(st.key_id & 0xFFu)) == 4,
+            "key %u maps to key 4 (%d)", KID(4), ri_levi_key_n((uint16_t)(st.key_id & 0xFFu)));
     }
 
     RI_RESULT("keybed");

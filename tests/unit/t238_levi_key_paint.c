@@ -79,7 +79,6 @@
 #include "engine/dsp/levi.h"
 
 #define L(id) ((uint16_t)((uint16_t)(RI_SEC_LEVI << 8) | (uint16_t)(id)))
-#define KEY0 ((int)RI_SLEVI_KEY0)
 #define NKEY ((int)RI_SLEVI_KEYS)
 
 /* One static set: the velocity claim is about the voice, not about a pair. */
@@ -109,13 +108,16 @@ int main(void) {
 
     /* ---- 1. THE CENSUS, DRIVEN OFF THE MAP (already true: the pin) ----
      * Every key the map claims must exist in the registry, as a control
-     * shape, or a press there is a press on nothing. */
+     * shape, or a press there is a press on nothing. The map is 37 keys now
+     * (ids 24..36 and 228..251), so the id comes from ri_levi_key_id(k):
+     * KEY0 + k is only true for the first thirteen. */
     for (k = 0; k < NKEY; k++) {
-        int idx = KEY0 + k;
+        uint16_t kid = ri_levi_key_id((unsigned)k);
+        int idx = (int)(kid & 0xFFu);
         int found = 0;
-        const struct RICtlDef *d = ri_ctlreg_find(L(idx));
+        const struct RICtlDef *d = ri_ctlreg_find(L((uint16_t)(kid & 0xFFu)));
         for (j = 0; j < (int)g->nitems; j++)
-            if ((g->items[j].reg_id & 0xFFu) == (uint32_t)idx)
+            if (g->items[j].reg_id == (uint16_t)L((uint16_t)(kid & 0xFFu)))
                 found++;
         RI_ASSERT(d != 0, "key %u has a registry row (%s)", idx, d ? d->legend : "-");
         RI_ASSERT(found == 1, "key %u has exactly one geometry row (%d)", idx, found);
@@ -130,36 +132,38 @@ int main(void) {
     for (z = 0; z < 4; z++) {
         for (k = 0; k < NKEY; k++) {
             const struct RIGeoItem *it = 0;
+            uint16_t kid = ri_levi_key_id((unsigned)k);
             int opt = -2;
             uint16_t h;
             for (j = 0; j < (int)g->nitems; j++)
-                if ((g->items[j].reg_id & 0xFFu) == (uint32_t)(KEY0 + k)) {
+                if (g->items[j].reg_id == (uint16_t)L((uint16_t)(kid & 0xFFu))) {
                     it = &g->items[j];
                     break;
                 }
-            RI_ASSERT(it != 0, "key %u present (zoom %d)", KEY0 + k, z);
+            RI_ASSERT(it != 0, "key %u present (zoom %d)", (unsigned)(kid & 0xFFu), z);
             if (!it)
                 continue;
             h = ri_geo_hit_opt(g, ri_geo_px(it->cx, z), ri_geo_px(it->cy, z), z, &opt);
-            RI_ASSERT(h == L(KEY0 + k), "hit at centre of key %u = %04x, want %04x",
-                KEY0 + k, h, L(KEY0 + k));
+            RI_ASSERT(h == (uint16_t)L((uint16_t)(kid & 0xFFu)), "hit at centre of key %u = %04x, want %04x",
+                (unsigned)(kid & 0xFFu), h, (unsigned)L((uint16_t)(kid & 0xFFu)));
         }
     }
 
-    /* ---- 3. PAINT == HIT, AND NO PAINT OVER ANOTHER KEY (RED today) ----
+    /* ---- 3. PAINT == HIT, AND NO PAINT OVER ANOTHER KEY (the pin) ----
      * Compared in Q units, which is where the map lives: converting to px at
      * a zoom rounds, and a comparison that mixes the two would pass at one
      * zoom and fail at another while the product stayed the same. The zoom
      * sweep belongs to the aim block above, not to this one. */
     for (k = 0; k < NKEY; k++) {
         const struct RIGeoItem *it = 0;
+        uint16_t kid = ri_levi_key_id((unsigned)k);
         int hx0, hy0, hx1, hy1, px0, py0, px1, py1;
         for (j = 0; j < (int)g->nitems; j++)
-            if ((g->items[j].reg_id & 0xFFu) == (uint32_t)(KEY0 + k)) {
+            if (g->items[j].reg_id == (uint16_t)L((uint16_t)(kid & 0xFFu))) {
                 it = &g->items[j];
                 break;
             }
-        RI_ASSERT(it != 0, "key %u measured in Q", KEY0 + k);
+        RI_ASSERT(it != 0, "key %u measured in Q", (unsigned)(kid & 0xFFu));
         if (!it)
             continue;
         /* The slot the map says can be hit. */
@@ -169,25 +173,26 @@ int main(void) {
         hy1 = (int)it->cy + (int)it->h / 2;
         /* The rect the drawing paints. */
         RI_ASSERT(ri_levi_key_paint_q(it, &px0, &py0, &px1, &py1) == 0,
-            "key %u has a paint rule", KEY0 + k);
+            "key %u has a paint rule", (unsigned)(kid & 0xFFu));
         RI_ASSERT(px0 == hx0 && px1 == hx1,
             "key %u paints its own width (paint %d..%d Q, hit %d..%d Q)",
-            KEY0 + k, px0, px1, hx0, hx1);
+            (unsigned)(kid & 0xFFu), px0, px1, hx0, hx1);
         RI_ASSERT(py0 == hy0 && py1 == hy1,
             "key %u paints its own height (paint %d..%d Q, hit %d..%d Q)",
-            KEY0 + k, py0, py1, hy0, hy1);
+            (unsigned)(kid & 0xFFu), py0, py1, hy0, hy1);
 
         /* Nothing you can hit may be painted by a DIFFERENT key: that is the
          * shape that makes a visible slot un-hittable, and a hittable
-         * slot invisible. Driven from the map, so it covers all 13 x 12
+         * slot invisible. Driven from the map, so it covers all 37 x 36
          * pairs rather than the two the report happened to name. */
         for (j = 0; j < NKEY; j++) {
             const struct RIGeoItem *ot = 0;
+            uint16_t oid = ri_levi_key_id((unsigned)j);
             int m;
             if (j == k)
                 continue;
             for (m = 0; m < (int)g->nitems; m++)
-                if ((g->items[m].reg_id & 0xFFu) == (uint32_t)(KEY0 + j)) {
+                if (g->items[m].reg_id == (uint16_t)L((uint16_t)(oid & 0xFFu))) {
                     ot = &g->items[m];
                     break;
                 }
@@ -196,7 +201,7 @@ int main(void) {
             RI_ASSERT(!(px0 <= (int)ot->cx && (int)ot->cx <= px1 &&
                        py0 <= (int)ot->cy && (int)ot->cy <= py1),
                 "key %u's paint must not cover key %u's centre (paint %d..%d x %d..%d Q, centre %d,%d)",
-                KEY0 + k, KEY0 + j, px0, px1, py0, py1,
+                (unsigned)(kid & 0xFFu), (unsigned)(oid & 0xFFu), px0, px1, py0, py1,
                 (int)ot->cx, (int)ot->cy);
         }
     }
