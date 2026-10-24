@@ -83,7 +83,7 @@ Two standing lessons, both applied rather than restated: a comparison that mixes
 
 `t92_draw_hash` and `t93_raster_goldens` each failed **exactly 4** — the four LEVI (sec 18) pins — and nothing else. LEVI display-list hashes re-pinned to `1e034651 / a8def2a7 / d3afa1c7 / 6cde42a7`; LEVI raster goldens to `13485eab / ded94c13 / 1de18940 / 6e785975`. **Twenty other sections untouched at all four zooms, twice over, is what proves the delta is confined to the Levi panel** — the check working, not a re-pin habit.
 
-`AUDIT 0/0 PASS`. AROS build **1237704 bytes, sha256 `27b5879dfa8c50a54c97`** (the count moved 20 328 from `c382b38`'s 1217072; this build has never run on the Dell).
+`AUDIT 0/0 PASS`. The build line produced **1237704 bytes, sha256 `27b5879dfa8c50a54c97`** (the count moved 20 328 from `c382b38`'s 1217072) — **but that is the v1-line shape, not the binary the Dell runs** (correction 2026-10-24): the Dell's v11 build is **1 217 912 B, sha256 `916961f022c8b191546d…`, `build=386abb8`**, and that is the one staged and played. See `raw/articles/2026-10-24-the-keybed-draws-a-keyboard-it-does-not-own.md`.
 
 ## Status — and what this does NOT claim
 

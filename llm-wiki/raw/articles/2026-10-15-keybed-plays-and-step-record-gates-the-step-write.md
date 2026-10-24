@@ -55,6 +55,9 @@ Two dated notes, each left standing where it was written rather than rewritten:
   behind them (22 art whites against 13 live keys). See
   `raw/articles/2026-10-23-the-keybed-painted-slots-it-does-not-own.md`.
 
-**The "Never heard" line still stands** as of this addendum: the fix commit's build
-(1237704 bytes, sha256 `27b5879dfa…`) has not run on the Dell yet, so the keybed remains
-the one piece of this range with no ear evidence.
+**The "Never heard" line is superseded (correction 2026-10-24).** The build quoted here
+(1237704 bytes, sha256 `27b5879dfa…`) is the **v1-line** shape, not the Dell's; the Dell
+ran the v11 build **1 217 912 B, sha256 `916961f022c8b191546d…`, `build=386abb8`**, and the
+owner listened to it on 2026-10-24. That round is the ear evidence for this keybed: the
+middle keys played and the two outer groups did not, which is P-KEY3 —
+`raw/articles/2026-10-24-the-keybed-draws-a-keyboard-it-does-not-own.md`.
