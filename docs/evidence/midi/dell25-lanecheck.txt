@@ -1,0 +1,72 @@
+Dell lane check, 2026-10-24, after the owner rebooted the guest.
+All times below are the guest clock (which reads year 2013); host commands were
+run in this order, each as a separate spool job on /tmp/spike_spool_laptop.
+
+1. Harness reachable; the agent's session number is new (the reboot restarted it):
+   [submit] RESULT: PASS (agent e6320, session 5007)
+
+2. RAM: is EMPTY OF OUR FILES after the reboot (boot files only). A RIAPP panel
+   was nevertheless present -- so it was NOT the staged build, and it has no RAM:
+   log. Do not count that instance as ours:
+       RIAPP live panel - zombie-nation.rbng    0,0 1349x680 [active,close@5,0]
+       RAM: ... e1000.log, probe.txt, atcp_diag.txt, RIBOOT.LOG, RIAPP.lock ...
+
+3. Re-staged the keybed-fix bytes (host file 1217912 B, sha256 916961f022c8b191546d...):
+   [put ] RIAPP.M4 -> RAM:RIAPP.M4  1217912 B in 199 chunks, 9869 ms  sha_ok=True written=1217912 OK
+   [put ] leviprobe.run -> RAM:LEVIPROBE.RUN  7145 B in 2 chunks, 196 ms  sha_ok=True written=7145 OK
+
+4. Closed the autostarted instance by exact title, and VERIFIED it is gone by
+   re-listing windows (the close line alone is ambiguous):
+   [ui  ] close 'RIAPP live panel - zombie-nation.rbng' [closerequest] ok (46 ms)
+   [ui  ] windows 1366x768 screen, 2 window(s)   -> panel absent
+
+5. Waited 85 s (takeover needs 2 x RI_CLAIM_STALE_SEC 30), then launched:
+   [script] 'RAM:LEVIPROBE.RUN' -> rc=0 (15083 ms)
+
+6. The fresh instance, verified by its OWN log (RAM:RIAPP.LOG grew 2684 -> 6132 -> 9611 B):
+   RIAPP LOG build=386abb8 diag=0
+   RIAPP claim: RAM:RIAPP.lock rc=0 (undated (no heartbeat) -> takeover)
+   RIAPP midi in=riapp out=riapp ch=1 sync=0 levi=2 clkout=0 lat=8 devout=0 notech=0
+   RIAPP stg: playing=2913 stopped=15 stopped_avg=11 us      hb: t=23:31:57
+   RIAPP stg: playing=8790 stopped=15 stopped_avg=11 us      hb: t=23:32:28
+   RIAPP stg: playing=14752 stopped=15 stopped_avg=11 us     hb: t=23:33:00
+   RIAPP hb: buffers=2928 xruns=0 ...   (buffers 8805 and 14752 likewise, xruns=0)
+
+   Guest Date reads 23:32:37 and 23:33:33 -- the app's own hb times sit inside
+   that clock, so the log is THIS session's, not a stale file.
+
+7. It is a TAKEOVER, not a second instance: the displaced lock is on the guest,
+   and the EV log's first line says so:
+       RAM:RIAPP.lock.dead-1134516693-1                Dir ---rwed Today 23:31:33
+       ev 1 0 RUN claim rc=0 undated (no heartbeat) -> takeover
+       ev 2 0 RUN frames=256 vol=RAM: build=386abb8
+       ev 22 15 SONG load Vk4aros:ReIncarnation/songs/local/zombie-nation/zombie-nation.rbng bars=151 bpm=140
+       ev 23 15 TR PLAY
+   Listening flags are OFF as leviprobe.run sets them: CLK out=0 enabled=0, DEV out=0.
+
+8. The claim is LIVE right now, measured against the clock rather than assumed:
+       RAM:RIAPP.lock/hb       8 B   mtime 23:31:33   (claim instant)
+       RAM:RIAPP.lock/hb.age  32 B   mtime 23:33:31   (2 s before Date 23:33:33)
+   The age lives in hb.age by mtime, which is why a static hb mtime is not a dead
+   lock (the lock article's second unlocked file).
+
+9. TWO THINGS ABOUT THE EV LOG, because yesterday they were read wrongly:
+   - RAM:RIAPP-EV.LOG was pulled twice (998 B both times, identical lines, 23 events)
+     while its mtime advanced. The EV log is written ON EVENTS; nothing was clicked
+     or typed, so it does not grow during plain playback. **A static EV log is not
+     evidence of a dead instance.**
+   - Only 23 lines exist, the last being TR PLAY at t=15 ms, and there is still NO
+     TR STOP after more than 78 s of rendered transport (playing=14752 buffers
+     ~ 78.7 s at 48 kHz / 256 frames). So this instance has been playing from bar 0
+     for at least 78 s without stopping. The "song is ~49 s" figure from the
+     previous session was a cursor that had already advanced; 151 bars at 140 BPM
+     is 604 beats = ~259 s from bar 0. Not needed for the lane check, but it is why
+     the song will still be sounding when the owner sits down.
+
+10. What CANNOT be settled any more: whether yesterday's two later relaunches
+   produced running instances. Their RAM: content was erased by this reboot, and
+   the byte-identical log pair that ended at hb 16:43:47 while the clock said
+   17:02 was never explained. That claim is therefore WITHDRAWN, not restated:
+   no evidence survives, and the EV-log mechanism above shows the inference I was
+   drawing from a static EV log was invalid anyway. What is proven is the CURRENT
+   instance, above, on build=386abb8.

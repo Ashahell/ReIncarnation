@@ -8096,3 +8096,46 @@ pairs. **A `Play` alone at the end cannot replay**; the gesture is
 **Stop-then-Play** (`ri_tr_stop` on an already-stopped transport moves the
 cursor — E1 p. 145 C4, and first stop while stopped goes to Loop Start, or to
 song start when strictly before it).
+
+## Lane check after the owner's reboot: the instance that is playing is the one I launched, and the one before it was not (2026-10-24)
+
+The reboot erased `RAM:`, so the sequences below are the measured ones, not a plan.
+Evidence file: `docs/evidence/midi/dell25-lanecheck.txt` (+ `-log.txt`, `-ev.txt`).
+
+**A panel was present that was NOT ours.** RAM: held only boot files (no `RIAPP.M4`,
+no launcher, no log), yet `--ui-windows` showed `RIAPP live panel - zombie-nation.rbng`.
+So something autostarts RIAPP from disk and that instance's build is **unrecorded**
+(it has no `RAM:` log to name a build). It was closed, not counted, and not claimed.
+
+**Then the staged bytes, the wait, and a takeover.** `RIAPP.M4` 1217912 B sha256
+`916961f022c8b191546d…` and `RAM:LEVIPROBE.RUN` both `sha_ok=True` over the chunked
+path (the agent has no bulk put window); close by exact title **verified by
+re-listing windows**; **85 s** wait; `--run-script` rc=0. The new instance's own log
+says `build=386abb8`, `claim … (undated (no heartbeat) -> takeover)`, and the guest
+carries the displaced lock as `RAM:RIAPP.lock.dead-1134516693-1` — a takeover, not
+two instances. `SONG load … bars=151 bpm=140` then `TR PLAY`; listening flags off
+(`CLK out=0`, `DEV out=0`), which is what the launcher sets.
+
+**Playing, against the clock rather than against a feeling.** `playing=2913 → 8790 →
+14752` with `stopped` frozen at 15 and `xruns=0`; app `hb: t=23:31:57 … 23:33:00`
+inside the guest's `Date` of 23:32:37/23:33:33; and the lock's **`hb.age` mtime
+23:33:31** is 2 s before that Date — the live claim, read from the second unlocked
+file the lock article describes (`hb` itself still carries the claim instant,
+23:31:33, so a static `hb` mtime is not a dead lock).
+
+**Two corrections, both to my own earlier reading.**
+
+1. **A static EV log is not a dead instance.** `RAM:RIAPP-EV.LOG` was pulled twice,
+   998 B and byte-identical (23 events), while its mtime advanced. The EV log is
+   written on events; an untouched instance that is merely playing generates none.
+   Yesterday's ambiguity was partly this inference, and it was wrong.
+2. **The song is not ~49 s.** This instance rendered 78.7 s of transport (14 752
+   buffers at 48 kHz / 256 frames) with no `TR STOP`. 151 bars at 140 BPM is 604
+   beats ≈ 259 s from bar 0; the earlier 48 873 ms stop was a cursor that had already
+   advanced, not the song's length. Recorded because "how long have I got to listen"
+   was being answered with the wrong number.
+
+**Withdrawn, not restated:** whether yesterday's last two relaunches produced running
+instances. The reboot erased their `RAM:` content and the byte-identical log pair that
+ended at `hb 16:43:47` while the clock said 17:02 was never explained. No claim is
+made about them; the current instance is the one proven, on `build=386abb8`.
