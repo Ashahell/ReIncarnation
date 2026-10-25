@@ -1,0 +1,6 @@
+live  127     peak 1.171264172 rms 0.805808145
+song  1 note  peak 0.585632086 rms 0.402904072
+song  4 chord peak 2.145155907 rms 0.921407073
+ratio live/song-note peak 2.000000 rms 2.000000
+ratio live/song-chord peak 0.546004 rms 0.874541
+pvel A 127 B 127

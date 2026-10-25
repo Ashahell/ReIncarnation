@@ -1,0 +1,6 @@
+  (rendered 4800)
+live note 60 vel127    peak 0.225995705 rms 0.146700745
+  (rendered 4800)
+song note 60 lane0     peak 0.112997852 rms 0.073350373
+  (rendered 4800)
+song chord x4          peak 0.432491899 rms 0.147373536

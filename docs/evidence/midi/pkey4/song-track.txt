@@ -1,0 +1,46 @@
+instances 5 bars 999
+inst 0 used 107 first 0 last 139
+inst 1 used 94 first 8 last 146
+inst 2 used 50 first 4 last 133
+inst 3 used 128 first 0 last 150
+inst 4 used 104 first 22 last 147
+bar  22 -> pat 1
+bar  23 -> pat 2
+bar  24 -> pat 3
+bar  25 -> pat 4
+bar  26 -> pat 1
+bar  27 -> pat 2
+bar  28 -> pat 3
+bar  29 -> pat 4
+bar  30 -> pat 1
+bar  31 -> pat 2
+bar  32 -> pat 3
+bar  33 -> pat 4
+bar  34 -> pat 1
+bar  35 -> pat 2
+bar  36 -> pat 3
+bar  37 -> pat 4
+bar  38 -> pat 1
+bar  39 -> pat 2
+bar  40 -> pat 3
+bar  41 -> pat 4
+bar  42 -> pat 1
+bar  43 -> pat 2
+bar  44 -> pat 3
+bar  45 -> pat 4
+bar  46 -> pat 1
+bar  47 -> pat 2
+bar  48 -> pat 3
+bar  49 -> pat 4
+bar  50 -> pat 1
+bar  51 -> pat 2
+bar  52 -> pat 3
+bar  53 -> pat 4
+bar  54 -> pat 1
+bar  55 -> pat 2
+bar  56 -> pat 3
+bar  57 -> pat 4
+bar  58 -> pat 1
+bar  59 -> pat 2
+bar  60 -> pat 3
+bar  61 -> pat 4

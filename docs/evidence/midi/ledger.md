@@ -8259,3 +8259,76 @@ out has exactly one control on exactly that box, the ids and notes are the owner
 and the whole bed is inside the panel. The next Dell round on **this** v11 build is the
 proof — `RIAPP_MIDI_DEVOUT 0` and `RIAPP_MIDI_CLKOUT 0` per `docs/evidence/midi/leviprobe.run`.
 Renders: `docs/evidence/midi/pkey3-keybed-z0.png`, `-z1.png`.
+
+## P-KEY4: the keybed was not quiet, it was one voice against four
+
+The owner's third ear round, on the P-KEY3 build (`2f6d65f`), after every drawn key
+played: *"all piano key produce sound now, but their volume is lower than the song
+being played."* Same rules: a RED test first, a mutation score on return codes, and
+`AUDIT 0/0 PASS` before the commit.
+
+**The obvious fix was wrong, and the measurement says why.** A live keybed note and a
+song lane's note are the same fire. On the host, with the song's own tick-0 automation
+applied (`levi.Patch_Level 16`, `mix-levi.Level 90`, master 124), a live note at
+velocity 127 and a song-path note are **bit-identical**:
+
+| path | peak | RMS |
+|---|---|---|
+| live note 60, velocity 127 | 0.112997852 | 0.073350373 |
+| song note 60, lane 0 | 0.112997852 | 0.073350373 |
+| song chord (46,73,34,61) | 0.432491899 | 0.147373536 |
+
+So the keybed was not attenuated per note, and velocity was already at the path's
+maximum (P-KEY2). There was no headroom left in velocity.
+
+**The song's Levi part is chordal.** The bank dump (`pkey4/levi-bank.txt`) shows pattern
+1 row 4 carrying notes 46,73,34,61 on four lanes; patterns 1..3 carry four notes on most
+rows and pattern 4 carries two. The track selects patterns 1..4 from bar 22
+(`pkey4/song-track.txt`). Four uncorrelated voices sum as `sqrt(n)` in RMS, so one key
+is a quarter of the part's peak and about half its RMS. Measured against the full host
+render (`songs/local/zombie-nation/zombie-nation-host-render.wav`, 37.7–49 s): mix RMS
+0.1456. The single key sat **6.05 dB** below the part it played over.
+
+**The rule: a hand, not a lane.** `RI_LEVI_LIVE_GAIN` (2.0) is stamped on the player's
+entry points — `levi_note_on` / `levi_note_vel`, chord mode included, and the mono /
+unison re-fire of a held key — and carried on a per-voice `livegain` field, separate
+from `zgain` so the P9c zone laws keep their own field. Sequenced paths stay at unity:
+`levi_trigger` (song lanes) and `levi_note_strike` (the device sequencer and arp) are
+parts. Both render paths multiply it; the entry point resets the pending gain, so it
+never leaks into the next fire.
+
+After, on the same rig: live peak 0.225995705 / RMS **0.146700745**; song note unchanged
+0.112997852 / 0.073350373; chord unchanged 0.432491899 / 0.147373536. One key now has
+the RMS of the song's Levi part (0.1474) and of the full mix (0.1456), while its peak
+stays far below the mix peak (0.586). A live four-note chord peaks at 0.86, under 1.0.
+
+**Tests.** `t240_keybed_level` written first: RED with 6 failures on the scaffolded
+field (the defaults and the song path were already green), then GREEN. It pins the
+constant, the peak **and** RMS ratio to 2.0, both render paths, `levi_note_on`, the mono
+re-fire, `zgain` staying 1.0, the strike path at unity, and the no-leak reset. t148's
+"Single is the song path, bit for bit" becomes "times the hand gain" via an exact divide
+(2.0 is a power of two). t172's `perf` case is the only corpus case that fires a hand,
+and it is the only pin that moved: `0x0077fcf3691f9513` → `0x5a5cbb6c031f9513`. The
+other twenty cases stayed bit-identical — the evidence the gain never reached a lane.
+
+**The mutation harness, 8/8 on return codes** (`tests/mutate_keybed_level.py`; the
+marker rule holds). Gates: t240, t148, t238.
+
+| mutant | killed by |
+|---|---|
+| m1 the gain back to unity | t240 |
+| m2 the gain stamped on the song path | t240, t148 |
+| m3 the gain squared | t240, t148 |
+| m4 the pending gain not reset | t240 |
+| m5 the stereo multiply missing | t240, t148 |
+| m6 the mono multiply missing | **t240 only** |
+| m7 the gain folded into `zgain` | t240, t148 |
+| m8 the device sequencer boosted | **t240 only** |
+
+**Staged and playing for the ear round.** v11 build `afa8551`: **1 221 072 B**, sha
+`fddf39efce908b2d562172da3fe0a43b691f8d661c6fa08b22966992562c8022`, chunked put 199
+chunks `sha_ok=True`, launcher `rc=0`, exactly one RIAPP window, `build=afa8551` in the
+EV log, `TR PLAY`, buffers advancing (2930 → 5875 in ~16 s), `xruns=0`, `overloads=0`.
+Whether +6 dB is the level the owner wants over the whole song is the open question; the
+constant is one line if the ear says otherwise. Evidence: `pkey4/` (probe sources,
+outputs, bank dump, track dump, song automation).
