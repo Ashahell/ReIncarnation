@@ -20,6 +20,15 @@
 /* Chord lanes in chord mode (fidelity P9d): the pushed row, on_flags
  * marks which lanes sound. */
 #define RI_LEVI_NCHORD 6u
+/* Live-performance gain (P-KEY4, owner 2026-10-24). The keybed plays ONE
+ * voice; the song's Levi bank is chordal (pattern 1 row 4 carries four
+ * notes), so at the same per-voice level one key is 6 dB below the part it
+ * plays over. Measured on the host with the song's own patch and mix:
+ * single key RMS 0.073350373, song Levi part RMS 0.147373536, full mix RMS
+ * 0.1456. 2.0 makes one key as loud in RMS as the part (uncorrelated voices
+ * sum as sqrt(n)); the peak stays far below the mix peak. The player's hands
+ * (levi_note_on/levi_note_vel) use it; sequenced paths do not. */
+#define RI_LEVI_LIVE_GAIN 2.0f
 /* Algorithm ids (own presets; 8 = custom routing, readable not settable). */
 #define RI_LEVI_ALGO_DUO 0u     /* one 2-op pair (v1 sound), rest idle */
 #define RI_LEVI_ALGO_ALLPAR 1u  /* 8 parallel carriers */
@@ -379,6 +388,10 @@ struct RILeviVoice {
     /* Zone layer gain (fidelity P9c): stamped at the fire from the set's
      * pending gain, 1.0f outside a zone fire (the song path and Single). */
     float zgain;
+    /* Live-performance gain (P-KEY4): stamped at the fire from the set's
+     * pending live gain, 1.0f for every sequenced path. Separate from zgain
+     * so the zone laws keep their own field. */
+    float livegain;
     /* Matrix / macro modulation of oscillator and envelope params (P5b):
      * RI_LEVI_DO_* per oscillator, RI_LEVI_DE_* per ENV 1-5; -1..1. */
     float opm[RI_LEVI_NOPS][RI_LEVI_DO_N];
@@ -862,6 +875,10 @@ struct RILeviSet {
     uint8_t p_bal;      /* layer balance 0..127 (64 = both unity) */
     uint8_t p_splitkey; /* key split boundary 0..127 */
     float p_zgain;      /* pending layer gain for the next fire (1.0f) */
+    /* Pending live-performance gain for the next fire (P-KEY4): set by a
+     * hand's entry point around its note-on and reset there afterwards, so
+     * a fire stamps it on the voice and the next sequenced fire is unity. */
+    float p_livegain;
     /* Performance buttons (fidelity P9d): the glide hold is momentary
      * (copied into the voices each block, so releasing it hands them
      * back to their own mode); the chord row lives on the device but is

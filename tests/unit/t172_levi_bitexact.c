@@ -17,6 +17,13 @@
  *
  * Pin regeneration (owner-supervised only): compile with -DRI_T172_GEN
  * and run the binary; it prints the pin table.
+ *
+ * P-KEY4 (2026-10-24): the `perf` case was re-pinned, and only that case.
+ * It is the one script that fires the player's hands (levi_note_vel and
+ * levi_note_off, chord mode, mono re-fire); the hand gain is a deliberate
+ * level change there. The other twenty cases stayed bit-identical, which
+ * proves the gain never reached the song path (levi_trigger). Old pin:
+ * 0x0077fcf3691f9513; new pin: 0x5a5cbb6c031f9513.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -626,7 +633,11 @@ static const uint64_t PIN[NC][2] = {
     { 0xb1d307ef7bb661cfULL, 0xb1d307ef7bb661cfULL }, /* pans */
     { 0x03ee4487947b6ab7ULL, 0x03ee4487947b6ab7ULL }, /* vintage */
     { 0x3df68ce184101353ULL, 0x3df68ce184101353ULL }, /* pitch */
-    { 0x0077fcf3691f9513ULL, 0x0077fcf3691f9513ULL }, /* perf */
+    /* P-KEY4 (2026-10-24): re-pinned from 0x0077fcf3691f9513. This is the
+     * only case that fires a HAND (levi_note_vel/note_off, chord, mono);
+     * every other case is the song path and stayed bit-identical, which is
+     * the evidence that the live gain did not reach a lane. */
+    { 0x5a5cbb6c031f9513ULL, 0x5a5cbb6c031f9513ULL }, /* perf */
     { 0xf9c5eb3ca4175411ULL, 0xf9c5eb3ca4175411ULL }, /* fx */
     { 0x3d34325a483a7e45ULL, 0x3d34325a483a7e45ULL }, /* worst */
     { 0xa55b87500bb3715dULL, 0xa55b87500bb3715dULL }, /* tails */

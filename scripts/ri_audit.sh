@@ -1262,6 +1262,15 @@ bash "$ROOT/scripts/ri_build_host.sh" test t238_levi_key_paint >/dev/null || { e
 # key drawn without a control fails as "has a control (0)" -- and it pins the
 # chromatic left-to-right run, the id map and the note map.
 bash "$ROOT/scripts/ri_build_host.sh" test t239_keybed_drawn_is_playable >/dev/null || { echo "FAIL: t239_keybed_drawn_is_playable (every drawn key is a control, on its slot, playing C4..C7 in order)"; exit 1; }
+# t240 is the owner's 2026-10-24 volume round, after every key played: "their
+# volume is lower than the song being played." The keybed was NOT attenuated
+# per note -- live 127 and a song lane are the same fire to the bit. The song's
+# Levi bank is chordal (four notes on a step), so one key sat 6 dB below the
+# part it played over (measured RMS 0.0733 vs 0.1474 with the song's own patch
+# and mix). t240 pins the hand gain (RI_LEVI_LIVE_GAIN 2.0) on the player's
+# entry points, both render paths, the mono re-fire, and pins the sequenced
+# paths (song lanes, the device sequencer) at unity with no leak.
+bash "$ROOT/scripts/ri_build_host.sh" test t240_keybed_level >/dev/null || { echo "FAIL: t240_keybed_level (a hand's note is the live gain; a sequenced note is unity; no leak)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

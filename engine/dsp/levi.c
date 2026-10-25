@@ -997,6 +997,7 @@ void levi_init_set(struct RILeviSet *s) {
         v->cutoff = RI_LEVI_DEF_CUTOFF;
         v->reso = RI_LEVI_DEF_RESO;
         v->zgain = 1.0f;                    /* zone layer gain (P9c) */
+        v->livegain = 1.0f;                 /* live-performance gain (P-KEY4) */
         v->level = 1.0f;
         v->drive = 0.0f;
         v->cutoff2 = RI_LEVI_DEF_CUTOFF;
@@ -1180,6 +1181,7 @@ void levi_init_set(struct RILeviSet *s) {
     s->p_bal = 64u;
     s->p_splitkey = 60u;
     s->p_zgain = 1.0f;
+    s->p_livegain = 1.0f;
     s->p_glidehold = 0u;
     s->p_chord = 0u;
     s->p_chord_on = 0u;
@@ -1694,6 +1696,7 @@ int levi_trigger(struct RILeviSet *s, uint32_t voice, uint8_t note) {
     v->nvel = s->pvel;
     v->nveloff = s->pvel;
     v->zgain = s->p_zgain;      /* zone layer gain (P9c); 1.0f on the song path */
+    v->livegain = s->p_livegain; /* live-performance gain (P-KEY4); 1.0f sequenced */
     s->pat[voice] = 0u;
     note = voice_quantize(v, note);   /* key lock (P6c; identity off/chromatic) */
     f = note_hz(note) * voice_micro_mult(v, note);
@@ -2119,21 +2122,31 @@ static int chord_fire(struct RILeviSet *s, uint8_t note, uint8_t vel) {
 }
 
 int levi_note_on(struct RILeviSet *s, uint8_t note) {
+    int n;
     if (!s || note > 127u)
         return -1;
+    s->p_livegain = RI_LEVI_LIVE_GAIN;   /* a hand, not a lane (P-KEY4) */
     if (s->p_chord)
-        return chord_fire(s, note, s->pvel);
-    return note_on_core(s, note, 1);
+        n = chord_fire(s, note, s->pvel);
+    else
+        n = note_on_core(s, note, 1);
+    s->p_livegain = 1.0f;
+    return n;
 }
 
 /* ---- Performance signals (fidelity P9a; own laws) ---- */
 int levi_note_vel(struct RILeviSet *s, uint8_t note, uint8_t vel) {
+    int n;
     if (!s || note > 127u)
         return -1;
     s->pvel = vel > 127u ? 127u : vel;
+    s->p_livegain = RI_LEVI_LIVE_GAIN;   /* a hand, not a lane (P-KEY4) */
     if (s->p_chord)
-        return chord_fire(s, note, s->pvel);
-    return note_on_core(s, note, 1);
+        n = chord_fire(s, note, s->pvel);
+    else
+        n = note_on_core(s, note, 1);
+    s->p_livegain = 1.0f;
+    return n;
 }
 
 int levi_note_rel_vel(struct RILeviSet *s, uint8_t note, uint8_t vel) {
@@ -2228,9 +2241,11 @@ int levi_note_off(struct RILeviSet *s, uint8_t note) {
     alloc_hold_del(s, note);
     mode = s->polymode;
     if (mode == RI_LEVI_POLY_MONO || mode == RI_LEVI_POLY_MONOLO || mode == RI_LEVI_POLY_MONOHI) {
-        if (s->an)
+        if (s->an) {
+            s->p_livegain = RI_LEVI_LIVE_GAIN; /* the held key is still a hand */
             alloc_fire(s, 0u, alloc_pick_mono(s, mode == RI_LEVI_POLY_MONO ? RI_LEVI_POLY_MONO : mode), 1);
-        else {
+            s->p_livegain = 1.0f;
+        } else {
             s->v[0].nveloff = s->rvel;   /* release velocity (P9a) */
             levi_release(s, 0u);
         }
@@ -2239,8 +2254,10 @@ int levi_note_off(struct RILeviSet *s, uint8_t note) {
     if (mode >= RI_LEVI_POLY_UNISON && mode <= RI_LEVI_POLY_UNISONHI) {
         if (s->an) {
             uint8_t nn = mode == RI_LEVI_POLY_UNISON ? s->anotes[s->an - 1u] : alloc_pick_mono(s, mode);
+            s->p_livegain = RI_LEVI_LIVE_GAIN; /* the held key is still a hand */
             for (v = 0u; v < s->ulimit && v < RI_LEVI_NVOICES; v++)
                 alloc_fire(s, v, nn, v == 0u);
+            s->p_livegain = 1.0f;
         } else {
             for (v = 0u; v < s->ulimit && v < RI_LEVI_NVOICES; v++) {
                 s->v[v].nveloff = s->rvel;   /* release velocity (P9a) */
@@ -4154,6 +4171,8 @@ void levi_voice_render_stereo(struct RILeviVoice *v, const struct RILeviMatrix *
         }
         if (v->zgain != 1.0f)                      /* zone layer gain (P9c) */
             amp *= v->zgain;
+        if (v->livegain != 1.0f)                   /* live-performance gain (P-KEY4) */
+            amp *= v->livegain;
     }
     if (!(outL > -1e20f && outL < 1e20f) || !(outR > -1e20f && outR < 1e20f)) {
         filt_clear(v);
@@ -4391,6 +4410,8 @@ float levi_voice_render(struct RILeviVoice *v, const struct RILeviMatrix *mx,
         }
         if (v->zgain != 1.0f)                      /* zone layer gain (P9c) */
             amp *= v->zgain;
+        if (v->livegain != 1.0f)                   /* live-performance gain (P-KEY4) */
+            amp *= v->livegain;
     }
     if (!(out > -1e20f && out < 1e20f)) {
         /* Non-finite latch guard (Dell 2026-09-28): a poisoned filter

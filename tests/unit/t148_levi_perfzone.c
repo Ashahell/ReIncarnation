@@ -55,6 +55,21 @@ static int diff_block(struct RILeviSet *a, struct RILeviSet *b) {
     return 0;
 }
 
+/* P-KEY4: a hand's note is the song note times RI_LEVI_LIVE_GAIN. Divide
+ * that gain back out -- it is a power of two, so the division is exact --
+ * and the SINGLE zone path still has to be bit-for-bit neutral. */
+static int diff_block_hand(struct RILeviSet *hand, struct RILeviSet *song) {
+    static float la[BS], lb[BS], oa[BS], ob[BS];
+    uint32_t k;
+    levi_voice_render_sum_stereo(hand, la, lb, BS, SR);
+    levi_voice_render_sum_stereo(song, oa, ob, BS, SR);
+    for (k = 0u; k < BS; k++)
+        if (la[k] / RI_LEVI_LIVE_GAIN != oa[k] ||
+            lb[k] / RI_LEVI_LIVE_GAIN != ob[k])
+            return 1;
+    return 0;
+}
+
 /* Peak of the next stereo block: a layer gain is a pure multiply, so the peak
  * ratio between twins is the gain itself. */
 static float peak_of(struct RILeviSet *s) {
@@ -222,7 +237,7 @@ int main(void) {
     levi_init_set(&B);
     RI_ASSERT(levi_note_vel(&B, 60u, 100u) == 1, "single twin note");
     {
-        /* SINGLE: one voice at unity (and the same as the song path). */
+        /* SINGLE: one voice at unity (the song path times the hand gain). */
         levi_init_set(&A);
         perf(&A, RI_LEVI_PF_MODE, 0);
         RI_ASSERT(levi_note_vel(&A, 60u, 100u) == 1, "single note");
@@ -232,7 +247,8 @@ int main(void) {
         RI_ASSERT(levi_note_vel(&A, 60u, 100u) == 1, "single again");
         RI_ASSERT(levi_trigger(&B, 0u, 60u) == 0, "song lane trigger");
         RI_ASSERT(B.v[0].zgain == 1.0f, "the song path never zones");
-        RI_ASSERT(!diff_block(&A, &B), "Single is the song path, bit for bit");
+        RI_ASSERT(!diff_block_hand(&A, &B),
+            "Single is the song path times the hand gain, bit for bit");
         /* The song path ignores the bias and the mode as well. */
         levi_init_set(&A);
         perf(&A, RI_LEVI_PF_OCT, 4);
