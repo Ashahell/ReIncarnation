@@ -49,7 +49,12 @@ int main(void) {
     RI_ASSERT(ri_panel_key(&pu, 0x19, 0) == 1 && ri_sui_led(&s1, RI_S303_ACCENT, 0) == 1, "P = Accent");
     /* keypad transport */
     RI_ASSERT(ri_panel_key(&pu, RI_RAW_KPENTER, 0) == 1 && ri_sui_led(&tr, RI_STR_PLAY, 0), "Enter plays");
+    /* Space is a TOGGLE, so a keyboard sends press -> release -> press. Two
+     * presses with no release between are one press and one auto-repeat --
+     * that is what strobed the Dell's transport for 21 h (t241, and
+     * docs/evidence/midi/transport-storm/). */
     RI_ASSERT(ri_panel_key(&pu, RI_RAW_SPACE, 0) == 1 && !ri_sui_led(&tr, RI_STR_PLAY, 0), "space stops");
+    RI_ASSERT(ri_panel_key(&pu, RI_RAW_SPACE | RI_RAW_UPFLAG, 0) == 0, "space release");
     RI_ASSERT(ri_panel_key(&pu, RI_RAW_SPACE, 0) == 1 && ri_sui_led(&tr, RI_STR_PLAY, 0), "space plays");
     RI_ASSERT(ri_panel_key(&pu, RI_RAW_KPPLUS, 0) == 1 && ri_sui_value(&tr, RI_STR_TEMPO) == 121, "+ tempo");
     RI_ASSERT(ri_panel_key(&pu, RI_RAW_KPMINUS, 0) == 1 && ri_sui_value(&tr, RI_STR_TEMPO) == 120, "- tempo");

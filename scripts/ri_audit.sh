@@ -1271,6 +1271,15 @@ bash "$ROOT/scripts/ri_build_host.sh" test t239_keybed_drawn_is_playable >/dev/n
 # entry points, both render paths, the mono re-fire, and pins the sequenced
 # paths (song lanes, the device sequencer) at unity with no leak.
 bash "$ROOT/scripts/ri_build_host.sh" test t240_keybed_level >/dev/null || { echo "FAIL: t240_keybed_level (a hand's note is the live gain; a sequenced note is unity; no leak)"; exit 1; }
+# t241 is the Dell's 2026-10-26 strobe: 1 493 800 TR PLAY/STOP pairs in 21.3 h
+# from ONE space key-down that was never released (docs/evidence/midi/
+# transport-storm/). Space is a TOGGLE (it reads the PLAY LED) and input.device
+# repeats a held key's DOWN at ~19/s, so every repeat flipped the transport.
+# The guard is the toggle only -- holding + or - must still ramp the tempo --
+# and t71 used to pin the defect by pressing space twice with no release
+# between. t241 pins the press edge, the release that re-arms it, another key's
+# release that must not, and the tempo keys' kept auto-repeat.
+bash "$ROOT/scripts/ri_build_host.sh" test t241_transport_toggle_edge >/dev/null || { echo "FAIL: t241_transport_toggle_edge (a repeat does not toggle; the release re-arms; tempo keys still repeat)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

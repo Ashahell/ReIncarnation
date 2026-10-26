@@ -30,6 +30,7 @@ void ri_panel_init(struct RIPanelUI *p) {
         p->playhead[i] = -1;
     p->playing = 0;
     p->del_held = p->del_focus = 0;
+    p->tr_toggle = 0;
     p->skin_installed = 0;
     p->skin_n = 0;
     p->skin_current[0] = '\0';
@@ -147,10 +148,23 @@ static int transport(struct RIPanelUI *p, int cmd) {
 
 int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {    struct RIKeyAction a;
     int ch = 0;
+    uint32_t code = raw & 0x7Fu;
     if (!p)
         return 0;
     p->last_raw = (uint16_t)raw;
     p->last_qual = (uint16_t)qual;
+    /* A transport TOGGLE acts on the press edge. input.device repeats a held
+     * key's DOWN at ~19/s, and RI_KT_STOPPLAY reads the PLAY LED, so without
+     * this a finger resting on space strobes the transport: the Dell logged
+     * 1 493 800 TR PLAY/STOP pairs in 21.3 h from ONE unreleased key-down
+     * (docs/evidence/midi/transport-storm/). The release re-arms the key --
+     * any OTHER key's release must not, or a held space would start toggling
+     * again the moment another key came up. Only the toggle is guarded:
+     * holding + or - must still ramp the tempo. */
+    if ((raw & RI_RAW_UPFLAG) != 0u) {
+        if (p->tr_toggle == (uint8_t)code)
+            p->tr_toggle = 0;
+    }
     a = ri_key_decode(raw, qual, &p->opts, p->focus);
     if (a.kind != RI_KA_NONE)
         p->last = a;
@@ -168,6 +182,11 @@ int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {    struct R
         ch |= set_focus(p, a.section);
         break;
     case RI_KA_TRANSPORT:
+        if (a.arg == RI_KT_STOPPLAY) {
+            if (p->tr_toggle == (uint8_t)code)
+                break;                  /* auto-repeat of a held key, not a press */
+            p->tr_toggle = (uint8_t)code;
+        }
         ch = transport(p, a.arg);
         break;
     case RI_KA_SYNTH:   /* p. 225: the focused synth's step-entry keys */
