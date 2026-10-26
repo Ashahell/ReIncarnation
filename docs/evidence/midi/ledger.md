@@ -8332,3 +8332,61 @@ EV log, `TR PLAY`, buffers advancing (2930 → 5875 in ~16 s), `xruns=0`, `overl
 Whether +6 dB is the level the owner wants over the whole song is the open question; the
 constant is one line if the ear says otherwise. Evidence: `pkey4/` (probe sources,
 outputs, bank dump, track dump, song automation).
+
+## P-TR1: a held space key strobed the transport 1 493 800 times in 21 hours (2026-10-26)
+
+Found while checking the Dell lane after the P-KEY4 re-stage, not by a listening round.
+`RAM:RIAPP-EV.LOG` was **39 582 889 B** and held **1 493 800 `TR PLAY`/`TR STOP` lines
+and nothing else** after `ev 25` (`docs/evidence/midi/transport-storm/`).
+
+| | |
+|---|---|
+| app auto-play | `ev 23  15 TR PLAY` |
+| song end | `ev 24  48883 TR STOP` (48 868 buffers of the 48 866-buffer song) |
+| the injected key-down | `ev 25  57591 TR PLAY`, 46 s after the song ended |
+| first auto-repeat | `ev 26  57599 TR STOP` (8 buffers = 43 ms later) |
+| last toggle | `ev 1493824  14454370 TR STOP` |
+| span / rate | 14 396 779 buffers = **21.33 h**, **19.45 toggles/s**, 26.5 B per toggle |
+
+The buffer counter is a render counter that advances whether or not the transport runs
+(14.45 M buffers at 187.5/s = 21.4 h = the app's uptime), so the span is read off the log
+without a clock. The run ended when `--ui-rawkey 0x40,up` was injected at 06:38:59:
+`List RAM:RIAPP-EV.LOG` returned **39 582 889 B / mtime `Today 14:10:32`** at 06:41, 06:44:03,
+06:44:18 and 06:45:49 — identical, so the last `TR` line is the last event. The guest copy
+was preserved as `RAM:STORM-EV.LOG` (same size) before the relaunch.
+
+**The defect.** `ri_key_decode` sends only a key-DOWN to `RI_KT_STOPPLAY` (a key-up is
+`RI_KA_NONE`, `gui/keymap.c:64`), and `RI_KT_STOPPLAY` is the one transport command that
+toggles — it reads the PLAY LED and presses the other button (`gui/panelui.c:133`). So every
+auto-repeat from `input.device` flips the transport. A held space, a stuck key, or an
+injection that sends only the down are all the same strobe.
+
+**The test that licensed it.** `t71_panelui` pressed `RI_RAW_SPACE` twice with no release
+between and asserted "space stops" then "space plays". A keyboard never sends that: the
+second press was an auto-repeat. The test that should have caught the strobe was the test
+that wrote it down as a law.
+
+**The rule: a toggle acts on the press edge.** The key's code latches on the press, **that
+key's own** release clears it, and a repeat is ignored. The guard is the toggle command, not
+`RI_KA_TRANSPORT`: holding `+`/`-` must still ramp the tempo, and another key's release must
+not re-arm a held space.
+
+**Tests.** `t241_transport_toggle_edge` written first: RED **5**, and exactly the repeat pins
+— the release, the fresh panel and the tempo counter-pins were already green, so the RED was
+the defect and not a scaffold. `t71` now sends the release between its two presses.
+`mutate_transport_toggle.py` **5/5** killed, printing the killers: m1 no guard → **t241 only**
+(t71 cannot see it — that is the measured cost of the old pin), m2 guard-the-class →
+t241+t71, m3 no clear on release → t241+t71, m4 any release clears → **t241 only**, m5 the
+release treated as the action → t241+t71. `AUDIT 0/0 PASS`. Commit `54d7c95`.
+
+**Harness lesson, standing.** `--ui-rawkey CODE` is key-down only; the release is
+`CODE,up`, and it is a second submit. A paired press is two jobs. After any injected key,
+the proof that it was released is the log **ceasing to grow** — not the job's `PASS`.
+
+**Lane state after.** The strobed instance was closed by title (`ui-close`, 57 ms), verified
+gone by `--ui-windows` (2 windows, no RIAPP), the storm log renamed, `RAM:LEVIPROBE.RUN`
+re-run (`rc=0`, 15 078 ms). New instance: one RIAPP window, `build=afa8551`, `SONG load
+... bars=151 bpm=140`, `TR PLAY`, ev log **998 B / 23 lines** with no `TR` after it, buffers
+2919 → 5856 → 8811, `xruns=0`, `overloads=0`. The P-KEY4 ear round is unblocked on the same
+build that was measured; the toggle fix is committed but **not staged** — the ear round
+should hear the build the ledger names.

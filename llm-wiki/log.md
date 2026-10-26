@@ -1,4 +1,11 @@
 
+## [2026-10-26] ingest | A held space key strobed the transport for 21 hours
+- Disposition: New (P-TR1; the defect t71 licensed)
+- Raw: llm-wiki/raw/articles/2026-10-26-a-held-space-key-strobed-the-transport.md
+- Evidence: 1 493 800 TR lines / 21.33 h / 19.45 toggles/s from one unreleased key-down; `t241` RED 5 → PASS; harness 5/5 with m1 killed by t241 only
+- Corrected: `t71_panelui` pressed space twice with no release and called it "stops then plays" — the pin was the defect
+
+
 ## [2026-10-18] ingest | AROS GUI autostart: the helper route, verified by reboot
 - Disposition: New (supersedes the WBStartup claim in 2026-10-18-aros-gui-app-autostart-wbstartup.md)
 - Raw: llm-wiki/raw/articles/2026-10-18-aros-gui-autostart-helper.md

@@ -1,0 +1,26 @@
+full log     : /tmp/opencode/ev-up1.log  39 582 889 B
+sha256       : b8bf50bbf06a612e702c024b384e4aa96adad1e50abff2b0f5357d8eabf83ec1
+lines        : 1 493 824
+TR lines     : 1 493 802
+non-TR lines after ev 25 : 0
+
+onset (ev 23..25)
+  ev 23  15       TR PLAY     app auto-play, 15 buffers after RUN
+  ev 24  48883    TR STOP     song end (48 868 buffers played of 48 866)
+  ev 25  57591    TR PLAY     the injected space key-down (46 s later)
+
+storm
+  first toggle buffer : 57591
+  last  toggle buffer : 14454370
+  span                : 14 396 779 buffers = 76 782.8 s = 21.33 h
+  toggles             : 1 493 800
+  rate                : 19.45 toggles/s  (~2.4 buffers = ~12.8 ms between a
+                        PLAY and the STOP that follows it)
+  log cost            : 26.5 B/toggle -> 39.5 MB of RAM: over the run
+
+stop
+  host key-up job     : 20261026-063859-2471032-1  PASS  (--ui-rawkey 0x40,up)
+  guest mtime at freeze: "Today 14:10:32"  (guest clock is +7h31m33s vs host)
+  size at 06:41 pull, 06:44:03 List, 06:44:18 List, 06:45:49 List:
+    39 582 889 B -- identical, so the last TR line IS the last event and the
+    key-up landed within the 2 s between the key-up job and the pull.

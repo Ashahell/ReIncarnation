@@ -1,0 +1,6 @@
+[submit] job 20261026-064548-2479639-1 queued (1 actions); waiting up to 60s ...
+[exec] 'List RAM:RIAPP-EV.LOG' -> rc=0 (21 ms)
+       Directory "RAM:" on Sunday 12/15/13:
+       RIAPP-EV.LOG             39582889 ---rwed Today       14:10:32
+       1 file - 77311 blocks used
+[submit] RESULT: PASS (agent e6320, session 5007)
