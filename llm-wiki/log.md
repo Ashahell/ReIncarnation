@@ -1,3 +1,14 @@
+## [2026-10-27] correction + ingest | The strobe was two defects, and one press made two lines
+- Disposition: Correction to the 2026-10-26 P-TR1 entry + New (P-TR2)
+- Raw: llm-wiki/raw/articles/2026-10-26-a-held-space-key-strobed-the-transport.md (correction section appended)
+- Corrected: 1 493 800 `TR` lines = **746 900 presses** at **9.73/s**, not 19.45 toggles/s. One press made a pair — `TR PLAY`, then `TR STOP` a median 8 buffers (43 ms) later. Interval medians: PLAY->STOP 8, STOP->PLAY 11, PLAY->PLAY 19 buffers (one period per press; two distributions = a press and a poll). Direct proof: one paired press on a transport parked at the song's end produced PLAY then STOP 5 buffers later and nothing else (`ev-replay.log` ev 73/74)
+- New (P-TR2): `sync_transport()` early-returned on an unchanged *state*, and `ri_tr_stop()`'s clicks law changes no state when already stopped — the panel's cursor moved, the engine's stayed past `song_bars + 1`, and `song_poll_end` stopped every Play: the song played **once per launch**. Evidence: Stop, Stop, Rewind+Play wrote **no `TR` line at all** and the next Play was stopped in the **same** render buffer (`ev-replay3/4.log`)
+- Fix: `ri_core_transport_sync(panel_state, panel_clicks, &last_state, &last_clicks)` in `app/core/riapp_core.c` (acts on state **or** stop-click count; `MOD_core`, host-built) + `p->tr_stop` press-edge latch in `gui/panelui.c`, separate from `p->tr_toggle`
+- Evidence: `t242_transport_rewind` RED **8** (3 propagation, 5 panel) -> PASS; `mutate_transport_rewind.py` **6/6** (m1 state-only -> t242 only; m6 guard-the-class -> t241+t71); `AUDIT 0/0 PASS`
+- Note: the P-TR1 fix is unaffected — it makes the first press act and every repeat silent — but the 39.5 MB needed both defects.
+- Note: the lesson is about shadows. A sync shadow that compares a widget's *state* is only right if the state is the whole of its meaning; `ri_tr_stop()` has memory (the click count) and the shadow had none, so the two drifted by one press behind a correct-looking display.
+
+
 
 ## [2026-10-26] ingest | A held space key strobed the transport for 21 hours
 - Disposition: New (P-TR1; the defect t71 licensed)

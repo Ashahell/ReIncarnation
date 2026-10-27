@@ -10,13 +10,21 @@ onset (ev 23..25)
   ev 25  57591    TR PLAY     the injected space key-down (46 s later)
 
 storm
-  first toggle buffer : 57591
-  last  toggle buffer : 14454370
+  first press buffer  : 57591
+  last  press buffer  : 14454370
   span                : 14 396 779 buffers = 76 782.8 s = 21.33 h
-  toggles             : 1 493 800
-  rate                : 19.45 toggles/s  (~2.4 buffers = ~12.8 ms between a
-                        PLAY and the STOP that follows it)
-  log cost            : 26.5 B/toggle -> 39.5 MB of RAM: over the run
+  TR lines            : 1 493 800  (strictly alternating PLAY, STOP; 0
+                        non-alternating adjacent pairs in 1 493 801 gaps)
+  presses             : 746 900    (one PLAY/STOP pair per key-down)
+  press rate          : 9.73/s      (period ~101 ms = 19 buffers = ~5 ticks)
+  gaps (buffers)      : PLAY->STOP median 8 (43 ms), STOP->PLAY median 11
+                        (59 ms), PLAY->PLAY median 19 (101 ms) -- two tight
+                        distributions, so the STOP is a poll, not a press
+  log cost            : 26.5 B/line = 53 B/press -> 39.5 MB of RAM: over the run
+  STOP cause          : song_poll_end, because the session cursor was parked at
+                        the song's end and could not be rewound (P-TR2);
+                        proven by a single paired press today (ev-replay.log
+                        ev 73/74: PLAY then STOP 5 buffers later, nothing else)
 
 stop
   host key-up job     : 20261026-063859-2471032-1  PASS  (--ui-rawkey 0x40,up)

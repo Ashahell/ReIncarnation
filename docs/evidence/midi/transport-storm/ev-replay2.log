@@ -1,0 +1,76 @@
+ev 1 0 RUN claim rc=0 undated (no heartbeat) -> takeover
+ev 2 0 RUN frames=256 vol=RAM: build=afa8551
+ev 3 0 NOTEIN dev 0 ch 2 bound
+ev 4 0 NOTEIN dev 1 ch 2 REFUSED (channel taken)
+ev 5 0 NOTEIN dev 2 ch 10 bound
+ev 6 0 NOTEIN bound 2 drums_implicit=1
+ev 7 0 NOTEIN played=0 refused=0 unclaimed=0 dropped=0 seen=0
+ev 8 0 LEVI chan remote=1 levi=2 devices=2
+ev 9 0 CLK out=0 enabled=0 lat_ms=8
+ev 10 0 DEV out=0 ch=0 prog=38
+ev 11 0 MMC out=0
+ev 12 2 SKIN installed=4 dir=SYS:Classes/ReIncarnation/Mods/
+ev 13 2 SKIN sync=0 zoom=0 current=Classic
+ev 14 10 SONG fail Vk4aros:ReIncarnation/songs/zombie-nation.rbng
+ev 15 10 SONG fail Vk4aros:ReIncarnation/songs/local/zombie-nation.rbng
+ev 16 11 PAT c=1 inst=0 sel=1
+ev 17 12 PAT c=2 inst=1 sel=0
+ev 18 13 PAT c=3 inst=2 sel=0
+ev 19 13 PAT c=4 inst=3 sel=1
+ev 20 13 PAT c=5 inst=4 sel=0
+ev 21 15 SKIN song=zombie-nation.rbng none
+ev 22 15 SONG load Vk4aros:ReIncarnation/songs/local/zombie-nation/zombie-nation.rbng bars=151 bpm=140
+ev 23 15 TR PLAY
+ev 24 19889 STEP v=1 slot=0 step=0 key=12 flags=4
+ev 25 19889 CTL 0113=0
+ev 26 20515 TAB page=2 us=23118 page_us=21838 tabs_us=237 rail_us=1043 sec=1 art=3 bay=9 built=56 kept=0 fn=0 fb=0 fr=0 fl=0 mui=21838 xruns+0
+ev 27 20876 CTL 1218=0
+ev 28 20876 LEVI key 60 on vel 127
+ev 29 20913 LEVI key 60 off
+ev 30 20935 CTL 1218=0
+ev 31 20935 LEVI key 60 on vel 127
+ev 32 20957 LEVI key 60 off
+ev 33 21013 CTL 1218=0
+ev 34 21013 LEVI key 60 on vel 127
+ev 35 21029 LEVI key 60 off
+ev 36 21292 CTL 1218=0
+ev 37 21292 LEVI key 60 on vel 127
+ev 38 21318 LEVI key 60 off
+ev 39 21390 CTL 1218=0
+ev 40 21390 LEVI key 60 on vel 127
+ev 41 21414 LEVI key 60 off
+ev 42 21827 CTL 1219=0
+ev 43 21827 LEVI key 61 on vel 127
+ev 44 21855 LEVI key 61 off
+ev 45 21920 CTL 1219=0
+ev 46 21920 LEVI key 61 on vel 127
+ev 47 21942 LEVI key 61 off
+ev 48 22108 CTL 121a=0
+ev 49 22108 LEVI key 62 on vel 127
+ev 50 22129 LEVI key 62 off
+ev 51 22184 CTL 121a=0
+ev 52 22184 LEVI key 62 on vel 127
+ev 53 22204 LEVI key 62 off
+ev 54 22240 CTL 121a=0
+ev 55 22240 LEVI key 62 on vel 127
+ev 56 22260 LEVI key 62 off
+ev 57 22321 CTL 121a=0
+ev 58 22321 LEVI key 62 on vel 127
+ev 59 22345 LEVI key 62 off
+ev 60 22621 CTL 121b=0
+ev 61 22621 LEVI key 63 on vel 127
+ev 62 22645 LEVI key 63 off
+ev 63 22715 CTL 121b=0
+ev 64 22715 LEVI key 63 on vel 127
+ev 65 22735 LEVI key 63 off
+ev 66 22804 CTL 121b=0
+ev 67 22804 LEVI key 63 on vel 127
+ev 68 22826 LEVI key 63 off
+ev 69 22897 CTL 121b=0
+ev 70 22897 LEVI key 63 on vel 127
+ev 71 22922 LEVI key 63 off
+ev 72 48883 TR STOP
+ev 73 206674 TR PLAY
+ev 74 206679 TR STOP
+ev 75 225012 TR PLAY
+ev 76 225019 TR STOP

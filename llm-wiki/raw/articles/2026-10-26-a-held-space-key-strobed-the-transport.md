@@ -22,7 +22,7 @@ lines and nothing else** after the song had ended:
 | first auto-repeat | `ev 26  57599 TR STOP` (8 buffers = 43 ms) |
 | last toggle | `ev 1493824  14454370 TR STOP` |
 | span | 14 396 779 buffers = 76 782.8 s = **21.33 h** |
-| toggles | **1 493 800**, 19.45/s, 26.5 B each = 39.5 MB of `RAM:` |
+| toggles | **1 493 800** lines, 19.45/s, 26.5 B each = 39.5 MB of `RAM:` *(corrected at the end: 746 900 presses, 9.73/s)* |
 
 The buffer counter is a *render* counter: it advances whether or not the transport runs
 (14.45 M buffers at 187.5/s = 21.4 h = the app's uptime), so the span can be read off the
@@ -36,7 +36,8 @@ last `TR` line *is* the last event.
 `ri_key_decode` hands only a key-**down** to the transport (`gui/keymap.c:64`: a key-up is
 `RI_KA_NONE`), and `RI_KT_STOPPLAY` is the one transport command that **toggles** — it reads
 the PLAY LED and presses the other button (`gui/panelui.c:133`). `input.device` repeats a
-held key's down at ~19/s, so:
+held key's down (the log's 19.45 lines/s was two lines per press — see the correction
+at the end; the key rate is 9.73/s), so:
 
 > one key-down with no key-up = a transport strobe at the keyboard's repeat rate.
 
@@ -114,3 +115,49 @@ New instance: exactly one RIAPP window, `build=afa8551`, `SONG load ... bars=151
 The toggle fix is committed but **not staged**: the P-KEY4 ear round should hear the build
 the ledger names (`afa8551`), and a re-stage would change the build identity under the
 owner's ears for a change that cannot affect the keybed's level.
+
+## Correction (2026-10-26 07:20): one press made two lines — and there were two defects
+
+The first version of this article counted the log's `TR` **lines** and called them
+toggles: *1 493 800 lines at 19.45/s*. That is wrong by a factor of two, and it puts
+the wrong cause on the `STOP` half.
+
+**What the log is.** 1 493 800 `TR` lines, strictly alternating `PLAY`, `STOP`, …
+(0 non-alternating adjacent pairs in 1 493 801 gaps) — so **746 900 pairs**, and a pair
+is **one key-down**. Interval medians in render buffers: PLAY→STOP **8** (43 ms),
+STOP→PLAY **11** (59 ms), PLAY→PLAY **19** (101 ms). A repeat stream has **one**
+period; two tight, different distributions is "press, then something 43 ms later".
+The direct proof is not statistical: a single **paired** press (`0x40` down,
+`0x40,up`) on a transport parked at the song's end produced exactly `TR PLAY` then
+`TR STOP` five buffers later and nothing else (`ev-replay.log` ev 73/74).
+
+So the press rate is **9.73/s** (~101 ms, 19 buffers), the log cost **53 B per
+press**, and "AROS repeats a held key at ~19/s" was the *line* rate, not the key rate.
+
+**Why the pair.** The transport was stopped at the song's **end** and could not be
+moved off it: each press started playback, and `song_poll_end` stopped it a median
+8 buffers later. That is a **second defect, P-TR2** — `sync_transport()` early-returned
+on an unchanged *state*, and `ri_tr_stop()`'s clicks law changes no state when the
+transport is already stopped, so the panel's cursor moved and the engine's did not.
+The song played exactly once per launch: two Stop presses and Rewind+Play all still
+stopped, and those presses wrote **no `TR` line at all** (`ev-replay3.log`,
+`ev-replay4.log` — the Play that followed was stopped in the **same** render buffer).
+
+**The fix.** The propagation decision moved into a pure helper,
+`ri_core_transport_sync(panel_state, panel_clicks, &last_state, &last_clicks)`
+(`app/core/riapp_core.c`, host-built), which acts when **either** the state or the
+stop-click count differs; `sync_transport()` keeps an `s_tr_clicks` shadow beside
+`s_tr_state` and still drives MMC out and the engine from one place. A held Stop is
+one press as well: `p->tr_stop` latches on the press edge and that key's own release
+clears it, separate from `p->tr_toggle` so holding one key cannot silence the other.
+
+**Tests.** `t242_transport_rewind` RED **8** (3 propagation pins, 5 panel pins) →
+GREEN; harness **6/6** (m1 state-only sync → **t242 only**; m6 guard-the-class →
+t241+t71). `AUDIT 0/0 PASS`.
+
+**The lesson worth keeping.** A sync shadow that compares a widget's *state* is only
+correct if the state is the whole of its meaning. `ri_tr_stop()` has memory (the click
+count); the shadow had none, so the two drifted by one press, the display looked
+right, and the drift only showed when the cursor's position mattered. This is the
+same shape as the P-TR1 mistake — a test that recorded a repeat as a press — one
+level down: **the thing you compare has to carry the meaning you act on.**

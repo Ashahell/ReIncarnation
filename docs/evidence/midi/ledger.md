@@ -8346,7 +8346,7 @@ and nothing else** after `ev 25` (`docs/evidence/midi/transport-storm/`).
 | the injected key-down | `ev 25  57591 TR PLAY`, 46 s after the song ended |
 | first auto-repeat | `ev 26  57599 TR STOP` (8 buffers = 43 ms later) |
 | last toggle | `ev 1493824  14454370 TR STOP` |
-| span / rate | 14 396 779 buffers = **21.33 h**, **19.45 toggles/s**, 26.5 B per toggle |
+| span / rate | 14 396 779 buffers = **21.33 h**, 19.45 lines/s *(corrected at the end of this section: 746 900 presses, 9.73/s)*, 26.5 B per line |
 
 The buffer counter is a render counter that advances whether or not the transport runs
 (14.45 M buffers at 187.5/s = 21.4 h = the app's uptime), so the span is read off the log
@@ -8390,3 +8390,82 @@ re-run (`rc=0`, 15 078 ms). New instance: one RIAPP window, `build=afa8551`, `SO
 2919 → 5856 → 8811, `xruns=0`, `overloads=0`. The P-KEY4 ear round is unblocked on the same
 build that was measured; the toggle fix is committed but **not staged** — the ear round
 should hear the build the ledger names.
+
+**Correction (2026-10-26 07:20): one press made two lines, so the rate was 9.73/s.**
+The count above is `TR` **lines**, and the rate was derived from it. A press made a
+**pair**: `TR PLAY`, then `TR STOP` a median 8 render buffers (43 ms) later. The 1 493 800
+lines are **746 900 presses**, and the press rate is **9.73/s** (period ~101 ms = 19
+buffers), not 19.45/s. Interval medians over all 1 493 801 gaps: PLAY→STOP **8**,
+STOP→PLAY **11**, PLAY→PLAY **19** buffers. Two tight, different distributions are the
+signature of "press, then a poll 43 ms later"; a repeat stream has one period. The direct
+proof is not statistical: a single **paired** press (`0x40` down, `0x40,up`) on a
+transport parked at the song's end produced exactly `TR PLAY` and `TR STOP` 5 buffers
+later and nothing else (`ev-replay.log` ev 73/74). The `STOP` half was **`song_poll_end`**,
+not the next repeat — which is a second defect, P-TR2, below. The P-TR1 fix is unaffected
+(it makes the first press act and every repeat silent), but the 39.5 MB needed both
+defects. `CORRECTION.md` in the evidence directory carries the tables.
+
+## P-TR2: the song played once per launch — a stop press while stopped was dropped (2026-10-26)
+
+Found while unblocking the P-KEY4 ear round: after the song ended, pressing Play started
+playback and the app stopped it again ~43 ms later, every time, and no amount of Stop,
+Rewind or Play would move the song back. Two presses of Stop and Rewind+Play both still
+stopped (`ev-replay2.log`, `ev-replay3.log`, `ev-replay4.log`).
+
+**The defect is a propagation rule, not a state machine.** `sync_transport()`
+(`app/riapp.c`) drives the session from the front panel and early-returned on an unchanged
+**state**:
+
+    if (st == s_tr_state) return;      /* P-TR2 */
+
+The panel's Stop press does not only set a state: `ri_tr_stop()` is a clicks law (stop
+holds the cursor, stop again goes to the loop start, a third to the song start). A Stop
+press **while already stopped** therefore changes the panel's `cursor` and `clicks` and
+nothing else — so the engine never saw it, its `cursor_ticks` stayed past `song_bars + 1`,
+and `song_poll_end()` stopped every subsequent Play. The panel's bar display moved; the
+engine's cursor did not.
+
+Evidence that the press was received and dropped: `ev-replay3.log` (Stop pressed once) and
+`ev-replay4.log` (Stop twice, then Rewind+Play) contain **no `TR` line at all** for those
+presses, and the Play that followed still produced `TR PLAY` + `TR STOP` in the **same
+render buffer** (`ev 79/80`, 262042/262042) — stopped before a single buffer advanced.
+
+**The fix.** The decision moved into a pure, host-built helper so the rule is testable
+without an AROS app:
+
+- `ri_core_transport_sync(panel_state, panel_clicks, &last_state, &last_clicks)`
+  (`app/core/riapp_core.c`, in `MOD_core`) returns `RI_TR_SYNC_NONE` / `_PLAY` / `_STOP`
+  and acts when **either** the state or the stop-click count differs. `sync_transport()`
+  keeps a `s_tr_clicks` shadow next to `s_tr_state` and drives MMC out and the engine from
+  the helper's answer, so there is still exactly one place the transport moves.
+- A held Stop is now **one press** too: `p->tr_stop` latches the key code on the press
+  edge, that key's own release clears it (`gui/panelui.c`). Separate from `p->tr_toggle`,
+  so holding one key cannot silence the other. The guard is still the press-count
+  commands, not the class — tempo, FF and Rew keep their repeats.
+
+The alternative — not stopping at the song's end — was rejected: stopping at the end is
+the documented behaviour, and the clicks law is the documented rewind. The bug was that the
+rewind never left the panel.
+
+**Tests.** `t242_transport_rewind` written first: RED **8** — 3 propagation pins
+(`(STOPPED, clicks 1)` must reach the engine, and the third press too) and 5 panel pins
+(a held Stop stepped the cursor loop start → song start per repeat). GREEN after the fix,
+with `t241`, `t71` unchanged. `mutate_transport_rewind.py` **6/6** killed, printing the
+killers: m1 state-only sync → **t242 only** (the actual defect), m2 no Stop edge guard →
+t242, m3 latch never cleared → t242, m4 any release clears it → t242, m5 inverted sync →
+t242, m6 guard-the-class → **t241+t71** (the tempo counter-pins, which is why the guard
+stays narrow). `AUDIT 0/0 PASS`.
+
+**Standing lesson.** A "sync shadow" that compares the *state* of a widget is only correct
+if the widget's state is the whole of its meaning. `ri_tr_stop()` has memory (the click
+count); the shadow had none, so the two drifted by one press and the drift was invisible
+until the cursor's position mattered. Compare the thing that carries the meaning, or the
+bug hides behind a correct-looking display.
+
+**What is not proven by a host test.** `sync_transport()` itself is AROS-only glue, so
+`t242` pins the rule (the helper) and the panel, not the call site: a wrong argument at
+`app/riapp.c` would still compile. The call site's proof is the lane — after staging, a
+Stop press must produce a `TR` line and the Play that follows must **not** be stopped in
+the same buffer. It is not staged yet: the P-KEY4 ear round is still hearing `afa8551`,
+and the song's "play once per launch" is a limitation the owner is working around (relaunch
+between listens) rather than a reason to swap the build under the ears.
