@@ -307,8 +307,12 @@ static Object *s_zoomitems[4];  /* View menu items (zoom checkmarks) */
 static int s_zoom_mode = RI_ZOOMFIT_FIT; /* -1 Fit, else content zoom */
 static Object *s_songitems[5]; /* Songs menu items (NULL when the menu failed) */
 
-/* Sync shadows (state-compare: the panel is the truth, the session follows). */
+/* Sync shadows (state-compare: the panel is the truth, the session follows).
+ * The transport shadow carries the panel's stop-click count as well as its
+ * state: a stop press while already stopped changes no state but IS the
+ * documented rewind (P-TR2, app/core/riapp_core.c ri_core_transport_sync). */
 static int s_tr_state;
+static uint32_t s_tr_clicks;
 static uint8_t s_pat_bank[C_N], s_pat_pat[C_N], s_pat_off[C_N], s_pat_shuf[C_N];
 static uint8_t s_pat_len[C_N][32];
 static struct RI303Row s_303_row[2][16];
@@ -756,6 +760,7 @@ static int s_mmc_echo;            /* 1 while applying an INBOUND MMC intent */
 
 static void sync_transport(void) {
     int st = s_ui[C_TR]->u.tr.tr.state;
+    int act;
     /* Owner 2026-09-29: the tempo knob drives the session (was
      * display-only); the live render adopts bpm into the engine.
      * M3: while MIDI clock is followed the session tracks the measured
@@ -767,9 +772,10 @@ static void sync_transport(void) {
             (float)tempo != s_core.session.bpm)
             ri_live_set_bpm(&s_core.session, (float)tempo);
     }
-    if (st == s_tr_state)
+    act = ri_core_transport_sync(st, s_ui[C_TR]->u.tr.tr.clicks,
+                                 &s_tr_state, &s_tr_clicks);
+    if (act == RI_TR_SYNC_NONE)
         return;
-    s_tr_state = st;
     /* MMC out (M5h). Driven from the ONE place the transport changes, so
      * there is no second path that can move it and forget to announce it.
      * `echo` is 0 when the change came FROM an inbound MMC: echoing a
@@ -792,7 +798,7 @@ static void sync_transport(void) {
                 evlog("MMC", "tx=%u refused", (ULONG)f[4]);
         }
     }
-    if (st == RI_TR_PLAYING || st == RI_TR_RECORD) {
+    if (act == RI_TR_SYNC_PLAY) {
         /* RECORD plays: the record lane lands in Step 4. */
         if (s_live)
             au_live_request(&s_lv, AU_LIVE_CMD_PLAY);
@@ -4239,6 +4245,7 @@ static int riapp_main(int argc, char **argv) {
     }
     midi_setup(); /* the MIDI panel's shadow of the UI values (needs the panel) */
     s_tr_state = s_ui[C_TR]->u.tr.tr.state;
+    s_tr_clicks = s_ui[C_TR]->u.tr.tr.clicks;
     for (i = 0; i < C_N; i++) {
         IPTR ch = 0;
         GetAttr(MUIA_RSection_Changes, s_canvas[i], &ch);

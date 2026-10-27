@@ -79,6 +79,21 @@ const struct RIPatternBank *ri_core_bank_ro(const struct RIAppCore *c, uint32_t 
  * routes through the render task when the AHI backend is up). */
 void ri_core_play(struct RIAppCore *c);
 void ri_core_stop(struct RIAppCore *c);
+/* Transport propagation (P-TR2). The panel owns the front-panel transport —
+ * its state AND its stop-click counter (ri_tr_stop's clicks law: the first stop
+ * holds the cursor, the second goes to the loop start, the third to the song
+ * start). The engine owns the session transport. Acting only on a state CHANGE
+ * drops every rewind press, because a stop while already stopped changes no
+ * state — and then the session cursor stays parked at the song's end, where
+ * song_poll_end stops every Play: the song plays once per launch.
+ *
+ * Call once per round with the panel's (state, clicks) and the last pair acted
+ * on; returns RI_TR_SYNC_NONE / _PLAY / _STOP and records the pair it acted on. */
+#define RI_TR_SYNC_NONE 0
+#define RI_TR_SYNC_PLAY 1
+#define RI_TR_SYNC_STOP 2
+int ri_core_transport_sync(int panel_state, uint32_t panel_clicks,
+    int *last_state, uint32_t *last_clicks);
 /* Sticky live selection: store sel at (bar, inst) when the grid differs.
  * Returns 1 when stored, 0 when already there (or on bad args). The panel
  * calls this every round so the selection persists as bars advance

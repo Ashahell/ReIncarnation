@@ -31,6 +31,7 @@ void ri_panel_init(struct RIPanelUI *p) {
     p->playing = 0;
     p->del_held = p->del_focus = 0;
     p->tr_toggle = 0;
+    p->tr_stop = 0;
     p->skin_installed = 0;
     p->skin_n = 0;
     p->skin_current[0] = '\0';
@@ -153,17 +154,21 @@ int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {    struct R
         return 0;
     p->last_raw = (uint16_t)raw;
     p->last_qual = (uint16_t)qual;
-    /* A transport TOGGLE acts on the press edge. input.device repeats a held
-     * key's DOWN at ~19/s, and RI_KT_STOPPLAY reads the PLAY LED, so without
-     * this a finger resting on space strobes the transport: the Dell logged
-     * 1 493 800 TR PLAY/STOP pairs in 21.3 h from ONE unreleased key-down
-     * (docs/evidence/midi/transport-storm/). The release re-arms the key --
-     * any OTHER key's release must not, or a held space would start toggling
-     * again the moment another key came up. Only the toggle is guarded:
-     * holding + or - must still ramp the tempo. */
+    /* Press-count transport keys act on the press edge. input.device repeats a
+     * held key's DOWN (~9.7/s on the Dell), and RI_KT_STOPPLAY reads the PLAY
+     * LED, so without this a finger resting on space strobes the transport:
+     * the Dell logged 746 900 PLAY/STOP pairs in 21.3 h from ONE unreleased
+     * key-down (docs/evidence/midi/transport-storm/). RI_KT_STOP is guarded
+     * too, because its second press IS the rewind (t242): a repeat would step
+     * the cursor loop start -> song start at the repeat rate. A key's release
+     * re-arms that key only -- any OTHER key's release must not, or a held
+     * space would start toggling again when another key came up. Tempo, FF and
+     * Rew keep their repeats: holding + must still ramp. */
     if ((raw & RI_RAW_UPFLAG) != 0u) {
         if (p->tr_toggle == (uint8_t)code)
             p->tr_toggle = 0;
+        if (p->tr_stop == (uint8_t)code)
+            p->tr_stop = 0;
     }
     a = ri_key_decode(raw, qual, &p->opts, p->focus);
     if (a.kind != RI_KA_NONE)
@@ -182,10 +187,19 @@ int ri_panel_key(struct RIPanelUI *p, uint32_t raw, uint32_t qual) {    struct R
         ch |= set_focus(p, a.section);
         break;
     case RI_KA_TRANSPORT:
+        /* Press-count commands act on the press edge. The toggle and STOP are
+         * the two whose meaning is "one press": a held toggle strobes the
+         * transport (t241) and a held STOP would step the cursor between the
+         * loop start and the song start at the repeat rate (t242). Tempo, FF
+         * and Rew want their repeats. */
         if (a.arg == RI_KT_STOPPLAY) {
             if (p->tr_toggle == (uint8_t)code)
                 break;                  /* auto-repeat of a held key, not a press */
             p->tr_toggle = (uint8_t)code;
+        } else if (a.arg == RI_KT_STOP) {
+            if (p->tr_stop == (uint8_t)code)
+                break;                  /* one rewind per press, not per repeat */
+            p->tr_stop = (uint8_t)code;
         }
         ch = transport(p, a.arg);
         break;

@@ -212,6 +212,23 @@ void ri_core_stop(struct RIAppCore *c) {
         ri_live_stop(&c->session);
 }
 
+int ri_core_transport_sync(int panel_state, uint32_t panel_clicks,
+    int *last_state, uint32_t *last_clicks) {
+    int playing;
+    if (!last_state || !last_clicks)
+        return RI_TR_SYNC_NONE;
+    /* The clicks half is the whole point: a stop press while already stopped
+     * changes no state but IS the documented rewind. Comparing state alone
+     * (the P-TR2 defect) silently drops it, and the engine's cursor never
+     * leaves the song's end. */
+    if (panel_state == *last_state && panel_clicks == *last_clicks)
+        return RI_TR_SYNC_NONE;
+    *last_state = panel_state;
+    *last_clicks = panel_clicks;
+    playing = (panel_state == RI_TR_PLAYING || panel_state == RI_TR_RECORD);
+    return playing ? RI_TR_SYNC_PLAY : RI_TR_SYNC_STOP;
+}
+
 int ri_core_meters(struct RIAppCore *c, int *lvl303, int *lvl808,
     uint64_t *sixteenths, uint32_t mix_freq, int playing) {
     struct RILiveMeters m;

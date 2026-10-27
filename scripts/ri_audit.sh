@@ -1271,15 +1271,27 @@ bash "$ROOT/scripts/ri_build_host.sh" test t239_keybed_drawn_is_playable >/dev/n
 # entry points, both render paths, the mono re-fire, and pins the sequenced
 # paths (song lanes, the device sequencer) at unity with no leak.
 bash "$ROOT/scripts/ri_build_host.sh" test t240_keybed_level >/dev/null || { echo "FAIL: t240_keybed_level (a hand's note is the live gain; a sequenced note is unity; no leak)"; exit 1; }
-# t241 is the Dell's 2026-10-26 strobe: 1 493 800 TR PLAY/STOP pairs in 21.3 h
-# from ONE space key-down that was never released (docs/evidence/midi/
-# transport-storm/). Space is a TOGGLE (it reads the PLAY LED) and input.device
-# repeats a held key's DOWN at ~19/s, so every repeat flipped the transport.
-# The guard is the toggle only -- holding + or - must still ramp the tempo --
-# and t71 used to pin the defect by pressing space twice with no release
-# between. t241 pins the press edge, the release that re-arms it, another key's
-# release that must not, and the tempo keys' kept auto-repeat.
+# t241 is the Dell's 2026-10-26 strobe: 746 900 PLAY/STOP pairs (1 493 800 TR
+# lines) in 21.3 h from ONE space key-down that was never released
+# (docs/evidence/midi/transport-storm/). Space is a TOGGLE (it reads the PLAY
+# LED) and input.device repeats a held key's DOWN at ~9.7/s, so every repeat
+# acted as a press. The guard is the press-count keys only -- holding + or -
+# must still ramp the tempo -- and t71 used to pin the defect by pressing space
+# twice with no release between. t241 pins the press edge, the release that
+# re-arms it, another key's release that must not, and the tempo keys' kept
+# auto-repeat.
 bash "$ROOT/scripts/ri_build_host.sh" test t241_transport_toggle_edge >/dev/null || { echo "FAIL: t241_transport_toggle_edge (a repeat does not toggle; the release re-arms; tempo keys still repeat)"; exit 1; }
+# t242 is the other half of that storm, found while unblocking the P-KEY4 ear
+# round: after the song ended, Play was stopped ~43 ms later and the transport
+# could not be rewound, so the song played once per launch. sync_transport()
+# early-returned on an unchanged STATE, and the documented rewind (ri_tr_stop's
+# clicks law: stop holds the cursor, stop again goes to the loop start, a third
+# to the song start) changes no state when already stopped -- the panel's cursor
+# moved, the engine's stayed at the song's end where song_poll_end stops every
+# Play. t242 pins the propagation decision (state AND stop-click count) in
+# app/core, and the STOP press edge (a held STOP rewinds once, its own release
+# re-arms it, another key's release must not).
+bash "$ROOT/scripts/ri_build_host.sh" test t242_transport_rewind >/dev/null || { echo "FAIL: t242_transport_rewind (a rewind press reaches the engine; a held STOP rewinds once)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every
