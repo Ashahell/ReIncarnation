@@ -136,3 +136,13 @@ song was still playing. Steps 6+7 are the exact user story that was broken: "the
 once per launch".
 
 The instance was left playing from bar 0 for the P-KEY4 ear round, on `build=d676bba`.
+
+**And the replay ran to the end by itself.** `ev-ptr2l.log`: `ev 32  119717 TR STOP` —
+119 717 − 70 853 = **48 864 buffers**, the song's full length, stopped by `song_poll_end`
+as designed. So the song that used to play once per launch played twice on `d676bba`, the
+second time from the beginning, without a relaunch.
+
+To replay by hand at the end: **Stop** (the clicks law rewinds to the loop start), then
+**Play**. A single Play with the cursor still at the end is still stopped by
+`song_poll_end` — that is the guard doing its job, not the defect; whether Play should
+rewind from the end is a behaviour decision, not a propagation one.
