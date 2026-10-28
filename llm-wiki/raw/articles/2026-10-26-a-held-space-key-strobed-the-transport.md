@@ -161,3 +161,31 @@ count); the shadow had none, so the two drifted by one press, the display looked
 right, and the drift only showed when the cursor's position mattered. This is the
 same shape as the P-TR1 mistake — a test that recorded a repeat as a press — one
 level down: **the thing you compare has to carry the meaning you act on.**
+
+## Stage log (2026-10-28): the lane found the door
+
+The first stage (`d35b6fe`) proved the propagation and exposed a **worse** defect, one the
+host tests could not see. Every press-count key worked **once per launch**: a second KP0
+press wrote no `TR` line at all (`ev-ptr2c.log` is byte-identical to `ev-ptr2b.log`), and a
+second space press did nothing (`ev-ptr2d.log`).
+
+The cause was the door, not the latch. `ri_cev_key()` (`app/core/canvas_events.c`, the body
+of `gui/widgets/rsection.mcc.c`'s RAWKEY branch) decoded the key first and returned early on
+`RI_KA_NONE` — which is exactly what a key-up decodes to — so `ri_panel_key()`, which owns
+the release-clear, was never called for a release on the real app. The latch P-TR1
+introduced had that hole from the day it shipped, and P-TR2's STOP latch inherited it. The
+tests called `ri_panel_key()` directly, one level below the door.
+
+Fixed in `d676bba`: the door calls `ri_panel_key()` for every key event and uses the decode
+only to decide whether to eat it. `t242` gained the canvas-level half (RED **4**, exactly
+the release pins) and the harness went to **7/7** (m7 decode-first → t242 only).
+
+Then `d676bba` was staged and both halves were proven on the lane, in order:
+space → `TR STOP` (ev 24), space again → `TR PLAY` (ev 25, the release re-arms), KP0 →
+`TR STOP` (ev 26), KP0 again → `TR STOP` (ev 27, the clicks path reaches the engine), the
+song ended by itself (ev 29 at buffer 57945), KP0 at the end → `TR STOP` (ev 30), and
+KPENTER → `TR PLAY` with **no** stop after it (ev 31): the song replays without a relaunch.
+40 s later the log still ended at ev 31.
+
+**The lesson is the test's address.** A latch whose clear path lives in a function the app
+never calls is a one-shot key, and a test that calls that function directly cannot tell.

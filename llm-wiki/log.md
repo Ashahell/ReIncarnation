@@ -1,3 +1,13 @@
+## [2026-10-28] correction + evidence | The latch never cleared: the door ate the release
+- Disposition: Update to the 2026-10-27 P-TR2 entry (a defect found by staging, not by a test)
+- Raw: llm-wiki/raw/articles/2026-10-26-a-held-space-key-strobed-the-transport.md (stage log appended)
+- Staged `d35b6fe` and the propagation worked (KP0 while playing -> `TR STOP`, one line) but a second KP0 press wrote **no line at all** (`ev-ptr2c.log` byte-identical to `ev-ptr2b.log`) and a second space press did nothing (`ev-ptr2d.log`): every press-count key was **one-shot per launch**
+- Cause: `ri_cev_key()` (`app/core/canvas_events.c`, the body of `rsection.mcc.c`'s RAWKEY branch) decoded first and returned early on `RI_KA_NONE` -- what a key-up decodes to -- so `ri_panel_key()`, which owns the release-clear, never saw a release on the real app. P-TR1's latch had the hole from the start; P-TR2's STOP latch inherited it. The host tests called `ri_panel_key()` one level below the door
+- Fix (`d676bba`): the door calls `ri_panel_key()` for every key event and uses the decode only to decide whether to eat it; `t242` gains the canvas-level half (RED **4**, exactly the release pins); harness **7/7** (m7 decode-first -> t242 only); `AUDIT 0/0 PASS`
+- Lane proof on `d676bba` (1 221 720 B, sha `cfb4c086…`): space -> `TR STOP` (ev 24), space -> `TR PLAY` (ev 25), KP0 -> `TR STOP` (ev 26), KP0 -> `TR STOP` (ev 27, the clicks path), song end `TR STOP` (ev 29, buffer 57945), KP0 at the end -> `TR STOP` (ev 30), KPENTER -> `TR PLAY` with no stop after it (ev 31): the song replays without a relaunch. 40 s later still 31 lines
+- Note: the lesson is the test's address -- a latch whose clear path lives in a function the app never calls is a one-shot key, and a test that calls that function directly cannot tell.
+
+
 ## [2026-10-27] correction + ingest | The strobe was two defects, and one press made two lines
 - Disposition: Correction to the 2026-10-26 P-TR1 entry + New (P-TR2)
 - Raw: llm-wiki/raw/articles/2026-10-26-a-held-space-key-strobed-the-transport.md (correction section appended)

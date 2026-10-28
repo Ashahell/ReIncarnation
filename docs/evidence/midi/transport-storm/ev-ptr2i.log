@@ -1,0 +1,29 @@
+ev 1 0 RUN claim rc=0 undated (no heartbeat) -> takeover
+ev 2 0 RUN frames=256 vol=RAM: build=d676bba
+ev 3 0 NOTEIN dev 0 ch 2 bound
+ev 4 0 NOTEIN dev 1 ch 2 REFUSED (channel taken)
+ev 5 0 NOTEIN dev 2 ch 10 bound
+ev 6 0 NOTEIN bound 2 drums_implicit=1
+ev 7 0 NOTEIN played=0 refused=0 unclaimed=0 dropped=0 seen=0
+ev 8 0 LEVI chan remote=1 levi=2 devices=2
+ev 9 0 CLK out=0 enabled=0 lat_ms=8
+ev 10 0 DEV out=0 ch=0 prog=38
+ev 11 0 MMC out=0
+ev 12 2 SKIN installed=4 dir=SYS:Classes/ReIncarnation/Mods/
+ev 13 2 SKIN sync=0 zoom=0 current=Classic
+ev 14 10 SONG fail Vk4aros:ReIncarnation/songs/zombie-nation.rbng
+ev 15 10 SONG fail Vk4aros:ReIncarnation/songs/local/zombie-nation.rbng
+ev 16 11 PAT c=1 inst=0 sel=1
+ev 17 12 PAT c=2 inst=1 sel=0
+ev 18 13 PAT c=3 inst=2 sel=0
+ev 19 13 PAT c=4 inst=3 sel=1
+ev 20 13 PAT c=5 inst=4 sel=0
+ev 21 15 SKIN song=zombie-nation.rbng none
+ev 22 15 SONG load Vk4aros:ReIncarnation/songs/local/zombie-nation/zombie-nation.rbng bars=151 bpm=140
+ev 23 15 TR PLAY
+ev 24 3341 TR STOP
+ev 25 4281 TR PLAY
+ev 26 6072 TR STOP
+ev 27 7107 TR STOP
+ev 28 9081 TR PLAY
+ev 29 57945 TR STOP

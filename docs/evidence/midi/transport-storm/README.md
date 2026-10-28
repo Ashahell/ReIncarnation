@@ -110,3 +110,29 @@ release pins (the press after the release must act, for KP0 and for space), and 
 **Lesson.** Test the door the app actually uses, not the function below it. A latch whose
 clear path lives in a function the app never calls is a one-shot key, and the host test
 that calls that function directly cannot tell the difference.
+
+## The re-stage (2026-10-28): both halves proven on the lane
+
+Staged the door fix, `build=d676bba` (1 221 720 B, sha
+`cfb4c086b941cbb6ed032c33d30b179ab54d7f211d42a4185a1d2aa8e414cd9c`), relaunched by
+`RAM:LEVIPROBE.RUN` (`rc=0`, 15 098 ms). Every press below is paired (down, then `,up`),
+and the log was pulled after each pair. `ev-ptr2e.log` is the launch; `ev-ptr2k.log` is the
+final state.
+
+| step | key | ev | buffer | result |
+|---|---|---|---|---|
+| launch | — | 23 | 15 | `TR PLAY` (auto-play) |
+| 1 | `0x40` space | 24 | 3341 | `TR STOP` |
+| 2 | space again | 25 | 4281 | `TR PLAY` — **the release re-arms** (dead in `d35b6fe`) |
+| 3 | `0x0F` KP0 = STOP | 26 | 6072 | `TR STOP` — the state path |
+| 4 | KP0 again | 27 | 7107 | `TR STOP` — **the clicks path reached the engine** (P-TR2; no line before the fix) |
+| 5 | `0x43` KPENTER = PLAY | 28 | 9081 | `TR PLAY`, and no stop after it |
+| song end | — | 29 | 57945 | `TR STOP` — 48 864 buffers after 9081, the song's length |
+| 6 | KP0 at the song's end | 30 | 69913 | `TR STOP` — a stop press while stopped |
+| 7 | KPENTER | 31 | 70853 | `TR PLAY` and **no `TR STOP`** — the song replays without a relaunch |
+
+40 s after step 7 the log still ended at ev 31, so the injected keys were released and the
+song was still playing. Steps 6+7 are the exact user story that was broken: "the song plays
+once per launch".
+
+The instance was left playing from bar 0 for the P-KEY4 ear round, on `build=d676bba`.

@@ -8462,10 +8462,53 @@ count); the shadow had none, so the two drifted by one press and the drift was i
 until the cursor's position mattered. Compare the thing that carries the meaning, or the
 bug hides behind a correct-looking display.
 
-**What is not proven by a host test.** `sync_transport()` itself is AROS-only glue, so
-`t242` pins the rule (the helper) and the panel, not the call site: a wrong argument at
-`app/riapp.c` would still compile. The call site's proof is the lane — after staging, a
-Stop press must produce a `TR` line and the Play that follows must **not** be stopped in
-the same buffer. It is not staged yet: the P-KEY4 ear round is still hearing `afa8551`,
-and the song's "play once per launch" is a limitation the owner is working around (relaunch
-between listens) rather than a reason to swap the build under the ears.
+**What a host test cannot prove.** `sync_transport()` itself is AROS-only glue, so `t242`
+pins the rule (the helper) and the panel, not the call site. The call site's proof is the
+lane, and it caught a defect the host tests could not — see below.
+
+### Stage 1 (2026-10-28): the propagation worked, the latch did not re-arm
+
+Owner's word: stage it. `build=d35b6fe` (1 221 720 B, sha `7b277e2f…`), relaunched, one
+window, `SONG load`, `TR PLAY` (`ev-ptr2.log`). Then, every press paired:
+
+- KP0 (STOP) while playing → `ev 24 3145 TR STOP` — the state path works, and one press is
+  one line;
+- KP0 again (the rewind) → **no line at all**: `ev-ptr2c.log` is byte-identical to
+  `ev-ptr2b.log` (sha `cdc8ef64…`);
+- space → `ev 25 36727 TR PLAY`; space again → **nothing** (`ev-ptr2d.log`).
+
+So every press-count key was **one-shot per launch**: the latch never cleared. The cause is
+the door, not the latch: `ri_cev_key()` (`app/core/canvas_events.c`, the body of
+`gui/widgets/rsection.mcc.c`'s RAWKEY branch) decoded the key first and returned early on
+`RI_KA_NONE` — which is exactly what a key-up decodes to — so `ri_panel_key()`, which owns
+the release-clear, was **never called for a release** on the real app. P-TR1's latch had
+that hole from the day it shipped; P-TR2's STOP latch inherited it. The host tests called
+`ri_panel_key()` directly, one level below the door, and were green.
+
+Fix (`d676bba`): the door calls `ri_panel_key()` for every key event and uses the decode
+only to decide whether to eat it. `t242` gains the canvas-level half — RED **4**, exactly
+the release pins — and the harness is **7/7**: **m7 (decode-first) → t242 only**.
+`AUDIT 0/0 PASS`.
+
+**The lesson is the test's address.** A latch whose clear path lives in a function the app
+never calls is a one-shot key, and a test that calls that function directly cannot tell.
+
+### Stage 2: both halves proven on the lane
+
+`build=d676bba` (1 221 720 B, sha `cfb4c086…`), `RAM:LEVIPROBE.RUN` `rc=0` / 15 098 ms:
+
+| step | key | ev | result |
+|---|---|---|---|
+| 1 | space | 24 | `TR STOP` |
+| 2 | space again | 25 | `TR PLAY` — the release re-arms |
+| 3 | KP0 | 26 | `TR STOP` — state path |
+| 4 | KP0 again | 27 | `TR STOP` — the clicks path reaches the engine |
+| 5 | KPENTER | 28 | `TR PLAY`, no stop after it |
+| song end | — | 29 | `TR STOP` at buffer 57945 (48 864 after 9081) |
+| 6 | KP0 at the end | 30 | `TR STOP` — a stop press while stopped |
+| 7 | KPENTER | 31 | `TR PLAY` and **no `TR STOP`** — the song replays without a relaunch |
+
+Steps 6+7 are the user story that was broken. 40 s after step 7 the log still ended at
+ev 31: the keys were released and the song was still playing. The instance was left
+playing from bar 0, on `build=d676bba`, for the P-KEY4 ear round. Evidence:
+`ev-ptr2{e,f,g,h,i,j,k}.log`.
