@@ -47,11 +47,22 @@ uint32_t ri_cev_key(struct RICevState *st, struct RISectUI *ui,
         return 0u;
     if (!key_owner)
         return 0u;
+    /* THE RELEASE IS NOT AN ACTION, BUT IT IS STILL AN EVENT.
+     *
+     * ri_panel_key() owns the press-count latches -- a held space or Stop is
+     * one press, and that key's own release re-arms it (t241, t242) -- so it
+     * must see key-ups. Decoding first and returning early on RI_KA_NONE,
+     * which is exactly what a key-up decodes to (gui/keymap.c), skipped it:
+     * on the real app the latch never cleared and each press-count key
+     * worked ONCE per launch. The host tests called ri_panel_key() one level
+     * below this door and could not see it; the lane could -- a second space
+     * press produced no TR line at all
+     * (docs/evidence/midi/transport-storm/ev-ptr2.log). */
+    if (ri_panel_key(panel, code, qual))
+        return RI_CEV_CHANGED | RI_CEV_EAT;
     a = ri_key_decode(code, qual, &panel->opts, panel->focus);
     if (a.kind == RI_KA_NONE)
         return 0u;
-    if (ri_panel_key(panel, code, qual))
-        return RI_CEV_CHANGED | RI_CEV_EAT;
     return RI_CEV_EAT;
 }
 

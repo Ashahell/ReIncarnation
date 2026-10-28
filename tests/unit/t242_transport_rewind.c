@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include "tests/helpers/ri_assert.h"
 #include "app/core/riapp_core.h"
+#include "app/core/canvas_events.h"
 #include "gui/panelui.h"
 #include "gui/keymap.h"
 #include "gui/secttr.h"
@@ -123,6 +124,45 @@ int main(void) {
     RI_ASSERT(!ri_sui_led(&tr, RI_STR_PLAY, 0), "stopped");
     RI_ASSERT(ri_panel_key(&pu, RI_RAW_SPACE, 0) == 0, "held space still ignored");
     RI_ASSERT(!ri_sui_led(&tr, RI_STR_PLAY, 0), "and does not play");
+
+    /* ---- 3. the shell's door: a key-up must still reach the panel ------ */
+    /* The app does not call ri_panel_key() directly. Every key -- including
+     * the release -- arrives through ri_cev_key() (app/core/canvas_events.c,
+     * the body of gui/widgets/rsection.mcc.c's RAWKEY branch). It used to
+     * decode first and return early on RI_KA_NONE, which is exactly what a
+     * key-up decodes to, so the release-clear never ran on the real app: each
+     * press-count key worked ONCE per launch. The lane found it -- a second
+     * space press produced no TR line at all
+     * (docs/evidence/midi/transport-storm/ev-ptr2.log). The host tests called
+     * ri_panel_key() one level below the door and could not see it. */
+    {
+        static struct RISectUI tr2;
+        struct RIPanelUI pu2;
+        struct RICevState st;
+        ri_sui_init(&tr2, RI_SEC_TRANSPORT);
+        ri_panel_init(&pu2);
+        pu2.tr = &tr2;
+        ri_cev_init(&st);
+        tr2.u.tr.loop.start_bar = 4u;
+        tr2.u.tr.tr.state = RI_TR_STOPPED;
+        tr2.u.tr.tr.clicks = 0u;
+        tr2.u.tr.cursor = end;
+        RI_ASSERT((ri_cev_key(&st, &tr2, &pu2, 1, RI_RAW_KP0, 0) & RI_CEV_CHANGED) != 0u,
+            "canvas: stop press acts");
+        RI_ASSERT(tr2.u.tr.cursor == loop_start, "canvas: first stop -> loop start");
+        RI_ASSERT(ri_cev_key(&st, &tr2, &pu2, 1, RI_RAW_KP0 | RI_RAW_UPFLAG, 0) == 0u,
+            "canvas: a key-up is not an action");
+        RI_ASSERT((ri_cev_key(&st, &tr2, &pu2, 1, RI_RAW_KP0, 0) & RI_CEV_CHANGED) != 0u,
+            "canvas: the press after the release acts");
+        RI_ASSERT(tr2.u.tr.cursor == 0u, "canvas: second stop -> song start");
+        RI_ASSERT((ri_cev_key(&st, &tr2, &pu2, 1, RI_RAW_SPACE, 0) & RI_CEV_CHANGED) != 0u,
+            "canvas: space plays");
+        RI_ASSERT(ri_cev_key(&st, &tr2, &pu2, 1, RI_RAW_SPACE | RI_RAW_UPFLAG, 0) == 0u,
+            "canvas: a space release is not an action");
+        RI_ASSERT((ri_cev_key(&st, &tr2, &pu2, 1, RI_RAW_SPACE, 0) & RI_CEV_CHANGED) != 0u,
+            "canvas: the space press after the release acts");
+        RI_ASSERT(!ri_sui_led(&tr2, RI_STR_PLAY, 0), "canvas: stopped");
+    }
 
     RI_RESULT("transport_rewind");
     return 0;

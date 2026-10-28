@@ -77,3 +77,36 @@ as a class.
 - `stats.txt` — the numbers above, with the sha256 of the full log.
 - `list-evlog.txt` — `List RAM:RIAPP-EV.LOG` showing the size frozen at the key-up.
 - `panel-before-relaunch.png` — the guest at 06:42, scale-2 capture.
+
+## The P-TR2 stage (2026-10-28): the fix reached the engine, the latch did not re-arm
+
+Staged `build=d35b6fe` (1 221 720 B, sha `7b277e2f264c526f5b6bd2eceb45c556c207b4dee7431717b85db70e5df1c041`),
+relaunched, one RIAPP window, `SONG load … bars=151 bpm=140`, `TR PLAY` — `ev-ptr2.log`,
+998 B / 23 lines, no storm. Then, each press paired (down, then `,up`):
+
+| step | key | result |
+|---|---|---|
+| 1 | `0x0F` (KP0 = STOP) | `ev 24  3145 TR STOP` — the state path works, and one press is one line |
+| 2 | `0x0F` again | **no line at all** — `ev-ptr2c.log` is byte-identical to `ev-ptr2b.log` (sha `cdc8ef64…`) |
+| 3 | `0x40` (space = toggle) | `ev 25  36727 TR PLAY` |
+| 4 | `0x40` again | **nothing** — `ev-ptr2d.log` |
+
+So the propagation fix worked and the **press-edge latch never cleared**: every press-count
+key worked once per launch. Press 2 should have been the rewind (clicks 0 → 1, `TR STOP`),
+and press 4 should have stopped the transport.
+
+**Cause.** `ri_cev_key()` (`app/core/canvas_events.c`, the body of
+`gui/widgets/rsection.mcc.c`'s RAWKEY branch) decoded the key first and returned early on
+`RI_KA_NONE` — which is exactly what a key-up decodes to (`gui/keymap.c`). `ri_panel_key()`,
+which owns the release-clear, was therefore **never called for a release** on the real app.
+The host tests called `ri_panel_key()` directly, one level below the door, so they were
+green. P-TR1's latch had this hole from the day it shipped; P-TR2's STOP latch inherited it.
+
+**Fix.** The door calls `ri_panel_key()` for every key event and uses the decode only to
+decide whether to eat it. `t242` now pins it at the canvas level: RED **4**, exactly the
+release pins (the press after the release must act, for KP0 and for space), and mutant
+**m7 (decode-first)** is killed by `t242` only.
+
+**Lesson.** Test the door the app actually uses, not the function below it. A latch whose
+clear path lives in a function the app never calls is a one-shot key, and the host test
+that calls that function directly cannot tell the difference.

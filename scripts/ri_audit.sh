@@ -1289,9 +1289,13 @@ bash "$ROOT/scripts/ri_build_host.sh" test t241_transport_toggle_edge >/dev/null
 # to the song start) changes no state when already stopped -- the panel's cursor
 # moved, the engine's stayed at the song's end where song_poll_end stops every
 # Play. t242 pins the propagation decision (state AND stop-click count) in
-# app/core, and the STOP press edge (a held STOP rewinds once, its own release
-# re-arms it, another key's release must not).
-bash "$ROOT/scripts/ri_build_host.sh" test t242_transport_rewind >/dev/null || { echo "FAIL: t242_transport_rewind (a rewind press reaches the engine; a held STOP rewinds once)"; exit 1; }
+# app/core, the STOP press edge (a held STOP rewinds once, its own release
+# re-arms it, another key's release must not), and the shell's door: ri_cev_key
+# must pass key-ups to the panel, because a key-up is not an action but it IS
+# the release -- decoding first made every press-count key one-shot per launch
+# on the real app (the lane found it; the host tests called ri_panel_key one
+# level below the door).
+bash "$ROOT/scripts/ri_build_host.sh" test t242_transport_rewind >/dev/null || { echo "FAIL: t242_transport_rewind (a rewind press reaches the engine; a held STOP rewinds once; a key-up still reaches the panel)"; exit 1; }
 # Five Levi knobs (BALANCE, arp MODE/OCTAVE/GATE/ENTROPY) were drawn dim at a
 # hardcoded 0.0f with no geometry row: neither animated nor clickable. Their
 # engine ids were always there. t220 pins the hit box, the round-trip at every

@@ -14,6 +14,9 @@ The fix has two halves, and this harness proves the gates see both:
         as its state, and PLAY/RECORD are the playing side;
   t242  a held STOP rewinds ONCE (the same press-edge rule t241 pins for the
         toggle), its own release re-arms it, and another key's release does not;
+  t242  and the shell's door (ri_cev_key) passes key-ups to the panel, because
+        a key-up is not an action but it IS the release -- decode-first made
+        every press-count key one-shot per launch on the real app;
   t241  the toggle's own pins survive -- in particular the tempo keys keep
         their repeats, which is what kills a guard widened to the class;
   t71   the keyboard-level dispatch still stops and plays;
@@ -32,6 +35,7 @@ TESTS = ("t242_transport_rewind", "t241_transport_toggle_edge",
 
 CORE = ("app", "core", "riapp_core.c")
 PANEL = ("gui", "panelui.c")
+CEV = ("app", "core", "canvas_events.c")
 
 STOP_LATCH = (
     "        } else if (a.arg == RI_KT_STOP) {\n"
@@ -79,6 +83,24 @@ MUTANTS = {
     "m6-guard-the-class":
         [("rep", PANEL, "        } else if (a.arg == RI_KT_STOP) {",
           "        } else if (1) {")],
+    # m7: the shell's door decodes first again. A key-up decodes to
+    # RI_KA_NONE, so ri_panel_key() never sees the release, the latch never
+    # clears, and each press-count key works ONCE per launch. The lane found
+    # this after the first stage: a second space press wrote no TR line.
+    "m7-cev-decode-first":
+        [("rep", CEV,
+          "    if (ri_panel_key(panel, code, qual))\n"
+          "        return RI_CEV_CHANGED | RI_CEV_EAT;\n"
+          "    a = ri_key_decode(code, qual, &panel->opts, panel->focus);\n"
+          "    if (a.kind == RI_KA_NONE)\n"
+          "        return 0u;\n"
+          "    return RI_CEV_EAT;",
+          "    a = ri_key_decode(code, qual, &panel->opts, panel->focus);\n"
+          "    if (a.kind == RI_KA_NONE)\n"
+          "        return 0u;\n"
+          "    if (ri_panel_key(panel, code, qual))\n"
+          "        return RI_CEV_CHANGED | RI_CEV_EAT;\n"
+          "    return RI_CEV_EAT;")],
 }
 
 # A marker must be a token the SURVIVING code still has.
@@ -89,6 +111,7 @@ MARKERS = {
     "m4-any-release-clears-stop": ["tr_toggle", "tr_stop", "RI_RAW_UPFLAG"],
     "m5-inverted-sync": ["RI_TR_SYNC_PLAY", "RI_TR_SYNC_STOP", "playing"],
     "m6-guard-the-class": ["RI_KT_STOPPLAY", "tr_toggle", "RI_KT_TEMPO_UP"],
+    "m7-cev-decode-first": ["RI_CEV_CHANGED", "RI_CEV_EAT", "ri_key_decode"],
 }
 
 
