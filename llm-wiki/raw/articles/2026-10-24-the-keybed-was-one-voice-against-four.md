@@ -83,3 +83,17 @@ m6 and m8 are the honest limits: only the level test renders the mono sum and as
 Staged for the ear round: v11 build `afa8551`, **1 221 072 B**, sha256 `fddf39efce908b2d562172da3fe0a43b691f8d661c6fa08b22966992562c8022`, chunked put 199 chunks `sha_ok=True`, launcher `rc=0`, exactly one RIAPP window, `build=afa8551` in the EV log, `TR PLAY`, buffers advancing (2930 → 5875 in ~16 s), `xruns=0`, `overloads=0`.
 
 **Not ear-proven.** Proven: the hand gain is exactly 2.0 on every hand path and both render paths, and nowhere else, and one key now measures at the part's RMS. Whether +6 dB is the level the owner wants over the whole song is the next Dell round's question; the constant is one line to move if the ear says otherwise.
+
+## Ear verdict (2026-11-09): accepted, +6 dB stays
+
+The owner's Dell round closed P-KEY4: *"ear verdict is fine."* He heard it on
+`build=d676bba` (1 221 720 B, sha `cfb4c086…`) — the same keybed code as the measured
+`afa8551`, because the P-TR2 transport work changed nothing in `engine/dsp/levi.h` and
+`RI_LEVI_LIVE_GAIN` is still 2.0f. So the constant stays and the level question is
+settled.
+
+What the verdict covers: a hand's note is the part's loudness (measured, RMS 0.1467 against
+the part's 0.1474 and the mix's 0.1456) **and** that is the level the owner wants over the
+whole song (ear). What it does not cover: any other Levi patch's absolute loudness — the
+gain is a hand/lane boundary, not a per-patch trim, and the next "this patch is quiet"
+should be measured against its own part, not answered by moving this constant.

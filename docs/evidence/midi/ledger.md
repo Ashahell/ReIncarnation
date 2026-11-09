@@ -8333,6 +8333,15 @@ Whether +6 dB is the level the owner wants over the whole song is the open quest
 constant is one line if the ear says otherwise. Evidence: `pkey4/` (probe sources,
 outputs, bank dump, track dump, song automation).
 
+**Ear verdict (2026-11-09): accepted — the constant stays.** The owner's round closed
+P-KEY4: *"ear verdict is fine."* Heard on the Dell instance running `build=d676bba`
+(1 221 720 B, sha `cfb4c086…`), whose keybed code is unchanged from the measured `afa8551`:
+P-TR2 and its door fix touched the transport only, and `RI_LEVI_LIVE_GAIN` is still 2.0f.
+So the +6 dB is the level the owner wants over the whole song, and P-KEY4 is closed with no
+constant moved. What this settles is the **hand against the song**; it is a hand/lane
+boundary, not a per-patch trim, so it says nothing about another Levi patch's absolute
+loudness.
+
 ## P-TR1: a held space key strobed the transport 1 493 800 times in 21 hours (2026-10-26)
 
 Found while checking the Dell lane after the P-KEY4 re-stage, not by a listening round.

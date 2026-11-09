@@ -1,3 +1,12 @@
+## [2026-11-09] verdict | P-KEY4 accepted by ear: +6 dB stays
+- Disposition: Closes P-KEY4 (Update to the 2026-10-24 entry)
+- Raw: llm-wiki/raw/articles/2026-10-24-the-keybed-was-one-voice-against-four.md (verdict section appended)
+- Owner, on the Dell: *"ear verdict is fine."* Heard on `build=d676bba` (1 221 720 B, sha `cfb4c086…`), whose keybed code is unchanged from the measured `afa8551` (P-TR2 touched the transport only; `RI_LEVI_LIVE_GAIN` still 2.0f)
+- Settled: one hand's note is the part's loudness (measured RMS 0.1467 vs part 0.1474 / mix 0.1456) AND that is the level the owner wants over the whole song (ear). No constant moved
+- Scope: a hand/lane boundary, not a per-patch trim -- it says nothing about another Levi patch's absolute loudness
+- Note: the level question took three ear rounds (P-KEY3 "every key plays", P-KEY4 "quieter than the song", accepted). The fix that worked was the rule, not a fader: the song's Levi bank is chordal, so one key against four voices is 6.05 dB down by construction.
+
+
 ## [2026-10-28] correction + evidence | The latch never cleared: the door ate the release
 - Disposition: Update to the 2026-10-27 P-TR2 entry (a defect found by staging, not by a test)
 - Raw: llm-wiki/raw/articles/2026-10-26-a-held-space-key-strobed-the-transport.md (stage log appended)
