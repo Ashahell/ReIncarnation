@@ -119,6 +119,18 @@ static const char *door_name(int d)
     return (d >= 0 && d < D_COUNT) ? names[d] : "UNKNOWN";
 }
 
+/* Allow-list entry */
+struct AllowEntry {
+    uint16_t reg_id;
+    int door;
+    verdict_t verdict;
+};
+
+/* Global allow-list */
+static struct AllowEntry *g_allowlist = NULL;
+static uint32_t g_allowlist_n = 0;
+static uint32_t g_allowlist_cap = 0;
+
 /* Per-row census entry */
 struct CensusRow {
     uint16_t reg_id;
@@ -137,6 +149,9 @@ struct CensusRow {
 static struct CensusRow *g_census = NULL;
 static uint32_t g_census_n = 0;
 static uint32_t g_census_cap = 0;
+
+/* Gate mode: if true, fail on non-allowlisted bad verdicts */
+static int g_gate_mode = 0;
 
 /* t224's four historical defects for positive control */
 enum T224_Defect {
@@ -179,6 +194,69 @@ static void census_init(void)
     g_census_cap = 600; /* 510 rows + margin */
     g_census = calloc(g_census_cap, sizeof(struct CensusRow));
     RI_ASSERT(g_census != NULL, "census alloc");
+}
+
+/* Convert verdict string to enum */
+static verdict_t verdict_str_to_enum(const char *str)
+{
+    if (strcmp(str, "OK") == 0) return V_OK;
+    if (strcmp(str, "DEAD") == 0) return V_DEAD;
+    if (strcmp(str, "DIVERGE") == 0) return V_DIVERGE;
+    if (strcmp(str, "NOFEEDBACK") == 0) return V_NOFEEDBACK;
+    if (strcmp(str, "DEFAULT") == 0) return V_DEFAULT;
+    if (strcmp(str, "NOROUNDTRIP") == 0) return V_NOROUNDTRIP;
+    if (strcmp(str, "NA") == 0) return V_NA;
+    if (strcmp(str, "BINDNONE_PRESSPATH") == 0) return V_BINDNONE_PRESSPATH;
+    if (strcmp(str, "BINDNONE_PANELLOCAL") == 0) return V_BINDNONE_PANELLOCAL;
+    if (strcmp(str, "BINDNONE_UNEXPLAINED") == 0) return V_BINDNONE_UNEXPLAINED;
+    return V_COUNT; /* invalid */
+}
+
+/* Load allowlist from TSV file */
+static void allowlist_load(void)
+{
+    char path[512];
+    snprintf(path, sizeof path, "docs/evidence/wiring/2026-11-17-census/allowlist.tsv");
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        printf("  Allowlist not found at %s, running in non-gate mode\n", path);
+        return;
+    }
+    char line[512];
+    while (fgets(line, sizeof line, f)) {
+        if (line[0] == '#' || line[0] == '\n')
+            continue;
+        uint16_t reg_id;
+        int door;
+        char verdict_str[32];
+        char reason[256];
+        char date[32];
+        if (sscanf(line, "%hx\t%d\t%31[^\t]\t%255[^\t]\t%31s", &reg_id, &door, verdict_str, reason, date) >= 4) {
+            verdict_t verdict = verdict_str_to_enum(verdict_str);
+            if (verdict == V_COUNT) {
+                printf("  WARNING: Unknown verdict '%s' in allowlist, skipping\n", verdict_str);
+                continue;
+            }
+            if (g_allowlist_n >= g_allowlist_cap) {
+                g_allowlist_cap = g_allowlist_cap ? g_allowlist_cap * 2 : 128;
+                g_allowlist = realloc(g_allowlist, g_allowlist_cap * sizeof(struct AllowEntry));
+                RI_ASSERT(g_allowlist != NULL, "allowlist realloc");
+            }
+            g_allowlist[g_allowlist_n++] = (struct AllowEntry){ reg_id, door, verdict };
+        }
+    }
+    fclose(f);
+    printf("  Allowlist loaded: %u entries from %s\n", g_allowlist_n, path);
+}
+
+/* Check if a verdict is allowed for a given control+door */
+static int verdict_allowed(uint16_t reg_id, int door, verdict_t verdict)
+{
+    for (uint32_t i = 0; i < g_allowlist_n; i++) {
+        if (g_allowlist[i].reg_id == reg_id && g_allowlist[i].door == door && g_allowlist[i].verdict == verdict)
+            return 1;
+    }
+    return 0;
 }
 
 /* Add a row to census */
@@ -802,11 +880,23 @@ static void run_t224_defect_test(enum T224_Defect defect)
 }
 
 /* Main */
-int main(void)
+int main(int argc, char **argv)
 {
     (void)g_t224_defect_active; /* silence unused warning; used in scratch builds */
-    printf("=== Wiring Census (W0) ===\n");
+
+    /* Check for gate mode flag */
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--gate") == 0) {
+            g_gate_mode = 1;
+            printf("=== Wiring Census Gate (W3) ===\n");
+            break;
+        }
+    }
+    if (!g_gate_mode)
+        printf("=== Wiring Census (W0) ===\n");
+
     census_init();
+    allowlist_load();
 
     /* Build census table */
     for (uint32_t n = 0; n < ri_ctlreg_count(); n++) {
@@ -907,6 +997,30 @@ int main(void)
     /* Test t224's four historical defects */
     for (int defect = T224_FX_ENABLE_UNBOUND; defect <= T224_STRIP_MUTE; defect++) {
         run_t224_defect_test(defect);
+    }
+
+    /* W3 Gate: check all verdicts against allowlist */
+    if (g_gate_mode) {
+        printf("  Running W3 gate check...\n");
+        int failures = 0;
+        for (uint32_t i = 0; i < g_census_n; i++) {
+            struct CensusRow *r = &g_census[i];
+            for (int d = 0; d < D_COUNT; d++) {
+                verdict_t v = r->verdicts[d];
+                if (v == V_OK || v == V_NA)
+                    continue;
+                if (!verdict_allowed(r->reg_id, d, v)) {
+                    printf("  GATE FAIL: %04x %s door=%s verdict=%s (not in allowlist)\n",
+                           r->reg_id, r->legend[0] ? r->legend : "", door_name(d), verdict_name(v));
+                    failures++;
+                }
+            }
+        }
+        if (failures > 0) {
+            printf("  W3 GATE FAILED: %d non-allowlisted bad verdicts\n", failures);
+            RI_ASSERT(0, "W3 gate failed with %d violations", failures);
+        }
+        printf("  W3 GATE PASSED: all bad verdicts are allowlisted\n");
     }
 
     /* Write outputs */

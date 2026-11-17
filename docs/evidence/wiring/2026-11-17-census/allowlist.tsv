@@ -1,0 +1,882 @@
+# Wiring Census Allow-List (W3)
+# Format: reg_id<TAB>door_idx<TAB>verdict<TAB>reason<TAB>date
+# Auto-generated from W1 classify.md (by-design + needs-owner only)
+# Total entries: 877
+
+0000	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0000	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0000	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0001	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0002	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0003	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0004	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0005	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0006	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0007	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0007	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0008	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0008	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0009	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0009	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000a	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000a	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000b	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000b	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000c	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000c	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000d	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000d	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000e	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000e	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000f	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+000f	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0010	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0010	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0011	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0011	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0012	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0012	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0013	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0013	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0019	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0019	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+001a	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+001a	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+001c	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+001c	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+001d	0	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0100	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0100	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0100	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0101	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0102	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0103	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0104	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0105	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0106	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0107	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0107	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0108	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0108	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0109	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0109	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010a	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010a	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010b	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010b	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010c	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010c	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010d	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010d	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010e	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010e	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010f	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+010f	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0110	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0110	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0111	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0111	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0112	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0112	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0113	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0113	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0119	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0119	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+011a	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+011a	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+011c	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+011c	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+011d	0	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0200	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0202	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0203	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0205	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0206	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0208	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+020b	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+020e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0216	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0217	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0219	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+021c	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+021c	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+021d	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+021d	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+021e	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+021e	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+021f	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+021f	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0220	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0220	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0221	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0221	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0222	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0222	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0223	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0223	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0224	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0224	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0225	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0225	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0226	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0226	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0227	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0227	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0228	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0228	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0229	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0229	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+022a	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+022a	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+022b	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+022b	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0302	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0304	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0306	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+030a	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+030b	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+030d	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+030e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0310	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0311	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0315	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0316	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0318	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+031a	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+031e	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+031e	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+031f	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+031f	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0320	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0320	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0321	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0321	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0322	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0322	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0323	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0323	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0324	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0324	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0325	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0325	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0326	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0326	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0327	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0327	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0328	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0328	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0329	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0329	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+032a	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+032a	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+032b	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+032b	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+032c	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+032c	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+032d	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+032d	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0400	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0400	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0400	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0400	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0403	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0404	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0405	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0405	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0405	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0405	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0406	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0406	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0406	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0406	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0407	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0407	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0407	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0407	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0500	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0500	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0500	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0500	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0503	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0504	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0505	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0505	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0505	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0505	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0506	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0506	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0506	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0506	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0507	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0507	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0507	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0507	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0600	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0600	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0600	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0600	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0603	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0604	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0605	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0605	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0605	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0605	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0606	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0606	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0606	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0606	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0607	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0607	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0607	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0607	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0700	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0700	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0700	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0700	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0703	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0704	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0705	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0705	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0705	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0705	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0706	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0706	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0706	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0706	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0707	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0707	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0707	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0707	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0803	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0803	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0803	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0803	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0900	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0900	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0900	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0900	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0902	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0903	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0903	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0903	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0903	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0903	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0904	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0905	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0906	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0907	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0a00	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0a00	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a00	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a00	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a02	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0a03	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0a03	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a03	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a03	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a03	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a04	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0a05	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0b00	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0b00	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0b00	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0b00	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0b02	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0b03	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0c00	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0c00	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0c00	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0c00	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0c02	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0c03	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+0d00	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d00	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d00	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d02	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d02	2	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d02	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d02	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d03	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d04	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d04	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d05	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d05	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d06	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d06	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d07	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d07	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d08	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d08	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d09	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d09	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d09	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d0a	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d0b	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d0e	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d0e	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e00	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e00	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e00	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e01	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e01	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e01	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e02	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e02	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e02	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e03	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e04	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e04	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0e04	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f00	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f00	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f00	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f01	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f01	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f01	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f02	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f02	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f02	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f03	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f04	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f04	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0f04	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1000	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1000	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1000	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1001	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1001	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1001	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1002	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1002	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1002	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1003	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1004	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1004	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1004	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1100	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1100	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1100	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1101	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1101	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1101	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1102	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1102	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1102	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1103	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1104	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1104	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1104	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1200	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1201	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1202	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1202	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1202	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1202	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1202	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1203	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1225	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1226	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1227	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1229	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+122a	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+122b	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+122c	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+122d	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+122e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+122f	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1230	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1231	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1232	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1232	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1232	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1232	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1232	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1233	0	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1233	1	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1234	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1234	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1234	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1234	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1234	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1235	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1236	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1236	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1236	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1236	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1236	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1237	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1238	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1238	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1238	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1238	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1238	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1239	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1239	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1239	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1239	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1239	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123a	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+123a	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123a	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123a	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123a	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123b	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+123b	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123b	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123b	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123b	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123c	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+123c	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123c	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123c	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123c	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123d	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+123d	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123d	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123d	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123d	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+123e	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123e	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123e	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123e	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123f	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+123f	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123f	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123f	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+123f	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1240	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1240	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1240	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1240	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1240	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1241	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1241	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1241	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1241	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1241	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1242	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1242	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1242	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1242	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1242	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1243	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1243	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1243	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1243	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1243	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1244	0	BINDNONE_UNEXPLAINED	LEVI Module selector — panel navigation only	2026-11-18
+1244	1	BINDNONE_UNEXPLAINED	LEVI Module selector — panel navigation only	2026-11-18
+1244	7	BINDNONE_UNEXPLAINED	LEVI Module selector — panel navigation only	2026-11-18
+1244	8	BINDNONE_UNEXPLAINED	LEVI Module selector — panel navigation only	2026-11-18
+1245	0	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1245	1	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1245	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1245	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1246	0	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1246	1	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1246	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1246	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1247	0	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1247	1	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1247	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1247	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1248	0	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1248	1	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1248	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1248	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1249	0	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1249	1	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1249	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1249	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124a	0	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124a	1	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124a	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124a	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124b	0	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124b	1	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124b	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124b	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124c	0	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124c	1	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124c	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124c	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124d	0	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124d	1	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+124e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+124f	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1250	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1251	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1252	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1252	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1253	7	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1253	8	BINDNONE_PANELLOCAL	LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)	2026-11-18
+1254	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1255	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1256	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1257	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1258	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1259	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+125a	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+125b	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+125c	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+125d	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+125e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+125f	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1260	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1260	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1260	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1260	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1260	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1261	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1262	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1263	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1263	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1263	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1263	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1263	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1264	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1265	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1266	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1267	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1268	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1269	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+126a	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+126b	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+126c	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+126d	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+126e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+126f	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1270	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1271	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1272	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1273	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1274	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1275	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1276	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1277	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1278	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1279	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1279	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1279	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1279	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1279	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127a	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+127a	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127a	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127a	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127a	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127b	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+127b	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127b	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127b	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127b	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127c	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+127c	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127c	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127c	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127c	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127d	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+127d	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127d	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127d	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127d	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+127e	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127e	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127e	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127e	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127f	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+127f	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127f	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127f	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+127f	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1280	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1280	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1280	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1280	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1280	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1281	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1282	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1283	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1284	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1285	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1286	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1287	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1288	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1289	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+128a	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+128b	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+128c	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+128d	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+128e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+128f	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1290	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1291	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1292	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1293	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1294	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1294	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1294	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1294	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1294	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1295	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1296	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1297	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1298	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1299	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+129a	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+129b	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+129c	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+129d	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+129e	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+129f	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a0	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a1	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a2	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a3	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a4	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a4	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12a4	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12a4	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12a4	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12a5	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a6	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a7	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a8	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12a9	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12aa	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12ab	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12ac	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12ac	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12ac	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12ac	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12ac	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12ad	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12ae	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12af	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b0	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b1	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b2	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b3	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b4	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b5	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b6	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b7	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b8	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12b9	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12ba	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12bb	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12bc	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12bd	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12be	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12bf	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c0	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c1	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c1	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12c1	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12c1	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12c1	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12c2	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c2	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12c2	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12c2	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12c2	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12c3	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c4	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c5	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c6	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c7	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c8	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12c9	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12ca	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12cb	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12cc	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12cc	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12cc	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12cc	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12cc	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12cd	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12ce	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12ce	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12ce	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12ce	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12cf	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12d0	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12d1	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12d2	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12d3	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12d4	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12d5	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12d5	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12d5	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12d5	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12d5	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12d7	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12d8	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12d9	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12da	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12db	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12dc	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12dd	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12de	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12df	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12e0	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12e1	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12e2	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12e2	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12e2	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12e2	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12e2	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12e3	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+12e3	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12e3	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12e3	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12e3	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+12d6	0	BINDNONE_UNEXPLAINED	LEVI LFO Step editor page switch — panel navigation only	2026-11-18
+12d6	1	BINDNONE_UNEXPLAINED	LEVI LFO Step editor page switch — panel navigation only	2026-11-18
+12d6	7	BINDNONE_UNEXPLAINED	LEVI LFO Step editor page switch — panel navigation only	2026-11-18
+12d6	8	BINDNONE_UNEXPLAINED	LEVI LFO Step editor page switch — panel navigation only	2026-11-18
+1205	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1205	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1206	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1206	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1207	0	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1207	1	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1208	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1208	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1209	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1209	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120a	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120a	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120b	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120b	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120c	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120c	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120d	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120d	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120e	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120e	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120f	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+120f	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1210	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1210	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1211	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1211	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1212	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1212	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1213	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1213	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1214	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1214	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1215	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1215	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1216	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1216	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1217	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1217	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1218	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1218	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1219	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1219	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121a	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121a	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121b	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121b	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121c	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121c	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121d	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121d	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121e	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121e	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121f	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+121f	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1220	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1220	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1221	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1221	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1222	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1222	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1223	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1223	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1224	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1224	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e4	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e4	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e5	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e5	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e6	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e6	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e7	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e7	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e8	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e8	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e9	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12e9	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ea	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ea	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12eb	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12eb	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ec	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ec	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ed	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ed	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ee	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ee	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ef	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12ef	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f0	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f0	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f1	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f1	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f2	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f2	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f3	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f3	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f4	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f4	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f5	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f5	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f6	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f6	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f7	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f7	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f8	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f8	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f9	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12f9	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12fa	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12fa	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12fb	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+12fb	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+1300	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1300	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1300	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1301	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1301	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1301	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1302	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1302	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1302	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1303	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1304	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1304	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1304	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+1400	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1400	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1400	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1400	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1403	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1404	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1405	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1405	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1405	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1405	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1406	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1406	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1406	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1406	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1407	0	DIVERGE	DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)	2026-11-18
+1407	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1407	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1407	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
