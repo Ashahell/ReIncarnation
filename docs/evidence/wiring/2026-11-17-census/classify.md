@@ -1,0 +1,7505 @@
+# W1 Classification — Wiring Census Verdicts
+
+Generated from census.tsv (510 rows, 2549 non-OK/NA verdicts)
+
+## Summary
+
+- Total verdicts needing classification: **2549**
+- Bugs: **1672**
+- By-design: **839**
+- Needs-owner: **38**
+- Unknown: **0**
+
+## Bug Count per Section
+
+- SYNTH1 (section 0): **60** bugs
+- SYNTH2 (section 1): **60** bugs
+- 808 (section 2): **170** bugs
+- 909 (section 3): **181** bugs
+- MIX_SYNTH1 (section 4): **27** bugs
+- MIX_SYNTH2 (section 5): **27** bugs
+- MIX_808 (section 6): **27** bugs
+- MIX_909 (section 7): **27** bugs
+- MASTER (section 8): **9** bugs
+- PCF (section 9): **36** bugs
+- DELAY (section 10): **24** bugs
+- DIST (section 11): **17** bugs
+- COMP (section 12): **16** bugs
+- TRANSPORT (section 13): **1** bugs
+- LEVI (section 18): **963** bugs
+- MIX_LEVI (section 20): **27** bugs
+
+## Needs-Owner List
+
+- **1245** (LEVI/Master/Control 1) door D1_PANEL: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1245** (LEVI/Master/Control 1) door D2_LEVI_ENC: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1245** (LEVI/Master/Control 1) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1245** (LEVI/Master/Control 1) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1246** (LEVI/Master/Control 2) door D1_PANEL: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1246** (LEVI/Master/Control 2) door D2_LEVI_ENC: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1246** (LEVI/Master/Control 2) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1246** (LEVI/Master/Control 2) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1247** (LEVI/Master/Control 3) door D1_PANEL: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1247** (LEVI/Master/Control 3) door D2_LEVI_ENC: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1247** (LEVI/Master/Control 3) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1247** (LEVI/Master/Control 3) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1248** (LEVI/Master/Control 4) door D1_PANEL: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1248** (LEVI/Master/Control 4) door D2_LEVI_ENC: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1248** (LEVI/Master/Control 4) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1248** (LEVI/Master/Control 4) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1249** (LEVI/Master/Control 5) door D1_PANEL: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1249** (LEVI/Master/Control 5) door D2_LEVI_ENC: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1249** (LEVI/Master/Control 5) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1249** (LEVI/Master/Control 5) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124a** (LEVI/Master/Control 6) door D1_PANEL: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124a** (LEVI/Master/Control 6) door D2_LEVI_ENC: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124a** (LEVI/Master/Control 6) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124a** (LEVI/Master/Control 6) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124b** (LEVI/Master/Control 7) door D1_PANEL: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124b** (LEVI/Master/Control 7) door D2_LEVI_ENC: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124b** (LEVI/Master/Control 7) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124b** (LEVI/Master/Control 7) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124c** (LEVI/Master/Control 8) door D1_PANEL: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124c** (LEVI/Master/Control 8) door D2_LEVI_ENC: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124c** (LEVI/Master/Control 8) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124c** (LEVI/Master/Control 8) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124d** (LEVI/Master/Display) door D1_PANEL: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **124d** (LEVI/Master/Display) door D2_LEVI_ENC: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1252** (LEVI/Master/Page Up) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1252** (LEVI/Master/Page Up) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1253** (LEVI/Master/Page Down) door D8_FEEDBACK: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+- **1253** (LEVI/Master/Page Down) door D9_KEYBOARD: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+
+## Detailed Findings by Section
+
+### SYNTH1 (section 0)
+
+- **0000** /Waveform (kind=2, bind=1, cc=23, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=1)
+- **0000** /Waveform (kind=2, bind=1, cc=23, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0000** /Waveform (kind=2, bind=1, cc=23, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0000** /Waveform (kind=2, bind=1, cc=23, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0000** /Waveform (kind=2, bind=1, cc=23, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0000** /Waveform (kind=2, bind=1, cc=23, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0001** /Tune (kind=0, bind=1, cc=24, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0001** /Tune (kind=0, bind=1, cc=24, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0001** /Tune (kind=0, bind=1, cc=24, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0001** /Tune (kind=0, bind=1, cc=24, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0001** /Tune (kind=0, bind=1, cc=24, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0001** /Tune (kind=0, bind=1, cc=24, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0001** /Tune (kind=0, bind=1, cc=24, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0002** /Cutoff (kind=0, bind=1, cc=25, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0002** /Cutoff (kind=0, bind=1, cc=25, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0002** /Cutoff (kind=0, bind=1, cc=25, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0002** /Cutoff (kind=0, bind=1, cc=25, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0002** /Cutoff (kind=0, bind=1, cc=25, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0002** /Cutoff (kind=0, bind=1, cc=25, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0002** /Cutoff (kind=0, bind=1, cc=25, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0002** /Cutoff (kind=0, bind=1, cc=25, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0003** /Reso (kind=0, bind=1, cc=26, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0003** /Reso (kind=0, bind=1, cc=26, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0003** /Reso (kind=0, bind=1, cc=26, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0003** /Reso (kind=0, bind=1, cc=26, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0003** /Reso (kind=0, bind=1, cc=26, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0003** /Reso (kind=0, bind=1, cc=26, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0003** /Reso (kind=0, bind=1, cc=26, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0003** /Reso (kind=0, bind=1, cc=26, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0004** /Env Mod (kind=0, bind=1, cc=27, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0004** /Env Mod (kind=0, bind=1, cc=27, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0004** /Env Mod (kind=0, bind=1, cc=27, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0004** /Env Mod (kind=0, bind=1, cc=27, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0004** /Env Mod (kind=0, bind=1, cc=27, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0004** /Env Mod (kind=0, bind=1, cc=27, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0004** /Env Mod (kind=0, bind=1, cc=27, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0005** /Decay (kind=0, bind=1, cc=28, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0005** /Decay (kind=0, bind=1, cc=28, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0005** /Decay (kind=0, bind=1, cc=28, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0005** /Decay (kind=0, bind=1, cc=28, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0005** /Decay (kind=0, bind=1, cc=28, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0005** /Decay (kind=0, bind=1, cc=28, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0005** /Decay (kind=0, bind=1, cc=28, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0006** /Accent (kind=0, bind=1, cc=29, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0006** /Accent (kind=0, bind=1, cc=29, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0006** /Accent (kind=0, bind=1, cc=29, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0006** /Accent (kind=0, bind=1, cc=29, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0006** /Accent (kind=0, bind=1, cc=29, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0006** /Accent (kind=0, bind=1, cc=29, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0006** /Accent (kind=0, bind=1, cc=29, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0006** /Accent (kind=0, bind=1, cc=29, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0007** Pitch/C (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0007** Pitch/C (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0008** Pitch/C# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0008** Pitch/C# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0009** Pitch/D (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0009** Pitch/D (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000a** Pitch/D# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000a** Pitch/D# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000b** Pitch/E (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000b** Pitch/E (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000c** Pitch/F (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000c** Pitch/F (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000d** Pitch/F# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000d** Pitch/F# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000e** Pitch/G (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000e** Pitch/G (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000f** Pitch/G# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **000f** Pitch/G# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0010** Pitch/A (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0010** Pitch/A (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0011** Pitch/A# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0011** Pitch/A# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0012** Pitch/B (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0012** Pitch/B (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0013** Pitch/C+ (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0013** Pitch/C+ (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0014** Step/Down (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0014 (bind=NONE, kind=2)
+- **0014** Step/Down (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0014 (bind=NONE, kind=2)
+- **0014** Step/Down (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0014 (bind=NONE, kind=2)
+- **0015** Step/Up (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0015 (bind=NONE, kind=2)
+- **0015** Step/Up (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0015 (bind=NONE, kind=2)
+- **0015** Step/Up (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0015 (bind=NONE, kind=2)
+- **0016** Step/Accent (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0016 (bind=NONE, kind=2)
+- **0016** Step/Accent (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0016 (bind=NONE, kind=2)
+- **0016** Step/Accent (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0016 (bind=NONE, kind=2)
+- **0017** Step/Slide (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0017 (bind=NONE, kind=2)
+- **0017** Step/Slide (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0017 (bind=NONE, kind=2)
+- **0017** Step/Slide (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0017 (bind=NONE, kind=2)
+- **0018** Step/Note/Pause (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0018 (bind=NONE, kind=2)
+- **0018** Step/Note/Pause (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0018 (bind=NONE, kind=2)
+- **0018** Step/Note/Pause (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0018 (bind=NONE, kind=2)
+- **0019** Step/Back (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0019** Step/Back (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **001a** Step/Step (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **001a** Step/Step (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **001b** Step/Pitch Mode (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 001b (bind=NONE, kind=2)
+- **001b** Step/Pitch Mode (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 001b (bind=NONE, kind=2)
+- **001b** Step/Pitch Mode (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 001b (bind=NONE, kind=2)
+- **001c** Step/Clear (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **001c** Step/Clear (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **001d** Step/Step display (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+
+### SYNTH2 (section 1)
+
+- **0100** /Waveform (kind=2, bind=1, cc=30, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=1)
+- **0100** /Waveform (kind=2, bind=1, cc=30, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0100** /Waveform (kind=2, bind=1, cc=30, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0100** /Waveform (kind=2, bind=1, cc=30, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0100** /Waveform (kind=2, bind=1, cc=30, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0100** /Waveform (kind=2, bind=1, cc=30, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0101** /Tune (kind=0, bind=1, cc=31, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0101** /Tune (kind=0, bind=1, cc=31, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0101** /Tune (kind=0, bind=1, cc=31, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0101** /Tune (kind=0, bind=1, cc=31, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0101** /Tune (kind=0, bind=1, cc=31, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0101** /Tune (kind=0, bind=1, cc=31, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0101** /Tune (kind=0, bind=1, cc=31, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0102** /Cutoff (kind=0, bind=1, cc=32, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0102** /Cutoff (kind=0, bind=1, cc=32, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0102** /Cutoff (kind=0, bind=1, cc=32, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0102** /Cutoff (kind=0, bind=1, cc=32, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0102** /Cutoff (kind=0, bind=1, cc=32, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0102** /Cutoff (kind=0, bind=1, cc=32, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0102** /Cutoff (kind=0, bind=1, cc=32, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0102** /Cutoff (kind=0, bind=1, cc=32, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0103** /Reso (kind=0, bind=1, cc=33, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0103** /Reso (kind=0, bind=1, cc=33, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0103** /Reso (kind=0, bind=1, cc=33, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0103** /Reso (kind=0, bind=1, cc=33, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0103** /Reso (kind=0, bind=1, cc=33, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0103** /Reso (kind=0, bind=1, cc=33, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0103** /Reso (kind=0, bind=1, cc=33, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0103** /Reso (kind=0, bind=1, cc=33, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0104** /Env Mod (kind=0, bind=1, cc=34, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0104** /Env Mod (kind=0, bind=1, cc=34, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0104** /Env Mod (kind=0, bind=1, cc=34, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0104** /Env Mod (kind=0, bind=1, cc=34, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0104** /Env Mod (kind=0, bind=1, cc=34, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0104** /Env Mod (kind=0, bind=1, cc=34, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0104** /Env Mod (kind=0, bind=1, cc=34, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0105** /Decay (kind=0, bind=1, cc=35, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0105** /Decay (kind=0, bind=1, cc=35, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0105** /Decay (kind=0, bind=1, cc=35, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0105** /Decay (kind=0, bind=1, cc=35, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0105** /Decay (kind=0, bind=1, cc=35, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0105** /Decay (kind=0, bind=1, cc=35, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0105** /Decay (kind=0, bind=1, cc=35, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0106** /Accent (kind=0, bind=1, cc=36, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0106** /Accent (kind=0, bind=1, cc=36, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0106** /Accent (kind=0, bind=1, cc=36, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0106** /Accent (kind=0, bind=1, cc=36, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0106** /Accent (kind=0, bind=1, cc=36, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0106** /Accent (kind=0, bind=1, cc=36, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0106** /Accent (kind=0, bind=1, cc=36, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0106** /Accent (kind=0, bind=1, cc=36, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0107** Pitch/C (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0107** Pitch/C (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0108** Pitch/C# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0108** Pitch/C# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0109** Pitch/D (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0109** Pitch/D (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010a** Pitch/D# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010a** Pitch/D# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010b** Pitch/E (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010b** Pitch/E (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010c** Pitch/F (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010c** Pitch/F (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010d** Pitch/F# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010d** Pitch/F# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010e** Pitch/G (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010e** Pitch/G (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010f** Pitch/G# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **010f** Pitch/G# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0110** Pitch/A (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0110** Pitch/A (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0111** Pitch/A# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0111** Pitch/A# (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0112** Pitch/B (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0112** Pitch/B (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0113** Pitch/C+ (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0113** Pitch/C+ (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0114** Step/Down (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0114 (bind=NONE, kind=2)
+- **0114** Step/Down (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0114 (bind=NONE, kind=2)
+- **0114** Step/Down (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0114 (bind=NONE, kind=2)
+- **0115** Step/Up (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0115 (bind=NONE, kind=2)
+- **0115** Step/Up (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0115 (bind=NONE, kind=2)
+- **0115** Step/Up (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0115 (bind=NONE, kind=2)
+- **0116** Step/Accent (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0116 (bind=NONE, kind=2)
+- **0116** Step/Accent (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0116 (bind=NONE, kind=2)
+- **0116** Step/Accent (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0116 (bind=NONE, kind=2)
+- **0117** Step/Slide (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0117 (bind=NONE, kind=2)
+- **0117** Step/Slide (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0117 (bind=NONE, kind=2)
+- **0117** Step/Slide (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0117 (bind=NONE, kind=2)
+- **0118** Step/Note/Pause (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0118 (bind=NONE, kind=2)
+- **0118** Step/Note/Pause (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0118 (bind=NONE, kind=2)
+- **0118** Step/Note/Pause (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0118 (bind=NONE, kind=2)
+- **0119** Step/Back (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0119** Step/Back (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **011a** Step/Step (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **011a** Step/Step (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **011b** Step/Pitch Mode (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 011b (bind=NONE, kind=2)
+- **011b** Step/Pitch Mode (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 011b (bind=NONE, kind=2)
+- **011b** Step/Pitch Mode (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 011b (bind=NONE, kind=2)
+- **011c** Step/Clear (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **011c** Step/Clear (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **011d** Step/Step display (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+
+### 808 (section 2)
+
+- **0200** AC/Level (kind=0, bind=3, cc=37, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0200** AC/Level (kind=0, bind=3, cc=37, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0200** AC/Level (kind=0, bind=3, cc=37, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0200** AC/Level (kind=0, bind=3, cc=37, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0200** AC/Level (kind=0, bind=3, cc=37, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0200** AC/Level (kind=0, bind=3, cc=37, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0200** AC/Level (kind=0, bind=3, cc=37, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0200** AC/Level (kind=0, bind=3, cc=37, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0201** BD/Level (kind=0, bind=2, cc=38, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **0201** BD/Level (kind=0, bind=2, cc=38, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0201** BD/Level (kind=0, bind=2, cc=38, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0201** BD/Level (kind=0, bind=2, cc=38, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0201** BD/Level (kind=0, bind=2, cc=38, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0201** BD/Level (kind=0, bind=2, cc=38, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0201** BD/Level (kind=0, bind=2, cc=38, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0202** BD/Tone (kind=0, bind=2, cc=39, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0202** BD/Tone (kind=0, bind=2, cc=39, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0202** BD/Tone (kind=0, bind=2, cc=39, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0202** BD/Tone (kind=0, bind=2, cc=39, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0202** BD/Tone (kind=0, bind=2, cc=39, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0202** BD/Tone (kind=0, bind=2, cc=39, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0202** BD/Tone (kind=0, bind=2, cc=39, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0203** BD/Decay (kind=0, bind=2, cc=40, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0203** BD/Decay (kind=0, bind=2, cc=40, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0203** BD/Decay (kind=0, bind=2, cc=40, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0203** BD/Decay (kind=0, bind=2, cc=40, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0203** BD/Decay (kind=0, bind=2, cc=40, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0203** BD/Decay (kind=0, bind=2, cc=40, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0203** BD/Decay (kind=0, bind=2, cc=40, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0204** SD/Level (kind=0, bind=2, cc=41, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **0204** SD/Level (kind=0, bind=2, cc=41, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0204** SD/Level (kind=0, bind=2, cc=41, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0204** SD/Level (kind=0, bind=2, cc=41, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0204** SD/Level (kind=0, bind=2, cc=41, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0204** SD/Level (kind=0, bind=2, cc=41, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0204** SD/Level (kind=0, bind=2, cc=41, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0205** SD/Tone (kind=0, bind=2, cc=42, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0205** SD/Tone (kind=0, bind=2, cc=42, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0205** SD/Tone (kind=0, bind=2, cc=42, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0205** SD/Tone (kind=0, bind=2, cc=42, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0205** SD/Tone (kind=0, bind=2, cc=42, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0205** SD/Tone (kind=0, bind=2, cc=42, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0205** SD/Tone (kind=0, bind=2, cc=42, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0206** SD/Snappy (kind=0, bind=2, cc=43, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0206** SD/Snappy (kind=0, bind=2, cc=43, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0206** SD/Snappy (kind=0, bind=2, cc=43, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0206** SD/Snappy (kind=0, bind=2, cc=43, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0206** SD/Snappy (kind=0, bind=2, cc=43, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0206** SD/Snappy (kind=0, bind=2, cc=43, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0206** SD/Snappy (kind=0, bind=2, cc=43, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0207** LT/Level (kind=0, bind=2, cc=44, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **0207** LT/Level (kind=0, bind=2, cc=44, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0207** LT/Level (kind=0, bind=2, cc=44, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0207** LT/Level (kind=0, bind=2, cc=44, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0207** LT/Level (kind=0, bind=2, cc=44, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0207** LT/Level (kind=0, bind=2, cc=44, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0207** LT/Level (kind=0, bind=2, cc=44, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0208** LT/Tune (kind=0, bind=2, cc=45, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0208** LT/Tune (kind=0, bind=2, cc=45, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0208** LT/Tune (kind=0, bind=2, cc=45, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0208** LT/Tune (kind=0, bind=2, cc=45, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0208** LT/Tune (kind=0, bind=2, cc=45, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0208** LT/Tune (kind=0, bind=2, cc=45, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0208** LT/Tune (kind=0, bind=2, cc=45, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0209** LT/Switch (kind=2, bind=0, cc=46, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for LT Switch (bind=NONE, cc=46)
+- **0209** LT/Switch (kind=2, bind=0, cc=46, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for LT Switch (bind=NONE, cc=46)
+- **0209** LT/Switch (kind=2, bind=0, cc=46, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for LT Switch (bind=NONE, cc=46)
+- **0209** LT/Switch (kind=2, bind=0, cc=46, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for LT Switch (bind=NONE, cc=46)
+- **020a** MT/Level (kind=0, bind=2, cc=47, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **020a** MT/Level (kind=0, bind=2, cc=47, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **020a** MT/Level (kind=0, bind=2, cc=47, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **020a** MT/Level (kind=0, bind=2, cc=47, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020a** MT/Level (kind=0, bind=2, cc=47, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **020a** MT/Level (kind=0, bind=2, cc=47, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020a** MT/Level (kind=0, bind=2, cc=47, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020b** MT/Tune (kind=0, bind=2, cc=48, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **020b** MT/Tune (kind=0, bind=2, cc=48, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020b** MT/Tune (kind=0, bind=2, cc=48, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **020b** MT/Tune (kind=0, bind=2, cc=48, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020b** MT/Tune (kind=0, bind=2, cc=48, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **020b** MT/Tune (kind=0, bind=2, cc=48, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020b** MT/Tune (kind=0, bind=2, cc=48, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020c** MT/Switch (kind=2, bind=0, cc=49, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for MT Switch (bind=NONE, cc=49)
+- **020c** MT/Switch (kind=2, bind=0, cc=49, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for MT Switch (bind=NONE, cc=49)
+- **020c** MT/Switch (kind=2, bind=0, cc=49, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for MT Switch (bind=NONE, cc=49)
+- **020c** MT/Switch (kind=2, bind=0, cc=49, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for MT Switch (bind=NONE, cc=49)
+- **020d** HT/Level (kind=0, bind=2, cc=50, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **020d** HT/Level (kind=0, bind=2, cc=50, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **020d** HT/Level (kind=0, bind=2, cc=50, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **020d** HT/Level (kind=0, bind=2, cc=50, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020d** HT/Level (kind=0, bind=2, cc=50, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **020d** HT/Level (kind=0, bind=2, cc=50, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020d** HT/Level (kind=0, bind=2, cc=50, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020e** HT/Tune (kind=0, bind=2, cc=51, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **020e** HT/Tune (kind=0, bind=2, cc=51, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020e** HT/Tune (kind=0, bind=2, cc=51, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **020e** HT/Tune (kind=0, bind=2, cc=51, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020e** HT/Tune (kind=0, bind=2, cc=51, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **020e** HT/Tune (kind=0, bind=2, cc=51, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020e** HT/Tune (kind=0, bind=2, cc=51, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **020f** HT/Switch (kind=2, bind=0, cc=52, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for HT Switch (bind=NONE, cc=52)
+- **020f** HT/Switch (kind=2, bind=0, cc=52, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for HT Switch (bind=NONE, cc=52)
+- **020f** HT/Switch (kind=2, bind=0, cc=52, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for HT Switch (bind=NONE, cc=52)
+- **020f** HT/Switch (kind=2, bind=0, cc=52, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for HT Switch (bind=NONE, cc=52)
+- **0210** RS/Level (kind=0, bind=2, cc=53, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **0210** RS/Level (kind=0, bind=2, cc=53, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0210** RS/Level (kind=0, bind=2, cc=53, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0210** RS/Level (kind=0, bind=2, cc=53, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0210** RS/Level (kind=0, bind=2, cc=53, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0210** RS/Level (kind=0, bind=2, cc=53, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0210** RS/Level (kind=0, bind=2, cc=53, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0211** RS/Switch (kind=2, bind=0, cc=54, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for RS Switch (bind=NONE, cc=54)
+- **0211** RS/Switch (kind=2, bind=0, cc=54, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for RS Switch (bind=NONE, cc=54)
+- **0211** RS/Switch (kind=2, bind=0, cc=54, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for RS Switch (bind=NONE, cc=54)
+- **0211** RS/Switch (kind=2, bind=0, cc=54, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for RS Switch (bind=NONE, cc=54)
+- **0212** CP/Level (kind=0, bind=2, cc=55, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **0212** CP/Level (kind=0, bind=2, cc=55, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0212** CP/Level (kind=0, bind=2, cc=55, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0212** CP/Level (kind=0, bind=2, cc=55, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0212** CP/Level (kind=0, bind=2, cc=55, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0212** CP/Level (kind=0, bind=2, cc=55, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0212** CP/Level (kind=0, bind=2, cc=55, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0213** CP/Switch (kind=2, bind=0, cc=56, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for CP Switch (bind=NONE, cc=56)
+- **0213** CP/Switch (kind=2, bind=0, cc=56, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for CP Switch (bind=NONE, cc=56)
+- **0213** CP/Switch (kind=2, bind=0, cc=56, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for CP Switch (bind=NONE, cc=56)
+- **0213** CP/Switch (kind=2, bind=0, cc=56, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: 808/909 voice Switch has MIDI CC but bind=NONE — should be bound to voice enable
+  - Code: gui/ctlreg.c: rows for CP Switch (bind=NONE, cc=56)
+- **0214** CB/Level (kind=0, bind=2, cc=57, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **0214** CB/Level (kind=0, bind=2, cc=57, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0214** CB/Level (kind=0, bind=2, cc=57, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0214** CB/Level (kind=0, bind=2, cc=57, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0214** CB/Level (kind=0, bind=2, cc=57, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0214** CB/Level (kind=0, bind=2, cc=57, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0214** CB/Level (kind=0, bind=2, cc=57, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0215** CY/Level (kind=0, bind=2, cc=58, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **0215** CY/Level (kind=0, bind=2, cc=58, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0215** CY/Level (kind=0, bind=2, cc=58, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0215** CY/Level (kind=0, bind=2, cc=58, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0215** CY/Level (kind=0, bind=2, cc=58, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0215** CY/Level (kind=0, bind=2, cc=58, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0215** CY/Level (kind=0, bind=2, cc=58, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0216** CY/Tone (kind=0, bind=2, cc=59, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0216** CY/Tone (kind=0, bind=2, cc=59, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0216** CY/Tone (kind=0, bind=2, cc=59, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0216** CY/Tone (kind=0, bind=2, cc=59, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0216** CY/Tone (kind=0, bind=2, cc=59, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0216** CY/Tone (kind=0, bind=2, cc=59, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0216** CY/Tone (kind=0, bind=2, cc=59, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0217** CY/Decay (kind=0, bind=2, cc=60, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0217** CY/Decay (kind=0, bind=2, cc=60, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0217** CY/Decay (kind=0, bind=2, cc=60, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0217** CY/Decay (kind=0, bind=2, cc=60, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0217** CY/Decay (kind=0, bind=2, cc=60, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0217** CY/Decay (kind=0, bind=2, cc=60, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0217** CY/Decay (kind=0, bind=2, cc=60, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0217** CY/Decay (kind=0, bind=2, cc=60, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0218** OH/Level (kind=0, bind=2, cc=61, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **0218** OH/Level (kind=0, bind=2, cc=61, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0218** OH/Level (kind=0, bind=2, cc=61, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0218** OH/Level (kind=0, bind=2, cc=61, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0218** OH/Level (kind=0, bind=2, cc=61, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0218** OH/Level (kind=0, bind=2, cc=61, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0218** OH/Level (kind=0, bind=2, cc=61, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0219** OH/Decay (kind=0, bind=2, cc=62, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0219** OH/Decay (kind=0, bind=2, cc=62, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0219** OH/Decay (kind=0, bind=2, cc=62, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0219** OH/Decay (kind=0, bind=2, cc=62, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0219** OH/Decay (kind=0, bind=2, cc=62, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0219** OH/Decay (kind=0, bind=2, cc=62, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0219** OH/Decay (kind=0, bind=2, cc=62, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0219** OH/Decay (kind=0, bind=2, cc=62, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **021a** CH/Level (kind=0, bind=2, cc=63, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=2)
+- **021a** CH/Level (kind=0, bind=2, cc=63, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **021a** CH/Level (kind=0, bind=2, cc=63, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **021a** CH/Level (kind=0, bind=2, cc=63, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **021a** CH/Level (kind=0, bind=2, cc=63, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **021a** CH/Level (kind=0, bind=2, cc=63, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **021a** CH/Level (kind=0, bind=2, cc=63, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **021b** /Instrument Selection (kind=6, bind=0, cc=64, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 021b (bind=NONE, kind=6)
+- **021b** /Instrument Selection (kind=6, bind=0, cc=64, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 021b (bind=NONE, kind=6)
+- **021b** /Instrument Selection (kind=6, bind=0, cc=64, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 021b (bind=NONE, kind=6)
+- **021b** /Instrument Selection (kind=6, bind=0, cc=64, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 021b (bind=NONE, kind=6)
+- **021c** Steps/Step 1 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **021c** Steps/Step 1 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **021d** Steps/Step 2 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **021d** Steps/Step 2 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **021e** Steps/Step 3 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **021e** Steps/Step 3 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **021f** Steps/Step 4 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **021f** Steps/Step 4 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0220** Steps/Step 5 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0220** Steps/Step 5 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0221** Steps/Step 6 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0221** Steps/Step 6 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0222** Steps/Step 7 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0222** Steps/Step 7 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0223** Steps/Step 8 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0223** Steps/Step 8 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0224** Steps/Step 9 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0224** Steps/Step 9 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0225** Steps/Step 10 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0225** Steps/Step 10 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0226** Steps/Step 11 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0226** Steps/Step 11 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0227** Steps/Step 12 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0227** Steps/Step 12 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0228** Steps/Step 13 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0228** Steps/Step 13 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0229** Steps/Step 14 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0229** Steps/Step 14 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **022a** Steps/Step 15 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **022a** Steps/Step 15 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **022b** Steps/Step 16 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **022b** Steps/Step 16 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+
+### 909 (section 3)
+
+- **0300** AC/Level (kind=0, bind=0, cc=65, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0300 (bind=NONE, kind=0)
+- **0300** AC/Level (kind=0, bind=0, cc=65, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0300 (bind=NONE, kind=0)
+- **0300** AC/Level (kind=0, bind=0, cc=65, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0300 (bind=NONE, kind=0)
+- **0300** AC/Level (kind=0, bind=0, cc=65, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0300 (bind=NONE, kind=0)
+- **0301** BD/Level (kind=0, bind=4, cc=66, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=4)
+- **0301** BD/Level (kind=0, bind=4, cc=66, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0301** BD/Level (kind=0, bind=4, cc=66, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0301** BD/Level (kind=0, bind=4, cc=66, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0301** BD/Level (kind=0, bind=4, cc=66, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0301** BD/Level (kind=0, bind=4, cc=66, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0301** BD/Level (kind=0, bind=4, cc=66, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0302** BD/Tune (kind=0, bind=4, cc=67, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0302** BD/Tune (kind=0, bind=4, cc=67, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0302** BD/Tune (kind=0, bind=4, cc=67, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0302** BD/Tune (kind=0, bind=4, cc=67, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0302** BD/Tune (kind=0, bind=4, cc=67, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0302** BD/Tune (kind=0, bind=4, cc=67, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0302** BD/Tune (kind=0, bind=4, cc=67, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0303** BD/Attack (kind=0, bind=0, cc=68, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0303 (bind=NONE, kind=0)
+- **0303** BD/Attack (kind=0, bind=0, cc=68, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0303 (bind=NONE, kind=0)
+- **0303** BD/Attack (kind=0, bind=0, cc=68, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0303 (bind=NONE, kind=0)
+- **0303** BD/Attack (kind=0, bind=0, cc=68, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0303 (bind=NONE, kind=0)
+- **0304** BD/Decay (kind=0, bind=4, cc=69, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0304** BD/Decay (kind=0, bind=4, cc=69, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0304** BD/Decay (kind=0, bind=4, cc=69, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0304** BD/Decay (kind=0, bind=4, cc=69, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0304** BD/Decay (kind=0, bind=4, cc=69, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0304** BD/Decay (kind=0, bind=4, cc=69, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0304** BD/Decay (kind=0, bind=4, cc=69, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0304** BD/Decay (kind=0, bind=4, cc=69, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0305** SD/Level (kind=0, bind=4, cc=70, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=4)
+- **0305** SD/Level (kind=0, bind=4, cc=70, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0305** SD/Level (kind=0, bind=4, cc=70, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0305** SD/Level (kind=0, bind=4, cc=70, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0305** SD/Level (kind=0, bind=4, cc=70, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0305** SD/Level (kind=0, bind=4, cc=70, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0305** SD/Level (kind=0, bind=4, cc=70, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0306** SD/Tune (kind=0, bind=4, cc=71, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0306** SD/Tune (kind=0, bind=4, cc=71, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0306** SD/Tune (kind=0, bind=4, cc=71, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0306** SD/Tune (kind=0, bind=4, cc=71, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0306** SD/Tune (kind=0, bind=4, cc=71, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0306** SD/Tune (kind=0, bind=4, cc=71, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0306** SD/Tune (kind=0, bind=4, cc=71, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0307** SD/Tone (kind=0, bind=0, cc=72, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0307 (bind=NONE, kind=0)
+- **0307** SD/Tone (kind=0, bind=0, cc=72, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0307 (bind=NONE, kind=0)
+- **0307** SD/Tone (kind=0, bind=0, cc=72, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0307 (bind=NONE, kind=0)
+- **0307** SD/Tone (kind=0, bind=0, cc=72, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0307 (bind=NONE, kind=0)
+- **0308** SD/Snappy (kind=0, bind=0, cc=73, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0308 (bind=NONE, kind=0)
+- **0308** SD/Snappy (kind=0, bind=0, cc=73, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0308 (bind=NONE, kind=0)
+- **0308** SD/Snappy (kind=0, bind=0, cc=73, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0308 (bind=NONE, kind=0)
+- **0308** SD/Snappy (kind=0, bind=0, cc=73, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 0308 (bind=NONE, kind=0)
+- **0309** LT/Level (kind=0, bind=4, cc=74, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=4)
+- **0309** LT/Level (kind=0, bind=4, cc=74, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0309** LT/Level (kind=0, bind=4, cc=74, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0309** LT/Level (kind=0, bind=4, cc=74, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0309** LT/Level (kind=0, bind=4, cc=74, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0309** LT/Level (kind=0, bind=4, cc=74, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0309** LT/Level (kind=0, bind=4, cc=74, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030a** LT/Tune (kind=0, bind=4, cc=75, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **030a** LT/Tune (kind=0, bind=4, cc=75, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030a** LT/Tune (kind=0, bind=4, cc=75, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **030a** LT/Tune (kind=0, bind=4, cc=75, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030a** LT/Tune (kind=0, bind=4, cc=75, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **030a** LT/Tune (kind=0, bind=4, cc=75, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030a** LT/Tune (kind=0, bind=4, cc=75, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030b** LT/Decay (kind=0, bind=4, cc=76, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **030b** LT/Decay (kind=0, bind=4, cc=76, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030b** LT/Decay (kind=0, bind=4, cc=76, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **030b** LT/Decay (kind=0, bind=4, cc=76, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030b** LT/Decay (kind=0, bind=4, cc=76, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **030b** LT/Decay (kind=0, bind=4, cc=76, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **030b** LT/Decay (kind=0, bind=4, cc=76, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030b** LT/Decay (kind=0, bind=4, cc=76, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030c** MT/Level (kind=0, bind=4, cc=77, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=4)
+- **030c** MT/Level (kind=0, bind=4, cc=77, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **030c** MT/Level (kind=0, bind=4, cc=77, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **030c** MT/Level (kind=0, bind=4, cc=77, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030c** MT/Level (kind=0, bind=4, cc=77, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **030c** MT/Level (kind=0, bind=4, cc=77, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030c** MT/Level (kind=0, bind=4, cc=77, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030d** MT/Tune (kind=0, bind=4, cc=78, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **030d** MT/Tune (kind=0, bind=4, cc=78, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030d** MT/Tune (kind=0, bind=4, cc=78, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **030d** MT/Tune (kind=0, bind=4, cc=78, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030d** MT/Tune (kind=0, bind=4, cc=78, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **030d** MT/Tune (kind=0, bind=4, cc=78, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030d** MT/Tune (kind=0, bind=4, cc=78, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030e** MT/Decay (kind=0, bind=4, cc=79, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **030e** MT/Decay (kind=0, bind=4, cc=79, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030e** MT/Decay (kind=0, bind=4, cc=79, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **030e** MT/Decay (kind=0, bind=4, cc=79, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030e** MT/Decay (kind=0, bind=4, cc=79, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **030e** MT/Decay (kind=0, bind=4, cc=79, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **030e** MT/Decay (kind=0, bind=4, cc=79, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030e** MT/Decay (kind=0, bind=4, cc=79, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030f** HT/Level (kind=0, bind=4, cc=80, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=4)
+- **030f** HT/Level (kind=0, bind=4, cc=80, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **030f** HT/Level (kind=0, bind=4, cc=80, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **030f** HT/Level (kind=0, bind=4, cc=80, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030f** HT/Level (kind=0, bind=4, cc=80, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **030f** HT/Level (kind=0, bind=4, cc=80, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **030f** HT/Level (kind=0, bind=4, cc=80, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0310** HT/Tune (kind=0, bind=4, cc=81, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0310** HT/Tune (kind=0, bind=4, cc=81, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0310** HT/Tune (kind=0, bind=4, cc=81, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0310** HT/Tune (kind=0, bind=4, cc=81, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0310** HT/Tune (kind=0, bind=4, cc=81, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0310** HT/Tune (kind=0, bind=4, cc=81, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0310** HT/Tune (kind=0, bind=4, cc=81, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0311** HT/Decay (kind=0, bind=4, cc=82, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0311** HT/Decay (kind=0, bind=4, cc=82, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0311** HT/Decay (kind=0, bind=4, cc=82, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0311** HT/Decay (kind=0, bind=4, cc=82, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0311** HT/Decay (kind=0, bind=4, cc=82, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0311** HT/Decay (kind=0, bind=4, cc=82, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0311** HT/Decay (kind=0, bind=4, cc=82, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0311** HT/Decay (kind=0, bind=4, cc=82, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0312** HH/Level (kind=0, bind=5, cc=83, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=5)
+- **0312** HH/Level (kind=0, bind=5, cc=83, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0312** HH/Level (kind=0, bind=5, cc=83, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0312** HH/Level (kind=0, bind=5, cc=83, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0312** HH/Level (kind=0, bind=5, cc=83, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0312** HH/Level (kind=0, bind=5, cc=83, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0312** HH/Level (kind=0, bind=5, cc=83, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0313** RS/Level (kind=0, bind=4, cc=84, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=4)
+- **0313** RS/Level (kind=0, bind=4, cc=84, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0313** RS/Level (kind=0, bind=4, cc=84, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0313** RS/Level (kind=0, bind=4, cc=84, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0313** RS/Level (kind=0, bind=4, cc=84, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0313** RS/Level (kind=0, bind=4, cc=84, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0313** RS/Level (kind=0, bind=4, cc=84, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0314** CP/Level (kind=0, bind=4, cc=85, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=4)
+- **0314** CP/Level (kind=0, bind=4, cc=85, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0314** CP/Level (kind=0, bind=4, cc=85, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0314** CP/Level (kind=0, bind=4, cc=85, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0314** CP/Level (kind=0, bind=4, cc=85, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0314** CP/Level (kind=0, bind=4, cc=85, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0314** CP/Level (kind=0, bind=4, cc=85, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0315** CH/Decay (kind=0, bind=4, cc=86, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0315** CH/Decay (kind=0, bind=4, cc=86, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0315** CH/Decay (kind=0, bind=4, cc=86, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0315** CH/Decay (kind=0, bind=4, cc=86, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0315** CH/Decay (kind=0, bind=4, cc=86, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0315** CH/Decay (kind=0, bind=4, cc=86, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0315** CH/Decay (kind=0, bind=4, cc=86, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0315** CH/Decay (kind=0, bind=4, cc=86, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0316** OH/Decay (kind=0, bind=4, cc=87, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0316** OH/Decay (kind=0, bind=4, cc=87, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0316** OH/Decay (kind=0, bind=4, cc=87, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0316** OH/Decay (kind=0, bind=4, cc=87, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0316** OH/Decay (kind=0, bind=4, cc=87, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0316** OH/Decay (kind=0, bind=4, cc=87, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0316** OH/Decay (kind=0, bind=4, cc=87, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0316** OH/Decay (kind=0, bind=4, cc=87, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0317** CC/Level (kind=0, bind=4, cc=88, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=4)
+- **0317** CC/Level (kind=0, bind=4, cc=88, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0317** CC/Level (kind=0, bind=4, cc=88, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0317** CC/Level (kind=0, bind=4, cc=88, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0317** CC/Level (kind=0, bind=4, cc=88, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0317** CC/Level (kind=0, bind=4, cc=88, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0317** CC/Level (kind=0, bind=4, cc=88, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0318** CC/Tune (kind=0, bind=4, cc=89, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0318** CC/Tune (kind=0, bind=4, cc=89, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0318** CC/Tune (kind=0, bind=4, cc=89, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0318** CC/Tune (kind=0, bind=4, cc=89, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0318** CC/Tune (kind=0, bind=4, cc=89, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0318** CC/Tune (kind=0, bind=4, cc=89, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0318** CC/Tune (kind=0, bind=4, cc=89, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0319** RC/Level (kind=0, bind=4, cc=90, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=4)
+- **0319** RC/Level (kind=0, bind=4, cc=90, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0319** RC/Level (kind=0, bind=4, cc=90, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0319** RC/Level (kind=0, bind=4, cc=90, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0319** RC/Level (kind=0, bind=4, cc=90, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0319** RC/Level (kind=0, bind=4, cc=90, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0319** RC/Level (kind=0, bind=4, cc=90, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **031a** RC/Tune (kind=0, bind=4, cc=91, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **031a** RC/Tune (kind=0, bind=4, cc=91, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **031a** RC/Tune (kind=0, bind=4, cc=91, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **031a** RC/Tune (kind=0, bind=4, cc=91, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **031a** RC/Tune (kind=0, bind=4, cc=91, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **031a** RC/Tune (kind=0, bind=4, cc=91, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **031a** RC/Tune (kind=0, bind=4, cc=91, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **031b** /Flam (kind=0, bind=0, cc=92, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031b (bind=NONE, kind=0)
+- **031b** /Flam (kind=0, bind=0, cc=92, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031b (bind=NONE, kind=0)
+- **031b** /Flam (kind=0, bind=0, cc=92, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031b (bind=NONE, kind=0)
+- **031b** /Flam (kind=0, bind=0, cc=92, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031b (bind=NONE, kind=0)
+- **031c** /Instrument Selection (kind=6, bind=0, cc=93, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031c (bind=NONE, kind=6)
+- **031c** /Instrument Selection (kind=6, bind=0, cc=93, auto=1)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031c (bind=NONE, kind=6)
+- **031c** /Instrument Selection (kind=6, bind=0, cc=93, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031c (bind=NONE, kind=6)
+- **031c** /Instrument Selection (kind=6, bind=0, cc=93, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031c (bind=NONE, kind=6)
+- **031d** /Flam button (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031d (bind=NONE, kind=2)
+- **031d** /Flam button (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031d (bind=NONE, kind=2)
+- **031d** /Flam button (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 031d (bind=NONE, kind=2)
+- **031e** Steps/Step 1 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **031e** Steps/Step 1 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **031f** Steps/Step 2 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **031f** Steps/Step 2 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0320** Steps/Step 3 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0320** Steps/Step 3 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0321** Steps/Step 4 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0321** Steps/Step 4 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0322** Steps/Step 5 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0322** Steps/Step 5 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0323** Steps/Step 6 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0323** Steps/Step 6 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0324** Steps/Step 7 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0324** Steps/Step 7 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0325** Steps/Step 8 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0325** Steps/Step 8 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0326** Steps/Step 9 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0326** Steps/Step 9 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0327** Steps/Step 10 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0327** Steps/Step 10 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0328** Steps/Step 11 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0328** Steps/Step 11 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0329** Steps/Step 12 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **0329** Steps/Step 12 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **032a** Steps/Step 13 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **032a** Steps/Step 13 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **032b** Steps/Step 14 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **032b** Steps/Step 14 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **032c** Steps/Step 15 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **032c** Steps/Step 15 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **032d** Steps/Step 16 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **032d** Steps/Step 16 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+
+### MIX_SYNTH1 (section 4)
+
+- **0400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0402** /Level (kind=1, bind=11, cc=11, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=11)
+- **0402** /Level (kind=1, bind=11, cc=11, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0402** /Level (kind=1, bind=11, cc=11, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0402** /Level (kind=1, bind=11, cc=11, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0402** /Level (kind=1, bind=11, cc=11, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0402** /Level (kind=1, bind=11, cc=11, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0402** /Level (kind=1, bind=11, cc=11, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0403** /Pan (kind=0, bind=7, cc=12, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0403** /Pan (kind=0, bind=7, cc=12, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0403** /Pan (kind=0, bind=7, cc=12, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0403** /Pan (kind=0, bind=7, cc=12, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0403** /Pan (kind=0, bind=7, cc=12, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0403** /Pan (kind=0, bind=7, cc=12, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0403** /Pan (kind=0, bind=7, cc=12, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0404** /Delay (kind=0, bind=8, cc=13, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0404** /Delay (kind=0, bind=8, cc=13, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0404** /Delay (kind=0, bind=8, cc=13, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0404** /Delay (kind=0, bind=8, cc=13, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0404** /Delay (kind=0, bind=8, cc=13, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0404** /Delay (kind=0, bind=8, cc=13, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0404** /Delay (kind=0, bind=8, cc=13, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+### MIX_SYNTH2 (section 5)
+
+- **0500** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0500** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0500** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0500** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0500** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0500** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0502** /Level (kind=1, bind=11, cc=14, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=11)
+- **0502** /Level (kind=1, bind=11, cc=14, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0502** /Level (kind=1, bind=11, cc=14, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0502** /Level (kind=1, bind=11, cc=14, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0502** /Level (kind=1, bind=11, cc=14, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0502** /Level (kind=1, bind=11, cc=14, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0502** /Level (kind=1, bind=11, cc=14, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0503** /Pan (kind=0, bind=7, cc=15, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0503** /Pan (kind=0, bind=7, cc=15, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0503** /Pan (kind=0, bind=7, cc=15, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0503** /Pan (kind=0, bind=7, cc=15, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0503** /Pan (kind=0, bind=7, cc=15, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0503** /Pan (kind=0, bind=7, cc=15, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0503** /Pan (kind=0, bind=7, cc=15, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0504** /Delay (kind=0, bind=8, cc=16, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0504** /Delay (kind=0, bind=8, cc=16, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0504** /Delay (kind=0, bind=8, cc=16, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0504** /Delay (kind=0, bind=8, cc=16, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0504** /Delay (kind=0, bind=8, cc=16, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0504** /Delay (kind=0, bind=8, cc=16, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0504** /Delay (kind=0, bind=8, cc=16, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0505** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0505** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0505** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0505** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0505** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0505** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0506** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0506** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0506** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0506** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0506** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0506** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0507** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0507** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0507** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0507** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0507** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0507** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+### MIX_808 (section 6)
+
+- **0600** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0600** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0600** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0600** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0600** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0600** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0602** /Level (kind=1, bind=11, cc=17, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=11)
+- **0602** /Level (kind=1, bind=11, cc=17, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0602** /Level (kind=1, bind=11, cc=17, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0602** /Level (kind=1, bind=11, cc=17, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0602** /Level (kind=1, bind=11, cc=17, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0602** /Level (kind=1, bind=11, cc=17, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0602** /Level (kind=1, bind=11, cc=17, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0603** /Pan (kind=0, bind=7, cc=18, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0603** /Pan (kind=0, bind=7, cc=18, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0603** /Pan (kind=0, bind=7, cc=18, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0603** /Pan (kind=0, bind=7, cc=18, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0603** /Pan (kind=0, bind=7, cc=18, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0603** /Pan (kind=0, bind=7, cc=18, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0603** /Pan (kind=0, bind=7, cc=18, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0604** /Delay (kind=0, bind=8, cc=19, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0604** /Delay (kind=0, bind=8, cc=19, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0604** /Delay (kind=0, bind=8, cc=19, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0604** /Delay (kind=0, bind=8, cc=19, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0604** /Delay (kind=0, bind=8, cc=19, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0604** /Delay (kind=0, bind=8, cc=19, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0604** /Delay (kind=0, bind=8, cc=19, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0605** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0605** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0605** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0605** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0605** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0605** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0606** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0606** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0606** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0606** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0606** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0606** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0607** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0607** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0607** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0607** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0607** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0607** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+### MIX_909 (section 7)
+
+- **0700** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0700** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0700** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0700** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0700** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0700** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0702** /Level (kind=1, bind=11, cc=20, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=11)
+- **0702** /Level (kind=1, bind=11, cc=20, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0702** /Level (kind=1, bind=11, cc=20, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0702** /Level (kind=1, bind=11, cc=20, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0702** /Level (kind=1, bind=11, cc=20, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0702** /Level (kind=1, bind=11, cc=20, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0702** /Level (kind=1, bind=11, cc=20, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0703** /Pan (kind=0, bind=7, cc=21, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0703** /Pan (kind=0, bind=7, cc=21, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0703** /Pan (kind=0, bind=7, cc=21, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0703** /Pan (kind=0, bind=7, cc=21, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0703** /Pan (kind=0, bind=7, cc=21, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0703** /Pan (kind=0, bind=7, cc=21, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0703** /Pan (kind=0, bind=7, cc=21, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0704** /Delay (kind=0, bind=8, cc=22, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0704** /Delay (kind=0, bind=8, cc=22, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0704** /Delay (kind=0, bind=8, cc=22, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0704** /Delay (kind=0, bind=8, cc=22, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0704** /Delay (kind=0, bind=8, cc=22, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0704** /Delay (kind=0, bind=8, cc=22, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0704** /Delay (kind=0, bind=8, cc=22, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0705** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0705** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0705** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0705** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0705** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0705** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0706** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0706** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0706** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0706** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0706** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0706** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0707** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0707** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0707** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0707** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0707** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0707** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+### MASTER (section 8)
+
+- **0800** /Level (kind=1, bind=11, cc=7, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=11)
+- **0800** /Level (kind=1, bind=11, cc=7, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **0800** /Level (kind=1, bind=11, cc=7, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0800** /Level (kind=1, bind=11, cc=7, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0800** /Level (kind=1, bind=11, cc=7, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0800** /Level (kind=1, bind=11, cc=7, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0800** /Level (kind=1, bind=11, cc=7, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0803** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0803** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0803** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0803** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0803** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0803** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+### PCF (section 9)
+
+- **0900** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0900** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0900** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0900** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0900** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0900** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0900** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0902** /Pattern (kind=6, bind=6, cc=94, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0902** /Pattern (kind=6, bind=6, cc=94, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0902** /Pattern (kind=6, bind=6, cc=94, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0902** /Pattern (kind=6, bind=6, cc=94, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0902** /Pattern (kind=6, bind=6, cc=94, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0902** /Pattern (kind=6, bind=6, cc=94, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0902** /Pattern (kind=6, bind=6, cc=94, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0903** /Mode (kind=2, bind=6, cc=95, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0903** /Mode (kind=2, bind=6, cc=95, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BY-DESIGN**: D3_MIDI_IN moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0903** /Mode (kind=2, bind=6, cc=95, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0903** /Mode (kind=2, bind=6, cc=95, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0903** /Mode (kind=2, bind=6, cc=95, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0903** /Mode (kind=2, bind=6, cc=95, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0903** /Mode (kind=2, bind=6, cc=95, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0904** /Freq (kind=1, bind=6, cc=96, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0904** /Freq (kind=1, bind=6, cc=96, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0904** /Freq (kind=1, bind=6, cc=96, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0904** /Freq (kind=1, bind=6, cc=96, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0904** /Freq (kind=1, bind=6, cc=96, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0904** /Freq (kind=1, bind=6, cc=96, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0904** /Freq (kind=1, bind=6, cc=96, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0905** /Q (kind=1, bind=6, cc=97, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0905** /Q (kind=1, bind=6, cc=97, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0905** /Q (kind=1, bind=6, cc=97, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0905** /Q (kind=1, bind=6, cc=97, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0905** /Q (kind=1, bind=6, cc=97, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0905** /Q (kind=1, bind=6, cc=97, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0905** /Q (kind=1, bind=6, cc=97, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0906** /Amt (kind=1, bind=6, cc=98, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0906** /Amt (kind=1, bind=6, cc=98, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0906** /Amt (kind=1, bind=6, cc=98, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0906** /Amt (kind=1, bind=6, cc=98, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0906** /Amt (kind=1, bind=6, cc=98, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0906** /Amt (kind=1, bind=6, cc=98, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0906** /Amt (kind=1, bind=6, cc=98, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0906** /Amt (kind=1, bind=6, cc=98, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0907** /Decay (kind=1, bind=6, cc=99, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0907** /Decay (kind=1, bind=6, cc=99, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0907** /Decay (kind=1, bind=6, cc=99, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0907** /Decay (kind=1, bind=6, cc=99, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0907** /Decay (kind=1, bind=6, cc=99, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0907** /Decay (kind=1, bind=6, cc=99, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0907** /Decay (kind=1, bind=6, cc=99, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+### DELAY (section 10)
+
+- **0a00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0a00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0a00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0a00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0a00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a02** /Steps (kind=6, bind=6, cc=100, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0a02** /Steps (kind=6, bind=6, cc=100, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a02** /Steps (kind=6, bind=6, cc=100, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0a02** /Steps (kind=6, bind=6, cc=100, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a02** /Steps (kind=6, bind=6, cc=100, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0a02** /Steps (kind=6, bind=6, cc=100, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a02** /Steps (kind=6, bind=6, cc=100, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a03** /Triplet (kind=2, bind=6, cc=101, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0a03** /Triplet (kind=2, bind=6, cc=101, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BY-DESIGN**: D3_MIDI_IN moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a03** /Triplet (kind=2, bind=6, cc=101, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0a03** /Triplet (kind=2, bind=6, cc=101, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a03** /Triplet (kind=2, bind=6, cc=101, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0a03** /Triplet (kind=2, bind=6, cc=101, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a03** /Triplet (kind=2, bind=6, cc=101, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a04** /Pan (kind=0, bind=6, cc=102, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0a04** /Pan (kind=0, bind=6, cc=102, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a04** /Pan (kind=0, bind=6, cc=102, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0a04** /Pan (kind=0, bind=6, cc=102, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a04** /Pan (kind=0, bind=6, cc=102, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0a04** /Pan (kind=0, bind=6, cc=102, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a04** /Pan (kind=0, bind=6, cc=102, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a05** /F.Back (kind=0, bind=6, cc=103, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0a05** /F.Back (kind=0, bind=6, cc=103, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a05** /F.Back (kind=0, bind=6, cc=103, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0a05** /F.Back (kind=0, bind=6, cc=103, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a05** /F.Back (kind=0, bind=6, cc=103, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0a05** /F.Back (kind=0, bind=6, cc=103, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0a05** /F.Back (kind=0, bind=6, cc=103, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0a05** /F.Back (kind=0, bind=6, cc=103, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+### DIST (section 11)
+
+- **0b00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0b00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0b00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0b00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0b00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b02** /Amount (kind=0, bind=6, cc=105, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0b02** /Amount (kind=0, bind=6, cc=105, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b02** /Amount (kind=0, bind=6, cc=105, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0b02** /Amount (kind=0, bind=6, cc=105, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b02** /Amount (kind=0, bind=6, cc=105, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0b02** /Amount (kind=0, bind=6, cc=105, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0b02** /Amount (kind=0, bind=6, cc=105, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b02** /Amount (kind=0, bind=6, cc=105, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b03** /Shape (kind=0, bind=6, cc=104, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0b03** /Shape (kind=0, bind=6, cc=104, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b03** /Shape (kind=0, bind=6, cc=104, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0b03** /Shape (kind=0, bind=6, cc=104, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b03** /Shape (kind=0, bind=6, cc=104, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0b03** /Shape (kind=0, bind=6, cc=104, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0b03** /Shape (kind=0, bind=6, cc=104, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0b03** /Shape (kind=0, bind=6, cc=104, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+### COMP (section 12)
+
+- **0c00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0c00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0c00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0c00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0c00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c00** /On/Off (kind=2, bind=6, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c02** /Ratio (kind=0, bind=6, cc=106, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0c02** /Ratio (kind=0, bind=6, cc=106, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c02** /Ratio (kind=0, bind=6, cc=106, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0c02** /Ratio (kind=0, bind=6, cc=106, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c02** /Ratio (kind=0, bind=6, cc=106, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **0c02** /Ratio (kind=0, bind=6, cc=106, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0c02** /Ratio (kind=0, bind=6, cc=106, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c02** /Ratio (kind=0, bind=6, cc=106, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c03** /Threshold (kind=0, bind=6, cc=107, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **0c03** /Threshold (kind=0, bind=6, cc=107, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c03** /Threshold (kind=0, bind=6, cc=107, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **0c03** /Threshold (kind=0, bind=6, cc=107, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c03** /Threshold (kind=0, bind=6, cc=107, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **0c03** /Threshold (kind=0, bind=6, cc=107, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **0c03** /Threshold (kind=0, bind=6, cc=107, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+### TRANSPORT (section 13)
+
+- **0d00** /Song/Pattern (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d00** /Song/Pattern (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d00** /Song/Pattern (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d01** /Tempo (kind=7, bind=10, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=10)
+- **0d02** /Shuffle (kind=0, bind=0, cc=108, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d02** /Shuffle (kind=0, bind=0, cc=108, auto=0)
+  - Door: D3_MIDI_IN | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d02** /Shuffle (kind=0, bind=0, cc=108, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d02** /Shuffle (kind=0, bind=0, cc=108, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d03** /Bar (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d04** /Play (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d04** /Play (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d05** /Stop (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d05** /Stop (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d06** /Rewind (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d06** /Rewind (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d07** /Fast Forward (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d07** /Fast Forward (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d08** /Record (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d08** /Record (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d09** /Loop (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d09** /Loop (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d09** /Loop (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d0a** /Loop Start (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d0b** /Loop Length (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d0e** /Tap (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0d0e** /Tap (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+
+### PAT_SYNTH1 (section 14)
+
+- **0e00** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e00** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e00** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e01** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e01** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e01** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e02** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e02** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e02** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e03** /Length (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e04** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e04** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0e04** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+
+### PAT_SYNTH2 (section 15)
+
+- **0f00** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f00** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f00** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f01** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f01** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f01** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f02** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f02** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f02** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f03** /Length (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f04** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f04** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **0f04** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+
+### PAT_808 (section 16)
+
+- **1000** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1000** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1000** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1001** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1001** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1001** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1002** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1002** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1002** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1003** /Length (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1004** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1004** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1004** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+
+### PAT_909 (section 17)
+
+- **1100** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1100** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1100** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1101** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1101** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1101** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1102** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1102** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1102** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1103** /Length (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1104** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1104** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1104** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+
+### LEVI (section 18)
+
+- **1200** /Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1200** /Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1200** /Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1200** /Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1200** /Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **1200** /Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1200** /Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1200** /Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1201** /Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1201** /Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1201** /Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1201** /Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1201** /Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **1201** /Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1201** /Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1201** /Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1202** /Mode (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1202** /Mode (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1202** /Mode (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1202** /Mode (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1202** /Mode (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1202** /Mode (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1202** /Mode (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1203** /Ratio (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1203** /Ratio (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1203** /Ratio (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1203** /Ratio (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1203** /Ratio (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **1203** /Ratio (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1203** /Ratio (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1203** /Ratio (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1225** Algo/Algorithm (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1225** Algo/Algorithm (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1225** Algo/Algorithm (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1225** Algo/Algorithm (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1225** Algo/Algorithm (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1225** Algo/Algorithm (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1225** Algo/Algorithm (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1226** Algo/Target (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1226** Algo/Target (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1226** Algo/Target (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1226** Algo/Target (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1226** Algo/Target (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1226** Algo/Target (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1226** Algo/Target (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1227** Algo/Morph (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1227** Algo/Morph (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1227** Algo/Morph (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1227** Algo/Morph (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1227** Algo/Morph (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1227** Algo/Morph (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1227** Algo/Morph (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1228** Algo/Op (kind=6, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 1228 (bind=NONE, kind=6)
+- **1228** Algo/Op (kind=6, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 1228 (bind=NONE, kind=6)
+- **1228** Algo/Op (kind=6, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 1228 (bind=NONE, kind=6)
+- **1228** Algo/Op (kind=6, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 1228 (bind=NONE, kind=6)
+- **1229** Algo/Op Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1229** Algo/Op Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1229** Algo/Op Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1229** Algo/Op Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1229** Algo/Op Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1229** Algo/Op Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1229** Algo/Op Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122a** Filter/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **122a** Filter/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122a** Filter/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **122a** Filter/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122a** Filter/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **122a** Filter/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122a** Filter/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122b** Filter/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **122b** Filter/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122b** Filter/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **122b** Filter/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122b** Filter/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **122b** Filter/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122b** Filter/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122c** Analog/Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **122c** Analog/Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122c** Analog/Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **122c** Analog/Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122c** Analog/Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **122c** Analog/Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **122c** Analog/Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122c** Analog/Cutoff (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122d** Analog/Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **122d** Analog/Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **122d** Analog/Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **122d** Analog/Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122d** Analog/Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **122d** Analog/Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **122d** Analog/Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122d** Analog/Reso (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122e** Env/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **122e** Env/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122e** Env/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **122e** Env/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122e** Env/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **122e** Env/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **122e** Env/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122e** Env/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122f** Env/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **122f** Env/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122f** Env/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **122f** Env/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122f** Env/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **122f** Env/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **122f** Env/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **122f** Env/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1230** Env/Sustain (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1230** Env/Sustain (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1230** Env/Sustain (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1230** Env/Sustain (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1230** Env/Sustain (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **1230** Env/Sustain (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1230** Env/Sustain (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1230** Env/Sustain (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1231** Env/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1231** Env/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1231** Env/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1231** Env/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1231** Env/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **1231** Env/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1231** Env/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1231** Env/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1232** Env/Loop (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1232** Env/Loop (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1232** Env/Loop (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1232** Env/Loop (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1232** Env/Loop (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1232** Env/Loop (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1232** Env/Loop (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1233** Algo/Algo Num (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1233** Algo/Algo Num (kind=7, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1234** Arp/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1234** Arp/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1234** Arp/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1234** Arp/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1234** Arp/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1234** Arp/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1234** Arp/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1235** Arp/Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1235** Arp/Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **1235** Arp/Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1235** Arp/Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1235** Arp/Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1235** Arp/Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1235** Arp/Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1236** Seq/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1236** Seq/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1236** Seq/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1236** Seq/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1236** Seq/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1236** Seq/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1236** Seq/On (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1237** Seq/Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1237** Seq/Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1237** Seq/Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1237** Seq/Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1237** Seq/Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1237** Seq/Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1237** Seq/Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1238** Matrix/R1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1238** Matrix/R1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1238** Matrix/R1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1238** Matrix/R1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1238** Matrix/R1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1238** Matrix/R1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1238** Matrix/R1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1239** Matrix/R2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1239** Matrix/R2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1239** Matrix/R2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1239** Matrix/R2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1239** Matrix/R2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1239** Matrix/R2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1239** Matrix/R2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123a** Matrix/R3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **123a** Matrix/R3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123a** Matrix/R3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **123a** Matrix/R3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123a** Matrix/R3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **123a** Matrix/R3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123a** Matrix/R3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123b** Matrix/R4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **123b** Matrix/R4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123b** Matrix/R4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **123b** Matrix/R4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123b** Matrix/R4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **123b** Matrix/R4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123b** Matrix/R4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123c** Matrix/R5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **123c** Matrix/R5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123c** Matrix/R5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **123c** Matrix/R5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123c** Matrix/R5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **123c** Matrix/R5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123c** Matrix/R5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123d** Matrix/R6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **123d** Matrix/R6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123d** Matrix/R6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **123d** Matrix/R6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123d** Matrix/R6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **123d** Matrix/R6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123d** Matrix/R6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123e** Matrix/R7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **123e** Matrix/R7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123e** Matrix/R7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **123e** Matrix/R7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123e** Matrix/R7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **123e** Matrix/R7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123e** Matrix/R7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123f** Matrix/R8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **123f** Matrix/R8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123f** Matrix/R8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **123f** Matrix/R8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123f** Matrix/R8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **123f** Matrix/R8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **123f** Matrix/R8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1240** Fx/Pre (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1240** Fx/Pre (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1240** Fx/Pre (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1240** Fx/Pre (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1240** Fx/Pre (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1240** Fx/Pre (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1240** Fx/Pre (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1241** Fx/Dly (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1241** Fx/Dly (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1241** Fx/Dly (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1241** Fx/Dly (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1241** Fx/Dly (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1241** Fx/Dly (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1241** Fx/Dly (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1242** Fx/Rev (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1242** Fx/Rev (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1242** Fx/Rev (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1242** Fx/Rev (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1242** Fx/Rev (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1242** Fx/Rev (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1242** Fx/Rev (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1243** Fx/Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1243** Fx/Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1243** Fx/Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1243** Fx/Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1243** Fx/Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1243** Fx/Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1243** Fx/Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1244** Module/Module (kind=6, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BY-DESIGN**: LEVI Module selector — panel navigation only
+  - Code: gui/ctlreg.c:333 (row 1244)
+- **1244** Module/Module (kind=6, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_UNEXPLAINED | **BY-DESIGN**: LEVI Module selector — panel navigation only
+  - Code: gui/ctlreg.c:333 (row 1244)
+- **1244** Module/Module (kind=6, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BY-DESIGN**: LEVI Module selector — panel navigation only
+  - Code: gui/ctlreg.c:333 (row 1244)
+- **1244** Module/Module (kind=6, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BY-DESIGN**: LEVI Module selector — panel navigation only
+  - Code: gui/ctlreg.c:333 (row 1244)
+- **1245** Master/Control 1 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1245** Master/Control 1 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1245** Master/Control 1 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1245** Master/Control 1 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1246** Master/Control 2 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1246** Master/Control 2 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1246** Master/Control 2 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1246** Master/Control 2 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1247** Master/Control 3 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1247** Master/Control 3 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1247** Master/Control 3 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1247** Master/Control 3 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1248** Master/Control 4 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1248** Master/Control 4 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1248** Master/Control 4 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1248** Master/Control 4 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1249** Master/Control 5 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1249** Master/Control 5 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1249** Master/Control 5 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1249** Master/Control 5 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124a** Master/Control 6 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124a** Master/Control 6 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124a** Master/Control 6 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124a** Master/Control 6 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124b** Master/Control 7 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124b** Master/Control 7 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124b** Master/Control 7 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124b** Master/Control 7 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124c** Master/Control 8 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124c** Master/Control 8 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124c** Master/Control 8 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124c** Master/Control 8 (kind=0, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124d** Master/Display (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124d** Master/Display (kind=7, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **124e** Bias/Env Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **124e** Bias/Env Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **124e** Bias/Env Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **124e** Bias/Env Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **124e** Bias/Env Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **124e** Bias/Env Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **124e** Bias/Env Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **124f** Bias/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **124f** Bias/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **124f** Bias/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **124f** Bias/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **124f** Bias/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **124f** Bias/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **124f** Bias/Attack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1250** Bias/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1250** Bias/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1250** Bias/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1250** Bias/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1250** Bias/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1250** Bias/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1250** Bias/Decay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1251** Bias/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1251** Bias/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1251** Bias/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1251** Bias/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1251** Bias/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1251** Bias/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1251** Bias/Release (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1252** Master/Page Up (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1252** Master/Page Up (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1253** Master/Page Down (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1253** Master/Page Down (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **NEEDS-OWNER**: LEVI Master Control 1-8 encoders — no engine control exists (t220, owner 2026-10-14)
+  - Code: gui/ctlreg.c:334-341 (rows 1245-124c, bind=NONE, kind=KNOB)
+- **1254** Algo/Algo Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1254** Algo/Algo Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1254** Algo/Algo Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1254** Algo/Algo Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1254** Algo/Algo Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1254** Algo/Algo Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1254** Algo/Algo Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1255** Algo/Slot 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1255** Algo/Slot 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1255** Algo/Slot 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1255** Algo/Slot 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1255** Algo/Slot 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1255** Algo/Slot 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1255** Algo/Slot 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1256** Algo/Slot 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1256** Algo/Slot 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **1256** Algo/Slot 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1256** Algo/Slot 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1256** Algo/Slot 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1256** Algo/Slot 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1256** Algo/Slot 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1257** Algo/Slot 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1257** Algo/Slot 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1257** Algo/Slot 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1257** Algo/Slot 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1257** Algo/Slot 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1257** Algo/Slot 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1257** Algo/Slot 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1258** Algo/Slot 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1258** Algo/Slot 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **1258** Algo/Slot 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1258** Algo/Slot 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1258** Algo/Slot 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1258** Algo/Slot 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1258** Algo/Slot 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1259** Algo/Slot 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1259** Algo/Slot 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **1259** Algo/Slot 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1259** Algo/Slot 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1259** Algo/Slot 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1259** Algo/Slot 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1259** Algo/Slot 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125a** Algo/Slot 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **125a** Algo/Slot 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125a** Algo/Slot 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **125a** Algo/Slot 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125a** Algo/Slot 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **125a** Algo/Slot 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125a** Algo/Slot 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125b** Algo/Slot 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **125b** Algo/Slot 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125b** Algo/Slot 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **125b** Algo/Slot 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125b** Algo/Slot 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **125b** Algo/Slot 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125b** Algo/Slot 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125c** Algo/Slot 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **125c** Algo/Slot 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **125c** Algo/Slot 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **125c** Algo/Slot 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125c** Algo/Slot 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **125c** Algo/Slot 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125c** Algo/Slot 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125d** Algo/Morph Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **125d** Algo/Morph Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **125d** Algo/Morph Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **125d** Algo/Morph Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125d** Algo/Morph Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **125d** Algo/Morph Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125d** Algo/Morph Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125e** Algo/Solo (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **125e** Algo/Solo (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125e** Algo/Solo (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **125e** Algo/Solo (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125e** Algo/Solo (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **125e** Algo/Solo (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125e** Algo/Solo (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125f** Algo/Mute 1-7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **125f** Algo/Mute 1-7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125f** Algo/Mute 1-7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **125f** Algo/Mute 1-7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125f** Algo/Mute 1-7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **125f** Algo/Mute 1-7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **125f** Algo/Mute 1-7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1260** Algo/Mute 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1260** Algo/Mute 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1260** Algo/Mute 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1260** Algo/Mute 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1260** Algo/Mute 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1260** Algo/Mute 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1260** Algo/Mute 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1261** Filter/D Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1261** Filter/D Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1261** Filter/D Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1261** Filter/D Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1261** Filter/D Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1261** Filter/D Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1261** Filter/D Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1262** Filter/Morph/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1262** Filter/Morph/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1262** Filter/Morph/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1262** Filter/Morph/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1262** Filter/Morph/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1262** Filter/Morph/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1262** Filter/Morph/Drive (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1263** Filter/Drive Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1263** Filter/Drive Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1263** Filter/Drive Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1263** Filter/Drive Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1263** Filter/Drive Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1263** Filter/Drive Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1263** Filter/Drive Post (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1264** Filter/Vowel Order (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1264** Filter/Vowel Order (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1264** Filter/Vowel Order (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1264** Filter/Vowel Order (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1264** Filter/Vowel Order (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1264** Filter/Vowel Order (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1264** Filter/Vowel Order (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1265** Filter/D Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1265** Filter/D Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **1265** Filter/D Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1265** Filter/D Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1265** Filter/D Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1265** Filter/D Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1265** Filter/D Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1266** Filter/LFO1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1266** Filter/LFO1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1266** Filter/LFO1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1266** Filter/LFO1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1266** Filter/LFO1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1266** Filter/LFO1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1266** Filter/LFO1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1267** Filter/D Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1267** Filter/D Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1267** Filter/D Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1267** Filter/D Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1267** Filter/D Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1267** Filter/D Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1267** Filter/D Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1268** Analog/A Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1268** Analog/A Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1268** Analog/A Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1268** Analog/A Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1268** Analog/A Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1268** Analog/A Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1268** Analog/A Keytrack (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1269** Analog/LFO2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1269** Analog/LFO2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1269** Analog/LFO2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1269** Analog/LFO2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1269** Analog/LFO2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1269** Analog/LFO2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1269** Analog/LFO2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126a** VCA/OSCs Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **126a** VCA/OSCs Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126a** VCA/OSCs Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **126a** VCA/OSCs Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126a** VCA/OSCs Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **126a** VCA/OSCs Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126a** VCA/OSCs Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126b** VCA/VCA Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **126b** VCA/VCA Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126b** VCA/VCA Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **126b** VCA/VCA Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126b** VCA/VCA Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **126b** VCA/VCA Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126b** VCA/VCA Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126c** VCA/Patch Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **126c** VCA/Patch Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126c** VCA/Patch Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **126c** VCA/Patch Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126c** VCA/Patch Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **126c** VCA/Patch Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126c** VCA/Patch Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126d** VCA/LFO3 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **126d** VCA/LFO3 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **126d** VCA/LFO3 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **126d** VCA/LFO3 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126d** VCA/LFO3 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **126d** VCA/LFO3 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126d** VCA/LFO3 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126e** Filter/ENV1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **126e** Filter/ENV1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126e** Filter/ENV1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **126e** Filter/ENV1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126e** Filter/ENV1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **126e** Filter/ENV1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126e** Filter/ENV1 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126f** Analog/ENV2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **126f** Analog/ENV2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126f** Analog/ENV2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **126f** Analog/ENV2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126f** Analog/ENV2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **126f** Analog/ENV2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **126f** Analog/ENV2 Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1270** VCA/Init Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1270** VCA/Init Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1270** VCA/Init Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1270** VCA/Init Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1270** VCA/Init Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1270** VCA/Init Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1270** VCA/Init Level (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1271** Macro/Macro 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1271** Macro/Macro 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1271** Macro/Macro 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1271** Macro/Macro 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1271** Macro/Macro 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1271** Macro/Macro 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1271** Macro/Macro 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1272** Macro/Macro 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1272** Macro/Macro 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1272** Macro/Macro 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1272** Macro/Macro 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1272** Macro/Macro 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1272** Macro/Macro 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1272** Macro/Macro 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1273** Macro/Macro 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1273** Macro/Macro 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1273** Macro/Macro 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1273** Macro/Macro 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1273** Macro/Macro 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1273** Macro/Macro 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1273** Macro/Macro 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1274** Macro/Macro 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1274** Macro/Macro 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1274** Macro/Macro 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1274** Macro/Macro 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1274** Macro/Macro 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1274** Macro/Macro 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1274** Macro/Macro 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1275** Macro/Macro 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1275** Macro/Macro 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **1275** Macro/Macro 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1275** Macro/Macro 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1275** Macro/Macro 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1275** Macro/Macro 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1275** Macro/Macro 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1276** Macro/Macro 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1276** Macro/Macro 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1276** Macro/Macro 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1276** Macro/Macro 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1276** Macro/Macro 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1276** Macro/Macro 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1276** Macro/Macro 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1277** Macro/Macro 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1277** Macro/Macro 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1277** Macro/Macro 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1277** Macro/Macro 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1277** Macro/Macro 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1277** Macro/Macro 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1277** Macro/Macro 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1278** Macro/Macro 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1278** Macro/Macro 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1278** Macro/Macro 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1278** Macro/Macro 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1278** Macro/Macro 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1278** Macro/Macro 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1278** Macro/Macro 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1279** Macro/Button 1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1279** Macro/Button 1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1279** Macro/Button 1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1279** Macro/Button 1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1279** Macro/Button 1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1279** Macro/Button 1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1279** Macro/Button 1 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127a** Macro/Button 2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **127a** Macro/Button 2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127a** Macro/Button 2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **127a** Macro/Button 2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127a** Macro/Button 2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **127a** Macro/Button 2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127a** Macro/Button 2 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127b** Macro/Button 3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **127b** Macro/Button 3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127b** Macro/Button 3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **127b** Macro/Button 3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127b** Macro/Button 3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **127b** Macro/Button 3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127b** Macro/Button 3 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127c** Macro/Button 4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **127c** Macro/Button 4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127c** Macro/Button 4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **127c** Macro/Button 4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127c** Macro/Button 4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **127c** Macro/Button 4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127c** Macro/Button 4 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127d** Macro/Button 5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **127d** Macro/Button 5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127d** Macro/Button 5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **127d** Macro/Button 5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127d** Macro/Button 5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **127d** Macro/Button 5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127d** Macro/Button 5 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127e** Macro/Button 6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **127e** Macro/Button 6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127e** Macro/Button 6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **127e** Macro/Button 6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127e** Macro/Button 6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **127e** Macro/Button 6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127e** Macro/Button 6 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127f** Macro/Button 7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **127f** Macro/Button 7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127f** Macro/Button 7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **127f** Macro/Button 7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127f** Macro/Button 7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **127f** Macro/Button 7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **127f** Macro/Button 7 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1280** Macro/Button 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1280** Macro/Button 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1280** Macro/Button 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1280** Macro/Button 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1280** Macro/Button 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1280** Macro/Button 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1280** Macro/Button 8 (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1281** Voice/Polyphony (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1281** Voice/Polyphony (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1281** Voice/Polyphony (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1281** Voice/Polyphony (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1281** Voice/Polyphony (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1281** Voice/Polyphony (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1281** Voice/Polyphony (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1282** Voice/Density (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1282** Voice/Density (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1282** Voice/Density (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1282** Voice/Density (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1282** Voice/Density (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1282** Voice/Density (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1282** Voice/Density (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1283** Voice/Poly Limit (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1283** Voice/Poly Limit (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1283** Voice/Poly Limit (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1283** Voice/Poly Limit (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1283** Voice/Poly Limit (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1283** Voice/Poly Limit (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1283** Voice/Poly Limit (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1284** Voice/Detune (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1284** Voice/Detune (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1284** Voice/Detune (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1284** Voice/Detune (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1284** Voice/Detune (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1284** Voice/Detune (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1284** Voice/Detune (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1285** Voice/Analog Feel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1285** Voice/Analog Feel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **1285** Voice/Analog Feel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1285** Voice/Analog Feel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1285** Voice/Analog Feel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1285** Voice/Analog Feel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1285** Voice/Analog Feel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1286** Voice/Random Phase (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1286** Voice/Random Phase (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1286** Voice/Random Phase (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1286** Voice/Random Phase (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1286** Voice/Random Phase (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1286** Voice/Random Phase (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1286** Voice/Random Phase (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1287** Voice/Pan (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1287** Voice/Pan (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1287** Voice/Pan (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1287** Voice/Pan (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1287** Voice/Pan (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1287** Voice/Pan (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1287** Voice/Pan (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1288** Voice/Width (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1288** Voice/Width (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1288** Voice/Width (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1288** Voice/Width (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1288** Voice/Width (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **1288** Voice/Width (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1288** Voice/Width (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1288** Voice/Width (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1289** Voice/Pan Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1289** Voice/Pan Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1289** Voice/Pan Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1289** Voice/Pan Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1289** Voice/Pan Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1289** Voice/Pan Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1289** Voice/Pan Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128a** Voice/Bend Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **128a** Voice/Bend Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128a** Voice/Bend Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **128a** Voice/Bend Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128a** Voice/Bend Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **128a** Voice/Bend Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **128a** Voice/Bend Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128a** Voice/Bend Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128b** Voice/Vibrato Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **128b** Voice/Vibrato Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128b** Voice/Vibrato Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **128b** Voice/Vibrato Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128b** Voice/Vibrato Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **128b** Voice/Vibrato Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **128b** Voice/Vibrato Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128b** Voice/Vibrato Rate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128c** Voice/Vibrato Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **128c** Voice/Vibrato Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128c** Voice/Vibrato Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **128c** Voice/Vibrato Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128c** Voice/Vibrato Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **128c** Voice/Vibrato Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128c** Voice/Vibrato Amt (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128d** Voice/Vibrato Delay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **128d** Voice/Vibrato Delay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **128d** Voice/Vibrato Delay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **128d** Voice/Vibrato Delay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128d** Voice/Vibrato Delay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **128d** Voice/Vibrato Delay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128d** Voice/Vibrato Delay (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128e** Voice/Glide (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **128e** Voice/Glide (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128e** Voice/Glide (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **128e** Voice/Glide (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128e** Voice/Glide (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **128e** Voice/Glide (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128e** Voice/Glide (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128f** Voice/Glide Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **128f** Voice/Glide Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128f** Voice/Glide Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **128f** Voice/Glide Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128f** Voice/Glide Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **128f** Voice/Glide Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **128f** Voice/Glide Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **128f** Voice/Glide Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1290** Voice/Glide Curve (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1290** Voice/Glide Curve (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1290** Voice/Glide Curve (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1290** Voice/Glide Curve (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1290** Voice/Glide Curve (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1290** Voice/Glide Curve (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1290** Voice/Glide Curve (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1291** Voice/Vintage (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1291** Voice/Vintage (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1291** Voice/Vintage (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1291** Voice/Vintage (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1291** Voice/Vintage (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1291** Voice/Vintage (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1291** Voice/Vintage (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1292** Voice/Scale (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1292** Voice/Scale (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1292** Voice/Scale (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1292** Voice/Scale (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1292** Voice/Scale (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1292** Voice/Scale (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1292** Voice/Scale (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1293** Voice/Microtune (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1293** Voice/Microtune (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1293** Voice/Microtune (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1293** Voice/Microtune (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1293** Voice/Microtune (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1293** Voice/Microtune (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1293** Voice/Microtune (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1294** Voice/Key Lock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1294** Voice/Key Lock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1294** Voice/Key Lock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1294** Voice/Key Lock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1294** Voice/Key Lock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1294** Voice/Key Lock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1294** Voice/Key Lock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1295** Voice/Spread (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1295** Voice/Spread (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **1295** Voice/Spread (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1295** Voice/Spread (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1295** Voice/Spread (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1295** Voice/Spread (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1295** Voice/Spread (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1296** Voice/OscPan 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1296** Voice/OscPan 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1296** Voice/OscPan 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1296** Voice/OscPan 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1296** Voice/OscPan 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1296** Voice/OscPan 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1296** Voice/OscPan 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1297** Voice/OscPan 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1297** Voice/OscPan 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1297** Voice/OscPan 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1297** Voice/OscPan 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1297** Voice/OscPan 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1297** Voice/OscPan 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1297** Voice/OscPan 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1298** Voice/OscPan 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1298** Voice/OscPan 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1298** Voice/OscPan 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1298** Voice/OscPan 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1298** Voice/OscPan 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1298** Voice/OscPan 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1298** Voice/OscPan 3 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1299** Voice/OscPan 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1299** Voice/OscPan 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1299** Voice/OscPan 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1299** Voice/OscPan 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1299** Voice/OscPan 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1299** Voice/OscPan 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1299** Voice/OscPan 4 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129a** Voice/OscPan 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **129a** Voice/OscPan 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129a** Voice/OscPan 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **129a** Voice/OscPan 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129a** Voice/OscPan 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **129a** Voice/OscPan 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129a** Voice/OscPan 5 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129b** Voice/OscPan 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **129b** Voice/OscPan 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129b** Voice/OscPan 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **129b** Voice/OscPan 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129b** Voice/OscPan 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **129b** Voice/OscPan 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129b** Voice/OscPan 6 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129c** Voice/OscPan 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **129c** Voice/OscPan 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129c** Voice/OscPan 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **129c** Voice/OscPan 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129c** Voice/OscPan 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **129c** Voice/OscPan 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129c** Voice/OscPan 7 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129d** Voice/OscPan 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **129d** Voice/OscPan 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **129d** Voice/OscPan 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **129d** Voice/OscPan 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129d** Voice/OscPan 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **129d** Voice/OscPan 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129d** Voice/OscPan 8 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129e** Delay/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **129e** Delay/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129e** Delay/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **129e** Delay/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129e** Delay/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **129e** Delay/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129e** Delay/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129f** Delay/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **129f** Delay/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129f** Delay/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **129f** Delay/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129f** Delay/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **129f** Delay/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **129f** Delay/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a0** Delay/Feedback (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a0** Delay/Feedback (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a0** Delay/Feedback (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a0** Delay/Feedback (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a0** Delay/Feedback (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a0** Delay/Feedback (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a0** Delay/Feedback (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a1** Delay/Wet Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a1** Delay/Wet Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **12a1** Delay/Wet Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a1** Delay/Wet Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a1** Delay/Wet Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **12a1** Delay/Wet Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a1** Delay/Wet Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a1** Delay/Wet Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a2** Delay/FB Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a2** Delay/FB Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a2** Delay/FB Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a2** Delay/FB Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a2** Delay/FB Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **12a2** Delay/FB Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a2** Delay/FB Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a2** Delay/FB Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a3** Delay/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a3** Delay/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a3** Delay/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a3** Delay/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a3** Delay/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a3** Delay/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a3** Delay/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a4** Delay/BPM Sync (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a4** Delay/BPM Sync (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a4** Delay/BPM Sync (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a4** Delay/BPM Sync (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a4** Delay/BPM Sync (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a4** Delay/BPM Sync (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a4** Delay/BPM Sync (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a5** Reverb/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a5** Reverb/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a5** Reverb/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a5** Reverb/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a5** Reverb/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a5** Reverb/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a5** Reverb/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a6** Reverb/Pre-Dly (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a6** Reverb/Pre-Dly (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a6** Reverb/Pre-Dly (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a6** Reverb/Pre-Dly (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a6** Reverb/Pre-Dly (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a6** Reverb/Pre-Dly (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a6** Reverb/Pre-Dly (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a7** Reverb/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a7** Reverb/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a7** Reverb/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a7** Reverb/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a7** Reverb/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a7** Reverb/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a7** Reverb/Time (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a8** Reverb/Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a8** Reverb/Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **12a8** Reverb/Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a8** Reverb/Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a8** Reverb/Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **12a8** Reverb/Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a8** Reverb/Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a8** Reverb/Tone (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a9** Reverb/Hi Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12a9** Reverb/Hi Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **12a9** Reverb/Hi Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12a9** Reverb/Hi Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a9** Reverb/Hi Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **12a9** Reverb/Hi Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12a9** Reverb/Hi Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12a9** Reverb/Hi Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12aa** Reverb/Lo Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12aa** Reverb/Lo Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12aa** Reverb/Lo Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12aa** Reverb/Lo Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12aa** Reverb/Lo Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12aa** Reverb/Lo Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12aa** Reverb/Lo Damp (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ab** Reverb/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12ab** Reverb/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ab** Reverb/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12ab** Reverb/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ab** Reverb/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12ab** Reverb/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ab** Reverb/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ac** Reverb/Freeze (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12ac** Reverb/Freeze (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ac** Reverb/Freeze (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12ac** Reverb/Freeze (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ac** Reverb/Freeze (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12ac** Reverb/Freeze (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ac** Reverb/Freeze (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ad** PreFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12ad** PreFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ad** PreFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12ad** PreFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ad** PreFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12ad** PreFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ad** PreFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ae** PreFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12ae** PreFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ae** PreFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12ae** PreFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ae** PreFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **12ae** PreFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12ae** PreFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ae** PreFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12af** PreFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12af** PreFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12af** PreFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12af** PreFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12af** PreFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12af** PreFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12af** PreFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b0** PreFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b0** PreFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b0** PreFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b0** PreFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b0** PreFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b0** PreFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b0** PreFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b1** PreFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b1** PreFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b1** PreFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b1** PreFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b1** PreFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b1** PreFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b1** PreFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b2** PostFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b2** PostFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b2** PostFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b2** PostFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b2** PostFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b2** PostFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b2** PostFx/Type (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b3** PostFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b3** PostFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b3** PostFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b3** PostFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b3** PostFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **12b3** PostFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b3** PostFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b3** PostFx/Preset (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b4** PostFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b4** PostFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b4** PostFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b4** PostFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b4** PostFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b4** PostFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b4** PostFx/Param 1 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b5** PostFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b5** PostFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **12b5** PostFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b5** PostFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b5** PostFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b5** PostFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b5** PostFx/Param 2 (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b6** PostFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b6** PostFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b6** PostFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b6** PostFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b6** PostFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b6** PostFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b6** PostFx/Dry/Wet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b7** Arp/Oct Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b7** Arp/Oct Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b7** Arp/Oct Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b7** Arp/Oct Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b7** Arp/Oct Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b7** Arp/Oct Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b7** Arp/Oct Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b8** Arp/Oct Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b8** Arp/Oct Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b8** Arp/Oct Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b8** Arp/Oct Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b8** Arp/Oct Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b8** Arp/Oct Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b8** Arp/Oct Range (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b9** Arp/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12b9** Arp/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **12b9** Arp/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12b9** Arp/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b9** Arp/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12b9** Arp/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12b9** Arp/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ba** Arp/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12ba** Arp/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ba** Arp/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12ba** Arp/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ba** Arp/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12ba** Arp/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ba** Arp/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bb** Arp/Length (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12bb** Arp/Length (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bb** Arp/Length (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12bb** Arp/Length (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bb** Arp/Length (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12bb** Arp/Length (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bb** Arp/Length (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bc** Arp/Phrase (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12bc** Arp/Phrase (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bc** Arp/Phrase (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12bc** Arp/Phrase (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bc** Arp/Phrase (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12bc** Arp/Phrase (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bc** Arp/Phrase (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bd** Arp/Entropy (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12bd** Arp/Entropy (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **12bd** Arp/Entropy (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12bd** Arp/Entropy (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bd** Arp/Entropy (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12bd** Arp/Entropy (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bd** Arp/Entropy (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12be** Arp/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12be** Arp/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12be** Arp/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12be** Arp/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12be** Arp/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12be** Arp/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12be** Arp/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bf** Arp/Ratchet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12bf** Arp/Ratchet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bf** Arp/Ratchet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12bf** Arp/Ratchet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bf** Arp/Ratchet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12bf** Arp/Ratchet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12bf** Arp/Ratchet (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c0** Arp/Chance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c0** Arp/Chance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c0** Arp/Chance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c0** Arp/Chance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c0** Arp/Chance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c0** Arp/Chance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c0** Arp/Chance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c1** Arp/Latch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c1** Arp/Latch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c1** Arp/Latch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c1** Arp/Latch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c1** Arp/Latch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c1** Arp/Latch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c1** Arp/Latch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c2** Arp/ClockLock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c2** Arp/ClockLock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c2** Arp/ClockLock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c2** Arp/ClockLock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c2** Arp/ClockLock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c2** Arp/ClockLock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c2** Arp/ClockLock (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c3** Arp/Step Off (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c3** Arp/Step Off (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c3** Arp/Step Off (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c3** Arp/Step Off (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c3** Arp/Step Off (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c3** Arp/Step Off (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c3** Arp/Step Off (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c4** Seq/Rate (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c4** Seq/Rate (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c4** Seq/Rate (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c4** Seq/Rate (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c4** Seq/Rate (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c4** Seq/Rate (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c4** Seq/Rate (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c5** Seq/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c5** Seq/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c5** Seq/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c5** Seq/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c5** Seq/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c5** Seq/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c5** Seq/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c6** Seq/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c6** Seq/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c6** Seq/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c6** Seq/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c6** Seq/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c6** Seq/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c6** Seq/Swing (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c7** Seq/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c7** Seq/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c7** Seq/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c7** Seq/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c7** Seq/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c7** Seq/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c7** Seq/Gate (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c8** Seq/Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c8** Seq/Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **12c8** Seq/Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c8** Seq/Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c8** Seq/Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c8** Seq/Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c8** Seq/Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c9** Seq/Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12c9** Seq/Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c9** Seq/Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12c9** Seq/Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c9** Seq/Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12c9** Seq/Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12c9** Seq/Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ca** Seq/Transpose (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12ca** Seq/Transpose (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ca** Seq/Transpose (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12ca** Seq/Transpose (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ca** Seq/Transpose (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12ca** Seq/Transpose (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ca** Seq/Transpose (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cb** Seq/Trk Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12cb** Seq/Trk Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cb** Seq/Trk Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12cb** Seq/Trk Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cb** Seq/Trk Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12cb** Seq/Trk Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cb** Seq/Trk Len (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cc** Seq/Rec (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12cc** Seq/Rec (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cc** Seq/Rec (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12cc** Seq/Rec (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cc** Seq/Rec (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12cc** Seq/Rec (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cc** Seq/Rec (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cd** Seq/Step (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12cd** Seq/Step (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **12cd** Seq/Step (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12cd** Seq/Step (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cd** Seq/Step (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12cd** Seq/Step (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cd** Seq/Step (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ce** Seq/Clear (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=12)
+- **12ce** Seq/Clear (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ce** Seq/Clear (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12ce** Seq/Clear (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ce** Seq/Clear (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12ce** Seq/Clear (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cf** Seq/St Trig (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12cf** Seq/St Trig (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cf** Seq/St Trig (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12cf** Seq/St Trig (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cf** Seq/St Trig (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12cf** Seq/St Trig (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12cf** Seq/St Trig (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d0** Seq/St Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12d0** Seq/St Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: DEAD | **BUG**: DEAD on D2_LEVI_ENC — input accepted but no engine state change
+- **12d0** Seq/St Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12d0** Seq/St Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d0** Seq/St Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12d0** Seq/St Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d0** Seq/St Prob (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d1** Seq/St Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12d1** Seq/St Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d1** Seq/St Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12d1** Seq/St Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d1** Seq/St Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12d1** Seq/St Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d1** Seq/St Drift (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d2** Seq/St Entr (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12d2** Seq/St Entr (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d2** Seq/St Entr (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12d2** Seq/St Entr (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d2** Seq/St Entr (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12d2** Seq/St Entr (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d2** Seq/St Entr (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d3** Ribbon/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12d3** Ribbon/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d3** Ribbon/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12d3** Ribbon/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d3** Ribbon/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12d3** Ribbon/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d3** Ribbon/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d4** Ribbon/Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12d4** Ribbon/Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d4** Ribbon/Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12d4** Ribbon/Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d4** Ribbon/Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12d4** Ribbon/Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d4** Ribbon/Pos (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d5** Ribbon/Touch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12d5** Ribbon/Touch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d5** Ribbon/Touch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12d5** Ribbon/Touch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d5** Ribbon/Touch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12d5** Ribbon/Touch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d5** Ribbon/Touch (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d7** Filter/D Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12d7** Filter/D Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d7** Filter/D Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12d7** Filter/D Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d7** Filter/D Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12d7** Filter/D Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d7** Filter/D Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d8** Filter/D Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12d8** Filter/D Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d8** Filter/D Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12d8** Filter/D Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d8** Filter/D Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12d8** Filter/D Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d8** Filter/D Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d9** Analog/A Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12d9** Analog/A Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d9** Analog/A Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12d9** Analog/A Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d9** Analog/A Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12d9** Analog/A Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d9** Analog/A Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12da** Analog/A Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12da** Analog/A Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12da** Analog/A Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12da** Analog/A Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12da** Analog/A Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12da** Analog/A Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12da** Analog/A Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12db** VCA/V Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12db** VCA/V Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12db** VCA/V Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12db** VCA/V Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12db** VCA/V Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12db** VCA/V Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12db** VCA/V Vel (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12dc** VCA/V Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12dc** VCA/V Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12dc** VCA/V Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12dc** VCA/V Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12dc** VCA/V Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12dc** VCA/V Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12dc** VCA/V Polyat (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12dd** Performance/Octave (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12dd** Performance/Octave (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12dd** Performance/Octave (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12dd** Performance/Octave (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12dd** Performance/Octave (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12dd** Performance/Octave (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12dd** Performance/Octave (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12de** Performance/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12de** Performance/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12de** Performance/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12de** Performance/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12de** Performance/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12de** Performance/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12de** Performance/Mode (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12df** Performance/Select (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12df** Performance/Select (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12df** Performance/Select (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12df** Performance/Select (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12df** Performance/Select (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12df** Performance/Select (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12df** Performance/Select (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e0** Performance/Split (kind=6, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12e0** Performance/Split (kind=6, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e0** Performance/Split (kind=6, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12e0** Performance/Split (kind=6, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e0** Performance/Split (kind=6, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12e0** Performance/Split (kind=6, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e0** Performance/Split (kind=6, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e1** Performance/Balance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12e1** Performance/Balance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D2_LEVI_ENC
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e1** Performance/Balance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12e1** Performance/Balance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e1** Performance/Balance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12e1** Performance/Balance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e1** Performance/Balance (kind=0, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e2** Performance/Glide (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12e2** Performance/Glide (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e2** Performance/Glide (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12e2** Performance/Glide (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e2** Performance/Glide (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12e2** Performance/Glide (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e2** Performance/Glide (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e3** Performance/Chord (kind=2, bind=12, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **12e3** Performance/Chord (kind=2, bind=12, cc=255, auto=1)
+  - Door: D2_LEVI_ENC | Verdict: NOFEEDBACK | **BY-DESIGN**: D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e3** Performance/Chord (kind=2, bind=12, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **12e3** Performance/Chord (kind=2, bind=12, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e3** Performance/Chord (kind=2, bind=12, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **12e3** Performance/Chord (kind=2, bind=12, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12e3** Performance/Chord (kind=2, bind=12, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **12d6** Lfo/Step (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BY-DESIGN**: LEVI LFO Step editor page switch — panel navigation only
+  - Code: gui/ctlreg.c:516 (row 12d6)
+- **12d6** Lfo/Step (kind=2, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_UNEXPLAINED | **BY-DESIGN**: LEVI LFO Step editor page switch — panel navigation only
+  - Code: gui/ctlreg.c:516 (row 12d6)
+- **12d6** Lfo/Step (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BY-DESIGN**: LEVI LFO Step editor page switch — panel navigation only
+  - Code: gui/ctlreg.c:516 (row 12d6)
+- **12d6** Lfo/Step (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BY-DESIGN**: LEVI LFO Step editor page switch — panel navigation only
+  - Code: gui/ctlreg.c:516 (row 12d6)
+- **1204** /Lane (kind=6, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 1204 (bind=NONE, kind=6)
+- **1204** /Lane (kind=6, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 1204 (bind=NONE, kind=6)
+- **1204** /Lane (kind=6, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 1204 (bind=NONE, kind=6)
+- **1204** /Lane (kind=6, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_UNEXPLAINED | **BUG**: UNEXPLAINED bind=NONE — control looks live but has no engine target
+  - Code: gui/ctlreg.c: row 1204 (bind=NONE, kind=6)
+- **1205** /Step (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1205** /Step (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1206** /Back (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1206** /Back (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1207** /Step display (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1207** /Step display (kind=7, bind=0, cc=255, auto=0)
+  - Door: D2_LEVI_ENC | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1208** Steps/Step 1 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1208** Steps/Step 1 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1209** Steps/Step 2 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1209** Steps/Step 2 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120a** Steps/Step 3 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120a** Steps/Step 3 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120b** Steps/Step 4 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120b** Steps/Step 4 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120c** Steps/Step 5 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120c** Steps/Step 5 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120d** Steps/Step 6 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120d** Steps/Step 6 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120e** Steps/Step 7 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120e** Steps/Step 7 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120f** Steps/Step 8 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **120f** Steps/Step 8 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1210** Steps/Step 9 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1210** Steps/Step 9 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1211** Steps/Step 10 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1211** Steps/Step 10 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1212** Steps/Step 11 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1212** Steps/Step 11 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1213** Steps/Step 12 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1213** Steps/Step 12 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1214** Steps/Step 13 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1214** Steps/Step 13 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1215** Steps/Step 14 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1215** Steps/Step 14 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1216** Steps/Step 15 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1216** Steps/Step 15 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1217** Steps/Step 16 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1217** Steps/Step 16 (kind=5, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1218** Pitch/C4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1218** Pitch/C4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1219** Pitch/C#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1219** Pitch/C#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121a** Pitch/D4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121a** Pitch/D4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121b** Pitch/D#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121b** Pitch/D#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121c** Pitch/E4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121c** Pitch/E4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121d** Pitch/F4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121d** Pitch/F4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121e** Pitch/F#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121e** Pitch/F#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121f** Pitch/G4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **121f** Pitch/G4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1220** Pitch/G#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1220** Pitch/G#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1221** Pitch/A4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1221** Pitch/A4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1222** Pitch/A#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1222** Pitch/A#4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1223** Pitch/B4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1223** Pitch/B4 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1224** Pitch/C5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **1224** Pitch/C5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e4** Pitch/C#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e4** Pitch/C#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e5** Pitch/D5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e5** Pitch/D5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e6** Pitch/D#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e6** Pitch/D#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e7** Pitch/E5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e7** Pitch/E5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e8** Pitch/F5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e8** Pitch/F5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e9** Pitch/F#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12e9** Pitch/F#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ea** Pitch/G5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ea** Pitch/G5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12eb** Pitch/G#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12eb** Pitch/G#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ec** Pitch/A5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ec** Pitch/A5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ed** Pitch/A#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ed** Pitch/A#5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ee** Pitch/B5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ee** Pitch/B5 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ef** Pitch/C6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12ef** Pitch/C6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f0** Pitch/C#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f0** Pitch/C#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f1** Pitch/D6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f1** Pitch/D6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f2** Pitch/D#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f2** Pitch/D#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f3** Pitch/E6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f3** Pitch/E6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f4** Pitch/F6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f4** Pitch/F6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f5** Pitch/F#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f5** Pitch/F#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f6** Pitch/G6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f6** Pitch/G6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f7** Pitch/G#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f7** Pitch/G#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f8** Pitch/A6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f8** Pitch/A6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f9** Pitch/A#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12f9** Pitch/A#6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12fa** Pitch/B6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12fa** Pitch/B6 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12fb** Pitch/C7 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+- **12fb** Pitch/C7 (kind=3, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PANELLOCAL | **BY-DESIGN**: Panel-local action (button/step/display/page control) — drives panel state only
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for panel-local controls)
+
+### PAT_LEVI (section 19)
+
+- **1300** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1300** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1300** /Section Off (kind=2, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1301** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1301** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1301** /Bank (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1302** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1302** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1302** /Pattern (kind=6, bind=0, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1303** /Length (kind=7, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1304** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D1_PANEL | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1304** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D8_FEEDBACK | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+- **1304** /Shuffle (kind=2, bind=0, cc=255, auto=0)
+  - Door: D9_KEYBOARD | Verdict: BINDNONE_PRESSPATH | **BY-DESIGN**: Press/state-path control (step/transport/pattern) — no engine delivery by design
+  - Code: gui/panelctl.c:22-25 (ri_ctlreg_auto_id returns 0 for press-path controls)
+
+### MIX_LEVI (section 20)
+
+- **1400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1400** /On/Off (kind=2, bind=13, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1402** /Level (kind=1, bind=11, cc=109, auto=1)
+  - Door: D1_PANEL | Verdict: DEAD | **BUG**: Panel send reaches bridge but engine state unchanged
+  - Code: gui/panelctl.c:10-26 (ri_panel_ctl_send bind=11)
+- **1402** /Level (kind=1, bind=11, cc=109, auto=1)
+  - Door: D3_MIDI_IN | Verdict: DEAD | **BUG**: MIDI CC accepted but engine state unchanged
+  - Code: gui/midimap.c:46-84 (cc())
+- **1402** /Level (kind=1, bind=11, cc=109, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1402** /Level (kind=1, bind=11, cc=109, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1402** /Level (kind=1, bind=11, cc=109, auto=1)
+  - Door: D7_STARTUP | Verdict: DEFAULT | **BUG**: Startup burst sends panel default but engine default differs
+  - Code: app/riapp.c:4197-4245 (startup burst ri_panel_ctl_send)
+- **1402** /Level (kind=1, bind=11, cc=109, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1402** /Level (kind=1, bind=11, cc=109, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1403** /Pan (kind=0, bind=7, cc=110, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1403** /Pan (kind=0, bind=7, cc=110, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1403** /Pan (kind=0, bind=7, cc=110, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1403** /Pan (kind=0, bind=7, cc=110, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1403** /Pan (kind=0, bind=7, cc=110, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1403** /Pan (kind=0, bind=7, cc=110, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1403** /Pan (kind=0, bind=7, cc=110, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1404** /Delay (kind=0, bind=8, cc=111, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1404** /Delay (kind=0, bind=8, cc=111, auto=1)
+  - Door: D3_MIDI_IN | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D3_MIDI_IN
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1404** /Delay (kind=0, bind=8, cc=111, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1404** /Delay (kind=0, bind=8, cc=111, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D6_SAVELOAD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1404** /Delay (kind=0, bind=8, cc=111, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1404** /Delay (kind=0, bind=8, cc=111, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D9_KEYBOARD
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1404** /Delay (kind=0, bind=8, cc=111, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BUG**: No visual feedback on D11_UNDO
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1405** /Dist (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1406** /PCF (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D1_PANEL | Verdict: DIVERGE | **BY-DESIGN**: DIVERGE likely due to incomplete direct() comparison in census test (Levi per-op/mod/LS/route/macro key blocks not implemented)
+  - Code: tests/unit/t243_wiring_census.c:test_door missing direct() for key block 0000
+- **1407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D5_AUTOMATION | Verdict: DEAD | **BUG**: Automation record/playback not restoring value
+  - Code: engine/seq/autolane.c (ri_auto_touch/ri_auto_value)
+- **1407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D6_SAVELOAD | Verdict: NOFEEDBACK | **BY-DESIGN**: D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D8_FEEDBACK | Verdict: NOFEEDBACK | **BUG**: NOFEEDBACK on D8_FEEDBACK
+- **1407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D9_KEYBOARD | Verdict: NOFEEDBACK | **BY-DESIGN**: D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+- **1407** /Comp (kind=2, bind=9, cc=255, auto=1)
+  - Door: D11_UNDO | Verdict: NOFEEDBACK | **BY-DESIGN**: D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)
+  - Code: gui/livestate.c + app/riapp.c:1331-1339 (ri_ctl_press_repaints + repaint)
+
+## To-Do Item Cross-Reference
+
+| To-Do | Description | Census Rows |
+|-------|-------------|-------------|
+| ~313 | Seven MIDI settings with no panel row and no runtime path | 89 MIDI DEAD/DIVERGE/NOFEEDBACK |
+| ~319 | Mixer/Master COMP tab On/Off as unwired lamp | 36 COMP switch verdicts |
+| ~321 | BPM-flagged automation keys with no registry row (~321) | 294 automation DEAD/DIVERGE/NOFEEDBACK |
+| ~283 | Stale-bounds lesson (comment claims guard that doesn't exist) | Manual review needed |
