@@ -1750,7 +1750,7 @@ while IFS= read -r _line; do
 done < "$ROOT/app/riapp.c"
 if [ "$_misses" = 1 ]; then exit 1; fi
 
-RI_SCRIPTS_OK="ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_build_v11.sh ri_fuzz.sh ri_soak.sh lane_proof.sh lane_evlog.py"
+RI_SCRIPTS_OK="ri_audit.sh ri_build_aros.sh ri_build_host.sh ri_build_v11.sh ri_fuzz.sh ri_soak.sh lane_proof.sh lane_evlog.py classify_census.py"
 for f in $(ls "$ROOT/scripts"); do
   case " $RI_SCRIPTS_OK " in *" $f "*) ;; *) echo "FAIL: scripts/$f is not on the shared-script allowlist (${RI_SCRIPTS_OK})"; exit 1 ;; esac
 done

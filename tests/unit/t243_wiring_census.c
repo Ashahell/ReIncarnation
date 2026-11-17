@@ -333,9 +333,9 @@ static int apply_via_automation(struct RIEngine *e, uint16_t key, int value)
     lane.ev = ev;
     lane.cap = 4;
     lane.n = 0;
-    /* Record at tick 0 */
+    /* Record at tick 0 - must use RI_TR_RECORD (2) for ri_auto_touch */
     struct RIAutoPass pass = {0};
-    if (ri_auto_touch(&lane, &pass, 1, 0, 96, key, (uint8_t)value) != 0)
+    if (ri_auto_touch(&lane, &pass, RI_TR_RECORD, 0, 96, key, (uint8_t)value) != 0)
         return 0;
     /* Playback: apply event at tick 0 */
     if (lane.n > 0) {

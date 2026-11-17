@@ -63,9 +63,11 @@ int main(void) {
     ri_engine_render(&b, outL, outR, N, SR);
     RI_ASSERT(ri_engine_section_peak(&b, 0u) == p0, "deterministic");
 
-    /* FX: DIST assigned to section 0 renders -> its meter reads energy */
+    /* FX: DIST assigned to section 0 renders -> its meter reads energy.
+     * Must enable the FX rack first (fx_on defaults to bypassed). */
     load_note(&a, RI_ENGINE_S303A);
     RI_ASSERT(ri_engine_assign_insert(&a, RI_ROUTE_DIST, 0) != -2, "assign dist");
+    ri_engine_fx_set(&a, RI_FXID_DIST_ENABLE, 1);
     ri_engine_render(&a, outL, outR, N, SR);
     RI_ASSERT(ri_engine_fx_peak(&a, RI_ENGINE_FX_DIST) > 0.0f, "dist energy");
     RI_ASSERT(ri_engine_fx_peak(&a, RI_ENGINE_FX_PCF) == 0.0f, "pcf silent");
