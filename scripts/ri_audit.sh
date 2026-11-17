@@ -831,6 +831,7 @@ bash "$ROOT/scripts/ri_build_host.sh" test t111_legend_face >/dev/null || { echo
 bash "$ROOT/scripts/ri_build_host.sh" test t112_partial_redraw >/dev/null || { echo "FAIL: t112_partial_redraw (S3 dirty rect)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t115_master_live >/dev/null || { echo "FAIL: t115_master_live (S4 master live)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t116_panel_wiring >/dev/null || { echo "FAIL: t116_panel_wiring (panel wiring audit)"; exit 1; }
+bash "$ROOT/scripts/ri_build_host.sh" test t243_wiring_census >/dev/null || { echo "FAIL: t243_wiring_census (wiring census across all 12 doors)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t121_zoomfit >/dev/null || { echo "FAIL: t121_zoomfit (S5 auto-fit zoom)"; exit 1; }
 bash "$ROOT/scripts/ri_build_host.sh" test t124_skinsect >/dev/null || { echo "FAIL: t124_skinsect (S7 section assignment)"; exit 1; }
 mkdir -p "$RI_TMP/run/t128" # t128_skinchunk writes its songs here (t6 pattern)
