@@ -155,7 +155,7 @@ void rb909_init_set(struct RB909Set *s) {
         s->v[i].flam_capable = (i == RB909_BD || i == RB909_SD) ? 1u : 0u;
         s->v[i].accent_noop = (i == RB909_CR || i == RB909_RD) ? 1u : 0u;
         s->v[i].pad = 0;
-        s->v[i].level = 1.0f;
+        s->v[i].level = 100.0f / 127.0f;
         s->v[i].decay_tau = -1.0f; /* bypass until the DECAY knob writes */
         s->v[i].flam = 0u;
         s->v[i].flam_pad[0] = s->v[i].flam_pad[1] = s->v[i].flam_pad[2] = 0u;
