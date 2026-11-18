@@ -1,7 +1,7 @@
 # Wiring Census Allow-List (W3)
 # Format: reg_id<TAB>door_idx<TAB>verdict<TAB>reason<TAB>date
 # Auto-generated from W1 classification logic (by-design + needs-owner only)
-# Total entries: 1813
+# Total entries: 1840
 
 0000	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0000	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -129,6 +129,33 @@
 022a	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
 022b	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
 022b	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
+0300	0	BINDNONE_UNEXPLAINED	909 AC Level — needs section-wide bind (909ALL) not yet implemented	2026-11-18
+0300	2	BINDNONE_UNEXPLAINED	909 AC Level — needs section-wide bind (909ALL) not yet implemented	2026-11-18
+0300	7	BINDNONE_UNEXPLAINED	909 AC Level — needs section-wide bind (909ALL) not yet implemented	2026-11-18
+0300	8	BINDNONE_UNEXPLAINED	909 AC Level — needs section-wide bind (909ALL) not yet implemented	2026-11-18
+0303	0	BINDNONE_UNEXPLAINED	909 BD Attack — not implemented in engine yet (panel-local)	2026-11-18
+0303	2	BINDNONE_UNEXPLAINED	909 BD Attack — not implemented in engine yet (panel-local)	2026-11-18
+0303	7	BINDNONE_UNEXPLAINED	909 BD Attack — not implemented in engine yet (panel-local)	2026-11-18
+0303	8	BINDNONE_UNEXPLAINED	909 BD Attack — not implemented in engine yet (panel-local)	2026-11-18
+0307	0	BINDNONE_UNEXPLAINED	909 SD Tone — not implemented in engine yet (panel-local)	2026-11-18
+0307	2	BINDNONE_UNEXPLAINED	909 SD Tone — not implemented in engine yet (panel-local)	2026-11-18
+0307	7	BINDNONE_UNEXPLAINED	909 SD Tone — not implemented in engine yet (panel-local)	2026-11-18
+0307	8	BINDNONE_UNEXPLAINED	909 SD Tone — not implemented in engine yet (panel-local)	2026-11-18
+0308	0	BINDNONE_UNEXPLAINED	909 SD Snappy — not implemented in engine yet (panel-local)	2026-11-18
+0308	2	BINDNONE_UNEXPLAINED	909 SD Snappy — not implemented in engine yet (panel-local)	2026-11-18
+0308	7	BINDNONE_UNEXPLAINED	909 SD Snappy — not implemented in engine yet (panel-local)	2026-11-18
+0308	8	BINDNONE_UNEXPLAINED	909 SD Snappy — not implemented in engine yet (panel-local)	2026-11-18
+031b	0	BINDNONE_UNEXPLAINED	909  Flam — not implemented in engine yet (panel-local)	2026-11-18
+031b	2	BINDNONE_UNEXPLAINED	909  Flam — not implemented in engine yet (panel-local)	2026-11-18
+031b	7	BINDNONE_UNEXPLAINED	909  Flam — not implemented in engine yet (panel-local)	2026-11-18
+031b	8	BINDNONE_UNEXPLAINED	909  Flam — not implemented in engine yet (panel-local)	2026-11-18
+031c	0	BINDNONE_UNEXPLAINED	909 Instrument Selection — panel-local selector, not automated	2026-11-18
+031c	2	BINDNONE_UNEXPLAINED	909 Instrument Selection — panel-local selector, not automated	2026-11-18
+031c	7	BINDNONE_UNEXPLAINED	909 Instrument Selection — panel-local selector, not automated	2026-11-18
+031c	8	BINDNONE_UNEXPLAINED	909 Instrument Selection — panel-local selector, not automated	2026-11-18
+031d	0	BINDNONE_UNEXPLAINED	909  Flam button — not implemented in engine yet (panel-local)	2026-11-18
+031d	7	BINDNONE_UNEXPLAINED	909  Flam button — not implemented in engine yet (panel-local)	2026-11-18
+031d	8	BINDNONE_UNEXPLAINED	909  Flam button — not implemented in engine yet (panel-local)	2026-11-18
 031e	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
 031e	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
 031f	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18

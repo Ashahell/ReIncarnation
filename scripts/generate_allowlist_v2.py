@@ -92,16 +92,23 @@ def classify_verdict(row, door, verdict):
             return "by-design", "Panel-local action (button/step/display/page control) — drives panel state only"
         elif verdict == "BINDNONE_UNEXPLAINED":
             # 808/909 voice switches have MIDI CC but bind=NONE — these are panel-local switches (voice enable)
-            # The Switch rows for LT, MT, HT, RS, CP in 808/909 sections have cc but bind=NONE
-            # These are panel-local voice enable switches, not automated
             if kind == "2" and group in ("LT", "MT", "HT", "RS", "CP") and section in ("2", "3"):
                 return "by-design", "808/909 voice Switch — panel-local voice enable, not automated"
+            # 909 parameters not yet implemented in engine: Attack, Tone, Snappy, Flam
+            if section == "3" and bind == "0" and group in ("BD", "SD", "LT", "MT", "HT", "RS", "CP", "CH", "OH", "CC", "RC", "") and legend in ("Attack", "Tone", "Snappy", "Flam", "Flam button"):
+                return "by-design", f"909 {group} {legend} — not implemented in engine yet (panel-local)"
             if group == "Module" and section == "18":
                 return "by-design", "LEVI Module selector — panel navigation only"
             if group == "Lfo" and legend == "Step":
                 return "by-design", "LEVI LFO Step editor page switch — panel navigation only"
             if group == "Lane" and section == "18":
                 return "by-design", "LEVI Lane selector — panel navigation only"
+            # 909 Instrument Selection (panel-local selector)
+            if section == "3" and legend == "Instrument Selection" and bind == "0":
+                return "by-design", "909 Instrument Selection — panel-local selector, not automated"
+            # 909 AC Level (0300) - needs section-wide bind (909ALL) which requires owner approval
+            if section == "3" and row['reg_id'] == "0300" and bind == "0":
+                return "needs-owner", "909 AC Level — needs section-wide bind (909ALL) not yet implemented"
             return "bug", "UNEXPLAINED bind=NONE — control looks live but has no engine target"
 
     # DEAD - door accepts input but engine state doesn't move

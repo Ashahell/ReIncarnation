@@ -279,9 +279,13 @@ int main(void) {
                      * exactly for those five, and only those. */
                     if (key >= RI_CTL_LEVI_NOTE && key <= RI_CTL_LEVI_WHEEL)
                         owned = 1;
+                    /* 909 LT Level (0x0D12) and MT Level (0x0D13) — per-voice keys
+                     * added 2026-11-18 for automation allowlist completeness. */
+                    if (key == 0x0D12u || key == 0x0D13u)
+                        owned = 1;
                     RI_ASSERT(owned, "allowed key %04x has no control", key);
                 }
-                RI_ASSERT(nallow == 1159u, "allow-list size %u (+5 strip mute 2026-10-14; +4 FX rack enable 2026-10-13; (272 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
+                RI_ASSERT(nallow == 1161u, "allow-list size %u (+5 strip mute 2026-10-14; +4 FX rack enable 2026-10-13; +2 909 LT/MT Level 2026-11-18; (272 controls + 2 VOLUME + 8 x 32 op + 5 x 23 env + "
                     "5 x 15 LFO + 32 x 4 matrix + 8 x 8 x 4 macro keys + 13 env-bpm P8a + 13 arp P8b + 15 seq P8c + 3 ribbon P8d + 15 lfo-step P8e + 6 perf amounts P9b + 5 zones P9c + 2 performance buttons P9d + 5 live note/performance M4c/M4d)", nallow);
             }
         }

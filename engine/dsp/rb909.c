@@ -156,7 +156,8 @@ void rb909_init_set(struct RB909Set *s) {
         s->v[i].accent_noop = (i == RB909_CR || i == RB909_RD) ? 1u : 0u;
         s->v[i].pad = 0;
         s->v[i].level = 100.0f / 127.0f;
-        s->v[i].decay_tau = -1.0f; /* bypass until the DECAY knob writes */
+        /* Panel default for Decay is 64; match it so startup burst is a no-op. */
+        s->v[i].decay_tau = 0.05f * ri_pow2((64.0f / 127.0f) * 7.33f);
         s->v[i].flam = 0u;
         s->v[i].flam_pad[0] = s->v[i].flam_pad[1] = s->v[i].flam_pad[2] = 0u;
         s->v[i].flam_width = (float)RI_909_FLAM_DEFAULT_SMP;

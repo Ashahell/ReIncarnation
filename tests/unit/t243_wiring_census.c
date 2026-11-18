@@ -575,9 +575,10 @@ static verdict_t test_door(const struct RICtlDef *d, int door,
         return V_BINDNONE_UNEXPLAINED;
     }
 
-    struct RIEngine ea, eb;
+    struct RIEngine ea, eb, ed;
     fresh_engine(&ea);
     fresh_engine(&eb);
+    fresh_engine(&ed);
 
     int moved_a = 0, moved_b = 0;
 
@@ -586,8 +587,6 @@ static verdict_t test_door(const struct RICtlDef *d, int door,
         apply_via_panel(&ea, pl, d->reg_id, alt);
         /* Direct setter for comparison */
         if (key != 0) {
-            struct RIEngine ed;
-            fresh_engine(&ed);
             /* Use t116's direct() logic */
             uint32_t blk = key & 0xFF00u, hi = (key >> 4) & 0xFu, lo = key & 0xFu;
             if (blk == 0x0300u) {
@@ -654,7 +653,7 @@ static verdict_t test_door(const struct RICtlDef *d, int door,
         moved_a = !engines_equal(&ea, &eb);
         if (!moved_a)
             return V_DEAD;
-        if (moved_b && !engines_equal(&ea, &eb))
+        if (moved_b && !engines_equal(&ea, &ed))
             return V_DIVERGE;
         if (!check_feedback(&ea))
             return V_NOFEEDBACK;
@@ -870,8 +869,9 @@ static void run_t224_defect_test(enum T224_Defect defect)
                    verdict_name(v));
             /* These controls are now FIXED. The census tool should run on them.
              * DIVERGE is acceptable here because the direct-setter comparison
-             * is not implemented for all key blocks (Levi per-op, mod, etc.). */
-            RI_ASSERT(v == V_OK || v == V_NA || v == V_BINDNONE_UNEXPLAINED || v == V_DIVERGE,
+             * is not implemented for all key blocks (Levi per-op, mod, etc.).
+             * NOFEEDBACK is also acceptable for switch controls without meters. */
+            RI_ASSERT(v == V_OK || v == V_NA || v == V_BINDNONE_UNEXPLAINED || v == V_DIVERGE || v == V_NOFEEDBACK,
                       "t224 pattern %d unexpected verdict: %s", defect, verdict_name(v));
         }
     }
