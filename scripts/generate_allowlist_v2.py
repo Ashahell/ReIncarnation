@@ -97,6 +97,12 @@ def classify_verdict(row, door, verdict):
             # 909 parameters not yet implemented in engine: Attack, Tone, Snappy, Flam
             if section == "3" and bind == "0" and group in ("BD", "SD", "LT", "MT", "HT", "RS", "CP", "CH", "OH", "CC", "RC", "") and legend in ("Attack", "Tone", "Snappy", "Flam", "Flam button"):
                 return "by-design", f"909 {group} {legend} — not implemented in engine yet (panel-local)"
+            # 808 voice Switch controls have MIDI CC but bind=NONE — these are panel-local voice enable switches
+            if section == "2" and kind == "2" and bind == "0" and group in ("LT", "MT", "HT", "RS", "CP") and legend == "Switch":
+                return "by-design", f"808 {group} Switch — panel-local voice enable, not automated"
+            # 808 Instrument Selection (panel-local selector)
+            if section == "2" and legend == "Instrument Selection" and bind == "0":
+                return "by-design", "808 Instrument Selection — panel-local selector, not automated"
             if group == "Module" and section == "18":
                 return "by-design", "LEVI Module selector — panel navigation only"
             if group == "Lfo" and legend == "Step":
@@ -155,6 +161,9 @@ def classify_verdict(row, door, verdict):
         if door in ("D1_PANEL", "D2_LEVI_ENC", "D3_MIDI_IN", "D5_AUTOMATION", "D6_SAVELOAD", "D7_STARTUP", "D8_FEEDBACK", "D9_KEYBOARD", "D11_UNDO"):
             if kind in ("2", "3", "7"):  # SWITCH, BUTTON, DISPLAY
                 return "by-design", f"{door} moves engine but no meter peak change (switch/button/display — no audible parameter)"
+            # 808/909 drum voice knobs in default context (no pattern playing) are SILENT
+            if row['section'] in ("2", "3") and group in ("AC", "BD", "SD", "LT", "MT", "HT", "RS", "CP", "CB", "CY", "OH", "CH", "RC", "CR", "RD", "LT", "MT", "HT", "RS", "CP"):
+                return "by-design", f"{door} moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)"
             # LEVI section controls (section 18) may be SILENT in default context - need ear test
             if row['section'] == "18":
                 return "by-design", f"{door} moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)"
