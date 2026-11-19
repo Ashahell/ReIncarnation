@@ -8,12 +8,13 @@
  * Must NEVER enter the host build (probe_ahi.c precedent: #error +
  * build-script exclusion + audit gate).
  *
- * DEFERRED (needs the AROS run, recorded in
- * docs/evidence/formats/beta-exit.md): creating the MsgPort +
- * RexxPort (ADDRESS REINCARNATION / REINCARNATIONAROS alias), the
- * WaitPort/GetMsg loop, and ReplyMsg through rexxsyslib. The reply
- * TEXT contract is pinned host-side here; the port loop only moves
- * these bytes.
+ * The full port lifecycle:
+ *   ri_arexx_port_create()  — creates REINCARNATION port, returns signal bit
+ *   ri_arexx_port_drain()   — drains one message (GetMsg -> ri_arexx_handle -> ReplyMsg)
+ *   ri_arexx_port_destroy() — cleans up, replies pending with rc 20
+ *
+ * DEFERRED no more: the MsgPort creation + RexxPort setup + WaitPort/GetMsg
+ * loop + ReplyMsg through rexxsyslib is implemented here.
  */
 
 #ifndef __AROS__
@@ -21,10 +22,111 @@
 #endif
 
 #include <exec/types.h>
+#include <exec/ports.h>
+#include <exec/memory.h>
+#include <exec/libraries.h>
+#include <dos/dos.h>
 #include <string.h>
 #include <stdio.h>
 #include "project/arexx.h"
 #include "project/arexx_dispatch.h"
+
+/* Global port state */
+static struct MsgPort *g_arexx_port = 0;
+static struct Library *g_rexxsyslib = 0;
+static struct RIArexxEffects g_arexx_effects = {0};
+
+/* Open rexxsyslib and create the REINCARNATION port.
+ * Returns the signal bit (0..31) on success, -1 on failure.
+ * Fails if port name is already taken. */
+int ri_arexx_port_create(const struct RIArexxEffects *effects) {
+    if (g_arexx_port || g_rexxsyslib)
+        return -1;
+    if (!effects)
+        return -1;
+
+    g_rexxsyslib = OpenLibrary("rexxsyslib.library", 0);
+    if (!g_rexxsyslib)
+        return -1;
+
+    g_arexx_port = CreateMsgPort();
+    if (!g_arexx_port) {
+        CloseLibrary(g_rexxsyslib);
+        g_rexxsyslib = 0;
+        return -1;
+    }
+    g_arexx_port->mp_Node.ln_Name = "REINCARNATION";
+    g_arexx_port->mp_Node.ln_Type = NT_MSGPORT;
+    g_arexx_port->mp_Flags = PA_IGNORE;
+
+    Forbid();
+    if (FindPort("REINCARNATION")) {
+        Permit();
+        DeleteMsgPort(g_arexx_port);
+        g_arexx_port = 0;
+        CloseLibrary(g_rexxsyslib);
+        g_rexxsyslib = 0;
+        return -1;
+    }
+    AddPort(g_arexx_port);
+    Permit();
+
+    g_arexx_effects = *effects;
+    return (int)g_arexx_port->mp_SigBit;
+}
+
+/* Drain one message from the port.
+ * Returns 1 if a message was processed, 0 if queue empty, -1 on error. */
+int ri_arexx_port_drain(void) {
+    struct RexxMsg *rxm = 0;
+    if (!g_arexx_port)
+        return -1;
+
+    rxm = (struct RexxMsg *)GetMsg(g_arexx_port);
+    if (!rxm)
+        return 0;
+
+    char reply[RIAREXX_REPLY_MAX + 1u];
+    const STRPTR line = (rxm->rm_Args[0] && rxm->rm_Args[1])
+        ? (STRPTR)rxm->rm_Args[1] : "";
+
+    ri_arexx_handle(line, reply, sizeof reply);
+
+    LONG rc = (LONG)atoi(reply); /* rc is first token */
+    rxm->rm_Result1 = rc;
+    if (rc >= 0 && (rxm->rm_Action & RXFF_RESULT)) {
+        struct Argstring *as = CreateArgstring(reply, strlen(reply));
+        if (as) {
+            rxm->rm_Result2 = (LONG)as;
+        }
+    }
+    ReplyMsg((struct Message *)rxm);
+    return 1;
+}
+
+/* Cleanup: reply pending messages with rc 20, remove port, close library. */
+void ri_arexx_port_destroy(void) {
+    struct RexxMsg *rxm = 0;
+    if (!g_arexx_port)
+        return;
+
+    Forbid();
+    RemPort(g_arexx_port);
+    Permit();
+
+    while ((rxm = (struct RexxMsg *)GetMsg(g_arexx_port))) {
+        rxm->rm_Result1 = RIAREXX_RC_FAILED;
+        ReplyMsg((struct Message *)rxm);
+    }
+    DeleteMsgPort(g_arexx_port);
+    g_arexx_port = 0;
+
+    if (g_rexxsyslib) {
+        CloseLibrary(g_rexxsyslib);
+        g_rexxsyslib = 0;
+    }
+    memset(&g_arexx_effects, 0, sizeof g_arexx_effects);
+}
 
 /* Handle one port line. Returns the reply rc (RIAREXX_RC_*); reply
  * always NUL-terminated within replysz (truncated, never overflowed).
@@ -44,7 +146,13 @@ LONG ri_arexx_handle(const STRPTR line, STRPTR reply, ULONG replysz) {
         snprintf(reply, replysz, "ERROR bad command");
         return (LONG)RIAREXX_RC_BADCMD;
     }
-    arexx_dispatch(&cmd, &rep);
+    arexx_dispatch(&cmd, &rep, &g_arexx_effects);
     snprintf(reply, replysz, "%s", rep.text);
     return (LONG)rep.rc;
+}
+
+/* Fill the effect function pointers from the app. */
+void ri_arexx_set_effects(const struct RIArexxEffects *effects) {
+    if (effects)
+        g_arexx_effects = *effects;
 }

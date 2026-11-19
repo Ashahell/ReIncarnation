@@ -108,5 +108,52 @@ int arexx_parse(const char *line, struct RIArexxCmd *cmd) {
         cmd->val = (uint8_t)val;
         return 0;
     }
+    if (eq_word(w0, "SETCTL")) {
+        uint32_t ctl = 0, val = 0;
+        if (nw != 3u)
+            return 1;
+        if (parse_uint(w1, &ctl, 65535u) != 0)
+            return 1;
+        if (parse_uint(w2, &val, 127u) != 0)
+            return 1;
+        cmd->cmd = RIAREXX_SETCTL;
+        cmd->ctl = ctl;
+        cmd->val = (uint8_t)val;
+        return 0;
+    }
+    if (eq_word(w0, "GETCTL")) {
+        uint32_t ctl = 0;
+        if (nw != 2u)
+            return 1;
+        if (parse_uint(w1, &ctl, 65535u) != 0)
+            return 1;
+        cmd->cmd = RIAREXX_GETCTL;
+        cmd->ctl = ctl;
+        return 0;
+    }
+    if (eq_word(w0, "TEMPO")) {
+        uint32_t bpm = 0;
+        if (nw != 2u)
+            return 1;
+        if (parse_uint(w1, &bpm, 500u) != 0)
+            return 1;
+        if (bpm < 20u)
+            return 1;
+        cmd->cmd = RIAREXX_TEMPO;
+        cmd->ctl = bpm; /* reuse ctl for BPM */
+        return 0;
+    }
+    if (eq_word(w0, "STATUS")) {
+        if (nw != 1u)
+            return 1;
+        cmd->cmd = RIAREXX_STATUS;
+        return 0;
+    }
+    if (eq_word(w0, "QUIT")) {
+        if (nw != 1u)
+            return 1;
+        cmd->cmd = RIAREXX_QUIT;
+        return 0;
+    }
     return 1;
 }

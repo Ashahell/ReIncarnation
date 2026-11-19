@@ -115,6 +115,9 @@
 #include "project/playlist.h"
 #include "platform/pal/ri_pal_fs.h"
 #include "platform/pal/ri_pal_log.h"
+#include "project/arexx.h"
+#include "project/arexx_dispatch.h"
+#include "project/arexx_aros.c"
 
 /* Build identity for device attribution (never ambiguous binaries again):
  * the v11 build script passes -DRIAPP_BUILD_HASH="<short-sha>"; every
@@ -3900,6 +3903,77 @@ static void riapp_teardown(void) {
     }
 }
 
+/* ARexx effect implementations — called from dispatch on main task. */
+static void arexx_fx_play(void) {
+    ri_core_play(&s_core);
+}
+static void arexx_fx_stop(void) {
+    ri_core_stop(&s_core);
+}
+
+/* Helper: convert RISong (rbng) to RICoreSong for ri_core_load_song. */
+static int arexx_song_load(const char *path, struct RICoreSong *out) {
+    struct RISong song;
+    char err[256];
+    struct RIPatternBank banks[RI_SONGTRACK_INSTANCES];
+    char warn[256];
+    int i;
+
+    if (!out || !path)
+        return -1;
+    memset(out, 0, sizeof *out);
+    memset(banks, 0, sizeof banks);
+
+    if (rbng_read_song(path, &song, err, sizeof err) != 0)
+        return -1;
+
+    /* Convert patterns to banks for each instance (303A, 303B, 808, 909, LEVI). */
+    for (i = 0; i < RI_SONGTRACK_INSTANCES; i++) {
+        ri_bank_init(&banks[i], i, RI_PATTERN_KIND_303 + i, 0);
+        if (rbng_patt_to_bank(&song, &banks[i], warn, sizeof warn) != 0)
+            return -1;
+    }
+    out->bank[0] = &banks[0];
+    out->bank[1] = &banks[1];
+    out->bank[2] = &banks[2];
+    out->bank[3] = &banks[3];
+    out->bank[4] = &banks[4];
+
+    /* Track */
+    out->track = &song.track;
+
+    /* Tempo and PPQ */
+    out->bpm = song.tempo;
+    out->ppq = song.ppq;
+
+    /* Automation */
+    out->auto_tick = song.auto_ev ? (const uint32_t *)song.auto_ev : 0;
+    out->auto_ctl = 0; /* RISong doesn't expose separate arrays */
+    out->auto_val = 0;
+    out->nauto = song.nauto;
+
+    return 0;
+}
+
+static int arexx_fx_opensong(const char *path) {
+    struct RICoreSong cs;
+    if (arexx_song_load(path, &cs) != 0)
+        return -1;
+    return ri_core_load_song(&s_core, &cs);
+}
+
+static const struct RIArexxEffects s_arexx_effects = {
+    .play = arexx_fx_play,
+    .stop = arexx_fx_stop,
+    .opensong = arexx_fx_opensong,
+    .exportwav = arexx_fx_exportwav,
+    .setctl = arexx_fx_setctl,
+    .getctl = arexx_fx_getctl,
+    .tempo = arexx_fx_tempo,
+    .status = arexx_fx_status,
+    .quit = arexx_fx_quit,
+};
+
 static int riapp_main(int argc, char **argv) {
     Object *app, *win, *row;
     LONG ret;
@@ -3913,6 +3987,7 @@ static int riapp_main(int argc, char **argv) {
     struct timerequest *treq = 0;
     int timer_ok = 0, timer_armed = 0;
     int noaudio = riapp_arg_noaudio(argc, argv);
+    int arexx_sig = -1; /* ARexx port signal bit, -1 = no port */
 
     ri_core_demo(&s_core);
     /* BUILD HASH AND DIAG MODE, STAMPED INTO THE MAIN LOG (owner 2026-10-05).
@@ -3930,6 +4005,18 @@ static int riapp_main(int argc, char **argv) {
         rlog("RIAPP LOG build=%s diag=%lu\n", RIAPP_BUILD_HASH,
             (unsigned long)rsection_diag_enabled());
     evlog_open();
+    evlog_open();
+    /* ARexx port: create REINCARNATION port before panel (fails cleanly if taken). */
+    int arexx_sig = ri_arexx_port_create(&s_arexx_effects);
+    if (arexx_sig < 0) {
+        if (DOSBase)
+            rlog("RIAPP arexx: port REINCARNATION taken or rexxsyslib unavailable\n", 0, 0, 0, 0);
+        /* Non-fatal: RIAPP runs without ARexx. */
+        arexx_sig = -1;
+    } else {
+        rlog("RIAPP arexx: port REINCARNATION created (sig=%d)\n", arexx_sig, 0, 0, 0, 0);
+    }
+
     if (instance_claim() != 0) {
         /* Refuse, do not warn. The requester names the way out; the point
          * is that this process ends here instead of becoming a second
@@ -5032,9 +5119,13 @@ static int riapp_main(int argc, char **argv) {
             s_lat.lat_have = 0;
         }
         sigs |= SIGBREAKF_CTRL_C | (timer_armed ? 1UL << tport->mp_SigBit : 0UL);
+        if (arexx_sig >= 0)
+            sigs |= 1UL << arexx_sig;
         sigs = Wait(sigs);
         if (sigs & SIGBREAKF_CTRL_C)
             break;
+        if (arexx_sig >= 0 && (sigs & (1UL << arexx_sig)))
+            ri_arexx_port_drain();
     }
     if (timer_armed) {
         if (!CheckIO((struct IORequest *)treq))
@@ -5047,6 +5138,8 @@ static int riapp_main(int argc, char **argv) {
         DeleteIORequest((struct IORequest *)treq);
     if (tport)
         DeleteMsgPort(tport);
+    if (arexx_sig >= 0)
+        ri_arexx_port_destroy();
     /* THE NORMAL EXIT AND EVERY FAILURE PATH LEAVE THROUGH THE SAME TEARDOWN
      * (2026-10-20). The order is unchanged from the old inline exit: the
      * capture ends, the MIDI teardown (the bridge task AND the clock/device
