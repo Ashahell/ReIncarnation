@@ -45,7 +45,9 @@ static float rms(const float *b, uint32_t n) {
 }
 
 /* Legacy walker (pre-unification render_song algorithm, 303A only).
- * Updated to match new panel/engine defaults (Cutoff=96, Reso=32, Accent=64). */
+ * Updated to match new panel/engine defaults (Cutoff=96, Reso=32, Accent=64).
+ * Renders in blocks of 64 (RI_ENGINE_BLOCK) to match the unified engine's
+ * block-based rendering and zipless slew behavior. */
 static void legacy_mono(struct RIEvent *ev, uint32_t nev, float *out) {
     struct RB303Voice v;
     uint64_t cursor = 0, evpos = 0;
@@ -76,9 +78,12 @@ static void legacy_mono(struct RIEvent *ev, uint32_t nev, float *out) {
             }
             continue;
         }
-        for (c = cursor; c < next; c++)
+        uint32_t block = (uint32_t)(next - cursor);
+        if (block > 64u)
+            block = 64u;
+        for (c = cursor; c < cursor + block; c++)
             rb303_render(&v, out + c, 1, SR);
-        cursor = next;
+        cursor += block;
         while (evpos < nev && ev[evpos].sample == cursor) {
             const struct RIEvent *e = &ev[evpos];
             if (e->type == RI_EV_NOTE_ON)
@@ -123,7 +128,8 @@ int main(void) {
         for (i = 0; i < N; i++)
             RI_ASSERT(cL[i] == engL[i] && cR[i] == engR[i], "chunk differs at %u", i);
     }
-    /* (d) legacy bit-exact (303A-only mono fold vs independent walker). */
+    /* (d) legacy bit-exact (303A-only mono fold vs independent walker).
+ * Centre-unity: master=127, level=127, pan=64, send=0, no slew. */
     {
         static struct RIEvent solo[2];
         solo[0].sample = 0;    solo[0].type = RI_EV_NOTE_ON;  solo[0].device = 0;
@@ -133,6 +139,15 @@ int main(void) {
         legacy_mono(solo, 2, ref);
         ri_engine_init(&e);
         ri_engine_defaults(&e);
+        /* Centre-unity for bit-exact legacy match: master=127, all levels=127, pan=64, send=0. */
+        e.master = 127;
+        for (i = 0; i < RI_ROUTE_NSECTIONS; i++) {
+            e.level[i] = 127;
+            e.pan[i] = 64;
+            e.send[i] = 0;
+            e.lvl_applied[i] = 1.0f; /* disable zipless slew */
+        }
+        e.master_applied = 1.0f;
         ri_engine_load(&e, solo, 2, N, RI_ENGINE_S303A);
         ri_engine_render_mono(&e, mono, N, SR);
         for (i = 0; i < N; i++)

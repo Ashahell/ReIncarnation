@@ -26,14 +26,21 @@
 #include <exec/memory.h>
 #include <exec/libraries.h>
 #include <dos/dos.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <inline/rexxsyslib.h>
 #include "project/arexx.h"
 #include "project/arexx_dispatch.h"
+
+/* Forward declaration */
+LONG ri_arexx_handle(const STRPTR line, STRPTR reply, ULONG replysz);
 
 /* Global port state */
 static struct MsgPort *g_arexx_port = 0;
 static struct Library *g_rexxsyslib = 0;
+/* Inline header expects RexxSysBase to be defined as the library base */
+#define RexxSysBase g_rexxsyslib
 static struct RIArexxEffects g_arexx_effects = {0};
 
 /* Open rexxsyslib and create the REINCARNATION port.
@@ -45,7 +52,7 @@ int ri_arexx_port_create(const struct RIArexxEffects *effects) {
     if (!effects)
         return -1;
 
-    g_rexxsyslib = OpenLibrary("rexxsyslib.library", 0);
+    g_rexxsyslib = OpenLibrary((CONST_STRPTR)"rexxsyslib.library", 0);
     if (!g_rexxsyslib)
         return -1;
 
@@ -60,7 +67,7 @@ int ri_arexx_port_create(const struct RIArexxEffects *effects) {
     g_arexx_port->mp_Flags = PA_IGNORE;
 
     Forbid();
-    if (FindPort("REINCARNATION")) {
+    if (FindPort((CONST_STRPTR)"REINCARNATION")) {
         Permit();
         DeleteMsgPort(g_arexx_port);
         g_arexx_port = 0;
@@ -86,18 +93,18 @@ int ri_arexx_port_drain(void) {
     if (!rxm)
         return 0;
 
-    char reply[RIAREXX_REPLY_MAX + 1u];
+    UBYTE reply[RIAREXX_REPLY_MAX + 1u];
     const STRPTR line = (rxm->rm_Args[0] && rxm->rm_Args[1])
-        ? (STRPTR)rxm->rm_Args[1] : "";
+        ? (STRPTR)rxm->rm_Args[1] : (STRPTR)"";
 
     ri_arexx_handle(line, reply, sizeof reply);
 
-    LONG rc = (LONG)atoi(reply); /* rc is first token */
+    LONG rc = (LONG)strtol((const char *)reply, NULL, 10); /* rc is first token */
     rxm->rm_Result1 = rc;
     if (rc >= 0 && (rxm->rm_Action & RXFF_RESULT)) {
-        struct Argstring *as = CreateArgstring(reply, strlen(reply));
+        struct Argstring *as = (struct Argstring *)CreateArgstring(reply, strlen((const char *)reply));
         if (as) {
-            rxm->rm_Result2 = (LONG)as;
+            rxm->rm_Result2 = (IPTR)as;
         }
     }
     ReplyMsg((struct Message *)rxm);
@@ -141,13 +148,13 @@ LONG ri_arexx_handle(const STRPTR line, STRPTR reply, ULONG replysz) {
     reply[0] = '\0';
     if (!line)
         return (LONG)RIAREXX_RC_BADCMD;
-    prc = arexx_parse(line, &cmd);
+    prc = arexx_parse((const char *)line, &cmd);
     if (prc != 0) {
-        snprintf(reply, replysz, "ERROR bad command");
+        snprintf((char *)reply, replysz, "ERROR bad command");
         return (LONG)RIAREXX_RC_BADCMD;
     }
     arexx_dispatch(&cmd, &rep, &g_arexx_effects);
-    snprintf(reply, replysz, "%s", rep.text);
+    snprintf((char *)reply, replysz, "%s", rep.text);
     return (LONG)rep.rc;
 }
 

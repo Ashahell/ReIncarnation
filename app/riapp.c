@@ -3903,65 +3903,19 @@ static void riapp_teardown(void) {
     }
 }
 
-/* ARexx effect implementations — called from dispatch on main task. */
-static void arexx_fx_play(void) {
-    ri_core_play(&s_core);
-}
-static void arexx_fx_stop(void) {
-    ri_core_stop(&s_core);
-}
+/* Forward declarations for ARexx effect functions. */
+static void arexx_fx_play(void);
+static void arexx_fx_stop(void);
+static int arexx_song_load(const char *path, struct RICoreSong *out);
+static int arexx_fx_opensong(const char *path);
+static int arexx_fx_exportwav(const char *song, const char *wav);
+static int arexx_fx_setctl(uint32_t reg_id, uint8_t value);
+static int arexx_fx_getctl(uint32_t reg_id, uint8_t *value);
+static int arexx_fx_tempo(uint32_t bpm);
+static void arexx_fx_status(char *out, size_t outsz);
+static void arexx_fx_quit(void);
 
-/* Helper: convert RISong (rbng) to RICoreSong for ri_core_load_song. */
-static int arexx_song_load(const char *path, struct RICoreSong *out) {
-    struct RISong song;
-    char err[256];
-    struct RIPatternBank banks[RI_SONGTRACK_INSTANCES];
-    char warn[256];
-    int i;
-
-    if (!out || !path)
-        return -1;
-    memset(out, 0, sizeof *out);
-    memset(banks, 0, sizeof banks);
-
-    if (rbng_read_song(path, &song, err, sizeof err) != 0)
-        return -1;
-
-    /* Convert patterns to banks for each instance (303A, 303B, 808, 909, LEVI). */
-    for (i = 0; i < RI_SONGTRACK_INSTANCES; i++) {
-        ri_bank_init(&banks[i], i, RI_PATTERN_KIND_303 + i, 0);
-        if (rbng_patt_to_bank(&song, &banks[i], warn, sizeof warn) != 0)
-            return -1;
-    }
-    out->bank[0] = &banks[0];
-    out->bank[1] = &banks[1];
-    out->bank[2] = &banks[2];
-    out->bank[3] = &banks[3];
-    out->bank[4] = &banks[4];
-
-    /* Track */
-    out->track = &song.track;
-
-    /* Tempo and PPQ */
-    out->bpm = song.tempo;
-    out->ppq = song.ppq;
-
-    /* Automation */
-    out->auto_tick = song.auto_ev ? (const uint32_t *)song.auto_ev : 0;
-    out->auto_ctl = 0; /* RISong doesn't expose separate arrays */
-    out->auto_val = 0;
-    out->nauto = song.nauto;
-
-    return 0;
-}
-
-static int arexx_fx_opensong(const char *path) {
-    struct RICoreSong cs;
-    if (arexx_song_load(path, &cs) != 0)
-        return -1;
-    return ri_core_load_song(&s_core, &cs);
-}
-
+/* ARexx effects table — must precede implementations due to static const. */
 static const struct RIArexxEffects s_arexx_effects = {
     .play = arexx_fx_play,
     .stop = arexx_fx_stop,
@@ -4005,9 +3959,8 @@ static int riapp_main(int argc, char **argv) {
         rlog("RIAPP LOG build=%s diag=%lu\n", RIAPP_BUILD_HASH,
             (unsigned long)rsection_diag_enabled());
     evlog_open();
-    evlog_open();
     /* ARexx port: create REINCARNATION port before panel (fails cleanly if taken). */
-    int arexx_sig = ri_arexx_port_create(&s_arexx_effects);
+    arexx_sig = ri_arexx_port_create(&s_arexx_effects);
     if (arexx_sig < 0) {
         if (DOSBase)
             rlog("RIAPP arexx: port REINCARNATION taken or rexxsyslib unavailable\n", 0, 0, 0, 0);
@@ -5154,6 +5107,144 @@ static int riapp_main(int argc, char **argv) {
 cleanup:
     riapp_teardown();
     return rc;
+}
+
+/* ARexx effect implementations — called from dispatch on main task. */
+static void arexx_fx_play(void) {
+    ri_core_play(&s_core);
+}
+static void arexx_fx_stop(void) {
+    ri_core_stop(&s_core);
+}
+
+/* Helper: convert RISong (rbng) to RICoreSong for ri_core_load_song. */
+static int arexx_song_load(const char *path, struct RICoreSong *out) {
+    struct RISong song;
+    char err[256];
+    struct RIPatternBank banks[RI_SONGTRACK_INSTANCES];
+    char warn[256];
+    uint32_t i;
+
+    if (!out || !path)
+        return -1;
+    memset(out, 0, sizeof *out);
+    memset(banks, 0, sizeof banks);
+
+    if (rbng_read_song(path, &song, err, sizeof err) != 0)
+        return -1;
+
+    /* Convert patterns to banks for each instance (303A, 303B, 808, 909, LEVI). */
+    for (i = 0; i < RI_SONGTRACK_INSTANCES; i++) {
+        ri_bank_init(&banks[i], i, RI_PATTERN_KIND_303 + i, 0);
+        if (rbng_patt_to_bank(&song, &banks[i], warn, sizeof warn) != 0)
+            return -1;
+    }
+    out->bank[0] = &banks[0];
+    out->bank[1] = &banks[1];
+    out->bank[2] = &banks[2];
+    out->bank[3] = &banks[3];
+    out->bank[4] = &banks[4];
+
+    /* Track */
+    out->track = &song.track;
+
+    /* Tempo and PPQ */
+    out->bpm = song.tempo;
+    out->ppq = song.ppq;
+
+    /* Automation */
+    out->auto_tick = song.nauto > 0 ? (const uint32_t *)song.auto_ev : 0;
+    out->auto_ctl = 0; /* RISong doesn't expose separate arrays */
+    out->auto_val = 0;
+    out->nauto = song.nauto;
+
+    return 0;
+}
+
+static int arexx_fx_opensong(const char *path) {
+    struct RICoreSong cs;
+    if (arexx_song_load(path, &cs) != 0)
+        return -1;
+    return ri_core_load_song(&s_core, &cs);
+}
+
+static int arexx_fx_exportwav(const char *song, const char *wav) {
+    struct RICoreSong cs;
+    if (arexx_song_load(song, &cs) != 0)
+        return -1;
+    if (ri_core_load_song(&s_core, &cs) != 0)
+        return -1;
+    uint32_t bars = s_core.song_bars;
+    if (!bars)
+        return -1;
+    const float SR = 48000.0f;
+    uint64_t frames = (uint64_t)((double)bars * 4.0 * 60.0 / (double)cs.bpm * SR) + 2u * (uint64_t)SR;
+    FILE *f = fopen(wav, "wb");
+    if (!f)
+        return -1;
+    fwrite("RIFF", 1, 4, f);
+    uint32_t fsize = 36u + (uint32_t)frames * 4u;
+    fwrite(&fsize, 4, 1, f);
+    fwrite("WAVEfmt ", 1, 8, f);
+    uint32_t fmt_len = 16;
+    fwrite(&fmt_len, 4, 1, f);
+    uint16_t fmt_tag = 1;
+    fwrite(&fmt_tag, 2, 1, f);
+    uint16_t channels = 2;
+    fwrite(&channels, 2, 1, f);
+    uint32_t sample_rate = 48000;
+    fwrite(&sample_rate, 4, 1, f);
+    uint32_t byte_rate = 48000 * 4;
+    fwrite(&byte_rate, 4, 1, f);
+    uint16_t block_align = 4;
+    fwrite(&block_align, 2, 1, f);
+    uint16_t bits = 16;
+    fwrite(&bits, 2, 1, f);
+    fwrite("data", 1, 4, f);
+    uint32_t data_size = (uint32_t)frames * 4u;
+    fwrite(&data_size, 4, 1, f);
+    float L[RIAPP_FRAMES], R[RIAPP_FRAMES];
+    ri_core_play(&s_core);
+    uint64_t done = 0;
+    while (done < frames) {
+        uint32_t want = (uint32_t)(frames - done > RIAPP_FRAMES ? RIAPP_FRAMES : frames - done);
+        ri_live_render(&s_core.session, L, R, want);
+        uint32_t k;
+        for (k = 0; k < want; k++) {
+            int16_t l = (int16_t)(L[k] * 32767.0f);
+            int16_t r = (int16_t)(R[k] * 32767.0f);
+            fwrite(&l, 2, 1, f);
+            fwrite(&r, 2, 1, f);
+        }
+        done += want;
+    }
+    ri_core_stop(&s_core);
+    fclose(f);
+    return 0;
+}
+static int arexx_fx_setctl(uint32_t reg_id, uint8_t value) {
+    return ri_panel_ctl_send(&s_core.ctl, reg_id, value);
+}
+static int arexx_fx_getctl(uint32_t reg_id, uint8_t *value) {
+    if (!value) return -1;
+    const struct RICtlDef *d = ri_ctlreg_find(reg_id);
+    if (!d) return -1;
+    *value = ri_sui_value(s_ui[d->section], d->reg_id & 0xFFu);
+    return 0;
+}
+static int arexx_fx_tempo(uint32_t bpm) {
+    ri_live_set_bpm(&s_core.session, (float)bpm);
+    return 0;
+}
+static void arexx_fx_status(char *out, size_t outsz) {
+    if (!out || outsz == 0) return;
+    const char *state = (s_core.session.tr.state == RI_TR_PLAYING) ? "PLAYING" : "STOPPED";
+    uint32_t bpm = (uint32_t)s_core.session.bpm;
+    const char *song = s_core.session.track ? "loaded" : "(none)";
+    snprintf(out, outsz, "OK STATUS %s %u %s", state, bpm, song);
+}
+static void arexx_fx_quit(void) {
+    Signal(FindTask(0), SIGBREAKF_CTRL_C);
 }
 
 /* Every return path of riapp_main leaves through here, so the long-lived
