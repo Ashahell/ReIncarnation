@@ -44,7 +44,8 @@ static float rms(const float *b, uint32_t n) {
     return (float)(acc / (double)(n ? n : 1));
 }
 
-/* Legacy walker (pre-unification render_song algorithm, 303A only). */
+/* Legacy walker (pre-unification render_song algorithm, 303A only).
+ * Updated to match new panel/engine defaults (Cutoff=96, Reso=32, Accent=64). */
 static void legacy_mono(struct RIEvent *ev, uint32_t nev, float *out) {
     struct RB303Voice v;
     uint64_t cursor = 0, evpos = 0;
@@ -52,11 +53,11 @@ static void legacy_mono(struct RIEvent *ev, uint32_t nev, float *out) {
     for (i = 0; i < N; i++)
         out[i] = 0.0f;
     rb303_init(&v);
-    rb303_set_param(&v, RI_CTL_303A_CUTOFF, 80);
-    rb303_set_param(&v, RI_CTL_303A_RESO, 40);
+    rb303_set_param(&v, RI_CTL_303A_CUTOFF, 96);
+    rb303_set_param(&v, RI_CTL_303A_RESO, 32);
     rb303_set_param(&v, RI_CTL_303A_ENVMOD, 64);
     rb303_set_param(&v, RI_CTL_303A_DECAY, 64);
-    rb303_set_param(&v, RI_CTL_303A_ACCENT, 96);
+    rb303_set_param(&v, RI_CTL_303A_ACCENT, 64);
     rb303_set_param(&v, RI_CTL_303A_WAVE, 0);
     rb303_set_param(&v, RI_CTL_303A_VOLUME, 127);
     while (cursor < N) {

@@ -103,6 +103,9 @@ def classify_verdict(row, door, verdict):
             # 808 Instrument Selection (panel-local selector)
             if section == "2" and legend == "Instrument Selection" and bind == "0":
                 return "by-design", "808 Instrument Selection — panel-local selector, not automated"
+            # 303 Step section buttons (Down, Up, Accent, Slide, Note/Pause, Pitch Mode) - press-path
+            if section in ("0", "1") and group == "Step" and bind == "0" and kind == "2":
+                return "by-design", "303 Step button — press-path control (pattern editing), not automated"
             if group == "Module" and section == "18":
                 return "by-design", "LEVI Module selector — panel navigation only"
             if group == "Lfo" and legend == "Step":
@@ -164,6 +167,9 @@ def classify_verdict(row, door, verdict):
             # 808/909 drum voice knobs in default context (no pattern playing) are SILENT
             if row['section'] in ("2", "3") and group in ("AC", "BD", "SD", "LT", "MT", "HT", "RS", "CP", "CB", "CY", "OH", "CH", "RC", "CR", "RD", "LT", "MT", "HT", "RS", "CP"):
                 return "by-design", f"{door} moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)"
+            # 303 synth knobs in default context (no pattern playing) are SILENT
+            if row['section'] in ("0", "1") and group == "" and legend in ("Cutoff", "Reso", "Env Mod", "Decay", "Accent", "Tune", "Waveform"):
+                return "by-design", f"{door} moves engine but no meter peak change in default context (303 synth knob — SILENT without pattern)"
             # LEVI section controls (section 18) may be SILENT in default context - need ear test
             if row['section'] == "18":
                 return "by-design", f"{door} moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)"

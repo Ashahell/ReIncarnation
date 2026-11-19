@@ -34,7 +34,7 @@
       (uint16_t)(eid), (uint16_t)(vc) }
 
 static const struct RICtlDef RI_CTLREG[] = {
-    R(SYNTH1, 0, SWITCH, "", "Waveform", 0, 1, 0, 23, 1, 303, RI_CTL_303A_WAVE, 0),
+    R(SYNTH1, 0, SWITCH, "", "Waveform", 0, 127, 0, 23, 1, 303, RI_CTL_303A_WAVE, 0),
     R(SYNTH1, 1, KNOB, "", "Tune", 52, 76, 64, 24, 1, 303, RI_CTL_303A_TUNE, 0),
     R(SYNTH1, 2, KNOB, "", "Cutoff", 0, 127, 96, 25, 1, 303, RI_CTL_303A_CUTOFF, 0),
     R(SYNTH1, 3, KNOB, "", "Reso", 0, 127, 32, 26, 1, 303, RI_CTL_303A_RESO, 0),
@@ -64,7 +64,7 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(SYNTH1, 27, SWITCH, "Step", "Pitch Mode", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(SYNTH1, 28, BUTTON, "Step", "Clear", 0, 1, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(SYNTH1, 29, DISPLAY, "Step", "Step display", 1, 16, 1, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
-    R(SYNTH2, 0, SWITCH, "", "Waveform", 0, 1, 0, 30, 1, 303, RI_CTL_303B_WAVE, 0),
+    R(SYNTH2, 0, SWITCH, "", "Waveform", 0, 127, 0, 30, 1, 303, RI_CTL_303B_WAVE, 0),
     R(SYNTH2, 1, KNOB, "", "Tune", 52, 76, 64, 31, 1, 303, RI_CTL_303B_TUNE, 0),
     R(SYNTH2, 2, KNOB, "", "Cutoff", 0, 127, 96, 32, 1, 303, RI_CTL_303B_CUTOFF, 0),
     R(SYNTH2, 3, KNOB, "", "Reso", 0, 127, 32, 33, 1, 303, RI_CTL_303B_RESO, 0),

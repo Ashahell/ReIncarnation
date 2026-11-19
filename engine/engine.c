@@ -116,7 +116,8 @@ void ri_engine_init(struct RIEngine *e) {
 }
 
 /* First-light knob defaults (identical set both voices; mirrors the legacy
- * offline/live defaults so rewired paths render byte-identical songs). */
+ * offline/live defaults so rewired paths render byte-identical songs).
+ * Panel defaults: Cutoff=96, Reso=32, EnvMod=64, Decay=64, Accent=64, Wave=0. */
 void ri_engine_defaults(struct RIEngine *e) {
     struct RB303Voice *vs[2];
     int k;
@@ -126,11 +127,11 @@ void ri_engine_defaults(struct RIEngine *e) {
     vs[1] = &e->v303b;
     for (k = 0; k < 2; k++) {
         rb303_init(vs[k]);
-        rb303_set_param(vs[k], RI_CTL_303A_CUTOFF, 80);
-        rb303_set_param(vs[k], RI_CTL_303A_RESO, 40);
+        rb303_set_param(vs[k], RI_CTL_303A_CUTOFF, 96);
+        rb303_set_param(vs[k], RI_CTL_303A_RESO, 32);
         rb303_set_param(vs[k], RI_CTL_303A_ENVMOD, 64);
         rb303_set_param(vs[k], RI_CTL_303A_DECAY, 64);
-        rb303_set_param(vs[k], RI_CTL_303A_ACCENT, 96);
+        rb303_set_param(vs[k], RI_CTL_303A_ACCENT, 64);
         rb303_set_param(vs[k], RI_CTL_303A_WAVE, 0);
         rb303_set_param(vs[k], RI_CTL_303A_VOLUME, 127);
     }
