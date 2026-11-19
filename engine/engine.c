@@ -89,10 +89,10 @@ void ri_engine_init(struct RIEngine *e) {
         e->pan[i] = RI_ENGINE_PAN_CENTER;
         e->send[i] = 0;
         e->enable[i] = 1u; /* strip On/Off defaults ON: the panel's def_v */
-        e->level[i] = 100u; /* match panel def_v=100 so startup burst is a no-op */
+        e->level[i] = 127u; /* unity: match panel def_v=127 so startup burst is a no-op */
         e->lvl_applied[i] = 1.0f;
     }
-    e->master = 100u; /* match panel def_v=100 so startup burst is a no-op */
+    e->master = 127u; /* unity song-data fader (S4b), 127 = unity */
     e->master_applied = 1.0f;
     e->tempo = RI_ENGINE_TEMPO_DEFAULT;
     e->tr_playing = 0u;

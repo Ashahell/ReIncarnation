@@ -18,6 +18,7 @@
 #include "gui/secttr.h"
 #include "engine/engine.h"
 #include "engine/live.h"
+#include "engine/seq/autolane.h"
 #include "engine/seq/ctlplane.h"
 #include "engine/seq/autolane.h"
 #include "engine/dsp/rb303.h"
@@ -85,6 +86,12 @@ static void direct(struct RIEngine *e, uint16_t key, uint8_t val) {
     if (blk == RI_AUTO_BLK_LEVI) {
         for (v = 0u; v < RI_LEVI_NVOICES; v++)
             levi_set_param_ui(&e->slevi, v, key & 0xFFu, val);
+        return;
+    }
+    if (blk == RI_AUTO_BLK_TEMPO) {
+        /* Tempo: value 0..127 maps to 20..500 BPM (same as ri_engine_set_tempo clamp). */
+        float bpm = 20.0f + (float)val * (480.0f / 127.0f);
+        ri_engine_set_tempo(e, bpm);
         return;
     }
     if (blk == RI_AUTO_BLK_MIX && hi >= 1u && hi <= RI_AUTO_STRIP_LEVI + 1u) {
@@ -171,8 +178,7 @@ int main(void) {
                 ntested++;
                 continue;
             }
-            if (d->section == RI_SEC_TRANSPORT && d->kind == RI_CK_DISPLAY &&
-                (d->reg_id & 0xFFu) == RI_STR_TEMPO) {
+            if (d->reg_id == 0x0d01u) {
                 /* Tempo follows the session (bpm setter, tested below). */
                 nalt++;
                 continue;
