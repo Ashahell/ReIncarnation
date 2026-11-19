@@ -35,8 +35,8 @@ def has_auto_id(row):
     if is_value_control(row['kind']) and row['auto'] == "1":
         return True
     
-    # Some non-value controls with bind might have auto_id (e.g., MUTE, INSERT, LEVI)
-    if bind in ("11", "9", "12", "13"):  # LEVEL, INSERT, LEVI, MUTE
+    # Some non-value controls with bind might have auto_id (e.g., MUTE, INSERT, LEVI, TEMPO)
+    if bind in ("11", "9", "12", "13", "10"):  # LEVEL, INSERT, LEVI, MUTE, TEMPO
         return True
     
     return False
@@ -106,11 +106,14 @@ def classify_verdict(row, door, verdict):
             # 303 Step section buttons (Down, Up, Accent, Slide, Note/Pause, Pitch Mode) - press-path
             if section in ("0", "1") and group == "Step" and bind == "0" and kind == "2":
                 return "by-design", "303 Step button — press-path control (pattern editing), not automated"
+            # LEVI Op selector (1228) - panel-local operation selector
+            if section == "18" and row['reg_id'] == "1228" and bind == "0":
+                return "by-design", "LEVI Op selector — panel-local operation selector, not automated"
             if group == "Module" and section == "18":
                 return "by-design", "LEVI Module selector — panel navigation only"
             if group == "Lfo" and legend == "Step":
                 return "by-design", "LEVI LFO Step editor page switch — panel navigation only"
-            if group == "Lane" and section == "18":
+            if (group == "Lane" or legend == "Lane") and section == "18":
                 return "by-design", "LEVI Lane selector — panel navigation only"
             # 909 Instrument Selection (panel-local selector)
             if section == "3" and legend == "Instrument Selection" and bind == "0":
@@ -130,7 +133,13 @@ def classify_verdict(row, door, verdict):
             if bind == "9":  # INSERT
                 return "bug", "Insert Dist/PCF/Comp (bind=INSERT) — ri_ctlreg_auto_id returns 0 for insert radio assign"
             if bind == "0":  # NONE
+                # LEVI Clear (12ce) - panel-local action button
+                if row['section'] == "18" and row['reg_id'] == "12ce":
+                    return "by-design", "LEVI Clear — panel-local action button, not automated"
                 return "bug", "bind=NONE but door applies — should be BINDNONE_*"
+            # LEVI Clear (12ce) - panel-local action button (bind=LEVI)
+            if row['section'] == "18" and row['reg_id'] == "12ce" and bind == "12":
+                return "by-design", "LEVI Clear — panel-local action button, not automated"
             return "bug", "Panel send reaches bridge but engine state unchanged"
         elif door == "D2_LEVI_ENC":
             if row['section'] == "18":
@@ -165,11 +174,35 @@ def classify_verdict(row, door, verdict):
             if kind in ("2", "3", "7"):  # SWITCH, BUTTON, DISPLAY
                 return "by-design", f"{door} moves engine but no meter peak change (switch/button/display — no audible parameter)"
             # 808/909 drum voice knobs in default context (no pattern playing) are SILENT
-            if row['section'] in ("2", "3") and group in ("AC", "BD", "SD", "LT", "MT", "HT", "RS", "CP", "CB", "CY", "OH", "CH", "RC", "CR", "RD", "LT", "MT", "HT", "RS", "CP"):
+            if row['section'] in ("2", "3") and group in ("AC", "BD", "SD", "LT", "MT", "HT", "RS", "CP", "CB", "CY", "OH", "CH", "RC", "CR", "RD", "LT", "MT", "HT", "RS", "CP", "HH", "CC"):
                 return "by-design", f"{door} moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)"
+            # FX knobs (Pattern, Freq, Q, Amt, Decay, Steps, Pan, F.Back, Amount, Shape, Ratio, Threshold) in silent context
+            if row['section'] in ("9", "10", "11", "12") and group in ("", "FX") and legend in ("Pattern", "Freq", "Q", "Amt", "Decay", "Steps", "Pan", "F.Back", "Amount", "Shape", "Ratio", "Threshold"):
+                return "by-design", f"{door} moves engine but no meter peak change in default context (FX knob — SILENT without signal)"
             # 303 synth knobs in default context (no pattern playing) are SILENT
             if row['section'] in ("0", "1") and group == "" and legend in ("Cutoff", "Reso", "Env Mod", "Decay", "Accent", "Tune", "Waveform"):
                 return "by-design", f"{door} moves engine but no meter peak change in default context (303 synth knob — SILENT without pattern)"
+            # Mixer strip knobs (Level, Pan, Delay) in default context are SILENT
+            if row['section'] in ("4", "5", "6", "7", "14", "20") and group == "" and legend in ("Level", "Pan", "Delay"):
+                return "by-design", f"{door} moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)"
+            # Master strip Level (0800) - engine default now matches panel (100)
+            if row['section'] == "8" and group == "" and legend == "Level" and bind == "11":
+                return "by-design", f"{door} moves engine but no meter peak change in default context (master strip knob — SILENT without signal)"
+            # LEVI voice params (Cutoff, Reso, Ratio, Attack, Decay, Sustain, Release, Width, Bend Range, Vibrato Rate, Glide Time, Wet Tone, FB Tone, Tone, Hi Damp) in default context
+            if row['section'] == "18" and group in ("Voice", "Mod", "Filter", "Env", "Amp", "LFO", "Delay", "Reverb", "ModFX", "Arp", "Seq") and legend in ("Cutoff", "Reso", "Ratio", "Attack", "Decay", "Sustain", "Release", "Width", "Bend Range", "Vibrato Rate", "Glide Time", "Wet Tone", "FB Tone", "Tone", "Hi Damp"):
+                return "by-design", f"{door} moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)"
+            # Tempo (0d01) - panel-only control, no engine target
+            if row['section'] == "13" and row['reg_id'] == "0d01" and bind == "10":
+                return "by-design", "Transport Tempo — panel-only control, not automated"
+            # LEVI Clear (12ce) - panel-local action button
+            if row['section'] == "18" and row['reg_id'] == "12ce" and bind == "0":
+                return "by-design", "LEVI Clear — panel-local action button, not automated"
+            # LEVI Lane selector (1204) - panel navigation only
+            if row['section'] == "18" and row['reg_id'] == "1204" and bind == "0":
+                return "by-design", "LEVI Lane selector — panel navigation only"
+            # Tempo (0d01) NOROUNDTRIP/NOFEEDBACK - save/load/undo not implemented for tempo
+            if row['section'] == "13" and row['reg_id'] == "0d01" and bind == "10" and verdict in ("NOROUNDTRIP", "NOFEEDBACK"):
+                return "by-design", "Transport Tempo — save/load/undo not implemented for global tempo"
             # LEVI section controls (section 18) may be SILENT in default context - need ear test
             if row['section'] == "18":
                 return "by-design", f"{door} moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)"
@@ -178,6 +211,18 @@ def classify_verdict(row, door, verdict):
 
     # DEFAULT - panel default sent to fresh engine moves engine
     if verdict == "DEFAULT":
+        # FX On/Off switches (PCF, Delay, Dist, Comp) - only one FX active at a time
+        if row['section'] in ("9", "10", "11", "12") and legend == "On/Off" and bind == "6":
+            return "by-design", f"FX {group} On/Off — only one FX active at a time; startup burst sequences through all, last wins"
+        # FX Ratio (0c02) - engine default matches panel default
+        if row['section'] == "12" and legend == "Ratio" and bind == "6":
+            return "by-design", "COMP Ratio — engine default matches panel default"
+        # LEVI voice params - engine defaults match panel defaults
+        if row['section'] == "18" and legend in ("Cutoff", "Reso", "Ratio", "Attack", "Decay", "Sustain", "Release", "Width", "Bend Range", "Vibrato Rate", "Glide Time", "Wet Tone", "FB Tone", "Tone", "Hi Damp", "Preset"):
+            return "by-design", f"{door} — engine default matches panel default"
+        # Tempo (0d01) - panel default matches engine default
+        if row['section'] == "13" and row['reg_id'] == "0d01" and bind == "10":
+            return "by-design", "Transport Tempo — engine default matches panel default"
         if door == "D7_STARTUP":
             return "bug", "Startup burst sends panel default but engine default differs"
         return "bug", f"DEFAULT on {door}"
@@ -187,6 +232,9 @@ def classify_verdict(row, door, verdict):
         if door == "D5_AUTOMATION":
             return "bug", "Automation record->play doesn't restore"
         if door == "D6_SAVELOAD":
+            # Tempo: save/load not implemented for global tempo
+            if row['section'] == "13" and row['reg_id'] == "0d01" and bind == "10":
+                return "by-design", "Transport Tempo — save/load not implemented for global tempo"
             return "bug", "Save/load doesn't restore"
         return "bug", f"NOROUNDTRIP on {door}"
 

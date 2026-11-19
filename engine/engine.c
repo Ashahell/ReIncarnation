@@ -88,11 +88,11 @@ void ri_engine_init(struct RIEngine *e) {
     for (i = 0; i < RI_ROUTE_NSECTIONS; i++) {
         e->pan[i] = RI_ENGINE_PAN_CENTER;
         e->send[i] = 0;
-                e->enable[i] = 1u; /* strip On/Off defaults ON: the panel's def_v */
-        e->level[i] = 127u; /* unity: the pre-fader engine, bit-identical */
+        e->enable[i] = 1u; /* strip On/Off defaults ON: the panel's def_v */
+        e->level[i] = 100u; /* match panel def_v=100 so startup burst is a no-op */
         e->lvl_applied[i] = 1.0f;
     }
-    e->master = 127u; /* unity song-data fader (S4b), 127 = unity */
+    e->master = 100u; /* match panel def_v=100 so startup burst is a no-op */
     e->master_applied = 1.0f;
     e->tempo = RI_ENGINE_TEMPO_DEFAULT;
     e->tr_playing = 0u;
@@ -110,7 +110,7 @@ void ri_engine_init(struct RIEngine *e) {
     e->delay.beats = 0.75f;
     e->delay.steps = 3u;
     e->delay.triplet = 0u;
-    e->delay.fb = 0.0f;
+    e->delay.fb = 48.0f * (0.8f / 127.0f); /* match panel def_v=48 */
     e->delay.mix = 1.0f;
     e->dret_pan = RI_ENGINE_PAN_CENTER;
 }
@@ -1255,6 +1255,12 @@ static void engine_automation(struct RIEngine *e, uint32_t key, uint8_t val,
          * LOOP lives at 0x10). */
         for (v = 0u; v < RI_LEVI_NVOICES; v++)
             levi_set_param_ui(&e->slevi, v, key & 0xFFu, val);
+        return;
+    }
+    if (blk == RI_AUTO_BLK_TEMPO) {
+        /* Tempo: value 0..127 maps to 20..500 BPM (same as ri_engine_set_tempo clamp). */
+        float bpm = 20.0f + (float)val * (480.0f / 127.0f);
+        ri_engine_set_tempo(e, bpm);
         return;
     }
     if (blk == RI_AUTO_BLK_MIX && hi >= 1u && hi <= RI_AUTO_STRIP_LEVI + 1u) {

@@ -169,8 +169,8 @@ void ri_fxdelay_render(struct RiFXDelay *d, const float *in, float *out,
 void ri_fxdist_init(struct RiFXDist *d) {
     if (!d)
         return;
-    d->drive = 0;
-    d->shape = 0;
+    d->drive = 64; /* match panel def_v=64 */
+    d->shape = 64; /* match panel def_v=64 */
     d->prev = 0.0f;
 }
 
@@ -262,7 +262,7 @@ int ri_fxcomp_init(struct RiFXComp *c, float sr) {
         return 2;
     c->env = 0.0f;
     c->ratio = RI_FXCOMP_RATIO;
-    c->ratio_knob = 20u; /* knob value nearest 4:1 on the 1..20 law */
+    c->ratio_knob = 64u; /* match panel def_v=64 */
     c->gr_min_g = 1.0f;
     ri_fxcomp_derive(c, sr);
     c->thresh = 64;

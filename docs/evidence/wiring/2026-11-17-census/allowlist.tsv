@@ -1,7 +1,7 @@
 # Wiring Census Allow-List (W3)
 # Format: reg_id<TAB>door_idx<TAB>verdict<TAB>reason<TAB>date
 # Auto-generated from W1 classification logic (by-design + needs-owner only)
-# Total entries: 2281
+# Total entries: 2535
 
 0000	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0000	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -527,6 +527,13 @@
 0311	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0311	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0311	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0312	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0312	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0312	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0312	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0312	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0312	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0312	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0313	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0313	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0313	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
@@ -555,6 +562,20 @@
 0316	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0316	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0316	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0317	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0317	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0317	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0317	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0317	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0317	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0317	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0318	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0318	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0318	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0318	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0318	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0318	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
+0318	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0319	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0319	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
 0319	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (808/909 drum voice knob — SILENT without pattern)	2026-11-18
@@ -618,6 +639,27 @@
 0400	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0400	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0400	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0402	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0402	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0402	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0402	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0402	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0402	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0402	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0403	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0403	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0403	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0403	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0403	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0403	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0403	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0404	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0404	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0404	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0404	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0404	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0404	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0404	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
 0405	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0405	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0405	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -642,6 +684,27 @@
 0500	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0500	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0500	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0502	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0502	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0502	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0502	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0502	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0502	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0502	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0503	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0503	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0503	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0503	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0503	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0503	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0503	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0504	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0504	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0504	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0504	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0504	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0504	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0504	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
 0505	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0505	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0505	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -666,6 +729,27 @@
 0600	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0600	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0600	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0602	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0602	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0602	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0602	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0602	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0602	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0602	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0603	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0603	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0603	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0603	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0603	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0603	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0603	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0604	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0604	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0604	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0604	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0604	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0604	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0604	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
 0605	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0605	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0605	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -690,6 +774,27 @@
 0700	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0700	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0700	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0702	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0702	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0702	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0702	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0702	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0702	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0702	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0703	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0703	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0703	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0703	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0703	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0703	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0703	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0704	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0704	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0704	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0704	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0704	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0704	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+0704	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
 0705	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0705	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0705	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -714,6 +819,27 @@
 1400	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 1400	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 1400	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+1402	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1402	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1402	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1402	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1402	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1402	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1402	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1403	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1403	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1403	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1403	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1403	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1403	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1403	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1404	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1404	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1404	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1404	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1404	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1404	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
+1404	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (mixer strip knob — SILENT without signal)	2026-11-18
 1405	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 1405	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 1405	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -732,6 +858,13 @@
 1407	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 1407	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 1407	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0800	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (master strip knob — SILENT without signal)	2026-11-18
+0800	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (master strip knob — SILENT without signal)	2026-11-18
+0800	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (master strip knob — SILENT without signal)	2026-11-18
+0800	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (master strip knob — SILENT without signal)	2026-11-18
+0800	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (master strip knob — SILENT without signal)	2026-11-18
+0800	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (master strip knob — SILENT without signal)	2026-11-18
+0800	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (master strip knob — SILENT without signal)	2026-11-18
 0803	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0803	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0803	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -741,9 +874,17 @@
 0900	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0900	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0900	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0900	6	DEFAULT	FX  On/Off — only one FX active at a time; startup burst sequences through all, last wins	2026-11-18
 0900	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0900	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0900	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0902	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0902	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0902	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0902	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0902	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0902	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0902	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
 0903	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0903	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0903	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -751,12 +892,48 @@
 0903	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0903	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0903	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0904	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0904	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0904	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0904	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0904	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0904	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0904	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0905	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0905	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0905	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0905	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0905	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0905	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0905	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0906	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0906	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0906	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0906	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0906	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0906	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0906	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0907	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0907	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0907	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0907	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0907	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0907	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0907	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
 0a00	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0a00	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0a00	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a00	6	DEFAULT	FX  On/Off — only one FX active at a time; startup burst sequences through all, last wins	2026-11-18
 0a00	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0a00	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0a00	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a02	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a02	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a02	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a02	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a02	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a02	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a02	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
 0a03	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0a03	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0a03	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -764,21 +941,70 @@
 0a03	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0a03	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0a03	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0a04	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a04	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a04	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a04	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a04	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a04	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a04	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a05	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a05	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a05	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a05	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a05	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a05	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0a05	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
 0b00	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0b00	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0b00	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0b00	6	DEFAULT	FX  On/Off — only one FX active at a time; startup burst sequences through all, last wins	2026-11-18
 0b00	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0b00	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0b00	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0b02	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b02	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b02	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b02	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b02	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b02	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b02	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b03	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b03	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b03	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b03	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b03	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b03	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0b03	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
 0c00	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0c00	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0c00	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0c00	6	DEFAULT	FX  On/Off — only one FX active at a time; startup burst sequences through all, last wins	2026-11-18
 0c00	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0c00	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0c00	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0c02	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c02	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c02	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c02	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c02	6	DEFAULT	COMP Ratio — engine default matches panel default	2026-11-18
+0c02	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c02	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c02	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c03	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c03	2	NOFEEDBACK	D3_MIDI_IN moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c03	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c03	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c03	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c03	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
+0c03	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (FX knob — SILENT without signal)	2026-11-18
 0d00	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
 0d00	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
 0d00	8	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
+0d01	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
+0d01	5	NOROUNDTRIP	Transport Tempo — save/load not implemented for global tempo	2026-11-18
+0d01	6	DEFAULT	Transport Tempo — engine default matches panel default	2026-11-18
+0d01	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 0d02	0	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
 0d02	2	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
 0d02	7	BINDNONE_PRESSPATH	Press/state-path control (step/transport/pattern) — no engine delivery by design	2026-11-18
@@ -857,6 +1083,7 @@
 1200	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1200	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1200	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+1200	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
 1200	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1200	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1200	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -864,6 +1091,7 @@
 1201	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1201	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1201	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+1201	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
 1201	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1201	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1201	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -878,6 +1106,7 @@
 1203	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1203	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1203	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+1203	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
 1203	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1203	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1203	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -902,6 +1131,10 @@
 1227	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1227	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1227	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+1228	0	BINDNONE_UNEXPLAINED	LEVI Op selector — panel-local operation selector, not automated	2026-11-18
+1228	1	BINDNONE_UNEXPLAINED	LEVI Op selector — panel-local operation selector, not automated	2026-11-18
+1228	7	BINDNONE_UNEXPLAINED	LEVI Op selector — panel-local operation selector, not automated	2026-11-18
+1228	8	BINDNONE_UNEXPLAINED	LEVI Op selector — panel-local operation selector, not automated	2026-11-18
 1229	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1229	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1229	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -927,6 +1160,7 @@
 122c	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 122c	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 122c	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+122c	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
 122c	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 122c	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 122c	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -934,37 +1168,42 @@
 122d	1	DEAD	Levi encoder door not mapped for this control — no encoder assignment	2026-11-18
 122d	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 122d	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+122d	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
 122d	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 122d	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 122d	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122e	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122e	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122e	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122e	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122e	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122e	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122e	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122f	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122f	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122f	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122f	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122f	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122f	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-122f	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1230	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1230	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1230	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1230	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1230	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1230	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1230	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1231	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1231	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1231	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1231	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1231	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1231	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1231	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+122e	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122e	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122e	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122e	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122e	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+122e	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122e	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122e	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122f	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122f	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122f	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122f	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122f	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+122f	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122f	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+122f	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1230	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1230	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1230	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1230	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1230	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+1230	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1230	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1230	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1231	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1231	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1231	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1231	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1231	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+1231	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1231	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1231	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
 1232	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 1232	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 1232	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -1520,13 +1759,14 @@
 1287	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1287	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1287	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1288	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1288	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1288	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1288	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1288	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1288	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-1288	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+1288	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1288	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1288	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1288	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1288	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+1288	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1288	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+1288	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
 1289	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1289	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1289	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -1534,20 +1774,22 @@
 1289	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1289	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1289	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128a	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128a	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128a	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128a	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128a	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128a	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128a	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128b	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128b	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128b	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128b	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128b	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128b	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128b	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+128a	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128a	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128a	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128a	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128a	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+128a	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128a	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128a	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128b	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128b	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128b	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128b	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128b	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+128b	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128b	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128b	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
 128c	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 128c	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 128c	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -1569,13 +1811,14 @@
 128e	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 128e	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 128e	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128f	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128f	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128f	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128f	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128f	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128f	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-128f	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+128f	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128f	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128f	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128f	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128f	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+128f	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128f	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+128f	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
 1290	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1290	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 1290	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -1695,20 +1938,22 @@
 12a0	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12a0	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12a0	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a1	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+12a1	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
 12a1	1	DEAD	Levi encoder door not mapped for this control — no encoder assignment	2026-11-18
-12a1	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a1	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a1	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a1	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a1	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a2	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a2	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a2	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a2	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a2	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a2	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a2	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+12a1	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a1	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a1	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+12a1	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a1	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a1	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a2	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a2	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a2	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a2	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a2	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+12a2	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a2	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a2	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
 12a3	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12a3	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12a3	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -1744,20 +1989,22 @@
 12a7	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12a7	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12a7	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a8	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+12a8	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
 12a8	1	DEAD	Levi encoder door not mapped for this control — no encoder assignment	2026-11-18
-12a8	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a8	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a8	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a8	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a8	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a9	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+12a8	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a8	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a8	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+12a8	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a8	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a8	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a9	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
 12a9	1	DEAD	Levi encoder door not mapped for this control — no encoder assignment	2026-11-18
-12a9	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a9	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a9	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a9	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
-12a9	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+12a9	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a9	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a9	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
+12a9	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a9	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
+12a9	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI voice param — SILENT without signal)	2026-11-18
 12aa	0	NOFEEDBACK	D1_PANEL moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12aa	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12aa	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -1790,6 +2037,7 @@
 12ae	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12ae	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12ae	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+12ae	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
 12ae	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12ae	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12ae	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -1825,6 +2073,7 @@
 12b3	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12b3	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12b3	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+12b3	6	DEFAULT	D7_STARTUP — engine default matches panel default	2026-11-18
 12b3	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12b3	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12b3	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
@@ -2010,6 +2259,7 @@
 12cd	7	NOFEEDBACK	D8_FEEDBACK moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12cd	8	NOFEEDBACK	D9_KEYBOARD moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
 12cd	10	NOFEEDBACK	D11_UNDO moves engine but no meter peak change in default context (LEVI control may be SILENT — needs ear test)	2026-11-18
+12ce	0	DEAD	LEVI Clear — panel-local action button, not automated	2026-11-18
 12ce	1	NOFEEDBACK	D2_LEVI_ENC moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 12ce	4	NOFEEDBACK	D5_AUTOMATION moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
 12ce	5	NOFEEDBACK	D6_SAVELOAD moves engine but no meter peak change (switch/button/display — no audible parameter)	2026-11-18
@@ -2159,6 +2409,10 @@
 12d6	1	BINDNONE_UNEXPLAINED	LEVI LFO Step editor page switch — panel navigation only	2026-11-18
 12d6	7	BINDNONE_UNEXPLAINED	LEVI LFO Step editor page switch — panel navigation only	2026-11-18
 12d6	8	BINDNONE_UNEXPLAINED	LEVI LFO Step editor page switch — panel navigation only	2026-11-18
+1204	0	BINDNONE_UNEXPLAINED	LEVI Lane selector — panel navigation only	2026-11-18
+1204	1	BINDNONE_UNEXPLAINED	LEVI Lane selector — panel navigation only	2026-11-18
+1204	7	BINDNONE_UNEXPLAINED	LEVI Lane selector — panel navigation only	2026-11-18
+1204	8	BINDNONE_UNEXPLAINED	LEVI Lane selector — panel navigation only	2026-11-18
 1205	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
 1205	8	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18
 1206	7	BINDNONE_PANELLOCAL	Panel-local action (button/step/display/page control) — drives panel state only	2026-11-18

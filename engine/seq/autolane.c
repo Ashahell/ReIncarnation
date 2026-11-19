@@ -111,7 +111,9 @@ static const uint16_t RI_AUTO_ALLOW[] = {
     /* Performance buttons (fidelity P9d). */
     0x0ECAu, 0x0ECBu,
     /* Live note / performance path (M4c/M4d) — not panel parameters. */
-    0x0ECCu, 0x0ECDu, 0x0ECEu, 0x0ECFu, 0x0ED0u
+    0x0ECCu, 0x0ECDu, 0x0ECEu, 0x0ECFu, 0x0ED0u,
+    /* Tempo (global) */
+    RI_AUTO_BLK_TEMPO
 };
 
 int ri_auto_allowed(uint16_t ctl) {

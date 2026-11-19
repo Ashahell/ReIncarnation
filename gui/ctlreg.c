@@ -228,25 +228,25 @@ static const struct RICtlDef RI_CTLREG[] = {
     R(MASTER, 1, METER, "", "Meter L", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MASTER, 2, METER, "", "Meter R", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(MASTER, 3, SWITCH, "", "Comp", 0, 1, 0, RI_MIDI_CC_NONE, 1, INSERT, RI_ROUTE_COMP, RI_ROUTE_MASTER),
-    R(PCF, 0, SWITCH, "", "On/Off", 0, 1, 0, RI_MIDI_CC_NONE, 1, FX, RI_FXID_PCF_ENABLE, 0),
+    R(PCF, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 1, FX, RI_FXID_PCF_ENABLE, 0),
     R(PCF, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(PCF, 2, SELECTOR, "", "Pattern", 0, 53, 0, 94, 1, FX, RI_FXID_PCF_PATTERN, 0),
     R(PCF, 3, SWITCH, "", "Mode", 0, 1, 0, 95, 1, FX, RI_FXID_PCF_MODE, 0),
     R(PCF, 4, FADER, "", "Freq", 0, 127, 64, 96, 1, FX, RI_FXID_PCF_BASE, 0),
     R(PCF, 5, FADER, "", "Q", 0, 127, 64, 97, 1, FX, RI_FXID_PCF_Q, 0),
-    R(PCF, 6, FADER, "", "Amt", 0, 127, 0, 98, 1, FX, RI_FXID_PCF_AMT, 0),
+    R(PCF, 6, FADER, "", "Amt", 0, 127, 64, 98, 1, FX, RI_FXID_PCF_AMT, 0),
     R(PCF, 7, FADER, "", "Decay", 0, 127, 64, 99, 1, FX, RI_FXID_PCF_DECAY, 0),
-    R(DELAY, 0, SWITCH, "", "On/Off", 0, 1, 0, RI_MIDI_CC_NONE, 1, FX, RI_FXID_DELAY_ENABLE, 0),
+    R(DELAY, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 1, FX, RI_FXID_DELAY_ENABLE, 0),
     R(DELAY, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(DELAY, 2, SELECTOR, "", "Steps", 1, 32, 3, 100, 1, FX, RI_FXID_DELAY_STEPS, 0),
     R(DELAY, 3, SWITCH, "", "Triplet", 0, 1, 0, 101, 1, FX, RI_FXID_DELAY_TRIPLET, 0),
     R(DELAY, 4, KNOB, "", "Pan", 0, 127, 64, 102, 1, FX, RI_FXID_DELAY_RETPAN, 0),
     R(DELAY, 5, KNOB, "", "F.Back", 0, 127, 48, 103, 1, FX, RI_FXID_DELAY_FB, 0),
-    R(DIST, 0, SWITCH, "", "On/Off", 0, 1, 0, RI_MIDI_CC_NONE, 1, FX, RI_FXID_DIST_ENABLE, 0),
+    R(DIST, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 1, FX, RI_FXID_DIST_ENABLE, 0),
     R(DIST, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(DIST, 2, KNOB, "", "Amount", 0, 127, 64, 105, 1, FX, RI_FXID_DIST_DRIVE, 0),
     R(DIST, 3, KNOB, "", "Shape", 0, 127, 64, 104, 1, FX, RI_FXID_DIST_SHAPE, 0),
-    R(COMP, 0, SWITCH, "", "On/Off", 0, 1, 0, RI_MIDI_CC_NONE, 1, FX, RI_FXID_COMP_ENABLE, 0),
+    R(COMP, 0, SWITCH, "", "On/Off", 0, 1, 1, RI_MIDI_CC_NONE, 1, FX, RI_FXID_COMP_ENABLE, 0),
     R(COMP, 1, METER, "", "Meter", 0, 127, 0, RI_MIDI_CC_NONE, 0, NONE, 0, 0),
     R(COMP, 2, KNOB, "", "Ratio", 0, 127, 64, 106, 1, FX, RI_FXID_COMP_RATIO, 0),
     R(COMP, 3, KNOB, "", "Threshold", 0, 127, 64, 107, 1, FX, RI_FXID_COMP_THRESH, 0),
@@ -857,6 +857,8 @@ uint16_t ri_ctlreg_auto_id(const struct RICtlDef *d) {
     case RI_BIND_INSERT:
         return RI_AUTO_ID_MIX(d->voice == (uint16_t)RI_ROUTE_MASTER ? RI_AUTO_STRIP_MASTER
             : auto_strip_of(d->voice), RI_AUTO_MIX_DIST + d->engine_id);
+    case RI_BIND_TEMPO:
+        return RI_AUTO_ID_TEMPO();
     default:
         return 0u;
     }

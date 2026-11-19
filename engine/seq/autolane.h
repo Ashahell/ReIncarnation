@@ -52,6 +52,9 @@ struct RIAutoPass {
  * 0x13FF). Fields 0-2 only: cursor, value at the cursor, ramp. */
 #define RI_AUTO_BLK_LEVILS0 0x1300u
 #define RI_AUTO_BLK_LEVILS1 0x1400u
+/* Tempo (global, not per-voice). Key = 0x1500, value = BPM scaled to 0..127. */
+#define RI_AUTO_BLK_TEMPO 0x1500u
+#define RI_AUTO_ID_TEMPO() RI_AUTO_BLK_TEMPO
 /* Levi matrix routes (slot << 2 | field, 0x00-0x7F) and macro routes
  * (macro << 5 | route << 2 | field) (fidelity P5b). */
 #define RI_AUTO_BLK_LEVIMX 0x1100u

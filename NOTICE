@@ -1,0 +1,25 @@
+ReIncarnation
+
+The contents of this repository are subject to the AROS Public License
+Version 1.1 (the "License"); you may not use these files except in
+compliance with the License. A copy of the License is in the file LICENSE;
+it is also available at http://www.aros.org/license.html
+
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
+the specific language governing rights and limitations under the License.
+
+The Original Code is ReIncarnation.
+
+The Initial Developer of the Original Code is Ashahell.
+
+Portions created by Ashahell are Copyright (C) 2026 Ashahell.
+All Rights Reserved.
+
+Contributor(s): ______________________________________.
+
+Exceptions:
+- The sample layers in reference/packs/ are synthesized from scratch and
+  are released under CC0, as each layer's .txt file states.
+- Songs under songs/local/ are not part of the repository (git-ignored) and
+  are not covered by this notice.
