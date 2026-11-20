@@ -11,6 +11,29 @@
 #include "project/arexx_dispatch.h"
 #include "gui/catalog.h"
 
+/* Stub effects for host test — all succeed, no-op */
+static void fx_play(void) {}
+static void fx_stop(void) {}
+static int fx_opensong(const char *path) { (void)path; return 0; }
+static int fx_exportwav(const char *song, const char *wav) { (void)song; (void)wav; return 0; }
+static int fx_setctl(uint32_t reg_id, uint8_t value) { (void)reg_id; (void)value; return 0; }
+static int fx_getctl(uint32_t reg_id, uint8_t *value) { (void)reg_id; if (value) *value = 0; return 0; }
+static int fx_tempo(uint32_t bpm) { (void)bpm; return 0; }
+static void fx_status(char *out, size_t outsz) { if (out && outsz) { out[0] = 0; } }
+static void fx_quit(void) {}
+
+static const struct RIArexxEffects g_fx = {
+    .play = fx_play,
+    .stop = fx_stop,
+    .opensong = fx_opensong,
+    .exportwav = fx_exportwav,
+    .setctl = fx_setctl,
+    .getctl = fx_getctl,
+    .tempo = fx_tempo,
+    .status = fx_status,
+    .quit = fx_quit,
+};
+
 int main(void) {
     struct RIArexxCmd cmd;
     struct RIArexxReply rep;
@@ -18,51 +41,51 @@ int main(void) {
 
     /* --- dispatch: all five commands --- */
     RI_ASSERT(arexx_parse("PLAY", &cmd) == 0, "parse PLAY");
-    arexx_dispatch(&cmd, &rep);
+    arexx_dispatch(&cmd, &rep, &g_fx);
     RI_ASSERT(rep.rc == RIAREXX_RC_OK, "PLAY rc %d", rep.rc);
     RI_ASSERT(strcmp(rep.text, "OK PLAYING") == 0, "PLAY text '%s'", rep.text);
 
     RI_ASSERT(arexx_parse("STOP", &cmd) == 0, "parse STOP");
-    arexx_dispatch(&cmd, &rep);
+    arexx_dispatch(&cmd, &rep, &g_fx);
     RI_ASSERT(rep.rc == RIAREXX_RC_OK, "STOP rc");
     RI_ASSERT(strcmp(rep.text, "OK STOPPED") == 0, "STOP text '%s'", rep.text);
 
     RI_ASSERT(arexx_parse("OPENSONG Work:tune.rbng", &cmd) == 0, "parse OPENSONG");
-    arexx_dispatch(&cmd, &rep);
+    arexx_dispatch(&cmd, &rep, &g_fx);
     RI_ASSERT(rep.rc == RIAREXX_RC_OK, "OPENSONG rc");
     RI_ASSERT(strcmp(rep.text, "OK OPEN Work:tune.rbng") == 0, "OPENSONG text '%s'", rep.text);
 
     RI_ASSERT(arexx_parse("EXPORTWAV Work:t.rbng Work:t.wav", &cmd) == 0, "parse EXPORTWAV");
-    arexx_dispatch(&cmd, &rep);
+    arexx_dispatch(&cmd, &rep, &g_fx);
     RI_ASSERT(rep.rc == RIAREXX_RC_OK, "EXPORTWAV rc");
     RI_ASSERT(strcmp(rep.text, "OK EXPORT Work:t.rbng Work:t.wav") == 0, "EXPORTWAV text '%s'", rep.text);
 
     RI_ASSERT(arexx_parse("SETRPPARAM 768 100", &cmd) == 0, "parse SETRPPARAM");
     RI_ASSERT(cmd.ctl == 768u && cmd.val == 100u, "SETRPPARAM fields %u %u", cmd.ctl, cmd.val);
-    arexx_dispatch(&cmd, &rep);
+    arexx_dispatch(&cmd, &rep, &g_fx);
     RI_ASSERT(rep.rc == RIAREXX_RC_OK, "SETRPPARAM rc");
     RI_ASSERT(strcmp(rep.text, "OK PARAM 768 100") == 0, "SETRPPARAM text '%s'", rep.text);
 
     /* port-prefix alias still dispatches */
     RI_ASSERT(arexx_parse("REINCARNATIONAROS PLAY", &cmd) == 0, "parse alias");
-    arexx_dispatch(&cmd, &rep);
+    arexx_dispatch(&cmd, &rep, &g_fx);
     RI_ASSERT(rep.rc == RIAREXX_RC_OK && strcmp(rep.text, "OK PLAYING") == 0, "alias dispatch");
 
     /* --- dispatch: fail-closed --- */
     memset(&cmd, 0, sizeof cmd);
     cmd.cmd = 99;
-    arexx_dispatch(&cmd, &rep);
+    arexx_dispatch(&cmd, &rep, &g_fx);
     RI_ASSERT(rep.rc == RIAREXX_RC_BADCMD, "unknown id rc %d", rep.rc);
     RI_ASSERT(strncmp(rep.text, "ERROR", 5) == 0, "unknown id text");
-    arexx_dispatch(0, &rep);
+    arexx_dispatch(0, &rep, &g_fx);
     RI_ASSERT(rep.rc == RIAREXX_RC_BADCMD, "NULL cmd rc");
     memset(&cmd, 0, sizeof cmd);
     cmd.cmd = RIAREXX_SETRPPARAM;
     cmd.ctl = 1u;
     cmd.val = 200u; /* parser would never emit this; dispatch re-checks */
-    arexx_dispatch(&cmd, &rep);
+    arexx_dispatch(&cmd, &rep, &g_fx);
     RI_ASSERT(rep.rc == RIAREXX_RC_BADARG, "val>127 rc %d", rep.rc);
-    arexx_dispatch(&cmd, 0); /* NULL rep: must not crash */
+    arexx_dispatch(&cmd, 0, &g_fx); /* NULL rep: must not crash */
 
     /* --- catalog: DE proof string renders through the lookup --- */
     s = ri_catalog_get("DE", "MSG_PLAY");

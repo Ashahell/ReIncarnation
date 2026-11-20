@@ -1601,7 +1601,7 @@ check_sig engine/framework/ridevice.h docs/autodoc/mixer.doc "uint32_t ri_device
 check_sig midi_io/midi.h docs/autodoc/midi.doc "int32_t midi_cc_lookup(const struct RIMidiLearn *m, uint32_t cc)"
 check_sig midi_io/midi.h docs/autodoc/midi.doc "int midi_mmc_cmd(const void *buf, uint32_t n)"
 check_sig project/arexx.h docs/autodoc/arexx.doc "int arexx_parse(const char *line, struct RIArexxCmd *cmd)"
-check_sig project/arexx_dispatch.h docs/autodoc/arexx.doc "void arexx_dispatch(const struct RIArexxCmd *cmd, struct RIArexxReply *rep)"
+check_sig project/arexx_dispatch.h docs/autodoc/arexx.doc "void arexx_dispatch(const struct RIArexxCmd *cmd, struct RIArexxReply *rep, const struct RIArexxEffects *fx)"
 check_sig project/rbng.h docs/autodoc/formats.doc "int rbng_read_song(const char *path, struct RISong *s, char *err,"
 check_sig project/rbnm.h docs/autodoc/formats.doc "int rbnm_reserialize(const char *src, const char *dst, char *err,"
 check_sig project/undo.h docs/autodoc/formats.doc "int ri_undo_commit(struct RIUndo *u, uint32_t ctl, uint8_t val)"

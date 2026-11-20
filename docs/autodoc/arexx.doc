@@ -9,7 +9,9 @@ int arexx_parse(const char *line, struct RIArexxCmd *cmd)
   Parse one line into cmd. Result: 0 ok, nonzero malformed (exact
   spacing: double/leading/trailing spaces reject).
 
-void arexx_dispatch(const struct RIArexxCmd *cmd, struct RIArexxReply *rep)
+void arexx_dispatch(const struct RIArexxCmd *cmd, struct RIArexxReply *rep, const struct RIArexxEffects *fx)
   Map command to reply (RIAREXX_RC_OK / RC_BADCMD / RC_BADARG +
   text). NULL-safe, fail-closed. Reply text truncates long paths
-  (display only; the struct keeps full args).
+  (display only; the struct keeps full args). Effects function
+  pointers are called for side effects (play, stop, opensong, etc.);
+  NULL means not implemented (returns RIAREXX_RC_FAILED).

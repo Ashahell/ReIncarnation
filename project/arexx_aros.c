@@ -26,6 +26,9 @@
 #include <exec/memory.h>
 #include <exec/libraries.h>
 #include <dos/dos.h>
+#include <proto/exec.h>
+#include <proto/dos.h>
+#include <proto/rexxsyslib.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

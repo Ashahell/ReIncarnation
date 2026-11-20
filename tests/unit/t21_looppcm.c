@@ -70,7 +70,7 @@ int main(void)
 
     /* Compile text -> RBNG binary */
     {
-        struct RISong song;
+        static struct RISong song;
         char err[256];
         char text[2048];
         int pos = 0;
@@ -92,7 +92,7 @@ int main(void)
     }
 
     /* Load the RBNG song */
-    struct RISong song;
+    static struct RISong song;
     char err[256];
     if (rbng_read_song(T21L_SONG, &song, err, sizeof err) != 0) {
         printf("render: RBNG invalid: %s: %s\n", T21L_SONG, err);

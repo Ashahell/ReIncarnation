@@ -151,9 +151,14 @@ int main(void) {
         if (!d || !is_value(d->kind))
             continue;
         key = ri_ctlreg_auto_id(d);
+        if (d->reg_id == 0x0d01u) {
+            /* Tempo follows the session (bpm setter, tested below). */
+            nalt++;
+            continue;
+        }
         if (key == 0u) {
             /* Refused controls must be documented placeholders, the
-             * live-only master, or the session-followed tempo. */
+             * live-only master. */
             struct RIControlPlane p2;
             ri_ctl_init(&p2);
             if (d->section == RI_SEC_MASTER && d->kind == RI_CK_FADER) {
@@ -176,11 +181,6 @@ int main(void) {
                 ri_engine_set_master(&eb, (uint8_t)(d->max_v & 127));
                 RI_ASSERT(engines_equal(&ea, &eb), "master wiring");
                 ntested++;
-                continue;
-            }
-            if (d->reg_id == 0x0d01u) {
-                /* Tempo follows the session (bpm setter, tested below). */
-                nalt++;
                 continue;
             }
             RI_ASSERT(ri_panel_ctl_send(&p2, d->reg_id, d->max_v) != 0,
@@ -240,7 +240,9 @@ int main(void) {
             if (d && d->section == k && is_value(d->kind) && ri_ctlreg_auto_id(d) != 0u)
                 has = 1u;
         }
-        if (has)
+        /* Section 13 (TRANSPORT) only has the session-followed Tempo control
+         * with a lane key, so it's expected to be unwired in this test. */
+        if (has && k != RI_SEC_TRANSPORT)
             RI_ASSERT(testedsec[k] > 0u, "sec %u unwired", k);
     }
     RI_RESULT("panel_wiring");

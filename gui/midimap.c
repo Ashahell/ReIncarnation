@@ -13,6 +13,11 @@ void ri_midi_init(struct RIMidiIn *m, uint8_t channel) {
     m->clocks = 0;
     m->midi_led_ms = 0;
     m->messages = m->ignored = 0;
+    m->touched = 0;
+    m->touch_reg = 0;
+    m->touch_val = 0;
+    for (uint32_t i = 0; i < 128u; i++)
+        m->last_cc_val[i] = 0xFFu;
 }
     /* STUB: reporting lands in t232's implementation, not here. */
 
@@ -39,6 +44,8 @@ static struct RISectUI *ui_of(struct RIPanelUI *p, uint32_t sec) {
         return p->fx[sec - RI_SEC_PCF];
     if (sec >= RI_SEC_PAT_SYNTH1 && sec <= RI_SEC_PAT_909)
         return p->pat[sec - RI_SEC_PAT_SYNTH1];
+    if (sec == RI_SEC_LEVI)
+        return p->levi;
     return sec == RI_SEC_TRANSPORT ? p->tr : 0;
 }
 
@@ -52,25 +59,31 @@ static int cc(struct RIMidiIn *m, struct RIPanelUI *p, uint8_t num, uint8_t val)
         return 0;
     idx = d->reg_id & 0xFFu;
     span = d->max_v - d->min_v;
+    /* Suppress repeated identical CCs: if the last value for this CC
+     * matches the current one, it's a no-op and we don't report a touch.
+     * This prevents the shell from pushing stale values on repeat messages. */
+    if (m->last_cc_val[num] == val)
+        return 0;
+    m->last_cc_val[num] = val;
     if (d->kind == RI_CK_SWITCH) {           /* on at >= 64 (E0); press to match */
-        int want = val >= 64u, now = ri_sui_value(u, idx) != 0;
-        if (want == now)
-            return 0;
-        /* Press matches a click, but a section may decline to press a switch
-         * it drives some other way -- 303A's Waveform is the case the census
-         * found, and before this fallback CC 23 moved NOTHING at all, which is
-         * the same "looks live, isn't" shape as everything else this session.
-         * Fall back to an absolute set, which every switch accepts. */
-        if (!ri_sui_press(u, idx) && !ri_sui_set(u, idx, want))
-            return 0;
+        int want = val >= 64u;
+        /* Always attempt to set the switch state. Press matches a click,
+         * but a section may decline to press a switch it drives some other
+         * way -- 303A's Waveform is the case the census found. Fall back to
+         * an absolute set, which every switch accepts. */
+        (void)ri_sui_press(u, idx);
+        (void)ri_sui_set(u, idx, want);
         goto report;
     }
     if (d->kind == RI_CK_SELECTOR)           /* n positions over 0..127 */
         v = d->min_v + (int)((uint32_t)val * (uint32_t)(span + 1) / 128u);
     else                                      /* knob / fader: linear, 127 = max */
         v = d->min_v + (int)(((uint32_t)val * (uint32_t)span + 63u) / 127u);
-    if (!ri_sui_set(u, idx, v))
-        return 0;
+    /* Attempt to set the value. Report regardless of whether the value
+     * changed, because the shell needs to know which control was addressed
+     * so it can push the current value (critical for controls whose default
+     * equals the CC value, like mixer Level faders at 127). */
+    (void)ri_sui_set(u, idx, v);
 report:
     /* Report the value the model ACTUALLY settled at, not the intent, so the
      * shell's push can never disagree with the lamp. For a switch that is a

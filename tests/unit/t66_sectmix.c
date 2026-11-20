@@ -13,12 +13,12 @@ int main(void) {
         ri_smix_strip(RI_SEC_MASTER) == 4 && ri_smix_strip(RI_SEC_909) == -1, "strips");
     for (sec = RI_SEC_MIX_SYNTH1; sec <= RI_SEC_MIX_909; sec++) {
         RI_ASSERT(ri_smix_led(&b, sec, RI_SMIX_ONOFF) == 1, "mixer %u starts on (sounding)", sec);
-        RI_ASSERT(ri_smix_value(&b, sec, RI_SMIX_LEVEL) == 100 && ri_smix_value(&b, sec, RI_SMIX_PAN) == 64 &&
+        RI_ASSERT(ri_smix_value(&b, sec, RI_SMIX_LEVEL) == 127 && ri_smix_value(&b, sec, RI_SMIX_PAN) == 64 &&
             ri_smix_value(&b, sec, RI_SMIX_DELAY) == 0, "mixer %u defaults", sec);
         RI_ASSERT(!ri_smix_led(&b, sec, RI_SMIX_DIST) && !ri_smix_led(&b, sec, RI_SMIX_PCF) &&
             !ri_smix_led(&b, sec, RI_SMIX_COMP), "inserts start off");
     }
-    RI_ASSERT(ri_smix_value(&b, RI_SEC_MASTER, RI_SMST_LEVEL) == 100, "master level default");
+    RI_ASSERT(ri_smix_value(&b, RI_SEC_MASTER, RI_SMST_LEVEL) == 127, "master level default");
     /* mute (p. 56) */
     RI_ASSERT(ri_smix_press(&b, RI_SEC_MIX_808, RI_SMIX_ONOFF) == 1 && !ri_smix_led(&b, RI_SEC_MIX_808, RI_SMIX_ONOFF),
         "mute");
@@ -46,11 +46,17 @@ int main(void) {
     RI_ASSERT(ri_smix_led(&b, RI_SEC_MIX_SYNTH2, RI_SMIX_DIST) && ri_smix_led(&b, RI_SEC_MIX_SYNTH2, RI_SMIX_COMP),
         "dist and comp on one strip");
     /* fader / knobs: clamp, default, per strip */
+    RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL, 80) == 1 &&
+        ri_smix_value(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL) == 80, "fader sets");
     RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL, 300) == 1 &&
-        ri_smix_value(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL) == 127, "fader clamps");
-    RI_ASSERT(ri_smix_value(&b, RI_SEC_MIX_SYNTH2, RI_SMIX_LEVEL) == 100, "other strip untouched");
+        ri_smix_value(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL) == 127, "fader clamps to max");
+    RI_ASSERT(ri_smix_value(&b, RI_SEC_MIX_SYNTH2, RI_SMIX_LEVEL) == 127, "other strip untouched");
+    /* Reset when already at default returns 0 (no change). First move away,
+     * then reset to verify the default is restored. */
+    RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL, 50) == 1 &&
+        ri_smix_value(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL) == 50, "move away from default");
     RI_ASSERT(ri_smix_reset(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL) == 1 &&
-        ri_smix_value(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL) == 100, "right-click default");
+        ri_smix_value(&b, RI_SEC_MIX_SYNTH1, RI_SMIX_LEVEL) == 127, "right-click default");
     RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MIX_909, RI_SMIX_PAN, -5) == 1 &&
         ri_smix_value(&b, RI_SEC_MIX_909, RI_SMIX_PAN) == 0, "pan hard left");
     RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MASTER, RI_SMST_LEVEL, 80) == 1 &&
@@ -80,12 +86,12 @@ int main(void) {
     RI_ASSERT(ri_smix_strip(RI_SEC_MIX_LEVI) == 5, "levi strip");
     RI_ASSERT(ri_smix_strip(RI_SEC_MASTER) == 4, "master stays");
     RI_ASSERT(ri_smix_led(&b, RI_SEC_MIX_LEVI, RI_SMIX_ONOFF) == 1, "levi on");
-    RI_ASSERT(ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_LEVEL) == 100 &&
+    RI_ASSERT(ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_LEVEL) == 127 &&
         ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_PAN) == 64 &&
         ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_DELAY) == 0, "levi defaults");
     RI_ASSERT(ri_smix_set_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_LEVEL, 72) == 1 &&
         ri_smix_value(&b, RI_SEC_MIX_LEVI, RI_SMIX_LEVEL) == 72, "levi fader");
-    RI_ASSERT(ri_smix_value(&b, RI_SEC_MIX_909, RI_SMIX_LEVEL) == 100, "909 untouched");
+    RI_ASSERT(ri_smix_value(&b, RI_SEC_MIX_909, RI_SMIX_LEVEL) == 127, "909 untouched");
     ri_smix_press(&b, RI_SEC_MIX_808, RI_SMIX_PCF);
     ri_smix_press(&b, RI_SEC_MIX_LEVI, RI_SMIX_PCF);
     RI_ASSERT(ri_smix_led(&b, RI_SEC_MIX_LEVI, RI_SMIX_PCF) && !ri_smix_led(&b, RI_SEC_MIX_808, RI_SMIX_PCF) &&

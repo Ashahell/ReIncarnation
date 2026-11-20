@@ -21,6 +21,7 @@ void ri_panel_init(struct RIPanelUI *p) {
         p->mix[i] = 0;
     for (i = 0; i < 4; i++)
         p->fx[i] = 0;
+    p->levi = 0;
     p->last.kind = RI_KA_NONE;
     p->last.section = 0;
     p->last.arg = 0;

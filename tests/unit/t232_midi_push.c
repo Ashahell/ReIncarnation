@@ -49,7 +49,7 @@
  * exactly as riapp.c binds it, because insert routing spans strips. */
 static struct RIPanelUI panel;
 static struct RIMidiIn m;
-static struct RISectUI g_fx[4], g_mix[6], g_tr, g_synth[2], g_drum[2], g_pat[RI_FOCUS_COUNT];
+static struct RISectUI g_fx[4], g_mix[6], g_tr, g_synth[2], g_drum[2], g_pat[RI_FOCUS_COUNT], g_levi;
 static struct RIMixBoard g_board;
 static struct RIFxRack g_rack;
 
@@ -84,6 +84,8 @@ static void fresh(void) {
         ri_sui_init(&g_pat[i], (uint8_t)(RI_SEC_PAT_SYNTH1 + i));
         panel.pat[i] = &g_pat[i];
     }
+    ri_sui_init(&g_levi, RI_SEC_LEVI);
+    panel.levi = &g_levi;
     ri_sui_init(&g_tr, RI_SEC_TRANSPORT);
     panel.tr = &g_tr;
     ri_midi_init(&m, 0u);

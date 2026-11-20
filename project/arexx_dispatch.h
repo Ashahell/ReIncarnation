@@ -42,7 +42,5 @@ struct RIArexxEffects {
  * SETRPPARAM/SETCTL with val > 127 fails closed (parser guarantees it,
  * dispatch re-checks: defense in depth at the trust boundary).
  * Effects returning nonzero cause RIAREXX_RC_FAILED. */
-void arexx_dispatch(const struct RIArexxCmd *cmd,
-                    struct RIArexxReply *rep,
-                    const struct RIArexxEffects *fx);
+void arexx_dispatch(const struct RIArexxCmd *cmd, struct RIArexxReply *rep, const struct RIArexxEffects *fx);
 #endif

@@ -154,6 +154,7 @@ int main(void) {
         static const float probe[8] = { -2.0f, -1.0f, -0.5f, 0.0f, 0.25f,
             0.5f, 1.0f, 2.0f };
         ri_fxdist_init(&d);
+        ri_fxdist_set(&d, 0, 0); /* drive=0, shape=0 for unity test */
         sine(IN, SRU, 1000.0, 0.5);
         r0 = rms(IN, SRU);
         ri_fxdist_render(&d, IN, OA, SRU);
