@@ -23,7 +23,7 @@
  *   D7 STARTUP  the panel default sent to a fresh engine must not move it.
  *                                                 OK | DEFAULT
  * Not measurable here, reported as NOTMEASURED, never as a pass or a fail:
- *   D2 Levi page encoders (docs/evidence/levi-wiring/.../levi_audit.c),
+ *   D2 Levi page encoders (measured by t244_levi_encoders, gated),
  *   D4 MIDI out, D8 lamp/LED/meter/repaint, D9 keyboard, D10 menus,
  *   D11 undo, D12 ARexx (the RIAPP effects are AROS-side; lane proof X3).
  * RI_BIND_NONE rows get one class instead of door verdicts: PRESSPATH
