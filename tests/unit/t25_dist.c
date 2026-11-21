@@ -55,7 +55,6 @@ int main(void) {
     struct RiFXDist d;
     uint32_t i, dv, sv;
     ri_fxdist_init(&d);
-    ri_fxdist_set(&d, 0, 0); /* drive=0, shape=0 for unity test */
 
     /* --- unity ±0.2 dB at drive 0 --- */
     {

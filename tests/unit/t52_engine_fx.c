@@ -76,7 +76,6 @@ int main(void) {
     duet(&e, RI_ENGINE_S303A);
     RI_ASSERT(ri_engine_assign_insert(&e, RI_ROUTE_DIST, 0) == -1,
         "dist assign prev");
-    ri_engine_fx_set(&e, RI_FXID_DIST_ENABLE, 1);
     ri_engine_fx_set(&e, RI_FXID_DIST_DRIVE, 100);
     RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "dist short");
     RI_ASSERT(differ(LA, LB, 4800u), "dist inaudible on A");
@@ -110,7 +109,6 @@ int main(void) {
     RI_ASSERT(ri_engine_render(&e, LA, RA, N, SR) == N, "neutral duet");
     duet(&e, secs);
     RI_ASSERT(ri_engine_set_delay(&e, DLINE, 96000u) == 0, "delay line");
-    ri_engine_fx_set(&e, RI_FXID_DELAY_ENABLE, 1);
     RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "send0 short");
     RI_ASSERT(!differ(LA, LB, N), "send0 != neutral");
     duet(&e, secs);
@@ -118,7 +116,6 @@ int main(void) {
     ri_engine_set_tempo(&e, 140.0f);
     /* 1 straight 16th @140 BPM = 5143 samples: the A-region send
      * echoes inside the window (steps 4 = 1 beat = 20571 > N). */
-    ri_engine_fx_set(&e, RI_FXID_DELAY_ENABLE, 1);
     ri_engine_fx_set(&e, RI_FXID_DELAY_STEPS, 1);
     ri_engine_fx_set(&e, RI_FXID_DELAY_FB, 64);
     RI_ASSERT(ri_engine_set_send(&e, 0, 100) == 0, "send0 up");
@@ -130,7 +127,6 @@ int main(void) {
     duet(&e, secs);
     RI_ASSERT(ri_engine_assign_insert(&e, RI_ROUTE_COMP,
         RI_ROUTE_MASTER) == -1, "comp master prev");
-    ri_engine_fx_set(&e, RI_FXID_COMP_ENABLE, 1);
     ri_engine_fx_set(&e, RI_FXID_COMP_THRESH, 8); /* low threshold: hot */
     RI_ASSERT(ri_engine_render(&e, LB, RB, N, SR) == N, "comp short");
     RI_ASSERT(differ(LA, LB, N), "master comp inaudible");

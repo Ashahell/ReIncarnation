@@ -1,6 +1,13 @@
 # ARexx Port Design Note (Part X, X0)
 
 > Written 2026-11-17. Owner approval required before X1.
+>
+> **Status 2026-11-21 (advisor review): NOT owner-approved; X1–X2 were built
+> without that stop.** Implementation corrected (see llm-wiki
+> `2026-11-21-review-of-wiring-census-and-arexx-port.md`). EXPORTWAV (§5) is
+> **not** implemented in RIAPP: it replies rc 20; an offline render on the
+> main task would share the live session with the audio driver. Open
+> question 2 is answered by that, pending owner.
 
 ---
 

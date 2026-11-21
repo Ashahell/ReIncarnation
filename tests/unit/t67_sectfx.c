@@ -37,7 +37,7 @@ int main(void) {
     RI_ASSERT(ri_sfx_step(&s, 4, 1) == 0, "sliders have no arrows");
     RI_ASSERT(ri_sfx_press(&s, RI_SFX_PCF_MODE) == 1 && s.val[RI_SFX_PCF_MODE] == 1, "mode LP -> BP");
     RI_ASSERT(ri_sfx_set_value(&s, 4, 300) == 1 && s.val[4] == 127, "Freq slider clamps");
-    RI_ASSERT(ri_sfx_reset(&s, 6) == 0 && s.val[6] == 64, "Amt defaults to 64");
+    RI_ASSERT(ri_sfx_reset(&s, 6) == 0 && s.val[6] == 0, "Amt defaults to 0 (no pattern effect)");
     RI_ASSERT(ri_ctlreg_find((uint16_t)((RI_SEC_PCF << 8) | 4))->kind == RI_CK_FADER, "PCF Freq is a slider (p. 159)");
     /* Delay (p. 161-162) */
     ri_sfx_init(&s, RI_SEC_DELAY);

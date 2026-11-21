@@ -1,3 +1,9 @@
+## [2026-11-21] review | Opencode wiring census + ARexx port reviewed, corrected
+- Raw: llm-wiki/raw/articles/2026-11-21-review-of-wiring-census-and-arexx-port.md
+- Corrections appended: 2026-11-19 t232, 2026-11-20 Dell deployment, 2026-11-20 census
+- Removed: llm-wiki/wiki/ (parallel structure; house convention is raw article + index line + log block)
+- Reverted to `c9bd66f`: unapproved W2 sound/default/range/ID changes, 65 goldens, 18 tests
+
 ## [2026-11-09] verdict | P-KEY4 accepted by ear: +6 dB stays
 - Disposition: Closes P-KEY4 (Update to the 2026-10-24 entry)
 - Raw: llm-wiki/raw/articles/2026-10-24-the-keybed-was-one-voice-against-four.md (verdict section appended)

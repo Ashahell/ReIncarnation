@@ -23,7 +23,6 @@ struct RIPanelUI {
     struct RISectUI *tr;                        /* RI_SEC_TRANSPORT */
     struct RISectUI *mix[6];                    /* RI_SEC_MIX_* + RI_SEC_MASTER + RI_SEC_MIX_LEVI (MIDI, G7) */
     struct RISectUI *fx[4];                     /* RI_SEC_PCF .. RI_SEC_COMP (MIDI, G7) */
-    struct RISectUI *levi;                    /* RI_SEC_LEVI */
     struct RIKeyAction last;                    /* last decoded action (readout/proofs) */
     uint16_t last_raw, last_qual;               /* last raw key event seen (diagnostics) */
     /* live state (G6a): playhead step per focus section, -1 = stopped */

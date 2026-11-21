@@ -3751,6 +3751,7 @@ static void instance_claim_release(void) {
  */
 static void riapp_teardown(void) {
     int i;
+    ri_arexx_port_destroy(); /* idempotent; replies anything queued rc 20 */
     /* THE CANVASES THAT ARE IN NO PAGE AT ALL (2026-10-20). Zune keeps the
      * parent of every child it takes: MUIA_Parent is the group (or its
      * family) that owns the object, and NULL when it has none. A canvas
@@ -3906,9 +3907,7 @@ static void riapp_teardown(void) {
 /* Forward declarations for ARexx effect functions. */
 static void arexx_fx_play(void);
 static void arexx_fx_stop(void);
-static int arexx_song_load(const char *path, struct RICoreSong *out);
 static int arexx_fx_opensong(const char *path);
-static int arexx_fx_exportwav(const char *song, const char *wav);
 static int arexx_fx_setctl(uint32_t reg_id, uint8_t value);
 static int arexx_fx_getctl(uint32_t reg_id, uint8_t *value);
 static int arexx_fx_tempo(uint32_t bpm);
@@ -3920,7 +3919,10 @@ static const struct RIArexxEffects s_arexx_effects = {
     .play = arexx_fx_play,
     .stop = arexx_fx_stop,
     .opensong = arexx_fx_opensong,
-    .exportwav = arexx_fx_exportwav,
+    /* EXPORTWAV: not in RIAPP. An offline render on the main task would
+     * share the live session with the audio driver; the dispatcher replies
+     * rc 20 "not implemented" for a NULL effect. ri_render owns export. */
+    .exportwav = 0,
     .setctl = arexx_fx_setctl,
     .getctl = arexx_fx_getctl,
     .tempo = arexx_fx_tempo,
@@ -3959,17 +3961,6 @@ static int riapp_main(int argc, char **argv) {
         rlog("RIAPP LOG build=%s diag=%lu\n", RIAPP_BUILD_HASH,
             (unsigned long)rsection_diag_enabled());
     evlog_open();
-    /* ARexx port: create REINCARNATION port before panel (fails cleanly if taken). */
-    arexx_sig = ri_arexx_port_create(&s_arexx_effects);
-    if (arexx_sig < 0) {
-        if (DOSBase)
-            rlog("RIAPP arexx: port REINCARNATION taken or rexxsyslib unavailable\n", 0, 0, 0, 0);
-        /* Non-fatal: RIAPP runs without ARexx. */
-        arexx_sig = -1;
-    } else {
-        rlog("RIAPP arexx: port REINCARNATION created (sig=%d)\n", arexx_sig, 0, 0, 0, 0);
-    }
-
     if (instance_claim() != 0) {
         /* Refuse, do not warn. The requester names the way out; the point
          * is that this process ends here instead of becoming a second
@@ -4010,6 +4001,14 @@ static int riapp_main(int argc, char **argv) {
         }
         return 1;
     }
+    /* ARexx port REINCARNATION: after the instance claim, so a refused
+     * second copy never publishes a port (it used to, and then returned
+     * without removing it: a public port in freed memory). Non-fatal; every
+     * exit path removes it in riapp_teardown. */
+    arexx_sig = ri_arexx_port_create(&s_arexx_effects);
+    if (DOSBase)
+        rlog(arexx_sig < 0 ? "RIAPP arexx: no port (REINCARNATION taken or rexxsyslib missing)\n"
+            : "RIAPP arexx: port REINCARNATION sig=%ld\n", (IPTR)arexx_sig, 0, 0, 0, 0);
     if (rack_classes_make() != 0 && DOSBase)
         rlog("RIAPP rack classes unavailable (plain buttons, flat bay)\n", 0, 0, 0, 0, 0);
     evlog("RUN", "frames=%lu vol=%s build=%s", frames, s_evvol, RIAPP_BUILD_HASH);
@@ -5091,8 +5090,6 @@ static int riapp_main(int argc, char **argv) {
         DeleteIORequest((struct IORequest *)treq);
     if (tport)
         DeleteMsgPort(tport);
-    if (arexx_sig >= 0)
-        ri_arexx_port_destroy();
     /* THE NORMAL EXIT AND EVERY FAILURE PATH LEAVE THROUGH THE SAME TEARDOWN
      * (2026-10-20). The order is unchanged from the old inline exit: the
      * capture ends, the MIDI teardown (the bridge task AND the clock/device
@@ -5110,130 +5107,82 @@ cleanup:
 }
 
 /* ARexx effect implementations — called from dispatch on main task. */
+/* PLAY / STOP / TEMPO go through the transport panel, as a click does:
+ * sync_transport() reads the panel every frame, so a change made behind it
+ * (ri_core_play, ri_live_set_bpm) was reverted or never shown. */
+static void arexx_tr_press(uint32_t key) {
+    ri_str_press(&s_ui[C_TR]->u.tr, key);
+    sync_transport();
+    if (s_canvas[C_TR])
+        MUI_Redraw(s_canvas[C_TR], MADF_DRAWOBJECT);
+}
 static void arexx_fx_play(void) {
-    ri_core_play(&s_core);
+    if (s_ui[C_TR]->u.tr.tr.state != RI_TR_PLAYING)
+        arexx_tr_press(RI_STR_PLAY);
 }
 static void arexx_fx_stop(void) {
-    ri_core_stop(&s_core);
+    if (s_ui[C_TR]->u.tr.tr.state != RI_TR_STOPPED)
+        arexx_tr_press(RI_STR_STOP);
 }
 
-/* Helper: convert RISong (rbng) to RICoreSong for ri_core_load_song. */
-static int arexx_song_load(const char *path, struct RICoreSong *out) {
-    struct RISong song;
-    char err[256];
-    struct RIPatternBank banks[RI_SONGTRACK_INSTANCES];
-    char warn[256];
-    uint32_t i;
-
-    if (!out || !path)
-        return -1;
-    memset(out, 0, sizeof *out);
-    memset(banks, 0, sizeof banks);
-
-    if (rbng_read_song(path, &song, err, sizeof err) != 0)
-        return -1;
-
-    /* Convert patterns to banks for each instance (303A, 303B, 808, 909, LEVI). */
-    for (i = 0; i < RI_SONGTRACK_INSTANCES; i++) {
-        ri_bank_init(&banks[i], i, RI_PATTERN_KIND_303 + i, 0);
-        if (rbng_patt_to_bank(&song, &banks[i], warn, sizeof warn) != 0)
-            return -1;
-    }
-    out->bank[0] = &banks[0];
-    out->bank[1] = &banks[1];
-    out->bank[2] = &banks[2];
-    out->bank[3] = &banks[3];
-    out->bank[4] = &banks[4];
-
-    /* Track */
-    out->track = &song.track;
-
-    /* Tempo and PPQ */
-    out->bpm = song.tempo;
-    out->ppq = song.ppq;
-
-    /* Automation */
-    out->auto_tick = song.nauto > 0 ? (const uint32_t *)song.auto_ev : 0;
-    out->auto_ctl = 0; /* RISong doesn't expose separate arrays */
-    out->auto_val = 0;
-    out->nauto = song.nauto;
-
-    return 0;
-}
-
+/* OPENSONG: the one loader every other door uses (file requester,
+ * playlist, demo probe), so the song, its ATRK lane, the transport and the
+ * panel come up exactly as they do from the menu. */
 static int arexx_fx_opensong(const char *path) {
-    struct RICoreSong cs;
-    if (arexx_song_load(path, &cs) != 0)
-        return -1;
-    return ri_core_load_song(&s_core, &cs);
+    return song_load_path(path) == 0 ? 0 : -1;
 }
 
-static int arexx_fx_exportwav(const char *song, const char *wav) {
-    struct RICoreSong cs;
-    if (arexx_song_load(song, &cs) != 0)
-        return -1;
-    if (ri_core_load_song(&s_core, &cs) != 0)
-        return -1;
-    uint32_t bars = s_core.song_bars;
-    if (!bars)
-        return -1;
-    const float SR = 48000.0f;
-    uint64_t frames = (uint64_t)((double)bars * 4.0 * 60.0 / (double)cs.bpm * SR) + 2u * (uint64_t)SR;
-    FILE *f = fopen(wav, "wb");
-    if (!f)
-        return -1;
-    fwrite("RIFF", 1, 4, f);
-    uint32_t fsize = 36u + (uint32_t)frames * 4u;
-    fwrite(&fsize, 4, 1, f);
-    fwrite("WAVEfmt ", 1, 8, f);
-    uint32_t fmt_len = 16;
-    fwrite(&fmt_len, 4, 1, f);
-    uint16_t fmt_tag = 1;
-    fwrite(&fmt_tag, 2, 1, f);
-    uint16_t channels = 2;
-    fwrite(&channels, 2, 1, f);
-    uint32_t sample_rate = 48000;
-    fwrite(&sample_rate, 4, 1, f);
-    uint32_t byte_rate = 48000 * 4;
-    fwrite(&byte_rate, 4, 1, f);
-    uint16_t block_align = 4;
-    fwrite(&block_align, 2, 1, f);
-    uint16_t bits = 16;
-    fwrite(&bits, 2, 1, f);
-    fwrite("data", 1, 4, f);
-    uint32_t data_size = (uint32_t)frames * 4u;
-    fwrite(&data_size, 4, 1, f);
-    float L[RIAPP_FRAMES], R[RIAPP_FRAMES];
-    ri_core_play(&s_core);
-    uint64_t done = 0;
-    while (done < frames) {
-        uint32_t want = (uint32_t)(frames - done > RIAPP_FRAMES ? RIAPP_FRAMES : frames - done);
-        ri_live_render(&s_core.session, L, R, want);
-        uint32_t k;
-        for (k = 0; k < want; k++) {
-            int16_t l = (int16_t)(L[k] * 32767.0f);
-            int16_t r = (int16_t)(R[k] * 32767.0f);
-            fwrite(&l, 2, 1, f);
-            fwrite(&r, 2, 1, f);
-        }
-        done += want;
-    }
-    ri_core_stop(&s_core);
-    fclose(f);
-    return 0;
+/* Registry row -> the canvas that owns its section (s_ui is C_-indexed). */
+static int arexx_canvas_of(const struct RICtlDef *d) {
+    int c;
+    for (c = 0; c < C_N; c++)
+        if (c_sections[c] == d->section)
+            return s_ui[c] ? c : -1;
+    return -1;
 }
+
+/* SETCTL: the same three steps as a MIDI CC (t232): set the panel model,
+ * push the value it SETTLED at, repaint. Refuses rows the engine does not
+ * honour (BIND_NONE / no lane key) and values outside the row's range. */
 static int arexx_fx_setctl(uint32_t reg_id, uint8_t value) {
-    return ri_panel_ctl_send(&s_core.ctl, reg_id, value);
+    const struct RICtlDef *d = reg_id <= 0xFFFFu ? ri_ctlreg_find((uint16_t)reg_id) : 0;
+    int c, i, v;
+    if (!d || d->bind == RI_BIND_NONE || ri_ctlreg_auto_id(d) == 0u)
+        return -1;
+    if ((int)value < d->min_v || (int)value > d->max_v)
+        return -1;
+    c = arexx_canvas_of(d);
+    if (c < 0)
+        return -1;
+    ri_sui_set(s_ui[c], d->reg_id & 0xFFu, (int)value);
+    v = ri_sui_value(s_ui[c], d->reg_id & 0xFFu);
+    if (ri_panel_ctl_send(&s_core.ctl, d->reg_id, v) != 0)
+        return -1;
+    evlog("REXX", "setctl %04x=%d", d->reg_id, v);
+    for (i = 0; i < 15; i++)
+        if (s_canvas[i])
+            MUI_Redraw(s_canvas[i], MADF_DRAWOBJECT);
+    return 0;
 }
 static int arexx_fx_getctl(uint32_t reg_id, uint8_t *value) {
-    if (!value) return -1;
-    const struct RICtlDef *d = ri_ctlreg_find(reg_id);
-    if (!d) return -1;
-    *value = ri_sui_value(s_ui[d->section], d->reg_id & 0xFFu);
+    const struct RICtlDef *d = reg_id <= 0xFFFFu ? ri_ctlreg_find((uint16_t)reg_id) : 0;
+    int c, v;
+    if (!value || !d)
+        return -1;
+    c = arexx_canvas_of(d);
+    if (c < 0)
+        return -1;
+    v = ri_sui_value(s_ui[c], d->reg_id & 0xFFu);
+    *value = (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v);
     return 0;
 }
 static int arexx_fx_tempo(uint32_t bpm) {
-    ri_live_set_bpm(&s_core.session, (float)bpm);
+    if (bpm < 20u || bpm > 500u || s_ui[C_TR]->u.tr.tempo_lock)
+        return -1; /* the knob's range; MIDI clock owns tempo while locked */
+    ri_str_set_value(&s_ui[C_TR]->u.tr, RI_STR_TEMPO, (int)bpm);
+    sync_transport();
+    if (s_canvas[C_TR])
+        MUI_Redraw(s_canvas[C_TR], MADF_DRAWOBJECT);
     return 0;
 }
 static void arexx_fx_status(char *out, size_t outsz) {

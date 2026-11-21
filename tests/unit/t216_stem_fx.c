@@ -335,7 +335,6 @@ int main(void) {
         E.delay.steps = 1u;
         for (i = 0u; i < RI_ROUTE_NSECTIONS; i++)
             ri_engine_set_send(&E, (uint8_t)i, 100u);
-        ri_engine_fx_set(&E, RI_FXID_DELAY_ENABLE, 1);
         ri_stemr_bind(&R5, &E);
         /* THE RENDER IS IN BLOCKS, and the tap is checked at an ABSOLUTE
          * position past the first block -- the same law R8e exists for. */

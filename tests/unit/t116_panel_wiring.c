@@ -18,7 +18,6 @@
 #include "gui/secttr.h"
 #include "engine/engine.h"
 #include "engine/live.h"
-#include "engine/seq/autolane.h"
 #include "engine/seq/ctlplane.h"
 #include "engine/seq/autolane.h"
 #include "engine/dsp/rb303.h"
@@ -88,12 +87,6 @@ static void direct(struct RIEngine *e, uint16_t key, uint8_t val) {
             levi_set_param_ui(&e->slevi, v, key & 0xFFu, val);
         return;
     }
-    if (blk == RI_AUTO_BLK_TEMPO) {
-        /* Tempo: value 0..127 maps to 20..500 BPM (same as ri_engine_set_tempo clamp). */
-        float bpm = 20.0f + (float)val * (480.0f / 127.0f);
-        ri_engine_set_tempo(e, bpm);
-        return;
-    }
     if (blk == RI_AUTO_BLK_MIX && hi >= 1u && hi <= RI_AUTO_STRIP_LEVI + 1u) {
         uint32_t strip = hi - 1u;
         int owner = strip == RI_AUTO_STRIP_MASTER ? RI_ROUTE_MASTER
@@ -151,14 +144,9 @@ int main(void) {
         if (!d || !is_value(d->kind))
             continue;
         key = ri_ctlreg_auto_id(d);
-        if (d->reg_id == 0x0d01u) {
-            /* Tempo follows the session (bpm setter, tested below). */
-            nalt++;
-            continue;
-        }
         if (key == 0u) {
             /* Refused controls must be documented placeholders, the
-             * live-only master. */
+             * live-only master, or the session-followed tempo. */
             struct RIControlPlane p2;
             ri_ctl_init(&p2);
             if (d->section == RI_SEC_MASTER && d->kind == RI_CK_FADER) {
@@ -183,6 +171,12 @@ int main(void) {
                 ntested++;
                 continue;
             }
+            if (d->section == RI_SEC_TRANSPORT && d->kind == RI_CK_DISPLAY &&
+                (d->reg_id & 0xFFu) == RI_STR_TEMPO) {
+                /* Tempo follows the session (bpm setter, tested below). */
+                nalt++;
+                continue;
+            }
             RI_ASSERT(ri_panel_ctl_send(&p2, d->reg_id, d->max_v) != 0,
                 "bridge sends keyless %04x", d->reg_id);
             RI_ASSERT(d->bind == RI_BIND_NONE, "keyless but bound %04x", d->reg_id);
@@ -204,7 +198,19 @@ int main(void) {
         RI_ASSERT(nd == 1u, "drain one %04x", d->reg_id);
         for (q = 0u; q < nd; q++)
             ri_engine_apply_event(&ea, &ev[q]);
-        direct(&eb, key, (uint8_t)(v & 127));
+        if (d->bind == RI_BIND_303 && d->kind == RI_CK_SWITCH && d->max_v == 1) {
+            /* 303 Waveform (2026-11-21): the bridge sends the 0/1 switch
+             * as 0/127, the engine's CC law. Equality alone passed while
+             * the switch was dead (both sides saw), so pin the effect. */
+            struct RIEngine e0;
+            memset(&e0, 0, sizeof e0);
+            ri_engine_init(&e0);
+            ri_engine_defaults(&e0);
+            RI_ASSERT(!engines_equal(&ea, &e0), "waveform switch moves the engine %04x",
+                d->reg_id);
+            direct(&eb, key, 127u);
+        } else
+            direct(&eb, key, (uint8_t)(v & 127));
         RI_ASSERT(engines_equal(&ea, &eb), "wiring %04x %s/%s",
             d->reg_id, d->group, d->legend);
         ntested++;
@@ -240,9 +246,7 @@ int main(void) {
             if (d && d->section == k && is_value(d->kind) && ri_ctlreg_auto_id(d) != 0u)
                 has = 1u;
         }
-        /* Section 13 (TRANSPORT) only has the session-followed Tempo control
-         * with a lane key, so it's expected to be unwired in this test. */
-        if (has && k != RI_SEC_TRANSPORT)
+        if (has)
             RI_ASSERT(testedsec[k] > 0u, "sec %u unwired", k);
     }
     RI_RESULT("panel_wiring");

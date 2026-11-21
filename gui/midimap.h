@@ -40,9 +40,6 @@ struct RIMidiIn {
      * indistinguishable from "nothing touched". The census caught this by
      * reporting a mapped CC that moved a control and pushed nothing. */
     uint8_t touched;
-    /* Last CC value seen per controller (0..127), 0xFF = never seen.
-     * Used to suppress repeated identical CCs (t232). */
-    uint8_t last_cc_val[128];
 };
 
 #define RI_MIDI_LED_MS 100u /* E0: how long the MIDI LED stays lit per message */

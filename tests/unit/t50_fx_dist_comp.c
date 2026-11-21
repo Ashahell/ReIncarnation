@@ -79,7 +79,6 @@ int main(void) {
     struct RiFXComp c;
     uint32_t i, dv, sv;
     ri_fxdist_init(&d);
-    ri_fxdist_set(&d, 0, 0); /* drive=0, shape=0 for bypass test */
 
     /* (a) bypass exact. */
     sine(IN, N, 1000.0, 0.5);

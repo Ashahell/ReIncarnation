@@ -150,11 +150,22 @@ float rb808_pitch_hz(uint32_t voice, float t, float tune_st) {
     return f;
 }
 
-/* Panel default for Decay is 64; interp9(RI_808_DECAY_TBL, 64) = 0.50f.
- * Match panel default so startup burst is a no-op. */
 static float default_tau(uint32_t voice) {
-    (void)voice;
-    return 0.50f;
+    switch (voice) {
+    case RB808_BD: return 0.5f;
+    case RB808_SD: return 0.25f;
+    case RB808_LT: case RB808_MT: case RB808_HT: return 0.4f;
+    case RB808_LC: case RB808_MC: case RB808_HC: return 0.3f;
+    case RB808_RS: return 0.03f;
+    case RB808_CL: return 0.04f;
+    case RB808_CP: return 1.0f; /* envelope inherent in burst/tail fn */
+    case RB808_CH: return RI_808_CH_TAU;
+    case RB808_OH: return 0.4f;
+    case RB808_CY: return RI_808_CY_TAU;
+    case RB808_CB: return 0.2f;
+    case RB808_MA: return 0.04f; /* maracas: short sharp envelope (§12.5a) */
+    default: return 0.3f;
+    }
 }
 
 static float max_tau(uint32_t voice) {
@@ -187,13 +198,9 @@ void rb808_init_set(struct RB808Set *s) {
         s->v[i].t = 0.0f;
         s->v[i].tune_st = 0.0f;
         s->v[i].tau_amp = default_tau(i);
-        /* Panel default for Level is 100; match it so startup burst is a no-op. */
-        s->v[i].level = 100.0f / 127.0f;
-        /* Panel default for AC Level is 64; accent_amt = value/127.0f so 64/127. */
-        s->v[i].accent_amt = 64.0f / 127.0f; /* legacy x1.5 excitation, bit-exact */
-        /* Panel default for Snappy is 64; snappy = value/64.0f so 64/64 = 1.0. */
+        s->v[i].level = 1.0f;
+        s->v[i].accent_amt = 0.5f; /* legacy x1.5 excitation, bit-exact */
         s->v[i].snappy = 1.0f; /* SD noise ratio, knob 64 (exact) */
-        /* Panel default for Tone is 64; tone = value (exact). */
         s->v[i].tone = 64.0f; /* BD click / CY HP knob value (exact) */
         s->v[i].phase = 0.0f;
         s->v[i].phase2 = 0.0f;

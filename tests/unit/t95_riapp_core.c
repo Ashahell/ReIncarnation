@@ -171,7 +171,6 @@ int main(void) {
         ri_core_init(&e, 96u, 48000.0f, 120.0f, RI_ENGINE_S303A | RI_ENGINE_S808);
         ri_core_demo(&e);
         ri_engine_set_send(&e.session.eng, 2u, 127u);
-        ri_engine_fx_set(&e.session.eng, RI_FXID_DELAY_ENABLE, 1);
         ri_core_play(&d);
         ri_core_play(&e);
         while (n < 144000u) {

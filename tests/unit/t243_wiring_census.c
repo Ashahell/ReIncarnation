@@ -1,68 +1,99 @@
-/* t243_wiring_census — wiring census across all 12 doors (Part W, W0).
+/* t243_wiring_census — every registry row through every door that can be
+ * measured host-side, and a ratchet gate on the result.
  *
- * Walks every registry row (all 21 sections) and, for each door D1–D11 that
- * applies to the row, drives the control to an alternate value through that
- * door and records one verdict:
- *   OK         — engine state moved, equals D1 result (whole-engine memcmp)
- *   DEAD       — door accepts input, engine state does not move
- *   DIVERGE    — state moves, but not to D1 state
- *   NOFEEDBACK — state moves, lamp/LED/meter/repaint does not
- *   DEFAULT    — panel default sent to fresh engine moves engine
- *   NOROUNDTRIP— save→load (D6) or record→play (D5) does not restore it
- *   NA         — door does not apply (from row: automatable=0, midi_cc=NONE, kind)
- *   BINDNONE   — RI_BIND_NONE, sub-class: PRESSPATH, PANELLOCAL, UNEXPLAINED
+ * Rewritten 2026-11-21 (advisor review of the first version). The first
+ * version reported verdicts it never measured:
+ *   - D3 (MIDI in) and D9 (keyboard) called ri_panel_ctl_send directly, so
+ *     they could only ever agree with D1;
+ *   - "feedback" was "any meter peak after a 64-sample render with no notes",
+ *     which is silence on every row, so 2010 NOFEEDBACK verdicts were the
+ *     check itself;
+ *   - the gate ran only with --gate, which the audit never passed, and the
+ *     allow-list was generated from the verdicts it was meant to judge.
  *
- * Output: docs/evidence/wiring/2026-11-NN-census/census.tsv (one row per
- * control, one column per door) + summary counts per section and per verdict.
- * Test passes today if it runs and writes the table; does not fail on verdicts.
+ * What this version measures, per row (the reference is D1):
+ *   D1 PANEL    ri_panel_ctl_send -> control plane -> engine.     OK | DEAD
+ *   D3 MIDI_IN  the real map: ri_midi_msg on a bound panel, then the push
+ *               RIAPP does (ri_panel_ctl_send of the reported touch).
+ *                                                 OK | DEAD | DIVERGE
+ *   D5 AUTO     ri_auto_touch record, then the event replayed.
+ *                                                 OK | DEAD | DIVERGE
+ *   D6 SAVELOAD the automation event through an RBNG write + read (the ATRK
+ *               lane RIAPP loads), then replayed.  OK | NOROUNDTRIP | DIVERGE
+ *   D7 STARTUP  the panel default sent to a fresh engine must not move it.
+ *                                                 OK | DEFAULT
+ * Not measurable here, reported as NOTMEASURED, never as a pass or a fail:
+ *   D2 Levi page encoders (docs/evidence/levi-wiring/.../levi_audit.c),
+ *   D4 MIDI out, D8 lamp/LED/meter/repaint, D9 keyboard, D10 menus,
+ *   D11 undo, D12 ARexx (the RIAPP effects are AROS-side; lane proof X3).
+ * RI_BIND_NONE rows get one class instead of door verdicts: PRESSPATH
+ * (transport / pattern sections), PANELLOCAL (button, step, display, meter,
+ * LED, the Levi Master group) or UNEXPLAINED.
  *
- * Positive controls (must be in commit):
- *   - at least one row reported OK
- *   - a deliberately broken copy of one known-good row (unbind it in a
- *     test-only table) that the tool reports DEAD
- *   - t224's four historical defects, re-introduced one at a time in a
- *     scratch build, each caught
+ * GATE (always on): every non-OK verdict must be in the committed baseline
+ * docs/evidence/wiring/2026-11-21-census/baseline.tsv. A NEW bad verdict
+ * fails; a baseline entry that now reads OK fails too (remove it). The
+ * baseline is a ratchet, not a judgement: its rows are the W1 backlog.
+ * RI_CENSUS_WRITE_BASELINE=1 writes the current set to RI_TMP for review.
+ *
+ * Controls: a row with a bogus reg_id must read DEAD through the same
+ * function the census uses; a D3 result compared against the wrong value
+ * must read DIVERGE; t224's strip-mute shape (a mixer On/Off switch with
+ * bind NONE) must read UNEXPLAINED; and at least one row must read OK.
  */
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
-#include <stdlib.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include "tests/helpers/ri_assert.h"
+#include "platform/pal/ri_tmp.h"
 #include "gui/ctlreg.h"
 #include "gui/panelctl.h"
-#include "gui/sectui.h"
-#include "gui/sectlevi.h"
 #include "gui/midimap.h"
+#include "gui/sectui.h"
+#include "gui/sectfx.h"
+#include "gui/sectmix.h"
 #include "gui/keymap.h"
-#include "gui/panelgeo.h"
 #include "engine/engine.h"
 #include "engine/seq/autolane.h"
-#include "engine/seq/transport.h"
 #include "engine/seq/ctlplane.h"
-#include "engine/dsp/rb303.h"
-#include "engine/dsp/rb808.h"
-#include "engine/dsp/rb909.h"
 #include "engine/dsp/levi.h"
-#include "engine/fx/fx.h"
-#include "engine/fx/route.h"
+#include "engine/dsp/levi_fx.h"
 #include "project/rbng.h"
-#include "project/undo.h"
-#include "gui/livestate.h"
-#include <unistd.h>
 
-/* Same engine equality as t116 (skips Levi reverb line pointers). */
-static int engines_equal(const struct RIEngine *a, const struct RIEngine *b)
-{
+#define T243_DIR RI_TMP_ROOT "/run/t243"
+#define T243_BASELINE "docs/evidence/wiring/2026-11-21-census/baseline.tsv"
+
+enum { D_PANEL, D_LEVI_ENC, D_MIDI_IN, D_MIDI_OUT, D_AUTO, D_SAVELOAD,
+       D_STARTUP, D_FEEDBACK, D_KEYBOARD, D_MENUS, D_UNDO, D_AREXX, D_COUNT };
+static const char *const k_door[D_COUNT] = {
+    "D1_PANEL", "D2_LEVI_ENC", "D3_MIDI_IN", "D4_MIDI_OUT", "D5_AUTO",
+    "D6_SAVELOAD", "D7_STARTUP", "D8_FEEDBACK", "D9_KEYBOARD", "D10_MENUS",
+    "D11_UNDO", "D12_AREXX" };
+
+enum { V_OK, V_NA, V_NOTMEASURED, V_DEAD, V_DIVERGE, V_DEFAULT, V_NOROUNDTRIP,
+       V_PRESSPATH, V_PANELLOCAL, V_UNEXPLAINED, V_COUNT };
+static const char *const k_verdict[V_COUNT] = {
+    "OK", "NA", "NOTMEASURED", "DEAD", "DIVERGE", "DEFAULT", "NOROUNDTRIP",
+    "BINDNONE_PRESSPATH", "BINDNONE_PANELLOCAL", "BINDNONE_UNEXPLAINED" };
+
+static int is_bad(int v) {
+    return v == V_DEAD || v == V_DIVERGE || v == V_DEFAULT || v == V_NOROUNDTRIP ||
+        v == V_UNEXPLAINED;
+}
+
+/* Same engine equality as t116 (skips the Levi reverb line pointers). */
+static int engines_equal(const struct RIEngine *a, const struct RIEngine *b) {
     size_t r0 = offsetof(struct RIEngine, slevi) +
         offsetof(struct RILeviSet, fx) + offsetof(struct RILeviFx, rvl);
     size_t r1 = r0 + 2u * sizeof(struct RIReverb);
     const struct RILeviFx *fa = &a->slevi.fx, *fb = &b->slevi.fx;
     if (memcmp(a, b, r0))
         return 0;
-    if (memcmp((const unsigned char *)a + r1, (const unsigned char *)b + r1,
-            sizeof *a - r1))
+    if (memcmp((const unsigned char *)a + r1, (const unsigned char *)b + r1, sizeof *a - r1))
         return 0;
     return fa->rvl.fb == fb->rvl.fb && fa->rvr.fb == fb->rvr.fb &&
         fa->rvl.cap == fb->rvl.cap && fa->rvr.cap == fb->rvr.cap &&
@@ -70,963 +101,455 @@ static int engines_equal(const struct RIEngine *a, const struct RIEngine *b)
         !memcmp(fa->rvr.len, fb->rvr.len, sizeof fa->rvr.len);
 }
 
-/* Verdict codes */
-typedef enum {
-    V_OK = 0,
-    V_DEAD,
-    V_DIVERGE,
-    V_NOFEEDBACK,
-    V_DEFAULT,
-    V_NOROUNDTRIP,
-    V_NA,
-    V_BINDNONE_PRESSPATH,
-    V_BINDNONE_PANELLOCAL,
-    V_BINDNONE_UNEXPLAINED,
-    V_COUNT
-} verdict_t;
+static struct RIEngine g_base, g_ref, g_e; /* large: static, not stack */
 
-static const char *verdict_name(verdict_t v)
-{
-    static const char *names[] = {
-        "OK", "DEAD", "DIVERGE", "NOFEEDBACK", "DEFAULT",
-        "NOROUNDTRIP", "NA",
-        "BINDNONE_PRESSPATH", "BINDNONE_PANELLOCAL", "BINDNONE_UNEXPLAINED"
-    };
-    return (v < V_COUNT) ? names[v] : "UNKNOWN";
-}
-
-/* Door codes (D1-D11, D12 reserved for ARexx) */
-#define D_PANEL       0  /* D1: Panel press/drag */
-#define D_LEVI_ENC    1  /* D2: Levi page encoders */
-#define D_MIDI_IN     2  /* D3: MIDI CC in */
-#define D_MIDI_OUT    3  /* D4: MIDI out (not tested here - output only) */
-#define D_AUTOMATION  4  /* D5: Song automation record+playback */
-#define D_SAVELOAD    5  /* D6: Save/load (RBNG) */
-#define D_STARTUP     6  /* D7: Startup default sync */
-#define D_FEEDBACK    7  /* D8: Feedback: lamp, LED, meter, repaint */
-#define D_KEYBOARD    8  /* D9: Computer keyboard */
-#define D_MENUS       9  /* D10: Menus (not easily testable headless) */
-#define D_UNDO        10 /* D11: Undo */
-#define D_COUNT       11
-
-static const char *door_name(int d)
-{
-    static const char *names[] = {
-        "D1_PANEL", "D2_LEVI_ENC", "D3_MIDI_IN", "D4_MIDI_OUT",
-        "D5_AUTOMATION", "D6_SAVELOAD", "D7_STARTUP", "D8_FEEDBACK",
-        "D9_KEYBOARD", "D10_MENUS", "D11_UNDO"
-    };
-    return (d >= 0 && d < D_COUNT) ? names[d] : "UNKNOWN";
-}
-
-/* Allow-list entry */
-struct AllowEntry {
-    uint16_t reg_id;
-    int door;
-    verdict_t verdict;
-};
-
-/* Global allow-list */
-static struct AllowEntry *g_allowlist = NULL;
-static uint32_t g_allowlist_n = 0;
-static uint32_t g_allowlist_cap = 0;
-
-/* Per-row census entry */
-struct CensusRow {
-    uint16_t reg_id;
-    uint8_t section;
-    uint8_t kind;
-    uint8_t midi_cc;
-    uint8_t automatable;
-    uint8_t bind;
-    char group[32];
-    char legend[64];
-    int16_t min_v, max_v, def_v;
-    verdict_t verdicts[D_COUNT];
-};
-
-/* Global census table */
-static struct CensusRow *g_census = NULL;
-static uint32_t g_census_n = 0;
-static uint32_t g_census_cap = 0;
-
-/* Gate mode: if true, fail on non-allowlisted bad verdicts */
-static int g_gate_mode = 0;
-
-/* t224's four historical defects for positive control */
-enum T224_Defect {
-    T224_NONE = 0,
-    T224_FX_ENABLE_UNBOUND,     /* P-FX1: four FX On/Off switches had target, unbound */
-    T224_FX_LAMP_DISPLACED,     /* P-FX4: displaced FX lamp - right model, stale pixels */
-    T224_MIXER_INSERT_ROCKERS,  /* P-MIX2: mixer insert rockers - right model, stale pixels */
-    T224_STRIP_MUTE             /* strip mute - no target at all */
-};
-/* t224 defect tracking (used in scratch builds) */
-static int g_t224_defect_active = T224_NONE;
-
-/* Forward declarations */
-static void census_add_row(const struct RICtlDef *d);
-static void census_write_tsv(void);
-static void census_write_summary(void);
-static void run_t224_defect_test(enum T224_Defect defect);
-static int door_applies(const struct RICtlDef *d, int door);
-static int is_value_control(uint8_t kind);
-static int is_interactive_control(uint8_t kind);
-static uint16_t get_alternate_value(const struct RICtlDef *d);
-static void fresh_engine(struct RIEngine *e);
-static void apply_via_panel(struct RIEngine *e, struct RIControlPlane *pl,
-                            uint16_t reg_id, int value);
-static void apply_via_levi_enc(struct RIEngine *e, struct RIControlPlane *pl,
-                               uint16_t reg_id, int value);
-static void apply_via_midi_in(struct RIEngine *e, struct RIControlPlane *pl,
-                              uint16_t reg_id, int value);
-static int apply_via_automation(struct RIEngine *e, uint16_t key, int value);
-static int apply_via_saveload(struct RIEngine *e, const struct RICtlDef *d, int value);
-static int apply_via_startup(struct RIEngine *e, const struct RICtlDef *d, int value);
-static int check_feedback(struct RIEngine *e);
-static int apply_via_keyboard(struct RIEngine *e, struct RIControlPlane *pl,
-                              uint16_t reg_id, int value);
-static int apply_via_undo(struct RIEngine *e, struct RIUndo *u, uint16_t reg_id, int value);
-
-/* Initialize census array */
-static void census_init(void)
-{
-    g_census_cap = 600; /* 510 rows + margin */
-    g_census = calloc(g_census_cap, sizeof(struct CensusRow));
-    RI_ASSERT(g_census != NULL, "census alloc");
-}
-
-/* Convert verdict string to enum */
-static verdict_t verdict_str_to_enum(const char *str)
-{
-    if (strcmp(str, "OK") == 0) return V_OK;
-    if (strcmp(str, "DEAD") == 0) return V_DEAD;
-    if (strcmp(str, "DIVERGE") == 0) return V_DIVERGE;
-    if (strcmp(str, "NOFEEDBACK") == 0) return V_NOFEEDBACK;
-    if (strcmp(str, "DEFAULT") == 0) return V_DEFAULT;
-    if (strcmp(str, "NOROUNDTRIP") == 0) return V_NOROUNDTRIP;
-    if (strcmp(str, "NA") == 0) return V_NA;
-    if (strcmp(str, "BINDNONE_PRESSPATH") == 0) return V_BINDNONE_PRESSPATH;
-    if (strcmp(str, "BINDNONE_PANELLOCAL") == 0) return V_BINDNONE_PANELLOCAL;
-    if (strcmp(str, "BINDNONE_UNEXPLAINED") == 0) return V_BINDNONE_UNEXPLAINED;
-    return V_COUNT; /* invalid */
-}
-
-/* Load allowlist from TSV file */
-static void allowlist_load(void)
-{
-    char path[512];
-    snprintf(path, sizeof path, "docs/evidence/wiring/2026-11-17-census/allowlist.tsv");
-    FILE *f = fopen(path, "r");
-    if (!f) {
-        printf("  Allowlist not found at %s, running in non-gate mode\n", path);
-        return;
-    }
-    char line[512];
-    while (fgets(line, sizeof line, f)) {
-        if (line[0] == '#' || line[0] == '\n')
-            continue;
-        uint16_t reg_id;
-        int door;
-        char verdict_str[32];
-        char reason[256];
-        char date[32];
-        if (sscanf(line, "%hx\t%d\t%31[^\t]\t%255[^\t]\t%31s", &reg_id, &door, verdict_str, reason, date) >= 4) {
-            verdict_t verdict = verdict_str_to_enum(verdict_str);
-            if (verdict == V_COUNT) {
-                printf("  WARNING: Unknown verdict '%s' in allowlist, skipping\n", verdict_str);
-                continue;
-            }
-            if (g_allowlist_n >= g_allowlist_cap) {
-                g_allowlist_cap = g_allowlist_cap ? g_allowlist_cap * 2 : 128;
-                g_allowlist = realloc(g_allowlist, g_allowlist_cap * sizeof(struct AllowEntry));
-                RI_ASSERT(g_allowlist != NULL, "allowlist realloc");
-            }
-            g_allowlist[g_allowlist_n++] = (struct AllowEntry){ reg_id, door, verdict };
-        }
-    }
-    fclose(f);
-    printf("  Allowlist loaded: %u entries from %s\n", g_allowlist_n, path);
-}
-
-/* Check if a verdict is allowed for a given control+door */
-static int verdict_allowed(uint16_t reg_id, int door, verdict_t verdict)
-{
-    for (uint32_t i = 0; i < g_allowlist_n; i++) {
-        if (g_allowlist[i].reg_id == reg_id && g_allowlist[i].door == door && g_allowlist[i].verdict == verdict)
-            return 1;
-    }
-    return 0;
-}
-
-/* Add a row to census */
-static void census_add_row(const struct RICtlDef *d)
-{
-    if (g_census_n >= g_census_cap) {
-        g_census_cap *= 2;
-        g_census = realloc(g_census, g_census_cap * sizeof(struct CensusRow));
-        RI_ASSERT(g_census != NULL, "census realloc");
-    }
-    struct CensusRow *r = &g_census[g_census_n++];
-    r->reg_id = d->reg_id;
-    r->section = d->section;
-    r->kind = d->kind;
-    r->midi_cc = d->midi_cc;
-    r->automatable = d->automatable;
-    r->bind = d->bind;
-    snprintf(r->group, sizeof r->group, "%s", d->group ? d->group : "");
-    snprintf(r->legend, sizeof r->legend, "%s", d->legend ? d->legend : "");
-    r->min_v = d->min_v;
-    r->max_v = d->max_v;
-    r->def_v = d->def_v;
-    for (int i = 0; i < D_COUNT; i++)
-        r->verdicts[i] = V_NA;
-}
-
-/* Check if a door applies to this control */
-static int door_applies(const struct RICtlDef *d, int door)
-{
-    switch (door) {
-    case D_PANEL:
-        return is_value_control(d->kind);
-    case D_LEVI_ENC:
-        return (d->section == RI_SEC_LEVI) && is_value_control(d->kind);
-    case D_MIDI_IN:
-        return is_value_control(d->kind) && d->midi_cc != RI_MIDI_CC_NONE;
-    case D_MIDI_OUT:
-        return 0; /* Output only - not testable in census */
-    case D_AUTOMATION:
-        return is_value_control(d->kind) && d->automatable && ri_ctlreg_auto_id(d) != 0;
-    case D_SAVELOAD:
-        return is_value_control(d->kind) && ri_ctlreg_auto_id(d) != 0;
-    case D_STARTUP:
-        return is_value_control(d->kind) && ri_ctlreg_auto_id(d) != 0;
-    case D_FEEDBACK:
-        return is_interactive_control(d->kind);
-    case D_KEYBOARD:
-        return is_interactive_control(d->kind);
-    case D_MENUS:
-        return 0; /* Not easily testable headless */
-    case D_UNDO:
-        return is_value_control(d->kind) && ri_ctlreg_auto_id(d) != 0;
-    default:
-        return 0;
-    }
-}
-
-/* Value controls that can carry MIDI CC or automation */
-static int is_value_control(uint8_t kind)
-{
-    return kind == RI_CK_KNOB || kind == RI_CK_FADER || kind == RI_CK_SWITCH ||
-           kind == RI_CK_SELECTOR || kind == RI_CK_DISPLAY;
-}
-
-/* Interactive controls (user can click) */
-static int is_interactive_control(uint8_t kind)
-{
-    return kind == RI_CK_KNOB || kind == RI_CK_FADER || kind == RI_CK_SWITCH ||
-           kind == RI_CK_BUTTON || kind == RI_CK_STEP || kind == RI_CK_SELECTOR;
-}
-
-/* Get an alternate value (not default) for testing */
-static uint16_t get_alternate_value(const struct RICtlDef *d)
-{
-    if (d->def_v != d->max_v)
-        return (uint16_t)d->max_v;
-    return (uint16_t)d->min_v;
-}
-
-/* Fresh engine with defaults */
-static void fresh_engine(struct RIEngine *e)
-{
+static void fresh(struct RIEngine *e) {
     memset(e, 0, sizeof *e);
     ri_engine_init(e);
     ri_engine_defaults(e);
 }
 
-/* D1: Panel press/drag - via ri_panel_ctl_send */
-static void apply_via_panel(struct RIEngine *e, struct RIControlPlane *pl,
-                            uint16_t reg_id, int value)
-{
-    struct RIEvent ev[8];
-    uint32_t seq = 0, nd;
-    ri_panel_ctl_send(pl, reg_id, value);
-    nd = ri_ctl_drain(pl, ev, 8u, 0u, &seq);
-    for (uint32_t q = 0; q < nd; q++)
-        ri_engine_apply_event(e, &ev[q]);
-}
-
-/* D2: Levi page encoders - via sectlevi model */
-static void apply_via_levi_enc(struct RIEngine *e, struct RIControlPlane *pl,
-                               uint16_t reg_id, int value)
-{
-    struct RIEvent ev[8];
-    uint32_t seq = 0, nd;
-    uint16_t key = 0;
-    int kv = 0;
-    struct RISectLevi s;
-    ri_slevi_init(&s);
-    /* Find the encoder slot for this registry row */
-    for (uint32_t i = 0; i < RI_SLEVI_NCTL; i++) {
-        uint16_t reg = (uint16_t)(((uint16_t)RI_SEC_LEVI << 8) | i);
-        if (reg == reg_id) {
-            if (ri_slevi_ctl_key(&s, RI_SLEVI_ENC0 + (i % 8), &key, &kv) == 1) {
-                ri_panel_ctl_send_key(pl, key, value);
-            } else {
-                uint32_t t = ri_slevi_ctl_idx(&s, RI_SLEVI_ENC0 + (i % 8));
-                uint16_t reg2 = (uint16_t)(((uint16_t)RI_SEC_LEVI << 8) | (t & 0xFFu));
-                ri_panel_ctl_send(pl, reg2, value);
-            }
-            break;
-        }
+/* Drain the plane into the engine; returns the number of events applied. */
+static uint32_t drain_into(struct RIControlPlane *pl, struct RIEngine *e) {
+    struct RIEvent ev[16];
+    uint32_t seq = 0, nd, q, total = 0;
+    while ((nd = ri_ctl_drain(pl, ev, 16u, 0u, &seq)) > 0u) {
+        for (q = 0; q < nd; q++)
+            ri_engine_apply_event(e, &ev[q]);
+        total += nd;
     }
-    nd = ri_ctl_drain(pl, ev, 8u, 0u, &seq);
-    for (uint32_t q = 0; q < nd; q++)
-        ri_engine_apply_event(e, &ev[q]);
+    return total;
 }
 
-/* D3: MIDI CC in - via midimap */
-static void apply_via_midi_in(struct RIEngine *e, struct RIControlPlane *pl,
-                              uint16_t reg_id, int value)
-{
-    struct RIEvent ev[8];
-    uint32_t seq = 0, nd;
-    const struct RICtlDef *d = ri_ctlreg_find(reg_id);
+/* D1: the reference door. 1 when anything reached the engine. */
+static int via_panel(struct RIEngine *e, uint16_t reg_id, int value) {
+    struct RIControlPlane pl;
+    ri_ctl_init(&pl);
+    if (ri_panel_ctl_send(&pl, reg_id, value) != 0)
+        return 0;
+    return drain_into(&pl, e) > 0u;
+}
+
+/* The value the bridge puts on the plane for a panel value: what live.c
+ * records (it records after the bridge), so D5/D6 record this, not the
+ * raw panel value. -1 when nothing is sent. */
+static int bridged(uint16_t reg_id, int value) {
+    struct RIControlPlane pl;
+    struct RIEvent ev[4];
+    uint32_t seq = 0;
+    ri_ctl_init(&pl);
+    if (ri_panel_ctl_send(&pl, reg_id, value) != 0)
+        return -1;
+    if (ri_ctl_drain(&pl, ev, 4u, 0u, &seq) == 0u)
+        return -1;
+    return (int)ev[0].flags;
+}
+
+static void apply_auto(struct RIEngine *e, uint16_t ctl, uint8_t val) {
+    struct RIEvent re;
+    memset(&re, 0, sizeof re);
+    re.type = RI_EV_AUTOMATION;
+    re.value = ctl;
+    re.flags = val;
+    ri_engine_apply_event(e, &re);
+}
+
+/* ---- the MIDI fixture: real section objects, bound as riapp.c binds them
+ * (t232's fixture; a zeroed RIPanelUI makes ui_of() return NULL). ---- */
+static struct RIPanelUI g_panel;
+static struct RIMidiIn g_midi;
+static struct RISectUI g_fx[4], g_mix[6], g_tr, g_synth[2], g_drum[2], g_pat[RI_FOCUS_COUNT];
+static struct RIMixBoard g_board;
+static struct RIFxRack g_rack;
+
+static void midi_fixture(void) {
+    unsigned i;
+    memset(&g_panel, 0, sizeof g_panel);
+    ri_smix_init(&g_board);
+    ri_sfx_rack_init(&g_rack);
+    for (i = 0; i < 4; i++) {
+        ri_sui_init(&g_fx[i], (uint8_t)(RI_SEC_PCF + i));
+        ri_sui_bind_fx_rack(&g_fx[i], &g_rack);
+        g_panel.fx[i] = &g_fx[i];
+    }
+    for (i = 0; i < 6; i++) {
+        uint8_t sec = i == 5u ? (uint8_t)RI_SEC_MIX_LEVI
+            : (uint8_t)(i == 4u ? RI_SEC_MASTER : (uint32_t)RI_SEC_MIX_SYNTH1 + i);
+        ri_sui_init(&g_mix[i], sec);
+        ri_sui_bind_board(&g_mix[i], &g_board);
+        g_panel.mix[i] = &g_mix[i];
+    }
+    ri_sui_init(&g_synth[0], RI_SEC_SYNTH1);
+    ri_sui_init(&g_synth[1], RI_SEC_SYNTH2);
+    g_panel.synth[0] = &g_synth[0];
+    g_panel.synth[1] = &g_synth[1];
+    ri_sui_init(&g_drum[0], RI_SEC_808);
+    ri_sui_init(&g_drum[1], RI_SEC_909);
+    g_panel.drum[0] = &g_drum[0];
+    g_panel.drum[1] = &g_drum[1];
+    for (i = 0; i < RI_FOCUS_COUNT; i++) {
+        ri_sui_init(&g_pat[i], (uint8_t)(RI_SEC_PAT_SYNTH1 + i));
+        g_panel.pat[i] = &g_pat[i];
+    }
+    ri_sui_init(&g_tr, RI_SEC_TRANSPORT);
+    g_panel.tr = &g_tr;
+    ri_midi_init(&g_midi, 0u);
+}
+
+/* The value a door drives a row to: an end of its range (max first, then
+ * min) that moves a fresh engine. A row whose default sits where the engine
+ * already is would otherwise read DEAD at the one end that is a no-op. */
+static int g_alt;
+static int alt_of(const struct RICtlDef *d) {
     (void)d;
-    if (!d || d->midi_cc == RI_MIDI_CC_NONE)
+    return g_alt;
+}
+static void choose_alt(const struct RICtlDef *d) {
+    fresh(&g_e);
+    g_alt = d->max_v;
+    if (via_panel(&g_e, d->reg_id, g_alt) && !engines_equal(&g_e, &g_base))
         return;
-    /* We need a section UI to test MIDI. For simplicity, simulate the CC path
-     * by finding the control via MIDI CC and using ri_panel_ctl_send. */
-    ri_panel_ctl_send(pl, reg_id, value);
-    nd = ri_ctl_drain(pl, ev, 8u, 0u, &seq);
-    for (uint32_t q = 0; q < nd; q++)
-        ri_engine_apply_event(e, &ev[q]);
+    g_alt = d->min_v;
 }
 
-/* D5: Song automation record+playback */
-static int apply_via_automation(struct RIEngine *e, uint16_t key, int value)
-{
-    struct RIAutoLane lane = {0};
-    struct RIAutoEv ev[4] = {0};
-    lane.ev = ev;
-    lane.cap = 4;
-    lane.n = 0;
-    /* Record at tick 0 - must use RI_TR_RECORD (2) for ri_auto_touch */
-    struct RIAutoPass pass = {0};
-    if (ri_auto_touch(&lane, &pass, RI_TR_RECORD, 0, 96, key, (uint8_t)value) != 0)
-        return 0;
-    /* Playback: apply event at tick 0 */
-    if (lane.n > 0) {
-        struct RIEvent re;
-        memset(&re, 0, sizeof re);
-        re.type = RI_EV_AUTOMATION;
-        re.value = lane.ev[0].ctl;
-        re.flags = lane.ev[0].val;
-        ri_engine_apply_event(e, &re);
-        return 1;
+/* RIAPP's startup burst (app/riapp.c, after the demo mix): these rows are
+ * sent at their panel value before the first buffer, so the engine adopts
+ * the panel and a default that differs from the engine's own is by design.
+ * Keep in step with that block. */
+static int in_startup_burst(const struct RICtlDef *d) {
+    uint32_t i = d->reg_id & 0xFFu;
+    switch (d->section) {
+    case RI_SEC_SYNTH1: case RI_SEC_SYNTH2: return i <= 6u;
+    case RI_SEC_808: return i < 44u;   /* RI_S808_NCTL */
+    case RI_SEC_909: return i < 46u;   /* RI_S909_NCTL */
+    case RI_SEC_PCF: case RI_SEC_DELAY: case RI_SEC_DIST: case RI_SEC_COMP:
+        return i < 8u;                 /* RI_SFX_NCTL */
+    case RI_SEC_MIX_SYNTH1: case RI_SEC_MIX_SYNTH2: case RI_SEC_MIX_808:
+    case RI_SEC_MIX_909: case RI_SEC_MIX_LEVI:
+        return i >= 2u && i <= 7u;
+    case RI_SEC_MASTER: return i == 0u;
+    case RI_SEC_LEVI: return 1;        /* ri_panel_levi_adopt: every value */
+    default: return 0;
     }
-    return 0;
 }
 
-/* D6: Save/load (RBNG) */
-static int apply_via_saveload(struct RIEngine *e, const struct RICtlDef *d, int value)
-{
-    static struct RISong song;
-    rbng_song_init(&song);
-    song.tempo = 120;
-    song.ppq = 96;
-    song.nsteps = 16;
-    /* Add automation event */
-    if (song.nauto < RI_RBNG_MAX_AUTO) {
-        song.auto_ev[song.nauto].tick = 0;
-        song.auto_ev[song.nauto].ctl = ri_ctlreg_auto_id(d);
-        song.auto_ev[song.nauto].val = (uint8_t)value;
-        song.nauto++;
-    }
-    char err[256];
-    char path[] = "/tmp/census_test_rbng.rbng";
-    if (rbng_write_song(path, &song, err, sizeof err) != 0)
-        return 0;
-    static struct RISong song2;
-    rbng_song_init(&song2);
-    if (rbng_read_song(path, &song2, err, sizeof err) != 0)
-        return 0;
-    /* Find the automation event and apply */
-    for (uint16_t i = 0; i < song2.nauto; i++) {
-        if (song2.auto_ev[i].ctl == ri_ctlreg_auto_id(d)) {
-            struct RIEvent re;
-            memset(&re, 0, sizeof re);
-            re.type = RI_EV_AUTOMATION;
-            re.value = song2.auto_ev[i].ctl;
-            re.flags = song2.auto_ev[i].val;
-            ri_engine_apply_event(e, &re);
-            unlink(path);
-            return 1;
-        }
-    }
-    unlink(path);
-    return 0;
-}
-
-/* D7: Startup default sync - send panel default through bridge */
-static int apply_via_startup(struct RIEngine *e, const struct RICtlDef *d, int value)
-{
-    struct RIControlPlane pl;
-    ri_ctl_init(&pl);
-    struct RIEvent ev[8];
-    uint32_t seq = 0, nd;
-    ri_panel_ctl_send(&pl, d->reg_id, value);
-    nd = ri_ctl_drain(&pl, ev, 8u, 0u, &seq);
-    for (uint32_t q = 0; q < nd; q++)
-        ri_engine_apply_event(e, &ev[q]);
-    return nd > 0;
-}
-
-/* D8: Feedback check - does the engine state change reflect in live state? */
-static int check_feedback(struct RIEngine *e)
-{
-    /* Check if meters/peaks changed after a render */
-    float l[64], r[64];
-    (void)l; (void)r;
-    ri_engine_render(e, l, r, 64, 48000.0f);
-    /* If any section peak or FX peak is non-zero, feedback exists */
-    for (uint32_t i = 0; i < RI_ROUTE_NSECTIONS; i++) {
-        if (ri_engine_section_peak(e, i) > 0.0f)
-            return 1;
-    }
-    for (uint32_t i = 0; i < RI_ENGINE_FX_COUNT; i++) {
-        if (ri_engine_fx_peak(e, i) > 0.0f)
-            return 1;
-    }
-    if (ri_engine_master_peak(e, 0) > 0.0f || ri_engine_master_peak(e, 1) > 0.0f)
-        return 1;
-    return 0;
-}
-
-/* D9: Computer keyboard - via keymap */
-static int apply_via_keyboard(struct RIEngine *e, struct RIControlPlane *pl,
-                              uint16_t reg_id, int value)
-{
-    struct RIEvent ev[8];
-    uint32_t seq = 0, nd;
-    const struct RICtlDef *d = ri_ctlreg_find(reg_id);
-    if (!d)
-        return 0;
-    /* Simulate keyboard action by using the panel send directly.
-     * The keymap decodes to actions that ultimately call ri_panel_ctl_send. */
-    ri_panel_ctl_send(pl, reg_id, value);
-    nd = ri_ctl_drain(pl, ev, 8u, 0u, &seq);
-    for (uint32_t q = 0; q < nd; q++)
-        ri_engine_apply_event(e, &ev[q]);
-    return nd > 0;
-}
-
-/* D11: Undo */
-static int apply_via_undo(struct RIEngine *e, struct RIUndo *u, uint16_t reg_id, int value)
-{
-    struct RIEvent ev[8];
-    uint32_t seq = 0, nd;
-    struct RIControlPlane pl;
-    ri_ctl_init(&pl);
-    /* Commit the value */
-    if (ri_undo_commit(u, reg_id, (uint8_t)value) != 0)
-        return 0;
-    /* Undo it */
-    uint32_t ctl;
-    uint8_t val;
-    if (ri_undo_undo(u, &ctl, &val) != 0)
-        return 0;
-    if (ctl != reg_id)
-        return 0;
-    /* Apply the undone value */
-    ri_panel_ctl_send(&pl, ctl, val);
-    nd = ri_ctl_drain(&pl, ev, 8u, 0u, &seq);
-    for (uint32_t q = 0; q < nd; q++)
-        ri_engine_apply_event(e, &ev[q]);
-    return nd > 0;
-}
-
-/* Test a specific door for a control */
-static verdict_t test_door(const struct RICtlDef *d, int door,
-                           struct RIControlPlane *pl, struct RIUndo *u)
-{
-    if (!door_applies(d, door))
-        return V_NA;
-
-    uint16_t alt = get_alternate_value(d);
-    uint16_t key = ri_ctlreg_auto_id(d);
-
-    /* For BIND_NONE controls, classify sub-type */
-    if (d->bind == RI_BIND_NONE) {
-        if (d->section == RI_SEC_TRANSPORT ||
-            d->section == RI_SEC_PAT_SYNTH1 || d->section == RI_SEC_PAT_SYNTH2 ||
-            d->section == RI_SEC_PAT_808 || d->section == RI_SEC_PAT_909 ||
-            d->section == RI_SEC_PAT_LEVI) {
-            return V_BINDNONE_PRESSPATH;
-        }
-        if (d->section == RI_SEC_LEVI && d->group && strcmp(d->group, "Master") == 0) {
-            return V_BINDNONE_PANELLOCAL;
-        }
-        /* Check if it's a panel-local action (e.g., step buttons, pitch buttons) */
-        if (d->kind == RI_CK_BUTTON || d->kind == RI_CK_STEP ||
-            d->kind == RI_CK_DISPLAY) {
-            return V_BINDNONE_PANELLOCAL;
-        }
-        return V_BINDNONE_UNEXPLAINED;
-    }
-
-    struct RIEngine ea, eb, ed;
-    fresh_engine(&ea);
-    fresh_engine(&eb);
-    fresh_engine(&ed);
-
-    int moved_a = 0, moved_b = 0;
-
-    switch (door) {
-    case D_PANEL:
-        apply_via_panel(&ea, pl, d->reg_id, alt);
-        /* Direct setter for comparison */
-        if (key != 0) {
-            /* Use t116's direct() logic */
-            uint32_t blk = key & 0xFF00u, hi = (key >> 4) & 0xFu, lo = key & 0xFu;
-            if (blk == 0x0300u) {
-                if (hi == 0u) rb303_set_param(&ed.v303a, key, alt);
-                else if (hi == 1u) rb303_set_param(&ed.v303b, key, alt);
-                moved_b = !engines_equal(&eb, &ed);
-            } else if (blk == 0x0A00u) {
-                ri_engine_fx_set(&ed, key, alt);
-                moved_b = !engines_equal(&eb, &ed);
-            } else if (blk == RI_AUTO_BLK_808) {
-                if (hi == (RI_CTL_808_ACCENT & 0xFu)) {
-                    if (lo == 0u)
-                        for (uint32_t v = 0; v < RI_808_NSOUNDS; v++)
-                            rb808_set_param(&ed.s808.v[v], RI_CTL_808_ACCENT, alt);
-                } else if (hi < (RI_CTL_808_ACCENT & 0xFu) && lo < RI_808_NSOUNDS) {
-                    rb808_set_param(&ed.s808.v[lo], RI_CTL_808_LEVEL + hi, alt);
-                }
-                moved_b = !engines_equal(&eb, &ed);
-            } else if (blk == RI_AUTO_BLK_909) {
-                if (lo == RI_AUTO_909_HATPAIR && hi == (RI_CTL_909_LEVEL & 0xFu))
-                    rb909_set_hat_level(&ed.s909, alt);
-                else if (hi <= (RI_CTL_909_DECAY & 0xFu) && lo < RI_909_NVOICES)
-                    rb909_set_param(&ed.s909.v[lo], RI_CTL_909_TUNE + hi, alt);
-                moved_b = !engines_equal(&eb, &ed);
-            } else if (blk == RI_AUTO_BLK_LEVI) {
-                for (uint32_t v = 0; v < RI_LEVI_NVOICES; v++)
-                    levi_set_param_ui(&ed.slevi, v, key & 0xFFu, alt);
-                moved_b = !engines_equal(&eb, &ed);
-            } else if (blk == RI_AUTO_BLK_MIX && hi >= 1u && hi <= RI_AUTO_STRIP_LEVI + 1u) {
-                uint32_t strip = hi - 1u;
-                int owner = strip == RI_AUTO_STRIP_MASTER ? RI_ROUTE_MASTER
-                    : strip == RI_AUTO_STRIP_LEVI ? 4 : (int)strip;
-                if (lo >= RI_AUTO_MIX_DIST && lo < RI_AUTO_MIX_DIST + RI_ROUTE_NUNITS) {
-                    uint32_t unit = lo - RI_AUTO_MIX_DIST;
-                    if (strip == RI_AUTO_STRIP_MASTER && unit != RI_ROUTE_COMP)
-                        moved_b = 0;
-                    else if (alt)
-                        ri_route_assign(&ed.route, unit, owner);
-                    else if (ri_route_owner(&ed.route, unit) == owner)
-                        ri_route_assign(&ed.route, unit, RI_ROUTE_NONE);
-                    moved_b = !engines_equal(&eb, &ed);
-                } else if (lo == RI_AUTO_MIX_MUTE) {
-                    if (strip != RI_AUTO_STRIP_MASTER) {
-                        ri_engine_set_enable(&ed, (uint32_t)owner, alt);
-                        moved_b = !engines_equal(&eb, &ed);
-                    }
-                } else if (strip == RI_AUTO_STRIP_MASTER) {
-                    if (lo == RI_AUTO_MIX_LEVEL) {
-                        ri_engine_set_master(&ed, alt);
-                        moved_b = !engines_equal(&eb, &ed);
-                    }
-                } else if (lo == RI_AUTO_MIX_LEVEL) {
-                    ri_engine_set_level(&ed, (uint32_t)owner, alt);
-                    moved_b = !engines_equal(&eb, &ed);
-                } else if (lo == RI_AUTO_MIX_PAN) {
-                    ri_engine_set_pan(&ed, (uint32_t)owner, alt);
-                    moved_b = !engines_equal(&eb, &ed);
-                } else if (lo == RI_AUTO_MIX_SEND) {
-                    ri_engine_set_send(&ed, (uint32_t)owner, alt);
-                    moved_b = !engines_equal(&eb, &ed);
-                }
-            }
-        }
-        moved_a = !engines_equal(&ea, &eb);
-        if (!moved_a)
-            return V_DEAD;
-        if (moved_b && !engines_equal(&ea, &ed))
-            return V_DIVERGE;
-        if (!check_feedback(&ea))
-            return V_NOFEEDBACK;
-        return V_OK;
-
-    case D_LEVI_ENC:
-        if (d->section != RI_SEC_LEVI)
-            return V_NA;
-        apply_via_levi_enc(&ea, pl, d->reg_id, alt);
-        moved_a = !engines_equal(&ea, &eb);
-        if (!moved_a)
-            return V_DEAD;
-        if (!check_feedback(&ea))
-            return V_NOFEEDBACK;
-        return V_OK;
-
-    case D_MIDI_IN:
-        apply_via_midi_in(&ea, pl, d->reg_id, alt);
-        moved_a = !engines_equal(&ea, &eb);
-        if (!moved_a)
-            return V_DEAD;
-        if (!check_feedback(&ea))
-            return V_NOFEEDBACK;
-        return V_OK;
-
-    case D_AUTOMATION:
-        moved_a = apply_via_automation(&ea, key, alt);
-        if (!moved_a)
-            return V_DEAD;
-        if (!check_feedback(&ea))
-            return V_NOFEEDBACK;
-        return V_OK;
-
-    case D_SAVELOAD:
-        moved_a = apply_via_saveload(&ea, d, alt);
-        if (!moved_a)
-            return V_NOROUNDTRIP;
-        if (!check_feedback(&ea))
-            return V_NOFEEDBACK;
-        return V_OK;
-
-    case D_STARTUP:
-        moved_a = apply_via_startup(&ea, d, d->def_v);
-        if (moved_a && !engines_equal(&ea, &eb))
-            return V_DEFAULT;
-        return V_OK;
-
-    case D_FEEDBACK:
-        apply_via_panel(&ea, pl, d->reg_id, alt);
-        moved_a = !engines_equal(&ea, &eb);
-        if (moved_a && !check_feedback(&ea))
-            return V_NOFEEDBACK;
-        return V_OK;
-
-    case D_KEYBOARD:
-        moved_a = apply_via_keyboard(&ea, pl, d->reg_id, alt);
-        if (!moved_a)
-            return V_DEAD;
-        if (!check_feedback(&ea))
-            return V_NOFEEDBACK;
-        return V_OK;
-
-    case D_UNDO:
-        moved_a = apply_via_undo(&ea, u, d->reg_id, alt);
-        if (!moved_a)
-            return V_NOROUNDTRIP;
-        if (!check_feedback(&ea))
-            return V_NOFEEDBACK;
-        return V_OK;
-
+static int bindnone_class(const struct RICtlDef *d) {
+    switch (d->section) {
+    case RI_SEC_TRANSPORT: case RI_SEC_PAT_SYNTH1: case RI_SEC_PAT_SYNTH2:
+    case RI_SEC_PAT_808: case RI_SEC_PAT_909: case RI_SEC_PAT_LEVI:
+        return V_PRESSPATH;
     default:
+        break;
+    }
+    if (d->kind == RI_CK_BUTTON || d->kind == RI_CK_STEP || d->kind == RI_CK_DISPLAY ||
+        d->kind == RI_CK_METER || d->kind == RI_CK_LED)
+        return V_PANELLOCAL;
+    if (d->section == RI_SEC_LEVI && d->group && strcmp(d->group, "Master") == 0)
+        return V_PANELLOCAL;
+    /* 303 step-edit keys (Down/Up/Accent/Slide/Note/Pitch Mode): the
+     * pattern editor's press path, not a sound parameter. */
+    if ((d->section == RI_SEC_SYNTH1 || d->section == RI_SEC_SYNTH2) && d->group &&
+        strcmp(d->group, "Step") == 0)
+        return V_PRESSPATH;
+    /* Levi edit-target selectors (lane / operator / module): choose what
+     * the page shows, never recorded. */
+    if (d->section == RI_SEC_LEVI && d->kind == RI_CK_SELECTOR && !d->automatable)
+        return V_PANELLOCAL;
+    return V_UNEXPLAINED;
+}
+
+/* D1 for one row against a given definition (the controls call this with
+ * doctored copies). */
+static int door_panel(const struct RICtlDef *d) {
+    fresh(&g_e);
+    if (!via_panel(&g_e, d->reg_id, alt_of(d)) || engines_equal(&g_e, &g_base))
+        return V_DEAD;
+    return V_OK;
+}
+
+/* D3, compared against D1 at the value the map reports it settled at. */
+static int door_midi(const struct RICtlDef *d, int cmp_bias) {
+    const struct RICtlDef *hit;
+    if (d->midi_cc == RI_MIDI_CC_NONE)
         return V_NA;
-    }
+    hit = ri_ctlreg_by_cc(d->midi_cc);
+    if (!hit || hit->reg_id != d->reg_id)
+        return V_DIVERGE; /* the CC reaches another row first */
+    midi_fixture();
+    ri_midi_msg(&g_midi, &g_panel, 0xB0u, d->midi_cc, alt_of(d) == d->max_v ? 127u : 0u);
+    if (!g_midi.touched || g_midi.touch_reg != d->reg_id)
+        return V_DEAD;
+    fresh(&g_e);
+    if (!via_panel(&g_e, g_midi.touch_reg, (int)g_midi.touch_val) || engines_equal(&g_e, &g_base))
+        return V_DEAD;
+    fresh(&g_ref);
+    via_panel(&g_ref, d->reg_id, (int)g_midi.touch_val + cmp_bias);
+    return engines_equal(&g_e, &g_ref) ? V_OK : V_DIVERGE;
 }
 
-/* Write census TSV */
-static void census_write_tsv(void)
-{
-    struct stat st = {0};
-    if (stat("docs/evidence/wiring", &st) == -1)
-        mkdir("docs/evidence/wiring", 0755);
-    char dir[256];
-    snprintf(dir, sizeof dir, "docs/evidence/wiring/2026-11-17-census");
-    if (stat(dir, &st) == -1)
-        mkdir(dir, 0755);
+static int door_auto(const struct RICtlDef *d, uint16_t key) {
+    struct RIAutoEv ev[4];
+    struct RIAutoLane lane;
+    struct RIAutoPass pass;
+    if (!d->automatable)
+        return V_NA;
+    memset(ev, 0, sizeof ev);
+    memset(&pass, 0, sizeof pass);
+    lane.ev = ev;
+    lane.cap = 4u;
+    lane.n = 0u;
+    lane.flags = 0u;
+    if (ri_auto_touch(&lane, &pass, RI_TR_RECORD, 0u, 96u, key,
+            (uint8_t)bridged(d->reg_id, alt_of(d))) != 0 ||
+        lane.n == 0u)
+        return V_DEAD;
+    fresh(&g_e);
+    apply_auto(&g_e, lane.ev[0].ctl, lane.ev[0].val);
+    if (engines_equal(&g_e, &g_base))
+        return V_DEAD;
+    return engines_equal(&g_e, &g_ref) ? V_OK : V_DIVERGE;
+}
 
-    char path[512];
-    snprintf(path, sizeof path, "%s/census.tsv", dir);
-    FILE *f = fopen(path, "w");
-    RI_ASSERT(f != NULL, "open census.tsv");
+static struct RISong g_song, g_song2;
+static struct RBAutoEv g_atrk[4], g_atrk2[4];
 
-    /* Header */
-    fprintf(f, "reg_id\tsection\tkind\tgroup\tlegend\tmin\tmax\tdef\tmidi_cc\tauto\tbind");
-    for (int d = 0; d < D_COUNT; d++)
-        fprintf(f, "\t%s", door_name(d));
-    fprintf(f, "\n");
+static int door_saveload(const struct RICtlDef *d, uint16_t key) {
+    char err[160];
+    uint32_t i;
+    int found = -1;
+    if (!d->automatable)
+        return V_NA;
+    rbng_song_init(&g_song);
+    g_song.tempo = 120u;
+    g_song.ppq = 96u;
+    g_song.nsteps = 16u;
+    g_song.atrk = g_atrk;
+    g_song.atrk_cap = 4u;
+    g_song.atrk[0].tick = 0u;
+    g_song.atrk[0].ctl = key;
+    g_song.atrk[0].val = (uint8_t)bridged(d->reg_id, alt_of(d));
+    g_song.natrk = 1u;
+    if (rbng_write_song(T243_DIR "/rt.rbng", &g_song, err, sizeof err) != 0) {
+        if (getenv("T243_DEBUG"))
+            printf("write %04x: %s\n", d->reg_id, err);
+        return V_NOROUNDTRIP;
+    }
+    rbng_song_init(&g_song2);
+    g_song2.atrk = g_atrk2;
+    g_song2.atrk_cap = 4u;
+    if (rbng_read_song(T243_DIR "/rt.rbng", &g_song2, err, sizeof err) != 0) {
+        if (getenv("T243_DEBUG"))
+            printf("read %04x: %s\n", d->reg_id, err);
+        return V_NOROUNDTRIP;
+    }
+    for (i = 0; i < g_song2.natrk; i++)
+        if (g_song2.atrk[i].ctl == key)
+            found = (int)i;
+    if (found < 0 || g_song2.atrk[found].val != g_song.atrk[0].val)
+        return V_NOROUNDTRIP;
+    fresh(&g_e);
+    apply_auto(&g_e, g_song2.atrk[found].ctl, g_song2.atrk[found].val);
+    return engines_equal(&g_e, &g_ref) ? V_OK : V_DIVERGE;
+}
 
-    /* Rows */
-    for (uint32_t i = 0; i < g_census_n; i++) {
-        struct CensusRow *r = &g_census[i];
-        fprintf(f, "%04x\t%u\t%u\t%s\t%s\t%d\t%d\t%d\t%u\t%u\t%u",
-                r->reg_id, r->section, r->kind, r->group, r->legend,
-                r->min_v, r->max_v, r->def_v, r->midi_cc, r->automatable, r->bind);
-        for (int d = 0; d < D_COUNT; d++)
-            fprintf(f, "\t%s", verdict_name(r->verdicts[d]));
-        fprintf(f, "\n");
+static int door_startup(const struct RICtlDef *d) {
+    if (in_startup_burst(d))
+        return V_OK; /* adopted at startup; t95 pins the burst itself */
+    fresh(&g_e);
+    via_panel(&g_e, d->reg_id, d->def_v);
+    return engines_equal(&g_e, &g_base) ? V_OK : V_DEFAULT;
+}
+
+/* ---- census + baseline ---- */
+#define NROWS_MAX 600u
+static uint16_t g_reg[NROWS_MAX];
+static uint8_t g_v[NROWS_MAX][D_COUNT];
+static uint32_t g_n;
+
+struct BaseEnt { uint16_t reg; uint8_t door, verdict, hit; };
+static struct BaseEnt g_bl[8192];
+static uint32_t g_nbl;
+
+static int verdict_of(const char *s) {
+    int i;
+    for (i = 0; i < V_COUNT; i++)
+        if (!strcmp(s, k_verdict[i]))
+            return i;
+    return -1;
+}
+static int door_of(const char *s) {
+    int i;
+    for (i = 0; i < D_COUNT; i++)
+        if (!strcmp(s, k_door[i]))
+            return i;
+    return -1;
+}
+
+static void baseline_load(void) {
+    char line[256], reg[16], door[32], ver[48];
+    FILE *f = fopen(T243_BASELINE, "r");
+    RI_ASSERT(f != NULL, "baseline %s missing (run from the repo root)", T243_BASELINE);
+    if (!f)
+        return;
+    while (fgets(line, sizeof line, f)) {
+        int dv, vv;
+        if (line[0] == '#' || line[0] == '\n')
+            continue;
+        if (sscanf(line, "%15s %31s %47s", reg, door, ver) != 3)
+            continue;
+        dv = door_of(door);
+        vv = verdict_of(ver);
+        RI_ASSERT(dv >= 0 && vv >= 0, "baseline line not understood: %s", line);
+        if (dv < 0 || vv < 0 || g_nbl >= sizeof g_bl / sizeof g_bl[0])
+            continue;
+        g_bl[g_nbl].reg = (uint16_t)strtoul(reg, NULL, 16);
+        g_bl[g_nbl].door = (uint8_t)dv;
+        g_bl[g_nbl].verdict = (uint8_t)vv;
+        g_bl[g_nbl].hit = 0u;
+        g_nbl++;
     }
     fclose(f);
-    printf("  Census TSV written to %s\n", path);
 }
 
-/* Write summary */
-static void census_write_summary(void)
-{
-    char dir[256];
-    snprintf(dir, sizeof dir, "docs/evidence/wiring/2026-11-17-census");
-    char path[512];
-    snprintf(path, sizeof path, "%s/summary.txt", dir);
-    FILE *f = fopen(path, "w");
-    RI_ASSERT(f != NULL, "open summary.txt");
-
-    uint32_t section_counts[RI_SEC_COUNT][V_COUNT] = {{0}};
-    uint32_t verdict_totals[V_COUNT] = {0};
-
-    for (uint32_t i = 0; i < g_census_n; i++) {
-        struct CensusRow *r = &g_census[i];
-        for (int d = 0; d < D_COUNT; d++) {
-            verdict_t v = r->verdicts[d];
-            if (v < V_COUNT) {
-                section_counts[r->section][v]++;
-                verdict_totals[v]++;
-            }
+static int baseline_has(uint16_t reg, int door, int v) {
+    uint32_t i;
+    for (i = 0; i < g_nbl; i++)
+        if (g_bl[i].reg == reg && g_bl[i].door == door && g_bl[i].verdict == v) {
+            g_bl[i].hit = 1u;
+            return 1;
         }
-    }
-
-    fprintf(f, "=== Per-section verdict counts ===\n");
-    static const char *sec_names[RI_SEC_COUNT] = {
-        "SYNTH1", "SYNTH2", "808", "909",
-        "MIX_SYNTH1", "MIX_SYNTH2", "MIX_808", "MIX_909",
-        "MASTER", "PCF", "DELAY", "DIST", "COMP", "TRANSPORT",
-        "PAT_SYNTH1", "PAT_SYNTH2", "PAT_808", "PAT_909",
-        "LEVI", "PAT_LEVI", "MIX_LEVI"
-    };
-    for (uint32_t s = 0; s < RI_SEC_COUNT; s++) {
-        uint32_t total = 0;
-        for (int v = 0; v < V_COUNT; v++)
-            total += section_counts[s][v];
-        if (total > 0) {
-            fprintf(f, "\n%s (%u controls):\n", sec_names[s], total);
-            for (int v = 0; v < V_COUNT; v++) {
-                if (section_counts[s][v] > 0)
-                    fprintf(f, "  %s: %u\n", verdict_name(v), section_counts[s][v]);
-            }
-        }
-    }
-
-    fprintf(f, "\n=== Overall verdict totals ===\n");
-    for (int v = 0; v < V_COUNT; v++) {
-        if (verdict_totals[v] > 0)
-            fprintf(f, "  %s: %u\n", verdict_name(v), verdict_totals[v]);
-    }
-
-    fclose(f);
-    printf("  Summary written to %s\n", path);
+    return 0;
 }
 
-/* Verify the census tool can catch t224's four historical defect patterns.
- * In a scratch build, these defects would be reintroduced by modifying the
- * registry. Here we verify the census logic recognizes the defect signatures
- * by checking the current (fixed) controls would have been caught if broken. */
-static void run_t224_defect_test(enum T224_Defect defect)
-{
-    printf("\n=== Testing t224 defect pattern: %d ===\n", defect);
+int main(void) {
+    uint32_t i, k;
+    int d, nbad = 0, nnew = 0, nstale = 0, has_ok = 0;
+    uint32_t count[V_COUNT];
+    FILE *tsv;
+    mkdir(RI_TMP_ROOT "/run", 0755);
+    mkdir(T243_DIR, 0755);
+    fresh(&g_base);
+    memset(count, 0, sizeof count);
 
-    struct RIControlPlane pl;
-    ri_ctl_init(&pl);
-    struct RIUndo u;
-    ri_undo_init(&u);
-
-    int found = 0;
-    for (uint32_t n = 0; n < ri_ctlreg_count(); n++) {
-        const struct RICtlDef *d = ri_ctlreg_at(n);
-        if (!d)
+    for (k = 0; k < ri_ctlreg_count() && g_n < NROWS_MAX; k++) {
+        const struct RICtlDef *r = ri_ctlreg_at(k);
+        uint16_t key;
+        if (!r)
             continue;
-        int matches = 0;
-        switch (defect) {
-        case T224_FX_ENABLE_UNBOUND:
-            matches = (d->section >= RI_SEC_PCF && d->section <= RI_SEC_COMP) &&
-                      d->kind == RI_CK_SWITCH && d->legend && strcmp(d->legend, "On/Off") == 0;
-            break;
-        case T224_FX_LAMP_DISPLACED:
-            matches = (d->section >= RI_SEC_PCF && d->section <= RI_SEC_COMP) &&
-                      d->kind == RI_CK_METER;
-            break;
-        case T224_MIXER_INSERT_ROCKERS:
-            matches = (d->section >= RI_SEC_MIX_SYNTH1 && d->section <= RI_SEC_MIX_LEVI) &&
-                      d->kind == RI_CK_SWITCH &&
-                      (strcmp(d->legend, "Dist") == 0 || strcmp(d->legend, "PCF") == 0 ||
-                       strcmp(d->legend, "Comp") == 0);
-            break;
-        case T224_STRIP_MUTE:
-            matches = (d->section >= RI_SEC_MIX_SYNTH1 && d->section <= RI_SEC_MIX_LEVI) &&
-                      d->kind == RI_CK_SWITCH && strcmp(d->legend, "On/Off") == 0;
-            break;
-        default:
-            break;
+        g_reg[g_n] = r->reg_id;
+        for (d = 0; d < D_COUNT; d++)
+            g_v[g_n][d] = V_NOTMEASURED;
+        key = ri_ctlreg_auto_id(r);
+        if (r->bind == RI_BIND_NONE || key == 0u) {
+            /* key 0 on a bound row: tempo, owned by the transport path */
+            int c = r->bind == RI_BIND_NONE ? bindnone_class(r)
+                : (r->section == RI_SEC_TRANSPORT ? V_PRESSPATH : V_DEAD);
+            for (d = 0; d < D_COUNT; d++)
+                g_v[g_n][d] = V_NA;
+            g_v[g_n][D_PANEL] = (uint8_t)c;
+        } else {
+            choose_alt(r);
+            g_v[g_n][D_PANEL] = (uint8_t)door_panel(r);
+            fresh(&g_ref); /* D1 reference state for D5/D6 */
+            via_panel(&g_ref, r->reg_id, alt_of(r));
+            g_v[g_n][D_MIDI_IN] = (uint8_t)door_midi(r, 0);
+            g_v[g_n][D_AUTO] = (uint8_t)door_auto(r, key);
+            fresh(&g_ref);
+            via_panel(&g_ref, r->reg_id, alt_of(r));
+            g_v[g_n][D_SAVELOAD] = (uint8_t)door_saveload(r, key);
+            g_v[g_n][D_STARTUP] = (uint8_t)door_startup(r);
+            if (r->section != RI_SEC_LEVI)
+                g_v[g_n][D_LEVI_ENC] = V_NA;
         }
-        if (matches) {
-            found++;
-            verdict_t v = test_door(d, D_PANEL, &pl, &u);
-            printf("  Pattern %d control %04x (%s/%s): %s\n",
-                   defect, d->reg_id, d->group ? d->group : "", d->legend ? d->legend : "",
-                   verdict_name(v));
-            /* These controls are now FIXED. The census tool should run on them.
-             * DIVERGE is acceptable here because the direct-setter comparison
-             * is not implemented for all key blocks (Levi per-op, mod, etc.).
-             * NOFEEDBACK is also acceptable for switch controls without meters. */
-            RI_ASSERT(v == V_OK || v == V_NA || v == V_BINDNONE_UNEXPLAINED || v == V_DIVERGE || v == V_NOFEEDBACK,
-                      "t224 pattern %d unexpected verdict: %s", defect, verdict_name(v));
-        }
+        g_n++;
     }
-    RI_ASSERT(found > 0, "t224 pattern %d matched no controls", defect);
-    printf("  Pattern %d: %d matching controls verified\n", defect, found);
-}
+    printf("rows %u\n", g_n);
 
-/* Main */
-int main(int argc, char **argv)
-{
-    (void)g_t224_defect_active; /* silence unused warning; used in scratch builds */
-
-    /* Check for gate mode flag */
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--gate") == 0) {
-            g_gate_mode = 1;
-            printf("=== Wiring Census Gate (W3) ===\n");
-            break;
+    /* ---- controls ---- */
+    {
+        const struct RICtlDef *good = ri_ctlreg_find((uint16_t)((RI_SEC_SYNTH1 << 8) | 2u));
+        struct RICtlDef bad;
+        if (good)
+            choose_alt(good);
+        RI_ASSERT(good && door_panel(good) == V_OK, "control: 303A Cutoff reads OK");
+        if (good) {
+            bad = *good;
+            bad.reg_id = 0xFFFEu; /* no such row: nothing can reach the engine */
+            RI_ASSERT(door_panel(&bad) == V_DEAD, "control: a bogus reg_id reads DEAD");
+            fresh(&g_ref);
+            via_panel(&g_ref, good->reg_id, alt_of(good));
+            RI_ASSERT(door_midi(good, -40) == V_DIVERGE,
+                "control: D3 compared against the wrong value reads DIVERGE");
         }
     }
-    if (!g_gate_mode)
-        printf("=== Wiring Census (W0) ===\n");
-
-    census_init();
-    allowlist_load();
-
-    /* Build census table */
-    for (uint32_t n = 0; n < ri_ctlreg_count(); n++) {
-        const struct RICtlDef *d = ri_ctlreg_at(n);
-        if (!d)
-            continue;
-        census_add_row(d);
-    }
-    printf("  Registry rows: %u\n", g_census_n);
-
-    /* Test infrastructure */
-    struct RIControlPlane pl;
-    ri_ctl_init(&pl);
-    struct RIUndo u;
-    ri_undo_init(&u);
-
-    /* Test each door for each control */
-    uint32_t ntested = 0;
-    for (uint32_t i = 0; i < g_census_n; i++) {
-        const struct RICtlDef *d = ri_ctlreg_find(g_census[i].reg_id);
-        if (!d)
-            continue;
-
-        for (int door = 0; door < D_COUNT; door++) {
-            if (door_applies(d, door)) {
-                g_census[i].verdicts[door] = test_door(d, door, &pl, &u);
-                ntested++;
-            }
+    {
+        const struct RICtlDef *mute = ri_ctlreg_find((uint16_t)((RI_SEC_MIX_SYNTH1 << 8) | 0u));
+        struct RICtlDef t224;
+        RI_ASSERT(mute && mute->kind == RI_CK_SWITCH, "control: MIX_SYNTH1 row 0 is the strip switch");
+        if (mute) {
+            t224 = *mute;
+            t224.bind = RI_BIND_NONE; /* t224's strip mute before its fix */
+            RI_ASSERT(bindnone_class(&t224) == V_UNEXPLAINED,
+                "control: t224's unbound strip switch reads UNEXPLAINED");
         }
     }
-    printf("  Door-control pairs tested: %u\n", ntested);
 
-    /* Positive control: at least one OK */
-    int has_ok = 0;
-    for (uint32_t i = 0; i < g_census_n; i++) {
-        for (int d = 0; d < D_COUNT; d++) {
-            if (g_census[i].verdicts[d] == V_OK) {
+    /* ---- table, counts, gate ---- */
+    tsv = fopen(T243_DIR "/census.tsv", "w");
+    RI_ASSERT(tsv != NULL, "open %s", T243_DIR "/census.tsv");
+    if (tsv) {
+        fprintf(tsv, "reg_id");
+        for (d = 0; d < D_COUNT; d++)
+            fprintf(tsv, "\t%s", k_door[d]);
+        fprintf(tsv, "\n");
+    }
+    baseline_load();
+    for (i = 0; i < g_n; i++) {
+        if (tsv)
+            fprintf(tsv, "%04x", g_reg[i]);
+        for (d = 0; d < D_COUNT; d++) {
+            int v = g_v[i][d];
+            count[v]++;
+            if (v == V_OK)
                 has_ok = 1;
-                break;
-            }
-        }
-        if (has_ok) break;
-    }
-    RI_ASSERT(has_ok, "positive control: no OK verdict found");
-
-    /* Positive control: deliberately broken row reports DEAD */
-    /* Create a test-only copy of a known-good row with bind=NONE */
-    /* Positive control: a deliberately broken copy of a known-good row.
- * Since we can't modify the static registry, we test the panel send logic
- * directly by creating a test RICtlDef with bind=NONE and verifying
- * ri_panel_ctl_send refuses it. */
-    const struct RICtlDef *good = ri_ctlreg_find((RI_SEC_SYNTH1 << 8) | 2); /* Synth1 Cutoff */
-    RI_ASSERT(good != NULL, "known good row");
-
-    /* Create test-only broken row */
-    struct RICtlDef broken = *good;
-    broken.bind = RI_BIND_NONE;
-
-    /* Verify auto_id is 0 for bind=NONE */
-    uint16_t broken_key = ri_ctlreg_auto_id(&broken);
-    RI_ASSERT(broken_key == 0u, "broken row auto_id not 0: %04x", broken_key);
-
-    /* Test panel send directly with the broken row's reg_id.
-     * Since ri_ctlreg_find will return the original (good) row, we need to
-     * test the logic differently: verify that a control with key=0 is refused. */
-    struct RIEngine ea, eb;
-    fresh_engine(&ea);
-    fresh_engine(&eb);
-    struct RIEvent ev[8];
-    uint32_t seq = 0, nd;
-    struct RIControlPlane pl2;
-    ri_ctl_init(&pl2);
-
-    /* Send with key=0 directly (simulates bind=NONE) */
-    int send_rc = ri_ctl_send(&pl2, 0, good->max_v);
-    RI_ASSERT(send_rc != 0, "ri_ctl_send with key=0 not refused: rc=%d", send_rc);
-
-    nd = ri_ctl_drain(&pl2, ev, 8u, 0u, &seq);
-    RI_ASSERT(nd == 0u, "ri_ctl_drain returned events for key=0: %u", nd);
-
-    /* Engines should still be equal (DEAD) */
-    int dead = engines_equal(&ea, &eb);
-    RI_ASSERT(dead, "positive control: engines differed with key=0");
-    printf("  Positive control: key=0 correctly refused (DEAD)\n");
-
-    /* Also test a known-good control works (OK) */
-    uint16_t good_key = ri_ctlreg_auto_id(good);
-    RI_ASSERT(good_key != 0u, "good row auto_id is 0");
-    send_rc = ri_ctl_send(&pl2, good_key, good->max_v);
-    RI_ASSERT(send_rc == 0, "good row panel send refused: rc=%d", send_rc);
-    nd = ri_ctl_drain(&pl2, ev, 8u, 0u, &seq);
-    for (uint32_t q = 0; q < nd; q++)
-        ri_engine_apply_event(&ea, &ev[q]);
-    int ok = !engines_equal(&ea, &eb);
-    RI_ASSERT(ok, "positive control: good row not OK (engines equal)");
-    printf("  Positive control: good row %04x correctly OK\n", good->reg_id);
-
-    /* Test t224's four historical defects */
-    for (int defect = T224_FX_ENABLE_UNBOUND; defect <= T224_STRIP_MUTE; defect++) {
-        run_t224_defect_test(defect);
-    }
-
-    /* W3 Gate: check all verdicts against allowlist */
-    if (g_gate_mode) {
-        printf("  Running W3 gate check...\n");
-        int failures = 0;
-        for (uint32_t i = 0; i < g_census_n; i++) {
-            struct CensusRow *r = &g_census[i];
-            for (int d = 0; d < D_COUNT; d++) {
-                verdict_t v = r->verdicts[d];
-                if (v == V_OK || v == V_NA)
-                    continue;
-                if (!verdict_allowed(r->reg_id, d, v)) {
-                    printf("  GATE FAIL: %04x %s door=%s verdict=%s (not in allowlist)\n",
-                           r->reg_id, r->legend[0] ? r->legend : "", door_name(d), verdict_name(v));
-                    failures++;
+            if (tsv)
+                fprintf(tsv, "\t%s", k_verdict[v]);
+            if (is_bad(v)) {
+                nbad++;
+                if (!baseline_has(g_reg[i], d, v)) {
+                    printf("NEW %04x %s %s\n", g_reg[i], k_door[d], k_verdict[v]);
+                    nnew++;
                 }
             }
         }
-        if (failures > 0) {
-            printf("  W3 GATE FAILED: %d non-allowlisted bad verdicts\n", failures);
-            RI_ASSERT(0, "W3 gate failed with %d violations", failures);
-        }
-        printf("  W3 GATE PASSED: all bad verdicts are allowlisted\n");
+        if (tsv)
+            fprintf(tsv, "\n");
     }
-
-    /* Write outputs */
-    census_write_tsv();
-    census_write_summary();
-
+    if (tsv)
+        fclose(tsv);
+    for (i = 0; i < g_nbl; i++)
+        if (!g_bl[i].hit) {
+            printf("FIXED (remove from baseline) %04x %s %s\n", g_bl[i].reg,
+                k_door[g_bl[i].door], k_verdict[g_bl[i].verdict]);
+            nstale++;
+        }
+    if (getenv("RI_CENSUS_WRITE_BASELINE")) {
+        FILE *b = fopen(T243_DIR "/baseline.tsv", "w");
+        if (b) {
+            for (i = 0; i < g_n; i++)
+                for (d = 0; d < D_COUNT; d++)
+                    if (is_bad(g_v[i][d]))
+                        fprintf(b, "%04x\t%s\t%s\n", g_reg[i], k_door[d], k_verdict[g_v[i][d]]);
+            fclose(b);
+            printf("wrote %s\n", T243_DIR "/baseline.tsv");
+        }
+    }
+    for (d = 0; d < V_COUNT; d++)
+        printf("%-22s %u\n", k_verdict[d], count[d]);
+    printf("bad %d, new %d, fixed-but-listed %d, baseline %u\n", nbad, nnew, nstale, g_nbl);
+    RI_ASSERT(has_ok, "at least one row reads OK");
+    RI_ASSERT(nnew == 0, "%d bad verdicts are not in the baseline", nnew);
+    RI_ASSERT(nstale == 0, "%d baseline entries now read OK: remove them (ratchet)", nstale);
     RI_RESULT("wiring_census");
     return 0;
 }

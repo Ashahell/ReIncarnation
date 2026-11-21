@@ -53,3 +53,13 @@ The Dell boots from the USB stick (SYS: is the stick), so no mount needed.
 - **Mixed build** — engine/ at -O2, app+GUI at -O0 is mandatory (owner-approved 2026-10-04)
 - **Zero xruns** — RIAPP ran 12547 buffers with 0 xruns, render_max=54 us
 - **ATCPBIN survives reboot** — SYS:ATCPBIN via S:User-Startup, agent redials after reboot
+## Correction 2026-11-21 (advisor review)
+
+- **Why the Dell is v1:** since 2026-11-17 the Dell boots the ABIv1 SMP stick
+  (Kickstart 51.51). Before that it was the ABIv11 listening lane and ran v11
+  RIAPP builds by ear. "v11 binaries crash" describes the new stick, not a
+  property the Dell always had.
+- **ATCPBIN 126,816 B is false.** `SYS:ATCPBIN` on the Dell hashes
+  `ce7f188b…` (checked 2026-11-20); quote the sha, not this size.
+- The RIAPP size/hash/xrun figures above were not re-measured by the review;
+  the owner's confirmation on the v1 stick is "Window up, sound" (2026-11-20).

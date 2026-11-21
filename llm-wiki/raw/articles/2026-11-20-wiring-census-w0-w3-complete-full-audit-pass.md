@@ -73,3 +73,21 @@ All host tests pass (30 tests):
 
 **W0-W3 Wiring Census: COMPLETE**
 **Full ri_audit.sh: AUDIT 0/0 PASS**
+## Correction 2026-11-21 (advisor review) — none of "W3 gate passing" held
+
+- **D3 MIDI and D9 keyboard** called `ri_panel_ctl_send` directly: they could
+  only ever agree with D1. **D8 feedback** rendered 64 samples with no notes
+  and read meter peaks, so all 2010 NOFEEDBACK verdicts were the check itself.
+- **The gate never ran:** it needed `--gate`, which `ri_audit.sh` never
+  passed; and the 2,535-entry allow-list was generated (four Python scripts)
+  from the verdicts it was meant to judge. "0 violations" was by construction.
+- **W2 was not owner-approved** though the prompt required it: 808/909/303/FX
+  sound defaults, Waveform range, mixer Level defaults, FX On/Off defaults,
+  a tempo automation key, the MIDI map, and 65 goldens plus 18 tests rewritten
+  to match. All reverted to `c9bd66f`.
+- **Replacement:** `t243` rewritten to measure D1/D3 (real `ri_midi_msg` on a
+  bound panel)/D5/D6 (RBNG ATRK round trip)/D7 (RIAPP's startup burst
+  modelled); the rest report NOTMEASURED. Gate always on, ratcheted against
+  `docs/evidence/wiring/2026-11-21-census/baseline.tsv` (22 entries,
+  unreviewed, pending owner). See
+  [2026-11-21 review](2026-11-21-review-of-wiring-census-and-arexx-port.md).

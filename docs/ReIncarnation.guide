@@ -88,7 +88,7 @@
    OPENSONG <path> — open a song file.
    PLAY — start transport. Replies OK PLAYING.
    STOP — stop transport. Replies OK STOPPED.
-   EXPORTWAV <song> <wav> — offline render to WAV.
+   EXPORTWAV <song> <wav> — not in RIAPP (replies rc 20); use ri_render.
    SETRPPARAM <ctl> <val> — set control (ctl 0..65535, val 0..127).
  A malformed line replies ERROR and never hangs the sender.
 @endnode

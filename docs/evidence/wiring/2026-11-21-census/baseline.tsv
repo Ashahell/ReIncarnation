@@ -1,0 +1,25 @@
+# t243 wiring census baseline — UNREVIEWED, PENDING OWNER (2026-11-21).
+# A ratchet, not a judgement: every non-OK verdict the census measures today.
+# A new bad verdict fails the audit; a row fixed here must be removed.
+# Columns: reg_id  door  verdict. Regenerate: RI_CENSUS_WRITE_BASELINE=1
+# (writes $RI_TMP/run/t243/baseline.tsv for review; never in place).
+# Known meaning, as measured:
+#   12ce DEAD        Levi Seq Clear is a one-shot with no engine state.
+#   BINDNONE_UNEXPLAINED  808 tom/conga switches + Instrument Selection,
+#                    909 AC/BD Attack/SD Tone/Snappy/Flam/Instrument, Levi Lfo Step.
+0209	D1_PANEL	BINDNONE_UNEXPLAINED
+020c	D1_PANEL	BINDNONE_UNEXPLAINED
+020f	D1_PANEL	BINDNONE_UNEXPLAINED
+0211	D1_PANEL	BINDNONE_UNEXPLAINED
+0213	D1_PANEL	BINDNONE_UNEXPLAINED
+021b	D1_PANEL	BINDNONE_UNEXPLAINED
+0300	D1_PANEL	BINDNONE_UNEXPLAINED
+0303	D1_PANEL	BINDNONE_UNEXPLAINED
+0307	D1_PANEL	BINDNONE_UNEXPLAINED
+0308	D1_PANEL	BINDNONE_UNEXPLAINED
+031b	D1_PANEL	BINDNONE_UNEXPLAINED
+031c	D1_PANEL	BINDNONE_UNEXPLAINED
+031d	D1_PANEL	BINDNONE_UNEXPLAINED
+12ce	D1_PANEL	DEAD
+12ce	D5_AUTO	DEAD
+12d6	D1_PANEL	BINDNONE_UNEXPLAINED

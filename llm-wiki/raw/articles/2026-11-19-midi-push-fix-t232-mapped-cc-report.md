@@ -47,3 +47,15 @@ All 6 mixer Level faders (default=127) now report on first CC 127:
 ## Root cause analysis
 
 The G7 MIDI path (`cc()` in midimap.c) changes the PANEL only (lamp moves). The M4 Leviasynth path (`midi_drain` → `ri_ctl_send`) reaches the ENGINE. The G7 change was never pushed because `sync_values()` gates on per-canvas `MUIA_RSection_Changes`, and a MIDI message never goes through the canvas event handler. `s_panel.changes` is read only in `midi_drain` and only triggers redraw, not push.
+## Correction 2026-11-21 (advisor review) — this fix was reverted
+
+- The six failing CCs failed because the same work had changed the mixer/master
+  Level **registry default from 100 to 127** (unapproved). At the committed
+  default (100) a CC 127 changes the value and reports; t232 passes at
+  `c9bd66f` without any `last_cc_val` table. The "fix" repaired a regression
+  its own default change caused.
+- `last_cc_val` also changed the switch path to press+set and suppressed
+  repeated identical CCs — behaviour changes nobody asked for. Reverted with
+  the default change; `gui/midimap.[ch]` are back at `c9bd66f`.
+- The CC→row list above is wrong: CC 7 is MASTER Level `0800`; CC 11/14/17/20
+  are strips `0402/0502/0602/0702`; CC 109 is LEVI `1402`.

@@ -10,7 +10,8 @@
  *
  * The full port lifecycle:
  *   ri_arexx_port_create()  — creates REINCARNATION port, returns signal bit
- *   ri_arexx_port_drain()   — drains one message (GetMsg -> ri_arexx_handle -> ReplyMsg)
+ *   ri_arexx_port_drain()   — drains every queued message (GetMsg ->
+ *                             ri_arexx_handle -> ReplyMsg)
  *   ri_arexx_port_destroy() — cleans up, replies pending with rc 20
  *
  * DEFERRED no more: the MsgPort creation + RexxPort setup + WaitPort/GetMsg
@@ -67,7 +68,8 @@ int ri_arexx_port_create(const struct RIArexxEffects *effects) {
     }
     g_arexx_port->mp_Node.ln_Name = "REINCARNATION";
     g_arexx_port->mp_Node.ln_Type = NT_MSGPORT;
-    g_arexx_port->mp_Flags = PA_IGNORE;
+    /* mp_Flags stays PA_SIGNAL (CreateMsgPort): the signal is what wakes
+     * RIAPP's Wait(). PA_IGNORE here left every command unanswered. */
 
     Forbid();
     if (FindPort((CONST_STRPTR)"REINCARNATION")) {
@@ -85,33 +87,33 @@ int ri_arexx_port_create(const struct RIArexxEffects *effects) {
     return (int)g_arexx_port->mp_SigBit;
 }
 
-/* Drain one message from the port.
- * Returns 1 if a message was processed, 0 if queue empty, -1 on error. */
+/* Answer one RexxMsg. ARexx law (Zune application.c does the same): the
+ * command string is rm_Args[0]; rm_Result1 is the rc; rm_Result2 is an
+ * Argstring only when the sender asked (RXFF_RESULT) and rc is 0. */
+static void arexx_answer(struct RexxMsg *rxm) {
+    UBYTE reply[RIAREXX_REPLY_MAX + 1u];
+    const STRPTR line = rxm->rm_Args[0] ? (STRPTR)rxm->rm_Args[0] : (STRPTR)"";
+    LONG rc = ri_arexx_handle(line, reply, sizeof reply);
+    rxm->rm_Result1 = rc;
+    rxm->rm_Result2 = 0;
+    if (rc == 0 && (rxm->rm_Action & RXFF_RESULT))
+        rxm->rm_Result2 = (IPTR)CreateArgstring(reply, strlen((const char *)reply));
+}
+
+/* Drain every queued message (one signal can cover several).
+ * Returns the number answered, -1 when there is no port. */
 int ri_arexx_port_drain(void) {
-    struct RexxMsg *rxm = 0;
+    struct Message *m;
+    int n = 0;
     if (!g_arexx_port)
         return -1;
-
-    rxm = (struct RexxMsg *)GetMsg(g_arexx_port);
-    if (!rxm)
-        return 0;
-
-    UBYTE reply[RIAREXX_REPLY_MAX + 1u];
-    const STRPTR line = (rxm->rm_Args[0] && rxm->rm_Args[1])
-        ? (STRPTR)rxm->rm_Args[1] : (STRPTR)"";
-
-    ri_arexx_handle(line, reply, sizeof reply);
-
-    LONG rc = (LONG)strtol((const char *)reply, NULL, 10); /* rc is first token */
-    rxm->rm_Result1 = rc;
-    if (rc >= 0 && (rxm->rm_Action & RXFF_RESULT)) {
-        struct Argstring *as = (struct Argstring *)CreateArgstring(reply, strlen((const char *)reply));
-        if (as) {
-            rxm->rm_Result2 = (IPTR)as;
-        }
+    while ((m = GetMsg(g_arexx_port)) != NULL) {
+        if (IsRexxMsg((struct RexxMsg *)m))
+            arexx_answer((struct RexxMsg *)m);
+        ReplyMsg(m);
+        n++;
     }
-    ReplyMsg((struct Message *)rxm);
-    return 1;
+    return n;
 }
 
 /* Cleanup: reply pending messages with rc 20, remove port, close library. */
@@ -125,7 +127,10 @@ void ri_arexx_port_destroy(void) {
     Permit();
 
     while ((rxm = (struct RexxMsg *)GetMsg(g_arexx_port))) {
-        rxm->rm_Result1 = RIAREXX_RC_FAILED;
+        if (IsRexxMsg(rxm)) {
+            rxm->rm_Result1 = RIAREXX_RC_FAILED;
+            rxm->rm_Result2 = 0;
+        }
         ReplyMsg((struct Message *)rxm);
     }
     DeleteMsgPort(g_arexx_port);

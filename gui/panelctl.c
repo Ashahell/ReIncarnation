@@ -22,6 +22,13 @@ int ri_panel_ctl_send(struct RIControlPlane *ctl, uint16_t reg_id, int value) {
     key = ri_ctlreg_auto_id(d);
     if (key == 0u)
         return 1;
+    /* 303 Waveform (owner 2026-11-21): the panel switch is 0/1 but the
+     * engine reads the ReBirth CC law, square at >= 64 (params.c), so the
+     * switch never changed the waveform. Send the switch as 0/127; the
+     * registry range and the panel value stay 0..1. Recording sits after
+     * this bridge (live.c), so lanes record 0/127 too. */
+    if (d->bind == RI_BIND_303 && d->kind == RI_CK_SWITCH && d->max_v == 1)
+        v = v ? 127u : 0u;
     return (ri_ctl_send(ctl, key, v) == 0) ? 0 : 1;
 }
 

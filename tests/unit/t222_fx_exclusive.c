@@ -135,14 +135,8 @@ int main(void) {
      * quietly wrote a private 1 would be reported there as an enabled FX.
      * mutate_fx_exclusive m7 survives the reads above and dies on this one
      * -- the harness found it, not me. */
-    RI_ASSERT(ri_sui_value(&unbound, RI_SFX_ONOFF) == 0,
-        "an unbound canvas writes nothing to rack-derived state");
-    /* TODO: The internal val[RI_SFX_ONOFF] may be modified by the press
-     * handler even for unbound canvases (pre-existing bug, not critical
-     * since external ri_sfx_value correctly returns 0). The comment
-     * "an unbound canvas writes nothing (sectproof serialises this slot)"
-     * refers to serialization behavior; the internal val[] may be updated
-     * but the rack-derived ON/OFF state remains correct. */
+    RI_ASSERT(unbound.u.fx.val[RI_SFX_ONOFF] == 0,
+        "an unbound canvas writes nothing (sectproof serialises this slot)");
 
     /* ---------- ENGINE: exclusivity + engage ---------- */
     ri_engine_init(&e);
