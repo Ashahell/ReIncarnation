@@ -20,6 +20,12 @@
  * Anything else fails and is named. The live-slot count is pinned, so a
  * page that loses its encoders is a failure too.
  *
+ * KEY OWNERSHIP (2026-11-21): no two modules may send the same key unless
+ * one is a deliberate mirror -- a GROUP page (one op parameter across all
+ * oscillators, so it repeats OSC n's keys), ALGORITHM's DIRECT and VCA's
+ * DFILT LVL. "Moves the engine" alone missed RI_LEVI_LFOKEY OR-ing 0xA0
+ * with l<<4: LFO 3/4 wrote LFO 1/2, which moved the engine just fine.
+ *
  * Not measured here: whether a delivered change is AUDIBLE (the 2026-10-08
  * advisor harness, docs/evidence/levi-wiring/, renders that; silence in a
  * two-note render is not proof of a bug).
@@ -166,9 +172,39 @@ static int clear_exception(uint16_t key) {
     return EA.slevi.seq_t1[0].note[0] == 255u && EA.slevi.seq_macro[0][0] == 0u;
 }
 
+/* Key ownership: first module seen per key. */
+static uint16_t g_key[2048];
+static uint8_t g_mod[2048];
+static char g_who[2048][48];
+static uint32_t g_nk;
+
+static int mirror(const char *title, uint16_t key) {
+    return !strncmp(title, "GROUP:", 6) || key == 0x0F0Au /* ALGORITHM DIRECT = OSC 1 DIRECT */ ||
+        key == 0x0E3Eu /* VCA DFILT LVL = DIGITAL FILTER DFILT LVL */;
+}
+
+/* 1 when the key is owned by another module (and neither side mirrors). */
+static int key_clash(uint32_t m, const char *title, const char *nm, uint16_t key) {
+    uint32_t i;
+    for (i = 0; i < g_nk; i++)
+        if (g_key[i] == key && g_mod[i] != m) {
+            if (mirror(title, key) || mirror(g_who[i], key))
+                return 0;
+            printf("CLASH   %04x: %s/%s and %s\n", key, title, nm, g_who[i]);
+            return 1;
+        }
+    if (g_nk < sizeof g_key / sizeof g_key[0]) {
+        g_key[g_nk] = key;
+        g_mod[g_nk] = (uint8_t)m;
+        snprintf(g_who[g_nk], sizeof g_who[0], "%s/%s", title, nm);
+        g_nk++;
+    }
+    return 0;
+}
+
 int main(void) {
     uint32_t m, pg, k, np;
-    uint32_t live = 0, ok = 0, x_step = 0, x_ramp = 0, x_param = 0, x_clear = 0, bad = 0;
+    uint32_t live = 0, ok = 0, x_step = 0, x_ramp = 0, x_param = 0, x_clear = 0, bad = 0, clash = 0;
     for (m = 0; m < RI_SLEVI_NMOD; m++) {
         struct RISectLevi p;
         open_page(&p, m, 0);
@@ -203,6 +239,8 @@ int main(void) {
                     bad++;
                     continue;
                 }
+                if (resolve(&q, RI_SLEVI_ENC0 + k, &key, &kv))
+                    clash += (uint32_t)key_clash(m, title, ri_slevi_enc_name(&q, k), key);
                 if (!resolve(&q, RI_SLEVI_ENC0 + k, &key, &kv)) {
                     printf("NOKEY   %-22s slot %u %s\n", title, k + 1u, ri_slevi_enc_name(&q, k));
                     bad++;
@@ -229,6 +267,9 @@ int main(void) {
     printf("live %u: ok %u, step-edit %u, ramp %u, clear %u, param %u, bad %u\n", live, ok,
         x_step, x_ramp, x_clear, x_param, bad);
     RI_ASSERT(live == T244_LIVE_SLOTS, "live encoder slots %u, pinned %u", live, T244_LIVE_SLOTS);
+    RI_ASSERT(clash == 0u, "%u encoder keys owned by two modules", clash);
+    RI_ASSERT(key_clash(250u, "CONTROL", "x", 0x7777u) == 0 && key_clash(251u, "CONTROL2", "y", 0x7777u) == 1,
+        "control: a shared non-mirror key reads CLASH");
     RI_ASSERT(bad == 0u, "%u encoder slots do not reach the engine", bad);
     RI_ASSERT(x_step == 10u, "step-edit gates %u (5 LFOs x 2 pages)", x_step);
     RI_ASSERT(x_ramp == 5u, "RAMP actions %u (one per LFO)", x_ramp);

@@ -732,7 +732,10 @@ typedef char ri_levi_ctrl_n_pow2[(RI_LEVI_CTRL_N & (RI_LEVI_CTRL_N - 1u)) == 0u 
 #define RI_LEVI_MRKEY(m, r, f) ((uint16_t)(0x1200u | ((uint32_t)(m) << 5) | ((uint32_t)(r) << 2) | (uint32_t)(f)))
 /* Mod envelope / LFO params (block 0x10, P5). */
 #define RI_LEVI_MEKEY(e, p) ((uint16_t)(0x1000u | ((uint32_t)(e) << 5) | (uint32_t)(p)))
-#define RI_LEVI_LFOKEY(l, p) ((uint16_t)(0x10A0u | ((uint32_t)(l) << 4) | (uint32_t)(p)))
+/* LFO l at 0x10A0 + l*16 (A0 B0 C0 D0 E0), the layout the engine and
+ * ri_auto_allowed decode. ADD, not OR: 0xA0 has bit 5 set, so an OR folded
+ * LFO 3/4 onto LFO 1/2 (2026-11-21, found by the audible sweep). */
+#define RI_LEVI_LFOKEY(l, p) ((uint16_t)(0x10A0u + ((uint32_t)(l) << 4) + (uint32_t)(p)))
 /* LFO step editor (fidelity P8e): a cursor, a value at the cursor and a
  * ramp gate, so a recorded edit stays small. LFO 1-4 live at 0x1300 with
  * (lfo << 2 | field) because 0x12xx macro routes (MRKEY) spill through
