@@ -70,9 +70,19 @@ the rexxsyslib protos in the v1 SDK. Found and fixed:
   re-reads every frame — TEMPO was reverted on the next frame. Now they press
   / set the panel.
 
-**Not lane-proven:** there is no ARexx interpreter on the v1 stick (`rx`:
-"Could not start RexxMast"). X3 needs RexxMast (Regina is in AROS contrib)
-or a small RexxMsg sender.
+**Lane-proven 2026-11-21 (Dell, v1 SMP stick, RIAPP `d2ec8c7`).** RexxMast
+built from upstream AROS contrib (`regina/`, HEAD `142b3ff`) with
+`make contrib-regina` in `src/abi/v1/core-smp` (Vulkan4Aros; contrib copied
+into the git-ignored `AROS/contrib`). Deployed to RAM only: `RAM:RexxMast`,
+`RAM:Libs/regina.library` + `Assign LIBS: RAM:Libs ADD` (gone after a
+reboot). `SYS:Rexxc/RX` against port REINCARNATION:
+- `STATUS` → rc 0 `OK STATUS STOPPED 120 loaded`
+- `GETCTL 2` → `OK VALUE 2 96`; `SETRPPARAM 2 40` → `OK PARAM 2 40`; then
+  `GETCTL 2` → `OK VALUE 2 40` (the panel model moved, not only the engine)
+- `TEMPO 130`, 1 s later `STATUS` still 130 (the panel no longer reverts it)
+- `BOGUS` → rc 10; `EXPORTWAV a b` → rc 20
+- Zune's own `RIAPP.1` port does not exist (`WaitForPort` rc 5); REINCARNATION
+  does. PLAY/STOP/OPENSONG not exercised; no ear check.
 
 ## Verified
 
